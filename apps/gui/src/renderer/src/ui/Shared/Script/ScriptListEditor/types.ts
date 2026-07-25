@@ -192,4 +192,29 @@ export interface SortableScriptRowProps {
    * When true, keeps the editor expanded and hides the collapse toggle.
    */
   forceExpanded?: boolean;
+
+  /**
+   * Optional 1-based line to reveal when opening from a test failure.
+   */
+  revealLine?: number;
+
+  /**
+   * Optional 1-based column for the reveal selection.
+   */
+  revealColumn?: number;
+
+  /**
+   * Assertion failure or script error message shown as a CodeMirror error underline.
+   */
+  revealMessage?: string;
+
+  /**
+   * Marker origin: `test` for assertion failures, `script` for runtime/compile errors.
+   */
+  revealSource?: 'test' | 'script';
+
+  /**
+   * Changes whenever a new reveal is requested so the editor remounts.
+   */
+  revealNonce?: number;
 }

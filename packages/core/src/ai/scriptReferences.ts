@@ -284,6 +284,117 @@ export interface RequestBodySelectionSnapshot {
 }
 
 /**
+ * Snapshot of request-script source captured when the user copies a selection to chat.
+ *
+ * Stored so send-time context expansion does not depend on the active request tab still
+ * matching the `@` reference (for example after the user switches tabs).
+ */
+export interface ScriptSelectionSnapshot {
+  /**
+   * Display name of the script row at capture time.
+   */
+  scriptLabel: string;
+
+  /**
+   * Script phase at capture time.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * 1-based script index within the phase array at capture time.
+   */
+  scriptIndex: number;
+
+  /**
+   * Saved request id or `active` at capture time.
+   */
+  requestId: number | 'active';
+
+  /**
+   * Full script source text at capture time.
+   */
+  source: string;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Start offset in the script source.
+   */
+  startOffset: number;
+
+  /**
+   * End offset in the script source.
+   */
+  endOffset: number;
+
+  /**
+   * 1-based start line of the selection in the script source.
+   */
+  startLine: number;
+
+  /**
+   * 1-based end line of the selection in the script source.
+   */
+  endLine: number;
+
+  /**
+   * Last-run failure for this script slot when Copy to chat captured one.
+   *
+   * Populated from the newest matching console/test diagnostics so the agent
+   * can see the actual error without a separate tool round-trip.
+   */
+  lastRunFailure?: ScriptSelectionLastRunFailure;
+}
+
+/**
+ * Last-run script failure attached to a Copy-to-chat script selection snapshot.
+ */
+export interface ScriptSelectionLastRunFailure {
+  /**
+   * Whether the failure came from a script abort or a failed hc.test row.
+   */
+  kind: 'script-error' | 'test-failure';
+
+  /**
+   * Primary error / assertion message shown to the user.
+   */
+  message: string;
+
+  /**
+   * Failed hc.test name when kind is test-failure.
+   */
+  testName?: string;
+
+  /**
+   * Chai expected value when present.
+   */
+  expected?: string;
+
+  /**
+   * Chai actual value when present.
+   */
+  actual?: string;
+
+  /**
+   * Mapped original file from the compile sourcemap.
+   */
+  source?: string;
+
+  /**
+   * 1-based mapped line of the failure.
+   */
+  line?: number;
+
+  /**
+   * 1-based mapped column of the failure.
+   */
+  column?: number;
+}
+
+/**
  * A parsed `@` script reference with character offsets in the source text.
  */
 export type ParsedAiScriptReference =
@@ -349,6 +460,11 @@ export interface AiScriptReferenceValidationContext {
    * Raw-body selection snapshots keyed by the full `@body` reference token.
    */
   requestBodySelections?: Record<string, RequestBodySelectionSnapshot>;
+
+  /**
+   * Request-script selection snapshots keyed by the full `@` script reference token.
+   */
+  scriptSelections?: Record<string, ScriptSelectionSnapshot>;
 
   /**
    * Collection display names keyed by uuid for `@collection` badge resolution.
@@ -674,6 +790,11 @@ export function isValidAiScriptReference(
     return context.requestNamesByUuid?.[reference.requestUuid] != null;
   }
 
+  // request-script kind below
+  if (reference.selection != null && context.scriptSelections?.[reference.text] != null) {
+    return true;
+  }
+
   if (!context.hasActiveRequestTab) {
     return false;
   }
@@ -753,17 +874,26 @@ export function resolveAiScriptReferenceName(
     return name != null ? `Request: ${name}` : null;
   }
 
-  const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
-  if (scripts == null) {
-    return null;
+  if (reference.kind === 'request-script') {
+    const snapshot = context.scriptSelections?.[reference.text];
+    if (snapshot != null) {
+      return snapshot.scriptLabel;
+    }
+
+    const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
+    if (scripts == null) {
+      return null;
+    }
+
+    const script = scripts[reference.scriptIndex - 1];
+    if (script == null) {
+      return null;
+    }
+
+    return scriptReferenceDisplayName(script, context.snippets ?? []);
   }
 
-  const script = scripts[reference.scriptIndex - 1];
-  if (script == null) {
-    return null;
-  }
-
-  return scriptReferenceDisplayName(script, context.snippets ?? []);
+  return null;
 }
 
 /**
@@ -921,6 +1051,13 @@ export function resolveAiScriptReferenceLabel(
     return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
   }
 
+  if (reference.kind === 'request-script' && reference.selection != null) {
+    const snapshot = context.scriptSelections?.[reference.text];
+    if (snapshot != null) {
+      return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+    }
+  }
+
   if (reference.selection == null) {
     return name;
   }
@@ -1074,6 +1211,82 @@ function formatRequestBodySelectionContextBlock(
   ].join('\n');
 }
 
+/**
+ * Formats one request-script selection from a click-time snapshot for the agent context block.
+ *
+ * @param reference - Parsed request-script reference with a character-range suffix.
+ * @param snapshot - Captured script source and selection from Copy to chat.
+ * @returns Context block with full source and selected text.
+ */
+function formatScriptSelectionSnapshotContextBlock(
+  reference: ParsedRequestScriptReference,
+  snapshot: ScriptSelectionSnapshot
+): string {
+  const phaseLabel = snapshot.phase === 'pre' ? 'pre-request' : 'post-request';
+  const requestLabel =
+    snapshot.requestId === 'active'
+      ? 'of the active request'
+      : `of request id ${snapshot.requestId}`;
+  const lineSpan =
+    snapshot.startLine === snapshot.endLine
+      ? `line ${snapshot.startLine}`
+      : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+  const lines = [
+    `Reference ${reference.text} — script "${snapshot.scriptLabel}" (${phaseLabel} script ${snapshot.scriptIndex} ${requestLabel}).`,
+    'Full script source:',
+    '```js',
+    snapshot.source,
+    '```',
+    `Selected text (characters ${snapshot.startOffset}–${snapshot.endOffset}, ${lineSpan}):`,
+    '```js',
+    snapshot.selectedText,
+    '```'
+  ];
+
+  if (snapshot.lastRunFailure) {
+    lines.push(...formatScriptSelectionLastRunFailureBlock(snapshot.lastRunFailure));
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats a last-run failure section for an @ script selection context block.
+ *
+ * @param failure - Captured script error or failed test for the selected slot.
+ * @returns Context lines describing the failure for the agent.
+ */
+function formatScriptSelectionLastRunFailureBlock(
+  failure: ScriptSelectionLastRunFailure
+): string[] {
+  const kindLabel =
+    failure.kind === 'test-failure' ? 'Failed hc.test result' : 'Script runtime error';
+  const lines = ['Last run error:', `${kindLabel}: ${failure.message}`];
+  if (failure.testName) {
+    lines.push(`Test name: ${failure.testName}`);
+  }
+  if (failure.expected != null || failure.actual != null) {
+    const parts: string[] = [];
+    if (failure.expected != null) {
+      parts.push(`expected ${failure.expected}`);
+    }
+    if (failure.actual != null) {
+      parts.push(`got ${failure.actual}`);
+    }
+    lines.push(parts.join(', '));
+  }
+  if (failure.line != null) {
+    const source = failure.source?.trim() || 'script.js';
+    const location =
+      failure.column != null
+        ? `${source}:${failure.line}:${failure.column}`
+        : `${source}:${failure.line}`;
+    lines.push(`Location: ${location}`);
+  }
+  return lines;
+}
+
 function formatScriptSelectionContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
@@ -1092,6 +1305,13 @@ function formatScriptSelectionContextBlock(
 
   if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
     return null;
+  }
+
+  if (reference.kind === 'request-script') {
+    const snapshot = context.scriptSelections?.[reference.text];
+    if (snapshot != null) {
+      return formatScriptSelectionSnapshotContextBlock(reference, snapshot);
+    }
   }
 
   const source = resolveReferenceSourceCode(reference, context);
@@ -1336,8 +1556,8 @@ export function buildAiScriptSelectionContextMessage(
   if (resolved.some((entry) => entry.reference.kind === 'request-script')) {
     footerParts.push(
       hasScriptSelection
-        ? 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the reference, and respect the #start.end character offsets from the @ tag.'
-        : 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the @ reference.'
+        ? 'To edit only the selected region, call update_request_script with mode "replace_range", startOffset/endOffset from the @ #start.end tag, and code set to the replacement text only. Do not remove code outside the selection (other hc.test blocks, comments, or statements must stay). When using mode "replace", code must be the entire script with all unchanged lines preserved.'
+        : 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the @ reference. Prefer mode "replace_range" for localized fixes; if using mode "replace", code must be the entire script — never overwrite with only a fixed snippet.'
     );
   }
 

@@ -357,6 +357,7 @@ const tabsSlice = createSlice({
         tab.scriptLogs = reconciled.scriptLogs;
         tab.executionEvents = reconciled.executionEvents;
         tab.scriptError = reconciled.scriptError;
+        tab.scriptErrors = reconciled.scriptErrors;
       }
       closeMatchingTabs(state, tabsToClose);
     },
@@ -408,6 +409,7 @@ const tabsSlice = createSlice({
         existing.scriptLogs = [];
         existing.executionEvents = [];
         existing.scriptError = undefined;
+        existing.scriptErrors = undefined;
         return;
       }
 
@@ -425,6 +427,19 @@ const tabsSlice = createSlice({
       const tab = state.tabs.find((t) => t.tabId === tabId);
       if (tab && isRequestTab(tab)) {
         Object.assign(tab, updates);
+      }
+    },
+    /**
+     * Stores the selected response viewer sub-tab on a request tab.
+     *
+     * Survives ResponseEditor unmount when a script-editor page tab is opened
+     * from a test result.
+     */
+    setResponseViewerTab(state, action: PayloadAction<{ tabId: string; tab: string }>) {
+      const { tabId, tab: viewerTab } = action.payload;
+      const requestTab = state.tabs.find((t) => t.tabId === tabId);
+      if (requestTab && isRequestTab(requestTab)) {
+        requestTab.responseViewerTab = viewerTab;
       }
     },
     /**
@@ -565,6 +580,7 @@ export const {
   updateMarkdownContent,
   markMarkdownSaved,
   updateTab,
+  setResponseViewerTab,
   openTabWithDraft,
   closeTabsForRequest,
   closeTabsForDocument,

@@ -1,6 +1,11 @@
 import { Breadcrumb } from '@harborclient/sdk/components';
 import { useCallback, type JSX } from 'react';
-import type { KeyValue, Variable } from '@harborclient/core/types';
+import type {
+  KeyValue,
+  ScriptRunError,
+  ScriptTestResult,
+  Variable
+} from '@harborclient/core/types';
 import { applyParamsToUrl, mergeParamsFromUrl } from '@harborclient/core/queryParams';
 
 import type { RequestTabContext } from '@harborclient/core/plugin/types';
@@ -90,6 +95,16 @@ interface Props {
    * Called when the folder breadcrumb segment is clicked.
    */
   onFolderClick?: () => void;
+
+  /**
+   * hc.test results from the last send; used for inline script failure markers.
+   */
+  testResults?: ScriptTestResult[];
+
+  /**
+   * Structured script failures from the last send; used for inline script error markers.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -111,7 +126,9 @@ export function Editor({
   folderName,
   onEditVariables,
   onCollectionClick,
-  onFolderClick
+  onFolderClick,
+  testResults,
+  scriptErrors
 }: Props): JSX.Element {
   /**
    * Merges a partial update into the current draft.
@@ -187,6 +204,8 @@ export function Editor({
         onParamsChange={handleParamsChange}
         variables={variables}
         onEditVariables={onEditVariables}
+        testResults={testResults}
+        scriptErrors={scriptErrors}
       />
     </div>
   );

@@ -243,6 +243,7 @@ export function buildScriptSlots(
         collectionPreScripts,
         collectionPreLegacy,
         'pre',
+        'collection',
         'Collection pre-request',
         snippetLookup
       ),
@@ -250,6 +251,7 @@ export function buildScriptSlots(
         folderPreScripts,
         folderPreLegacy,
         'pre',
+        'folder',
         'Folder pre-request',
         snippetLookup
       ),
@@ -257,6 +259,7 @@ export function buildScriptSlots(
         requestPreScripts,
         requestPreLegacy,
         'pre',
+        'request',
         'Request pre-request',
         snippetLookup
       )
@@ -268,6 +271,7 @@ export function buildScriptSlots(
       collectionPostScripts,
       collectionPostLegacy,
       'post',
+      'collection',
       'Collection post-request',
       snippetLookup
     ),
@@ -275,6 +279,7 @@ export function buildScriptSlots(
       folderPostScripts,
       folderPostLegacy,
       'post',
+      'folder',
       'Folder post-request',
       snippetLookup
     ),
@@ -282,6 +287,7 @@ export function buildScriptSlots(
       requestPostScripts,
       requestPostLegacy,
       'post',
+      'request',
       'Request post-request',
       snippetLookup
     )

@@ -62,6 +62,8 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
           tests={entry.tests}
           executionEvents={entry.executionEvents}
           scriptError={entry.scriptError}
+          scriptErrors={entry.scriptErrors}
+          requestTabId={entry.requestTabId}
         />
       </div>
     </div>

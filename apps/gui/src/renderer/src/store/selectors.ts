@@ -12,10 +12,17 @@ import {
 import type {
   Environment,
   ScriptExecutionEvent,
+  ScriptRunError,
   ScriptTestResult,
   SendResult,
   Snippet
 } from '@harborclient/core/types';
+
+/**
+ * Stable empty array so {@link selectScriptErrors} does not return a fresh
+ * reference on every call when the tab has no failures.
+ */
+const EMPTY_SCRIPT_ERRORS: ScriptRunError[] = [];
 
 /**
  * Returns all collections.
@@ -264,6 +271,17 @@ export const selectScriptError = (state: RootState): string | undefined => {
     return tab.scriptError;
   }
   return undefined;
+};
+
+/**
+ * Returns structured script failures for the active request tab.
+ */
+export const selectScriptErrors = (state: RootState): ScriptRunError[] => {
+  const tab = selectActiveTab(state);
+  if (tab && isRequestTab(tab)) {
+    return tab.scriptErrors ?? EMPTY_SCRIPT_ERRORS;
+  }
+  return EMPTY_SCRIPT_ERRORS;
 };
 
 /**

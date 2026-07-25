@@ -270,7 +270,11 @@ describe('buildScriptSlots', () => {
 
     expect(slots).toHaveLength(2);
     expect(slots[0]?.source).toBe('collection inline');
+    expect(slots[0]?.scope).toBe('collection');
+    expect(slots[0]?.scriptId).toBeTruthy();
     expect(slots[1]?.source).toBe("hc.request.variables.set('token', 'live');");
+    expect(slots[1]?.scope).toBe('request');
+    expect(slots[1]?.kind).toBe('snippet');
   });
 
   it('filters empty scripts', () => {

@@ -14,6 +14,8 @@ import { getCollectionTool } from './getCollection';
 import { getFolderTool } from './getFolder';
 import { getMarkdownDocumentTool } from './getMarkdownDocument';
 import { getRequestTool } from './getRequest';
+import { getScriptRunDiagnosticsTool } from './getScriptRunDiagnostics';
+import { getScriptingApiReferenceTool } from './getScriptingApiReference';
 import { getSelectedCollectionTool } from './getSelectedCollection';
 import { getSidebarRequestTool } from './getSidebarRequest';
 import { gitCommitsTool } from './gitCommits';
@@ -46,6 +48,7 @@ export type { CreateRequestToolArgs } from './createRequest';
 export type { GetActiveResponseToolArgs } from './getActiveResponse';
 export type { GetActiveTerminalLinesToolArgs } from './getActiveTerminalLines';
 export type { GetMarkdownDocumentToolArgs } from './getMarkdownDocument';
+export type { GetScriptRunDiagnosticsToolArgs } from './getScriptRunDiagnostics';
 export type { GitCommitsToolArgs } from './gitCommits';
 export type { GitDiffToolArgs } from './gitDiff';
 export type { GitFileDiffToolArgs } from './gitFileDiff';
@@ -87,6 +90,8 @@ export const AI_TOOLS = [
   createFolderTool,
   createRequestTool,
   searchDocsTool,
+  getScriptRunDiagnosticsTool,
+  getScriptingApiReferenceTool,
   getActiveTerminalTool,
   getActiveTerminalLinesTool,
   terminalExecTool,

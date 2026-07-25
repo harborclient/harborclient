@@ -44,7 +44,8 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const requestTab = tabs.find((entry) => entry.tabId === page.requestTabId);
-  const draft = requestTab && isRequestTab(requestTab) ? requestTab.draft : null;
+  const linkedRequestTab = requestTab && isRequestTab(requestTab) ? requestTab : null;
+  const draft = linkedRequestTab?.draft ?? null;
   const activeFolderId = useMemo(() => {
     if (draft?.collection_id == null) return null;
     return draft.folder_id ?? null;
@@ -154,6 +155,13 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
       <ScriptListEditor
         variant="single"
         focusScriptId={page.scriptId}
+        revealLine={page.revealLine}
+        revealColumn={page.revealColumn}
+        revealMessage={page.revealMessage}
+        revealSource={page.revealSource}
+        revealNonce={page.revealNonce}
+        testResults={linkedRequestTab?.testResults}
+        scriptErrors={linkedRequestTab?.scriptErrors ?? []}
         phase={page.phase}
         scripts={scripts}
         requestId={draft.id}

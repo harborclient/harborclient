@@ -89,7 +89,7 @@ describe('formatHttpResponseForAgent', () => {
     expect(result.status).toBe(200);
     expect(result.headers).toEqual({ 'content-type': 'application/json' });
     expect(result.timeMs).toBe(42);
-    expect(result.tests).toEqual([{ name: 'pass', passed: true }]);
+    expect(result.tests).toEqual([expect.objectContaining({ name: 'pass', passed: true })]);
   });
 });
 

@@ -41,9 +41,9 @@ describe('hc.expect via Chai in script sandbox', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'status is 200', passed: true },
-      { name: 'body has ok', passed: true },
-      { name: 'body text includes ok', passed: true }
+      expect.objectContaining({ name: 'status is 200', passed: true }),
+      expect.objectContaining({ name: 'body has ok', passed: true }),
+      expect.objectContaining({ name: 'body text includes ok', passed: true })
     ]);
   });
 
@@ -58,7 +58,9 @@ describe('hc.expect via Chai in script sandbox', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'deep equal ignores key order', passed: true }]);
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'deep equal ignores key order', passed: true })
+    ]);
   });
 
   it('supports .to.be.oneOf and .to.be.a type checks', async () => {
@@ -76,8 +78,8 @@ describe('hc.expect via Chai in script sandbox', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'status is one of allowed codes', passed: true },
-      { name: 'status text is a string', passed: true }
+      expect.objectContaining({ name: 'status is one of allowed codes', passed: true }),
+      expect.objectContaining({ name: 'status text is a string', passed: true })
     ]);
   });
 
@@ -92,7 +94,9 @@ describe('hc.expect via Chai in script sandbox', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'items include a', passed: true }]);
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'items include a', passed: true })
+    ]);
   });
 
   it('supports custom failure messages via hc.expect(actual, message)', async () => {
@@ -139,7 +143,9 @@ describe('hc.expect via Chai in script sandbox', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'response code is ok', passed: true }]);
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'response code is ok', passed: true })
+    ]);
   });
 
   it('supports callable property assertions with trailing parentheses', async () => {
@@ -188,6 +194,88 @@ describe('hc.expect via Chai in script sandbox', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'body has ok property', passed: true }]);
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'body has ok property', passed: true })
+    ]);
+  });
+
+  it('runs .to.be.ok at top level without aborting the script', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `hc.expect(true).to.be.ok;`
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toEqual([]);
+  });
+
+  it('runs .to.be.ok() at top level without aborting the script', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `hc.expect(true).to.be.ok();`
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toEqual([]);
+  });
+
+  it('runs .to.be.ok inside hc.test as a passing test', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `
+        hc.test('truthy ok property', function() {
+          hc.expect(true).to.be.ok;
+        });
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'truthy ok property', passed: true })
+    ]);
+  });
+
+  it('runs .to.be.ok() inside hc.test as a passing test', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `
+        hc.test('truthy ok callable', function() {
+          hc.expect(true).to.be.ok();
+        });
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'truthy ok callable', passed: true })
+    ]);
+  });
+
+  it('routes a failing top-level assertion to result.error instead of a test row', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `hc.expect(false).to.be.ok;`
+    });
+
+    expect(result.tests).toEqual([]);
+    expect(result.error).toBeTruthy();
+    expect(result.error).toMatch(/expected false to be truthy/i);
+    expect(result.error).toContain('Tip: wrap assertions in hc.test');
+  });
+
+  it('routes a failing assertion inside hc.test to a failed test row', async () => {
+    const result = await evaluateScript({
+      ...basePostInput,
+      script: `
+        hc.test('should fail', function() {
+          hc.expect(false).to.be.ok;
+        });
+      `
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.tests).toHaveLength(1);
+    expect(result.tests[0]?.passed).toBe(false);
+    expect(result.tests[0]?.error).toMatch(/expected false to be truthy/i);
   });
 });

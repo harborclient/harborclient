@@ -12,6 +12,7 @@ import {
   normalizeScriptRefs,
   normalizeScriptRefsForCompare,
   readScriptRefsFromJson,
+  remintScriptRefIds,
   resolveScriptRefs,
   scriptAutoNameFromCode,
   UNNAMED_SCRIPT_NAME
@@ -280,5 +281,29 @@ describe('createScriptRefFromClipboard', () => {
         snippets
       )
     ).toBeNull();
+  });
+});
+
+describe('remintScriptRefIds', () => {
+  it('assigns new ids while preserving script payloads', () => {
+    const inline = createInlineScriptRef('hc.expect(1).to.equal(1);', 'Assert');
+    const snippet = createSnippetScriptRef('snippet-uuid', 'Auth helper');
+    const reminted = remintScriptRefIds([inline, snippet]);
+
+    expect(reminted).toHaveLength(2);
+    expect(reminted[0]).toMatchObject({
+      kind: 'inline',
+      code: inline.code,
+      name: inline.name,
+      enabled: true
+    });
+    expect(reminted[0]?.id).not.toBe(inline.id);
+    expect(reminted[1]).toMatchObject({
+      kind: 'snippet',
+      snippetUuid: 'snippet-uuid',
+      name: 'Auth helper'
+    });
+    expect(reminted[1]?.id).not.toBe(snippet.id);
+    expect(new Set(reminted.map((ref) => ref.id)).size).toBe(2);
   });
 });

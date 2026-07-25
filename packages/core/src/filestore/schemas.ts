@@ -571,6 +571,15 @@ const scriptTestResultRow = z.object({
   name: z.string(),
   passed: z.boolean(),
   error: z.string().optional(),
+  expected: z.string().optional(),
+  actual: z.string().optional(),
+  source: z.string().optional(),
+  line: z.number().int().positive().optional(),
+  column: z.number().int().positive().optional(),
+  durationMs: z.number().nonnegative().optional(),
+  scriptId: z.string().optional(),
+  phase: z.enum(['pre', 'post']).optional(),
+  scope: z.enum(['collection', 'folder', 'request']).optional(),
   scriptName: z.string().optional()
 }) satisfies z.ZodType<ScriptTestResult>;
 

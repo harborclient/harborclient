@@ -9,6 +9,7 @@ import type {
   ScriptRunResult,
   ScriptTestResult,
   ScriptExecutionEvent,
+  ScriptRunError,
   SendResult
 } from '@harborclient/core/types';
 import { defaultAuth } from '@harborclient/core/auth';
@@ -38,7 +39,8 @@ import {
   autoNameUnnamedScripts,
   mergeScriptRefsUiState,
   mirrorLegacyScriptString,
-  normalizeScriptRefs
+  normalizeScriptRefs,
+  remintScriptRefIds
 } from '@harborclient/core/scriptRefs';
 import { migrateScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { buildScriptRunInfo } from '@harborclient/core/types/script';
@@ -398,6 +400,9 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
     const siblings = requests.filter((r) => (r.folder_id ?? null) === folderId);
     const sourceIndex = siblings.findIndex((r) => r.id === req.id);
 
+    const preRequestScripts = remintScriptRefIds(req.pre_request_scripts ?? []);
+    const postRequestScripts = remintScriptRefIds(req.post_request_scripts ?? []);
+
     const saved = await window.api.saveRequest({
       collection_id: req.collection_id,
       folder_id: folderId,
@@ -410,10 +415,10 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
       body_type: req.body_type,
       body_raw: req.body_raw ?? null,
       body_raw_open: req.body_raw_open === true,
-      pre_request_script: req.pre_request_script ?? '',
-      post_request_script: req.post_request_script ?? '',
-      pre_request_scripts: req.pre_request_scripts ?? [],
-      post_request_scripts: req.post_request_scripts ?? [],
+      pre_request_script: mirrorLegacyScriptString(preRequestScripts),
+      post_request_script: mirrorLegacyScriptString(postRequestScripts),
+      pre_request_scripts: preRequestScripts,
+      post_request_scripts: postRequestScripts,
       comment: req.comment ?? '',
       tags: req.tags ?? '',
       auth: req.auth,
@@ -497,6 +502,11 @@ export interface RequestRunOutcome {
    */
   scriptError?: string;
   /**
+   * Structured script failures with slot metadata and mapped locations,
+   * used for in-editor error reveal.
+   */
+  scriptErrors?: ScriptRunError[];
+  /**
    * Next request name from hc.execution.setNextRequest for collection runner flow control.
    */
   scriptNextRequest?: string | null;
@@ -522,6 +532,10 @@ export interface ExecuteRequestDraftArgs {
    * When false, suppresses recording a history entry for this send. Defaults to true.
    */
   recordHistory?: boolean;
+  /**
+   * Open request tab that owns this send; recorded on console entries for jump-to-editor.
+   */
+  requestTabId?: string;
 }
 
 /**
@@ -536,7 +550,7 @@ export async function executeRequestDraft(
   args: ExecuteRequestDraftArgs,
   deps: { dispatch: ThunkDispatch<RootState, unknown, UnknownAction>; getState: () => RootState }
 ): Promise<RequestRunOutcome> {
-  const { draft: currentDraft, requestId, recordHistory = true } = args;
+  const { draft: currentDraft, requestId, recordHistory = true, requestTabId } = args;
   const { dispatch, getState } = deps;
   const state = getState();
   const collectionId = currentDraft.collection_id ?? state.collections.selectedCollectionId;
@@ -587,6 +601,7 @@ export async function executeRequestDraft(
   const allTests: ScriptTestResult[] = [];
   const allExecutionEvents: ScriptExecutionEvent[] = [];
   const scriptErrors: string[] = [];
+  const scriptErrorDetails: ScriptRunError[] = [];
   let scriptData: Record<string, unknown> = {};
 
   let scriptRequest: ScriptRequestContext = {
@@ -689,10 +704,26 @@ export async function executeRequestDraft(
         );
       }
       if (result.tests.length) {
-        allTests.push(...result.tests.map((test) => ({ ...test, scriptName: slot.label })));
+        allTests.push(
+          ...result.tests.map((test) => ({
+            ...test,
+            scriptName: slot.label,
+            scriptId: slot.scriptId,
+            phase: slot.phase,
+            scope: slot.scope
+          }))
+        );
       }
       if (result.error) {
         scriptErrors.push(`${slot.label}: ${result.error}`);
+        scriptErrorDetails.push({
+          message: result.error,
+          scriptName: slot.label,
+          scriptId: slot.scriptId,
+          phase: slot.phase,
+          scope: slot.scope,
+          ...result.errorLocation
+        });
       }
 
       scriptRequest = applyScriptRequestMutations(scriptRequest, result);
@@ -985,17 +1016,15 @@ export async function executeRequestDraft(
         timestamp: Date.now(),
         requestName: currentDraft.name,
         collectionName: collection?.name,
+        requestTabId,
         result,
         logs: allLogs.length ? allLogs : undefined,
         tests: allTests.length ? allTests : undefined,
         executionEvents: allExecutionEvents.length ? allExecutionEvents : undefined,
-        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+        scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined
       })
     );
-
-    if (scriptErrors.length) {
-      toast.error(`Script error: ${scriptErrors[0]}`);
-    }
 
     if (persistErrors.length) {
       toast.error(`Failed to persist script changes: ${persistErrors[0]}`);
@@ -1007,6 +1036,7 @@ export async function executeRequestDraft(
       scriptLogs: allLogs,
       executionEvents: allExecutionEvents,
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+      scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
       scriptNextRequest,
       scriptSkipRequest
     };
@@ -1028,11 +1058,13 @@ export async function executeRequestDraft(
         timestamp: Date.now(),
         requestName: currentDraft.name,
         collectionName: collection?.name,
+        requestTabId,
         result: errorResult,
         logs: allLogs.length ? allLogs : undefined,
         tests: allTests.length ? allTests : undefined,
         executionEvents: allExecutionEvents.length ? allExecutionEvents : undefined,
-        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined
+        scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+        scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined
       })
     );
     toast.error(message);
@@ -1043,6 +1075,7 @@ export async function executeRequestDraft(
       scriptLogs: allLogs,
       executionEvents: allExecutionEvents,
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
+      scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
       scriptSkipRequest: false
     };
   }
@@ -1081,6 +1114,7 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
           scriptLogs: [],
           executionEvents: [],
           scriptError: undefined,
+          scriptErrors: undefined,
           scriptNextRequest: undefined,
           scriptSkipRequest: false,
           sendingRequestId: requestId
@@ -1090,7 +1124,7 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
 
     try {
       const outcome = await executeRequestDraft(
-        { draft: activeTab.draft, requestId },
+        { draft: activeTab.draft, requestId, requestTabId: tabId },
         { dispatch, getState }
       );
 
@@ -1104,6 +1138,7 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
               scriptLogs: outcome.scriptLogs,
               executionEvents: outcome.executionEvents,
               scriptError: outcome.scriptError,
+              scriptErrors: outcome.scriptErrors,
               scriptNextRequest: outcome.scriptNextRequest,
               scriptSkipRequest: outcome.scriptSkipRequest
             }

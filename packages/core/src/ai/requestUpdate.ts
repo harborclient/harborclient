@@ -14,9 +14,28 @@ import type { ScriptRef } from '../types/script';
 export type KeyValueListMode = 'merge' | 'replace';
 
 /**
- * Replace or append mode for pre/post request script fields.
+ * How to apply script source from an AI tool.
+ *
+ * - `replace` — overwrite the entire script with `code`
+ * - `append` — append `code` after existing content
+ * - `replace_range` — splice `code` into `[startOffset, endOffset)` only
  */
-export type ScriptUpdateMode = 'replace' | 'append';
+export type ScriptUpdateMode = 'replace' | 'append' | 'replace_range';
+
+/**
+ * Character offsets for {@link applyScriptRangeUpdate} / `replace_range` mode.
+ */
+export interface ScriptRangeUpdateOffsets {
+  /**
+   * Inclusive 0-based start offset into the current script source.
+   */
+  startOffset: number;
+
+  /**
+   * Exclusive 0-based end offset into the current script source.
+   */
+  endOffset: number;
+}
 
 /**
  * Request draft fields the AI update tool can modify.
@@ -397,17 +416,44 @@ export function mergeKeyValues(
 }
 
 /**
- * Applies replace or append semantics to a script field.
+ * Splices replacement text into a script at clamped character offsets.
+ *
+ * Offsets follow the same clamping rules as script `@` selection suffixes:
+ * start and end are clamped to `[0, current.length]` with `start <= end`.
+ *
+ * @param current - Existing script source.
+ * @param startOffset - Inclusive 0-based start of the span to replace.
+ * @param endOffset - Exclusive 0-based end of the span to replace.
+ * @param replacement - Text that replaces the span (may be empty to delete).
+ * @returns Script with the span replaced; surrounding code is preserved.
+ */
+export function applyScriptRangeUpdate(
+  current: string,
+  startOffset: number,
+  endOffset: number,
+  replacement: string
+): string {
+  const start = Math.min(Math.max(0, Math.floor(startOffset)), current.length);
+  const end = Math.min(Math.max(start, Math.floor(endOffset)), current.length);
+  return `${current.slice(0, start)}${replacement}${current.slice(end)}`;
+}
+
+/**
+ * Applies replace, append, or range-splice semantics to a script field.
  *
  * @param current - Existing script text.
- * @param next - New script text from the tool.
- * @param mode - Replace overwrites; append adds after existing content with a newline.
+ * @param next - New script text from the tool (full script, append text, or range replacement).
+ * @param mode - Replace overwrites; append adds after existing content; replace_range
+ *   splices into the offsets in {@link range}.
+ * @param range - Required when `mode` is `replace_range`; ignored otherwise.
  * @returns Updated script string.
+ * @throws When `mode` is `replace_range` and `range` is missing.
  */
 export function applyScriptUpdate(
   current: string,
   next: string,
-  mode: ScriptUpdateMode = 'replace'
+  mode: ScriptUpdateMode = 'replace',
+  range?: ScriptRangeUpdateOffsets
 ): string {
   if (mode === 'append') {
     const trimmedCurrent = current.trimEnd();
@@ -418,6 +464,13 @@ export function applyScriptUpdate(
       return current;
     }
     return `${trimmedCurrent}\n${next}`;
+  }
+
+  if (mode === 'replace_range') {
+    if (range == null) {
+      throw new Error('replace_range requires startOffset and endOffset.');
+    }
+    return applyScriptRangeUpdate(current, range.startOffset, range.endOffset, next);
   }
 
   return next;

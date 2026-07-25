@@ -8,22 +8,30 @@ import {
   FaIcon
 } from '@harborclient/sdk/components';
 import { focusableReadonlyClass } from '#/renderer/src/ui/Shared/classes';
-import { useMemo, useState, type JSX } from 'react';
+import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '@harborclient/core/plugin/types';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
+import type {
+  ScriptExecutionEvent,
+  ScriptRunError,
+  ScriptTestResult,
+  SendResult
+} from '@harborclient/core/types';
 
 import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
 import { faGlobe } from '#/renderer/src/fontawesome';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { setResponseViewerTab } from '#/renderer/src/store/slices/tabsSlice';
+import { isRequestTab } from '#/renderer/src/store/tabs';
 import {
   bodyLanguage,
   buildResponseExport,
-  defaultResponseTab,
   formatBody,
   isHtmlResponse,
   isImageResponse,
+  resolveInitialResponseViewerTab,
   responseContentType
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails';
@@ -72,6 +80,12 @@ interface Props {
   scriptError?: string;
 
   /**
+   * Structured script failures with slot metadata and mapped locations; when
+   * present, errors render as clickable jump-to-editor rows.
+   */
+  scriptErrors?: ScriptRunError[];
+
+  /**
    * Cancels the in-flight request.
    */
   onCancel: () => void;
@@ -86,6 +100,11 @@ interface Props {
    * URL of the active request, used to resolve relative assets in HTML preview.
    */
   requestUrl: string;
+
+  /**
+   * Request tab that owns this response; preferred for jump-to-editor from Tests/Console.
+   */
+  requestTabId?: string;
 }
 
 /**
@@ -99,16 +118,36 @@ export function ResponseEditor({
   scriptLogs,
   executionEvents,
   scriptError,
+  scriptErrors,
   onCancel,
   onClear,
-  requestUrl
+  requestUrl,
+  requestTabId
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const pluginTabs = usePluginResponseTabs();
   const sendRequestShortcutHint = useSendRequestShortcutHint();
+  /**
+   * Session-stored viewer tab for this request tab, if the parent provided one.
+   */
+  const storedViewerTab = useAppSelector((state) => {
+    if (requestTabId == null) return undefined;
+    const tab = state.tabs.tabs.find((entry) => entry.tabId === requestTabId);
+    return tab && isRequestTab(tab) ? tab.responseViewerTab : undefined;
+  });
   const [tabState, setTabState] = useState<{ response: SendResult | null; tab: string }>(() => ({
     response,
-    tab: defaultResponseTab(response)
+    tab: resolveInitialResponseViewerTab(storedViewerTab, response)
   }));
+
+  /**
+   * Writes the selected response viewer tab onto the owning request tab so it
+   * survives unmount when opening a script-editor page from a test result.
+   */
+  useEffect(() => {
+    if (requestTabId == null) return;
+    dispatch(setResponseViewerTab({ tabId: requestTabId, tab: tabState.tab }));
+  }, [dispatch, requestTabId, tabState.tab]);
 
   /**
    * Pretty-prints the response body for display in the read-only editor.
@@ -426,6 +465,8 @@ export function ResponseEditor({
           tests={testResults}
           executionEvents={executionEvents}
           scriptError={scriptError}
+          scriptErrors={scriptErrors}
+          requestTabId={requestTabId}
         />
       </SegmentedTabPanel>
       {hasRedirects && (
@@ -435,7 +476,7 @@ export function ResponseEditor({
       )}
       {hasTests && (
         <SegmentedTabPanel value="tests">
-          <Tests testResults={testResults} />
+          <Tests testResults={testResults} requestTabId={requestTabId} />
         </SegmentedTabPanel>
       )}
       {pluginTabs

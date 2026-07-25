@@ -1,7 +1,12 @@
 import { KeyValueEditor, SegmentedTabPanel } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useMemo } from 'react';
-import type { KeyValue, Variable } from '@harborclient/core/types';
+import type {
+  KeyValue,
+  ScriptRunError,
+  ScriptTestResult,
+  Variable
+} from '@harborclient/core/types';
 import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
 import type { RegisteredRequestTab, RequestTabContext } from '@harborclient/core/plugin/types';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
@@ -75,6 +80,16 @@ interface Props {
    * Read-only context passed to plugin tab components.
    */
   requestTabContext: RequestTabContext;
+
+  /**
+   * hc.test results from the last send; used for inline script failure markers.
+   */
+  testResults?: ScriptTestResult[];
+
+  /**
+   * Structured script failures from the last send; used for inline script error markers.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -89,7 +104,9 @@ export function TabContent({
   variables,
   onEditVariables,
   pluginTabs,
-  requestTabContext
+  requestTabContext,
+  testResults,
+  scriptErrors
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -190,6 +207,8 @@ export function TabContent({
           onEditVariables={onEditVariables}
           snippets={snippets}
           placeholder={PRE_REQUEST_SCRIPT_PLACEHOLDER}
+          testResults={testResults}
+          scriptErrors={scriptErrors}
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col mb-4">
@@ -208,6 +227,8 @@ export function TabContent({
           onEditVariables={onEditVariables}
           snippets={snippets}
           placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
+          testResults={testResults}
+          scriptErrors={scriptErrors}
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment" className="mb-4 flex min-h-0 flex-1 flex-col gap-2">

@@ -59,6 +59,7 @@ export function AiModelSelectMenu({
 }: Props): JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null);
   const groups = useMemo(() => groupAvailableModels(models), [models]);
+  const showSourceLabels = groups.length > 1;
   const flatValues = useMemo(() => models.map((model) => model.value), [models]);
   const optionIndexByValue = useMemo(() => {
     const map = new Map<string, number>();
@@ -207,12 +208,14 @@ export function AiModelSelectMenu({
     >
       {groups.map((group) => (
         <div key={group.key}>
-          <div
-            role="presentation"
-            className="bg-sidebar-section px-3 py-1.5 font-medium text-muted"
-          >
-            {group.label}
-          </div>
+          {showSourceLabels ? (
+            <div
+              role="presentation"
+              className="bg-sidebar-section px-3 py-1.5 font-medium text-muted"
+            >
+              {group.label}
+            </div>
+          ) : null}
           {group.models.map((model) => {
             const index = optionIndexByValue.get(model.value) ?? 0;
             const selected = model.value === value;

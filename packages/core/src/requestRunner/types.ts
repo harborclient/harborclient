@@ -31,6 +31,16 @@ export interface RequestRunnerScript {
    * JavaScript source ready for execution.
    */
   source: string;
+
+  /**
+   * Stable script list id when the host can navigate back to an editor.
+   */
+  scriptId?: string;
+
+  /**
+   * Ownership scope of the script list this entry came from.
+   */
+  scope?: 'collection' | 'folder' | 'request';
 }
 
 /**

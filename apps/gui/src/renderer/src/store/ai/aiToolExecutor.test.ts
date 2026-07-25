@@ -546,7 +546,7 @@ describe('executeAiTool', () => {
     expect(result.bodyPreview).toHaveLength(RESPONSE_BODY_PREVIEW_CHARS);
     expect(result.bodyPreviewTruncated).toBe(true);
     expect(result.body).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'ok', passed: true }]);
+    expect(result.tests).toEqual([expect.objectContaining({ name: 'ok', passed: true })]);
   });
 
   it('truncates the full response body to maxBodyChars', async () => {
@@ -1299,6 +1299,123 @@ describe('executeAiTool', () => {
     );
   });
 
+  it('splices a localized fix via replace_range without wiping surrounding script', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const source = `// Test
+hc.test("Status code is 2xx", () => {
+  hc.expect(hc.response.code >= 200 && hc.response.code < 300).to.be.ok();
+});
+hc.expect(true).to.be.ok();
+`;
+    const badLine = 'hc.expect(true).to.be.ok();';
+    const startOffset = source.indexOf(badLine);
+    const endOffset = startOffset + badLine.length;
+    const replacement = `hc.test("True is ok", () => {
+  hc.expect(true).to.be.ok();
+});`;
+    const script = createInlineScriptRef(source, 'Post checks');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 221,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Range patch script',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [script],
+        comment: '',
+        tags: '',
+        auth: defaultAuth(),
+        userAgent: ''
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 221,
+          phase: 'post',
+          scriptIndex: 1,
+          code: replacement,
+          mode: 'replace_range',
+          startOffset,
+          endOffset
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    const nextCode = selectDraft(store.getState()).post_request_scripts[0].code ?? '';
+    expect(result).toEqual({ ok: true, phase: 'post', scriptIndex: 1, isDirty: true });
+    expect(nextCode).toContain('// Test');
+    expect(nextCode).toContain('hc.test("Status code is 2xx"');
+    expect(nextCode).toContain('hc.test("True is ok"');
+    expect(nextCode).not.toMatch(/^hc\.test\("True is ok"/);
+    expect(nextCode.indexOf('hc.expect(true).to.be.ok();')).toBeGreaterThan(
+      nextCode.indexOf('Status code is 2xx')
+    );
+  });
+
+  it('returns an error when replace_range is missing offsets', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const script = createInlineScriptRef('hc.expect(true).to.be.ok();');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 222,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Missing offsets',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [script],
+        comment: '',
+        tags: '',
+        auth: defaultAuth(),
+        userAgent: ''
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 222,
+          phase: 'post',
+          scriptIndex: 1,
+          code: 'hc.test("ok", () => { hc.expect(true).to.be.ok(); });',
+          mode: 'replace_range'
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('startOffset and endOffset');
+    expect(selectDraft(store.getState()).post_request_scripts[0].code).toBe(
+      'hc.expect(true).to.be.ok();'
+    );
+  });
+
   it('returns an error when update_request_script index is out of range', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     store.dispatch(
@@ -2010,6 +2127,82 @@ describe('executeAiTool', () => {
 
     expect(searchDocsMock).toHaveBeenCalledWith({ query: 'pre-request scripts', limit: 3 });
     expect(result).toBe(payload);
+  });
+
+  it('returns the scripting API reference text', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const result = await executeAiTool(
+      'get_scripting_api_reference',
+      {},
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(result).toContain('hc.test');
+    expect(result).toContain('.to.be.ok()');
+    expect(result).toContain('Do **not** tell users that missing parentheses is the problem');
+  });
+
+  it('returns script run diagnostics from the newest console entry', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { addConsoleEntry } = await import('#/renderer/src/store/slices/consoleSlice');
+    store.dispatch(
+      addConsoleEntry({
+        id: 'console-1',
+        timestamp: Date.now(),
+        requestName: 'Echo',
+        requestTabId: 'tab-diag',
+        result: {
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          body: '',
+          timeMs: 1,
+          sizeBytes: 0
+        },
+        logs: ['hello from script'],
+        scriptError: 'expected false to be truthy',
+        scriptErrors: [
+          {
+            message: 'expected false to be truthy',
+            phase: 'post',
+            scriptId: 'script-1',
+            scriptName: 'Assert',
+            line: 1,
+            column: 1,
+            scope: 'request'
+          }
+        ],
+        tests: [
+          {
+            name: 'should fail',
+            passed: false,
+            error: 'expected false to be truthy',
+            phase: 'post',
+            scriptId: 'script-1',
+            scriptName: 'Assert',
+            scope: 'request'
+          }
+        ]
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_script_run_diagnostics',
+        { phase: 'post' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    ) as {
+      found: boolean;
+      scriptError?: string;
+      failingTests?: Array<{ name: string }>;
+      logs?: string[];
+    };
+
+    expect(result.found).toBe(true);
+    expect(result.scriptError).toContain('expected false to be truthy');
+    expect(result.failingTests?.[0]?.name).toBe('should fail');
+    expect(result.logs).toEqual(['hello from script']);
   });
 
   it('delegates git_diff to window.api.gitDiff', async () => {

@@ -17,6 +17,7 @@ import {
   type CreateRequestToolArgs,
   type GetActiveResponseToolArgs,
   type GetActiveTerminalLinesToolArgs,
+  type GetScriptRunDiagnosticsToolArgs,
   type GetSidebarItemByUuidToolArgs,
   type GitCommitsToolArgs,
   type GitDiffToolArgs,
@@ -31,6 +32,7 @@ import {
   type TerminalExecToolArgs,
   type UpdateRequestScriptToolArgs
 } from '@harborclient/core/ai/tools';
+import { getScriptingApiReferenceText } from '@harborclient/core/ai/scriptingApiReference';
 import {
   DEFAULT_RESPONSE_BODY_CHARS,
   formatHttpResponseForAgent,
@@ -54,6 +56,7 @@ import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice'
 import { updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   selectActiveEnvironmentId,
+  selectConsoleEntries,
   selectEffectiveActiveRequestTab,
   selectCollections,
   selectDocumentsByCollection,
@@ -67,6 +70,7 @@ import {
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
+import { buildScriptRunDiagnostics } from '#/renderer/src/scripting/scriptRunDiagnostics';
 import { getTerminalInstance } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
 import { readTerminalBufferLines } from '#/renderer/src/ui/Footer/TerminalPanel/terminalSelection';
 import {
@@ -116,8 +120,15 @@ const KEY_VALUE_MODES: readonly KeyValueListMode[] = ['merge', 'replace'];
 
 /**
  * Supported script update modes for update_active_request validation.
+ *
+ * Whole-script replace/append only — range splice is exclusive to update_request_script.
  */
 const SCRIPT_MODES: readonly ScriptUpdateMode[] = ['replace', 'append'];
+
+/**
+ * Supported script update modes for update_request_script validation.
+ */
+const REQUEST_SCRIPT_MODES: readonly ScriptUpdateMode[] = ['replace', 'append', 'replace_range'];
 
 /**
  * Maximum number of terminal output lines returned by get_active_terminal_lines per call.
@@ -234,6 +245,10 @@ export async function executeAiTool(
         return JSON.stringify(await createRequestTool(args, ctx));
       case 'search_docs':
         return await window.api.searchDocs(args as SearchDocsToolArgs);
+      case 'get_script_run_diagnostics':
+        return JSON.stringify(getScriptRunDiagnostics(ctx.getState(), args));
+      case 'get_scripting_api_reference':
+        return getScriptingApiReferenceText();
       case 'git_diff':
         return await window.api.gitDiff(args as GitDiffToolArgs);
       case 'git_repo_info':
@@ -817,6 +832,31 @@ function getActiveResponseSummary(state: RootState): AgentHttpResponse | null {
 }
 
 /**
+ * Returns script runtime diagnostics from the newest matching console entry.
+ *
+ * @param state - Current Redux root state.
+ * @param args - Optional phase/script filters from the model.
+ * @returns Diagnostics payload for the agent.
+ */
+function getScriptRunDiagnostics(
+  state: RootState,
+  args: unknown
+): ReturnType<typeof buildScriptRunDiagnostics> {
+  const parsed = (args ?? {}) as GetScriptRunDiagnosticsToolArgs;
+  const tab = selectEffectiveActiveRequestTab(state);
+  return buildScriptRunDiagnostics(
+    selectConsoleEntries(state),
+    {
+      phase: parsed.phase,
+      scriptIndex: parsed.scriptIndex,
+      scriptId: parsed.scriptId,
+      requestTabId: tab?.tabId
+    },
+    tab
+  );
+}
+
+/**
  * Returns the last HTTP response for the effective active request tab with a capped body.
  *
  * @param state - Current Redux root state.
@@ -1236,6 +1276,8 @@ function parseUpdateRequestScriptArgs(args: unknown): UpdateRequestScriptToolArg
   const scriptIndex = parsed.scriptIndex;
   const code = parsed.code;
   const mode = parsed.mode;
+  const startOffset = parsed.startOffset;
+  const endOffset = parsed.endOffset;
 
   if (requestId !== 'active' && (typeof requestId !== 'number' || !Number.isFinite(requestId))) {
     throw new Error('requestId must be a number or "active".');
@@ -1253,8 +1295,26 @@ function parseUpdateRequestScriptArgs(args: unknown): UpdateRequestScriptToolArg
     throw new Error('code must be a string.');
   }
 
-  if (mode !== undefined && !SCRIPT_MODES.includes(mode)) {
+  if (mode !== undefined && !REQUEST_SCRIPT_MODES.includes(mode)) {
     throw new Error(`Invalid script mode: ${String(mode)}`);
+  }
+
+  if (mode === 'replace_range') {
+    if (
+      typeof startOffset !== 'number' ||
+      !Number.isFinite(startOffset) ||
+      startOffset < 0 ||
+      typeof endOffset !== 'number' ||
+      !Number.isFinite(endOffset) ||
+      endOffset < 0
+    ) {
+      throw new Error(
+        'replace_range requires non-negative finite startOffset and endOffset from the @ #start.end selection.'
+      );
+    }
+    if (startOffset > endOffset) {
+      throw new Error('startOffset must be less than or equal to endOffset.');
+    }
   }
 
   return {
@@ -1262,7 +1322,9 @@ function parseUpdateRequestScriptArgs(args: unknown): UpdateRequestScriptToolArg
     phase,
     scriptIndex,
     code,
-    ...(mode !== undefined ? { mode } : {})
+    ...(mode !== undefined ? { mode } : {}),
+    ...(typeof startOffset === 'number' ? { startOffset } : {}),
+    ...(typeof endOffset === 'number' ? { endOffset } : {})
   };
 }
 
@@ -1331,7 +1393,14 @@ function updateRequestScript(
     };
   }
 
-  const nextCode = applyScriptUpdate(target.code ?? '', parsed.code, parsed.mode ?? 'replace');
+  const mode = parsed.mode ?? 'replace';
+  const nextCode =
+    mode === 'replace_range'
+      ? applyScriptUpdate(target.code ?? '', parsed.code, 'replace_range', {
+          startOffset: parsed.startOffset as number,
+          endOffset: parsed.endOffset as number
+        })
+      : applyScriptUpdate(target.code ?? '', parsed.code, mode);
 
   const nextScripts = scripts.map((script, index) =>
     index === arrayIndex ? { ...script, code: nextCode } : script

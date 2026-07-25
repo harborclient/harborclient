@@ -79,14 +79,7 @@ export class RequestRunner {
         request = cloneRequestContext(result.request);
         variables = applyScriptVariables(variables, result);
         cookies = applyCookieChanges(cookies, result);
-        collectScriptResult(
-          script.label,
-          result,
-          scriptLogs,
-          testResults,
-          executionEvents,
-          scriptErrors
-        );
+        collectScriptResult(script, result, scriptLogs, testResults, executionEvents, scriptErrors);
         if (result.nextRequest !== undefined) {
           scriptNextRequest = result.nextRequest;
         }
@@ -246,7 +239,7 @@ function applyCookieChanges(cookies: KeyValue[], result: ScriptRunResult): KeyVa
 /**
  * Adds labeled diagnostics from a script result to runner aggregates.
  *
- * @param label - Display label for the completed script.
+ * @param script - Script descriptor that produced the result (label and optional identity).
  * @param result - Script output to collect.
  * @param logs - Mutable log aggregate.
  * @param tests - Mutable test aggregate.
@@ -254,17 +247,30 @@ function applyCookieChanges(cookies: KeyValue[], result: ScriptRunResult): KeyVa
  * @param errors - Mutable error aggregate.
  */
 function collectScriptResult(
-  label: string,
+  script: {
+    label: string;
+    scriptId?: string;
+    phase: 'pre' | 'post';
+    scope?: 'collection' | 'folder' | 'request';
+  },
   result: ScriptRunResult,
   logs: string[],
   tests: RunRequestResult['testResults'],
   events: RunRequestResult['executionEvents'],
   errors: string[]
 ): void {
-  if (result.logs.length) logs.push(`[${label}]`, ...result.logs);
-  tests.push(...result.tests.map((test) => ({ ...test, scriptName: label })));
-  events.push(...result.executionEvents.map((event) => ({ ...event, scriptName: label })));
-  if (result.error) errors.push(`${label}: ${result.error}`);
+  if (result.logs.length) logs.push(`[${script.label}]`, ...result.logs);
+  tests.push(
+    ...result.tests.map((test) => ({
+      ...test,
+      scriptName: script.label,
+      scriptId: script.scriptId,
+      phase: script.phase,
+      scope: script.scope
+    }))
+  );
+  events.push(...result.executionEvents.map((event) => ({ ...event, scriptName: script.label })));
+  if (result.error) errors.push(`${script.label}: ${result.error}`);
 }
 
 /**

@@ -3,7 +3,10 @@ import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } fr
 import { evaluateScript } from './scriptEvaluator';
 import type { ScriptFileRequest } from './scriptFileOperations';
 
-lockdown();
+// errorTaming 'unsafe' keeps Error.prototype.stack intact. The default 'safe'
+// censors stacks to '', which leaves assertion failures with no frame to remap
+// to a user script line/column.
+lockdown({ errorTaming: 'unsafe' });
 
 interface RunMessage {
   id: number;

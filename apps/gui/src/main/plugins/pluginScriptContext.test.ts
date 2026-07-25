@@ -80,8 +80,8 @@ describe('createScriptContext', () => {
     expect(result.error).toBeUndefined();
     expect(result.value).toBe(true);
     expect(result.tests).toEqual([
-      { name: 'status is 200', passed: true },
-      { name: 'body has ok', passed: true }
+      expect.objectContaining({ name: 'status is 200', passed: true }),
+      expect.objectContaining({ name: 'body has ok', passed: true })
     ]);
   });
 
@@ -186,8 +186,8 @@ describe('createScriptContext', () => {
 
     expect(result.logs).toEqual(['first', 'second']);
     expect(result.tests).toEqual([
-      { name: 'first test', passed: true },
-      { name: 'second test', passed: true }
+      expect.objectContaining({ name: 'first test', passed: true }),
+      expect.objectContaining({ name: 'second test', passed: true })
     ]);
   });
 

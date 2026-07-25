@@ -167,7 +167,8 @@ export function clearActiveResponse(): void {
         testResults: [],
         scriptLogs: [],
         executionEvents: [],
-        scriptError: undefined
+        scriptError: undefined,
+        scriptErrors: undefined
       }
     })
   );

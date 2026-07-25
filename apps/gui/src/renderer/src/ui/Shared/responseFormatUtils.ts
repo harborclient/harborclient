@@ -213,6 +213,26 @@ export function defaultResponseTab(
 }
 
 /**
+ * Picks the response viewer tab to show when ResponseEditor mounts.
+ *
+ * Prefers a session-stored selection on the owning request tab so opening a
+ * script from a test result and returning does not reset to Body/Preview.
+ *
+ * @param stored - Persisted viewer tab from the request tab, if any.
+ * @param response - Last send result used when no stored tab exists.
+ * @returns Tab value for `SegmentedTabsGroup`.
+ */
+export function resolveInitialResponseViewerTab(
+  stored: string | undefined,
+  response: {
+    body: string;
+    headers?: Record<string, string>;
+  } | null
+): string {
+  return stored ?? defaultResponseTab(response);
+}
+
+/**
  * Wraps an HTML fragment in a minimal document shell with preview CSP.
  *
  * @param body - Raw HTML fragment.
@@ -514,6 +534,25 @@ function buildResponseExportTests(testResults: readonly ScriptTestResult[]): Res
     let output = test.name;
     if (!test.passed && test.error) {
       output += ` — ${test.error}`;
+    }
+    if (test.line != null) {
+      const source = test.source?.trim() || 'script.js';
+      const location =
+        test.column != null ? `${source}:${test.line}:${test.column}` : `${source}:${test.line}`;
+      output += ` (${location})`;
+    }
+    if (!test.passed && (test.expected != null || test.actual != null)) {
+      const parts: string[] = [];
+      if (test.expected != null) {
+        parts.push(`expected ${test.expected}`);
+      }
+      if (test.actual != null) {
+        parts.push(`got ${test.actual}`);
+      }
+      output += ` [${parts.join(', ')}]`;
+    }
+    if (test.durationMs != null) {
+      output += ` (${test.durationMs} ms)`;
     }
     return {
       label: test.scriptName ?? 'Script',

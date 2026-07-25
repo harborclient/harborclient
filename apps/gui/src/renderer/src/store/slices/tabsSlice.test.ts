@@ -34,6 +34,7 @@ import tabsReducer, {
   reorderTabs,
   setActiveDraft,
   setActiveTab,
+  setResponseViewerTab,
   updateMarkdownContent
 } from './tabsSlice';
 
@@ -919,5 +920,49 @@ describe('tabsSlice tab cycling', () => {
 
     state = tabsReducer(state, activateNextTab());
     expect(state.activeTabId).toBe(firstTabId);
+  });
+});
+
+describe('tabsSlice setResponseViewerTab', () => {
+  it('stores the selected response viewer tab on the request tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(state, setResponseViewerTab({ tabId, tab: 'tests' }));
+
+    const tab = asRequestTab(state.tabs.find((entry) => entry.tabId === tabId));
+    expect(tab.responseViewerTab).toBe('tests');
+  });
+
+  it('survives opening a script-editor page tab so remount can restore Tests', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const requestTabId = state.activeTabId;
+
+    state = tabsReducer(state, setResponseViewerTab({ tabId: requestTabId, tab: 'tests' }));
+    state = tabsReducer(
+      state,
+      openPageTab({
+        type: 'script-editor',
+        requestTabId,
+        phase: 'post',
+        scriptId: 'script-1',
+        label: 'Assert status'
+      })
+    );
+
+    expect(state.activeTabId).not.toBe(requestTabId);
+    const requestTab = asRequestTab(state.tabs.find((entry) => entry.tabId === requestTabId));
+    expect(requestTab.responseViewerTab).toBe('tests');
+
+    state = tabsReducer(state, setActiveTab(requestTabId));
+    expect(
+      asRequestTab(state.tabs.find((entry) => entry.tabId === requestTabId)).responseViewerTab
+    ).toBe('tests');
+  });
+
+  it('ignores unknown tab ids', () => {
+    const initial = tabsReducer(undefined, { type: 'unknown' });
+    const next = tabsReducer(initial, setResponseViewerTab({ tabId: 'missing', tab: 'tests' }));
+    expect(next).toEqual(initial);
   });
 });

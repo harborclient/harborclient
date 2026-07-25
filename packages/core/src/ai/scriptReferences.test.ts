@@ -323,6 +323,40 @@ describe('isValidAiScriptReference', () => {
     expect(isValidAiScriptReference(candidate!, context({ preScriptCount: 2 }))).toBe(false);
   });
 
+  it('accepts request-script selection references when a matching snapshot exists without an active tab', () => {
+    const token = '@active.post.1#0.25';
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          scriptSelections: {
+            [token]: {
+              scriptLabel: 'Assert ok',
+              phase: 'post',
+              scriptIndex: 1,
+              requestId: 'active',
+              source: 'hc.expect(true).to.be.ok();',
+              selectedText: 'hc.expect(true).to.be.ok();',
+              startOffset: 0,
+              endOffset: 25,
+              startLine: 1,
+              endLine: 1
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects request-script selection references without a snapshot when the active tab mismatches', () => {
+    const [candidate] = findAiScriptReferenceCandidates('@99.post.1#0.5');
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context({ activeRequestId: 42 }))).toBe(false);
+  });
+
   it('accepts snippet references when the uuid exists in the library', () => {
     const uuid = '550e8400-e29b-41d4-a716-446655440000';
     const [candidate] = findAiScriptReferenceCandidates(`@snippet.${uuid}`);
@@ -579,6 +613,36 @@ describe('resolveAiScriptReferenceLabel', () => {
     ).toBe('Assert status (lines 1-2)');
   });
 
+  it('resolves badge labels from a script selection snapshot when the active tab mismatches', () => {
+    const token = '@active.post.1#0.25';
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          activeRequestId: 99,
+          scriptSelections: {
+            [token]: {
+              scriptLabel: 'Assert ok',
+              phase: 'post',
+              scriptIndex: 1,
+              requestId: 'active',
+              source: 'hc.expect(true).to.be.ok();',
+              selectedText: 'hc.expect(true).to.be.ok();',
+              startOffset: 0,
+              endOffset: 25,
+              startLine: 1,
+              endLine: 1
+            }
+          }
+        })
+      )
+    ).toBe('Assert ok (line 1)');
+  });
+
   it('falls back to the script name when snippet source is unavailable', () => {
     const [candidate] = findAiScriptReferenceCandidates('@42.post.1#0.4');
     expect(candidate).toBeDefined();
@@ -768,6 +832,82 @@ describe('buildAiScriptSelectionContextMessage', () => {
     ).toBeNull();
   });
 
+  it('includes snapshot script source when the active tab is gone', () => {
+    const token = '@active.post.1#0.25';
+    const source = 'hc.expect(true).to.be.ok();';
+    const message = buildAiScriptSelectionContextMessage(
+      `What is wrong with ${token}?`,
+      context({
+        hasActiveRequestTab: false,
+        scriptSelections: {
+          [token]: {
+            scriptLabel: 'Assert ok',
+            phase: 'post',
+            scriptIndex: 1,
+            requestId: 'active',
+            source,
+            selectedText: source,
+            startOffset: 0,
+            endOffset: 25,
+            startLine: 1,
+            endLine: 1
+          }
+        }
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(
+      'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('script "Assert ok"');
+    expect(message).toContain('Full script source:');
+    expect(message).toContain(source);
+    expect(message).toContain('Selected text (characters 0–25, line 1):');
+    expect(message).toContain('Focus your answer on the selected region.');
+    expect(message).toContain('update_request_script');
+    expect(message).toContain('replace_range');
+    expect(message).toContain('Do not remove code outside the selection');
+  });
+
+  it('includes last-run failure details from the selection snapshot', () => {
+    const source = 'hc.expect(true).to.be.ok;';
+    const token = '@active.post.1#0.25';
+    const message = buildAiScriptSelectionContextMessage(
+      `Why am I being told that isn't a function? ${token}`,
+      context({
+        hasActiveRequestTab: false,
+        scriptSelections: {
+          [token]: {
+            scriptLabel: 'Assert ok',
+            phase: 'post',
+            scriptIndex: 1,
+            requestId: 'active',
+            source,
+            selectedText: source,
+            startOffset: 0,
+            endOffset: 25,
+            startLine: 1,
+            endLine: 1,
+            lastRunFailure: {
+              kind: 'script-error',
+              message: 'expected false to be truthy',
+              line: 1,
+              column: 1,
+              source: 'script.js'
+            }
+          }
+        }
+      })
+    );
+
+    expect(message).not.toBeNull();
+    expect(message).toContain('Last run error:');
+    expect(message).toContain('Script runtime error: expected false to be truthy');
+    expect(message).toContain('Location: script.js:1:1');
+  });
+
   it('includes full source, selected substring, line span, and focus wording', () => {
     const message = buildAiScriptSelectionContextMessage(
       'What does this do? @active.pre.1#6.11',
@@ -788,6 +928,7 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).toContain('line2');
     expect(message).toContain('Focus your answer on the selected region.');
     expect(message).toContain('update_request_script');
+    expect(message).toContain('replace_range');
   });
 
   it('includes multi-line selection spans in the context block', () => {

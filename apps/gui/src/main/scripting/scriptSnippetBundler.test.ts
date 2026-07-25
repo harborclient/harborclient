@@ -30,8 +30,9 @@ describe('bundleUserScript', () => {
       []
     );
 
-    expect(bundled).toContain('passTest');
-    expect(bundled).not.toMatch(/^\s*import\s/m);
+    expect(bundled.code).toContain('passTest');
+    expect(bundled.code).not.toMatch(/^\s*import\s/m);
+    expect(bundled.mapJson).toBeTruthy();
   });
 
   it('inlines nested snippet imports', async () => {
@@ -45,7 +46,7 @@ describe('bundleUserScript', () => {
       []
     );
 
-    expect(bundled).toContain('42');
+    expect(bundled.code).toContain('42');
   });
 
   it('inlines sibling inline-script modules', async () => {
@@ -57,8 +58,8 @@ describe('bundleUserScript', () => {
       []
     );
 
-    expect(bundled).toContain('BEFORE!');
-    expect(bundled).not.toMatch(/^\s*import\s/m);
+    expect(bundled.code).toContain('BEFORE!');
+    expect(bundled.code).not.toMatch(/^\s*import\s/m);
   });
 
   it('returns empty output for export-only entry scripts', async () => {
@@ -68,7 +69,7 @@ describe('bundleUserScript', () => {
       []
     );
 
-    expect(bundled).toBe('');
+    expect(bundled.code).toBe('');
   });
 
   it('errors when a module import is missing', async () => {

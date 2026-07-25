@@ -1,6 +1,11 @@
 import { ControlledAccordion } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
+import type {
+  ScriptExecutionEvent,
+  ScriptRunError,
+  ScriptTestResult,
+  SendResult
+} from '@harborclient/core/types';
 
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -40,6 +45,17 @@ interface Props {
    * Aggregated script runtime errors for this send.
    */
   scriptError?: string;
+
+  /**
+   * Structured script failures with slot metadata and mapped locations; when
+   * present, errors render as clickable jump-to-editor rows.
+   */
+  scriptErrors?: readonly ScriptRunError[];
+
+  /**
+   * Request tab that produced these results; preferred for jump-to-editor.
+   */
+  requestTabId?: string;
 }
 
 /**
@@ -51,7 +67,9 @@ export function ConsoleDetails({
   logs = [],
   tests = [],
   executionEvents = [],
-  scriptError
+  scriptError,
+  scriptErrors,
+  requestTabId
 }: Props): JSX.Element {
   const { sections, accordion } = usePersistedConsoleSectionExpansion();
   const generalRows: KeyValueRow[] = [
@@ -112,7 +130,13 @@ export function ConsoleDetails({
           initialEntered={sections.output}
           flush={flush}
         >
-          <OutputDetails logs={logs} tests={tests} scriptError={scriptError} />
+          <OutputDetails
+            logs={logs}
+            tests={tests}
+            scriptError={scriptError}
+            scriptErrors={scriptErrors}
+            requestTabId={requestTabId}
+          />
         </CollapsibleSection>
         <CollapsibleSection
           itemKey="trace"

@@ -9,16 +9,13 @@ import {
   type JSX,
   type KeyboardEvent
 } from 'react';
-import {
-  getAvailableModels,
-  getAiModelOptionGroupLabel,
-  resolveAiModelOption
-} from '@harborclient/core/ai/models';
+import { getAvailableModels, resolveAiModelOption } from '@harborclient/core/ai/models';
 import { removeScriptAskLine } from '@harborclient/core/ai/scriptAsk';
 import type { AiSettings, HubLlmModelGroup } from '@harborclient/core/types';
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
 import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';
+import { getAiModelSelectAriaLabel } from '#/renderer/src/ui/Shared/AiModelSelect/aiModelSourceLabels';
 
 interface Props {
   /**
@@ -263,11 +260,7 @@ export function ScriptAskModal({
               value={modelId}
               models={availableModels}
               disabled={sending || availableModels.length === 0}
-              aria-label={
-                selectedModelOption != null
-                  ? `AI model, ${selectedModelOption.label}, ${getAiModelOptionGroupLabel(selectedModelOption)}`
-                  : 'AI model'
-              }
+              aria-label={getAiModelSelectAriaLabel(availableModels, selectedModelOption)}
               onChange={setModelIdOverride}
             />
             <Button

@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
 import type { HttpMethod } from '@harborclient/core/types';
 import {
+  buildAiScriptSelectionContextMessage,
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
   resolveAiScriptReferenceLabel
 } from '@harborclient/core/ai/scriptReferences';
 import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import { openPageTab, openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  selectScriptSelections,
+  setScriptSelection
+} from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import { buildAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
 
@@ -92,5 +97,52 @@ describe('buildAiScriptReferenceValidationContext', () => {
 
     expect(isValidAiScriptReference(reference, context)).toBe(true);
     expect(resolveAiScriptReferenceLabel(reference, context)).toBe('SendSuccess');
+  });
+
+  it('expands script copy-to-chat context from a snapshot after the active tab changes', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const source = 'hc.expect(true).to.be.ok();';
+    // Numeric id that will not match the newly opened tab (id 7).
+    const token = '@99.post.1#0.25';
+
+    store.dispatch(
+      setScriptSelection({
+        token,
+        snapshot: {
+          scriptLabel: 'Assert ok',
+          phase: 'post',
+          scriptIndex: 1,
+          requestId: 99,
+          source,
+          selectedText: source,
+          startOffset: 0,
+          endOffset: 25,
+          startLine: 1,
+          endLine: 1
+        }
+      })
+    );
+
+    // Open a different request so live-tab validation would fail without the snapshot.
+    store.dispatch(openTabWithDraft(sampleDraft(7)));
+
+    const state = store.getState();
+    const context = buildAiScriptReferenceValidationContext(
+      selectEffectiveActiveRequestTab(state),
+      [],
+      {},
+      {},
+      {},
+      {},
+      selectScriptSelections(state)
+    );
+    const reference = findAiScriptReferenceCandidates(token)[0];
+    const message = buildAiScriptSelectionContextMessage(`Explain ${token}`, context);
+
+    expect(isValidAiScriptReference(reference, context)).toBe(true);
+    expect(resolveAiScriptReferenceLabel(reference, context)).toBe('Assert ok (line 1)');
+    expect(message).not.toBeNull();
+    expect(message).toContain(source);
+    expect(message).toContain('script "Assert ok"');
   });
 });

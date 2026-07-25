@@ -292,6 +292,7 @@ export const pageRoutes = {
     key: (page) => `script-editor:${page.requestTabId}:${page.phase}:${page.scriptId}`,
     meta: (page) => ({ title: page.label, icon: faCode }),
     closeName: (page) => page.label,
+    replaceOnReopen: true,
     Component: lazyNamed(
       () => import('#/renderer/src/ui/Main/RequestEditor/ScriptEditorTab'),
       'ScriptEditorTab'

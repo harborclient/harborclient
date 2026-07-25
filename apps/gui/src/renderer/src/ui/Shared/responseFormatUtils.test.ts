@@ -6,7 +6,8 @@ import {
   defaultResponseTab,
   isHtmlResponse,
   isImageResponse,
-  resolveHtmlPreviewBaseUrl
+  resolveHtmlPreviewBaseUrl,
+  resolveInitialResponseViewerTab
 } from './responseFormatUtils';
 
 const sampleResponse = (overrides: Partial<SendResult> = {}): SendResult => ({
@@ -280,6 +281,40 @@ describe('defaultResponseTab', () => {
 
   it('returns body for null response', () => {
     expect(defaultResponseTab(null)).toBe('body');
+  });
+});
+
+describe('resolveInitialResponseViewerTab', () => {
+  it('prefers a stored viewer tab over the response default', () => {
+    expect(
+      resolveInitialResponseViewerTab('tests', {
+        body: '{"ok":true}',
+        headers: { 'content-type': 'application/json' }
+      })
+    ).toBe('tests');
+  });
+
+  it('falls back to defaultResponseTab when nothing is stored', () => {
+    expect(
+      resolveInitialResponseViewerTab(undefined, {
+        body: '<html></html>',
+        headers: { 'content-type': 'text/html' }
+      })
+    ).toBe('preview');
+  });
+
+  it('restores Tests after a remount-style lookup using stored state', () => {
+    const stored = resolveInitialResponseViewerTab('tests', {
+      body: '{"ok":true}',
+      headers: { 'content-type': 'application/json' }
+    });
+    expect(stored).toBe('tests');
+    expect(
+      resolveInitialResponseViewerTab(undefined, {
+        body: '{"ok":true}',
+        headers: { 'content-type': 'application/json' }
+      })
+    ).toBe('body');
   });
 });
 

@@ -119,24 +119,40 @@ export function createSnippetImportPlugin(
 }
 
 /**
+ * Result of bundling a user script against snippet modules.
+ */
+export interface BundledUserScript {
+  /**
+   * Bundled JavaScript with imports resolved and inlined, or an empty string when
+   * the entry module only exports bindings with no top-level side effects.
+   */
+  code: string;
+
+  /**
+   * External sourcemap JSON for the bundle, when code is non-empty.
+   */
+  mapJson?: string;
+}
+
+/**
  * Bundles a user script and its relative snippet imports into a single ESM file.
  *
  * The synthetic stdin entry side-effect-imports the user script so top-level
  * exports in the entry are internalized by the bundler while entry statements
- * still execute.
+ * still execute. An external sourcemap is returned alongside the code so runtime
+ * stacks can be remapped to entry or snippet sources.
  *
  * @param source - Raw user-authored script source for the running slot.
  * @param modules - Snippet sources keyed by import filename.
  * @param conflicts - Filenames that map to more than one snippet row.
- * @returns Bundled JavaScript with imports resolved and inlined, or an empty string
- * when the entry module only exports bindings with no top-level side effects.
+ * @returns Bundled code and optional sourcemap JSON.
  * @throws esbuild build errors when the script or imports are invalid.
  */
 export async function bundleUserScript(
   source: string,
   modules: Record<string, string>,
   conflicts: string[]
-): Promise<string> {
+): Promise<BundledUserScript> {
   const result = await build({
     stdin: {
       contents: 'import "./__entry__.js";',
@@ -149,17 +165,24 @@ export async function bundleUserScript(
     platform: 'neutral',
     target: SCRIPT_BUNDLE_TARGET,
     write: false,
+    outfile: 'bundle.js',
+    sourcemap: 'external',
     logLevel: 'silent',
     treeShaking: true,
     plugins: [createSnippetImportPlugin(source, modules, conflicts)]
   });
 
-  const output = result.outputFiles[0]?.text ?? '';
+  const jsFile = result.outputFiles.find((file) => file.path.endsWith('.js'));
+  const mapFile = result.outputFiles.find((file) => file.path.endsWith('.map'));
+  const output = jsFile?.text ?? result.outputFiles[0]?.text ?? '';
   if (!output.trim()) {
     // Export-only entry modules (no top-level side effects) tree-shake to empty
     // output; that is valid when the slot runs as a helper library, not an error.
-    return '';
+    return { code: '' };
   }
 
-  return output;
+  return {
+    code: output,
+    mapJson: mapFile?.text
+  };
 }

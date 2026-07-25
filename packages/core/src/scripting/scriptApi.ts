@@ -33,6 +33,7 @@ import type {
   ScriptFileRequest,
   ScriptJsonWriteOptions
 } from './scriptFileOperations';
+import { resolveStackToOriginalLocation, type ScriptCompileMap } from './scriptSourceMap';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -52,6 +53,12 @@ export interface ScriptApiOptions {
    * When provided, enables hc.fs / hc.parse / hc.stringify via the main-process bridge.
    */
   fileBridge?: (req: ScriptFileRequest) => Promise<unknown>;
+
+  /**
+   * Compile sourcemap chain from {@link evaluateScript} used to remap assertion stacks
+   * to user or snippet source lines.
+   */
+  compileMaps?: ScriptCompileMap[];
 }
 
 /**
@@ -749,17 +756,47 @@ export function createScriptApi(
       }
     },
     test: (name: unknown, fn: () => void) => {
+      const startedAt = performance.now();
       try {
         fn();
-        state.tests.push({ name: String(name), passed: true });
-      } catch (err) {
         state.tests.push({
           name: String(name),
-          passed: false,
-          error: String(
-            err && typeof err === 'object' && 'message' in err ? (err as Error).message : err
-          )
+          passed: true,
+          durationMs: Math.round(performance.now() - startedAt)
         });
+      } catch (err) {
+        const durationMs = Math.round(performance.now() - startedAt);
+        const message =
+          err && typeof err === 'object' && 'message' in err
+            ? String((err as Error).message)
+            : String(err);
+        const result: ScriptTestResult = {
+          name: String(name),
+          passed: false,
+          error: message,
+          durationMs
+        };
+
+        if (err && typeof err === 'object') {
+          if ('expected' in err) {
+            result.expected = String((err as { expected: unknown }).expected);
+          }
+          if ('actual' in err) {
+            result.actual = String((err as { actual: unknown }).actual);
+          }
+          const stack =
+            'stack' in err && typeof (err as { stack: unknown }).stack === 'string'
+              ? (err as { stack: string }).stack
+              : undefined;
+          const location = resolveStackToOriginalLocation(stack, options?.compileMaps ?? []);
+          if (location) {
+            result.source = location.source;
+            result.line = location.line;
+            result.column = location.column;
+          }
+        }
+
+        state.tests.push(result);
       }
     },
     /** Chai BDD expect; see https://www.chaijs.com/api/bdd/ */

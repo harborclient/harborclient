@@ -1,13 +1,10 @@
 import { Button, FaIcon, fieldFrame } from '@harborclient/sdk/components';
 import { useEffect, useRef, useState, type JSX } from 'react';
-import {
-  getAvailableModels,
-  getAiModelOptionGroupLabel,
-  resolveAiModelOption
-} from '@harborclient/core/ai/models';
+import { getAvailableModels, resolveAiModelOption } from '@harborclient/core/ai/models';
 import type { AiSettings } from '@harborclient/core/types';
 import { faArrowUp, faStop } from '#/renderer/src/fontawesome';
 import { AiModelSelect } from '#/renderer/src/ui/Shared/AiModelSelect';
+import { getAiModelSelectAriaLabel } from '#/renderer/src/ui/Shared/AiModelSelect/aiModelSourceLabels';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -263,11 +260,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
             value={modelId}
             models={availableModels}
             disabled={chatId == null || availableModels.length === 0}
-            aria-label={
-              selectedModelOption != null
-                ? `AI model, ${selectedModelOption.label}, ${getAiModelOptionGroupLabel(selectedModelOption)}`
-                : 'AI model'
-            }
+            aria-label={getAiModelSelectAriaLabel(availableModels, selectedModelOption)}
             onChange={(nextValue) => {
               if (chatId == null) return;
               dispatch(setSelectedModel({ chatId, modelId: nextValue }));

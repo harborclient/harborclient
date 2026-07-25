@@ -38,8 +38,8 @@ describe('hc.response.to response assertion plugin', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'status code', passed: true },
-      { name: 'status text', passed: true }
+      expect.objectContaining({ name: 'status code', passed: true }),
+      expect.objectContaining({ name: 'status text', passed: true })
     ]);
   });
 
@@ -69,7 +69,7 @@ describe('hc.response.to response assertion plugin', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'not 404', passed: true }]);
+    expect(result.tests).toEqual([expect.objectContaining({ name: 'not 404', passed: true })]);
   });
 
   it('passes header presence and header value matchers', async () => {
@@ -87,8 +87,8 @@ describe('hc.response.to response assertion plugin', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'has content-type', passed: true },
-      { name: 'content-type value', passed: true }
+      expect.objectContaining({ name: 'has content-type', passed: true }),
+      expect.objectContaining({ name: 'content-type value', passed: true })
     ]);
   });
 
@@ -130,8 +130,8 @@ describe('hc.response.to response assertion plugin', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'valid json body', passed: true },
-      { name: 'json body shape', passed: true }
+      expect.objectContaining({ name: 'valid json body', passed: true }),
+      expect.objectContaining({ name: 'json body shape', passed: true })
     ]);
   });
 
@@ -201,7 +201,7 @@ describe('hc.response.to response assertion plugin', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.tests).toEqual([{ name: 'unauthorized', passed: true }]);
+    expect(result.tests).toEqual([expect.objectContaining({ name: 'unauthorized', passed: true })]);
   });
 
   it('rejects response matchers on hc.expect subjects', async () => {

@@ -446,8 +446,8 @@ describe('evaluateScript', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'status is 200', passed: true },
-      { name: 'body has ok', passed: true }
+      expect.objectContaining({ name: 'status is 200', passed: true }),
+      expect.objectContaining({ name: 'body has ok', passed: true })
     ]);
   });
 
@@ -494,11 +494,11 @@ describe('evaluateScript', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.tests).toEqual([
-      { name: 'heading text', passed: true },
-      { name: 'heading class', passed: true },
-      { name: 'list items', passed: true },
-      { name: 'missing selector', passed: true },
-      { name: 'document cache', passed: true }
+      expect.objectContaining({ name: 'heading text', passed: true }),
+      expect.objectContaining({ name: 'heading class', passed: true }),
+      expect.objectContaining({ name: 'list items', passed: true }),
+      expect.objectContaining({ name: 'missing selector', passed: true }),
+      expect.objectContaining({ name: 'document cache', passed: true })
     ]);
   });
 

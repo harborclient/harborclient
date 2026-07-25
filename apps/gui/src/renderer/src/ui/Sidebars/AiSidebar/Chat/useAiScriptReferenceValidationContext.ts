@@ -2,6 +2,7 @@ import type {
   AiScriptReferenceValidationContext,
   MarkdownSelectionSnapshot,
   RequestBodySelectionSnapshot,
+  ScriptSelectionSnapshot,
   TerminalSelectionSnapshot
 } from '@harborclient/core/ai/scriptReferences';
 import type { Collection, Folder, SavedRequest, Snippet } from '@harborclient/core/types';
@@ -18,6 +19,7 @@ import {
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
+import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 
 /**
  * Sidebar item display names keyed by uuid for `@collection`, `@folder`, and `@request` badges.
@@ -121,6 +123,7 @@ function buildValidationContext(
  * @param markdownSelections - Markdown selection snapshots keyed by `@markdown` reference token.
  * @param sidebarNames - Collection, folder, and request name maps for sidebar `@` references.
  * @param requestBodySelections - Raw-body selection snapshots keyed by `@body` reference token.
+ * @param scriptSelections - Request-script selection snapshots keyed by `@` script reference token.
  */
 export function buildAiScriptReferenceValidationContext(
   tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
@@ -128,7 +131,8 @@ export function buildAiScriptReferenceValidationContext(
   terminalSelections: Record<string, TerminalSelectionSnapshot> = {},
   markdownSelections: Record<string, MarkdownSelectionSnapshot> = {},
   sidebarNames: Partial<SidebarItemNameMaps> = {},
-  requestBodySelections: Record<string, RequestBodySelectionSnapshot> = {}
+  requestBodySelections: Record<string, RequestBodySelectionSnapshot> = {},
+  scriptSelections: Record<string, ScriptSelectionSnapshot> = {}
 ): AiScriptReferenceValidationContext {
   return {
     ...buildValidationContext(tab),
@@ -136,6 +140,7 @@ export function buildAiScriptReferenceValidationContext(
     terminalSelections,
     markdownSelections,
     requestBodySelections,
+    scriptSelections,
     collectionNamesByUuid: sidebarNames.collectionNamesByUuid,
     folderNamesByUuid: sidebarNames.folderNamesByUuid,
     requestNamesByUuid: sidebarNames.requestNamesByUuid
@@ -151,6 +156,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const terminalSelections = useAppSelector(selectTerminalSelections);
   const markdownSelections = useAppSelector(selectMarkdownSelections);
   const requestBodySelections = useAppSelector(selectRequestBodySelections);
+  const scriptSelections = useAppSelector(selectScriptSelections);
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -171,7 +177,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
         terminalSelections,
         markdownSelections,
         sidebarNames,
-        requestBodySelections
+        requestBodySelections,
+        scriptSelections
       ),
     [
       activeTab,
@@ -179,7 +186,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
       terminalSelections,
       markdownSelections,
       sidebarNames,
-      requestBodySelections
+      requestBodySelections,
+      scriptSelections
     ]
   );
 }

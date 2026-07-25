@@ -25,6 +25,7 @@ import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
 import { ScriptAskModal } from '#/renderer/src/ui/Shared/Script/ScriptAskModal';
 import {
+  COPY_TO_CHAT_ICON,
   COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
   COPY_TO_CHAT_SHORTCUT_HINT
 } from '#/renderer/src/hooks/useCopyToChat';
@@ -40,12 +41,12 @@ import {
 } from '@harborclient/core/scriptStage';
 import { getAvailableModels } from '@harborclient/core/ai/models';
 import { createLiveHcCompletionSource } from '#/renderer/src/scripting/hcCompletions';
+import { lineColToSelection } from '#/renderer/src/scripting/lineColToSelection';
 import {
-  faChevronDown,
-  faChevronUp,
-  faCopy,
-  faWandMagicSparkles
-} from '#/renderer/src/fontawesome';
+  buildRevealDiagnostics,
+  type RevealDiagnosticCopyToChat
+} from '#/renderer/src/scripting/buildRevealDiagnostics';
+import { faChevronDown, faChevronUp, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import {
   SCRIPT_EDITOR_MIN_HEIGHT,
   SCRIPT_ROW_ICON_CLASS,
@@ -95,7 +96,12 @@ export function SortableScriptRow({
   onOpenInTab,
   hideDragHandle = false,
   editorFill = false,
-  forceExpanded = false
+  forceExpanded = false,
+  revealLine,
+  revealColumn,
+  revealMessage,
+  revealSource,
+  revealNonce
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -109,6 +115,8 @@ export function SortableScriptRow({
   const [askTrigger, setAskTrigger] = useState<CodeEditorSlashTrigger | null>(null);
   const [inlineAskPending, setInlineAskPending] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [dismissedRevealNonce, setDismissedRevealNonce] = useState<number | undefined>(undefined);
+  const revealDismissed = revealNonce != null && dismissedRevealNonce === revealNonce;
   const fullScreenHostRef = useRef<HTMLDivElement>(null);
   const activeChatId = useAppSelector(selectActiveChatId);
   const selectedModelByChat = useAppSelector(selectSelectedModelByChat);
@@ -156,10 +164,35 @@ export function SortableScriptRow({
 
   /**
    * Stable script patch handler for CodeEditor onChange.
+   *
+   * Dismisses the reveal diagnostic on the first edit so a stale underline does
+   * not linger after the user starts fixing the assertion. A later reveal with a
+   * new nonce automatically re-enables the marker because dismiss tracks nonce.
    */
-  const handlePatchCode = useCallback((code: string): void => {
-    onPatchCodeRef.current(code);
-  }, []);
+  const handlePatchCode = useCallback(
+    (code: string): void => {
+      if (revealNonce != null) {
+        setDismissedRevealNonce(revealNonce);
+      }
+      onPatchCodeRef.current(code);
+    },
+    [revealNonce]
+  );
+
+  /**
+   * Updates snippet draft code and dismisses any active reveal diagnostic.
+   *
+   * @param code - New snippet source text.
+   */
+  const handleSnippetDraftChange = useCallback(
+    (code: string): void => {
+      if (revealNonce != null) {
+        setDismissedRevealNonce(revealNonce);
+      }
+      setSnippetDraftCode(code);
+    },
+    [revealNonce]
+  );
 
   /**
    * Selection toolbar actions for inline script editors when AI chat is available.
@@ -172,7 +205,7 @@ export function SortableScriptRow({
               id: 'copy-to-chat',
               label: 'Copy to chat',
               ariaLabel: `Copy selection from ${label} to chat`,
-              icon: faCopy,
+              icon: COPY_TO_CHAT_ICON,
               shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
@@ -183,6 +216,27 @@ export function SortableScriptRow({
         : undefined,
     [aiAvailable, label, onCopySelectionToChat]
   );
+
+  /**
+   * Copy to chat action embedded in the reveal diagnostic lint tooltip when AI is available.
+   */
+  const revealCopyToChat = useMemo((): RevealDiagnosticCopyToChat | undefined => {
+    if (
+      !aiAvailable ||
+      revealDismissed ||
+      revealMessage?.trim() == null ||
+      revealMessage.trim() === ''
+    ) {
+      return undefined;
+    }
+
+    return {
+      label: `Copy to chat (${COPY_TO_CHAT_SHORTCUT_HINT})`,
+      onSelect: (range) => {
+        onCopySelectionToChat(range);
+      }
+    };
+  }, [aiAvailable, onCopySelectionToChat, revealDismissed, revealMessage]);
 
   /**
    * Routes slash commands: inline ask when args are present, modal for bare `/ask`.
@@ -430,11 +484,30 @@ export function SortableScriptRow({
   const renderScriptCodeEditor = (fill: boolean): JSX.Element => {
     const editorClassName = fill ? 'min-h-0 flex-1' : undefined;
     const editorMinHeight = fill ? '0' : SCRIPT_EDITOR_MIN_HEIGHT;
+    const fillSource = script.kind === 'inline' ? (script.code ?? '') : snippetDraftCode;
+    const revealSelection =
+      revealLine != null && Number.isFinite(revealLine)
+        ? lineColToSelection(fillSource, revealLine, revealColumn)
+        : undefined;
+    const revealScrollTop =
+      revealSelection && revealLine != null ? Math.max(0, (revealLine - 1) * 18) : undefined;
+    const revealDiagnostics = revealDismissed
+      ? undefined
+      : buildRevealDiagnostics(
+          fillSource,
+          revealLine,
+          revealColumn,
+          revealMessage,
+          revealSource,
+          revealCopyToChat
+        );
+    const editorKey = `${script.id}-${revealNonce ?? 'default'}`;
 
     if (script.kind === 'inline') {
       if (fill) {
         return (
           <CodeEditor
+            key={editorKey}
             value={script.code ?? ''}
             onChange={handlePatchCode}
             editable={!inlineAskPending}
@@ -450,13 +523,16 @@ export function SortableScriptRow({
             minHeight={editorMinHeight}
             className={editorClassName}
             aria-label={`${label} source`}
+            initialSelection={revealSelection}
+            initialScrollTop={revealScrollTop}
+            diagnostics={revealDiagnostics}
           />
         );
       }
 
       return (
         <ScriptRowCodeEditor
-          key={script.id}
+          key={editorKey}
           scriptId={script.id}
           value={script.code ?? ''}
           onChange={handlePatchCode}
@@ -471,6 +547,11 @@ export function SortableScriptRow({
           variables={variables}
           onEditVariable={onEditVariables}
           aria-label={`${label} source`}
+          revealLine={revealLine}
+          revealColumn={revealColumn}
+          revealMessage={revealDismissed ? undefined : revealMessage}
+          revealSource={revealSource}
+          copyRevealToChat={revealCopyToChat}
         />
       );
     }
@@ -478,8 +559,9 @@ export function SortableScriptRow({
     if (fill) {
       return (
         <CodeEditor
+          key={editorKey}
           value={snippetDraftCode}
-          onChange={setSnippetDraftCode}
+          onChange={handleSnippetDraftChange}
           readOnly={!isEditingSnippet}
           language="javascript"
           completionSource={hcCompletionSource}
@@ -492,16 +574,19 @@ export function SortableScriptRow({
           minHeight={editorMinHeight}
           className={editorClassName}
           aria-label={`${label} source`}
+          initialSelection={revealSelection}
+          initialScrollTop={revealScrollTop}
+          diagnostics={revealDiagnostics}
         />
       );
     }
 
     return (
       <ScriptRowCodeEditor
-        key={script.id}
+        key={editorKey}
         scriptId={script.id}
         value={snippetDraftCode}
-        onChange={setSnippetDraftCode}
+        onChange={handleSnippetDraftChange}
         readOnly={!isEditingSnippet}
         language="javascript"
         completionSource={hcCompletionSource}
@@ -512,6 +597,11 @@ export function SortableScriptRow({
         variables={variables}
         onEditVariable={onEditVariables}
         aria-label={`${label} source`}
+        revealLine={revealLine}
+        revealColumn={revealColumn}
+        revealMessage={revealDismissed ? undefined : revealMessage}
+        revealSource={revealSource}
+        copyRevealToChat={revealCopyToChat}
       />
     );
   };

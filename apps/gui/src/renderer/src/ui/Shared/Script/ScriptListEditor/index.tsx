@@ -19,7 +19,13 @@ import { Button, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import type { MenuItem } from '@harborclient/sdk/components';
 import { Fragment, useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import type { ScriptRef, Snippet, Variable } from '@harborclient/core/types';
+import type {
+  ScriptRef,
+  ScriptRunError,
+  ScriptTestResult,
+  Snippet,
+  Variable
+} from '@harborclient/core/types';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import type { ScriptStage } from '@harborclient/sdk';
 import {
@@ -55,7 +61,19 @@ import {
   setPendingComposerText
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { setScriptSelection } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { lineNumberAtOffset } from '#/renderer/src/ui/Main/RequestEditor/Editor/markdownSelection';
+import {
+  computeTestResultsRevealNonce,
+  findFailedRequestScriptTest,
+  findScriptErrorForRow,
+  revealStateForScriptRow
+} from '#/renderer/src/scripting/scriptTestReveal';
+import {
+  scriptRunErrorToLastRunFailure,
+  testResultToLastRunFailure
+} from '#/renderer/src/scripting/scriptRunDiagnostics';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { createSnippet, updateSnippet } from '#/renderer/src/store/thunks/snippets';
 import { snippetMatchesPhase, snippetScopeForPhase } from '@harborclient/core/snippetScope';
@@ -84,7 +102,7 @@ import {
   faGear,
   faPlus,
   faCode,
-  faArrowUpRightFromSquare,
+  faCircleQuestion,
   faPaste
 } from '#/renderer/src/fontawesome';
 import { SCRIPT_ROW_STAGE_BORDER_CLASS, SNIPPET_LIBRARY_MENU_ID } from './constants';
@@ -151,6 +169,43 @@ interface Props {
    * Script row id to render when `variant` is `single`.
    */
   focusScriptId?: string;
+
+  /**
+   * Optional 1-based line to reveal when focusing a script from a test failure.
+   */
+  revealLine?: number;
+
+  /**
+   * Optional 1-based column for the reveal selection.
+   */
+  revealColumn?: number;
+
+  /**
+   * Assertion failure or script error message shown as a CodeMirror error underline.
+   */
+  revealMessage?: string;
+
+  /**
+   * Marker origin for the reveal underline: `test` for assertion failures,
+   * `script` for runtime/compile errors.
+   */
+  revealSource?: 'test' | 'script';
+
+  /**
+   * Changes whenever a new reveal is requested so the editor remounts.
+   */
+  revealNonce?: number;
+
+  /**
+   * hc.test results from the last send; inline list rows show failure squiggles.
+   */
+  testResults?: readonly ScriptTestResult[];
+
+  /**
+   * Structured script failures from the last send; inline list rows show error
+   * squiggles at the mapped throw/compile location.
+   */
+  scriptErrors?: readonly ScriptRunError[];
 }
 
 /**
@@ -167,7 +222,14 @@ export function ScriptListEditor({
   requestId,
   sourceTabId,
   variant = 'list',
-  focusScriptId
+  focusScriptId,
+  revealLine,
+  revealColumn,
+  revealMessage,
+  revealSource,
+  revealNonce,
+  testResults,
+  scriptErrors
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
@@ -188,6 +250,16 @@ export function ScriptListEditor({
   const copiedScript = useAppSelector(selectCopiedScriptRef);
   const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
   const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
+
+  /**
+   * Derives a stable reveal nonce from the current test results and script errors
+   * so inline failure markers reset after each send and dismiss-on-edit can re-arm
+   * on the next run.
+   */
+  const inlineTestResultsRevealNonce = useMemo(
+    () => computeTestResultsRevealNonce(testResults ?? [], scriptErrors ?? []),
+    [testResults, scriptErrors]
+  );
   const importableModuleNames = useMemo(
     () =>
       [
@@ -276,6 +348,13 @@ export function ScriptListEditor({
    */
   const handleOpenSyntaxSettings = (): void => {
     dispatch(openPageTab({ type: 'settings', section: 'syntax' }));
+  };
+
+  /**
+   * Opens the request scripting documentation in the system browser.
+   */
+  const handleOpenScriptingHelp = (): void => {
+    window.open(REQUEST_SCRIPTS_HELP_URL, '_blank', 'noopener,noreferrer');
   };
 
   /**
@@ -871,7 +950,7 @@ export function ScriptListEditor({
    * @param scriptIndex - 1-based index of the script row in the phase array.
    */
   const handleAskAi = async (scriptIndex: number): Promise<void> => {
-    const token = `@${requestId ?? 'active'}.${phase}.${scriptIndex}\n\n`;
+    const token = `@active.${phase}.${scriptIndex}\n\n`;
     dispatch(setShowAiSidebar(true));
     await dispatch(createNewChat(aiSettings));
     dispatch(setPendingComposerText(token));
@@ -880,6 +959,9 @@ export function ScriptListEditor({
   /**
    * Opens the AI sidebar and inserts a script reference with the selected source range.
    *
+   * Captures the editor source into a Redux snapshot so send-time context expansion still
+   * works if the user switches request tabs before sending.
+   *
    * @param scriptIndex - 1-based index of the script row in the phase array.
    * @param selection - Character offsets into the script source.
    */
@@ -887,16 +969,53 @@ export function ScriptListEditor({
     scriptIndex: number,
     selection: { from: number; to: number }
   ): Promise<void> => {
+    const script = normalized[scriptIndex - 1];
+    if (script == null || selection.from >= selection.to) {
+      return;
+    }
+
+    const source = resolveScriptSourceCode(script, snippets);
+    const startOffset = Math.min(Math.max(0, selection.from), source.length);
+    const endOffset = Math.min(Math.max(startOffset, selection.to), source.length);
+    if (startOffset >= endOffset) {
+      return;
+    }
+
+    const selectedText = source.slice(startOffset, endOffset);
+    const token = `@active.${phase}.${scriptIndex}#${startOffset}.${endOffset}`;
+    const scriptLabel = scriptRowLabel(script, snippets);
+    const scriptError = findScriptErrorForRow(scriptErrors ?? [], phase, script.id);
+    const failedTest = findFailedRequestScriptTest(testResults ?? [], phase, script.id);
+    const lastRunFailure = scriptError
+      ? scriptRunErrorToLastRunFailure(scriptError)
+      : failedTest
+        ? testResultToLastRunFailure(failedTest)
+        : undefined;
+
+    dispatch(
+      setScriptSelection({
+        token,
+        snapshot: {
+          scriptLabel,
+          phase,
+          scriptIndex,
+          requestId: requestId ?? 'active',
+          source,
+          selectedText,
+          startOffset,
+          endOffset,
+          startLine: lineNumberAtOffset(source, startOffset),
+          endLine: lineNumberAtOffset(source, Math.max(startOffset, endOffset - 1)),
+          ...(lastRunFailure ? { lastRunFailure } : {})
+        }
+      })
+    );
     dispatch(setShowAiSidebar(true));
     if (activeChatId == null) {
       await dispatch(createNewChat(aiSettings));
     }
 
-    dispatch(
-      setPendingComposerText(
-        `@${requestId ?? 'active'}.${phase}.${scriptIndex}#${selection.from}.${selection.to}`
-      )
-    );
+    dispatch(setPendingComposerText(token));
   };
 
   /**
@@ -1075,6 +1194,16 @@ export function ScriptListEditor({
           type="button"
           variant="secondary"
           className="shrink-0"
+          aria-label="Scripting help"
+          title="Scripting help"
+          onClick={handleOpenScriptingHelp}
+        >
+          <FaIcon icon={faCircleQuestion} className="h-4 w-4" aria-hidden />
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="shrink-0"
           aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
           onClick={handleToggleExpandAll}
@@ -1086,23 +1215,10 @@ export function ScriptListEditor({
   );
 
   /**
-   * Renders the ordering hint and add controls above the script list.
+   * Renders the add controls above the script list.
    */
   const scriptListHeader = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <a
-          href={REQUEST_SCRIPTS_HELP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[14px] text-accent hover:underline"
-        >
-          Scripting help
-          <FaIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" aria-hidden />
-        </a>
-      </div>
-      {addControls}
-    </div>
+    <div className="flex shrink-0 flex-wrap items-center gap-2">{addControls}</div>
   );
 
   /**
@@ -1130,6 +1246,14 @@ export function ScriptListEditor({
           const label = scriptRowLabel(script, snippets);
           const isExpanded = script.expanded ?? false;
           const scriptIndex = normalized.findIndex((entry) => entry.id === script.id);
+          // A throw aborts the script, so error reveal takes precedence over a
+          // failed assertion on the same row.
+          const inlineReveal = revealStateForScriptRow(
+            scriptErrors ?? [],
+            testResults ?? [],
+            phase,
+            script.id
+          );
 
           return (
             <Fragment key={script.id}>
@@ -1138,6 +1262,11 @@ export function ScriptListEditor({
                   sortable: groupSortable,
                   includeOpenInTab: true
                 })}
+                revealLine={inlineReveal?.line}
+                revealColumn={inlineReveal?.column}
+                revealMessage={inlineReveal?.message}
+                revealSource={inlineReveal?.source}
+                revealNonce={inlineReveal ? inlineTestResultsRevealNonce : undefined}
               />
               {index < groupScripts.length - 1 ? <ScriptFlowArrow /> : null}
             </Fragment>
@@ -1275,6 +1404,31 @@ export function ScriptListEditor({
 
     const label = scriptRowLabel(focusedScript, snippets);
     const scriptIndex = normalized.findIndex((entry) => entry.id === focusedScript.id);
+    // Live last-send failures take precedence; page reveal props remain as a
+    // fallback for console jump-to-editor when tab state has not caught up yet.
+    const liveReveal = revealStateForScriptRow(
+      scriptErrors ?? [],
+      testResults ?? [],
+      phase,
+      focusedScript.id
+    );
+    const effectiveReveal = liveReveal
+      ? {
+          line: liveReveal.line,
+          column: liveReveal.column,
+          message: liveReveal.message,
+          source: liveReveal.source,
+          nonce: inlineTestResultsRevealNonce
+        }
+      : revealLine != null
+        ? {
+            line: revealLine,
+            column: revealColumn,
+            message: revealMessage,
+            source: revealSource,
+            nonce: revealNonce
+          }
+        : undefined;
 
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
@@ -1285,6 +1439,11 @@ export function ScriptListEditor({
               editorFill: true,
               forceExpanded: true
             })}
+            revealLine={effectiveReveal?.line}
+            revealColumn={effectiveReveal?.column}
+            revealMessage={effectiveReveal?.message}
+            revealSource={effectiveReveal?.source}
+            revealNonce={effectiveReveal?.nonce}
           />
         </ul>
         {modals}

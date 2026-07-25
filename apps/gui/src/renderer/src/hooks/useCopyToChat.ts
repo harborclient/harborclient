@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useAiAvailability } from './useAiAvailability';
+import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -16,6 +17,9 @@ export const COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY = 'Ctrl-Shift-o';
 
 /** Lowercase letter key used by xterm custom key handlers for copy-to-chat. */
 export const COPY_TO_CHAT_SHORTCUT_LETTER = 'o';
+
+/** Icon shown on Copy to chat selection toolbars and inline buttons. */
+export const COPY_TO_CHAT_ICON = faWandMagicSparkles;
 
 /**
  * Opens the AI sidebar and queues an `@` reference token in the chat composer.

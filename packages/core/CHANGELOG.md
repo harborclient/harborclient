@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore(deps): update @harborclient/sdk to version 1.2.5 and enhance script error handling. (`dd2ab257`)
+
 ## 0.1.1 - 2026-07-25
 
 - fix: update pre-commit hook to block any local SDK link overrides. (`a4ab5392`)

@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { ScriptExecutionEvent, ScriptTestResult, SendResult } from '@harborclient/core/types';
+import type {
+  ScriptExecutionEvent,
+  ScriptRunError,
+  ScriptTestResult,
+  SendResult
+} from '@harborclient/core/types';
 
 /**
  * A single entry in the global session console log.
@@ -9,6 +14,10 @@ export interface ConsoleEntry {
   timestamp: number;
   requestName: string;
   collectionName?: string;
+  /**
+   * Request tab that produced this send; used for jump-to-editor when still open.
+   */
+  requestTabId?: string;
   result: SendResult;
   logs?: string[];
   tests?: ScriptTestResult[];
@@ -17,6 +26,11 @@ export interface ConsoleEntry {
    */
   executionEvents?: ScriptExecutionEvent[];
   scriptError?: string;
+  /**
+   * Structured script failures with slot metadata and mapped locations,
+   * used for jump-to-editor from the console Output section.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 export interface ConsoleState {

@@ -1,6 +1,11 @@
 import { SegmentedTabs, SegmentedTabsGroup } from '@harborclient/sdk/components';
 import { useCallback, useMemo, type JSX } from 'react';
-import type { KeyValue, Variable } from '@harborclient/core/types';
+import type {
+  KeyValue,
+  ScriptRunError,
+  ScriptTestResult,
+  Variable
+} from '@harborclient/core/types';
 import { ensureDefaultScriptRef, hasScriptContent } from '@harborclient/core/scriptRefs';
 
 import type { RequestTabContext } from '@harborclient/core/plugin/types';
@@ -59,6 +64,16 @@ interface Props {
    * Opens collection settings to edit variables.
    */
   onEditVariables?: (key: string) => void;
+
+  /**
+   * hc.test results from the last send; used for inline script failure markers.
+   */
+  testResults?: ScriptTestResult[];
+
+  /**
+   * Structured script failures from the last send; used for inline script error markers.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -71,7 +86,9 @@ export function EditorTabs({
   update,
   onParamsChange,
   variables,
-  onEditVariables
+  onEditVariables,
+  testResults,
+  scriptErrors
 }: Props): JSX.Element {
   const pluginTabs = usePluginRequestTabs();
   const showBody = draft.method !== 'GET' && draft.method !== 'HEAD';
@@ -182,6 +199,8 @@ export function EditorTabs({
             onEditVariables={onEditVariables}
             pluginTabs={pluginTabs}
             requestTabContext={requestTabContext}
+            testResults={testResults}
+            scriptErrors={scriptErrors}
           />
         </div>
       </SegmentedTabsGroup>

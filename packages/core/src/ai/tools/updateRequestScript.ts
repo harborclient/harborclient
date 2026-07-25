@@ -21,14 +21,27 @@ export interface UpdateRequestScriptToolArgs {
   scriptIndex: number;
 
   /**
-   * JavaScript source to apply to the script.
+   * JavaScript source to apply.
+   *
+   * For `replace`, this must be the full script. For `replace_range`, only the
+   * replacement text for `[startOffset, endOffset)`. For `append`, text to add.
    */
   code: string;
 
   /**
-   * Whether to replace or append to existing inline script code; defaults to replace.
+   * How to apply code; defaults to replace (full script overwrite).
    */
-  mode?: 'replace' | 'append';
+  mode?: 'replace' | 'append' | 'replace_range';
+
+  /**
+   * Inclusive 0-based start offset for `replace_range` (from `@` `#start.end`).
+   */
+  startOffset?: number;
+
+  /**
+   * Exclusive 0-based end offset for `replace_range` (from `@` `#start.end`).
+   */
+  endOffset?: number;
 }
 
 /**
@@ -37,8 +50,10 @@ export interface UpdateRequestScriptToolArgs {
  * @param {number | 'active'} requestId - Saved request id from the @ reference, or "active" when unsaved.
  * @param {'pre' | 'post'} phase - Script phase: pre-request or post-request.
  * @param {number} scriptIndex - 1-based index of the script in the phase array.
- * @param {string} code - JavaScript source to apply to the script.
+ * @param {string} code - JavaScript source to apply (full script, append text, or range replacement).
  * @param {string} [mode] - How to apply code; defaults to replace.
+ * @param {number} [startOffset] - Inclusive start offset when mode is replace_range.
+ * @param {number} [endOffset] - Exclusive end offset when mode is replace_range.
  */
 export const updateRequestScriptTool = {
   name: 'update_request_script',
@@ -47,7 +62,7 @@ export const updateRequestScriptTool = {
     function: {
       name: 'update_request_script',
       description:
-        'Updates a specific pre- or post-request script in the active editor request by 1-based index. Use when the user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1), optionally with #<start>.<end> character offsets into that script source to highlight the selected region. Only inline scripts can be edited; snippet-linked scripts must be reported to the user. Changes update the editor draft only until the user saves.',
+        'Updates a specific pre- or post-request script in the active editor request by 1-based index. Use when the user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1), optionally with #<start>.<end> character offsets into that script source. Modes: replace (default) — code must be the FULL script source; preserve all unchanged lines. replace_range — code is only the replacement for [startOffset, endOffset); requires startOffset and endOffset from the @ tag; use this to fix a selected region without deleting surrounding tests/comments. append — add code after existing content. Only inline scripts can be edited; snippet-linked scripts must be reported to the user. Changes update the editor draft only until the user saves.',
       parameters: {
         type: 'object',
         properties: {
@@ -67,12 +82,24 @@ export const updateRequestScriptTool = {
           },
           code: {
             type: 'string',
-            description: 'JavaScript source to apply to the script.'
+            description:
+              'JavaScript to apply. For replace: full script. For replace_range: replacement text only. For append: text to append.'
           },
           mode: {
             type: 'string',
-            enum: ['replace', 'append'],
-            description: 'How to apply code; defaults to replace.'
+            enum: ['replace', 'append', 'replace_range'],
+            description:
+              'How to apply code; defaults to replace. Use replace_range with startOffset/endOffset when editing a selected @ region.'
+          },
+          startOffset: {
+            type: 'number',
+            description:
+              'Inclusive 0-based character offset into the script for replace_range (from @ #start.end).'
+          },
+          endOffset: {
+            type: 'number',
+            description:
+              'Exclusive 0-based character offset into the script for replace_range (from @ #start.end).'
           }
         },
         required: ['requestId', 'phase', 'scriptIndex', 'code'],
@@ -85,6 +112,8 @@ export const updateRequestScriptTool = {
     phase: z.enum(['pre', 'post']),
     scriptIndex: z.number(),
     code: z.string(),
-    mode: z.enum(['replace', 'append']).optional()
+    mode: z.enum(['replace', 'append', 'replace_range']).optional(),
+    startOffset: z.number().optional(),
+    endOffset: z.number().optional()
   }
 } as const satisfies ITool<'update_request_script'>;

@@ -3,6 +3,7 @@ import { defaultAuth } from '../auth';
 import {
   applyAuthPatch,
   applyRequestDraftUpdate,
+  applyScriptRangeUpdate,
   applyScriptUpdate,
   hasRequestUpdateFields,
   mergeKeyValues,
@@ -63,6 +64,47 @@ describe('applyScriptUpdate', () => {
 
   it('replaces script text by default', () => {
     expect(applyScriptUpdate('old', 'new', 'replace')).toBe('new');
+  });
+
+  it('delegates replace_range to applyScriptRangeUpdate', () => {
+    expect(
+      applyScriptUpdate('abcdef', 'XX', 'replace_range', { startOffset: 2, endOffset: 4 })
+    ).toBe('abXXef');
+  });
+
+  it('throws when replace_range is missing offsets', () => {
+    expect(() => applyScriptUpdate('abcdef', 'XX', 'replace_range')).toThrow(
+      /startOffset and endOffset/
+    );
+  });
+});
+
+describe('applyScriptRangeUpdate', () => {
+  it('replaces a middle span and preserves surrounding text', () => {
+    const source = 'aaaBBBBccc';
+    expect(applyScriptRangeUpdate(source, 3, 7, 'XX')).toBe('aaaXXccc');
+  });
+
+  it('replaces from the start of the script', () => {
+    expect(applyScriptRangeUpdate('hello world', 0, 5, 'hi')).toBe('hi world');
+  });
+
+  it('replaces through the end of the script', () => {
+    expect(applyScriptRangeUpdate('hello world', 6, 11, 'there')).toBe('hello there');
+  });
+
+  it('inserts when the selection is empty', () => {
+    expect(applyScriptRangeUpdate('ab', 1, 1, 'X')).toBe('aXb');
+  });
+
+  it('clamps out-of-range offsets', () => {
+    expect(applyScriptRangeUpdate('abcd', -5, 2, 'Z')).toBe('Zcd');
+    expect(applyScriptRangeUpdate('abcd', 2, 99, 'Z')).toBe('abZ');
+    expect(applyScriptRangeUpdate('abcd', 10, 20, 'Z')).toBe('abcdZ');
+  });
+
+  it('swaps inverted end before start by clamping end to start', () => {
+    expect(applyScriptRangeUpdate('abcd', 3, 1, 'Z')).toBe('abcZd');
   });
 });
 

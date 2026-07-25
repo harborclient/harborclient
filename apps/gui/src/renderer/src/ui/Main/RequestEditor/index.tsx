@@ -35,6 +35,7 @@ import {
   selectRequestsByCollection,
   selectResponse,
   selectScriptError,
+  selectScriptErrors,
   selectScriptLogs,
   selectSelectedCollectionId,
   selectSending,
@@ -194,6 +195,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const scriptLogs = useAppSelector(selectScriptLogs);
   const executionEvents = useAppSelector(selectExecutionEvents);
   const scriptError = useAppSelector(selectScriptError);
+  const scriptErrors = useAppSelector(selectScriptErrors);
   const environments = useAppSelector(selectEnvironments);
   const collections = useAppSelector(selectCollections);
   const { teamHubs } = useTeamHubs();
@@ -625,6 +627,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                         );
                         revealFolder(activeCollectionId, activeFolderId);
                       }}
+                      testResults={testResults}
+                      scriptErrors={scriptErrors}
                     />
                   </Scrollbars>
                 </section>
@@ -656,7 +660,9 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     scriptLogs={scriptLogs}
                     executionEvents={executionEvents}
                     scriptError={scriptError}
+                    scriptErrors={scriptErrors}
                     requestUrl={draft.url}
+                    requestTabId={activeTabId}
                     onCancel={() => void dispatch(cancelRequest(activeTabId))}
                     onClear={clearActiveResponse}
                   />

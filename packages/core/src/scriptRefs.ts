@@ -59,6 +59,22 @@ export function createSnippetScriptRef(
 }
 
 /**
+ * Returns script refs with freshly minted list ids.
+ *
+ * Used when duplicating a request so copied scripts do not collide with the
+ * source request's ids in open-tab jump-to-editor lookups.
+ *
+ * @param refs - Script references to remint.
+ * @returns New array with the same script payloads and new {@link ScriptRef.id} values.
+ */
+export function remintScriptRefIds(refs: ScriptRef[] | undefined | null): ScriptRef[] {
+  return normalizeScriptRefs(refs).map((ref) => ({
+    ...ref,
+    id: crypto.randomUUID()
+  }));
+}
+
+/**
  * Extracts a clipboard-safe payload from one script row.
  *
  * Snippet rows copy only the library uuid; inline rows copy code, name,

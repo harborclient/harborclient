@@ -20,6 +20,7 @@ import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
+import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import {
   appendMessage,
   clearChatCancelState,
@@ -412,7 +413,8 @@ export const sendChatMessage = createAsyncThunk<
         selectTerminalSelections(getState()),
         selectMarkdownSelections(getState()),
         buildSidebarItemNameMapsFromState(getState()),
-        selectRequestBodySelections(getState())
+        selectRequestBodySelections(getState()),
+        selectScriptSelections(getState())
       )
     );
     if (selectionContext != null) {

@@ -1,4 +1,4 @@
-import type { ScriptRef, Snippet } from '@harborclient/core/types';
+import type { ScriptRef, ScriptTestScope, Snippet } from '@harborclient/core/types';
 import { isImportableSnippetName } from '@harborclient/core/snippetImport';
 import { normalizeScriptRefs, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import { orderScriptRefsByStage } from '@harborclient/core/scriptStage';
@@ -7,9 +7,35 @@ import { orderScriptRefsByStage } from '@harborclient/core/scriptStage';
  * Ordered script slot to run for a send operation.
  */
 export interface ScriptSlot {
+  /**
+   * Human-readable label used in console and test result rows.
+   */
   label: string;
+
+  /**
+   * Script phase this slot belongs to.
+   */
   phase: 'pre' | 'post';
+
+  /**
+   * Resolved JavaScript source for this slot.
+   */
   source: string;
+
+  /**
+   * Stable {@link ScriptRef.id} for jump-to-editor navigation.
+   */
+  scriptId: string;
+
+  /**
+   * Ownership scope of the script list this slot came from.
+   */
+  scope: ScriptTestScope;
+
+  /**
+   * Whether the slot is inline code or a live snippet reference.
+   */
+  kind: 'inline' | 'snippet';
 }
 
 /**
@@ -209,6 +235,7 @@ export function resolveScriptRefSource(
  *
  * @param refs - Ordered script references for one phase.
  * @param phase - Script phase label metadata.
+ * @param scope - Ownership scope of this script list.
  * @param scopeLabel - Human-readable scope prefix for console output.
  * @param snippetLookup - Live snippet library lookup by uuid.
  * @returns Ordered slots with resolved JavaScript source.
@@ -216,6 +243,7 @@ export function resolveScriptRefSource(
 export function expandScriptRefsToSlots(
   refs: ScriptRef[] | undefined | null,
   phase: 'pre' | 'post',
+  scope: ScriptTestScope,
   scopeLabel: string,
   snippetLookup: Map<string, Snippet>
 ): ScriptSlot[] {
@@ -238,7 +266,10 @@ export function expandScriptRefsToSlots(
     slots.push({
       label,
       phase,
-      source
+      source,
+      scriptId: ref.id,
+      scope,
+      kind: ref.kind
     });
   });
 
@@ -251,6 +282,7 @@ export function expandScriptRefsToSlots(
  * @param refs - Canonical script reference array.
  * @param legacyScript - Legacy single-script fallback.
  * @param phase - Script phase label metadata.
+ * @param scope - Ownership scope of this script list.
  * @param scopeLabel - Human-readable scope prefix for console output.
  * @param snippetLookup - Live snippet library lookup by uuid.
  * @returns Ordered executable script slots.
@@ -259,12 +291,14 @@ export function buildScopedScriptSlots(
   refs: ScriptRef[] | undefined | null,
   legacyScript: string,
   phase: 'pre' | 'post',
+  scope: ScriptTestScope,
   scopeLabel: string,
   snippetLookup: Map<string, Snippet>
 ): ScriptSlot[] {
   return expandScriptRefsToSlots(
     resolveScriptRefs(refs, legacyScript),
     phase,
+    scope,
     scopeLabel,
     snippetLookup
   );

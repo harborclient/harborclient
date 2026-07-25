@@ -47,7 +47,9 @@ interface Props {
  * Themed AI model picker with grouped section headers.
  *
  * Uses a portaled listbox instead of a native `<select>` so Team Hub / Personal
- * headings follow HarborClient theme tokens.
+ * headings follow HarborClient theme tokens. Section headings are shown only when
+ * models come from more than one source; a single-source list renders just the
+ * model rows.
  */
 export function AiModelSelect({
   id,

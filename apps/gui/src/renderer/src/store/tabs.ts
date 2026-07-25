@@ -5,6 +5,7 @@ import type {
   KeyValue,
   SavedRequest,
   ScriptRef,
+  ScriptRunError,
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult,
@@ -180,6 +181,12 @@ export interface RequestTab {
   scriptError?: string;
 
   /**
+   * Structured script failures with slot metadata and mapped locations for the
+   * latest completed send; drives in-editor error squiggles.
+   */
+  scriptErrors?: ScriptRunError[];
+
+  /**
    * Next request name from hc.execution.setNextRequest for collection runner flow control.
    */
   scriptNextRequest?: string | null;
@@ -188,6 +195,13 @@ export interface RequestTab {
    * When true, hc.execution.skipRequest() skipped the latest send in this tab.
    */
   scriptSkipRequest?: boolean;
+
+  /**
+   * Last selected response viewer sub-tab (Body, Tests, etc.) for this request
+   * tab. Session-only so remounting after opening a script-editor page restores
+   * the user's choice instead of defaulting to Body.
+   */
+  responseViewerTab?: string;
 }
 
 /**
@@ -256,6 +270,26 @@ export type PageRef =
       phase: 'pre' | 'post';
       scriptId: string;
       label: string;
+      /**
+       * 1-based line to reveal when opening from a test failure or script error.
+       */
+      revealLine?: number;
+      /**
+       * 1-based column to reveal; when omitted the whole line is selected.
+       */
+      revealColumn?: number;
+      /**
+       * Assertion failure or script error message shown as a CodeMirror error underline tooltip.
+       */
+      revealMessage?: string;
+      /**
+       * Marker origin: `test` for assertion failures, `script` for runtime/compile errors.
+       */
+      revealSource?: 'test' | 'script';
+      /**
+       * Changes on each navigation so an already-open editor remounts to the new selection.
+       */
+      revealNonce?: number;
     }
   | {
       type: 'merge-editor';
@@ -639,6 +673,7 @@ export function reconcileRequestTab(
   | 'scriptLogs'
   | 'executionEvents'
   | 'scriptError'
+  | 'scriptErrors'
 > | null {
   if (isTabDirty(tab)) {
     return null;
@@ -656,7 +691,8 @@ export function reconcileRequestTab(
     testResults: [],
     scriptLogs: [],
     executionEvents: [],
-    scriptError: undefined
+    scriptError: undefined,
+    scriptErrors: undefined
   };
 }
 

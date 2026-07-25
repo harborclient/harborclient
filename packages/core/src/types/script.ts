@@ -325,6 +325,11 @@ export type ScriptExecutionEvent =
     };
 
 /**
+ * Ownership scope of the script slot that produced a test result.
+ */
+export type ScriptTestScope = 'collection' | 'folder' | 'request';
+
+/**
  * Result of a single hc.test assertion.
  */
 export interface ScriptTestResult {
@@ -332,9 +337,114 @@ export interface ScriptTestResult {
   passed: boolean;
   error?: string;
   /**
+   * Chai AssertionError.expected coerced to string when the failure exposed one.
+   */
+  expected?: string;
+  /**
+   * Chai AssertionError.actual coerced to string when the failure exposed one.
+   */
+  actual?: string;
+  /**
+   * Mapped original file from the compile sourcemap (`script.js` or snippet path).
+   *
+   * Locations refer to the compiled input (post variable substitution), which can
+   * differ from the editor buffer when multi-line `{{var}}` expansions shift lines.
+   */
+  source?: string;
+  /**
+   * 1-based mapped line of the failing assertion, when a stack frame remapped.
+   */
+  line?: number;
+  /**
+   * 1-based mapped column of the failing assertion, when a stack frame remapped.
+   */
+  column?: number;
+  /**
+   * Wall-clock duration of the test callback in milliseconds.
+   */
+  durationMs?: number;
+  /**
+   * Stable {@link ScriptRef.id} of the slot that produced this assertion (host-filled).
+   */
+  scriptId?: string;
+  /**
+   * Script phase that ran this assertion (host-filled).
+   */
+  phase?: ScriptPhase;
+  /**
+   * Collection / folder / request ownership of the slot (host-filled).
+   */
+  scope?: ScriptTestScope;
+  /**
    * Display label of the pre/post script that produced this assertion.
    */
   scriptName?: string;
+}
+
+/**
+ * Source-mapped location of a script runtime or compile error.
+ *
+ * Structurally identical to the sourcemap module's ScriptOriginalLocation, but
+ * declared here so renderer-facing types stay free of `node:module` imports.
+ */
+export interface ScriptErrorLocation {
+  /**
+   * Mapped original file from the compile sourcemap (`script.js` or snippet path).
+   *
+   * Locations refer to the compiled input (post variable substitution), which can
+   * differ from the editor buffer when multi-line `{{var}}` expansions shift lines.
+   */
+  source: string;
+  /**
+   * 1-based mapped line of the error.
+   */
+  line: number;
+  /**
+   * 1-based mapped column of the error.
+   */
+  column: number;
+}
+
+/**
+ * One script runtime or compile failure tagged with slot metadata by the host.
+ *
+ * Mirrors the location and ownership fields on {@link ScriptTestResult} so
+ * errors can flow through the same jump-to-editor reveal pipeline as failed
+ * assertions.
+ */
+export interface ScriptRunError {
+  /**
+   * Sanitized single-line error text, including any `source:line:column:` prefix.
+   */
+  message: string;
+  /**
+   * Display label of the pre/post script slot that failed (host-filled).
+   */
+  scriptName?: string;
+  /**
+   * Stable {@link ScriptRef.id} of the slot that failed (host-filled).
+   */
+  scriptId?: string;
+  /**
+   * Script phase that failed (host-filled).
+   */
+  phase?: ScriptPhase;
+  /**
+   * Collection / folder / request ownership of the slot (host-filled).
+   */
+  scope?: ScriptTestScope;
+  /**
+   * Mapped original file, when the error location resolved through sourcemaps.
+   */
+  source?: string;
+  /**
+   * 1-based mapped line of the error, when resolvable.
+   */
+  line?: number;
+  /**
+   * 1-based mapped column of the error, when resolvable.
+   */
+  column?: number;
 }
 
 /**
@@ -423,4 +533,9 @@ export interface ScriptRunResult {
    */
   data: Record<string, unknown>;
   error?: string;
+  /**
+   * Source-mapped location of {@link ScriptRunResult.error}, when the failing
+   * stack frame or compile diagnostic resolved to user source.
+   */
+  errorLocation?: ScriptErrorLocation;
 }
