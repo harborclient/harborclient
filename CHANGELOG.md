@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.6.1 - 2026-07-25
+
 - fix: update pre-commit hook to block any local SDK link overrides. (`a4ab5392`)
 - feat(gui): update dependencies and enhance theme management. (`babfa827`)
 - feat(gui): enhance user agent handling across storage and request modules. (`cf17b788`)
