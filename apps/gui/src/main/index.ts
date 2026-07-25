@@ -514,7 +514,7 @@ function applyLinuxDesktopIdentity(): void {
 function resolveAppIcon(): string {
   return app.isPackaged
     ? join(process.resourcesPath, 'icon.png')
-    : resolveFromMainOut('../../images/logo-icon.png');
+    : resolveFromMainOut('../../../../images/logo-icon.png');
 }
 
 /**

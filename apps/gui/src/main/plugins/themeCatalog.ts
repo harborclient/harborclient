@@ -76,8 +76,8 @@ export function getLocalThemeCatalogPaths(): string[] {
 
   paths.add(join(app.getAppPath(), 'plugins/theme_catalog.json'));
   paths.add(join(app.getAppPath(), 'plugins/catalog.json'));
-  paths.add(join(__dirname, '../../plugins/theme_catalog.json'));
-  paths.add(join(__dirname, '../../plugins/catalog.json'));
+  paths.add(join(__dirname, '../../../../plugins/theme_catalog.json'));
+  paths.add(join(__dirname, '../../../../plugins/catalog.json'));
 
   return [...paths];
 }

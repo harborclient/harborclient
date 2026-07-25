@@ -1,9 +1,11 @@
-import { afterAll, expect, it } from 'vitest';
+import { afterAll, beforeAll, expect, it } from 'vitest';
 import { MySqlStorage } from './MySqlStorage';
 import {
   closeSharedSqlBackends,
   createMySqlTestDbFactory,
-  describeMySql
+  describeMySql,
+  STORAGE_BACKEND_TEST_TIMEOUT_MS,
+  warmMySqlTestBackend
 } from '#/test/storageBackends';
 import { runIstorageContractSuite } from '#/test/istorageContract';
 
@@ -20,7 +22,11 @@ describeMySql('MySqlStorage lifecycle', () => {
   });
 });
 
-describeMySql('MySqlStorage contract', () => {
+describeMySql('MySqlStorage contract', { timeout: STORAGE_BACKEND_TEST_TIMEOUT_MS }, () => {
+  beforeAll(async () => {
+    await warmMySqlTestBackend();
+  }, STORAGE_BACKEND_TEST_TIMEOUT_MS);
+
   runIstorageContractSuite('MySqlStorage', createMySqlTestDbFactory());
 });
 

@@ -143,7 +143,7 @@ export default defineConfig({
     // Splash and other static HTML entry points load assets from here. Using
     // `./logo.png` in splash.html keeps dev (Vite server) and production
     // (file:// loadFile) URLs aligned without bundling the logo into hashed assets.
-    publicDir: resolve(__dirname, 'images'),
+    publicDir: resolve(__dirname, '../../images'),
     // Force dependency pre-bundling on every dev start. Vite caches optimized
     // deps in node_modules/.vite/deps keyed on a hash of the lockfile and config,
     // not on `file:`-linked package contents. Without forcing, a local
@@ -157,7 +157,7 @@ export default defineConfig({
     resolve: {
       dedupe: [...CODEMIRROR_DEDUPE_PACKAGES],
       alias: {
-        '@images': resolve(__dirname, 'images'),
+        '@images': resolve(__dirname, '../../images'),
         ...harborWorkspaceAliases,
         '@harborclient/sdk/react': resolve(__dirname, 'node_modules/react'),
         '@harborclient/sdk/react-dom': resolve(__dirname, 'node_modules/react-dom'),

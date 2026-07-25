@@ -71,6 +71,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { buildScriptRunDiagnostics } from '#/renderer/src/scripting/scriptRunDiagnostics';
+import { findJavascriptSyntaxError } from '#/renderer/src/scripting/javascriptSyntaxCheck';
 import { getTerminalInstance } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
 import { readTerminalBufferLines } from '#/renderer/src/ui/Footer/TerminalPanel/terminalSelection';
 import {
@@ -1394,13 +1395,29 @@ function updateRequestScript(
   }
 
   const mode = parsed.mode ?? 'replace';
+  const currentCode = target.code ?? '';
   const nextCode =
     mode === 'replace_range'
-      ? applyScriptUpdate(target.code ?? '', parsed.code, 'replace_range', {
+      ? applyScriptUpdate(currentCode, parsed.code, 'replace_range', {
           startOffset: parsed.startOffset as number,
           endOffset: parsed.endOffset as number
         })
-      : applyScriptUpdate(target.code ?? '', parsed.code, mode);
+      : applyScriptUpdate(currentCode, parsed.code, mode);
+
+  const currentSyntaxError = findJavascriptSyntaxError(currentCode);
+  const nextSyntaxError = nextCode.trim() ? findJavascriptSyntaxError(nextCode) : null;
+  if (currentSyntaxError == null && nextSyntaxError != null) {
+    const location = nextSyntaxError.excerpt
+      ? `line ${nextSyntaxError.line}: ${JSON.stringify(nextSyntaxError.excerpt)}`
+      : `line ${nextSyntaxError.line}, character ${nextSyntaxError.from}`;
+    const recovery =
+      mode === 'replace_range'
+        ? 'replace_range splices code literally between startOffset and endOffset; text before and after the selection is unchanged. Retry with mode "replace" and send the entire corrected script.'
+        : 'Retry with valid JavaScript and preserve the complete script.';
+    return {
+      error: `Edit rejected: the result is not valid JavaScript (${location}). ${recovery}`
+    };
+  }
 
   const nextScripts = scripts.map((script, index) =>
     index === arrayIndex ? { ...script, code: nextCode } : script

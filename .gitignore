@@ -29,6 +29,6 @@ packages/core/src/**/*.d.ts.map
 *.scratch.txt
 *.scratch.md
 REVIEW.md
-apps/gui/plugins/signing.pem
+plugins/signing.pem
 scripts/.env
 scripts/.cache/

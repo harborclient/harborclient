@@ -19,5 +19,10 @@ describe('scriptingApiReference', () => {
     expect(text).toContain('update_request_script');
     expect(text).toContain('Status code is 2xx');
     expect(text).toContain('entire** updated script');
+    expect(text).toContain('source.slice(0, startOffset) + code + source.slice(endOffset)');
+    expect(text).toContain('Unsafe partial-expression replacement');
+    expect(text).toContain('});.to.be(200);');
+    expect(text).toContain('hc.expect(hc.response.code).to.equal(200);');
+    expect(text).toContain('never nest another `hc.test`');
   });
 });

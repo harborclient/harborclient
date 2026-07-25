@@ -92,7 +92,7 @@ The renderer uses Redux Toolkit (`src/renderer/src/store/`). Slices live in
 | `@harborclient/sdk` / `@harborclient/sdk/*`   | `packages/sdk` (via workspace + `dist/`) | GUI, core, plugins                        |
 | `@harborclient/http` / `@harborclient/http/*` | `packages/http/src`                      | GUI, core                                 |
 | `@harborclient/storage-sqlite`                | `packages/storage-sqlite/src`            | GUI, CLI                                  |
-| `@images`                                     | `./images`                               | Renderer (Vite alias)                     |
+| `@images`                                     | repo-root `images/`                      | Renderer (Vite alias)                     |
 
 Vitest resolves bare `#` to `./src` (see `vitest.config.ts`).
 

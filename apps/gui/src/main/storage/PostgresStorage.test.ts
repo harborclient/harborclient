@@ -1,9 +1,11 @@
-import { afterAll, expect, it } from 'vitest';
+import { afterAll, beforeAll, expect, it } from 'vitest';
 import { PostgresStorage } from './PostgresStorage';
 import {
   closeSharedSqlBackends,
   createPostgresTestDbFactory,
-  describePostgres
+  describePostgres,
+  STORAGE_BACKEND_TEST_TIMEOUT_MS,
+  warmPostgresTestBackend
 } from '#/test/storageBackends';
 import { runIstorageContractSuite } from '#/test/istorageContract';
 
@@ -20,7 +22,11 @@ describePostgres('PostgresStorage lifecycle', () => {
   });
 });
 
-describePostgres('PostgresStorage contract', () => {
+describePostgres('PostgresStorage contract', { timeout: STORAGE_BACKEND_TEST_TIMEOUT_MS }, () => {
+  beforeAll(async () => {
+    await warmPostgresTestBackend();
+  }, STORAGE_BACKEND_TEST_TIMEOUT_MS);
+
   runIstorageContractSuite('PostgresStorage', createPostgresTestDbFactory());
 });
 

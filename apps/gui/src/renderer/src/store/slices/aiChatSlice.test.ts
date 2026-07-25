@@ -3,6 +3,7 @@ import aiChatReducer, {
   appendMessage,
   clearChatCancelState,
   clearComposerFocus,
+  clearMessageReveal,
   closeChatTab,
   openChatTab,
   reorderChatTabs,
@@ -12,7 +13,9 @@ import aiChatReducer, {
   setActiveChat,
   setActiveStepRequestId,
   setChats,
-  setEnterToSend
+  setEnterToSend,
+  setMessages,
+  startMessageReveal
 } from './aiChatSlice';
 
 describe('aiChatSlice', () => {
@@ -122,5 +125,33 @@ describe('aiChatSlice', () => {
 
     state = aiChatReducer(state, clearComposerFocus());
     expect(state.pendingComposerFocusChatId).toBeNull();
+  });
+
+  it('tracks typewriter reveal message ids and clears them', () => {
+    let state = aiChatReducer(undefined, startMessageReveal({ chatId: 4, messageId: 99 }));
+    expect(state.revealingMessageIdByChat[4]).toBe(99);
+
+    state = aiChatReducer(state, clearMessageReveal(4));
+    expect(state.revealingMessageIdByChat[4]).toBeUndefined();
+  });
+
+  it('clears typewriter reveal when messages are replaced from persistence', () => {
+    let state = aiChatReducer(undefined, startMessageReveal({ chatId: 4, messageId: 99 }));
+    state = aiChatReducer(state, setMessages({ chatId: 4, messages: [] }));
+    expect(state.revealingMessageIdByChat[4]).toBeUndefined();
+  });
+
+  it('clears typewriter reveal when switching away from a chat', () => {
+    let state = aiChatReducer(undefined, openChatTab(1));
+    state = aiChatReducer(state, startMessageReveal({ chatId: 1, messageId: 10 }));
+    state = aiChatReducer(state, setActiveChat(2));
+    expect(state.revealingMessageIdByChat[1]).toBeUndefined();
+  });
+
+  it('clears typewriter reveal when closing a chat tab', () => {
+    let state = aiChatReducer(undefined, openChatTab(1));
+    state = aiChatReducer(state, startMessageReveal({ chatId: 1, messageId: 10 }));
+    state = aiChatReducer(state, closeChatTab(1));
+    expect(state.revealingMessageIdByChat[1]).toBeUndefined();
   });
 });

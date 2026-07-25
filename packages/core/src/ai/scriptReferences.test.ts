@@ -862,9 +862,10 @@ describe('buildAiScriptSelectionContextMessage', () => {
     );
     expect(message).toContain(`Reference ${token}`);
     expect(message).toContain('script "Assert ok"');
-    expect(message).toContain('Full script source:');
-    expect(message).toContain(source);
+    expect(message).toContain('Full script source with selection markers');
+    expect(message).toContain(`<<<SEL>>>${source.slice(0, 25)}<<</SEL>>>`);
     expect(message).toContain('Selected text (characters 0–25, line 1):');
+    expect(message).toContain('Selection shape: partial expression.');
     expect(message).toContain('Focus your answer on the selected region.');
     expect(message).toContain('update_request_script');
     expect(message).toContain('replace_range');
@@ -922,13 +923,35 @@ describe('buildAiScriptSelectionContextMessage', () => {
     );
     expect(message).toContain('Reference @active.pre.1#6.11');
     expect(message).toContain('script "Set auth token"');
-    expect(message).toContain('Full script source:');
-    expect(message).toContain(fullScript);
+    expect(message).toContain('Full script source with selection markers');
+    expect(message).toContain('line1\n<<<SEL>>>line2<<</SEL>>>\nline3');
     expect(message).toContain('Selected text (characters 6–11, line 2):');
     expect(message).toContain('line2');
     expect(message).toContain('Focus your answer on the selected region.');
     expect(message).toContain('update_request_script');
     expect(message).toContain('replace_range');
+  });
+
+  it('shows partial-expression boundaries beside unchanged chained text', () => {
+    const source = `// Test
+hc.test("Status code is 2xx", () => {
+  hc.expect(hc.response.code).to.be(200);
+});`;
+    const selectedText = 'hc.expect(hc.response.code)';
+    const startOffset = source.indexOf(selectedText);
+    const endOffset = startOffset + selectedText.length;
+    const token = `@active.post.1#${startOffset}.${endOffset}`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Fix ${token}`,
+      context({
+        postScripts: [inlineScript({ name: 'Status assertion', code: source })]
+      })
+    );
+
+    expect(message).toContain(`<<<SEL>>>${selectedText}<<</SEL>>>.to.be(200);`);
+    expect(message).toContain('Selection shape: partial expression.');
+    expect(message).toContain('replace_range code must itself be an expression');
+    expect(message).toContain('mentally concatenate the text before the selection');
   });
 
   it('includes multi-line selection spans in the context block', () => {
@@ -959,8 +982,8 @@ describe('buildAiScriptSelectionContextMessage', () => {
     expect(message).not.toBeNull();
     expect(message).toContain(`Reference @snippet.${uuid}#6.11`);
     expect(message).toContain('standalone library snippet "Auth helper"');
-    expect(message).toContain('Full snippet source:');
-    expect(message).toContain(snippetCode);
+    expect(message).toContain('Full snippet source with selection markers');
+    expect(message).toContain('line1\n<<<SEL>>>line2<<</SEL>>>\nline3');
     expect(message).toContain('Selected text (characters 6–11, line 2):');
     expect(message).toContain('line2');
     expect(message).toContain('cannot be edited via tools');

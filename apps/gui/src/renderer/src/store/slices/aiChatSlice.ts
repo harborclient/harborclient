@@ -22,6 +22,10 @@ export interface AiChatState {
   sendingByChat: Record<number, boolean>;
   sendErrorByChat: Record<number, string>;
   /**
+   * Assistant message ids currently typewriter-revealing, keyed by chat id.
+   */
+  revealingMessageIdByChat: Record<number, number>;
+  /**
    * In-flight LLM step request ids keyed by chat id for cancellation.
    */
   activeStepRequestIdByChat: Record<number, string>;
@@ -56,6 +60,7 @@ const initialState: AiChatState = {
   historyOpen: false,
   sendingByChat: {},
   sendErrorByChat: {},
+  revealingMessageIdByChat: {},
   activeStepRequestIdByChat: {},
   cancelRequestedByChat: {},
   pendingComposerText: null,
@@ -77,6 +82,9 @@ const aiChatSlice = createSlice({
      * Sets the active chat tab.
      */
     setActiveChat(state, action: PayloadAction<number | null>) {
+      if (state.activeChatId != null && state.activeChatId !== action.payload) {
+        delete state.revealingMessageIdByChat[state.activeChatId];
+      }
       state.activeChatId = action.payload;
     },
     /**
@@ -85,6 +93,9 @@ const aiChatSlice = createSlice({
     openChatTab(state, action: PayloadAction<number>) {
       if (!state.openTabIds.includes(action.payload)) {
         state.openTabIds.push(action.payload);
+      }
+      if (state.activeChatId != null && state.activeChatId !== action.payload) {
+        delete state.revealingMessageIdByChat[state.activeChatId];
       }
       state.activeChatId = action.payload;
     },
@@ -133,12 +144,27 @@ const aiChatSlice = createSlice({
       if (state.pendingComposerFocusChatId === chatId) {
         state.pendingComposerFocusChatId = null;
       }
+
+      delete state.revealingMessageIdByChat[chatId];
     },
     /**
      * Replaces messages for a chat loaded from persistence.
      */
     setMessages(state, action: PayloadAction<{ chatId: number; messages: ChatMessage[] }>) {
       state.messagesByChat[action.payload.chatId] = action.payload.messages;
+      delete state.revealingMessageIdByChat[action.payload.chatId];
+    },
+    /**
+     * Marks an assistant message for display-only typewriter reveal.
+     */
+    startMessageReveal(state, action: PayloadAction<{ chatId: number; messageId: number }>) {
+      state.revealingMessageIdByChat[action.payload.chatId] = action.payload.messageId;
+    },
+    /**
+     * Clears typewriter reveal tracking for a chat.
+     */
+    clearMessageReveal(state, action: PayloadAction<number>) {
+      delete state.revealingMessageIdByChat[action.payload];
     },
     /**
      * Appends a single message to a chat in memory.
@@ -268,6 +294,8 @@ export const {
   setHubModelGroups,
   setGithubModelsStatus,
   setSending,
+  startMessageReveal,
+  clearMessageReveal,
   setActiveStepRequestId,
   requestChatCancel,
   clearChatCancelState,
@@ -334,6 +362,12 @@ export const selectHistoryOpen = (state: RootState): boolean => state.aiChat.his
  */
 export const selectSendingByChat = (state: RootState): Record<number, boolean> =>
   state.aiChat.sendingByChat;
+
+/**
+ * Returns assistant message ids currently typewriter-revealing, keyed by chat id.
+ */
+export const selectRevealingMessageIdByChat = (state: RootState): Record<number, number> =>
+  state.aiChat.revealingMessageIdByChat;
 
 /**
  * Returns send failure messages keyed by chat id.

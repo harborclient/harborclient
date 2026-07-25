@@ -1212,6 +1212,46 @@ function formatRequestBodySelectionContextBlock(
 }
 
 /**
+ * Inserts visible, non-source markers around a selected script range.
+ *
+ * @param source - Full script source.
+ * @param startOffset - Inclusive selection start.
+ * @param endOffset - Exclusive selection end.
+ * @returns Full source with the selected span visibly delimited.
+ */
+function markScriptSelection(source: string, startOffset: number, endOffset: number): string {
+  const start = Math.min(Math.max(0, startOffset), source.length);
+  const end = Math.min(Math.max(start, endOffset), source.length);
+  return `${source.slice(0, start)}<<<SEL>>>${source.slice(start, end)}<<</SEL>>>${source.slice(end)}`;
+}
+
+/**
+ * Describes whether selected script text can safely accept a statement-level replacement.
+ *
+ * @param source - Full script source.
+ * @param startOffset - Inclusive selection start.
+ * @param endOffset - Exclusive selection end.
+ * @returns Agent guidance matching the selection's syntactic shape.
+ */
+function describeScriptSelectionShape(
+  source: string,
+  startOffset: number,
+  endOffset: number
+): string {
+  const start = Math.min(Math.max(0, startOffset), source.length);
+  const end = Math.min(Math.max(start, endOffset), source.length);
+  const lineStart = source.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  const beforeOnLine = source.slice(lineStart, start);
+  const selectedText = source.slice(start, end).trim();
+  const isStatementLike =
+    beforeOnLine.trim() === '' && (selectedText.endsWith(';') || selectedText.endsWith('}'));
+
+  return isStatementLike
+    ? 'Selection shape: complete statement or block. replace_range code must be a drop-in replacement for exactly the marked span.'
+    : 'Selection shape: partial expression. replace_range code must itself be an expression that fits between the unchanged text immediately before and after the markers. For a structural fix, use mode "replace" with the entire updated script.';
+}
+
+/**
  * Formats one request-script selection from a click-time snapshot for the agent context block.
  *
  * @param reference - Parsed request-script reference with a character-range suffix.
@@ -1231,17 +1271,23 @@ function formatScriptSelectionSnapshotContextBlock(
     snapshot.startLine === snapshot.endLine
       ? `line ${snapshot.startLine}`
       : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+  const markedSource = markScriptSelection(
+    snapshot.source,
+    snapshot.startOffset,
+    snapshot.endOffset
+  );
 
   const lines = [
     `Reference ${reference.text} — script "${snapshot.scriptLabel}" (${phaseLabel} script ${snapshot.scriptIndex} ${requestLabel}).`,
-    'Full script source:',
+    'Full script source with selection markers (<<<SEL>>> and <<</SEL>>> are context markers, not source code):',
     '```js',
-    snapshot.source,
+    markedSource,
     '```',
     `Selected text (characters ${snapshot.startOffset}–${snapshot.endOffset}, ${lineSpan}):`,
     '```js',
     snapshot.selectedText,
-    '```'
+    '```',
+    describeScriptSelectionShape(snapshot.source, snapshot.startOffset, snapshot.endOffset)
   ];
 
   if (snapshot.lastRunFailure) {
@@ -1322,18 +1368,25 @@ function formatScriptSelectionContextBlock(
   const name = resolveAiScriptReferenceName(reference, context) ?? 'Unnamed script';
   const clampedSelection = clampScriptSelection(source, reference.selection);
   const lineSpan = formatScriptSelectionLineSpan(source, clampedSelection);
+  const markedSource = markScriptSelection(source, clampedSelection.start, clampedSelection.end);
+  const selectionShape = describeScriptSelectionShape(
+    source,
+    clampedSelection.start,
+    clampedSelection.end
+  );
 
   if (reference.kind === 'snippet') {
     return [
       `Reference ${reference.text} — standalone library snippet "${name}" (not linked to any specific request).`,
-      'Full snippet source:',
+      'Full snippet source with selection markers (<<<SEL>>> and <<</SEL>>> are context markers, not source code):',
       '```js',
-      source,
+      markedSource,
       '```',
       `Selected text (characters ${clampedSelection.start}–${clampedSelection.end}, ${lineSpan}):`,
       '```js',
       clampedSelection.text,
-      '```'
+      '```',
+      selectionShape
     ].join('\n');
   }
 
@@ -1349,14 +1402,15 @@ function formatScriptSelectionContextBlock(
 
   return [
     `Reference ${reference.text} — script "${name}" (${phaseLabel} script ${reference.scriptIndex} ${requestLabel}).`,
-    'Full script source:',
+    'Full script source with selection markers (<<<SEL>>> and <<</SEL>>> are context markers, not source code):',
     '```js',
-    source,
+    markedSource,
     '```',
     `Selected text (characters ${clampedSelection.start}–${clampedSelection.end}, ${lineSpan}):`,
     '```js',
     clampedSelection.text,
-    '```'
+    '```',
+    selectionShape
   ].join('\n');
 }
 
@@ -1556,7 +1610,7 @@ export function buildAiScriptSelectionContextMessage(
   if (resolved.some((entry) => entry.reference.kind === 'request-script')) {
     footerParts.push(
       hasScriptSelection
-        ? 'To edit only the selected region, call update_request_script with mode "replace_range", startOffset/endOffset from the @ #start.end tag, and code set to the replacement text only. Do not remove code outside the selection (other hc.test blocks, comments, or statements must stay). When using mode "replace", code must be the entire script with all unchanged lines preserved.'
+        ? 'To edit only the selected region, call update_request_script with mode "replace_range", startOffset/endOffset from the @ #start.end tag, and code set to a drop-in replacement for exactly that span. Text outside the selection markers remains unchanged, so mentally concatenate the text before the selection + replacement code + text after the selection and confirm the result is valid JavaScript. Do not remove code outside the selection (other hc.test blocks, comments, or statements must stay). For a structural change or any replacement that is not syntactically substitutable, use mode "replace" with the entire script and all unchanged lines preserved.'
         : 'When editing request scripts, use update_request_script with the same phase and scriptIndex from the @ reference. Prefer mode "replace_range" for localized fixes; if using mode "replace", code must be the entire script — never overwrite with only a fixed snippet.'
     );
   }

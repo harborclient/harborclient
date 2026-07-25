@@ -38,6 +38,7 @@ import {
   setGithubModelsStatus,
   setSendError,
   setSending,
+  startMessageReveal,
   setEnterToSend,
   requestComposerFocus
 } from '#/renderer/src/store/slices/aiChatSlice';
@@ -512,6 +513,7 @@ export const sendChatMessage = createAsyncThunk<
       model: modelId
     });
     dispatch(appendMessage(assistantMessage));
+    dispatch(startMessageReveal({ chatId, messageId: assistantMessage.id }));
     await dispatch(refreshChatHistory());
   } catch (error) {
     if (isUserChatCancellation(error, getState(), chatId)) {

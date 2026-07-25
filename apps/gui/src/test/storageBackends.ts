@@ -7,6 +7,16 @@ import { PostgresStorage } from '#/main/storage/PostgresStorage';
 import type { FirestoreSettings, MySqlSettings, PostgresSettings } from '@harborclient/core/types';
 import type { CreateTestDb } from './istorageContract';
 
+/**
+ * Timeout for suites backed by a real SQL server.
+ *
+ * The first `init()` against a freshly created database runs the whole schema
+ * migration (MySQL needs two round-trips per column because it has no
+ * `ADD COLUMN IF NOT EXISTS`), which comfortably exceeds vitest's 5s default on
+ * a loaded CI runner.
+ */
+export const STORAGE_BACKEND_TEST_TIMEOUT_MS = 30_000;
+
 function isCi(): boolean {
   return process.env.CI === 'true';
 }
@@ -104,9 +114,70 @@ async function truncatePostgresTables(settings: PostgresSettings): Promise<void>
   }
 }
 
-let sharedMySqlDb: MySqlStorage | null = null;
-let sharedPostgresDb: PostgresStorage | null = null;
+let sharedMySqlDb: Promise<MySqlStorage> | null = null;
+let sharedPostgresDb: Promise<PostgresStorage> | null = null;
 let sharedFirestoreDb: FirestoreStorage | null = null;
+
+/**
+ * Opens (once) the MySQL instance shared by every test in the file.
+ *
+ * The promise is memoized rather than the instance so concurrent callers await
+ * a single `init()` instead of racing duplicate schema migrations. A failed
+ * init is discarded so a later call can retry.
+ *
+ * @param settings - Connection settings read from the environment.
+ * @returns The initialized shared storage instance.
+ */
+function openSharedMySqlDb(settings: MySqlSettings): Promise<MySqlStorage> {
+  if (!sharedMySqlDb) {
+    sharedMySqlDb = (async () => {
+      const db = new MySqlStorage(settings);
+      await db.init();
+      return db;
+    })();
+    sharedMySqlDb.catch(() => {
+      sharedMySqlDb = null;
+    });
+  }
+  return sharedMySqlDb;
+}
+
+/**
+ * Opens (once) the PostgreSQL instance shared by every test in the file.
+ *
+ * @param settings - Connection settings read from the environment.
+ * @returns The initialized shared storage instance.
+ */
+function openSharedPostgresDb(settings: PostgresSettings): Promise<PostgresStorage> {
+  if (!sharedPostgresDb) {
+    sharedPostgresDb = (async () => {
+      const db = new PostgresStorage(settings);
+      await db.init();
+      return db;
+    })();
+    sharedPostgresDb.catch(() => {
+      sharedPostgresDb = null;
+    });
+  }
+  return sharedPostgresDb;
+}
+
+/**
+ * Runs the MySQL schema migration ahead of the tests that depend on it.
+ *
+ * Call from `beforeAll` with `STORAGE_BACKEND_TEST_TIMEOUT_MS` so a cold
+ * database is charged to the hook instead of the first test.
+ */
+export async function warmMySqlTestBackend(): Promise<void> {
+  await openSharedMySqlDb(readMySqlSettings());
+}
+
+/**
+ * Runs the PostgreSQL schema migration ahead of the tests that depend on it.
+ */
+export async function warmPostgresTestBackend(): Promise<void> {
+  await openSharedPostgresDb(readPostgresSettings());
+}
 
 /**
  * Creates a MySQL test database handle with table truncation between tests.
@@ -114,13 +185,10 @@ let sharedFirestoreDb: FirestoreStorage | null = null;
 export function createMySqlTestDbFactory(): CreateTestDb {
   return async () => {
     const settings = readMySqlSettings();
-    if (!sharedMySqlDb) {
-      sharedMySqlDb = new MySqlStorage(settings);
-      await sharedMySqlDb.init();
-    }
+    const db = await openSharedMySqlDb(settings);
     await truncateMySqlTables(settings);
     return {
-      db: sharedMySqlDb,
+      db,
       cleanup: async () => {
         await truncateMySqlTables(settings);
       }
@@ -134,13 +202,10 @@ export function createMySqlTestDbFactory(): CreateTestDb {
 export function createPostgresTestDbFactory(): CreateTestDb {
   return async () => {
     const settings = readPostgresSettings();
-    if (!sharedPostgresDb) {
-      sharedPostgresDb = new PostgresStorage(settings);
-      await sharedPostgresDb.init();
-    }
+    const db = await openSharedPostgresDb(settings);
     await truncatePostgresTables(settings);
     return {
-      db: sharedPostgresDb,
+      db,
       cleanup: async () => {
         await truncatePostgresTables(settings);
       }
@@ -191,12 +256,14 @@ export function createFirestoreTestDbFactory(): CreateTestDb {
  */
 export async function closeSharedSqlBackends(): Promise<void> {
   if (sharedMySqlDb) {
-    await sharedMySqlDb.close();
+    const db = await sharedMySqlDb;
     sharedMySqlDb = null;
+    await db.close();
   }
   if (sharedPostgresDb) {
-    await sharedPostgresDb.close();
+    const db = await sharedPostgresDb;
     sharedPostgresDb = null;
+    await db.close();
   }
   if (sharedFirestoreDb) {
     await sharedFirestoreDb.close();

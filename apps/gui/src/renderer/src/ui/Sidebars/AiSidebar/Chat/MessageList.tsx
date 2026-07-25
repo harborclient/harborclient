@@ -1,6 +1,6 @@
 import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import { EmptyState, FaIcon } from '@harborclient/sdk/components';
-import { useEffect, useRef, type JSX } from 'react';
+import { useCallback, useEffect, useRef, type JSX } from 'react';
 import type { ChatMessage } from '@harborclient/core/types';
 import { faComment } from '#/renderer/src/fontawesome';
 import { MessageBubble } from './MessageBubble';
@@ -19,16 +19,26 @@ interface Props {
 
 /**
  * Scrollable list of chat messages for the active tab.
+ *
+ * @param props - Messages and in-flight send flag.
+ * @returns Scrollable message list or empty state.
  */
 export function MessageList({ messages, sending }: Props): JSX.Element {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   /**
+   * Scrolls the latest message into view.
+   */
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' });
+  }, []);
+
+  /**
    * Keeps the latest message in view when messages change or sending starts.
    */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages, sending]);
+    scrollToBottom();
+  }, [messages, sending, scrollToBottom]);
 
   if (messages.length === 0 && !sending) {
     return (
@@ -48,7 +58,7 @@ export function MessageList({ messages, sending }: Props): JSX.Element {
       <Scrollbars axis="vertical" className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col gap-4 p-3">
           {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble key={message.id} message={message} onRevealProgress={scrollToBottom} />
           ))}
           {sending && (
             <div className="flex justify-start" role="status" aria-live="polite">

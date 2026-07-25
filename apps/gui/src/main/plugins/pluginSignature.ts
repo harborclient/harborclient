@@ -41,7 +41,7 @@ export function getLocalPluginTrustedKeysPaths(): string[] {
   }
 
   paths.add(join(app.getAppPath(), 'plugins/trusted.json'));
-  paths.add(join(__dirname, '../../plugins/trusted.json'));
+  paths.add(join(__dirname, '../../../../plugins/trusted.json'));
 
   return [...paths];
 }

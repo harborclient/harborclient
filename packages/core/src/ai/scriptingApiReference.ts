@@ -112,10 +112,20 @@ Never emit Postman \`pm.*\` syntax in HarborClient scripts.
 
 ## AI script edits (update_request_script)
 
-When applying a localized fix to a script that already contains other tests or
-comments, do **not** overwrite the whole script with only the fixed snippet.
+The \`replace_range\` mode performs a literal splice:
 
-Example — full script:
+\`source.slice(0, startOffset) + code + source.slice(endOffset)\`
+
+Use it only when \`code\` is a drop-in, syntactically substitutable replacement
+for exactly the selected characters. Mentally concatenate the unchanged prefix,
+replacement, and unchanged suffix and confirm the result is valid JavaScript.
+If the fix adds or removes a wrapper, changes a chained expression outside the
+selection, or changes surrounding structure, use \`mode: "replace"\` with the
+**entire** updated script.
+
+### Safe statement-level range replacement
+
+Given this full script:
 
 \`\`\`js
 // Test
@@ -125,10 +135,8 @@ hc.test("Status code is 2xx", () => {
 hc.expect(true).to.be.ok();
 \`\`\`
 
-To wrap only the trailing assertion, call \`update_request_script\` with
-\`mode: "replace_range"\`, \`startOffset\`/\`endOffset\` from the \`@\`
-\`#start.end\` selection covering \`hc.expect(true).to.be.ok();\`, and \`code\`
-set to:
+The selection covering the complete trailing statement
+\`hc.expect(true).to.be.ok();\` can be replaced with:
 
 \`\`\`js
 hc.test("True is ok", () => {
@@ -136,8 +144,40 @@ hc.test("True is ok", () => {
 });
 \`\`\`
 
-The status-code test and \`// Test\` comment must remain. If using default
-\`mode: "replace"\`, \`code\` must be the **entire** updated script.
+Call \`update_request_script\` with
+\`mode: "replace_range"\`, \`startOffset\`/\`endOffset\` from the \`@\`
+\`#start.end\` selection, and \`code\` set to that replacement. The status-code
+test and \`// Test\` comment remain unchanged.
+
+### Unsafe partial-expression replacement
+
+Given:
+
+\`\`\`js
+// Test
+hc.test("Status code is 2xx", () => {
+  hc.expect(hc.response.code).to.be(200);
+});
+\`\`\`
+
+If the selected range covers only \`hc.expect(hc.response.code)\`, do **not**
+replace that range with a new \`hc.test(...)\` block. The unchanged suffix
+\`.to.be(200);\` would remain, producing invalid code like
+\`});.to.be(200);\`. The selection is already inside an \`hc.test\` callback;
+never nest another \`hc.test\` around it via \`replace_range\`.
+
+Use \`mode: "replace"\` with the entire corrected script:
+
+\`\`\`js
+// Test
+hc.test("Status code is 2xx", () => {
+  hc.expect(hc.response.code).to.equal(200);
+});
+\`\`\`
+
+When applying any localized fix, preserve unrelated tests, comments, and
+statements. Never claim an edit was applied when \`update_request_script\`
+returned an error; correct the tool input and retry.
 `;
 
 /**

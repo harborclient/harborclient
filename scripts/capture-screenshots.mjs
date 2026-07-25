@@ -11,9 +11,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../apps/gui');
+const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptsDir, '..');
+const projectRoot = path.resolve(repoRoot, 'apps/gui');
 const defaultMacroPath = path.join(projectRoot, 'screenshots.macro.json');
-const defaultOutDir = path.join(projectRoot, 'images', 'screenshots');
+const defaultOutDir = path.join(repoRoot, 'images', 'screenshots');
 const mainEntry = path.join(projectRoot, 'out', 'main', 'index.js');
 const mainSourceRoot = path.join(projectRoot, 'src', 'main');
 const rendererSourceRoot = path.join(projectRoot, 'src', 'renderer');

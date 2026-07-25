@@ -24,4 +24,12 @@ describe('AI_SYSTEM_PROMPT', () => {
       expect(AI_SYSTEM_PROMPT).toContain(name);
     }
   });
+
+  it('requires syntactically substitutable script range edits', () => {
+    expect(AI_SYSTEM_PROMPT).toContain(
+      'source.slice(0, startOffset) + code + source.slice(endOffset)'
+    );
+    expect(AI_SYSTEM_PROMPT).toContain('Never add an hc.test wrapper via replace_range');
+    expect(AI_SYSTEM_PROMPT).toContain('do not claim the change was applied');
+  });
 });

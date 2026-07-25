@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add new images and plugin metadata. (`9aa3f8ac`)
 - Update build process and documentation for @harborclient. (`694dc348`)
 
 ## 2.7.0 - 2026-07-25

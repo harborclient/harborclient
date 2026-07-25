@@ -76,8 +76,8 @@ export function getLocalSnippetCatalogPaths(): string[] {
 
   paths.add(join(app.getAppPath(), 'plugins/snippet_catalog.json'));
   paths.add(join(app.getAppPath(), 'plugins/catalog.json'));
-  paths.add(join(__dirname, '../../plugins/snippet_catalog.json'));
-  paths.add(join(__dirname, '../../plugins/catalog.json'));
+  paths.add(join(__dirname, '../../../../plugins/snippet_catalog.json'));
+  paths.add(join(__dirname, '../../../../plugins/catalog.json'));
 
   return [...paths];
 }

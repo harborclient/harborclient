@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - apps/gui/plugins/catalog.json
+      - plugins/catalog.json
 
 permissions:
   contents: read

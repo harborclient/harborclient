@@ -1367,6 +1367,65 @@ hc.expect(true).to.be.ok();
     );
   });
 
+  it('rejects a range replacement that makes a valid script syntactically invalid', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const source = `// Test
+hc.test("Status code is 2xx", () => {
+  hc.expect(hc.response.code).to.be(200);
+});`;
+    const selectedText = 'hc.expect(hc.response.code)';
+    const startOffset = source.indexOf(selectedText);
+    const endOffset = startOffset + selectedText.length;
+    const script = createInlineScriptRef(source, 'Post checks');
+
+    store.dispatch(
+      openTabWithDraft({
+        id: 223,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Invalid range patch',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [script],
+        comment: '',
+        tags: '',
+        auth: defaultAuth(),
+        userAgent: ''
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_request_script',
+        {
+          requestId: 223,
+          phase: 'post',
+          scriptIndex: 1,
+          code: `hc.test("Check response code", () => {
+  hc.expect(hc.response.code).to.equal(200);
+});`,
+          mode: 'replace_range',
+          startOffset,
+          endOffset
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('Edit rejected');
+    expect(result.error).toContain('replace_range splices code literally');
+    expect(selectDraft(store.getState()).post_request_scripts[0].code).toBe(source);
+  });
+
   it('returns an error when replace_range is missing offsets', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     const script = createInlineScriptRef('hc.expect(true).to.be.ok();');

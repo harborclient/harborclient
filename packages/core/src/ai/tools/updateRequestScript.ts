@@ -23,8 +23,9 @@ export interface UpdateRequestScriptToolArgs {
   /**
    * JavaScript source to apply.
    *
-   * For `replace`, this must be the full script. For `replace_range`, only the
-   * replacement text for `[startOffset, endOffset)`. For `append`, text to add.
+   * For `replace`, this must be the full script. For `replace_range`, this must
+   * be a syntactically substitutable replacement for exactly `[startOffset,
+   * endOffset)`. For `append`, text to add.
    */
   code: string;
 
@@ -62,7 +63,7 @@ export const updateRequestScriptTool = {
     function: {
       name: 'update_request_script',
       description:
-        'Updates a specific pre- or post-request script in the active editor request by 1-based index. Use when the user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1), optionally with #<start>.<end> character offsets into that script source. Modes: replace (default) — code must be the FULL script source; preserve all unchanged lines. replace_range — code is only the replacement for [startOffset, endOffset); requires startOffset and endOffset from the @ tag; use this to fix a selected region without deleting surrounding tests/comments. append — add code after existing content. Only inline scripts can be edited; snippet-linked scripts must be reported to the user. Changes update the editor draft only until the user saves.',
+        'Updates a specific pre- or post-request script in the active editor request by 1-based index. Use when the user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1), optionally with #<start>.<end> character offsets into that script source. Modes: replace (default) — code must be the FULL script source; preserve all unchanged lines. replace_range — performs the literal splice source.slice(0, startOffset) + code + source.slice(endOffset); code must be a drop-in, syntactically substitutable replacement for exactly the selected span. Mentally concatenate all three parts and confirm valid JavaScript before calling. Never add an hc.test wrapper via replace_range when the selected code is already inside an hc.test callback. If the fix changes a wrapper, chained text outside the selection, or surrounding structure, use replace with the entire updated script. append — add code after existing content. Only inline scripts can be edited; snippet-linked scripts must be reported to the user. Changes update the editor draft only until the user saves. If this tool returns an error, do not claim the edit was applied; correct the input and retry.',
       parameters: {
         type: 'object',
         properties: {
@@ -83,13 +84,13 @@ export const updateRequestScriptTool = {
           code: {
             type: 'string',
             description:
-              'JavaScript to apply. For replace: full script. For replace_range: replacement text only. For append: text to append.'
+              'JavaScript to apply. For replace: the full script. For replace_range: a drop-in replacement for exactly [startOffset, endOffset) that remains valid between the unchanged prefix and suffix. For append: text to append.'
           },
           mode: {
             type: 'string',
             enum: ['replace', 'append', 'replace_range'],
             description:
-              'How to apply code; defaults to replace. Use replace_range with startOffset/endOffset when editing a selected @ region.'
+              'How to apply code; defaults to replace. Use replace_range only for a syntactically substitutable selected @ region; use replace with the entire script for structural changes.'
           },
           startOffset: {
             type: 'number',
