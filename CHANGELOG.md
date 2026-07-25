@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix(build): update macOS entitlements paths for codesigning. (`b24d28b0`)
+
 ## 2.6.2 - 2026-07-25
 
 - refactor(cli): enhance runtime dependency handling and prune unnecessary files. (`0af49ab8`)

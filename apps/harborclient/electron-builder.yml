@@ -9,7 +9,10 @@ extraMetadata:
   productName: HarborClient
 artifactName: harborclient-${version}.${ext}
 executableName: harborclient
-# Paths are relative to the electron-builder project directory (apps/gui).
+# Resource paths below are relative to the electron-builder project directory
+# (apps/gui via --project). Exception: mac.entitlements* are forwarded to
+# codesign as-is and must resolve from the dist.mjs cwd (apps/harborclient),
+# so dist.mjs also passes absolute -c.mac.entitlements* overrides.
 icon: build/icons/512x512.png
 extraResources:
   - from: build/icons/512x512.png
@@ -83,8 +86,11 @@ mac:
   type: distribution
   hardenedRuntime: true
   gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
+  # Relative to the electron-builder process cwd (apps/harborclient via dist.mjs),
+  # not projectDir. codesign receives this path as-is; a bare `build/...` path
+  # resolves under harborclient and fails with "cannot read entitlement data".
+  entitlements: ../gui/build/entitlements.mac.plist
+  entitlementsInherit: ../gui/build/entitlements.mac.plist
   notarize: true
 win:
   signAndEditExecutable: false

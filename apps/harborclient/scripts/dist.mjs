@@ -13,6 +13,14 @@ const productRoot = join(scriptsDir, '..');
 const guiRoot = join(productRoot, '..', 'gui');
 const productPackage = JSON.parse(readFileSync(join(productRoot, 'package.json'), 'utf8'));
 const version = productPackage.version;
+/**
+ * Absolute entitlements path for macOS codesign.
+ *
+ * electron-builder forwards `mac.entitlements` to `codesign` without resolving
+ * it against `--project`. Relative paths therefore follow this script's cwd
+ * (`apps/harborclient`), not `apps/gui`.
+ */
+const macEntitlements = join(guiRoot, 'build', 'entitlements.mac.plist');
 
 /**
  * Whether child processes should run through a shell.
@@ -62,6 +70,8 @@ run(
     `--project=${guiRoot}`,
     `--config=${join(productRoot, 'electron-builder.yml')}`,
     `-c.extraMetadata.version=${version}`,
+    `-c.mac.entitlements=${macEntitlements}`,
+    `-c.mac.entitlementsInherit=${macEntitlements}`,
     ...builderArgs
   ],
   productRoot
