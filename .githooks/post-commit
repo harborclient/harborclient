@@ -7,6 +7,7 @@
 #   - Root CHANGELOG.md — every meaningful commit (desktop / monorepo history)
 #   - packages/core/CHANGELOG.md — commits that touch packages/core/**
 #   - packages/sdk/CHANGELOG.md — commits that touch packages/sdk/**
+#   - packages/http/CHANGELOG.md — commits that touch packages/http/**
 #
 # The env-var name (CHANGELOG_HOOK_SKIP) can be renamed to a project-specific
 # prefix; just keep the two references in this file in sync.
@@ -127,6 +128,13 @@ if printf '%s\n' "$changed_files" | grep -q '^packages/sdk/'; then
   append_changelog_bullet \
     "$repo_root/packages/sdk/CHANGELOG.md" \
     "packages/sdk/CHANGELOG.md"
+fi
+
+# @harborclient/http npm package changelog — only when the commit touches http.
+if printf '%s\n' "$changed_files" | grep -q '^packages/http/'; then
+  append_changelog_bullet \
+    "$repo_root/packages/http/CHANGELOG.md" \
+    "packages/http/CHANGELOG.md"
 fi
 
 if [[ ${#files_to_amend[@]} -eq 0 ]]; then

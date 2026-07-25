@@ -1130,6 +1130,7 @@ export function ScriptListEditor({
     <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
       <Button
         type="button"
+        variant="secondary"
         className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
         onClick={handleOpenAddScriptModal}
       >

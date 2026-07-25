@@ -23,6 +23,7 @@ HarborClient is a pnpm monorepo:
 | `apps/cli/`                | CLI implementation (`@harborclient/cli`) — invoked via the product binary              |
 | `packages/core/`           | `@harborclient/core` — types, request runner, SES scripts, shared utilities            |
 | `packages/sdk/`            | `@harborclient/sdk` — plugin/theme SDK, React components, runtime, signing             |
+| `packages/http/`           | `@harborclient/http` — outbound HTTP: request execution, encoding, validation, timing  |
 | `packages/storage-sqlite/` | `@harborclient/storage-sqlite` — SQLite `IStorage` implementation                      |
 
 ### Product (`apps/harborclient`)
@@ -89,6 +90,7 @@ The renderer uses Redux Toolkit (`src/renderer/src/store/`). Slices live in
 | `#/*`                                         | `./src/*` within `apps/gui`              | GUI TypeScript, preload, renderer imports |
 | `@harborclient/core` / `@harborclient/core/*` | `packages/core/src`                      | GUI, CLI, storage-sqlite                  |
 | `@harborclient/sdk` / `@harborclient/sdk/*`   | `packages/sdk` (via workspace + `dist/`) | GUI, core, plugins                        |
+| `@harborclient/http` / `@harborclient/http/*` | `packages/http/src`                      | GUI, core                                 |
 | `@harborclient/storage-sqlite`                | `packages/storage-sqlite/src`            | GUI, CLI                                  |
 | `@images`                                     | `./images`                               | Renderer (Vite alias)                     |
 

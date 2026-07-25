@@ -1,0 +1,133 @@
+{
+  "name": "@harborclient/http",
+  "version": "1.0.0",
+  "description": "HTTP utilities for HarborClient.",
+  "keywords": [
+    "harborclient",
+    "http",
+    "typescript"
+  ],
+  "homepage": "https://harborclient.github.io/harborclient/http/",
+  "bugs": {
+    "url": "https://github.com/harborclient/harborclient/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harborclient/harborclient.git",
+    "directory": "packages/http"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HarborClient",
+    "email": "contact@harborclient.com"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./formData": {
+      "types": "./src/formData.ts",
+      "import": "./src/formData.ts",
+      "default": "./src/formData.ts"
+    },
+    "./urlencoded": {
+      "types": "./src/urlencoded.ts",
+      "import": "./src/urlencoded.ts",
+      "default": "./src/urlencoded.ts"
+    },
+    "./httpHeaders": {
+      "types": "./src/httpHeaders.ts",
+      "import": "./src/httpHeaders.ts",
+      "default": "./src/httpHeaders.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts",
+      "default": "./src/types.ts"
+    },
+    "./settings": {
+      "types": "./src/settings.ts",
+      "import": "./src/settings.ts",
+      "default": "./src/settings.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./formData": {
+        "types": "./dist/formData.d.ts",
+        "import": "./dist/formData.js",
+        "default": "./dist/formData.js"
+      },
+      "./urlencoded": {
+        "types": "./dist/urlencoded.d.ts",
+        "import": "./dist/urlencoded.js",
+        "default": "./dist/urlencoded.js"
+      },
+      "./httpHeaders": {
+        "types": "./dist/httpHeaders.d.ts",
+        "import": "./dist/httpHeaders.js",
+        "default": "./dist/httpHeaders.js"
+      },
+      "./types": {
+        "types": "./dist/types.d.ts",
+        "import": "./dist/types.js",
+        "default": "./dist/types.js"
+      },
+      "./settings": {
+        "types": "./dist/settings.d.ts",
+        "import": "./dist/settings.js",
+        "default": "./dist/settings.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint --cache .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docs:build": "pnpm docs:build:nav && vitepress build docs",
+    "docs:build:nav": "node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
+    "docs:preview": "pnpm docs:build && vitepress preview docs",
+    "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
+    "release": "gh workflow run http-release.yml --ref main -f branch=main -f bump=patch",
+    "release:patch": "gh workflow run http-release.yml --ref main -f branch=main -f bump=patch",
+    "release:minor": "gh workflow run http-release.yml --ref main -f branch=main -f bump=minor",
+    "release:major": "gh workflow run http-release.yml --ref main -f branch=main -f bump=major"
+  },
+  "dependencies": {
+    "undici": "^6.27.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.10.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.5",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitepress": "^1.6.4",
+    "vitest": "^4.1.9"
+  }
+}

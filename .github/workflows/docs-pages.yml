@@ -1,7 +1,7 @@
 name: Docs pages
 
-# Deploy the combined @harborclient/core and @harborclient/sdk VitePress sites
-# (plus SDK Storybook) to GitHub Pages.
+# Deploy the combined @harborclient/core, @harborclient/sdk, and
+# @harborclient/http VitePress sites (plus SDK Storybook) to GitHub Pages.
 #
 # Repository: https://github.com/harborclient/harborclient
 #
@@ -23,6 +23,7 @@ name: Docs pages
 #   https://harborclient.github.io/harborclient/
 #   https://harborclient.github.io/harborclient/core/
 #   https://harborclient.github.io/harborclient/sdk/
+#   https://harborclient.github.io/harborclient/http/
 
 on:
   push:
@@ -49,6 +50,15 @@ on:
       - packages/sdk/scripts/docs-site.config.mjs
       - packages/sdk/scripts/assert-docs-slugs.mjs
       - packages/sdk/package.json
+      - packages/http/README.md
+      - packages/http/docs/**
+      - packages/http/scripts/build-docs-nav.mjs
+      - packages/http/scripts/docs-nav.config.mjs
+      - packages/http/scripts/docs-slugger.mjs
+      - packages/http/scripts/docs-link-rewriter.mjs
+      - packages/http/scripts/docs-site.config.mjs
+      - packages/http/scripts/assert-docs-slugs.mjs
+      - packages/http/package.json
       - scripts/build-docs-site.mjs
       - pnpm-lock.yaml
       - .github/workflows/docs-pages.yml

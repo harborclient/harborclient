@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(http): integrate @harborclient/http package into monorepo. (`2fdd858c`)
 - chore(sdk): integrate SDK into monorepo and update related configurations. (`f9143029`)
 
 ## 0.1.2 - 2026-07-25

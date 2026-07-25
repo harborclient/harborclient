@@ -1,0 +1,325 @@
+/**
+ * Supported HTTP request methods.
+ */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+/**
+ * Request body content type.
+ */
+export type BodyType = 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';
+
+/**
+ * Field type for a multipart/form-data part.
+ */
+export type FormDataPartType = 'text' | 'file';
+
+/**
+ * A single part in a multipart/form-data body.
+ */
+export interface FormDataPart {
+  /**
+   * Form field name.
+   */
+  key: string;
+
+  /**
+   * Text value when type is text; ignored for file parts.
+   */
+  value: string;
+
+  /**
+   * When false, the part is excluded when building the request.
+   */
+  enabled: boolean;
+
+  /**
+   * Whether this part is a text field or file upload.
+   */
+  type: FormDataPartType;
+
+  /**
+   * Absolute file paths for file parts; supports one or more files per field.
+   */
+  files: string[];
+}
+
+/**
+ * A key-value pair with an enable toggle for headers and query params.
+ */
+export interface KeyValue {
+  /**
+   * Header or query parameter name.
+   */
+  key: string;
+
+  /**
+   * Header or query parameter value.
+   */
+  value: string;
+
+  /**
+   * When false, the pair is ignored when building the request.
+   */
+  enabled: boolean;
+}
+
+/**
+ * Proxy protocol used to connect to the proxy server.
+ */
+export type ProxyProtocol = 'http' | 'https';
+
+/**
+ * Global HTTP proxy configuration applied to every outbound request.
+ */
+export interface ProxySettings {
+  /**
+   * When true, outbound requests are routed through the configured proxy.
+   */
+  enabled: boolean;
+
+  /**
+   * Protocol used to connect to the proxy server.
+   */
+  protocol: ProxyProtocol;
+
+  /**
+   * Proxy server hostname or IP address.
+   */
+  host: string;
+
+  /**
+   * Proxy server port.
+   */
+  port: number;
+
+  /**
+   * When true, HTTP Basic authentication credentials are sent to the proxy.
+   */
+  authEnabled: boolean;
+
+  /**
+   * Username for proxy HTTP Basic authentication.
+   */
+  username: string;
+
+  /**
+   * Password for proxy HTTP Basic authentication.
+   */
+  password: string;
+}
+
+/**
+ * Input for sending an HTTP request from the renderer.
+ */
+export interface SendRequestInput {
+  /**
+   * HTTP method to use for the request.
+   */
+  method: HttpMethod;
+
+  /**
+   * Request URL without query parameters.
+   */
+  url: string;
+
+  /**
+   * Request headers as editable key-value pairs.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Query parameters as editable key-value pairs.
+   */
+  params: KeyValue[];
+
+  /**
+   * Raw request body content.
+   */
+  body: string;
+
+  /**
+   * Content type of the request body.
+   */
+  bodyType: BodyType;
+
+  /**
+   * Optional verbatim body override from the Raw body editor.
+   *
+   * When set (including the empty string), this text is sent instead of encoding
+   * {@link body} as structured multipart/urlencoded JSON. For multipart, file
+   * tokens of the form `<<file:/abs/path>>` are expanded to file bytes on send.
+   */
+  bodyRaw?: string;
+
+  /**
+   * Saved collection request id when the send originated from a saved request tab.
+   */
+  sourceRequestId?: number;
+
+  /**
+   * Display name from the request tab when {@link sourceRequestId} is set.
+   */
+  sourceRequestName?: string;
+}
+
+/**
+ * Metadata for the HTTP request as sent. Multipart {@link body} is a display
+ * summary of form fields, not the raw wire payload.
+ */
+export interface SentRequest {
+  /**
+   * HTTP method used for the request.
+   */
+  method: HttpMethod;
+
+  /**
+   * Fully resolved request URL including query parameters.
+   */
+  url: string;
+
+  /**
+   * Request headers as a flat key-value map.
+   */
+  headers: Record<string, string>;
+
+  /**
+   * Body content for display. For multipart, a human-readable summary of form
+   * fields and file names — not the raw multipart bytes. For other body types,
+   * the literal string sent on the wire, or empty when none.
+   */
+  body: string;
+
+  /**
+   * Content type of the request body; used to interpret {@link body}.
+   */
+  bodyType?: BodyType;
+}
+
+/**
+ * One hop in a redirect chain recorded while following 3xx responses.
+ */
+export interface RedirectHop {
+  /**
+   * Status code of the redirect response (301, 302, 303, 307, or 308).
+   */
+  status: number;
+
+  /**
+   * Status text of the redirect response.
+   */
+  statusText: string;
+
+  /**
+   * Absolute URL that was requested for this hop.
+   */
+  url: string;
+
+  /**
+   * Resolved absolute URL from the Location header.
+   */
+  location: string;
+
+  /**
+   * HTTP method used for this hop.
+   */
+  method: HttpMethod;
+}
+
+/**
+ * Best-effort timing breakdown for one HTTP request hop.
+ *
+ * Phases are optional because undici only publishes some events for reused
+ * sockets or requests that fail before bytes are written. `connectMs` combines
+ * DNS, TCP, and TLS setup and reflects the proxy connection when a proxy is used.
+ */
+export interface RequestTimingPhases {
+  /**
+   * Time spent waiting before the request starts writing to a socket.
+   */
+  stalledMs?: number;
+
+  /**
+   * Combined DNS, TCP, and TLS connection setup time for new sockets.
+   */
+  connectMs?: number;
+
+  /**
+   * Time spent writing request headers and body to the socket.
+   */
+  requestSentMs?: number;
+
+  /**
+   * Time from finishing the request write until response headers arrive.
+   */
+  waitingMs?: number;
+
+  /**
+   * Time spent reading the response body after response headers arrive.
+   */
+  downloadMs?: number;
+}
+
+/**
+ * Result of an HTTP request including timing and size metadata.
+ */
+export interface SendResult {
+  /**
+   * HTTP status code, or 0 when the request failed before a response.
+   */
+  status: number;
+
+  /**
+   * HTTP status text from the response.
+   */
+  statusText: string;
+
+  /**
+   * Response headers as a flat key-value map.
+   */
+  headers: Record<string, string>;
+
+  /**
+   * Response body as text.
+   */
+  body: string;
+
+  /**
+   * Base64-encoded response body for image responses only; omitted for other content types.
+   */
+  bodyBase64?: string;
+
+  /**
+   * Round-trip time in milliseconds.
+   */
+  timeMs: number;
+
+  /**
+   * Optional best-effort phase timing for the final request hop.
+   */
+  timing?: RequestTimingPhases;
+
+  /**
+   * Response body size in bytes.
+   */
+  sizeBytes: number;
+
+  /**
+   * Error message when the request failed; omitted on success.
+   */
+  error?: string;
+
+  /**
+   * Set-Cookie header values from the response; used by the cookie jar.
+   */
+  setCookieHeaders?: string[];
+
+  /**
+   * The outgoing request as actually sent; omitted on older results.
+   */
+  request?: SentRequest;
+
+  /**
+   * Ordered redirect hops that were followed; omitted when none.
+   */
+  redirects?: RedirectHop[];
+}

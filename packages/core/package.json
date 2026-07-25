@@ -59,6 +59,7 @@
     }
   },
   "scripts": {
+    "prebuild": "pnpm --filter @harborclient/http build",
     "build": "tsc -p tsconfig.build.json && node scripts/assert-dist-publishable.mjs",
     "clean": "rm -rf dist && find src -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' -o -name '*.d.ts.map' \\) -delete",
     "lint": "eslint --cache .",
@@ -75,7 +76,7 @@
     "release:major": "gh workflow run core-release.yml --ref main -f branch=main -f bump=major"
   },
   "dependencies": {
-    "@harborclient/http": "1.0.0",
+    "@harborclient/http": "workspace:^",
     "@harborclient/sdk": "workspace:^",
     "@harborclient/team-hub-api": "0.4.0",
     "@orama/orama": "^3.1.18",

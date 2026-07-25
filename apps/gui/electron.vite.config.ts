@@ -80,6 +80,7 @@ function copyPluginStaticAssets(): Plugin {
 /** Resolves workspace package deep imports to their source trees. */
 const harborWorkspaceAliases = {
   '@harborclient/core': resolve(__dirname, '../../packages/core/src'),
+  '@harborclient/http': resolve(__dirname, '../../packages/http/src'),
   '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src')
 };
 
@@ -87,7 +88,7 @@ export default defineConfig({
   main: {
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['ses', '@harborclient/core', '@harborclient/storage-sqlite']
+        exclude: ['ses', '@harborclient/core', '@harborclient/http', '@harborclient/storage-sqlite']
       }),
       copyPluginStaticAssets()
     ],
@@ -112,7 +113,9 @@ export default defineConfig({
   },
   preload: {
     plugins: [
-      externalizeDepsPlugin({ exclude: ['@harborclient/core', '@harborclient/storage-sqlite'] })
+      externalizeDepsPlugin({
+        exclude: ['@harborclient/core', '@harborclient/http', '@harborclient/storage-sqlite']
+      })
     ],
     resolve: {
       alias: harborWorkspaceAliases

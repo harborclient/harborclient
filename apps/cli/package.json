@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@harborclient/core": "workspace:*",
-    "@harborclient/http": "1.0.0",
     "@harborclient/storage-sqlite": "workspace:*",
     "better-sqlite3": "^12.11.1",
     "chai": "^4.5.0",

@@ -1,0 +1,284 @@
+name: HTTP release
+
+# Release workflow for @harborclient/http (npm).
+#
+# Automatic (push to `main` that touches packages/http):
+#   Releases when either:
+#     - `## Unreleased` in packages/http/CHANGELOG.md has content (bumps patch,
+#       renames section, commits, tags, publishes), or
+#     - packages/http/package.json version has no matching `http-v*` git tag
+#       (publishes current version as-is; recovery path for manual version bumps).
+#   Skips only when the version is already tagged and Unreleased is empty.
+#
+# Manual (workflow_dispatch):
+#   Always releases from the chosen branch with the selected bump type
+#   (major, minor, or patch), regardless of Unreleased content.
+#
+#   gh workflow run http-release.yml \
+#     -f branch=main \
+#     -f bump=minor
+#
+# Release commits use `[skip ci]` and do not re-trigger.
+#
+# Tags use the `http-v*` prefix so they do not collide with desktop app `v*` tags.
+#
+# Required setup BEFORE the first run:
+#
+#   1. Repository secret `NPM_TOKEN`: an npm automation token (or a granular
+#      token configured to bypass 2FA prompts) with publish rights to
+#      @harborclient/http.
+#
+#   2. Branch protection on release branches must allow github-actions[bot] to push.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - packages/http/**
+      - .github/workflows/http-release.yml
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release from and push the release commit to'
+        required: true
+        default: main
+        type: string
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
+
+  changelog:
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+      mode: ${{ steps.check.outputs.mode }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          fetch-depth: 0
+
+      - name: Check release readiness
+        id: check
+        working-directory: packages/http
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "mode=manual" >> "$GITHUB_OUTPUT"
+            echo "Manual release requested; forcing release with ${{ github.event.inputs.bump }} bump."
+            exit 0
+          fi
+
+          CURRENT=$(node -p "require('./package.json').version")
+
+          if python3 - <<'PY'
+          import re
+          import pathlib
+
+          path = pathlib.Path("CHANGELOG.md")
+          if not path.exists():
+              raise SystemExit(1)
+          text = path.read_text()
+          match = re.search(r"^## Unreleased\s*\n(.*?)(?=^## |\Z)", text, flags=re.S | re.M)
+          if not match or not match.group(1).strip():
+              raise SystemExit(1)
+          PY
+          then
+            HAS_UNRELEASED=true
+          else
+            HAS_UNRELEASED=false
+          fi
+
+          if git rev-parse -q --verify "refs/tags/http-v${CURRENT}" >/dev/null; then
+            TAG_EXISTS=true
+          else
+            TAG_EXISTS=false
+          fi
+
+          if [ "$HAS_UNRELEASED" = true ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "mode=unreleased" >> "$GITHUB_OUTPUT"
+            echo "Unreleased changelog content found; releasing."
+          elif [ "$TAG_EXISTS" = false ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "mode=untagged" >> "$GITHUB_OUTPUT"
+            echo "Version http-v${CURRENT} has no git tag; publishing current version."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+            echo "reason=Version http-v${CURRENT} is already tagged and Unreleased is empty." >> "$GITHUB_OUTPUT"
+            echo "Version http-v${CURRENT} is already tagged and Unreleased is empty; skipping release."
+          fi
+
+  release-skipped:
+    needs: changelog
+    if: needs.changelog.outputs.ready == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize skip reason
+        run: |
+          {
+            echo "## HTTP release skipped"
+            echo
+            echo "${{ needs.changelog.outputs.reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    needs: [ci, changelog]
+    if: needs.changelog.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ''
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @harborclient/http build
+
+      - name: Resolve release version (unreleased)
+        if: needs.changelog.outputs.mode == 'unreleased'
+        working-directory: packages/http
+        run: |
+          set -euo pipefail
+          VERSION=$(pnpm version patch --no-git-tag-version | tail -n1 | sed 's/^v//')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Bumped to $VERSION"
+
+      - name: Resolve release version (manual)
+        if: needs.changelog.outputs.mode == 'manual'
+        working-directory: packages/http
+        run: |
+          set -euo pipefail
+          VERSION=$(pnpm version ${{ github.event.inputs.bump }} --no-git-tag-version | tail -n1 | sed 's/^v//')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Bumped to $VERSION (${{ github.event.inputs.bump }})"
+
+      - name: Resolve release version (untagged)
+        if: needs.changelog.outputs.mode == 'untagged'
+        working-directory: packages/http
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Publishing untagged version $VERSION"
+
+      - name: Verify tag does not exist
+        if: env.VERSION != ''
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/http-v${VERSION}" >/dev/null; then
+            echo "::error::Tag http-v${VERSION} already exists; aborting release."
+            exit 1
+          fi
+
+      - name: Update CHANGELOG.md for release
+        if: (needs.changelog.outputs.mode == 'unreleased' || needs.changelog.outputs.mode == 'manual') && env.VERSION != ''
+        working-directory: packages/http
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" "$(date -u +%Y-%m-%d)" <<'PY'
+          import re
+          import sys
+          import pathlib
+
+          version, date_iso = sys.argv[1], sys.argv[2]
+          path = pathlib.Path("CHANGELOG.md")
+          if not path.exists():
+              print("::warning::CHANGELOG.md not found; skipping changelog rename.")
+              sys.exit(0)
+
+          text = path.read_text()
+          match = re.search(r"^## Unreleased\s*\n(.*?)(?=^## |\Z)", text, flags=re.S | re.M)
+          if not match or not match.group(1).strip():
+              print("::warning::No Unreleased content; skipping changelog rename.")
+              sys.exit(0)
+
+          body = match.group(1).strip("\n")
+          replacement = f"## Unreleased\n\n## {version} - {date_iso}\n\n{body}\n"
+          new_text = re.sub(
+              r"^## Unreleased\s*\n.*?(?=^## |\Z)",
+              replacement + "\n",
+              text,
+              count=1,
+              flags=re.S | re.M,
+          )
+          path.write_text(new_text)
+          PY
+
+      - name: Commit, tag, and push (unreleased or manual)
+        if: (needs.changelog.outputs.mode == 'unreleased' || needs.changelog.outputs.mode == 'manual') && env.VERSION != ''
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/http/package.json packages/http/CHANGELOG.md
+          git commit -m "chore(changelog): release @harborclient/http v${VERSION} [skip ci]"
+          git tag -a "http-v${VERSION}" -m "Release @harborclient/http v${VERSION}"
+          git push origin HEAD:${{ env.RELEASE_REF }} --follow-tags
+
+      - name: Tag and push (untagged)
+        if: needs.changelog.outputs.mode == 'untagged' && env.VERSION != ''
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "http-v${VERSION}" -m "Release @harborclient/http v${VERSION}"
+          git push origin "refs/tags/http-v${VERSION}"
+
+      - name: Publish to npm
+        if: env.VERSION != ''
+        working-directory: packages/http
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --no-git-checks
+
+      - name: Create GitHub release
+        if: env.VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh release create "http-v${VERSION}"
+          --generate-notes
+          --title "@harborclient/http v${VERSION}"

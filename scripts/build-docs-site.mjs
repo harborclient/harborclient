@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Builds the combined GitHub Pages site for core and SDK docs.
+ * Builds the combined GitHub Pages site for the core, SDK, and http docs.
  *
- * Each package still builds with its own VitePress `base` (`/harborclient/core/`
- * and `/harborclient/sdk/`). This script stages those outputs under `_site/core`
- * and `_site/sdk` so asset URLs resolve correctly when Pages serves the repo
- * root, and writes a small landing page at `_site/index.html`.
+ * Each package still builds with its own VitePress `base` (`/harborclient/core/`,
+ * `/harborclient/sdk/`, `/harborclient/http/`). This script stages those outputs
+ * under `_site/<package>` so asset URLs resolve correctly when Pages serves the
+ * repo root, and writes a small landing page at `_site/index.html`.
  */
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -52,9 +52,11 @@ mkdirSync(siteRoot, { recursive: true });
 
 runPackageScript('@harborclient/core', 'docs:build');
 runPackageScript('@harborclient/sdk', 'docs:build');
+runPackageScript('@harborclient/http', 'docs:build');
 
 stageDist(join(repoRoot, 'packages/core/docs/.vitepress/dist'), 'core');
 stageDist(join(repoRoot, 'packages/sdk/docs/.vitepress/dist'), 'sdk');
+stageDist(join(repoRoot, 'packages/http/docs/.vitepress/dist'), 'http');
 
 writeFileSync(
   join(siteRoot, 'index.html'),
@@ -105,6 +107,7 @@ writeFileSync(
       <ul>
         <li><a href="./core/">@harborclient/core</a></li>
         <li><a href="./sdk/">@harborclient/sdk</a></li>
+        <li><a href="./http/">@harborclient/http</a></li>
         <li><a href="./sdk/storybook/">SDK component Storybook</a></li>
       </ul>
     </main>

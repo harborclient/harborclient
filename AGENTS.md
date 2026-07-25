@@ -234,6 +234,10 @@ Changelogs are kept up to date automatically by the `post-commit` hook in
   touch `packages/sdk/**`. Renamed by
   [`.github/workflows/sdk-release.yml`](.github/workflows/sdk-release.yml)
   when publishing `@harborclient/sdk` to npm (`sdk-v*` tags).
+- [`packages/http/CHANGELOG.md`](packages/http/CHANGELOG.md) — commits that
+  touch `packages/http/**`. Renamed by
+  [`.github/workflows/http-release.yml`](.github/workflows/http-release.yml)
+  when publishing `@harborclient/http` to npm (`http-v*` tags).
 
 How it works:
 
@@ -254,14 +258,17 @@ What this means for you:
   yourself and stage the changelog as part of the commit. The hook will detect
   it and leave your entry alone.
 - Don't add version numbers or dates manually. The desktop release workflow
-  bumps `apps/harborclient/package.json`; the core and SDK workflows bump
-  `packages/core/package.json` / `packages/sdk/package.json` and publish to npm.
+  bumps `apps/harborclient/package.json`; the core, SDK, and http workflows bump
+  `packages/core/package.json` / `packages/sdk/package.json` /
+  `packages/http/package.json` and publish to npm.
 - Don't run version-bump commands locally (`pnpm version`, `npm version`,
   etc.); use the release workflows instead so the changelog and tags stay in sync.
 - Core npm releases: `pnpm release:core` (or `release:core:minor` /
   `release:core:major`). Requires repository secret `NPM_TOKEN`.
 - SDK npm releases: `pnpm release:sdk` (or `release:sdk:minor` /
   `release:sdk:major`). Requires the same `NPM_TOKEN` secret.
+- http npm releases: `pnpm release:http` (or `release:http:minor` /
+  `release:http:major`). Requires the same `NPM_TOKEN` secret.
 
 ### Pulling after a release
 

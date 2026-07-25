@@ -8,7 +8,17 @@
     "declarationMap": true,
     "sourceMap": true,
     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // Emit must consume built http declarations. Package exports map
+    // @harborclient/http to source for typecheck/IDE; following them here
+    // pulls http .ts files outside rootDir and fails with TS6059.
+    "paths": {
+      "#/*": ["./src/*"],
+      "@harborclient/core": ["./src/index.ts"],
+      "@harborclient/core/*": ["./src/*"],
+      "@harborclient/http": ["../http/dist/index.d.ts"],
+      "@harborclient/http/*": ["../http/dist/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "src/testFixtures/**"]
