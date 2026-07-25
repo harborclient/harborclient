@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.6.2 - 2026-07-25
+
 - refactor(cli): enhance runtime dependency handling and prune unnecessary files. (`0af49ab8`)
 
 ## 2.6.1 - 2026-07-25
