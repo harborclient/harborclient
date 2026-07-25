@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 - Enhance Toolbar component to support responsive action icon wrapping. (`f1cad2f6`)
+
+## 1.2.7 - 2026-07-25
+
 - Update documentation deployment workflow and enhance UI components. (`a82232bd`)
 
 ## 1.2.5 - 2026-07-25
