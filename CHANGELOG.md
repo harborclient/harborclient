@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.6.3 - 2026-07-25
+
 - fix(build): update macOS entitlements paths for codesigning. (`b24d28b0`)
 
 ## 2.6.2 - 2026-07-25
