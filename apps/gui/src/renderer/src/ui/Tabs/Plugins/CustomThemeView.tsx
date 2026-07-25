@@ -5,9 +5,8 @@ import { faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import { ColorTokenGrid } from './ColorTokenGrid';
-import { MetricTokenGrid } from './MetricTokenGrid';
 import { SaveRenamedThemeModal } from './SaveRenamedThemeModal';
+import { ThemeDesignerCategoryTabs } from './ThemeDesignerCategoryTabs';
 import { useCustomTheme } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 
 interface Props {
@@ -155,6 +154,23 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
             </Button>
             <Button
               type="button"
+              variant="toolbar"
+              disabled={busy || !isDirty}
+              onClick={() => handleDiscard()}
+            >
+              Discard
+            </Button>
+            <Button
+              type="button"
+              variant="toolbar"
+              disabled={busy || loading}
+              aria-label="Edit theme stylesheet"
+              onClick={handleOpenStylesheet}
+            >
+              Stylesheet
+            </Button>
+            <Button
+              type="button"
               variant="primary"
               disabled={busy || !canSave || !isDirty}
               onClick={() => void handleSave()}
@@ -200,45 +216,12 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
               </FormGroup>
             </div>
 
-            <section aria-labelledby="designer-colors-heading">
-              <h2
-                id="designer-colors-heading"
-                className="m-0 mb-4 text-[18px] font-semibold text-text"
-              >
-                Colors
-              </h2>
-              <ColorTokenGrid colors={draft.colors} onChange={handleColorChange} />
-            </section>
-
-            <section aria-labelledby="designer-metrics-heading">
-              <h2
-                id="designer-metrics-heading"
-                className="m-0 mb-4 text-[18px] font-semibold text-text"
-              >
-                Typography & geometry
-              </h2>
-              <MetricTokenGrid metrics={draft.metrics} onChange={handleMetricChange} />
-            </section>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="toolbar"
-                disabled={busy || !isDirty}
-                onClick={() => handleDiscard()}
-              >
-                Discard
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy || loading}
-                aria-label="Edit theme stylesheet"
-                onClick={handleOpenStylesheet}
-              >
-                Stylesheet
-              </Button>
-            </div>
+            <ThemeDesignerCategoryTabs
+              colors={draft.colors}
+              metrics={draft.metrics}
+              onColorChange={handleColorChange}
+              onMetricChange={handleMetricChange}
+            />
           </div>
         )}
       </Page>

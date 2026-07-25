@@ -37,4 +37,7 @@ pnpm plugin:sign -- --dir /path/to/plugin --private-key plugins/signing.pem --ke
 pnpm plugin:verify -- --dir /path/to/plugin --public-key plugins/harborclient.key
 ```
 
-The docs build copies `harborclient.key` and `trusted.json` into the static site so they are available at the URLs above.
+The docs site (`harborclient-site`) syncs `catalog.json`, `trusted.json`, and
+`harborclient.key` from this directory via `scripts/sync-plugin-marketplace.mjs`
+at build time, then copies the signing assets into the static site so they are
+available at the URLs above.

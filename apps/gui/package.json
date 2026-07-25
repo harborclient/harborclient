@@ -32,7 +32,7 @@
   "dependencies": {
     "@harborclient/core": "workspace:*",
     "@harborclient/http": "1.0.0",
-    "@harborclient/sdk": "link:../../../sdk",
+    "@harborclient/sdk": "1.2.0",
     "@harborclient/team-hub-api": "0.4.0",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",

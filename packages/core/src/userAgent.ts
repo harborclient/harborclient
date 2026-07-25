@@ -1,24 +1,119 @@
 import type { KeyValue } from './types';
 
 /**
- * Default User-Agent sent when no scoped override or key/value header is set.
+ * Legacy hardcoded HarborClient User-Agent used before first-run dynamic capture.
+ *
+ * Detected once at app startup so existing installs migrate to a machine-specific string.
  */
-export const DEFAULT_USER_AGENT =
+export const LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT =
   'HarborClient/1.0.0 (Windows NT 10.0; Win64; x64) Electron/39.0.0 Chrome/140.0.0.0';
 
 /**
- * Built-in User-Agent presets shown in every User-Agent control.
+ * Generic fallback User-Agent when no persisted machine-specific value exists
+ * (for example CLI-only usage before the desktop app has run).
+ */
+export const DEFAULT_USER_AGENT = 'HarborClient/0.0.0 (Unknown) Electron/0.0.0 Chrome/0.0.0';
+
+/**
+ * Built-in browser User-Agent presets shown in every User-Agent control.
  *
- * Custom values are stored separately in general settings and merged at display time.
+ * The HarborClient string is not a builtin; it is captured from the host on first
+ * run and stored in general settings `customUserAgents`.
  */
 export const BUILTIN_USER_AGENT_PRESETS: readonly string[] = [
-  DEFAULT_USER_AGENT,
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
   'Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0',
   'Mozilla/5.0 (Linux; Android 16; SM-S921U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36',
   'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1'
 ];
+
+/**
+ * Runtime inputs used to build a machine-specific HarborClient User-Agent.
+ */
+export interface HarborClientUserAgentRuntime {
+  /**
+   * Desktop app version from Electron `app.getVersion()`.
+   */
+  appVersion: string;
+
+  /**
+   * Node process platform (`win32`, `darwin`, `linux`, …).
+   */
+  platform: NodeJS.Platform;
+
+  /**
+   * CPU architecture (`x64`, `arm64`, …).
+   */
+  arch: string;
+
+  /**
+   * Kernel release from `os.release()` (used for Windows NT version).
+   */
+  osRelease: string;
+
+  /**
+   * Electron version string.
+   */
+  electronVersion: string;
+
+  /**
+   * Chromium version string bundled with Electron.
+   */
+  chromeVersion: string;
+
+  /**
+   * Optional macOS product version from `process.getSystemVersion()`.
+   */
+  systemVersion?: string;
+}
+
+/**
+ * Builds the Chromium-style OS token for the HarborClient User-Agent parenthetical.
+ *
+ * @param runtime - Host platform, arch, and OS version fields.
+ * @returns Parenthetical OS segment without surrounding parentheses.
+ */
+function buildHarborClientOsToken(runtime: HarborClientUserAgentRuntime): string {
+  const arch = runtime.arch.trim() || 'unknown';
+  if (runtime.platform === 'win32') {
+    const nt = runtime.osRelease.trim() || '10.0';
+    if (arch === 'arm64') {
+      return `Windows NT ${nt}; ARM64`;
+    }
+    if (arch === 'ia32') {
+      return `Windows NT ${nt}; Win32`;
+    }
+    return `Windows NT ${nt}; Win64; x64`;
+  }
+  if (runtime.platform === 'darwin') {
+    const raw = (runtime.systemVersion?.trim() || runtime.osRelease.trim() || '10_15_7').replace(
+      /\./g,
+      '_'
+    );
+    const cpu = arch === 'arm64' ? 'ARM' : 'Intel';
+    return `Macintosh; ${cpu} Mac OS X ${raw}`;
+  }
+  if (runtime.platform === 'linux') {
+    const linuxArch = arch === 'arm64' ? 'aarch64' : arch === 'x64' ? 'x86_64' : arch;
+    return `X11; Linux ${linuxArch}`;
+  }
+  return `${runtime.platform}; ${arch}`;
+}
+
+/**
+ * Builds a HarborClient User-Agent from explicit runtime version and OS fields.
+ *
+ * @param runtime - App, Electron, Chrome, and OS identity for this machine.
+ * @returns Fully formed HarborClient User-Agent string.
+ */
+export function buildHarborClientUserAgent(runtime: HarborClientUserAgentRuntime): string {
+  const appVersion = runtime.appVersion.trim() || '0.0.0';
+  const electronVersion = runtime.electronVersion.trim() || '0.0.0';
+  const chromeVersion = runtime.chromeVersion.trim() || '0.0.0';
+  const osToken = buildHarborClientOsToken(runtime);
+  return `HarborClient/${appVersion} (${osToken}) Electron/${electronVersion} Chrome/${chromeVersion}`;
+}
 
 /**
  * Normalizes a scoped or global User-Agent string.

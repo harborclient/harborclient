@@ -57,6 +57,18 @@ export const DEFAULT_THEME_FONT_MONO =
   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 /**
+ * Common CSS font stacks offered by the theme Designer while preserving free-form input.
+ */
+export const THEME_FONT_FAMILY_SUGGESTIONS = [
+  "system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+  'Arial, Helvetica, sans-serif',
+  'Georgia, "Times New Roman", Times, serif',
+  '"Courier New", Courier, monospace',
+  'Verdana, Geneva, sans-serif',
+  '"Trebuchet MS", Arial, Helvetica, sans-serif'
+] as const;
+
+/**
  * Default typography and geometry metrics shared across light/dark/high-contrast.
  */
 export const DEFAULT_CUSTOM_THEME_METRICS: CustomThemeMetrics = {

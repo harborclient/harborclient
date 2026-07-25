@@ -7,7 +7,7 @@ isolated, and wired into the host UI.
 For plugin **authoring** (manifest format, SDK API, publishing), see the
 [harborclient-site](https://github.com/harborclient/harborclient-site) docs and
 `@harborclient/sdk`. For marketplace catalog and publisher signing keys, see
-[`plugins/README.md`](../../../../plugins/README.md) at the repository root.
+[`apps/gui/plugins/README.md`](../../../../plugins/README.md).
 
 ---
 
@@ -650,7 +650,7 @@ src/preload/
 
 src/main/ipc/handlers/plugins.ts   Typed IPC handler registration
 
-plugins/                    Marketplace catalog + signing keys (see plugins/README.md)
+apps/gui/plugins/           Marketplace catalog + signing keys (see apps/gui/plugins/README.md)
 ```
 
 ---
@@ -659,7 +659,7 @@ plugins/                    Marketplace catalog + signing keys (see plugins/READ
 
 | Resource                                                               | Audience       | Content                                       |
 | ---------------------------------------------------------------------- | -------------- | --------------------------------------------- |
-| [`plugins/README.md`](../../../../plugins/README.md)                   | Maintainers    | Catalog, signing keys, publisher workflow     |
+| [`apps/gui/plugins/README.md`](../../../../plugins/README.md)          | Maintainers    | Catalog, signing keys, publisher workflow     |
 | [harborclient-site](https://github.com/harborclient/harborclient-site) | Plugin authors | User-facing docs, marketplace metadata        |
 | `@harborclient/sdk`                                                    | Plugin authors | `PluginContext`, view-host, signing utilities |
 | [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md)                       | Contributors   | Project layout, IPC contract, code style      |

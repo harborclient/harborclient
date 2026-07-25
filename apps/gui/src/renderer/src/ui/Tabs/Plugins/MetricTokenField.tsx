@@ -5,6 +5,7 @@ import {
   CUSTOM_THEME_METRIC_LABELS,
   customThemeMetricControlKind
 } from '@harborclient/core/types/customTheme';
+import { DEFAULT_THEME_FONT_SANS, THEME_FONT_FAMILY_SUGGESTIONS } from './customThemeDefaults';
 
 interface Props {
   /**
@@ -41,11 +42,12 @@ function parseCssLength(value: string): { amount: string; unit: 'px' | 'rem' } |
 }
 
 /**
- * One labeled metric field — free text for font families, amount+unit for lengths.
+ * Renders one labeled metric field with font suggestions or length controls.
  */
 export function MetricTokenField({ token, value, onChange }: Props): JSX.Element {
   const fieldId = useId();
   const unitId = `${fieldId}-unit`;
+  const fontFamilyListId = `${fieldId}-font-family-list`;
   const kind = customThemeMetricControlKind(token);
   const label = CUSTOM_THEME_METRIC_LABELS[token];
   const parsedLength = useMemo(() => parseCssLength(value), [value]);
@@ -100,17 +102,23 @@ export function MetricTokenField({ token, value, onChange }: Props): JSX.Element
           </Select>
         </div>
       ) : (
-        <Input
-          id={fieldId}
-          value={value}
-          className="min-w-0"
-          placeholder={
-            kind === 'font-family'
-              ? "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
-              : undefined
-          }
-          onChange={(event) => onChange(token, event.target.value)}
-        />
+        <>
+          <Input
+            id={fieldId}
+            value={value}
+            className="min-w-0"
+            list={kind === 'font-family' ? fontFamilyListId : undefined}
+            placeholder={kind === 'font-family' ? DEFAULT_THEME_FONT_SANS : undefined}
+            onChange={(event) => onChange(token, event.target.value)}
+          />
+          {kind === 'font-family' ? (
+            <datalist id={fontFamilyListId}>
+              {THEME_FONT_FAMILY_SUGGESTIONS.map((fontFamily) => (
+                <option key={fontFamily} value={fontFamily} />
+              ))}
+            </datalist>
+          ) : null}
+        </>
       )}
     </FormGroup>
   );

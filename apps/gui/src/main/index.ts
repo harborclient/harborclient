@@ -30,6 +30,7 @@ import { attachShortcutDispatch } from './shortcutDispatch';
 import { isVerbose, logVerbose } from './logger';
 import { configureFileLogger } from './fileLogger';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
+import { ensureHarborClientUserAgentSettings } from '#/main/settings/harborClientUserAgent';
 import {
   loadWindowState,
   restoreWindowPresentation,
@@ -298,6 +299,7 @@ async function createStorage(): Promise<RoutingStorage> {
   const userDataPath = app.getPath('userData');
   logVerbose('createStorage: userData path', userDataPath);
   const database = await initLocalDatabase(userDataPath);
+  ensureHarborClientUserAgentSettings(database);
   configureFileLogger(getGeneralSettings());
   logVerbose('createStorage: local database initialized');
   migrateTeamHubSettings(database, userDataPath);
