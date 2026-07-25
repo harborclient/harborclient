@@ -221,8 +221,9 @@ Git hooks live in `.githooks/` (activated by `pnpm install` via the `prepare`
 script, which sets `core.hooksPath` to `.githooks` and wraps `git pull` with
 [`scripts/safe-pull.sh`](scripts/safe-pull.sh)).
 
-The `pre-commit` hook blocks commits that stage a local SDK link override
-(`link:../harborclient-sdk`) in `package.json` or `pnpm-lock.yaml`. Remove the
+The `pre-commit` hook blocks commits that stage a local SDK `link:` override
+(for example `link:../harborclient-sdk` or `link:../../../sdk`) in
+`package.json` / workspace package manifests or `pnpm-lock.yaml`. Remove the
 override and run `pnpm install` before committing those files. CI runs the same
 check as a backup for `git commit --no-verify`.
 

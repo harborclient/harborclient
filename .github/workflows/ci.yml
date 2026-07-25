@@ -64,8 +64,32 @@ jobs:
 
       - name: Reject local SDK link override
         run: |
-          if grep -qF 'link:../harborclient-sdk' package.json apps/gui/package.json apps/harborclient/package.json pnpm-lock.yaml; then
-            echo "::error::package.json or pnpm-lock.yaml contains a local @harborclient/sdk link override (link:../harborclient-sdk). Remove it before pushing."
+          # Catch any pnpm/npm link protocol for @harborclient/sdk (not only
+          # the historical link:../harborclient-sdk path). Sibling-repo links
+          # resolve locally but fail typecheck on GitHub runners.
+          files=(
+            package.json
+            apps/gui/package.json
+            apps/harborclient/package.json
+            packages/core/package.json
+            packages/storage-sqlite/package.json
+            pnpm-lock.yaml
+          )
+          found=0
+          for file in "${files[@]}"; do
+            [[ -f "$file" ]] || continue
+            if grep -Eq '["'\'']@harborclient/sdk["'\''][[:space:]]*:[[:space:]]*["'\'']link:' "$file"; then
+              echo "::error::$file contains a local @harborclient/sdk link override."
+              found=1
+            fi
+          done
+          if grep -E "^      '@harborclient/sdk':$" -A3 pnpm-lock.yaml |
+            grep -qE 'specifier: link:|version: link:'; then
+            echo "::error::pnpm-lock.yaml contains a local @harborclient/sdk link override."
+            found=1
+          fi
+          if [[ "$found" -ne 0 ]]; then
+            echo "::error::Remove the link: value for @harborclient/sdk, run pnpm install, and push again."
             exit 1
           fi
 

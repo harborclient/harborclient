@@ -4,20 +4,46 @@
 
 set -euo pipefail
 
-FORBIDDEN='link:../harborclient-sdk'
+# Match any pnpm/npm link protocol for the SDK (e.g. link:../harborclient-sdk,
+# link:../../../sdk), not only one historical path.
+PACKAGE_PATTERN='["'\'']@harborclient/sdk["'\''][[:space:]]*:[[:space:]]*["'\'']link:'
 
-for file in package.json apps/gui/package.json pnpm-lock.yaml; do
+FILES=(
+  package.json
+  apps/gui/package.json
+  apps/harborclient/package.json
+  packages/core/package.json
+  packages/storage-sqlite/package.json
+  pnpm-lock.yaml
+)
+
+for file in "${FILES[@]}"; do
+  if [[ ! -f "$file" ]]; then
+    continue
+  fi
+
   if ! git diff --cached --name-only --diff-filter=ACMR | grep -qx "$file"; then
     continue
   fi
 
-  if git show ":$file" | grep -qF "$FORBIDDEN"; then
-    cat >&2 <<EOF
-pre-commit: $file contains a local @harborclient/sdk link override ($FORBIDDEN).
+  staged="$(git show ":$file")"
+  hit=0
 
-Remove "@harborclient/sdk": "$FORBIDDEN" from package.json (dependencies or
-pnpm.overrides), run pnpm install to refresh pnpm-lock.yaml, re-stage, and
-retry.
+  if [[ "$file" == "pnpm-lock.yaml" ]]; then
+    if printf '%s\n' "$staged" | grep -E "^      '@harborclient/sdk':$" -A3 |
+      grep -qE 'specifier: link:|version: link:'; then
+      hit=1
+    fi
+  elif printf '%s\n' "$staged" | grep -Eq "$PACKAGE_PATTERN"; then
+    hit=1
+  fi
+
+  if [[ "$hit" -ne 0 ]]; then
+    cat >&2 <<EOF
+pre-commit: $file contains a local @harborclient/sdk link override.
+
+Remove the "link:..." value for @harborclient/sdk from package.json, run
+pnpm install to refresh pnpm-lock.yaml, re-stage, and retry.
 EOF
     exit 1
   fi
