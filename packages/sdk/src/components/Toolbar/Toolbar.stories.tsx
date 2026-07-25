@@ -1,9 +1,16 @@
 import {
   faAnglesUp,
+  faClock,
   faClockRotateLeft,
+  faCloud,
   faDatabase,
   faFolder,
+  faLayerGroup,
+  faPalette,
   faPlus,
+  faSquareMinus,
+  faSun,
+  faTrash,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import type { Decorator, Meta, StoryObj } from '@storybook/react-vite';
@@ -143,6 +150,41 @@ export const RightAlignedToggles: Story = {
       {
         id: 'collapse-all',
         icon: faAnglesUp,
+        label: 'Collapse all',
+        title: 'Collapse all collections and folders',
+        onClick: fn()
+      }
+    ]
+  }
+};
+
+/**
+ * Narrow host that forces collection-style toolbar icons onto multiple rows.
+ */
+export const WrapsWhenNarrow: Story = {
+  decorators: [
+    (Story) => (
+      <div className="max-w-[180px] border border-separator bg-sidebar">
+        <Story />
+      </div>
+    )
+  ],
+  args: {
+    ariaLabel: 'Collections sidebar',
+    actions: [
+      { id: 'collections', icon: faFolder, label: 'Collections', ariaPressed: true, onClick: fn() },
+      { id: 'runs', icon: faClockRotateLeft, label: 'Runs', onClick: fn() },
+      { id: 'history', icon: faClock, label: 'History', onClick: fn() },
+      { id: 'environments', icon: faSun, label: 'Environments', onClick: fn() },
+      { id: 'tab-groups', icon: faLayerGroup, label: 'Tab groups', onClick: fn() },
+      { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() },
+      { id: 'cloud', icon: faCloud, label: 'Cloud', onClick: fn() },
+      { id: 'themes', icon: faPalette, label: 'Themes', onClick: fn() }
+    ],
+    toggles: [
+      {
+        id: 'collapse-all',
+        icon: faSquareMinus,
         label: 'Collapse all',
         title: 'Collapse all collections and folders',
         onClick: fn()

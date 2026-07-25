@@ -149,6 +149,7 @@ function renderAction(action: ToolbarAction): JSX.Element {
 
 /**
  * Top-of-sidebar toolbar with left-aligned actions and optional right-aligned toggles.
+ * Action icons wrap to additional rows when the sidebar is narrower than one row.
  */
 export function Toolbar({
   actions,
@@ -163,15 +164,15 @@ export function Toolbar({
       role="toolbar"
       aria-label={ariaLabel}
       className={cn(
-        'hc-toolbar app-no-drag flex shrink-0 items-center border-b border-separator bg-sidebar-toolbar px-2 py-2',
+        'hc-toolbar app-no-drag flex min-w-0 shrink-0 flex-wrap items-center gap-y-1 border-b border-separator bg-sidebar-toolbar px-2 py-2',
         className
       )}
     >
-      <div className="hc-toolbar-actions flex items-center gap-1 leading-none">
+      <div className="hc-toolbar-actions flex min-w-0 flex-1 flex-wrap items-center gap-1 leading-none">
         {actions.map(renderAction)}
       </div>
       {toggles && toggles.length > 0 ? (
-        <div className="hc-toolbar-toggles ml-auto flex items-center gap-1">
+        <div className="hc-toolbar-toggles ml-auto flex shrink-0 items-center gap-1">
           {toggles.map(renderAction)}
         </div>
       ) : null}
