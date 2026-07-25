@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * Builds the combined GitHub Pages site for the core, SDK, and http docs.
+ * Builds the GitHub Pages stub site for package docs.
  *
- * Each package still builds with its own VitePress `base` (`/harborclient/core/`,
- * `/harborclient/sdk/`, `/harborclient/http/`). This script stages those outputs
- * under `_site/<package>` so asset URLs resolve correctly when Pages serves the
- * repo root, and writes a small landing page at `_site/index.html`.
+ * Canonical package documentation now lives on harborclient.com under `/core/`,
+ * `/sdk/`, and `/http/`. This script still publishes SDK Storybook under
+ * `/harborclient/sdk/storybook/` and emits redirect HTML for the former VitePress
+ * doc routes so old GitHub Pages links (and the archived sdk/http redirect hops)
+ * land on harborclient.com.
  */
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -14,6 +15,56 @@ import { spawnSync } from 'node:child_process';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const siteRoot = join(repoRoot, '_site');
+const siteOrigin = 'https://harborclient.com';
+
+/**
+ * Package doc routes that previously lived on GitHub Pages.
+ *
+ * Empty string is the package overview (`/<slug>/`). Nested paths such as
+ * `examples/request-logger` become `/<slug>/examples/request-logger`.
+ *
+ * @type {Record<string, string[]>}
+ */
+const packageRoutes = {
+  core: [
+    '',
+    'installation',
+    'package-layout',
+    'imports-and-exports',
+    'request-runner',
+    'scripting',
+    'types-and-ipc-contract',
+    'development'
+  ],
+  sdk: [
+    '',
+    'install',
+    'usage',
+    'package-layout',
+    'manifest',
+    'permissions',
+    'architecture',
+    'building',
+    'signing',
+    'dev-workflow',
+    'renderer-overview',
+    'renderer-ui',
+    'renderer-data',
+    'main-api',
+    'snippets',
+    'examples/',
+    'examples/request-logger',
+    'examples/request-audit-tab',
+    'examples/solarized-theme',
+    'examples/import-handler',
+    'examples/mcp-client-server',
+    'marketplace',
+    'performance',
+    'vs-request-scripts',
+    'license'
+  ],
+  http: ['', 'installation', 'usage', 'development', 'license']
+};
 
 /**
  * Runs a pnpm filter script and throws when the child exits non-zero.
@@ -35,28 +86,166 @@ function runPackageScript(filter, script) {
 }
 
 /**
- * Stages one VitePress dist directory under `_site/<subdir>`.
+ * Builds the harborclient.com destination URL for a package docs path.
  *
- * @param {string} distPath - Absolute path to the VitePress dist output.
- * @param {string} subdir - Subdirectory name under `_site`.
+ * @param {string} packageSlug - Package URL segment.
+ * @param {string} routePath - Path under the package, or empty for the overview.
+ * @returns {string} Absolute destination URL.
+ */
+function destinationUrl(packageSlug, routePath) {
+  if (!routePath) {
+    return `${siteOrigin}/${packageSlug}/`;
+  }
+
+  if (routePath.endsWith('/')) {
+    return `${siteOrigin}/${packageSlug}/${routePath}`;
+  }
+
+  return `${siteOrigin}/${packageSlug}/${routePath}`;
+}
+
+/**
+ * Builds a minimal HTML redirect page that preserves hash fragments.
+ *
+ * @param {string} destination - Absolute URL to redirect to.
+ * @returns {string} HTML document contents.
+ */
+function buildRedirectHtml(destination) {
+  const escaped = destination.replace(/"/g, '&quot;');
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="0; url=${escaped}" />
+    <link rel="canonical" href="${escaped}" />
+    <title>Redirecting…</title>
+    <script>
+      (function () {
+        var destination = ${JSON.stringify(destination)};
+        location.replace(destination + location.hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>
+      Documentation has moved to
+      <a href="${escaped}">${escaped}</a>.
+    </p>
+  </body>
+</html>
+`;
+}
+
+/**
+ * Writes redirect HTML for one package docs route.
+ *
+ * @param {string} packageSlug - Package URL segment.
+ * @param {string} routePath - Path under the package, or empty for the overview.
  * @returns {void}
  */
-function stageDist(distPath, subdir) {
-  const target = join(siteRoot, subdir);
-  mkdirSync(target, { recursive: true });
-  cpSync(distPath, target, { recursive: true });
+function writePackageRedirect(packageSlug, routePath) {
+  const destination = destinationUrl(packageSlug, routePath);
+  const html = buildRedirectHtml(destination);
+
+  if (!routePath || routePath === '/') {
+    const dir = join(siteRoot, packageSlug);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'index.html'), html);
+    return;
+  }
+
+  if (routePath.endsWith('/')) {
+    const dir = join(siteRoot, packageSlug, routePath.replace(/\/$/, ''));
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'index.html'), html);
+    return;
+  }
+
+  const segments = routePath.split('/');
+  const fileName = `${segments.pop()}.html`;
+  const dir = join(siteRoot, packageSlug, ...segments);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, fileName), html);
+}
+
+/**
+ * Builds the GitHub Pages 404 catch-all that remaps unknown package doc paths.
+ *
+ * Storybook under `/harborclient/sdk/storybook/` is excluded so missing Storybook
+ * assets stay on Pages instead of bouncing to harborclient.com.
+ *
+ * @returns {string} HTML document contents.
+ */
+function buildCatchAllHtml() {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting…</title>
+    <script>
+      (function () {
+        var match = location.pathname.match(
+          /^\\/harborclient\\/(sdk|core|http)(?:\\/(.*))?$/
+        );
+
+        if (!match) {
+          document.title = 'Not found';
+          document.body.innerHTML =
+            '<main><h1>Not found</h1><p>This page is not part of the HarborClient docs redirect site.</p></main>';
+          return;
+        }
+
+        var pkg = match[1];
+        var rest = match[2] || '';
+
+        if (pkg === 'sdk' && rest.indexOf('storybook') === 0) {
+          document.title = 'Not found';
+          document.body.innerHTML =
+            '<main><h1>Not found</h1><p>SDK Storybook asset missing.</p></main>';
+          return;
+        }
+
+        var destination =
+          ${JSON.stringify(siteOrigin + '/')} +
+          pkg +
+          '/' +
+          rest +
+          location.search +
+          location.hash;
+        location.replace(destination);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to the HarborClient documentation site…</p>
+  </body>
+</html>
+`;
 }
 
 rmSync(siteRoot, { recursive: true, force: true });
 mkdirSync(siteRoot, { recursive: true });
 
-runPackageScript('@harborclient/core', 'docs:build');
-runPackageScript('@harborclient/sdk', 'docs:build');
-runPackageScript('@harborclient/http', 'docs:build');
+runPackageScript('@harborclient/sdk', 'build-storybook');
 
-stageDist(join(repoRoot, 'packages/core/docs/.vitepress/dist'), 'core');
-stageDist(join(repoRoot, 'packages/sdk/docs/.vitepress/dist'), 'sdk');
-stageDist(join(repoRoot, 'packages/http/docs/.vitepress/dist'), 'http');
+const storybookDist = join(
+  repoRoot,
+  'packages/sdk/docs/.vitepress/static/storybook'
+);
+const storybookTarget = join(siteRoot, 'sdk', 'storybook');
+mkdirSync(join(siteRoot, 'sdk'), { recursive: true });
+cpSync(storybookDist, storybookTarget, { recursive: true });
+
+for (const [packageSlug, routes] of Object.entries(packageRoutes)) {
+  for (const routePath of routes) {
+    writePackageRedirect(packageSlug, routePath);
+  }
+}
+
+writeFileSync(join(siteRoot, '404.html'), buildCatchAllHtml());
 
 writeFileSync(
   join(siteRoot, 'index.html'),
@@ -103,12 +292,18 @@ writeFileSync(
   <body>
     <main>
       <h1>HarborClient package docs</h1>
-      <p>Documentation for packages published from this monorepo:</p>
+      <p>
+        Package documentation now lives on
+        <a href="${siteOrigin}/">harborclient.com</a>:
+      </p>
       <ul>
-        <li><a href="./core/">@harborclient/core</a></li>
-        <li><a href="./sdk/">@harborclient/sdk</a></li>
-        <li><a href="./http/">@harborclient/http</a></li>
-        <li><a href="./sdk/storybook/">SDK component Storybook</a></li>
+        <li><a href="${siteOrigin}/core/">@harborclient/core</a></li>
+        <li><a href="${siteOrigin}/sdk/">@harborclient/sdk</a></li>
+        <li><a href="${siteOrigin}/http/">@harborclient/http</a></li>
+        <li>
+          <a href="./sdk/storybook/">SDK component Storybook</a>
+          (still hosted on GitHub Pages)
+        </li>
       </ul>
     </main>
   </body>
@@ -116,4 +311,4 @@ writeFileSync(
 `
 );
 
-console.log(`Combined docs site written to ${siteRoot}`);
+console.log(`Docs redirect site written to ${siteRoot}`);

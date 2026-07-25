@@ -3,7 +3,7 @@
  */
 
 export const segmentGroup =
-  'inline-flex p-3 border-b border-separator w-full shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
+  'flex min-w-0 max-w-full w-full p-3 border-b border-separator shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
 
 const segmentFocusVisible =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';

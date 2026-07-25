@@ -1124,10 +1124,11 @@ export function ScriptListEditor({
   };
 
   /**
-   * Renders add controls aligned to the right of the script list header.
+   * Renders add controls above the script list, right-aligned and wrapping when
+   * the editor pane is too narrow for a single row.
    */
   const addControls = (
-    <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+    <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2">
       <Button
         type="button"
         variant="secondary"
@@ -1180,7 +1181,7 @@ export function ScriptListEditor({
       >
         <FaIcon icon={faPaste} className="h-3.5 w-3.5" aria-hidden />
       </Button>
-      <div className="flex shrink-0 items-center gap-2 mr-4">
+      <div className="mr-4 flex shrink-0 flex-wrap items-center gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -1216,11 +1217,9 @@ export function ScriptListEditor({
   );
 
   /**
-   * Renders the add controls above the script list.
+   * Hosts the script list action toolbar.
    */
-  const scriptListHeader = (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">{addControls}</div>
-  );
+  const scriptListHeader = <div className="w-full min-w-0 shrink-0">{addControls}</div>;
 
   /**
    * Renders one grouped script list with optional drag handles.

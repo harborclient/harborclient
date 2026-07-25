@@ -168,7 +168,7 @@ export function Editor({
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col">
       <div className="shrink-0 border-b border-separator p-3">
         <Breadcrumb
           flush

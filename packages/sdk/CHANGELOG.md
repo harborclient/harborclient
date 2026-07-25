@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Update documentation deployment workflow and enhance UI components. (`a82232bd`)
+
 ## 1.2.5 - 2026-07-25
 
 - feat(CodeEditor): support diagnostic actions in lint hover tooltips. (`40c83c3`)

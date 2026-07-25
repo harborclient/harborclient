@@ -80,6 +80,20 @@
 }
 
 /**
+ * SegmentedTabs must size to the host width, not the one-line sum of its tabs.
+ * Without this, horizontal scroll parents expand to max-content and flex-wrap
+ * never triggers — tabs clip instead of wrapping to another row.
+ */
+.hc-segmented-tabs {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  contain: inline-size;
+  overflow-x: clip;
+}
+
+/**
  * Compact circular new-tab control in horizontal scroll mode. Lives in SDK styles
  * so the rule overrides Tailwind rounded utilities on the same element.
  */

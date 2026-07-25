@@ -184,7 +184,7 @@ export function EditorTabs({
         onChange={handleTabChange}
         ariaLabel="Request editor sections"
       >
-        <div className="shrink-0">
+        <div className="min-w-0 max-w-full shrink-0">
           <SegmentedTabs tabs={tabs} />
         </div>
 

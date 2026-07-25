@@ -1,7 +1,11 @@
 name: Docs pages
 
-# Deploy the combined @harborclient/core, @harborclient/sdk, and
-# @harborclient/http VitePress sites (plus SDK Storybook) to GitHub Pages.
+# Deploy redirect stubs for the former @harborclient/core, @harborclient/sdk, and
+# @harborclient/http VitePress sites, plus the SDK Storybook bundle, to GitHub Pages.
+#
+# Canonical package documentation now lives on harborclient.com under /core/,
+# /sdk/, and /http/. This Pages site keeps Storybook at
+# /harborclient/sdk/storybook/ and redirects the old doc routes.
 #
 # Repository: https://github.com/harborclient/harborclient
 #
@@ -20,10 +24,11 @@ name: Docs pages
 #     -f source_ref=main
 #
 # Deployed site entry points:
-#   https://harborclient.github.io/harborclient/
-#   https://harborclient.github.io/harborclient/core/
-#   https://harborclient.github.io/harborclient/sdk/
-#   https://harborclient.github.io/harborclient/http/
+#   https://harborclient.github.io/harborclient/          (links to harborclient.com)
+#   https://harborclient.github.io/harborclient/core/     (redirect stub)
+#   https://harborclient.github.io/harborclient/sdk/      (redirect stub)
+#   https://harborclient.github.io/harborclient/http/     (redirect stub)
+#   https://harborclient.github.io/harborclient/sdk/storybook/
 
 on:
   push:

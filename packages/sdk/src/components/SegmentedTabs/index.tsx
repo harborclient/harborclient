@@ -267,7 +267,7 @@ export function SegmentedTabs<T extends string>({
   );
 
   const tabListClassName = cn(
-    'hc-segmented-tabs-list flex w-full min-w-0 flex-1 flex-wrap items-center gap-y-2'
+    'hc-segmented-tabs-list flex min-w-0 flex-1 flex-wrap items-center gap-y-2'
   );
 
   const isRadiogroup = pattern === 'radiogroup';
@@ -341,9 +341,11 @@ export function SegmentedTabs<T extends string>({
       >
         {visibleTabs.map((tab) => {
           const selected = value === tab.value;
-          const tabClassName = `hc-segmented-tabs-tab flex items-center justify-center ${segment(selected)}${
-            fullWidth ? ' flex-1' : ''
-          }`;
+          const tabClassName = cn(
+            'hc-segmented-tabs-tab flex items-center justify-center whitespace-nowrap',
+            segment(selected),
+            fullWidth ? 'flex-1' : 'shrink-0'
+          );
 
           return (
             <button

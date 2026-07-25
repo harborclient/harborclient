@@ -151,3 +151,41 @@ export const WithPanels: Story = {
     );
   }
 };
+
+type EditorTab = 'params' | 'headers' | 'auth' | 'cookies' | 'body' | 'pre' | 'post' | 'notes';
+
+const wrapTabs: TabItem<EditorTab>[] = [
+  { value: 'params', label: 'Params' },
+  { value: 'headers', label: 'Headers', indicator: true },
+  { value: 'auth', label: 'Authorization' },
+  { value: 'cookies', label: 'Cookies' },
+  { value: 'body', label: 'Body', indicator: true },
+  { value: 'pre', label: 'PreRequest' },
+  { value: 'post', label: 'PostRequest' },
+  { value: 'notes', label: 'Notes' }
+];
+
+/**
+ * Narrow host that forces the tab strip onto multiple rows.
+ */
+export const WrapsWhenNarrow: Story = {
+  args: {
+    editable: false,
+    ariaLabel: 'Request editor sections'
+  },
+  render: (args) => {
+    const [value, setValue] = useState<EditorTab>('post');
+
+    return (
+      <div className="max-w-xs border border-separator bg-surface">
+        <SegmentedTabs<EditorTab>
+          tabs={wrapTabs}
+          editable={args.editable}
+          value={value}
+          onChange={setValue}
+          ariaLabel={args.ariaLabel}
+        />
+      </div>
+    );
+  }
+};

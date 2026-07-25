@@ -593,7 +593,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                   }
                 >
                   <Scrollbars
-                    axis="both"
+                    axis="vertical"
                     className={showSplitLayout ? 'h-full min-h-0' : 'min-h-0 flex-1'}
                   >
                     <Editor
