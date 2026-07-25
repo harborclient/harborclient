@@ -32,7 +32,7 @@ calls never take the single-instance lock.
 ## Scripts
 
 ```bash
-pnpm --filter @harborclient/harborclient build   # core, sqlite, cli, gui
+pnpm --filter @harborclient/harborclient build   # core (+ sdk/http), sqlite, cli, gui
 pnpm --filter @harborclient/harborclient dist    # build + electron-builder
 pnpm --filter @harborclient/harborclient test    # router unit tests
 ```

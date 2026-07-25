@@ -2,6 +2,9 @@
 /**
  * Builds product dependencies: core, storage-sqlite, CLI, GUI, then copies
  * native CLI runtime deps beside the CLI bundle for electron-builder packaging.
+ *
+ * Core's `prebuild` compiles `@harborclient/sdk` (and http) first — SDK package
+ * exports resolve from `dist/`, which is empty on a fresh CI checkout.
  */
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';

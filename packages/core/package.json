@@ -59,7 +59,7 @@
     }
   },
   "scripts": {
-    "prebuild": "pnpm --filter @harborclient/http build",
+    "prebuild": "pnpm --filter @harborclient/sdk build && pnpm --filter @harborclient/http build",
     "build": "tsc -p tsconfig.build.json && node scripts/assert-dist-publishable.mjs",
     "clean": "rm -rf dist && find src -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' -o -name '*.d.ts.map' \\) -delete",
     "lint": "eslint --cache .",
