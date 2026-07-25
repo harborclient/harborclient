@@ -3,9 +3,11 @@
 **/release
 packages/core/docs
 packages/core/scripts
+packages/sdk
 scripts
 docs
 pnpm-lock.yaml
 LICENSE.md
 CHANGELOG.md
 apps/gui/resources/docsSearchIndex.json
+_site

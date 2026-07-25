@@ -62,42 +62,23 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Reject local SDK link override
-        run: |
-          # Catch any pnpm/npm link protocol for @harborclient/sdk (not only
-          # the historical link:../harborclient-sdk path). Sibling-repo links
-          # resolve locally but fail typecheck on GitHub runners.
-          files=(
-            package.json
-            apps/gui/package.json
-            apps/harborclient/package.json
-            packages/core/package.json
-            packages/storage-sqlite/package.json
-            pnpm-lock.yaml
-          )
-          found=0
-          for file in "${files[@]}"; do
-            [[ -f "$file" ]] || continue
-            if grep -Eq '["'\'']@harborclient/sdk["'\''][[:space:]]*:[[:space:]]*["'\'']link:' "$file"; then
-              echo "::error::$file contains a local @harborclient/sdk link override."
-              found=1
-            fi
-          done
-          if grep -E "^      '@harborclient/sdk':$" -A3 pnpm-lock.yaml |
-            grep -qE 'specifier: link:|version: link:'; then
-            echo "::error::pnpm-lock.yaml contains a local @harborclient/sdk link override."
-            found=1
-          fi
-          if [[ "$found" -ne 0 ]]; then
-            echo "::error::Remove the link: value for @harborclient/sdk, run pnpm install, and push again."
-            exit 1
-          fi
-
       - run: pnpm install --frozen-lockfile
+
+      - name: Build SDK
+        run: pnpm build:sdk
 
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
+
+      - name: Check published SDK types (ATTW)
+        working-directory: packages/sdk
+        run: |
+          TARBALL=$(pnpm pack --pack-destination /tmp | tail -1)
+          npx --yes @arethetypeswrong/cli@0.18.4 "$TARBALL" --profile esm-only --no-summary
+
+      - name: Test SDK
+        run: pnpm --filter @harborclient/sdk test
 
       - name: Test
         env:

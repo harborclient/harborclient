@@ -10,6 +10,10 @@ apps/*/dist
 packages/*/dist
 packages/core/docs/.vitepress/dist
 packages/core/docs/.vitepress/cache
+packages/sdk/docs/.vitepress/dist
+packages/sdk/docs/.vitepress/cache
+packages/sdk/docs/.vitepress/static/storybook
+_site
 # Accidental tsc emit next to sources (build output belongs in packages/core/dist)
 packages/core/src/**/*.js
 packages/core/src/**/*.js.map

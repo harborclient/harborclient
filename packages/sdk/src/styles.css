@@ -1,0 +1,102 @@
+/**
+ * HarborClient SDK component styles that cannot be expressed as Tailwind utilities
+ * in JSX (pseudo-elements, ::highlight, forced-colors overrides).
+ *
+ * Consumers must define design tokens such as `--mac-accent` before importing this
+ * sheet. HarborClient maps these in its host `styles.css` `@theme` block.
+ */
+
+/**
+ * Variable token highlight color for CSS Highlight API overlays used by
+ * VariableInput and CodeEditor.
+ */
+::highlight(hc-variable-token) {
+  color: #32d2e2;
+}
+
+/**
+ * Active footer toggles use `shadow-sm`, which sits in Tailwind utilities and
+ * overrides the base focus ring. Restore a visible ring for keyboard focus,
+ * including programmatic focus from footer Tab handoff (`:focus:not(:focus-visible)`).
+ */
+.hc-footer-icon:focus-visible,
+.hc-footer-icon:focus:not(:focus-visible),
+.hc-toolbar-action[aria-pressed='true']:focus-visible,
+.hc-toolbar-action[aria-pressed='true']:focus:not(:focus-visible),
+.hc-footer-button:focus-visible,
+.hc-footer-button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mac-accent) 35%, transparent);
+}
+
+/**
+ * Windows Contrast Themes and other forced-colors environments need an explicit
+ * border on primary accent buttons so they remain distinguishable from the canvas.
+ */
+@media (forced-colors: active) {
+  .hc-button.bg-accent {
+    border: 1px solid ButtonBorder;
+  }
+}
+
+/**
+ * CodeEditor fills an explicit wrapper height set by the host without passing height
+ * into CodeMirror (which would trigger full reconfigure on every resize).
+ *
+ * @uiw/react-codemirror inserts a `.cm-theme-*` container between the wrapper and
+ * `.cm-editor`; every level must participate in the flex chain or the scroller grows
+ * with document content and never overflows.
+ */
+.hc-code-editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.hc-code-editor > div:first-child {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hc-code-editor .cm-editor {
+  display: flex !important;
+  flex: 1 1 0% !important;
+  flex-direction: column;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.hc-code-editor .cm-scroller {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: auto !important;
+  scrollbar-gutter: stable;
+}
+
+/**
+ * Compact circular new-tab control in horizontal scroll mode. Lives in SDK styles
+ * so the rule overrides Tailwind rounded utilities on the same element.
+ */
+.hc-tab-new-button {
+  align-self: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  aspect-ratio: auto;
+  border-radius: 9999px;
+}
+
+/**
+ * Default body text size for SDK and host renderers. Unlayered so it wins over
+ * host `@layer base` body rules. Hosts keep `:root { font-size: 14px }` as the
+ * rem base for layout; only inherited text size comes from here.
+ */
+body {
+  font-size: 16px;
+  line-height: 1.5;
+}

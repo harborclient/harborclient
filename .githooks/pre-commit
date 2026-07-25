@@ -1,50 +1,7 @@
 #!/usr/bin/env bash
-# Reject commits that stage a local @harborclient/sdk link override used for
-# sibling-repo debugging. CI runs the same check as a backup for --no-verify.
+# Intentionally empty.
+#
+# The previous @harborclient/sdk `link:` override guard is obsolete now that the
+# SDK lives in this monorepo as packages/sdk and is consumed via workspace:*.
 
-set -euo pipefail
-
-# Match any pnpm/npm link protocol for the SDK (e.g. link:../harborclient-sdk,
-# link:../../../sdk), not only one historical path.
-PACKAGE_PATTERN='["'\'']@harborclient/sdk["'\''][[:space:]]*:[[:space:]]*["'\'']link:'
-
-FILES=(
-  package.json
-  apps/gui/package.json
-  apps/harborclient/package.json
-  packages/core/package.json
-  packages/storage-sqlite/package.json
-  pnpm-lock.yaml
-)
-
-for file in "${FILES[@]}"; do
-  if [[ ! -f "$file" ]]; then
-    continue
-  fi
-
-  if ! git diff --cached --name-only --diff-filter=ACMR | grep -qx "$file"; then
-    continue
-  fi
-
-  staged="$(git show ":$file")"
-  hit=0
-
-  if [[ "$file" == "pnpm-lock.yaml" ]]; then
-    if printf '%s\n' "$staged" | grep -E "^      '@harborclient/sdk':$" -A3 |
-      grep -qE 'specifier: link:|version: link:'; then
-      hit=1
-    fi
-  elif printf '%s\n' "$staged" | grep -Eq "$PACKAGE_PATTERN"; then
-    hit=1
-  fi
-
-  if [[ "$hit" -ne 0 ]]; then
-    cat >&2 <<EOF
-pre-commit: $file contains a local @harborclient/sdk link override.
-
-Remove the "link:..." value for @harborclient/sdk from package.json, run
-pnpm install to refresh pnpm-lock.yaml, re-stage, and retry.
-EOF
-    exit 1
-  fi
-done
+exit 0

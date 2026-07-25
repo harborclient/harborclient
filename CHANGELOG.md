@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- chore(sdk): integrate SDK into monorepo and update related configurations. (`f9143029`)
 - chore(deps): update @harborclient/sdk to version 1.2.5 and enhance script error handling. (`dd2ab257`)
 
 ## 2.6.3 - 2026-07-25

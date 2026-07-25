@@ -1,8 +1,9 @@
 /**
  * Indexes HarborClient site and SDK Markdown docs into an Orama vector database.
  *
- * Reads docs from sibling repos, generates OpenAI embeddings, and writes a
- * serialized index to resources/docsSearchIndex.json for bundling with the app.
+ * Reads docs from the sibling site repo and in-tree `packages/sdk/docs`,
+ * generates OpenAI embeddings, and writes a serialized index to
+ * resources/docsSearchIndex.json for bundling with the app.
  *
  * Usage:
  *   pnpm index-docs
@@ -35,8 +36,8 @@ const DOC_SOURCES = [
   },
   {
     source: 'sdk',
-    root: path.resolve(repoRoot, '../sdk/docs'),
-    urlBase: 'https://harborclient.github.io/sdk'
+    root: path.resolve(repoRoot, 'packages/sdk/docs'),
+    urlBase: 'https://harborclient.github.io/harborclient/sdk'
   }
 ];
 

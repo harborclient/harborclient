@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@harborclient/sdk",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmitOnError": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "paths": {
+      "@harborclient/sdk": ["./src/client.d.ts"],
+      "@harborclient/sdk/jsx-runtime": ["./src/runtime/jsx-runtime.d.ts"],
+      "@harborclient/sdk/react": ["./src/runtime/react.d.ts"],
+      "@harborclient/sdk/react-dom": ["./src/runtime/react-dom.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["dist", "node_modules"]
+}

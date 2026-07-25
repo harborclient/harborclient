@@ -148,7 +148,7 @@ detailed audit of known gaps and proposed fixes.
   not hand-roll one-off overlays.
 - Announce important status changes (loading, sending, errors) with
   `role="status"` or `aria-live="polite"`. Follow the pattern in
-  [`BusyIndicator`](../harborclient-sdk/src/components/BusyIndicator/index.tsx) (`@harborclient/sdk/components`).
+  [`BusyIndicator`](packages/sdk/src/components/BusyIndicator/index.tsx) (`@harborclient/sdk/components`).
 - Expose selection and expansion state with `aria-current`, `aria-selected`, and
   `aria-expanded` — not color or background alone.
 
@@ -186,7 +186,7 @@ many call sites.
 
 Always add clear, useful documentation when you write or change code. Match the
 JSDoc style already used in the codebase (see `src/renderer/src/ui/Main/RequestEditor/Editor/`
-and [`VariableInput`](../harborclient-sdk/src/components/VariableInput/index.tsx) (`@harborclient/sdk/components`) for examples).
+and [`VariableInput`](packages/sdk/src/components/VariableInput/index.tsx) (`@harborclient/sdk/components`) for examples).
 
 **Every function** — exported or local, component or helper — must have a JSDoc
 docblock. Explain what the function does and why, not just restate its name.
@@ -221,12 +221,6 @@ Git hooks live in `.githooks/` (activated by `pnpm install` via the `prepare`
 script, which sets `core.hooksPath` to `.githooks` and wraps `git pull` with
 [`scripts/safe-pull.sh`](scripts/safe-pull.sh)).
 
-The `pre-commit` hook blocks commits that stage a local SDK `link:` override
-(for example `link:../harborclient-sdk` or `link:../../../sdk`) in
-`package.json` / workspace package manifests or `pnpm-lock.yaml`. Remove the
-override and run `pnpm install` before committing those files. CI runs the same
-check as a backup for `git commit --no-verify`.
-
 Changelogs are kept up to date automatically by the `post-commit` hook in
 `.githooks/post-commit`:
 
@@ -236,6 +230,10 @@ Changelogs are kept up to date automatically by the `post-commit` hook in
   touch `packages/core/**`. Renamed by
   [`.github/workflows/core-release.yml`](.github/workflows/core-release.yml)
   when publishing `@harborclient/core` to npm (`core-v*` tags).
+- [`packages/sdk/CHANGELOG.md`](packages/sdk/CHANGELOG.md) — commits that
+  touch `packages/sdk/**`. Renamed by
+  [`.github/workflows/sdk-release.yml`](.github/workflows/sdk-release.yml)
+  when publishing `@harborclient/sdk` to npm (`sdk-v*` tags).
 
 How it works:
 
@@ -256,12 +254,14 @@ What this means for you:
   yourself and stage the changelog as part of the commit. The hook will detect
   it and leave your entry alone.
 - Don't add version numbers or dates manually. The desktop release workflow
-  bumps `apps/harborclient/package.json`; the core workflow bumps
-  `packages/core/package.json` and publishes to npm.
+  bumps `apps/harborclient/package.json`; the core and SDK workflows bump
+  `packages/core/package.json` / `packages/sdk/package.json` and publish to npm.
 - Don't run version-bump commands locally (`pnpm version`, `npm version`,
   etc.); use the release workflows instead so the changelog and tags stay in sync.
 - Core npm releases: `pnpm release:core` (or `release:core:minor` /
   `release:core:major`). Requires repository secret `NPM_TOKEN`.
+- SDK npm releases: `pnpm release:sdk` (or `release:sdk:minor` /
+  `release:sdk:major`). Requires the same `NPM_TOKEN` secret.
 
 ### Pulling after a release
 

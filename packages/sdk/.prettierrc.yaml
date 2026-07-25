@@ -1,0 +1,13 @@
+singleQuote: true
+semi: true
+printWidth: 100
+trailingComma: none
+plugins:
+  - '@trivago/prettier-plugin-sort-imports'
+  - 'prettier-plugin-tailwindcss'
+tailwindStylesheet: '.storybook/tailwind.css'
+tailwindFunctions: ['cn']
+importOrderParserPlugins: ['typescript', 'jsx', 'decorators-legacy']
+importOrder: ['^#/(.*)$', '^[./]']
+importOrderSeparation: false
+importOrderSortSpecifiers: true

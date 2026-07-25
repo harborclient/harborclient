@@ -71,6 +71,13 @@ export const sidebar: DefaultTheme.SidebarItem[] =
   },
   {
     "text": "Development",
-    "link": "/development"
+    "link": "/development",
+    "items": [
+      {
+        "text": "Releasing to npm",
+        "link": "/development#releasing-to-npm"
+      }
+    ],
+    "collapsed": false
   }
 ]

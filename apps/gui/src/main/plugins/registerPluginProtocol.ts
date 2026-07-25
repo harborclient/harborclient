@@ -70,7 +70,7 @@ export function registerHarborPluginScheme(): void {
 /**
  * Resolves the on-disk SDK view-host bootstrap module.
  *
- * Checks the installed package and a sibling SDK checkout used during local development.
+ * Checks the installed workspace package under node_modules.
  *
  * @param appRoot - Application root containing node_modules.
  * @returns Absolute path to the view-host module, or null when none exist.
@@ -87,9 +87,7 @@ function resolveViewHostPath(appRoot: string): string | null {
       'runtime',
       'view-host',
       'index.js'
-    ),
-    join(appRoot, '..', 'harborclient-sdk', 'dist', 'runtime', 'viewHost.js'),
-    join(appRoot, '..', 'harborclient-sdk', 'dist', 'runtime', 'view-host', 'index.js')
+    )
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) {

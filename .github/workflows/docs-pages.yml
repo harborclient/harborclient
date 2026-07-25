@@ -1,10 +1,11 @@
-name: Core docs pages
+name: Docs pages
 
-# Deploy the @harborclient/core VitePress documentation site to GitHub Pages.
+# Deploy the combined @harborclient/core and @harborclient/sdk VitePress sites
+# (plus SDK Storybook) to GitHub Pages.
 #
 # Repository: https://github.com/harborclient/harborclient
 #
-# Automatically deploys when core documentation changes land on main.
+# Automatically deploys when documentation sources change on main.
 # Manual dispatch remains available so docs can be published from any branch/ref
 # without merging to main first. Provide `source_ref` with the
 # branch, tag, or SHA whose content should be deployed.
@@ -15,11 +16,13 @@ name: Core docs pages
 #
 # Run from the repo root once this workflow exists on a dispatchable ref:
 #
-#   gh workflow run core-docs-pages.yml --ref main \
+#   gh workflow run docs-pages.yml --ref main \
 #     -f source_ref=main
 #
-# Deployed site entry point:
+# Deployed site entry points:
+#   https://harborclient.github.io/harborclient/
 #   https://harborclient.github.io/harborclient/core/
+#   https://harborclient.github.io/harborclient/sdk/
 
 on:
   push:
@@ -35,8 +38,20 @@ on:
       - packages/core/scripts/docs-site.config.mjs
       - packages/core/scripts/assert-docs-slugs.mjs
       - packages/core/package.json
+      - packages/sdk/README.md
+      - packages/sdk/docs/**
+      - packages/sdk/src/**
+      - packages/sdk/.storybook/**
+      - packages/sdk/scripts/build-docs-nav.mjs
+      - packages/sdk/scripts/docs-nav.config.mjs
+      - packages/sdk/scripts/docs-slugger.mjs
+      - packages/sdk/scripts/docs-link-rewriter.mjs
+      - packages/sdk/scripts/docs-site.config.mjs
+      - packages/sdk/scripts/assert-docs-slugs.mjs
+      - packages/sdk/package.json
+      - scripts/build-docs-site.mjs
       - pnpm-lock.yaml
-      - .github/workflows/core-docs-pages.yml
+      - .github/workflows/docs-pages.yml
   workflow_dispatch:
     inputs:
       source_ref:
@@ -78,8 +93,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build docs site
-        run: pnpm --filter @harborclient/core docs:build
+      - name: Build combined docs site
+        run: pnpm docs:build
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -87,7 +102,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: packages/core/docs/.vitepress/dist
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
