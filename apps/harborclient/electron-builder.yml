@@ -26,6 +26,16 @@ extraResources:
     to: cli/index.js
   - from: ../cli/dist/node_modules
     to: cli/node_modules
+    # Defense in depth: never ship node-gyp intermediates into Resources.
+    # macOS codesign fails on `.o` files under obj.target with entitlements.
+    filter:
+      - '**/*'
+      - '!**/obj.target/**'
+      - '!**/build/Release/obj/**'
+      - '!**/build/Release/.deps/**'
+      - '!**/*.o'
+      - '!**/*.a'
+      - '!**/*.lib'
 directories:
   buildResources: build
   output: ../harborclient/release
@@ -36,6 +46,12 @@ files:
   - node_modules/node-pty/**/*
   - '!**/node_modules/**/*.tgz'
   - '!**/node_modules/**/prebuilds/**'
+  - '!**/node_modules/**/obj.target/**'
+  - '!**/node_modules/**/build/Release/obj/**'
+  - '!**/node_modules/**/build/Release/.deps/**'
+  - '!**/node_modules/**/*.o'
+  - '!**/node_modules/**/*.a'
+  - '!**/node_modules/**/*.lib'
 asarUnpack:
   - node_modules/better-sqlite3/**/*
   - node_modules/node-pty/**/*

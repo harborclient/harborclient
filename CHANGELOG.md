@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor(cli): enhance runtime dependency handling and prune unnecessary files. (`0af49ab8`)
+
 ## 2.6.1 - 2026-07-25
 
 - fix: update pre-commit hook to block any local SDK link overrides. (`a4ab5392`)

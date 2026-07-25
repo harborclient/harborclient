@@ -9,9 +9,19 @@
  *
  * Production dependency trees are copied recursively (for example `bindings` for
  * better-sqlite3). Install-only packages such as `prebuild-install` are skipped.
+ * After copy, better-sqlite3 compile intermediates (`obj.target`, `.o`, sources)
+ * are pruned so macOS codesign does not attempt to sign non-Mach-O objects.
  */
 import { createRequire } from 'node:module';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,6 +35,21 @@ const outNodeModules = join(packageRoot, 'dist', 'node_modules');
  * native addons at runtime under Electron.
  */
 const SKIP_RUNTIME_DEPS = new Set(['prebuild-install']);
+
+/**
+ * Directories under a native package that are compile-time only.
+ *
+ * Shipping `obj.target` (and similar) into `extraResources` makes macOS
+ * codesign try to sign intermediate `.o` files, which fails with
+ * "cannot read entitlement data".
+ */
+const NATIVE_BUILD_JUNK_DIRS = new Set(['obj.target', 'obj', '.deps']);
+
+/**
+ * Top-level better-sqlite3 paths needed only to compile the addon, not to load
+ * the Electron-rebuilt `build/Release/*.node` at runtime.
+ */
+const BETTER_SQLITE3_SOURCE_PATHS = ['src', 'deps', 'binding.gyp', 'bin'];
 
 /**
  * Maps Node's `process.platform` / `process.arch` to an `@esbuild/*` package name.
@@ -117,6 +142,75 @@ function copyPackageWithDeps(requireFrom, packageName, visited = new Set()) {
   }
 }
 
+/**
+ * Deletes a path when present (file or directory).
+ *
+ * @param {string} targetPath - Absolute path to remove.
+ */
+function removeIfExists(targetPath) {
+  rmSync(targetPath, { recursive: true, force: true });
+}
+
+/**
+ * Strips node-gyp intermediates from a package's `build/Release` tree.
+ *
+ * Keeps runtime loadables such as `*.node` while removing object files, static
+ * archives, and dependency stamp directories that must not be codesigned.
+ *
+ * @param {string} packageDir - Absolute path to the copied package root.
+ */
+function pruneReleaseBuildJunk(packageDir) {
+  const releaseDir = join(packageDir, 'build', 'Release');
+  if (!existsSync(releaseDir)) {
+    return;
+  }
+
+  for (const entry of readdirSync(releaseDir)) {
+    const fullPath = join(releaseDir, entry);
+    if (NATIVE_BUILD_JUNK_DIRS.has(entry)) {
+      removeIfExists(fullPath);
+      continue;
+    }
+    if (!statSync(fullPath).isFile()) {
+      continue;
+    }
+    if (entry.endsWith('.o') || entry.endsWith('.a') || entry.endsWith('.lib')) {
+      removeIfExists(fullPath);
+      continue;
+    }
+    // Test addon built beside the real binding; never loaded by the CLI.
+    if (entry === 'test_extension.node') {
+      removeIfExists(fullPath);
+    }
+  }
+}
+
+/**
+ * Removes compile-only better-sqlite3 files so packaged `cli/node_modules` only
+ * contains what `bindings` needs to load `better_sqlite3.node`.
+ *
+ * @param {string} packageDir - Absolute path to the copied better-sqlite3 root.
+ */
+function pruneBetterSqlite3Package(packageDir) {
+  pruneReleaseBuildJunk(packageDir);
+
+  for (const relativePath of BETTER_SQLITE3_SOURCE_PATHS) {
+    removeIfExists(join(packageDir, relativePath));
+  }
+
+  const buildDir = join(packageDir, 'build');
+  if (!existsSync(buildDir)) {
+    return;
+  }
+  for (const entry of readdirSync(buildDir)) {
+    if (entry === 'Release') {
+      continue;
+    }
+    // Makefiles, gyp config, and nested deps/ are compile-time only.
+    removeIfExists(join(buildDir, entry));
+  }
+}
+
 if (!existsSync(join(guiRoot, 'package.json'))) {
   console.error(`GUI package not found at ${guiRoot}`);
   process.exit(1);
@@ -134,6 +228,8 @@ const visited = new Set();
 copyPackageWithDeps(guiRequire, 'better-sqlite3', visited);
 copyPackageWithDeps(guiRequire, 'esbuild', visited);
 copyPackageWithDeps(esbuildRequire, platformPackage, visited);
+
+pruneBetterSqlite3Package(join(outNodeModules, 'better-sqlite3'));
 
 console.log(`Prepared CLI runtime deps in ${outNodeModules}`);
 for (const name of [...visited].sort()) {

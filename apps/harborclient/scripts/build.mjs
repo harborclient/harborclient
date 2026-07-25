@@ -11,36 +11,52 @@ const scriptsDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptsDir, '..', '..', '..');
 
 /**
- * Runs a pnpm filter script and exits the process on failure.
+ * Whether child processes should run through a shell.
  *
- * @param filter - pnpm `--filter` package name.
- * @param script - Package script name to run.
+ * Windows cannot spawn `pnpm.cmd` shims with `shell: false` (ENOENT), so the
+ * release matrix must use a shell there. Unix keeps `shell: false`.
  */
-function runFilter(filter, script) {
-  const result = spawnSync('pnpm', ['--filter', filter, script], {
-    cwd: repoRoot,
+const useShell = process.platform === 'win32';
+
+/**
+ * Runs a command and exits the process on failure.
+ *
+ * @param {string} command - Executable to run.
+ * @param {string[]} args - Arguments.
+ * @param {string} [cwd] - Working directory (defaults to repo root).
+ */
+function run(command, args, cwd = repoRoot) {
+  const result = spawnSync(command, args, {
+    cwd,
     stdio: 'inherit',
-    shell: false
+    shell: useShell,
+    env: process.env
   });
+  if (result.error) {
+    console.error(result.error);
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
 }
 
 /**
+ * Runs a pnpm filter script and exits the process on failure.
+ *
+ * @param {string} filter - pnpm `--filter` package name.
+ * @param {string} script - Package script name to run.
+ */
+function runFilter(filter, script) {
+  run('pnpm', ['--filter', filter, script]);
+}
+
+/**
  * Runs a node script and exits the process on failure.
  *
- * @param scriptPath - Absolute path to the script.
+ * @param {string} scriptPath - Absolute path to the script.
  */
 function runNode(scriptPath) {
-  const result = spawnSync('node', [scriptPath], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    shell: false
-  });
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
+  run(process.execPath, [scriptPath]);
 }
 
 runFilter('@harborclient/core', 'build');

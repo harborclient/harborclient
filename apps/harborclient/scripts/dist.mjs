@@ -15,25 +15,43 @@ const productPackage = JSON.parse(readFileSync(join(productRoot, 'package.json')
 const version = productPackage.version;
 
 /**
+ * Whether child processes should run through a shell.
+ *
+ * Windows cannot spawn `pnpm.cmd` shims with `shell: false` (ENOENT).
+ */
+const useShell = process.platform === 'win32';
+
+/**
+ * Extra args for electron-builder from the CLI.
+ *
+ * pnpm may forward a literal `--` separator into `process.argv`; strip it so
+ * electron-builder only sees real flags such as `--win` / `--publish`.
+ */
+const builderArgs = process.argv.slice(2).filter((arg) => arg !== '--');
+
+/**
  * Runs a command and exits the process on failure.
  *
- * @param command - Executable to run.
- * @param args - Arguments.
- * @param cwd - Working directory.
+ * @param {string} command - Executable to run.
+ * @param {string[]} args - Arguments.
+ * @param {string} cwd - Working directory.
  */
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
     stdio: 'inherit',
-    shell: false,
+    shell: useShell,
     env: process.env
   });
+  if (result.error) {
+    console.error(result.error);
+  }
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
 }
 
-run('node', [join(scriptsDir, 'build.mjs')], productRoot);
+run(process.execPath, [join(scriptsDir, 'build.mjs')], productRoot);
 
 run(
   'pnpm',
@@ -44,7 +62,7 @@ run(
     `--project=${guiRoot}`,
     `--config=${join(productRoot, 'electron-builder.yml')}`,
     `-c.extraMetadata.version=${version}`,
-    ...process.argv.slice(2)
+    ...builderArgs
   ],
   productRoot
 );
