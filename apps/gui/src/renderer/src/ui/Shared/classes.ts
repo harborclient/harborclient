@@ -14,7 +14,8 @@ export { requestTabItem, sourceRow, METHOD_CLASSES, statusDotClass, statusDotVar
 
 export const separator = 'h-px bg-separator';
 
-export const sectionLabel = 'mb-1 px-2 text-[14px] font-medium uppercase tracking-wide text-muted';
+export const sectionLabel =
+  'mb-1 px-2 font-medium uppercase tracking-wide text-muted [font-size:var(--mac-text-font-size-sm)]';
 
 /**
  * Focus ring for read-only elements that participate in Tab order without being buttons.
@@ -44,14 +45,14 @@ export const scriptRowIconButtonClass =
  * Uses tight padding unlike SDK `segmentGroup`, which targets full-width tab headers.
  */
 export const footerButtonGroup =
-  'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
+  'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag [border-radius:var(--mac-chrome-radius)]';
 
 /**
  * Inset status panel for git branch and working-tree summary in the Changes section.
  * Uses sidebar-toolbar tone so it reads as content, not a second section header.
  */
 export const gitWorkingTreeStatusPanel =
-  'bg-sidebar-toolbar px-2 py-2 border-b border-separator mb-2';
+  'hc-git-working-tree-status bg-sidebar-toolbar px-2 py-2 border-b border-separator mb-2';
 
 /**
  * Always-on accent highlight for the footer's Action menu toggle — flush against

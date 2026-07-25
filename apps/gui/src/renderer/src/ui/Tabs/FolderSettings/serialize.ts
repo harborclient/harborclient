@@ -14,6 +14,7 @@ export const serializeFolderForm = (
   name: string,
   variables: Variable[],
   headers: KeyValue[],
+  userAgent: string,
   preRequestScripts: ScriptRef[],
   postRequestScripts: ScriptRef[],
   auth: AuthConfig
@@ -22,6 +23,7 @@ export const serializeFolderForm = (
     name,
     variables,
     headers,
+    userAgent,
     preRequestScripts,
     postRequestScripts,
     auth
@@ -33,6 +35,7 @@ export const serializeFolderForm = (
  * @param name - Folder display name.
  * @param variables - Folder variables.
  * @param headers - Folder headers.
+ * @param userAgent - Folder User-Agent override.
  * @param preRequestScripts - Pre-request script refs.
  * @param postRequestScripts - Post-request script refs.
  * @param auth - Authorization settings.
@@ -42,6 +45,7 @@ export const folderFormCoreFields = (
   name: string,
   variables: Variable[],
   headers: KeyValue[],
+  userAgent: string,
   preRequestScripts: ScriptRef[],
   postRequestScripts: ScriptRef[],
   auth: AuthConfig
@@ -49,6 +53,7 @@ export const folderFormCoreFields = (
   name,
   variables,
   headers,
+  userAgent,
   preRequestScripts,
   postRequestScripts,
   auth

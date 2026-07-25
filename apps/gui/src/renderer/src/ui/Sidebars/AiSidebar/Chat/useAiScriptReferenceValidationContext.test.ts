@@ -36,6 +36,7 @@ function sampleDraft(id: number): {
   comment: string;
   tags: string;
   auth: AuthConfig;
+  userAgent: string;
 } {
   const script = createInlineScriptRef('hc.test("ok", () => true);', 'SendSuccess');
 
@@ -58,7 +59,8 @@ function sampleDraft(id: number): {
     post_request_scripts: [script],
     comment: '',
     tags: '',
-    auth: defaultAuth()
+    auth: defaultAuth(),
+    userAgent: ''
   };
 }
 

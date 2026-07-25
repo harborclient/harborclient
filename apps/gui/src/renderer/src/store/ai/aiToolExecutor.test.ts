@@ -119,6 +119,7 @@ function savedRequestFromInput(input: SaveRequestInput, id = 101): SavedRequest 
     headers: input.headers,
     params: input.params,
     auth: input.auth,
+    userAgent: '',
     body: input.body,
     body_type: input.body_type,
     body_raw: input.body_raw ?? null,
@@ -149,6 +150,7 @@ function collectionFixture(id: number, name: string): Collection {
     variables: [],
     headers: [],
     auth: defaultAuth(),
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],
@@ -173,6 +175,7 @@ function folderFixture(id: number, collectionId: number, name: string): Folder {
     variables: [],
     headers: [],
     auth: defaultAuth(),
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],
@@ -313,6 +316,7 @@ describe('executeAiTool', () => {
       variables: [],
       headers: [],
       auth: defaultAuth(),
+      userAgent: '',
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -412,7 +416,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -445,6 +450,7 @@ describe('executeAiTool', () => {
         headers: [],
         params: [],
         auth: defaultAuth(),
+        userAgent: '',
         body: '',
         body_type: 'none',
         body_raw: null,
@@ -506,7 +512,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
     const tabId = store.getState().tabs.activeTabId;
@@ -564,7 +571,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
     const tabId = store.getState().tabs.activeTabId;
@@ -631,7 +639,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -671,7 +680,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
     const tabId = store.getState().tabs.activeTabId;
@@ -730,7 +740,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
     const tabId = store.getState().tabs.activeTabId;
@@ -789,7 +800,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -829,7 +841,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -871,7 +884,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -911,7 +925,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -960,7 +975,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1003,7 +1019,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1040,7 +1057,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1078,7 +1096,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1117,7 +1136,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1160,7 +1180,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [postScript],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1208,7 +1229,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1255,7 +1277,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1298,7 +1321,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1340,7 +1364,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1382,7 +1407,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1426,7 +1452,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1472,7 +1499,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -1530,6 +1558,7 @@ describe('executeAiTool', () => {
       variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
       headers: [],
       auth: defaultAuth(),
+      userAgent: '',
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -1566,6 +1595,7 @@ describe('executeAiTool', () => {
       variables: [],
       headers: [],
       auth: defaultAuth(),
+      userAgent: '',
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -1581,6 +1611,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1618,6 +1649,7 @@ describe('executeAiTool', () => {
       variables: [],
       headers: [],
       auth: defaultAuth(),
+      userAgent: '',
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -1633,6 +1665,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1670,6 +1703,7 @@ describe('executeAiTool', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '{}',
       body_type: 'json',
       body_raw: null,
@@ -1693,6 +1727,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1733,6 +1768,7 @@ describe('executeAiTool', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '{}',
       body_type: 'json',
       body_raw: null,
@@ -1756,6 +1792,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1791,6 +1828,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1855,6 +1893,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -1899,6 +1938,7 @@ describe('executeAiTool', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -1922,6 +1962,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -2088,6 +2129,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -2102,6 +2144,7 @@ describe('executeAiTool', () => {
           variables: [],
           headers: [],
           auth: defaultAuth(),
+          userAgent: '',
           pre_request_script: '',
           post_request_script: '',
           pre_request_scripts: [],
@@ -2358,7 +2401,8 @@ describe('executeAiTool', () => {
       post_request_scripts: [],
       comment: '',
       tags: '',
-      auth: defaultAuth()
+      auth: defaultAuth(),
+      userAgent: ''
     });
 
     createCollectionMock.mockResolvedValue(createdCollection);
@@ -2469,7 +2513,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       },
       77
     );
@@ -2535,7 +2580,8 @@ describe('executeAiTool', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       },
       88
     );

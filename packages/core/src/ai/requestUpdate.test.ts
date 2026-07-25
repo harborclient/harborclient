@@ -20,6 +20,7 @@ function sampleDraft(): AiRequestDraft {
     headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
     params: [{ key: 'page', value: '1', enabled: true }],
     auth: defaultAuth(),
+    userAgent: '',
     body: '',
     body_type: 'none',
     body_raw: null,

@@ -49,7 +49,8 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
         headers: KeyValue[],
         preRequestScripts: ScriptRef[],
         postRequestScripts: ScriptRef[],
-        auth: AuthConfig
+        auth: AuthConfig,
+        userAgent: string
       ) => {
         try {
           await dispatch(
@@ -63,7 +64,8 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
               postRequestScript: mirrorLegacyScriptString(postRequestScripts),
               preRequestScripts,
               postRequestScripts,
-              auth
+              auth,
+              userAgent
             })
           ).unwrap();
           toast.success('Folder updated');

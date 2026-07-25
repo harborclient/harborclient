@@ -51,6 +51,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     headers: [],
     params: [],
     auth: defaultAuth(),
+    userAgent: '',
     body: '',
     body_type: 'none',
     body_raw: null,
@@ -126,6 +127,7 @@ describe('runCollectionRequests', () => {
           pre_request_scripts: [],
           post_request_scripts: [],
           auth: defaultAuth(),
+          userAgent: '',
           created_at: '2026-01-01T00:00:00.000Z'
         }
       ])

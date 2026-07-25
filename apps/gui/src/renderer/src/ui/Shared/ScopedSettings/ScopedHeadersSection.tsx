@@ -2,6 +2,7 @@ import { FormSection, KeyValueEditor } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { KeyValue, Variable } from '@harborclient/core/types';
 import { headerKeySource, headerValueSource } from '#/renderer/src/autocomplete/sources';
+import { UserAgentField } from '#/renderer/src/ui/Shared/UserAgentField';
 
 type Scope = 'collection' | 'folder';
 
@@ -17,6 +18,11 @@ interface Props {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for this scope; empty inherits.
+   */
+  userAgent: string;
+
+  /**
    * Scoped variables for autocomplete in header values.
    */
   variables: Variable[];
@@ -25,12 +31,33 @@ interface Props {
    * Updates the draft headers when the user edits the table.
    */
   onChange: (headers: KeyValue[]) => void;
+
+  /**
+   * Updates the User-Agent override for this scope.
+   */
+  onUserAgentChange: (userAgent: string) => void;
+
+  /**
+   * Disables editors while a save is in flight.
+   */
+  disabled?: boolean;
 }
 
 /**
  * Headers editor for collection or folder settings tabs.
+ *
+ * Includes a dedicated User-Agent control above the key/value table. An explicit
+ * User-Agent row in the table still takes precedence at send time.
  */
-export function ScopedHeadersSection({ scope, headers, variables, onChange }: Props): JSX.Element {
+export function ScopedHeadersSection({
+  scope,
+  headers,
+  userAgent,
+  variables,
+  onChange,
+  onUserAgentChange,
+  disabled = false
+}: Props): JSX.Element {
   return (
     <FormSection
       title="Headers"
@@ -42,6 +69,15 @@ export function ScopedHeadersSection({ scope, headers, variables, onChange }: Pr
         </>
       }
     >
+      <div className="mb-4">
+        <UserAgentField
+          id={`${scope}-user-agent`}
+          value={userAgent}
+          allowEmpty
+          disabled={disabled}
+          onChange={onUserAgentChange}
+        />
+      </div>
       <KeyValueEditor
         rows={headers}
         onChange={onChange}

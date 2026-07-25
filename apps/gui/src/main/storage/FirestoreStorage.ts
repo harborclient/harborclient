@@ -312,6 +312,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables: [] as Variable[],
       headers: [] as KeyValue[],
+      userAgent: '',
       auth: defaultAuth(),
       pre_request_script: '',
       post_request_script: '',
@@ -326,7 +327,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's name, variables, headers, and scripts.
+   * Updates a collection's name, variables, headers, user agent, and scripts.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
@@ -335,18 +336,9 @@ export class FirestoreStorage implements IStorage {
    * @param preRequestScript - Script run before each request in the collection.
    * @param postRequestScript - Script run after each request in the collection.
    * @param auth - Default Authorization settings for requests in the collection.
-   * @returns The updated collection.
-   */
-  /**
-   * Updates a collection's name, variables, headers, and scripts.
-   *
-   * @param id - Collection ID to update.
-   * @param name - New display name.
-   * @param variables - Collection-scoped variables.
-   * @param headers - Headers sent with every request in the collection.
-   * @param preRequestScript - Script run before each request in the collection.
-   * @param postRequestScript - Script run after each request in the collection.
-   * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
+   * @param preRequestScripts - Ordered collection pre-request script references.
+   * @param postRequestScripts - Ordered collection post-request script references.
    * @returns The updated collection.
    */
   async updateCollection(
@@ -357,6 +349,7 @@ export class FirestoreStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Collection> {
@@ -374,6 +367,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables,
       headers,
+      userAgent,
       auth,
       pre_request_script: legacyPreScript,
       post_request_script: legacyPostScript,
@@ -386,6 +380,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables,
       headers,
+      userAgent,
       auth,
       pre_request_script: legacyPreScript,
       post_request_script: legacyPostScript,
@@ -681,6 +676,7 @@ export class FirestoreStorage implements IStorage {
    */
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
     const trimmedName = trimRequiredName(input.name, 'Request name');
+    const userAgent = typeof input.userAgent === 'string' ? input.userAgent : '';
     const preScripts = bundleScriptFieldsWithLegacy(
       input.pre_request_scripts,
       input.pre_request_script ?? ''
@@ -721,6 +717,7 @@ export class FirestoreStorage implements IStorage {
           method: input.method,
           url: input.url,
           headers: input.headers,
+          userAgent,
           params: input.params,
           auth: input.auth,
           body: input.body,
@@ -762,6 +759,7 @@ export class FirestoreStorage implements IStorage {
       method: input.method,
       url: input.url,
       headers: input.headers,
+      userAgent,
       params: input.params,
       auth: input.auth,
       body: input.body,
@@ -854,6 +852,7 @@ export class FirestoreStorage implements IStorage {
       sort_order: maxOrder + 1,
       variables: [],
       headers: [],
+      userAgent: '',
       auth: defaultAuth(),
       pre_request_script: '',
       post_request_script: '',
@@ -886,7 +885,7 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's name, variables, headers, auth, and scripts.
+   * Updates a folder's name, variables, headers, auth, user agent, and scripts.
    *
    * @param id - Folder ID to update.
    * @param name - New display name.
@@ -895,6 +894,9 @@ export class FirestoreStorage implements IStorage {
    * @param preRequestScript - Script run before each request in the folder.
    * @param postRequestScript - Script run after each request in the folder.
    * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
+   * @param preRequestScripts - Ordered folder pre-request script references.
+   * @param postRequestScripts - Ordered folder post-request script references.
    * @returns The updated folder.
    */
   async updateFolder(
@@ -905,6 +907,7 @@ export class FirestoreStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Folder> {
@@ -919,6 +922,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables,
       headers,
+      userAgent,
       auth,
       pre_request_script: preScripts.legacy,
       post_request_script: postScripts.legacy,
@@ -1337,6 +1341,7 @@ export class FirestoreStorage implements IStorage {
       name: collectionRecord.name,
       variables: maskVariablesForExport(collectionRecord.variables),
       headers: collectionRecord.headers,
+      userAgent: collectionRecord.userAgent,
       auth: collectionRecord.auth,
       pre_request_script: collectionRecord.pre_request_script,
       post_request_script: collectionRecord.post_request_script,
@@ -1369,6 +1374,7 @@ export class FirestoreStorage implements IStorage {
       name: exportData.name,
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: collectionScripts.pre_request_script,
       post_request_script: collectionScripts.post_request_script,
@@ -1406,6 +1412,7 @@ export class FirestoreStorage implements IStorage {
           sort_order: folder.sort_order,
           variables: folder.variables ?? [],
           headers: folder.headers ?? [],
+          userAgent: folderFields.userAgent,
           auth: folder.auth ?? defaultAuth(),
           pre_request_script: folderFields.pre_request_script,
           post_request_script: folderFields.post_request_script,
@@ -1438,6 +1445,7 @@ export class FirestoreStorage implements IStorage {
           method: fields.method,
           url: fields.url,
           headers: request.headers,
+          userAgent: fields.userAgent,
           params: request.params,
           auth: request.auth ?? defaultAuth(),
           body: fields.body,
@@ -1566,10 +1574,12 @@ export class FirestoreStorage implements IStorage {
 
     const existingCollection = collectionSnap.data() as Record<string, unknown>;
     const collectionScripts = serializeImportedCollectionScriptFields(exportData);
+    const importedUserAgent = typeof exportData.userAgent === 'string' ? exportData.userAgent : '';
     await updateDoc(collectionRef, {
       name: exportData.name,
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: importedUserAgent,
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: collectionScripts.pre_request_script,
       post_request_script: collectionScripts.post_request_script,
@@ -1590,6 +1600,7 @@ export class FirestoreStorage implements IStorage {
           sort_order: plan.sort_order,
           variables: folder.variables ?? [],
           headers: folder.headers ?? [],
+          userAgent: folderFields.userAgent,
           auth: folder.auth ?? defaultAuth(),
           pre_request_script: folderFields.pre_request_script,
           post_request_script: folderFields.post_request_script,
@@ -1611,6 +1622,7 @@ export class FirestoreStorage implements IStorage {
         sort_order: plan.sort_order,
         variables: folder.variables ?? [],
         headers: folder.headers ?? [],
+        userAgent: folderFields.userAgent,
         auth: folder.auth ?? defaultAuth(),
         pre_request_script: folderFields.pre_request_script,
         post_request_script: folderFields.post_request_script,
@@ -1644,6 +1656,7 @@ export class FirestoreStorage implements IStorage {
           method: fields.method,
           url: fields.url,
           headers: request.headers,
+          userAgent: fields.userAgent,
           params: request.params,
           auth: request.auth ?? defaultAuth(),
           body: fields.body,
@@ -1673,6 +1686,7 @@ export class FirestoreStorage implements IStorage {
         method: fields.method,
         url: fields.url,
         headers: request.headers,
+        userAgent: fields.userAgent,
         params: request.params,
         auth: request.auth ?? defaultAuth(),
         body: fields.body,
@@ -1740,6 +1754,7 @@ export class FirestoreStorage implements IStorage {
       name: exportData.name,
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: importedUserAgent,
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: collectionScripts.pre_request_script,
       post_request_script: collectionScripts.post_request_script,

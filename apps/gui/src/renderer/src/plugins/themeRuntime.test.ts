@@ -51,6 +51,18 @@ describe('buildCustomThemeCss', () => {
     expect(css).toContain('--mac-surface: #111111;');
     expect(css).toContain('.panel { border-radius: 8px; }');
   });
+
+  it('maps metric tokens to --mac-* variables', () => {
+    const css = buildCustomThemeCss({ surface: '#111111' }, 'dark', undefined, {
+      'layout-font-size': '15px',
+      'tab-radius': '9999px',
+      'scrollbar-width': '12px'
+    });
+
+    expect(css).toContain('--mac-layout-font-size: 15px;');
+    expect(css).toContain('--mac-tab-radius: 9999px;');
+    expect(css).toContain('--mac-scrollbar-width: 12px;');
+  });
 });
 
 describe('buildBuiltinThemeCss', () => {

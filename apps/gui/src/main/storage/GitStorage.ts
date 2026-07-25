@@ -93,6 +93,7 @@ type GitStoredManifest = {
   color?: string | null;
   variables: Variable[];
   headers: KeyValue[];
+  userAgent: string;
   auth?: AuthConfig;
   pre_request_script: string;
   post_request_script: string;
@@ -138,6 +139,7 @@ function buildCollectionExportFromLoaded(loaded: LoadedCollection): CollectionEx
     color: loaded.manifest.color ?? null,
     variables: loaded.manifest.variables,
     headers: loaded.manifest.headers,
+    userAgent: loaded.manifest.userAgent ?? '',
     auth: loaded.manifest.auth,
     pre_request_script: loaded.manifest.pre_request_script,
     post_request_script: loaded.manifest.post_request_script,
@@ -149,6 +151,7 @@ function buildCollectionExportFromLoaded(loaded: LoadedCollection): CollectionEx
       sort_order: folder.sort_order,
       variables: folder.variables ?? [],
       headers: folder.headers ?? [],
+      userAgent: folder.userAgent ?? '',
       auth: folder.auth ?? defaultAuth(),
       pre_request_script: folder.pre_request_script ?? '',
       post_request_script: folder.post_request_script ?? '',
@@ -357,6 +360,7 @@ export class GitStorage implements IStorage {
       name: trimmedName,
       variables: [],
       headers: [],
+      userAgent: '',
       auth: defaultAuth(),
       pre_request_script: '',
       post_request_script: '',
@@ -410,6 +414,7 @@ export class GitStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Collection> {
@@ -420,6 +425,7 @@ export class GitStorage implements IStorage {
       name: trimmedName,
       variables,
       headers,
+      userAgent,
       auth: normalizeAuth(auth),
       pre_request_script: preRequestScript,
       post_request_script: postRequestScript,
@@ -733,6 +739,7 @@ export class GitStorage implements IStorage {
       method: input.method,
       url: input.url,
       headers: input.headers,
+      userAgent: typeof input.userAgent === 'string' ? input.userAgent : '',
       params: input.params,
       auth: input.auth,
       body: input.body,
@@ -890,6 +897,7 @@ export class GitStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Folder> {
@@ -903,6 +911,7 @@ export class GitStorage implements IStorage {
         folder.name = trimmedName;
         folder.variables = variables;
         folder.headers = headers;
+        folder.userAgent = userAgent;
         folder.auth = auth;
         folder.pre_request_script = preRequestScript;
         folder.post_request_script = postRequestScript;
@@ -1417,6 +1426,7 @@ export class GitStorage implements IStorage {
       color: serializeSidebarColor(exportData.color),
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: collectionScripts.pre_request_script,
       post_request_script: collectionScripts.post_request_script,
@@ -1489,6 +1499,7 @@ export class GitStorage implements IStorage {
       color: serializeSidebarColor(exportData.color),
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: collectionScripts.pre_request_script,
       post_request_script: collectionScripts.post_request_script,
@@ -1536,6 +1547,7 @@ export class GitStorage implements IStorage {
         method: fields.method,
         url: fields.url,
         headers: JSON.parse(fields.headersJson),
+        userAgent: fields.userAgent,
         params: JSON.parse(fields.paramsJson),
         auth: JSON.parse(fields.authJson),
         body: fields.body,
@@ -1940,6 +1952,7 @@ export class GitStorage implements IStorage {
       color: exportData.color ?? null,
       variables: exportData.variables,
       headers: exportData.headers,
+      userAgent: typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       auth: exportData.auth ?? defaultAuth(),
       pre_request_script: exportData.pre_request_script,
       post_request_script: exportData.post_request_script,
@@ -1951,6 +1964,7 @@ export class GitStorage implements IStorage {
         sort_order: folder.sort_order ?? index,
         variables: folder.variables ?? [],
         headers: folder.headers ?? [],
+        userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
         auth: folder.auth ?? defaultAuth(),
         pre_request_script: folder.pre_request_script ?? '',
         post_request_script: folder.post_request_script ?? '',
@@ -1986,6 +2000,7 @@ export class GitStorage implements IStorage {
       name: manifest.name,
       variables: manifest.variables,
       headers: manifest.headers,
+      userAgent: manifest.userAgent ?? '',
       auth: normalizeAuth(manifest.auth ?? defaultAuth()),
       pre_request_script: preRequestScript,
       post_request_script: postRequestScript,
@@ -2033,6 +2048,7 @@ export class GitStorage implements IStorage {
       sort_order: folder.sort_order,
       variables: folder.variables ?? [],
       headers: folder.headers ?? [],
+      userAgent: folder.userAgent ?? '',
       auth: folder.auth ?? defaultAuth(),
       pre_request_script: preRequestScript,
       post_request_script: postRequestScript,
@@ -2120,6 +2136,7 @@ export class GitStorage implements IStorage {
       method: request.method,
       url: request.url,
       headers: request.headers,
+      userAgent: typeof request.userAgent === 'string' ? request.userAgent : '',
       params: request.params,
       auth,
       body: request.body,

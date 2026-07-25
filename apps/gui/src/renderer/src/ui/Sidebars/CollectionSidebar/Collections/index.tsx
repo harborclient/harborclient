@@ -51,6 +51,7 @@ import {
   SidebarFolderItem
 } from '@harborclient/sdk/components';
 import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/colors/SidebarColorDot';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
 import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
@@ -1288,6 +1289,7 @@ export function Collections(): JSX.Element {
                                                     )
                                                 }
                                               ],
+                                              [buildCopyIdMenuItem(folder.uuid)],
                                               ...(aiAvailable
                                                 ? [
                                                     [

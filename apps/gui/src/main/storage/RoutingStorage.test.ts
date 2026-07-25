@@ -536,7 +536,8 @@ describeSqlite('RoutingStorage duplicateCollection', () => {
         ...defaultAuth(),
         type: 'bearer',
         bearer: { token: 'source-token' }
-      }
+      },
+      ''
     );
     const folder = await router.createFolder(collection.id, 'Auth');
     await router.saveRequest(

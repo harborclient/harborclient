@@ -317,6 +317,7 @@ export function registerCollectionHandlers(db: IStorage): void {
       preRequestScript,
       postRequestScript,
       auth,
+      userAgent,
       preRequestScripts,
       postRequestScripts
     ) =>
@@ -328,6 +329,7 @@ export function registerCollectionHandlers(db: IStorage): void {
         preRequestScript,
         postRequestScript,
         auth,
+        userAgent,
         preRequestScripts,
         postRequestScripts
       )

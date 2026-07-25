@@ -535,6 +535,18 @@ export class RoutingStorage implements IStorage {
 
   /**
    * Updates a collection's data in its provider and its name in the registry.
+   *
+   * @param id - Global collection id.
+   * @param name - New display name.
+   * @param variables - Collection-scoped variables.
+   * @param headers - Headers sent with every request in the collection.
+   * @param preRequestScript - Script run before each request in the collection.
+   * @param postRequestScript - Script run after each request in the collection.
+   * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
+   * @param preRequestScripts - Ordered collection pre-request script references.
+   * @param postRequestScripts - Ordered collection post-request script references.
+   * @returns The updated global collection.
    */
   async updateCollection(
     id: number,
@@ -544,6 +556,7 @@ export class RoutingStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Collection> {
@@ -557,6 +570,7 @@ export class RoutingStorage implements IStorage {
       preRequestScript,
       postRequestScript,
       auth,
+      userAgent,
       preRequestScripts,
       postRequestScripts
     );
@@ -825,7 +839,7 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's name, variables, headers, auth, and scripts.
+   * Updates a folder's name, variables, headers, auth, User-Agent, and scripts.
    *
    * @param id - Folder ID to update.
    * @param name - New display name.
@@ -834,6 +848,9 @@ export class RoutingStorage implements IStorage {
    * @param preRequestScript - Script run before each request in the folder.
    * @param postRequestScript - Script run after each request in the folder.
    * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
+   * @param preRequestScripts - Ordered folder pre-request script references.
+   * @param postRequestScripts - Ordered folder post-request script references.
    * @returns The updated folder.
    */
   async updateFolder(
@@ -844,6 +861,7 @@ export class RoutingStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Folder> {
@@ -860,6 +878,7 @@ export class RoutingStorage implements IStorage {
       preRequestScript,
       postRequestScript,
       auth,
+      userAgent,
       preRequestScripts,
       postRequestScripts
     );
@@ -2321,6 +2340,7 @@ export class RoutingStorage implements IStorage {
       name: entry.name,
       variables: record?.variables ?? [],
       headers: record?.headers ?? [],
+      userAgent: record?.userAgent ?? '',
       auth: record?.auth ?? defaultAuth(),
       pre_request_script: record?.pre_request_script ?? '',
       post_request_script: record?.post_request_script ?? '',

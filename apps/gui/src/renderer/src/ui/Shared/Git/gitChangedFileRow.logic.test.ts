@@ -17,7 +17,7 @@ describe('buildGitChangedFileRowPresentation', () => {
     expect(presentation.displayLabel).toBe('Health Check');
     expect(presentation.statusMarkerProps).toEqual({
       marker: 'M',
-      className: 'text-git-uncommitted',
+      className: 'hc-git-status-text text-git-uncommitted',
       label: 'Modified'
     });
     expect(presentation.rowAriaLabel).toBe('Health Check, request, modified in commit');
@@ -36,7 +36,7 @@ describe('buildGitChangedFileRowPresentation', () => {
 
     expect(presentation.statusMarkerProps).toEqual({
       marker: 'A',
-      className: 'text-git-unstaged',
+      className: 'hc-git-status-text text-git-unstaged',
       label: 'Added'
     });
     expect(presentation.rowAriaLabel).toBe('README, document, added in commit');
@@ -69,7 +69,7 @@ describe('buildGitChangedFileRowPresentation', () => {
     expect(presentation.displayLabel).toBe('.harborclient/collection-api/settings.json');
     expect(presentation.statusMarkerProps).toEqual({
       marker: 'D',
-      className: 'text-muted line-through',
+      className: 'hc-git-status-text text-muted line-through',
       label: 'Deleted'
     });
     expect(presentation.rowAriaLabel).toBe(

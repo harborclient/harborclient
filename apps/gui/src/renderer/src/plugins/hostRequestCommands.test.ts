@@ -79,6 +79,7 @@ describe('hostRequestCommands', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,

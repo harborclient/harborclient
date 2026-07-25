@@ -902,6 +902,7 @@ export class PluginManager {
       title: envelope.title,
       type: envelope.type,
       colors: envelope.theme,
+      ...(envelope.metrics !== undefined ? { metrics: envelope.metrics } : {}),
       ...(stylesheet !== undefined ? { stylesheet } : {})
     };
   }

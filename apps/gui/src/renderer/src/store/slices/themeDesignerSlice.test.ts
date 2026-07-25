@@ -21,7 +21,8 @@ const baseDraft = (): CustomThemeDraft => ({
   id: 'my-theme',
   title: 'My Theme',
   type: 'dark',
-  colors: { surface: '#111111', accent: '#0a84ff' }
+  colors: { surface: '#111111', accent: '#0a84ff' },
+  metrics: {}
 });
 
 /**
@@ -92,7 +93,8 @@ describe('themeDesignerSlice', () => {
       id: 'saved-theme',
       title: 'Saved Theme',
       type: 'light',
-      colors: { surface: '#ffffff' }
+      colors: { surface: '#ffffff' },
+      metrics: {}
     };
 
     let state = themeDesignerReducer(

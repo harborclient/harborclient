@@ -58,7 +58,9 @@ export async function importCustomThemeData(
         id: existing.id,
         title: envelope.title,
         type: envelope.type,
-        colors: envelope.theme
+        colors: envelope.theme,
+        ...(envelope.metrics !== undefined ? { metrics: envelope.metrics } : {}),
+        ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
       });
       return { theme, action: 'updated' };
     }
@@ -67,7 +69,9 @@ export async function importCustomThemeData(
   const theme = saveCustomTheme({
     title: envelope.title,
     type: envelope.type,
-    colors: envelope.theme
+    colors: envelope.theme,
+    ...(envelope.metrics !== undefined ? { metrics: envelope.metrics } : {}),
+    ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
   });
   return { theme, action: 'created' };
 }

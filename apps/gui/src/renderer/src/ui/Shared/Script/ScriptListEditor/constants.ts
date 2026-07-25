@@ -16,7 +16,7 @@ export const SCRIPT_ROW_ICON_CLASS = 'h-4 w-4';
 /**
  * Width and shape of the stage-colored left strip on script rows.
  */
-export const SCRIPT_ROW_STAGE_BORDER_CLASS = 'w-[3px] shrink-0 self-stretch rounded-l-2xl';
+export const SCRIPT_ROW_STAGE_BORDER_CLASS = 'hc-script-stage-border shrink-0 self-stretch';
 
 /**
  * Icon size for the snippet-link indicator beside script row titles.

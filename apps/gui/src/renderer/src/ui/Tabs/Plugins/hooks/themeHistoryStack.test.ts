@@ -26,6 +26,9 @@ function buildDraft(overrides: Partial<CustomThemeDraft> = {}): CustomThemeDraft
       accent: '#111111',
       surface: '#222222'
     },
+    metrics: {
+      'layout-font-size': '14px'
+    },
     ...overrides
   };
 }
@@ -40,6 +43,12 @@ describe('customThemeDraftsEqual', () => {
   it('returns false when a color token changes', () => {
     const left = buildDraft();
     const right = buildDraft({ colors: { accent: '#999999', surface: '#222222' } });
+    expect(customThemeDraftsEqual(left, right)).toBe(false);
+  });
+
+  it('returns false when a metric token changes', () => {
+    const left = buildDraft();
+    const right = buildDraft({ metrics: { 'layout-font-size': '16px' } });
     expect(customThemeDraftsEqual(left, right)).toBe(false);
   });
 
@@ -114,11 +123,13 @@ describe('commitThemeHistoryBaseline', () => {
 });
 
 describe('cloneCustomThemeDraft and resetThemeHistory', () => {
-  it('clones color maps independently', () => {
+  it('clones color and metric maps independently', () => {
     const draft = buildDraft();
     const clone = cloneCustomThemeDraft(draft);
     clone.colors.accent = '#000000';
+    clone.metrics['layout-font-size'] = '18px';
     expect(draft.colors.accent).toBe('#111111');
+    expect(draft.metrics['layout-font-size']).toBe('14px');
   });
 
   it('clears past and future on reset', () => {

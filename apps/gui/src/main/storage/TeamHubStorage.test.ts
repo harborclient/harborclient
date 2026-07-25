@@ -135,7 +135,8 @@ describeSqlite('TeamHubStorage', () => {
       [],
       'pre',
       'post',
-      defaultAuth()
+      defaultAuth(),
+      ''
     );
 
     expect(createCollection).toHaveBeenCalledWith({ name: 'New' });
@@ -452,6 +453,7 @@ describeSqlite('TeamHubStorage', () => {
       'console.log("pre");',
       '',
       { ...defaultAuth(), type: 'bearer', bearer: { token: 'folder-token' } },
+      '',
       [createInlineScriptRef('console.log("pre");')],
       []
     );
@@ -492,7 +494,8 @@ describeSqlite('TeamHubStorage', () => {
       [],
       '',
       '',
-      defaultAuth()
+      defaultAuth(),
+      ''
     );
 
     await db.deleteFolder(folderId);
@@ -535,7 +538,7 @@ describeSqlite('TeamHubStorage', () => {
     const folderId = idMap.toLocalId('folder', folderServerId);
     const variables = [{ key: 'plan', value: 'pro', defaultValue: '', share: false }];
 
-    await db.updateFolder(folderId, 'Billing', variables, [], '', '', defaultAuth());
+    await db.updateFolder(folderId, 'Billing', variables, [], '', '', defaultAuth(), '');
 
     const exported = await db.exportCollectionData(collectionId);
     expect(exported.folders ?? []).toHaveLength(1);

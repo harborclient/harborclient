@@ -5,7 +5,8 @@ import type {
   AppMenu,
   BuiltinThemeId,
   ContextMenuTarget,
-  ThemeColorToken
+  ThemeColorToken,
+  ThemeMetricToken
 } from '@harborclient/sdk';
 
 export type * from '@harborclient/sdk';
@@ -183,6 +184,10 @@ export interface ResolvedThemeImport {
   type: 'light' | 'dark' | 'high-contrast';
   colors: Partial<Record<ThemeColorToken, string>>;
   /**
+   * Typography and geometry token overrides without the `--mac-` prefix.
+   */
+  metrics?: Partial<Record<ThemeMetricToken, string>>;
+  /**
    * Inlined CSS text, or undefined when the export has no stylesheet.
    */
   stylesheet?: string;
@@ -218,6 +223,7 @@ export interface RegisteredPluginTheme {
   title: string;
   type: 'light' | 'dark' | 'high-contrast';
   colors?: Partial<Record<ThemeColorToken, string>>;
+  metrics?: Partial<Record<ThemeMetricToken, string>>;
   stylesheet?: string;
 }
 

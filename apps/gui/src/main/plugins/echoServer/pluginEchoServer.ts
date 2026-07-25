@@ -1,9 +1,12 @@
-import type { Server } from 'node:http';
+import type { Express } from 'express';
 import { createEchoApp } from './app';
 import type { EchoServerIncomingRequest, EchoServerStatus } from './types';
 
+/** HTTP server instance returned by {@link Express.listen}. */
+type ExpressListenServer = ReturnType<Express['listen']>;
+
 interface EchoServerEntry {
-  server: Server;
+  server: ExpressListenServer;
   port: number;
 }
 
@@ -55,7 +58,7 @@ export async function startEchoServer(
     }
   });
 
-  const server = await new Promise<Server>((resolve, reject) => {
+  const server = await new Promise<ExpressListenServer>((resolve, reject) => {
     const instance = app.listen(options.port, '127.0.0.1', () => {
       resolve(instance);
     });

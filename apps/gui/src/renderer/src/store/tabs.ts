@@ -70,6 +70,11 @@ export interface RequestDraft {
   auth: AuthConfig;
 
   /**
+   * Request-level User-Agent override; empty inherits folder → collection → global.
+   */
+  userAgent: string;
+
+  /**
    * Raw request body content.
    */
   body: string;
@@ -463,7 +468,8 @@ export function normalizeDraft(draft: RequestDraft): RequestDraft {
     post_request_scripts: postRequestScripts,
     comment: draft.comment ?? '',
     tags: normalizeRequestTags(draft.tags ?? ''),
-    auth: normalizeAuth(draft.auth)
+    auth: normalizeAuth(draft.auth),
+    userAgent: draft.userAgent ?? ''
   };
 }
 
@@ -512,6 +518,7 @@ export function normalizeDraftForCompare(draft: RequestDraft): string {
     comment: draft.comment ?? '',
     tags: normalizeRequestTags(draft.tags ?? ''),
     auth: draft.auth,
+    userAgent: draft.userAgent ?? '',
     headers: draft.headers.filter((h) => h.key.trim() || h.value.trim()),
     params: draft.params.filter((p) => p.key.trim() || p.value.trim())
   };
@@ -727,6 +734,7 @@ export const defaultDraft = (): RequestDraft => ({
   headers: [emptyKeyValue()],
   params: [emptyKeyValue()],
   auth: defaultAuth(),
+  userAgent: '',
   body: '',
   body_type: 'none',
   body_raw: null,
@@ -820,6 +828,7 @@ export function draftFromSaved(req: SavedRequest): RequestDraft {
     headers: normalizeKeyValueRows(req.headers.length ? req.headers : [emptyKeyValue()]),
     params: normalizeKeyValueRows(req.params.length ? req.params : [emptyKeyValue()]),
     auth: normalizeAuth(req.auth),
+    userAgent: req.userAgent ?? '',
     body: req.body,
     body_type: req.body_type,
     body_raw: req.body_raw ?? null,

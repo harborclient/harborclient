@@ -1155,6 +1155,7 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
           : index,
       variables: (folder.variables as Variable[] | undefined) ?? [],
       headers: (folder.headers as KeyValue[] | undefined) ?? [],
+      userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
       auth: (folder.auth as AuthConfig | undefined) ?? defaultAuth(),
       pre_request_script: String(folder.pre_request_script ?? ''),
       post_request_script: String(folder.post_request_script ?? ''),
@@ -1194,6 +1195,7 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
           : null,
     variables: (parsed.variables as CollectionExport['variables']) ?? [],
     headers: (parsed.headers as CollectionExport['headers']) ?? [],
+    userAgent: typeof parsed.userAgent === 'string' ? parsed.userAgent : '',
     auth: parsed.auth as CollectionExport['auth'],
     pre_request_script: String(parsed.pre_request_script ?? ''),
     post_request_script: String(parsed.post_request_script ?? ''),
@@ -1267,6 +1269,7 @@ export function writeCollectionToFolder(
       method: request.method,
       url: request.url,
       headers: request.headers,
+      userAgent: typeof request.userAgent === 'string' ? request.userAgent : '',
       params: request.params,
       auth: request.auth,
       body: request.body,
@@ -1322,6 +1325,7 @@ export function writeCollectionToFolder(
     color: validated.color ?? null,
     variables: maskVariablesForExport(validated.variables),
     headers: validated.headers,
+    userAgent: typeof validated.userAgent === 'string' ? validated.userAgent : '',
     auth: validated.auth,
     pre_request_script: validated.pre_request_script,
     post_request_script: validated.post_request_script,
@@ -1787,6 +1791,11 @@ export interface StoredFolderRow {
   headers?: KeyValue[];
 
   /**
+   * Folder-level User-Agent override; empty inherits collection → global.
+   */
+  userAgent?: string;
+
+  /**
    * Default Authorization settings inherited by requests unless overridden.
    */
   auth?: AuthConfig;
@@ -1830,6 +1839,7 @@ export function createStoredFolder(name: string, sort_order: number): StoredFold
     sort_order,
     variables: [],
     headers: [],
+    userAgent: '',
     auth: defaultAuth(),
     pre_request_script: '',
     post_request_script: '',

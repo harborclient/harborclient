@@ -57,6 +57,7 @@ export interface IStorage {
    * @param preRequestScript - Script run before each request in the collection.
    * @param postRequestScript - Script run after each request in the collection.
    * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
    * @param preRequestScripts - Ordered collection pre-request script references.
    * @param postRequestScripts - Ordered collection post-request script references.
    * @returns The updated collection.
@@ -69,6 +70,7 @@ export interface IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ): Promise<Collection>;
@@ -199,6 +201,7 @@ export interface IStorage {
    * @param preRequestScript - Script run before each request in the folder.
    * @param postRequestScript - Script run after each request in the folder.
    * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
    * @param preRequestScripts - Ordered folder pre-request script references.
    * @param postRequestScripts - Ordered folder post-request script references.
    * @returns The updated folder.
@@ -211,6 +214,7 @@ export interface IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ): Promise<Folder>;

@@ -53,6 +53,11 @@ export interface AiRequestDraft {
   auth: AuthConfig;
 
   /**
+   * Request-level User-Agent override; empty inherits folder → collection → global.
+   */
+  userAgent: string;
+
+  /**
    * Raw request body content.
    */
   body: string;

@@ -51,6 +51,7 @@ export function CollectionPageRoute({
         preRequestScripts: ScriptRef[],
         postRequestScripts: ScriptRef[],
         auth: AuthConfig,
+        userAgent: string,
         connectionId: string
       ) => {
         try {
@@ -65,6 +66,7 @@ export function CollectionPageRoute({
               preRequestScripts,
               postRequestScripts,
               auth,
+              userAgent,
               connectionId
             })
           ).unwrap();

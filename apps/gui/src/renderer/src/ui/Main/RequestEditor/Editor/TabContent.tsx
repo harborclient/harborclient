@@ -10,6 +10,7 @@ import {
   POST_REQUEST_SCRIPT_PLACEHOLDER,
   PRE_REQUEST_SCRIPT_PLACEHOLDER
 } from '#/renderer/src/ui/Shared/Script/scriptPlaceholders';
+import { UserAgentField } from '#/renderer/src/ui/Shared/UserAgentField';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
 
@@ -129,6 +130,14 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="headers">
+        <div className="mb-4">
+          <UserAgentField
+            id="request-user-agent"
+            value={draft.userAgent}
+            allowEmpty
+            onChange={(userAgent) => update({ userAgent })}
+          />
+        </div>
         <KeyValueEditor
           rows={draft.headers}
           onChange={(headers) => update({ headers })}

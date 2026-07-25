@@ -110,7 +110,7 @@ export function EditorTabs({
   const tabIndicators = useMemo(
     () => ({
       params: hasKeyValue(draft.params),
-      headers: hasKeyValue(draft.headers),
+      headers: hasKeyValue(draft.headers) || draft.userAgent.trim().length > 0,
       auth: draft.auth.type !== 'none',
       cookies: hasCookies,
       body: showBody && draft.body.trim().length > 0,
@@ -121,6 +121,7 @@ export function EditorTabs({
     [
       draft.params,
       draft.headers,
+      draft.userAgent,
       draft.auth,
       draft.body,
       draft.pre_request_scripts,

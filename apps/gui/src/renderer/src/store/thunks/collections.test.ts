@@ -71,6 +71,7 @@ function sampleCollection(id: number, name: string, connectionId?: string): Coll
     variables: [],
     headers: [],
     auth: defaultAuth(),
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],
@@ -104,7 +105,8 @@ function draftForCollection(collectionId: number, name: string): RequestDraft {
     post_request_scripts: [],
     comment: '',
     tags: '',
-    auth: defaultAuth()
+    auth: defaultAuth(),
+    userAgent: ''
   };
 }
 
@@ -277,6 +279,7 @@ describe('updateCollection', () => {
             preRequestScript: '',
             postRequestScript: '',
             auth: defaultAuth(),
+            userAgent: '',
             connectionId: 'conn-b'
           })
         )
@@ -316,6 +319,7 @@ describe('updateCollection', () => {
             preRequestScript: '',
             postRequestScript: '',
             auth: defaultAuth(),
+            userAgent: '',
             connectionId: 'conn-b'
           })
         )
@@ -361,7 +365,8 @@ describe('moveRequestToFolder', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -387,6 +392,7 @@ describe('moveRequestToFolder', () => {
         comment: '',
         tags: '',
         auth: defaultAuth(),
+        userAgent: '',
         sort_order: 0,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-01T00:00:00.000Z'

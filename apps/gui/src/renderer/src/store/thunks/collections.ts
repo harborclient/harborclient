@@ -369,6 +369,10 @@ export const updateCollection = createAsyncThunk<
     preRequestScripts?: ScriptRef[];
     postRequestScripts?: ScriptRef[];
     auth: AuthConfig;
+    /**
+     * Collection User-Agent override; when omitted, preserves the existing value.
+     */
+    userAgent?: string;
     connectionId?: string;
   },
   ThunkApiConfig
@@ -385,6 +389,7 @@ export const updateCollection = createAsyncThunk<
       preRequestScripts = [],
       postRequestScripts = [],
       auth,
+      userAgent,
       connectionId
     },
     { dispatch, getState }
@@ -397,6 +402,7 @@ export const updateCollection = createAsyncThunk<
         : postRequestScript;
     const state = getState();
     const collection = state.collections.collections.find((item) => item.id === id);
+    const resolvedUserAgent = userAgent ?? collection?.userAgent ?? '';
     const primaryConnectionId = await window.api.getActiveStorageId();
     const currentConnectionId = collection?.connectionId ?? primaryConnectionId;
 
@@ -414,6 +420,7 @@ export const updateCollection = createAsyncThunk<
           legacyPre,
           legacyPost,
           auth,
+          resolvedUserAgent,
           preRequestScripts,
           postRequestScripts
         );
@@ -439,6 +446,7 @@ export const updateCollection = createAsyncThunk<
       legacyPre,
       legacyPost,
       auth,
+      resolvedUserAgent,
       preRequestScripts,
       postRequestScripts
     );
@@ -659,7 +667,7 @@ export const renameFolder = createAsyncThunk<
 });
 
 /**
- * Updates folder metadata including variables, headers, auth, and scripts.
+ * Updates folder metadata including variables, headers, auth, User-Agent, and scripts.
  */
 export const updateFolder = createAsyncThunk<
   Folder,
@@ -674,6 +682,10 @@ export const updateFolder = createAsyncThunk<
     preRequestScripts?: ScriptRef[];
     postRequestScripts?: ScriptRef[];
     auth: AuthConfig;
+    /**
+     * Folder User-Agent override; when omitted, preserves the existing value.
+     */
+    userAgent?: string;
   },
   ThunkApiConfig
 >(
@@ -689,9 +701,10 @@ export const updateFolder = createAsyncThunk<
       postRequestScript,
       preRequestScripts = [],
       postRequestScripts = [],
-      auth
+      auth,
+      userAgent
     },
-    { dispatch }
+    { dispatch, getState }
   ) => {
     const legacyPre =
       preRequestScripts.length > 0 ? mirrorLegacyScriptString(preRequestScripts) : preRequestScript;
@@ -699,6 +712,10 @@ export const updateFolder = createAsyncThunk<
       postRequestScripts.length > 0
         ? mirrorLegacyScriptString(postRequestScripts)
         : postRequestScript;
+    const existingFolder = (getState().collections.foldersByCollection[collectionId] ?? []).find(
+      (folder) => folder.id === id
+    );
+    const resolvedUserAgent = userAgent ?? existingFolder?.userAgent ?? '';
     const folder = await window.api.updateFolder(
       id,
       name,
@@ -707,6 +724,7 @@ export const updateFolder = createAsyncThunk<
       legacyPre,
       legacyPost,
       auth,
+      resolvedUserAgent,
       preRequestScripts,
       postRequestScripts
     );

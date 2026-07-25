@@ -92,7 +92,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       const { db } = await createTestDb();
       const created = await db.createCollection('Original');
       await expect(
-        db.updateCollection(created.id, '  ', [], [], '', '', defaultAuth())
+        db.updateCollection(created.id, '  ', [], [], '', '', defaultAuth(), '')
       ).rejects.toThrow('Collection name is required');
     });
 
@@ -120,7 +120,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           ...defaultAuth(),
           type: 'bearer',
           bearer: { token: 'collection-token' }
-        }
+        },
+        ''
       );
 
       expect(updated).toMatchObject({
@@ -139,10 +140,45 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect((await db.listCollections())[0]).toEqual(updated);
     });
 
+    it('updateCollection round-trips a userAgent override and clears it back to inherit', async () => {
+      const { db } = await createTestDb();
+      const created = await db.createCollection('Agents');
+
+      expect(created.userAgent).toBe('');
+
+      const withAgent = await db.updateCollection(
+        created.id,
+        'Agents',
+        [],
+        [],
+        '',
+        '',
+        defaultAuth(),
+        'CollectionAgent/1.0'
+      );
+
+      expect(withAgent.userAgent).toBe('CollectionAgent/1.0');
+      expect((await db.listCollections())[0]?.userAgent).toBe('CollectionAgent/1.0');
+
+      const cleared = await db.updateCollection(
+        created.id,
+        'Agents',
+        [],
+        [],
+        '',
+        '',
+        defaultAuth(),
+        ''
+      );
+
+      expect(cleared.userAgent).toBe('');
+      expect((await db.listCollections())[0]?.userAgent).toBe('');
+    });
+
     it('updateCollection throws when collection is missing', async () => {
       const { db } = await createTestDb();
       await expect(
-        db.updateCollection(999, 'Missing', [], [], '', '', defaultAuth())
+        db.updateCollection(999, 'Missing', [], [], '', '', defaultAuth(), '')
       ).rejects.toThrow('Collection not found');
     });
 
@@ -239,6 +275,37 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect((await db.listRequests(collection.id))[0]).toEqual(updated);
     });
 
+    it('saveRequest round-trips a request userAgent override on insert and update', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Requests');
+
+      const created = await db.saveRequest(
+        baseRequestInput(collection.id, { userAgent: 'RequestAgent/1.0' })
+      );
+      expect(created.userAgent).toBe('RequestAgent/1.0');
+      expect((await db.listRequests(collection.id))[0]?.userAgent).toBe('RequestAgent/1.0');
+
+      const updated = await db.saveRequest(
+        baseRequestInput(collection.id, { id: created.id, userAgent: 'RequestAgent/2.0' })
+      );
+      expect(updated.userAgent).toBe('RequestAgent/2.0');
+      expect((await db.listRequests(collection.id))[0]?.userAgent).toBe('RequestAgent/2.0');
+
+      const cleared = await db.saveRequest(
+        baseRequestInput(collection.id, { id: created.id, userAgent: '' })
+      );
+      expect(cleared.userAgent).toBe('');
+    });
+
+    it('saveRequest defaults userAgent to empty string when omitted', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Requests');
+
+      const created = await db.saveRequest(baseRequestInput(collection.id));
+
+      expect(created.userAgent).toBe('');
+    });
+
     it('saveRequest inserts when update id does not exist', async () => {
       const { db } = await createTestDb();
       const collection = await db.createCollection('Requests');
@@ -323,7 +390,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
           ...defaultAuth(),
           type: 'basic',
           basic: { username: 'admin', password: 'secret' }
-        }
+        },
+        ''
       );
       await db.saveRequest(
         baseRequestInput(collection.id, {
@@ -506,6 +574,32 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       );
     });
 
+    it('updateFolder round-trips a folder userAgent override', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Folders');
+      const folder = await db.createFolder(collection.id, 'API');
+
+      expect(folder.userAgent).toBe('');
+
+      const updated = await db.updateFolder(
+        folder.id,
+        'API',
+        [],
+        [],
+        '',
+        '',
+        defaultAuth(),
+        'FolderAgent/1.0'
+      );
+
+      expect(updated.userAgent).toBe('FolderAgent/1.0');
+      expect((await db.listFolders(collection.id))[0]?.userAgent).toBe('FolderAgent/1.0');
+
+      const cleared = await db.updateFolder(folder.id, 'API', [], [], '', '', defaultAuth(), '');
+
+      expect(cleared.userAgent).toBe('');
+    });
+
     it('saveRequest stores folder_id and scopes sort_order per folder', async () => {
       const { db } = await createTestDb();
       const collection = await db.createCollection('Folders');
@@ -646,6 +740,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
         '',
         '',
         defaultAuth(),
+        '',
         [],
         collectionPostScripts
       );

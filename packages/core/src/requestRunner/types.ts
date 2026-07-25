@@ -119,6 +119,7 @@ export interface RunRequestInput {
     | 'connectionId'
     | 'variables'
     | 'headers'
+    | 'userAgent'
     | 'auth'
     | 'pre_request_script'
     | 'post_request_script'
@@ -129,7 +130,14 @@ export interface RunRequestInput {
    */
   folder?: Pick<
     Folder,
-    'id' | 'name' | 'variables' | 'headers' | 'auth' | 'pre_request_script' | 'post_request_script'
+    | 'id'
+    | 'name'
+    | 'variables'
+    | 'headers'
+    | 'userAgent'
+    | 'auth'
+    | 'pre_request_script'
+    | 'post_request_script'
   >;
 
   /**

@@ -30,7 +30,8 @@ export interface Props {
     headers: KeyValue[],
     preRequestScripts: ScriptRef[],
     postRequestScripts: ScriptRef[],
-    auth: AuthConfig
+    auth: AuthConfig,
+    userAgent: string
   ) => Promise<Folder | void>;
 
   /**
@@ -69,6 +70,7 @@ export function Form({
         folder.name,
         folder.variables,
         folder.headers,
+        folder.userAgent ?? '',
         resolveScriptRefs(folder.pre_request_scripts, folder.pre_request_script ?? ''),
         resolveScriptRefs(folder.post_request_scripts, folder.post_request_script ?? ''),
         normalizeAuth(folder.auth)
@@ -97,7 +99,8 @@ export function Form({
           fields.headers,
           fields.preRequestScripts,
           fields.postRequestScripts,
-          fields.auth
+          fields.auth,
+          fields.userAgent
         );
       }}
       renderGeneral={(state) => <GeneralSection name={state.name} onNameChange={state.setName} />}
@@ -105,8 +108,11 @@ export function Form({
         <ScopedHeadersSection
           scope="folder"
           headers={state.headers}
+          userAgent={state.userAgent}
           variables={state.variables}
           onChange={state.setHeaders}
+          onUserAgentChange={state.setUserAgent}
+          disabled={state.saving}
         />
       )}
       renderAuth={(state) => (

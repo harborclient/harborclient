@@ -50,6 +50,7 @@ export interface Props {
    * @param preRequestScripts - Collection pre-request script references.
    * @param postRequestScripts - Collection post-request script references.
    * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - Collection User-Agent override; empty inherits global.
    * @param connectionId - Target database connection id.
    */
   onSave: (
@@ -60,6 +61,7 @@ export interface Props {
     preRequestScripts: ScriptRef[],
     postRequestScripts: ScriptRef[],
     auth: AuthConfig,
+    userAgent: string,
     connectionId: string
   ) => Promise<Collection | void>;
 
@@ -142,6 +144,7 @@ export function Form({
         collection.name,
         collection.variables,
         collection.headers,
+        collection.userAgent ?? '',
         resolveScriptRefs(collection.pre_request_scripts, collection.pre_request_script ?? ''),
         resolveScriptRefs(collection.post_request_scripts, collection.post_request_script ?? ''),
         normalizeAuth(collection.auth)
@@ -278,6 +281,7 @@ export function Form({
       fields.preRequestScripts,
       fields.postRequestScripts,
       fields.auth,
+      fields.userAgent,
       resolvedConnectionId
     );
   };
@@ -322,8 +326,11 @@ export function Form({
         <ScopedHeadersSection
           scope="collection"
           headers={state.headers}
+          userAgent={state.userAgent}
           variables={state.variables}
           onChange={state.setHeaders}
+          onUserAgentChange={state.setUserAgent}
+          disabled={state.saving}
         />
       )}
       renderAuth={(state) => (

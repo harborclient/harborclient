@@ -23,6 +23,7 @@ function sampleDraft(overrides: Partial<RequestDraft> = {}): RequestDraft {
       type: 'bearer',
       bearer: { token: 'draft-token' }
     },
+    userAgent: '',
     body: '{"ok":true}',
     body_type: 'json',
     body_raw: null,
@@ -52,6 +53,7 @@ function sampleCollection(overrides: Partial<Collection> = {}): Collection {
       type: 'basic',
       basic: { username: 'alice', password: 'secret' }
     },
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],

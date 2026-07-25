@@ -47,6 +47,7 @@
       "node-pty"
     ],
     "overrides": {
+      "@types/node": "^22.10.0",
       "@harborclient/sdk>@types/react": "^19.1.2",
       "@harborclient/sdk>@types/react-dom": "^19.1.2"
     }

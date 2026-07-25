@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@harborclient/core": "workspace:*",
-    "@harborclient/sdk": "1.1.33",
+    "@harborclient/sdk": "link:../../../sdk",
     "better-sqlite3": "^12.11.1",
     "zod": "^4.4.3"
   },

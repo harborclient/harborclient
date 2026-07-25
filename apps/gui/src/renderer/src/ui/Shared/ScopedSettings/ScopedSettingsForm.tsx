@@ -45,6 +45,11 @@ export interface ScopedSettingsRenderState extends ScopedSettingsCoreFields {
   setHeaders: (headers: KeyValue[]) => void;
 
   /**
+   * Updates the draft User-Agent override.
+   */
+  setUserAgent: (userAgent: string) => void;
+
+  /**
    * Updates the draft authorization settings.
    */
   setAuth: (auth: AuthConfig) => void;
@@ -278,6 +283,7 @@ export function ScopedSettingsForm({
   const [headers, setHeaders] = useState<KeyValue[]>(() =>
     seedScopedSettingsHeaders(initial.headers)
   );
+  const [userAgent, setUserAgent] = useState(initial.userAgent);
   const [auth, setAuth] = useState<AuthConfig>(initial.auth);
   const [preRequestScripts, setPreRequestScripts] = useState<ScriptRef[]>(
     initial.preRequestScripts
@@ -292,11 +298,12 @@ export function ScopedSettingsForm({
       name,
       variables,
       headers,
+      userAgent,
       auth,
       preRequestScripts,
       postRequestScripts
     }),
-    [name, variables, headers, auth, preRequestScripts, postRequestScripts]
+    [name, variables, headers, userAgent, auth, preRequestScripts, postRequestScripts]
   );
 
   /**
@@ -323,12 +330,12 @@ export function ScopedSettingsForm({
   const tabIndicators = useMemo(
     () => ({
       variables: cleanVariables(variables).length > 0,
-      headers: cleanHeaders(headers).length > 0,
+      headers: cleanHeaders(headers).length > 0 || userAgent.trim().length > 0,
       auth: auth.type !== 'none',
       pre: hasScriptContent(preRequestScripts),
       post: hasScriptContent(postRequestScripts)
     }),
-    [variables, headers, auth, preRequestScripts, postRequestScripts]
+    [variables, headers, userAgent, auth, preRequestScripts, postRequestScripts]
   );
 
   const tabsAfterGeneral = useMemo(
@@ -396,12 +403,14 @@ export function ScopedSettingsForm({
       name,
       variables,
       headers,
+      userAgent,
       auth,
       preRequestScripts,
       postRequestScripts,
       setName,
       setVariables,
       setHeaders,
+      setUserAgent,
       setAuth,
       setPreRequestScripts,
       setPostRequestScripts,
@@ -410,7 +419,17 @@ export function ScopedSettingsForm({
         void handleSave();
       }
     }),
-    [name, variables, headers, auth, preRequestScripts, postRequestScripts, saving, handleSave]
+    [
+      name,
+      variables,
+      headers,
+      userAgent,
+      auth,
+      preRequestScripts,
+      postRequestScripts,
+      saving,
+      handleSave
+    ]
   );
 
   /**

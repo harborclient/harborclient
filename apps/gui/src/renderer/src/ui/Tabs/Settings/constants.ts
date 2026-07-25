@@ -15,6 +15,7 @@ import {
   DEFAULT_CODE_EDITOR_FONT_SIZE,
   DEFAULT_CODE_EDITOR_SETUP
 } from '@harborclient/core/codeEditorSettings';
+import { DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import {
   faCode,
   faDatabase,
@@ -78,7 +79,9 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },
   globalVariables: [],
-  logFilePath: ''
+  logFilePath: '',
+  userAgent: DEFAULT_USER_AGENT,
+  customUserAgents: []
 };
 
 /**

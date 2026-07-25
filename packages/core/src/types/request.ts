@@ -50,6 +50,11 @@ export interface SavedRequest {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for this request; empty inherits folder → collection → global.
+   */
+  userAgent: string;
+
+  /**
    * Query parameters as editable key-value pairs.
    */
   params: KeyValue[];
@@ -174,6 +179,11 @@ export interface RequestExport {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for this request; empty inherits. Omitted in legacy exports.
+   */
+  userAgent?: string;
+
+  /**
    * Query parameters as editable key-value pairs.
    */
   params: KeyValue[];
@@ -279,6 +289,11 @@ export interface SaveRequestInput {
    * Request headers as editable key-value pairs.
    */
   headers: KeyValue[];
+
+  /**
+   * User-Agent override for this request; empty inherits folder → collection → global.
+   */
+  userAgent?: string;
 
   /**
    * Query parameters as editable key-value pairs.

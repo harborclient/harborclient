@@ -2,10 +2,12 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
   DEFAULT_CUSTOM_THEME_TITLE,
+  getDefaultCustomThemeMetrics,
   getDefaultCustomThemePalette
 } from '#/renderer/src/ui/Tabs/Plugins/customThemeDefaults';
 import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 import {
+  cloneCustomThemeDraft,
   commitThemeHistoryBaseline,
   createThemeHistoryState,
   customThemeDraftsEqual,
@@ -50,7 +52,8 @@ export interface ThemeDesignerState {
 const emptyDraft = (): CustomThemeDraft => ({
   title: DEFAULT_CUSTOM_THEME_TITLE,
   type: 'light',
-  colors: getDefaultCustomThemePalette('light')
+  colors: getDefaultCustomThemePalette('light'),
+  metrics: getDefaultCustomThemeMetrics('light')
 });
 
 const initialState: ThemeDesignerState = {
@@ -88,8 +91,9 @@ const themeDesignerSlice = createSlice({
       state,
       action: PayloadAction<{ draft: CustomThemeDraft; activeTheme: string }>
     ) {
-      state.history = resetThemeHistory(action.payload.draft);
-      state.persistedDraft = action.payload.draft;
+      const draft = cloneCustomThemeDraft(action.payload.draft);
+      state.history = resetThemeHistory(draft);
+      state.persistedDraft = draft;
       state.activeThemeAtOpen = action.payload.activeTheme;
       state.initialized = true;
     },
@@ -108,9 +112,10 @@ const themeDesignerSlice = createSlice({
       state,
       action: PayloadAction<{ savedDraft: CustomThemeDraft; activeTheme: string }>
     ) {
-      state.editingId = action.payload.savedDraft.id ?? null;
-      state.history = resetThemeHistory(action.payload.savedDraft);
-      state.persistedDraft = action.payload.savedDraft;
+      const savedDraft = cloneCustomThemeDraft(action.payload.savedDraft);
+      state.editingId = savedDraft.id ?? null;
+      state.history = resetThemeHistory(savedDraft);
+      state.persistedDraft = savedDraft;
       state.activeThemeAtOpen = action.payload.activeTheme;
       state.initialized = true;
     },

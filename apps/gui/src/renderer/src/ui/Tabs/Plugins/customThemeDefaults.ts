@@ -1,4 +1,4 @@
-import type { ThemeColorToken } from '@harborclient/sdk';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import {
   HC_ACCENT,
   HC_DANGER,
@@ -38,6 +38,72 @@ import type { CustomThemeType } from '@harborclient/core/types/customTheme';
  * Full default palette for one custom theme base appearance.
  */
 export type CustomThemePalette = Record<ThemeColorToken, string>;
+
+/**
+ * Full default metrics map for one custom theme.
+ */
+export type CustomThemeMetrics = Record<ThemeMetricToken, string>;
+
+/**
+ * Default UI sans-serif stack mirrored from `:root` in styles.css.
+ */
+export const DEFAULT_THEME_FONT_SANS =
+  "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif";
+
+/**
+ * Default monospace stack mirrored from `@theme --font-mono` in styles.css.
+ */
+export const DEFAULT_THEME_FONT_MONO =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+
+/**
+ * Default typography and geometry metrics shared across light/dark/high-contrast.
+ */
+export const DEFAULT_CUSTOM_THEME_METRICS: CustomThemeMetrics = {
+  'layout-font-family': DEFAULT_THEME_FONT_SANS,
+  'layout-font-size': '14px',
+  'layout-border-width': '1px',
+  'layout-radius': '0.375rem',
+  'breadcrumb-font-family': DEFAULT_THEME_FONT_SANS,
+  'breadcrumb-font-size': '14px',
+  'breadcrumb-border-width': '1px',
+  'breadcrumb-radius': '0.375rem',
+  'text-font-family': DEFAULT_THEME_FONT_SANS,
+  'text-font-family-mono': DEFAULT_THEME_FONT_MONO,
+  'text-font-size': '14px',
+  'text-font-size-sm': '14px',
+  'text-font-size-lg': '16px',
+  'interactive-font-family': DEFAULT_THEME_FONT_SANS,
+  'interactive-font-size': '14px',
+  'interactive-border-width': '1px',
+  'interactive-radius': '0.375rem',
+  'interactive-focus-ring-width': '3px',
+  'chrome-font-family': DEFAULT_THEME_FONT_SANS,
+  'chrome-font-size': '14px',
+  'chrome-border-width': '1px',
+  'chrome-radius': '0.375rem',
+  'tab-font-family': DEFAULT_THEME_FONT_SANS,
+  'tab-font-size': '14px',
+  'tab-border-width': '2px',
+  'tab-radius': '9999px',
+  'status-font-family': DEFAULT_THEME_FONT_SANS,
+  'status-font-size': '14px',
+  'status-border-width': '1px',
+  'status-radius': '9999px',
+  'method-font-family': DEFAULT_THEME_FONT_SANS,
+  'method-font-size': '14px',
+  'method-border-width': '1px',
+  'method-radius': '0.25rem',
+  'script-stage-font-family': DEFAULT_THEME_FONT_SANS,
+  'script-stage-font-size': '14px',
+  'script-stage-border-width': '3px',
+  'script-stage-radius': '0.375rem',
+  'git-font-family': DEFAULT_THEME_FONT_SANS,
+  'git-font-size': '14px',
+  'git-border-width': '1px',
+  'git-radius': '0.375rem',
+  'scrollbar-width': '8px'
+};
 
 /**
  * Default light palette mirrored from `:root` in styles.css.
@@ -227,6 +293,20 @@ export const CUSTOM_THEME_DEFAULT_PALETTES: Record<CustomThemeType, CustomThemeP
  */
 export function getDefaultCustomThemePalette(type: CustomThemeType): CustomThemePalette {
   return { ...CUSTOM_THEME_DEFAULT_PALETTES[type] };
+}
+
+/**
+ * Returns the default metrics map for a custom theme.
+ *
+ * Metrics are shared across appearance modes; `type` is accepted so callers can
+ * keep a single seeding API alongside {@link getDefaultCustomThemePalette}.
+ *
+ * @param type - Base appearance mode (unused; metrics are mode-independent).
+ * @returns Full metric token map used to seed new or reseeded themes.
+ */
+export function getDefaultCustomThemeMetrics(type: CustomThemeType): CustomThemeMetrics {
+  void type;
+  return { ...DEFAULT_CUSTOM_THEME_METRICS };
 }
 
 /**

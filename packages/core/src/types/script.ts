@@ -75,6 +75,10 @@ export interface ScriptRequestContext {
   method: HttpMethod;
   url: string;
   headers: KeyValue[];
+  /**
+   * Request-level User-Agent override; empty inherits folder → collection → global.
+   */
+  userAgent?: string;
   params: KeyValue[];
   body: string;
   bodyType: BodyType;

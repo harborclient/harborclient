@@ -7,9 +7,17 @@ import {
   type AuthConfig
 } from '../auth';
 import { applyBodyRawOverride } from '../bodyRawSend';
-import type { KeyValue, ScriptRequestContext, SendRequestInput, Variable } from '../types';
+import type {
+  GeneralSettings,
+  KeyValue,
+  ScriptRequestContext,
+  SendRequestInput,
+  Variable
+} from '../types';
+import { applyUserAgentHeader } from '../userAgent';
 import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import type { RequestRunnerDeps, RunRequestInput } from './types';
+import type { SettingsProvider } from '../interfaces';
 
 /**
  * Builds a variable map from editable rows, using a default when the value is empty.
@@ -107,7 +115,7 @@ export async function buildSendInput(
   input: RunRequestInput,
   request: ScriptRequestContext,
   variables: Record<string, string>,
-  deps: Pick<RequestRunnerDeps, 'fetchOAuthToken'>
+  deps: Pick<RequestRunnerDeps, 'fetchOAuthToken'> & Partial<Pick<RequestRunnerDeps, 'settings'>>
 ): Promise<SendRequestInput> {
   const collectionHeaders = resolveHeaderValues(input.collection?.headers ?? [], variables);
   const folderHeaders = resolveHeaderValues(input.folder?.headers ?? [], variables);
@@ -129,10 +137,16 @@ export async function buildSendInput(
     manualAuthorization,
     deps.fetchOAuthToken
   );
-  const headers =
+  const headersWithAuth =
     authHeader && !manualAuthorization
       ? [{ key: 'Authorization', value: authHeader, enabled: true }, ...allHeaders]
       : allHeaders;
+  const headers = applyUserAgentHeader(headersWithAuth, {
+    request: request.userAgent,
+    folder: input.folder?.userAgent,
+    collection: input.collection?.userAgent,
+    general: resolveGeneralUserAgent(deps)
+  });
   const sourceRequestId = input.requestIdentity?.id;
   const sourceRequestName = input.requestIdentity?.name?.trim();
   const bodyRaw = input.requestIdentity?.bodyRaw;
@@ -152,6 +166,30 @@ export async function buildSendInput(
     bodyRaw == null ? null : substituteRequestVariables(bodyRaw, variables),
     request.bodyType
   );
+}
+
+/**
+ * Reads the global User-Agent from host settings when available.
+ *
+ * @param deps - Runner dependencies that may include a settings provider.
+ * @returns Trimmed global User-Agent, or empty when settings are unavailable.
+ */
+function resolveGeneralUserAgent(deps: Partial<Pick<RequestRunnerDeps, 'settings'>>): string {
+  if (deps.settings == null) {
+    return '';
+  }
+  const settings = resolveGeneralSettings(deps.settings);
+  return typeof settings.userAgent === 'string' ? settings.userAgent : '';
+}
+
+/**
+ * Returns the current general settings regardless of provider form.
+ *
+ * @param settings - Settings provider or already-resolved general settings.
+ * @returns Normalized general settings for User-Agent resolution.
+ */
+function resolveGeneralSettings(settings: SettingsProvider | GeneralSettings): GeneralSettings {
+  return 'getGeneralSettings' in settings ? settings.getGeneralSettings() : settings;
 }
 
 /**

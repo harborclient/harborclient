@@ -28,7 +28,8 @@ const baseCollection = (
   pre_request_scripts: [],
   post_request_scripts: [],
   created_at: '2026-01-01T00:00:00.000Z',
-  ...overrides
+  ...overrides,
+  userAgent: overrides.userAgent ?? ''
 });
 
 const baseFolder = (overrides: Partial<Folder> & Pick<Folder, 'id' | 'name'>): Folder => ({
@@ -43,7 +44,8 @@ const baseFolder = (overrides: Partial<Folder> & Pick<Folder, 'id' | 'name'>): F
   pre_request_scripts: [],
   post_request_scripts: [],
   created_at: '2026-01-01T00:00:00.000Z',
-  ...overrides
+  ...overrides,
+  userAgent: overrides.userAgent ?? ''
 });
 
 const baseRequest = (
@@ -68,7 +70,8 @@ const baseRequest = (
     tags: [],
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
-    ...overrides
+    ...overrides,
+    userAgent: overrides.userAgent ?? ''
   }) as SavedRequest;
 
 const baseDocument = (

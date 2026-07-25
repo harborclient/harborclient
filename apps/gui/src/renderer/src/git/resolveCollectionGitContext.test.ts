@@ -19,6 +19,7 @@ function sampleCollection(overrides: Partial<Collection> = {}): Collection {
     headers: [],
     variables: [],
     auth: defaultAuth(),
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],

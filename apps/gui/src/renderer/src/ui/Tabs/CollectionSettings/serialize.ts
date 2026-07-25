@@ -14,6 +14,7 @@ export const serializeCollectionForm = (
   name: string,
   variables: Variable[],
   headers: KeyValue[],
+  userAgent: string,
   preRequestScripts: ScriptRef[],
   postRequestScripts: ScriptRef[],
   auth: AuthConfig,
@@ -25,6 +26,7 @@ export const serializeCollectionForm = (
         name,
         variables,
         headers,
+        userAgent,
         preRequestScripts,
         postRequestScripts,
         auth
@@ -39,6 +41,7 @@ export const serializeCollectionForm = (
  * @param name - Collection display name.
  * @param variables - Collection variables.
  * @param headers - Collection headers.
+ * @param userAgent - Collection User-Agent override.
  * @param preRequestScripts - Pre-request script refs.
  * @param postRequestScripts - Post-request script refs.
  * @param auth - Authorization settings.
@@ -48,6 +51,7 @@ export const collectionFormCoreFields = (
   name: string,
   variables: Variable[],
   headers: KeyValue[],
+  userAgent: string,
   preRequestScripts: ScriptRef[],
   postRequestScripts: ScriptRef[],
   auth: AuthConfig
@@ -55,6 +59,7 @@ export const collectionFormCoreFields = (
   name,
   variables,
   headers,
+  userAgent,
   preRequestScripts,
   postRequestScripts,
   auth

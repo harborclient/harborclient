@@ -21,6 +21,7 @@ const sampleFields = (): ScopedSettingsCoreFields => ({
   name: '  My Scope  ',
   variables: [{ key: 'token', value: 'abc', defaultValue: '', share: false }],
   headers: [{ key: 'X-Test', value: '1', enabled: true }],
+  userAgent: '',
   auth: defaultAuth(),
   preRequestScripts: [{ id: 'pre-1', enabled: true, kind: 'inline', code: 'console.log(1);' }],
   postRequestScripts: []
@@ -68,6 +69,7 @@ describe('serializeScopedSettingsForm', () => {
         fields.name,
         fields.variables,
         fields.headers,
+        fields.userAgent,
         fields.preRequestScripts,
         fields.postRequestScripts,
         fields.auth

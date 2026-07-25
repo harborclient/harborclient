@@ -36,7 +36,8 @@ const sampleDraft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
   comment: '',
   tags: '',
   auth: defaultAuth(),
-  ...overrides
+  ...overrides,
+  userAgent: overrides.userAgent ?? ''
 });
 
 const persistedPayload = (overrides: Partial<PersistedOpenTabs> = {}): PersistedOpenTabs => {

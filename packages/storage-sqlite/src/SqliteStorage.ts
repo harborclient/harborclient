@@ -81,7 +81,7 @@ import { generateDocumentUuid } from './uuid';
 import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
 
 const COLLECTION_COLUMNS =
-  'id, uuid, name, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
+  'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
 
 /**
@@ -163,6 +163,7 @@ export class SqliteStorage implements IStorage {
       name TEXT NOT NULL,
       variables TEXT NOT NULL DEFAULT '[]',
       headers TEXT NOT NULL DEFAULT '[]',
+      user_agent TEXT NOT NULL DEFAULT '',
       auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}',
       pre_request_script TEXT NOT NULL DEFAULT '',
       post_request_script TEXT NOT NULL DEFAULT '',
@@ -178,6 +179,7 @@ export class SqliteStorage implements IStorage {
       method TEXT NOT NULL DEFAULT 'GET',
       url TEXT NOT NULL DEFAULT '',
       headers TEXT NOT NULL DEFAULT '[]',
+      user_agent TEXT NOT NULL DEFAULT '',
       params TEXT NOT NULL DEFAULT '[]',
       auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}',
       body TEXT NOT NULL DEFAULT '',
@@ -265,6 +267,10 @@ export class SqliteStorage implements IStorage {
         `ALTER TABLE collections ADD COLUMN auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
       );
     }
+    const hasCollectionUserAgent = columns.some((col) => col.name === 'user_agent');
+    if (!hasCollectionUserAgent) {
+      this.#db.exec("ALTER TABLE collections ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
+    }
 
     const requestColumns = this.#db.prepare('PRAGMA table_info(requests)').all() as Array<{
       name: string;
@@ -302,6 +308,10 @@ export class SqliteStorage implements IStorage {
       this.#db.exec(
         `ALTER TABLE requests ADD COLUMN auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
       );
+    }
+    const hasRequestUserAgent = requestColumns.some((col) => col.name === 'user_agent');
+    if (!hasRequestUserAgent) {
+      this.#db.exec("ALTER TABLE requests ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
     }
 
     this.migrateDocumentUuidColumn('collections');
@@ -351,6 +361,9 @@ export class SqliteStorage implements IStorage {
       this.#db.exec(
         `ALTER TABLE folders ADD COLUMN auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}'`
       );
+    }
+    if (!folderColumns.some((col) => col.name === 'user_agent')) {
+      this.#db.exec("ALTER TABLE folders ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
     }
 
     this.normalizeContainerOrders();
@@ -542,7 +555,7 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's name, variables, headers, and scripts.
+   * Updates a collection's name, variables, headers, user agent, auth, and scripts.
    *
    * @param id - Collection ID to update.
    * @param name - New display name.
@@ -551,18 +564,9 @@ export class SqliteStorage implements IStorage {
    * @param preRequestScript - Script run before each request in the collection.
    * @param postRequestScript - Script run after each request in the collection.
    * @param auth - Default Authorization settings for requests in the collection.
-   * @returns The updated collection.
-   */
-  /**
-   * Updates a collection's name, variables, headers, and scripts.
-   *
-   * @param id - Collection ID to update.
-   * @param name - New display name.
-   * @param variables - Collection-scoped variables.
-   * @param headers - Headers sent with every request in the collection.
-   * @param preRequestScript - Script run before each request in the collection.
-   * @param postRequestScript - Script run after each request in the collection.
-   * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
+   * @param preRequestScripts - Ordered collection pre-request script references.
+   * @param postRequestScripts - Ordered collection post-request script references.
    * @returns The updated collection.
    */
   async updateCollection(
@@ -573,6 +577,7 @@ export class SqliteStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Collection> {
@@ -581,12 +586,13 @@ export class SqliteStorage implements IStorage {
     const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
     this.getDb()
       .prepare(
-        'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
+        'UPDATE collections SET name = ?, variables = ?, headers = ?, user_agent = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
       )
       .run(
         trimmedName,
         JSON.stringify(variables),
         JSON.stringify(headers),
+        userAgent,
         JSON.stringify(auth),
         preScripts.legacy,
         postScripts.legacy,
@@ -739,6 +745,7 @@ export class SqliteStorage implements IStorage {
   async saveRequest(input: SaveRequestInput): Promise<SavedRequest> {
     const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
+    const userAgent = typeof input.userAgent === 'string' ? input.userAgent : '';
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
     const preScripts = bundleScriptFieldsWithLegacy(
@@ -778,6 +785,7 @@ export class SqliteStorage implements IStorage {
         input.method,
         input.url,
         headers,
+        userAgent,
         params,
         auth,
         input.body,
@@ -801,7 +809,7 @@ export class SqliteStorage implements IStorage {
         .prepare(
           `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
-          headers = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
+          headers = ?, user_agent = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?${colorClause}
         WHERE id = ?`
@@ -825,6 +833,7 @@ export class SqliteStorage implements IStorage {
       input.method,
       input.url,
       headers,
+      userAgent,
       params,
       auth,
       input.body,
@@ -848,9 +857,9 @@ export class SqliteStorage implements IStorage {
     const result = this.getDb()
       .prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at${insertColorClause}
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertColorValues})`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertColorValues})`
       )
       .run(...insertParams);
 
@@ -955,7 +964,7 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's name, variables, headers, auth, and scripts.
+   * Updates a folder's name, variables, headers, auth, user agent, and scripts.
    *
    * @param id - Folder ID to update.
    * @param name - New display name.
@@ -964,6 +973,9 @@ export class SqliteStorage implements IStorage {
    * @param preRequestScript - Script run before each request in the folder.
    * @param postRequestScript - Script run after each request in the folder.
    * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
+   * @param preRequestScripts - Ordered folder pre-request script references.
+   * @param postRequestScripts - Ordered folder post-request script references.
    * @returns The updated folder.
    */
   async updateFolder(
@@ -974,6 +986,7 @@ export class SqliteStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Folder> {
@@ -982,12 +995,13 @@ export class SqliteStorage implements IStorage {
     const postScripts = bundleScriptFieldsWithLegacy(postRequestScripts, postRequestScript);
     this.getDb()
       .prepare(
-        'UPDATE folders SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
+        'UPDATE folders SET name = ?, variables = ?, headers = ?, user_agent = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ? WHERE id = ?'
       )
       .run(
         trimmedName,
         JSON.stringify(variables),
         JSON.stringify(headers),
+        userAgent,
         JSON.stringify(auth),
         preScripts.legacy,
         postScripts.legacy,
@@ -1409,6 +1423,7 @@ export class SqliteStorage implements IStorage {
       normalizeVariable
     );
     const headers = parseJson<KeyValue[]>(row.headers as string, []);
+    const userAgent = typeof row.user_agent === 'string' ? row.user_agent : '';
     const auth = normalizeAuth(parseJson(row.auth as string, defaultAuth()));
 
     return {
@@ -1418,6 +1433,7 @@ export class SqliteStorage implements IStorage {
       name: collection.name,
       variables: maskVariablesForExport(variables),
       headers,
+      userAgent,
       auth,
       pre_request_script: collection.pre_request_script,
       post_request_script: collection.post_request_script,
@@ -1446,13 +1462,14 @@ export class SqliteStorage implements IStorage {
       const collectionScripts = serializeImportedCollectionScriptFields(payload);
       const collectionResult = database
         .prepare(
-          'INSERT INTO collections (name, uuid, variables, headers, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          'INSERT INTO collections (name, uuid, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           payload.name,
           collectionUuid,
           JSON.stringify(payload.variables),
           JSON.stringify(payload.headers),
+          typeof payload.userAgent === 'string' ? payload.userAgent : '',
           JSON.stringify(payload.auth ?? defaultAuth()),
           collectionScripts.pre_request_script,
           collectionScripts.post_request_script,
@@ -1474,9 +1491,9 @@ export class SqliteStorage implements IStorage {
         const folderResult = database
           .prepare(
             `INSERT INTO folders (
-              collection_id, name, sort_order, uuid, variables, headers, auth,
+              collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
               pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             collectionId,
@@ -1485,6 +1502,7 @@ export class SqliteStorage implements IStorage {
             folderUuid,
             folderFields.variablesJson,
             folderFields.headersJson,
+            folderFields.userAgent,
             folderFields.authJson,
             folderFields.pre_request_script,
             folderFields.post_request_script,
@@ -1498,9 +1516,9 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       const insertDocument = database.prepare(
@@ -1525,6 +1543,7 @@ export class SqliteStorage implements IStorage {
           fields.method,
           fields.url,
           fields.headersJson,
+          fields.userAgent,
           fields.paramsJson,
           fields.authJson,
           fields.body,
@@ -1630,12 +1649,13 @@ export class SqliteStorage implements IStorage {
       const collectionScripts = serializeImportedCollectionScriptFields(payload);
       database
         .prepare(
-          'UPDATE collections SET name = ?, variables = ?, headers = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ? WHERE id = ?'
+          'UPDATE collections SET name = ?, variables = ?, headers = ?, user_agent = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ? WHERE id = ?'
         )
         .run(
           payload.name,
           JSON.stringify(payload.variables),
           JSON.stringify(payload.headers),
+          typeof payload.userAgent === 'string' ? payload.userAgent : '',
           JSON.stringify(payload.auth ?? defaultAuth()),
           collectionScripts.pre_request_script,
           collectionScripts.post_request_script,
@@ -1656,7 +1676,7 @@ export class SqliteStorage implements IStorage {
           const folderFields = serializeImportedFolderFields(folder);
           database
             .prepare(
-              `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, auth = ?,
+              `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
                 pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ?
                WHERE id = ? AND collection_id = ?`
             )
@@ -1665,6 +1685,7 @@ export class SqliteStorage implements IStorage {
               plan.sort_order,
               folderFields.variablesJson,
               folderFields.headersJson,
+              folderFields.userAgent,
               folderFields.authJson,
               folderFields.pre_request_script,
               folderFields.post_request_script,
@@ -1682,9 +1703,9 @@ export class SqliteStorage implements IStorage {
         const folderResult = database
           .prepare(
             `INSERT INTO folders (
-              collection_id, name, sort_order, uuid, variables, headers, auth,
+              collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
               pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, color
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             id,
@@ -1693,6 +1714,7 @@ export class SqliteStorage implements IStorage {
             plan.uuid,
             folderFields.variablesJson,
             folderFields.headersJson,
+            folderFields.userAgent,
             folderFields.authJson,
             folderFields.pre_request_script,
             folderFields.post_request_script,
@@ -1720,13 +1742,13 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, color
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
-          folder_id = ?, name = ?, method = ?, url = ?, headers = ?, params = ?, auth = ?,
+          folder_id = ?, name = ?, method = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
           body = ?, body_type = ?, body_raw = ?, body_raw_open = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?, color = ?
         WHERE id = ? AND collection_id = ?`
@@ -1759,6 +1781,7 @@ export class SqliteStorage implements IStorage {
             fields.method,
             fields.url,
             fields.headersJson,
+            fields.userAgent,
             fields.paramsJson,
             fields.authJson,
             fields.body,
@@ -1787,6 +1810,7 @@ export class SqliteStorage implements IStorage {
           fields.method,
           fields.url,
           fields.headersJson,
+          fields.userAgent,
           fields.paramsJson,
           fields.authJson,
           fields.body,

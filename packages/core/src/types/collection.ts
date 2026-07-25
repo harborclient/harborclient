@@ -38,6 +38,11 @@ export interface Collection {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for requests in this collection; empty inherits the global default.
+   */
+  userAgent: string;
+
+  /**
    * Default Authorization settings inherited by requests unless overridden.
    */
   auth: AuthConfig;
@@ -138,6 +143,11 @@ export interface Folder {
    * Headers sent with every request in this folder.
    */
   headers: KeyValue[];
+
+  /**
+   * User-Agent override for requests in this folder; empty inherits collection then global.
+   */
+  userAgent: string;
 
   /**
    * Default Authorization settings inherited by requests unless overridden.
@@ -345,6 +355,11 @@ export interface ExportedRequest {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for this request; empty inherits. Omitted in legacy exports.
+   */
+  userAgent?: string;
+
+  /**
    * Query parameters as editable key-value pairs.
    */
   params: KeyValue[];
@@ -457,6 +472,11 @@ export interface ExportedFolder {
   headers?: KeyValue[];
 
   /**
+   * User-Agent override for requests in this folder; empty inherits. Omitted in legacy exports.
+   */
+  userAgent?: string;
+
+  /**
    * Default Authorization settings inherited by requests unless overridden.
    */
   auth?: AuthConfig;
@@ -520,6 +540,11 @@ export interface CollectionExport {
    * Headers sent with every request in this collection.
    */
   headers: KeyValue[];
+
+  /**
+   * User-Agent override for requests in this collection; empty inherits global. Omitted in legacy exports.
+   */
+  userAgent?: string;
 
   /**
    * Default Authorization settings inherited by requests unless overridden.

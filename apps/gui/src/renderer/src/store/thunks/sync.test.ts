@@ -50,6 +50,7 @@ function sampleCollection(id: number, name: string): Collection {
     variables: [],
     headers: [],
     auth: defaultAuth(),
+    userAgent: '',
     pre_request_script: '',
     post_request_script: '',
     pre_request_scripts: [],

@@ -211,6 +211,7 @@ describe('entityMappers', () => {
         name: 'Firestore Collection',
         variables: [{ key: 'env', value: 'dev', defaultValue: '', share: false }],
         headers: [{ key: 'X-Test', value: '1', enabled: true }],
+        userAgent: '',
         auth: defaultAuth(),
         pre_request_script: '',
         post_request_script: '',
@@ -219,6 +220,15 @@ describe('entityMappers', () => {
         created_at: '2024-02-01T00:00:00.000Z',
         color: null
       });
+    });
+
+    it('docToCollection reads camelCase userAgent from Firestore documents', () => {
+      expect(
+        docToCollection(10, {
+          name: 'UA Collection',
+          userAgent: 'HarborClient/1.0'
+        }).userAgent
+      ).toBe('HarborClient/1.0');
     });
 
     it('maps an environment document via docToEnvironment', () => {

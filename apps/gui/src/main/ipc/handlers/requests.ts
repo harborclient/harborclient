@@ -41,7 +41,7 @@ export function registerRequestHandlers(db: IStorage): void {
     db.renameFolder(id, folderName)
   );
 
-  // Updates a folder's name, variables, headers, auth, and scripts.
+  // Updates a folder's name, variables, headers, auth, User-Agent, and scripts.
   handle(
     'folders:update',
     ipcArgSchemas.folderUpdate,
@@ -54,6 +54,7 @@ export function registerRequestHandlers(db: IStorage): void {
       preRequestScript,
       postRequestScript,
       auth,
+      userAgent,
       preRequestScripts,
       postRequestScripts
     ) =>
@@ -65,6 +66,7 @@ export function registerRequestHandlers(db: IStorage): void {
         preRequestScript,
         postRequestScript,
         auth,
+        userAgent,
         preRequestScripts,
         postRequestScripts
       )

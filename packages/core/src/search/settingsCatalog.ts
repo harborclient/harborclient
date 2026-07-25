@@ -10,6 +10,7 @@ export type SettingId =
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
+  | 'general.userAgent'
   | 'general.scrollbarAutoHide'
   | 'general.wrapTabs'
   | 'general.closeToTray'
@@ -212,6 +213,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Follow redirects',
     description: 'When disabled, 3xx responses are returned without following Location.',
     keywords: ['redirect', '3xx', 'location']
+  },
+  {
+    id: 'general.userAgent',
+    section: 'general',
+    kind: 'field',
+    label: 'User-Agent',
+    description:
+      'Default User-Agent header for outbound HTTP. Collection, folder, and request overrides take precedence; a key/value User-Agent header wins over all of them.',
+    keywords: ['user-agent', 'user agent', 'ua', 'browser', 'client', 'header']
   },
   {
     id: 'general.scrollbarAutoHide',

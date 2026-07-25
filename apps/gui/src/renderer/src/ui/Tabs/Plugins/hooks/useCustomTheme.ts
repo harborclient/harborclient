@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ThemeColorToken } from '@harborclient/sdk';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import {
   customThemeToEnvelope,
   formatCustomThemeValue
@@ -26,10 +26,12 @@ import {
 import { applyCustomThemeColors, applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import {
   inferActiveThemeType,
+  readActiveThemeMetrics,
   readActiveThemePalette
 } from '#/renderer/src/ui/Tabs/Plugins/activeThemePalette';
 import {
   DEFAULT_CUSTOM_THEME_TITLE,
+  getDefaultCustomThemeMetrics,
   getDefaultCustomThemePalette
 } from '#/renderer/src/ui/Tabs/Plugins/customThemeDefaults';
 import { shouldPromptRenamedThemeSave } from '#/renderer/src/ui/Tabs/Plugins/shouldPromptRenamedThemeSave';
@@ -66,9 +68,14 @@ export interface CustomThemeDraft {
   type: CustomThemeType;
 
   /**
-   * Token overrides without the `--mac-` prefix.
+   * Color token overrides without the `--mac-` prefix.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Typography and geometry token overrides without the `--mac-` prefix.
+   */
+  metrics: Partial<Record<ThemeMetricToken, string>>;
 
   /**
    * Optional extra CSS appended after token overrides when the theme is applied.
@@ -97,6 +104,7 @@ export interface UseCustomThemeResult {
   canRedo: boolean;
   renamePrompt: RenamedThemeSavePrompt | null;
   handleColorChange: (token: ThemeColorToken, value: string) => void;
+  handleMetricChange: (token: ThemeMetricToken, value: string) => void;
   handleTitleChange: (title: string) => void;
   handleTitleBlur: () => void;
   handleTypeChange: (type: CustomThemeType) => void;
@@ -187,7 +195,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         const seeded: CustomThemeDraft = {
           title: DEFAULT_CUSTOM_THEME_TITLE,
           type,
-          colors: readActiveThemePalette(type)
+          colors: readActiveThemePalette(type),
+          metrics: readActiveThemeMetrics(type)
         };
         dispatch(initializeSession({ draft: seeded, activeTheme: theme }));
       })();
@@ -211,7 +220,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         const seeded: CustomThemeDraft = {
           title: DEFAULT_CUSTOM_THEME_TITLE,
           type: 'light',
-          colors: getDefaultCustomThemePalette('light')
+          colors: getDefaultCustomThemePalette('light'),
+          metrics: getDefaultCustomThemeMetrics('light')
         };
         dispatch(initializeSession({ draft: seeded, activeTheme: theme }));
         return;
@@ -222,6 +232,10 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         title: customTheme.title,
         type: customTheme.type,
         colors: { ...customTheme.colors },
+        metrics: {
+          ...getDefaultCustomThemeMetrics(customTheme.type),
+          ...(customTheme.metrics ?? {})
+        },
         ...(customTheme.stylesheet !== undefined ? { stylesheet: customTheme.stylesheet } : {})
       };
       dispatch(initializeSession({ draft: loaded, activeTheme: theme }));
@@ -244,22 +258,16 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
     if (loading) {
       return;
     }
-    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet);
+    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet, draft.metrics);
   }, [draft, loading]);
 
   /**
-   * Updates one token color in the draft, coalescing rapid picker drags into one undo step.
+   * Records a debounced draft update, coalescing rapid edits into one undo step.
+   *
+   * @param next - Next Designer draft snapshot.
    */
-  const handleColorChange = useCallback(
-    (token: ThemeColorToken, value: string): void => {
-      const next: CustomThemeDraft = {
-        ...draft,
-        colors: {
-          ...draft.colors,
-          [token]: value
-        }
-      };
-
+  const scheduleDebouncedDraft = useCallback(
+    (next: CustomThemeDraft): void => {
       if (debounceBaselineRef.current == null) {
         debounceBaselineRef.current = draft;
       }
@@ -280,6 +288,38 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
       }, THEME_HISTORY_DEBOUNCE_MS);
     },
     [dispatch, draft]
+  );
+
+  /**
+   * Updates one token color in the draft, coalescing rapid picker drags into one undo step.
+   */
+  const handleColorChange = useCallback(
+    (token: ThemeColorToken, value: string): void => {
+      scheduleDebouncedDraft({
+        ...draft,
+        colors: {
+          ...draft.colors,
+          [token]: value
+        }
+      });
+    },
+    [draft, scheduleDebouncedDraft]
+  );
+
+  /**
+   * Updates one metric token in the draft, coalescing rapid edits into one undo step.
+   */
+  const handleMetricChange = useCallback(
+    (token: ThemeMetricToken, value: string): void => {
+      scheduleDebouncedDraft({
+        ...draft,
+        metrics: {
+          ...draft.metrics,
+          [token]: value
+        }
+      });
+    },
+    [draft, scheduleDebouncedDraft]
   );
 
   /**
@@ -310,7 +350,8 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         recordImmediate({
           ...draft,
           type,
-          colors: getDefaultCustomThemePalette(type)
+          colors: getDefaultCustomThemePalette(type),
+          metrics: getDefaultCustomThemeMetrics(type)
         })
       );
     },
@@ -341,6 +382,7 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
           title: draft.title,
           type: draft.type,
           colors: draft.colors,
+          metrics: draft.metrics,
           ...(draft.stylesheet !== undefined ? { stylesheet: draft.stylesheet } : {})
         });
         const nextDraft: CustomThemeDraft = {
@@ -348,6 +390,10 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
           title: saved.title,
           type: saved.type,
           colors: { ...saved.colors },
+          metrics: {
+            ...getDefaultCustomThemeMetrics(saved.type),
+            ...(saved.metrics ?? {})
+          },
           ...(saved.stylesheet !== undefined ? { stylesheet: saved.stylesheet } : {})
         };
         const themeValue = formatCustomThemeValue(saved.id);
@@ -412,6 +458,7 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         title: draft.title,
         type: draft.type,
         colors: draft.colors,
+        metrics: draft.metrics,
         ...(draft.stylesheet !== undefined ? { stylesheet: draft.stylesheet } : {})
       });
       const defaultPath = `${draft.title || DEFAULT_CUSTOM_THEME_TITLE}.json`;
@@ -441,6 +488,10 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
           title: imported.title,
           type: imported.type,
           colors: { ...imported.colors },
+          metrics: {
+            ...getDefaultCustomThemeMetrics(imported.type),
+            ...(imported.metrics ?? {})
+          },
           stylesheet: imported.stylesheet
         })
       );
@@ -482,6 +533,7 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
     canRedo,
     renamePrompt,
     handleColorChange,
+    handleMetricChange,
     handleTitleChange,
     handleTitleBlur,
     handleTypeChange,

@@ -172,6 +172,10 @@ export const saveRequestInput = z.object({
   comment: ipcComment,
   tags: ipcTags,
   auth: authConfig,
+  /**
+   * Request-level User-Agent override; empty inherits folder → collection → global.
+   */
+  userAgent: z.string().optional(),
   folder_id: nullableFolderId.optional()
 }) satisfies z.ZodType<SaveRequestInput>;
 
@@ -315,7 +319,15 @@ export const generalSettings = z.object({
     password: z.string()
   }),
   globalVariables: z.array(variable),
-  logFilePath: z.string()
+  logFilePath: z.string(),
+  /**
+   * Global default User-Agent when no scoped override is set.
+   */
+  userAgent: z.string(),
+  /**
+   * User-added User-Agent presets merged with built-ins in the UI.
+   */
+  customUserAgents: z.array(z.string())
 }) satisfies z.ZodType<GeneralSettings>;
 
 /**
@@ -788,6 +800,7 @@ export const ipcArgSchemas = {
     z.string(),
     z.string(),
     authConfig,
+    z.string(),
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),
@@ -820,6 +833,7 @@ export const ipcArgSchemas = {
     z.string(),
     z.string(),
     authConfig,
+    z.string(),
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),

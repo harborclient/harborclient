@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '../auth';
+import { DEFAULT_GENERAL_SETTINGS } from '../generalSettings';
 import type { ICookieJar } from '../interfaces';
 import type { ScriptRequestContext } from '../types';
+import { DEFAULT_USER_AGENT } from '../userAgent';
 import { runRequest } from './RequestRunner';
 
 /**
@@ -95,6 +97,114 @@ describe('RequestRunner', () => {
         headers: [{ key: 'X-Token', value: 'secret', enabled: true }],
         params: [{ key: 'q', value: 'users', enabled: true }],
         body: '{"token":"secret"}'
+      }),
+      undefined
+    );
+  });
+
+  it('injects the global User-Agent when no scoped override or header exists', async () => {
+    const transport = vi.fn(async () => ({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '',
+      timeMs: 1,
+      sizeBytes: 0
+    }));
+
+    await runRequest(
+      { request: createRequest('https://example.test') },
+      {
+        settings: { ...DEFAULT_GENERAL_SETTINGS, userAgent: DEFAULT_USER_AGENT },
+        cookieJar: createCookieJar(),
+        transport
+      }
+    );
+
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: [{ key: 'User-Agent', value: DEFAULT_USER_AGENT, enabled: true }]
+      }),
+      undefined
+    );
+  });
+
+  it('prefers request User-Agent over folder, collection, and general', async () => {
+    const transport = vi.fn(async () => ({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '',
+      timeMs: 1,
+      sizeBytes: 0
+    }));
+    const request = createRequest('https://example.test');
+    request.userAgent = 'Request/1';
+
+    await runRequest(
+      {
+        request,
+        folder: {
+          id: 1,
+          name: 'Folder',
+          variables: [],
+          headers: [],
+          userAgent: 'Folder/1',
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: ''
+        },
+        collection: {
+          id: 1,
+          name: 'Collection',
+          variables: [],
+          headers: [],
+          userAgent: 'Collection/1',
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: ''
+        }
+      },
+      {
+        settings: { ...DEFAULT_GENERAL_SETTINGS, userAgent: DEFAULT_USER_AGENT },
+        cookieJar: createCookieJar(),
+        transport
+      }
+    );
+
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: [{ key: 'User-Agent', value: 'Request/1', enabled: true }]
+      }),
+      undefined
+    );
+  });
+
+  it('skips User-Agent injection when a key/value header is set', async () => {
+    const transport = vi.fn(async () => ({
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      body: '',
+      timeMs: 1,
+      sizeBytes: 0
+    }));
+    const request = createRequest('https://example.test');
+    request.userAgent = 'Request/1';
+    request.headers = [{ key: 'User-Agent', value: 'Manual/1', enabled: true }];
+
+    await runRequest(
+      { request },
+      {
+        settings: { ...DEFAULT_GENERAL_SETTINGS, userAgent: DEFAULT_USER_AGENT },
+        cookieJar: createCookieJar(),
+        transport
+      }
+    );
+
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: [{ key: 'User-Agent', value: 'Manual/1', enabled: true }]
       }),
       undefined
     );

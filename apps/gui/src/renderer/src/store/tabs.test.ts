@@ -31,6 +31,7 @@ const sampleDraft = (): RequestDraft => ({
   headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
   params: [{ key: 'page', value: '1', enabled: true }],
   auth: defaultAuth(),
+  userAgent: '',
   body: '{"ok":true}',
   body_type: 'json',
   body_raw: null,
@@ -87,7 +88,8 @@ describe('normalizeDraft', () => {
       post_request_scripts: [],
       comment: '',
       tags: '',
-      auth: defaultAuth()
+      auth: defaultAuth(),
+      userAgent: ''
     });
   });
 });
@@ -295,7 +297,8 @@ describe('reconcileRequestTab', () => {
     sort_order: 0,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
-    ...overrides
+    ...overrides,
+    userAgent: overrides.userAgent ?? ''
   });
 
   it('pulls external disk changes into a clean tab', () => {
@@ -393,6 +396,7 @@ describe('defaultDraft and emptyKeyValue', () => {
       headers: [emptyKeyValue()],
       params: [emptyKeyValue()],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -439,6 +443,7 @@ describe('draftFromSaved', () => {
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
       auth: defaultAuth(),
+      userAgent: '',
       body: 'body',
       body_type: 'text',
       body_raw: null,
@@ -465,6 +470,7 @@ describe('draftFromSaved', () => {
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
       auth: defaultAuth(),
+      userAgent: '',
       body: 'body',
       body_type: 'text',
       body_raw: null,
@@ -492,6 +498,7 @@ describe('draftFromSaved', () => {
         { key: 'inactive', value: 'no', enabled: false }
       ],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -522,6 +529,7 @@ describe('draftFromSaved', () => {
       headers: [],
       params: [{ key: 'q', value: '1', enabled: true }],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -552,6 +560,7 @@ describe('draftFromSaved', () => {
       headers: [],
       params: [{ key: 'foo', value: 'bar', enabled: true }],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -582,6 +591,7 @@ describe('draftFromSaved', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,

@@ -82,6 +82,65 @@ const themeColorsRecordSchema = z
     }
   });
 
+const themeMetricTokenSchema = z.enum([
+  'layout-font-family',
+  'layout-font-size',
+  'layout-border-width',
+  'layout-radius',
+  'breadcrumb-font-family',
+  'breadcrumb-font-size',
+  'breadcrumb-border-width',
+  'breadcrumb-radius',
+  'text-font-family',
+  'text-font-family-mono',
+  'text-font-size',
+  'text-font-size-sm',
+  'text-font-size-lg',
+  'interactive-font-family',
+  'interactive-font-size',
+  'interactive-border-width',
+  'interactive-radius',
+  'interactive-focus-ring-width',
+  'chrome-font-family',
+  'chrome-font-size',
+  'chrome-border-width',
+  'chrome-radius',
+  'tab-font-family',
+  'tab-font-size',
+  'tab-border-width',
+  'tab-radius',
+  'status-font-family',
+  'status-font-size',
+  'status-border-width',
+  'status-radius',
+  'method-font-family',
+  'method-font-size',
+  'method-border-width',
+  'method-radius',
+  'script-stage-font-family',
+  'script-stage-font-size',
+  'script-stage-border-width',
+  'script-stage-radius',
+  'git-font-family',
+  'git-font-size',
+  'git-border-width',
+  'git-radius',
+  'scrollbar-width'
+]);
+
+const themeMetricsRecordSchema = z
+  .record(z.string(), z.string().min(1))
+  .superRefine((metrics, ctx) => {
+    for (const key of Object.keys(metrics)) {
+      if (!themeMetricTokenSchema.safeParse(key).success) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Unknown theme metric token: ${key}`
+        });
+      }
+    }
+  });
+
 /**
  * Zod schema for saving a custom theme from the Designer form.
  */
@@ -90,6 +149,7 @@ export const customThemeSaveInputSchema = z.object({
   title: z.string().trim().min(1),
   type: customThemeTypeSchema,
   colors: themeColorsRecordSchema,
+  metrics: themeMetricsRecordSchema.optional(),
   stylesheet: z.string().optional()
 });
 
@@ -100,6 +160,7 @@ export const customThemeExportSchema = z.object({
   harborclientVersion: z.literal(1),
   harborclientExport: z.literal('theme'),
   theme: themeColorsRecordSchema,
+  metrics: themeMetricsRecordSchema.optional(),
   title: z.string().trim().min(1),
   type: customThemeTypeSchema,
   stylesheet: z.string().optional()
@@ -132,10 +193,15 @@ export function validateCustomThemeExport(data: unknown): CustomThemeExport {
  * @returns Portable export envelope without the id field.
  */
 export function customThemeToEnvelope(theme: CustomTheme): CustomThemeExport {
+  const metrics =
+    theme.metrics !== undefined && Object.keys(theme.metrics).length > 0
+      ? theme.metrics
+      : undefined;
   return {
     harborclientVersion: 1,
     harborclientExport: 'theme',
     theme: theme.colors,
+    ...(metrics !== undefined ? { metrics } : {}),
     title: theme.title,
     type: theme.type,
     ...(theme.stylesheet !== undefined && theme.stylesheet.trim().length > 0
@@ -157,6 +223,7 @@ export function envelopeToCustomTheme(id: string, envelope: CustomThemeExport): 
     title: envelope.title,
     type: envelope.type,
     colors: envelope.theme,
+    ...(envelope.metrics !== undefined ? { metrics: envelope.metrics } : {}),
     ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
   };
 }
@@ -172,6 +239,7 @@ export function envelopeToImportDraft(envelope: CustomThemeExport): CustomThemeI
     title: envelope.title,
     type: envelope.type,
     colors: envelope.theme,
+    ...(envelope.metrics !== undefined ? { metrics: envelope.metrics } : {}),
     ...(envelope.stylesheet !== undefined ? { stylesheet: envelope.stylesheet } : {})
   };
 }

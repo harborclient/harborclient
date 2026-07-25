@@ -109,6 +109,7 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     headers: req.headers,
     params: req.params,
     auth: req.auth,
+    userAgent: req.userAgent,
     body: req.body,
     body_type: req.body_type,
     body_raw: req.body_raw ?? null,
@@ -238,7 +239,8 @@ async function persistRequestTab(
     post_request_scripts: postRequestScripts,
     comment: currentDraft.comment ?? '',
     tags: normalizeRequestTags(currentDraft.tags ?? ''),
-    auth: currentDraft.auth
+    auth: currentDraft.auth,
+    userAgent: currentDraft.userAgent ?? ''
   });
 
   const savedDraft = cloneDraft(draftFromSaved(saved));
@@ -374,7 +376,8 @@ export const newRequestInFolder = createAsyncThunk<
     post_request_scripts: [],
     comment: '',
     tags: '',
-    auth: defaultAuth()
+    auth: defaultAuth(),
+    userAgent: ''
   });
 
   dispatch(openTabWithDraft(draftFromSaved(saved)));
@@ -413,7 +416,8 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
       post_request_scripts: req.post_request_scripts ?? [],
       comment: req.comment ?? '',
       tags: req.tags ?? '',
-      auth: req.auth
+      auth: req.auth,
+      userAgent: req.userAgent ?? ''
     });
 
     if (sourceIndex >= 0) {
@@ -458,7 +462,8 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
       post_request_scripts: [],
       comment: '',
       tags: '',
-      auth: defaultAuth()
+      auth: defaultAuth(),
+      userAgent: ''
     });
 
     dispatch(openTabWithDraft(draftFromSaved(saved)));
@@ -588,6 +593,7 @@ export async function executeRequestDraft(
     method: currentDraft.method,
     url: currentDraft.url,
     headers: currentDraft.headers.map((header) => ({ ...header })),
+    userAgent: currentDraft.userAgent ?? '',
     params: currentDraft.params.map((param) => ({ ...param })),
     body: currentDraft.body,
     bodyType: currentDraft.body_type,
@@ -764,6 +770,7 @@ export async function executeRequestDraft(
         scriptRequest,
         runtimeVars,
         {
+          settings: state.settings.general,
           fetchOAuthToken: (cacheKey, config) => window.api.oauthFetchToken(cacheKey, config, false)
         }
       );
@@ -825,6 +832,7 @@ export async function executeRequestDraft(
               preRequestScripts: collection.pre_request_scripts,
               postRequestScripts: collection.post_request_scripts,
               auth: collectionAuthConfig,
+              userAgent: collection.userAgent,
               connectionId: collection.connectionId
             })
           ).unwrap();
@@ -863,7 +871,8 @@ export async function executeRequestDraft(
               postRequestScript: folder.post_request_script,
               preRequestScripts: folder.pre_request_scripts,
               postRequestScripts: folder.post_request_scripts,
-              auth: folderAuthConfig
+              auth: folderAuthConfig,
+              userAgent: folder.userAgent
             })
           ).unwrap();
         } catch (err) {

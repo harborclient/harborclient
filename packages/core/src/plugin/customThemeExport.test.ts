@@ -83,6 +83,30 @@ describe('customThemeExport', () => {
     expect(result.success).toBe(false);
   });
 
+  it('validates optional metric tokens in theme exports', () => {
+    const exportWithMetrics = {
+      ...sampleExport,
+      metrics: {
+        'layout-font-size': '14px',
+        'tab-radius': '9999px',
+        'scrollbar-width': '8px'
+      }
+    };
+
+    expect(validateCustomThemeExport(exportWithMetrics)).toEqual(exportWithMetrics);
+  });
+
+  it('rejects unknown metric tokens in exports', () => {
+    const result = customThemeExportSchema.safeParse({
+      ...sampleExport,
+      metrics: {
+        'layout-font-size': '14px',
+        'not-a-metric': '1px'
+      }
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('accepts an optional stylesheet field on theme exports', () => {
     const exportWithStylesheet = {
       ...sampleExport,
@@ -171,6 +195,36 @@ describe('customThemeExport', () => {
     });
 
     expect(envelope.stylesheet).toBeUndefined();
+  });
+
+  it('round-trips metrics through envelope conversions', () => {
+    const exportWithMetrics = {
+      ...sampleExport,
+      metrics: {
+        'text-font-size': '15px',
+        'layout-radius': '0.5rem',
+        'scrollbar-width': '12px'
+      }
+    };
+
+    expect(envelopeToCustomTheme('metrics', exportWithMetrics)).toEqual({
+      id: 'metrics',
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      metrics: exportWithMetrics.metrics
+    });
+    expect(envelopeToImportDraft(exportWithMetrics).metrics).toEqual(exportWithMetrics.metrics);
+
+    const envelope = customThemeToEnvelope({
+      id: 'metrics',
+      title: 'Nord',
+      type: 'dark',
+      colors: sampleExport.theme,
+      metrics: exportWithMetrics.metrics
+    });
+    expect(envelope.metrics).toEqual(exportWithMetrics.metrics);
+    expect(envelope.metrics?.['scrollbar-width']).toBe('12px');
   });
 
   it('validates custom theme ids used as filename stems', () => {

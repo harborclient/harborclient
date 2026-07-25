@@ -11,6 +11,12 @@ import { TraceDetails } from './TraceDetails';
 
 interface Props {
   /**
+   * When true, section headers extend edge-to-edge by canceling typical parent
+   * horizontal padding (for example ResponseEditor's `p-3`).
+   */
+  flush?: boolean;
+
+  /**
    * HTTP send result that provides the request and response metadata.
    */
   result: SendResult;
@@ -40,6 +46,7 @@ interface Props {
  * Renders reusable request/response console details for footer rows and response tabs.
  */
 export function ConsoleDetails({
+  flush = false,
   result,
   logs = [],
   tests = [],
@@ -75,19 +82,44 @@ export function ConsoleDetails({
       )}
 
       <ControlledAccordion providerValue={accordion}>
-        <CollapsibleSection itemKey="general" title="General" initialEntered={sections.general}>
+        <CollapsibleSection
+          itemKey="general"
+          title="General"
+          initialEntered={sections.general}
+          flush={flush}
+        >
           <KeyValueTable rows={generalRows} />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="request" title="Request" initialEntered={sections.request}>
+        <CollapsibleSection
+          itemKey="request"
+          title="Request"
+          initialEntered={sections.request}
+          flush={flush}
+        >
           <KeyValueTable rows={requestHeaderRows} emptyMessage="No headers" />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="response" title="Response" initialEntered={sections.response}>
+        <CollapsibleSection
+          itemKey="response"
+          title="Response"
+          initialEntered={sections.response}
+          flush={flush}
+        >
           <KeyValueTable rows={responseHeaderRows} emptyMessage="No headers" />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="output" title="Logs" initialEntered={sections.output}>
+        <CollapsibleSection
+          itemKey="output"
+          title="Logs"
+          initialEntered={sections.output}
+          flush={flush}
+        >
           <OutputDetails logs={logs} tests={tests} scriptError={scriptError} />
         </CollapsibleSection>
-        <CollapsibleSection itemKey="trace" title="Trace" initialEntered={sections.trace}>
+        <CollapsibleSection
+          itemKey="trace"
+          title="Trace"
+          initialEntered={sections.trace}
+          flush={flush}
+        >
           <TraceDetails executionEvents={executionEvents} />
         </CollapsibleSection>
       </ControlledAccordion>

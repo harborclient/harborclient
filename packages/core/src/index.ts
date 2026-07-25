@@ -14,4 +14,5 @@ export * from './scriptRefs';
 export * from './scriptStage';
 export * from './parseJson';
 export * from './generalSettings';
+export * from './userAgent';
 export type * from './interfaces';

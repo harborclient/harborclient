@@ -8,6 +8,7 @@ export const FOLDER_SETTINGS_DEFAULTS: Pick<
   Folder,
   | 'variables'
   | 'headers'
+  | 'userAgent'
   | 'auth'
   | 'pre_request_script'
   | 'post_request_script'
@@ -16,6 +17,7 @@ export const FOLDER_SETTINGS_DEFAULTS: Pick<
 > = {
   variables: [],
   headers: [],
+  userAgent: '',
   auth: defaultAuth(),
   pre_request_script: '',
   post_request_script: '',

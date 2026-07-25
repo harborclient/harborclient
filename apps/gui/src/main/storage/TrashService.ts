@@ -77,6 +77,7 @@ function savedRequestToSaveInput(
     headers: request.headers,
     params: request.params,
     auth: request.auth,
+    userAgent: request.userAgent ?? '',
     body: request.body,
     body_type: request.body_type,
     body_raw: request.body_raw ?? null,
@@ -482,6 +483,7 @@ export class TrashService {
       payload.folder.pre_request_script,
       payload.folder.post_request_script,
       payload.folder.auth,
+      payload.folder.userAgent ?? '',
       payload.folder.pre_request_scripts,
       payload.folder.post_request_scripts
     );

@@ -26,6 +26,11 @@ export interface ScopedSettingsCoreFields {
   headers: KeyValue[];
 
   /**
+   * User-Agent override for this scope; empty inherits from the parent scope or global default.
+   */
+  userAgent: string;
+
+  /**
    * Default authorization settings for requests in this scope.
    */
   auth: AuthConfig;
@@ -79,6 +84,7 @@ export const serializeScopedSettingsForm = (fields: ScopedSettingsCoreFields): s
     name: fields.name.trim(),
     variables: cleanVariables(fields.variables),
     headers: cleanHeaders(fields.headers),
+    userAgent: fields.userAgent.trim(),
     pre_request_script: mirrorLegacyScriptString(fields.preRequestScripts),
     post_request_script: mirrorLegacyScriptString(fields.postRequestScripts),
     pre_request_scripts: normalizeScriptRefsForCompare(fields.preRequestScripts),
@@ -98,5 +104,6 @@ export const cleanScopedSettingsCoreFields = (
   ...fields,
   name: fields.name.trim(),
   variables: cleanVariables(fields.variables),
-  headers: cleanHeaders(fields.headers)
+  headers: cleanHeaders(fields.headers),
+  userAgent: fields.userAgent.trim()
 });

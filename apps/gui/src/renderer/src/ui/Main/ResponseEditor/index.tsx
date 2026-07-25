@@ -420,6 +420,7 @@ export function ResponseEditor({
       </SegmentedTabPanel>
       <SegmentedTabPanel value="console">
         <ConsoleDetails
+          flush
           result={response}
           logs={scriptLogs}
           tests={testResults}
@@ -484,15 +485,17 @@ export function ResponseEditor({
 
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-          <div className="mb-2 -mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
+          <div className="-mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
             <SegmentedTabs tabs={tabs} className="border-none" />
           </div>
 
           {usesFillLayout ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{tabPanels}</div>
-          ) : (
-            <Scrollbars axis="both" className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
               {tabPanels}
+            </div>
+          ) : (
+            <Scrollbars axis="both" className="-mx-3 flex min-h-0 flex-1 flex-col">
+              <div className="px-3 pb-3">{tabPanels}</div>
             </Scrollbars>
           )}
         </SegmentedTabsGroup>

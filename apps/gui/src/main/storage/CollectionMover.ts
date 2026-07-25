@@ -79,7 +79,10 @@ export class MoveCoordinator {
         record.headers,
         record.pre_request_script,
         record.post_request_script,
-        record.auth
+        record.auth,
+        record.userAgent ?? '',
+        record.pre_request_scripts,
+        record.post_request_scripts
       );
       targetProviderCollectionId = updated.id;
 
@@ -166,7 +169,10 @@ export class MoveCoordinator {
       record.headers,
       record.pre_request_script,
       record.post_request_script,
-      record.auth
+      record.auth,
+      record.userAgent ?? '',
+      record.pre_request_scripts,
+      record.post_request_scripts
     );
 
     await copyCollectionContents(backend, updated.id, folders, requests, documents);
@@ -334,6 +340,7 @@ async function copyCollectionContents(
       folder.pre_request_script,
       folder.post_request_script,
       folder.auth,
+      folder.userAgent ?? '',
       folder.pre_request_scripts,
       folder.post_request_scripts
     );
@@ -363,6 +370,7 @@ async function copyCollectionContents(
       headers: request.headers,
       params: request.params,
       auth: request.auth,
+      userAgent: request.userAgent ?? '',
       body: request.body,
       body_type: request.body_type,
       body_raw: request.body_raw ?? null,

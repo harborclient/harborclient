@@ -123,12 +123,17 @@ function serverToCollection(record: CollectionRecord, localId: number): Collecti
   };
   const preRequestScript = record.preRequestScript;
   const postRequestScript = record.postRequestScript;
+  const userAgent =
+    typeof (record as CollectionRecord & { userAgent?: unknown }).userAgent === 'string'
+      ? (record as CollectionRecord & { userAgent: string }).userAgent
+      : '';
   return {
     id: localId,
     uuid: record.id,
     name: record.name,
     variables: record.variables.map(normalizeVariable),
     headers: record.headers,
+    userAgent,
     auth: normalizeAuth(record.auth),
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
@@ -247,6 +252,7 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
     sort_order: record.sortOrder,
     variables: [],
     headers: [],
+    userAgent: '',
     auth: defaultAuth(),
     pre_request_script: '',
     post_request_script: '',
@@ -321,6 +327,10 @@ function serverToRequest(
     extended.post_request_scripts ?? extended.postRequestScripts
   );
   const bodyRawSource = extended.bodyRaw ?? extended.body_raw;
+  const userAgent =
+    typeof (extended as unknown as { userAgent?: unknown }).userAgent === 'string'
+      ? (extended as unknown as { userAgent: string }).userAgent
+      : '';
   return {
     id: localId,
     uuid: record.id,
@@ -331,6 +341,7 @@ function serverToRequest(
     headers: record.headers,
     params: record.params,
     auth: normalizeAuth(record.auth),
+    userAgent,
     body: record.body,
     body_type: record.bodyType,
     body_raw: bodyRawSource != null && bodyRawSource !== '' ? bodyRawSource : null,
@@ -365,6 +376,7 @@ function toServerRequestBody(
   headers: KeyValue[];
   params: KeyValue[];
   auth: TeamHubAuthConfig;
+  userAgent: string;
   body: string;
   bodyType: SaveRequestInput['body_type'];
   bodyRaw: string | null;
@@ -394,6 +406,7 @@ function toServerRequestBody(
     headers: KeyValue[];
     params: KeyValue[];
     auth: TeamHubAuthConfig;
+    userAgent: string;
     body: string;
     bodyType: SaveRequestInput['body_type'];
     bodyRaw: string | null;
@@ -413,6 +426,7 @@ function toServerRequestBody(
     headers: input.headers,
     params: input.params,
     auth: toTeamHubAuth(input.auth),
+    userAgent: typeof input.userAgent === 'string' ? input.userAgent : '',
     body: input.body,
     bodyType: input.body_type,
     bodyRaw: input.body_raw ?? null,
@@ -528,6 +542,18 @@ export class TeamHubStorage implements IStorage {
 
   /**
    * Updates collection metadata on the server.
+   *
+   * @param id - Provider-local collection id.
+   * @param name - New display name.
+   * @param variables - Collection-scoped variables.
+   * @param headers - Headers sent with every request in the collection.
+   * @param preRequestScript - Script run before each request in the collection.
+   * @param postRequestScript - Script run after each request in the collection.
+   * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
+   * @param preRequestScripts - Ordered collection pre-request script references.
+   * @param postRequestScripts - Ordered collection post-request script references.
+   * @returns The updated collection.
    */
   async updateCollection(
     id: number,
@@ -537,6 +563,7 @@ export class TeamHubStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Collection> {
@@ -554,10 +581,14 @@ export class TeamHubStorage implements IStorage {
       preRequestScript: preColumn,
       postRequestScript: postColumn,
       auth: toTeamHubAuth(auth),
+      userAgent,
       pre_request_scripts: preScripts.json,
       post_request_scripts: postScripts.json
     } as Parameters<TeamHubClient['updateCollection']>[1]);
-    return serverToCollection(record, id);
+    return {
+      ...serverToCollection(record, id),
+      userAgent
+    };
   }
 
   /**
@@ -596,11 +627,12 @@ export class TeamHubStorage implements IStorage {
       name: collection.name,
       variables: collection.variables,
       headers: collection.headers,
+      userAgent: collection.userAgent,
       auth: toTeamHubAuth(collection.auth),
       preRequestScript: collection.pre_request_script,
       postRequestScript: collection.post_request_script,
       color: serializeSidebarColor(color)
-    });
+    } as Parameters<TeamHubClient['updateCollection']>[1]);
     return serverToCollection(record, localId);
   }
 
@@ -863,6 +895,7 @@ export class TeamHubStorage implements IStorage {
       method: existing.method,
       url: existing.url,
       headers: existing.headers,
+      userAgent: existing.userAgent,
       params: existing.params,
       auth: existing.auth,
       body: existing.body,
@@ -1085,6 +1118,7 @@ export class TeamHubStorage implements IStorage {
       ...folder,
       variables: stored.variables,
       headers: stored.headers,
+      userAgent: stored.userAgent,
       auth: stored.auth,
       pre_request_script: stored.pre_request_script,
       post_request_script: stored.post_request_script,
@@ -1112,6 +1146,7 @@ export class TeamHubStorage implements IStorage {
       settings.preRequestScript,
       settings.postRequestScript,
       settings.auth,
+      settings.userAgent,
       settings.preRequestScripts,
       settings.postRequestScripts
     );
@@ -1170,15 +1205,18 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
-   * Updates a folder name on the server and persists other settings in the local overlay.
+   * Updates a folder's name on the server and stores settings locally.
    *
    * @param id - Provider-local folder id.
    * @param name - New display name.
-   * @param variables - Folder-scoped variables (stored locally).
-   * @param headers - Folder headers (stored locally).
-   * @param preRequestScript - Folder pre-request script (stored locally).
-   * @param postRequestScript - Folder post-request script (stored locally).
-   * @param auth - Folder auth (stored locally).
+   * @param variables - Folder-scoped variables.
+   * @param headers - Headers sent with every request in the folder.
+   * @param preRequestScript - Folder pre-request script.
+   * @param postRequestScript - Folder post-request script.
+   * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
+   * @param preRequestScripts - Ordered folder pre-request script references.
+   * @param postRequestScripts - Ordered folder post-request script references.
    * @returns The updated folder with locally stored settings merged.
    */
   async updateFolder(
@@ -1189,6 +1227,7 @@ export class TeamHubStorage implements IStorage {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts: ScriptRef[] = [],
     postRequestScripts: ScriptRef[] = []
   ): Promise<Folder> {
@@ -1197,6 +1236,7 @@ export class TeamHubStorage implements IStorage {
       variables,
       headers,
       auth,
+      userAgent,
       preRequestScript,
       postRequestScript,
       preRequestScripts,
@@ -1344,6 +1384,7 @@ export class TeamHubStorage implements IStorage {
       name: collection.name,
       variables: maskVariablesForExport(collection.variables),
       headers: collection.headers,
+      userAgent: collection.userAgent,
       auth: collection.auth,
       pre_request_script: collection.pre_request_script,
       post_request_script: collection.post_request_script,
@@ -1372,6 +1413,7 @@ export class TeamHubStorage implements IStorage {
       exportData.pre_request_script,
       exportData.post_request_script,
       exportData.auth ?? defaultAuth(),
+      typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
       resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
@@ -1418,6 +1460,7 @@ export class TeamHubStorage implements IStorage {
         method: request.method,
         url: request.url,
         headers: request.headers,
+        userAgent: fields.userAgent,
         params: request.params,
         auth: request.auth ?? defaultAuth(),
         body: request.body,
@@ -1510,6 +1553,7 @@ export class TeamHubStorage implements IStorage {
       exportData.pre_request_script,
       exportData.post_request_script,
       exportData.auth ?? defaultAuth(),
+      typeof exportData.userAgent === 'string' ? exportData.userAgent : '',
       resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
       resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
@@ -1566,6 +1610,7 @@ export class TeamHubStorage implements IStorage {
         method: fields.method,
         url: fields.url,
         headers: request.headers,
+        userAgent: fields.userAgent,
         params: request.params,
         auth: request.auth ?? defaultAuth(),
         body: fields.body,

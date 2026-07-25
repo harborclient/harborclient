@@ -1,9 +1,14 @@
-import type { ThemeColorToken } from '@harborclient/sdk';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 
 /**
  * Base appearance mode for a user-authored custom theme.
  */
 export type CustomThemeType = 'light' | 'dark' | 'high-contrast';
+
+/**
+ * Designer control kind for a metric token field.
+ */
+export type CustomThemeMetricControlKind = 'font-family' | 'font-size' | 'length';
 
 /**
  * User-authored theme stored under `{userData}/custom_themes/<id>.json`.
@@ -25,9 +30,14 @@ export interface CustomTheme {
   type: CustomThemeType;
 
   /**
-   * Token overrides without the `--mac-` prefix.
+   * Color token overrides without the `--mac-` prefix.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Typography and geometry token overrides without the `--mac-` prefix.
+   */
+  metrics?: Partial<Record<ThemeMetricToken, string>>;
 
   /**
    * Optional extra CSS appended after token overrides when the theme is applied.
@@ -55,9 +65,14 @@ export interface CustomThemeExport {
   harborclientExport: 'theme';
 
   /**
-   * Token overrides without the `--mac-` prefix.
+   * Color token overrides without the `--mac-` prefix.
    */
   theme: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Typography and geometry token overrides without the `--mac-` prefix.
+   */
+  metrics?: Partial<Record<ThemeMetricToken, string>>;
 
   /**
    * Human-readable theme title.
@@ -91,9 +106,14 @@ export interface CustomThemeImportDraft {
   type: CustomThemeType;
 
   /**
-   * Imported token overrides.
+   * Imported color token overrides.
    */
   colors: Partial<Record<ThemeColorToken, string>>;
+
+  /**
+   * Imported typography and geometry token overrides.
+   */
+  metrics?: Partial<Record<ThemeMetricToken, string>>;
 
   /**
    * Optional extra CSS from the import envelope.
@@ -114,6 +134,21 @@ export interface CustomThemeTokenGroup {
    * Ordered token keys in this group.
    */
   tokens: ThemeColorToken[];
+}
+
+/**
+ * One labeled group of theme metric tokens for the Designer grid.
+ */
+export interface CustomThemeMetricGroup {
+  /**
+   * Section heading shown above a metric token group.
+   */
+  label: string;
+
+  /**
+   * Ordered metric token keys in this group.
+   */
+  tokens: ThemeMetricToken[];
 }
 
 /**
@@ -171,6 +206,55 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'git-uncommitted': 'Git uncommitted',
   'git-unstaged': 'Git unstaged',
   'git-untracked': 'Git untracked'
+};
+
+/**
+ * Human-readable labels for each theme metric token in the Designer grid.
+ */
+export const CUSTOM_THEME_METRIC_LABELS: Record<ThemeMetricToken, string> = {
+  'layout-font-family': 'Font family',
+  'layout-font-size': 'Font size',
+  'layout-border-width': 'Border width',
+  'layout-radius': 'Radius',
+  'breadcrumb-font-family': 'Font family',
+  'breadcrumb-font-size': 'Font size',
+  'breadcrumb-border-width': 'Border width',
+  'breadcrumb-radius': 'Radius',
+  'text-font-family': 'Font family',
+  'text-font-family-mono': 'Mono font family',
+  'text-font-size': 'Font size',
+  'text-font-size-sm': 'Font size (sm)',
+  'text-font-size-lg': 'Font size (lg)',
+  'interactive-font-family': 'Font family',
+  'interactive-font-size': 'Font size',
+  'interactive-border-width': 'Border width',
+  'interactive-radius': 'Radius',
+  'interactive-focus-ring-width': 'Focus ring width',
+  'chrome-font-family': 'Font family',
+  'chrome-font-size': 'Font size',
+  'chrome-border-width': 'Border width',
+  'chrome-radius': 'Radius',
+  'tab-font-family': 'Font family',
+  'tab-font-size': 'Font size',
+  'tab-border-width': 'Border width',
+  'tab-radius': 'Radius',
+  'status-font-family': 'Font family',
+  'status-font-size': 'Font size',
+  'status-border-width': 'Border width',
+  'status-radius': 'Radius',
+  'method-font-family': 'Font family',
+  'method-font-size': 'Font size',
+  'method-border-width': 'Border width',
+  'method-radius': 'Radius',
+  'script-stage-font-family': 'Font family',
+  'script-stage-font-size': 'Font size',
+  'script-stage-border-width': 'Border width',
+  'script-stage-radius': 'Radius',
+  'git-font-family': 'Font family',
+  'git-font-size': 'Font size',
+  'git-border-width': 'Border width',
+  'git-radius': 'Radius',
+  'scrollbar-width': 'Width'
 };
 
 /**
@@ -266,9 +350,88 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
 ];
 
 /**
+ * Ordered metric token groups for the Designer metrics grid.
+ */
+export const CUSTOM_THEME_METRIC_GROUPS: CustomThemeMetricGroup[] = [
+  {
+    label: 'Layout',
+    tokens: ['layout-font-family', 'layout-font-size', 'layout-border-width', 'layout-radius']
+  },
+  {
+    label: 'Breadcrumb',
+    tokens: [
+      'breadcrumb-font-family',
+      'breadcrumb-font-size',
+      'breadcrumb-border-width',
+      'breadcrumb-radius'
+    ]
+  },
+  {
+    label: 'Text',
+    tokens: [
+      'text-font-family',
+      'text-font-family-mono',
+      'text-font-size',
+      'text-font-size-sm',
+      'text-font-size-lg'
+    ]
+  },
+  {
+    label: 'Interactive',
+    tokens: [
+      'interactive-font-family',
+      'interactive-font-size',
+      'interactive-border-width',
+      'interactive-radius',
+      'interactive-focus-ring-width'
+    ]
+  },
+  {
+    label: 'Chrome',
+    tokens: ['chrome-font-family', 'chrome-font-size', 'chrome-border-width', 'chrome-radius']
+  },
+  {
+    label: 'Tabs',
+    tokens: ['tab-font-family', 'tab-font-size', 'tab-border-width', 'tab-radius']
+  },
+  {
+    label: 'Status',
+    tokens: ['status-font-family', 'status-font-size', 'status-border-width', 'status-radius']
+  },
+  {
+    label: 'HTTP methods',
+    tokens: ['method-font-family', 'method-font-size', 'method-border-width', 'method-radius']
+  },
+  {
+    label: 'Script stages',
+    tokens: [
+      'script-stage-font-family',
+      'script-stage-font-size',
+      'script-stage-border-width',
+      'script-stage-radius'
+    ]
+  },
+  {
+    label: 'Git',
+    tokens: ['git-font-family', 'git-font-size', 'git-border-width', 'git-radius']
+  },
+  {
+    label: 'Scrollbar',
+    tokens: ['scrollbar-width']
+  }
+];
+
+/**
  * All theme color tokens in display order for the Designer grid.
  */
 export const CUSTOM_THEME_TOKENS: ThemeColorToken[] = CUSTOM_THEME_TOKEN_GROUPS.flatMap(
+  (group) => group.tokens
+);
+
+/**
+ * All theme metric tokens in display order for the Designer grid.
+ */
+export const CUSTOM_THEME_METRICS: ThemeMetricToken[] = CUSTOM_THEME_METRIC_GROUPS.flatMap(
   (group) => group.tokens
 );
 
@@ -293,3 +456,21 @@ export const CUSTOM_THEME_SWATCH_TOKENS: ThemeColorToken[] = [
   'method-get',
   'method-post'
 ];
+
+/**
+ * Returns the Designer control kind for a metric token.
+ *
+ * @param token - Metric token id without the `--mac-` prefix.
+ * @returns Control kind used to render the metric field.
+ */
+export function customThemeMetricControlKind(
+  token: ThemeMetricToken
+): CustomThemeMetricControlKind {
+  if (token.includes('font-family')) {
+    return 'font-family';
+  }
+  if (token.includes('font-size')) {
+    return 'font-size';
+  }
+  return 'length';
+}

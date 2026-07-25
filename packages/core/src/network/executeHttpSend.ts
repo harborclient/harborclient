@@ -1,6 +1,7 @@
 import type { PluginHttpResponse } from '../plugin/types';
 import type { GeneralSettings, SendRequestInput, SendResult } from '../types';
 import type { ICookieJar, PluginHooks, SettingsProvider } from '../interfaces';
+import { applyUserAgentHeader, DEFAULT_USER_AGENT } from '../userAgent';
 import { QueryString, Requester } from '@harborclient/http';
 
 /**
@@ -49,17 +50,19 @@ export async function executeHttpSend(
   dependencies: ExecuteHttpSendDependencies,
   signal?: AbortSignal
 ): Promise<SendResult> {
+  const general = resolveGeneralSettings(dependencies.settings);
+  const withUserAgent: SendRequestInput = {
+    ...req,
+    headers: applyUserAgentHeader(req.headers, {
+      general: general.userAgent || DEFAULT_USER_AGENT
+    })
+  };
   const hookedRequest = dependencies.pluginHooks?.beforeSend
-    ? await dependencies.pluginHooks.beforeSend(req)
-    : req;
+    ? await dependencies.pluginHooks.beforeSend(withUserAgent)
+    : withUserAgent;
   const url = new QueryString().buildUrl(hookedRequest.url, hookedRequest.params);
   const cookieHeader = dependencies.cookieJar.buildCookieHeader(url) ?? undefined;
-  const result = await new Requester().executeRequest(
-    hookedRequest,
-    resolveGeneralSettings(dependencies.settings),
-    signal,
-    cookieHeader
-  );
+  const result = await new Requester().executeRequest(hookedRequest, general, signal, cookieHeader);
   if (result.request?.url) {
     dependencies.cookieJar.captureSetCookies(result.request.url, result.setCookieHeaders);
   }

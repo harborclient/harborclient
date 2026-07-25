@@ -6,6 +6,7 @@ import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { ColorTokenGrid } from './ColorTokenGrid';
+import { MetricTokenGrid } from './MetricTokenGrid';
 import { SaveRenamedThemeModal } from './SaveRenamedThemeModal';
 import { useCustomTheme } from '#/renderer/src/ui/Tabs/Plugins/hooks/useCustomTheme';
 
@@ -37,6 +38,7 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
     canRedo,
     renamePrompt,
     handleColorChange,
+    handleMetricChange,
     handleTitleChange,
     handleTitleBlur,
     handleTypeChange,
@@ -198,7 +200,25 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
               </FormGroup>
             </div>
 
-            <ColorTokenGrid colors={draft.colors} onChange={handleColorChange} />
+            <section aria-labelledby="designer-colors-heading">
+              <h2
+                id="designer-colors-heading"
+                className="m-0 mb-4 text-[18px] font-semibold text-text"
+              >
+                Colors
+              </h2>
+              <ColorTokenGrid colors={draft.colors} onChange={handleColorChange} />
+            </section>
+
+            <section aria-labelledby="designer-metrics-heading">
+              <h2
+                id="designer-metrics-heading"
+                className="m-0 mb-4 text-[18px] font-semibold text-text"
+              >
+                Typography & geometry
+              </h2>
+              <MetricTokenGrid metrics={draft.metrics} onChange={handleMetricChange} />
+            </section>
 
             <div className="flex flex-wrap gap-2">
               <Button

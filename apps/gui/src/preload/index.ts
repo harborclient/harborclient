@@ -152,6 +152,9 @@ function createCollection(name: string, connectionId?: string): Promise<Collecti
  * @param preRequestScript - Collection pre-request script.
  * @param postRequestScript - Collection post-request script.
  * @param auth - Default Authorization settings for requests in the collection.
+ * @param userAgent - User-Agent override; empty inherits the global default.
+ * @param preRequestScripts - Ordered collection pre-request script references.
+ * @param postRequestScripts - Ordered collection post-request script references.
  * @returns The updated collection.
  */
 function updateCollection(
@@ -162,6 +165,7 @@ function updateCollection(
   preRequestScript: string,
   postRequestScript: string,
   auth: AuthConfig,
+  userAgent: string,
   preRequestScripts: ScriptRef[] = [],
   postRequestScripts: ScriptRef[] = []
 ): Promise<Collection> {
@@ -174,6 +178,7 @@ function updateCollection(
     preRequestScript,
     postRequestScript,
     auth,
+    userAgent,
     preRequestScripts,
     postRequestScripts
   );
@@ -827,7 +832,7 @@ function renameFolder(id: number, name: string): Promise<Folder> {
 }
 
 /**
- * Updates a folder's name, variables, headers, auth, and scripts.
+ * Updates a folder's name, variables, headers, auth, User-Agent, and scripts.
  *
  * @param id - Folder ID to update.
  * @param name - New display name.
@@ -836,6 +841,9 @@ function renameFolder(id: number, name: string): Promise<Folder> {
  * @param preRequestScript - Folder pre-request script.
  * @param postRequestScript - Folder post-request script.
  * @param auth - Default Authorization settings for requests in the folder.
+ * @param userAgent - User-Agent override; empty inherits collection → global.
+ * @param preRequestScripts - Ordered folder pre-request script references.
+ * @param postRequestScripts - Ordered folder post-request script references.
  * @returns The updated folder.
  */
 function updateFolder(
@@ -846,6 +854,7 @@ function updateFolder(
   preRequestScript: string,
   postRequestScript: string,
   auth: AuthConfig,
+  userAgent: string,
   preRequestScripts?: ScriptRef[],
   postRequestScripts?: ScriptRef[]
 ): Promise<Folder> {
@@ -858,6 +867,7 @@ function updateFolder(
     preRequestScript,
     postRequestScript,
     auth,
+    userAgent,
     preRequestScripts,
     postRequestScripts
   );

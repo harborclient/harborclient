@@ -44,6 +44,7 @@ function sampleDraft(
   comment: string;
   tags: string;
   auth: AuthConfig;
+  userAgent: string;
 } {
   return {
     id,
@@ -64,7 +65,8 @@ function sampleDraft(
     post_request_scripts: [] as ReturnType<typeof createInlineScriptRef>[],
     comment: '',
     tags: '',
-    auth: defaultAuth()
+    auth: defaultAuth(),
+    userAgent: ''
   };
 }
 

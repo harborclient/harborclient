@@ -263,6 +263,18 @@ export interface GeneralSettings {
   followRedirects: boolean;
 
   /**
+   * Default User-Agent header for outbound HTTP when no scoped override or
+   * key/value User-Agent header is set.
+   */
+  userAgent: string;
+
+  /**
+   * User-added User-Agent presets shown alongside the built-in list in every
+   * User-Agent control.
+   */
+  customUserAgents: string[];
+
+  /**
    * When true, custom OverlayScrollbars handles fade out when idle.
    */
   scrollbarAutoHide: boolean;

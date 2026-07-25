@@ -326,6 +326,7 @@ export function registerThemeContribution(
     title: theme.title,
     type: theme.type,
     colors: theme.colors,
+    metrics: theme.metrics,
     stylesheet: theme.stylesheet
   };
   return registerContribution(

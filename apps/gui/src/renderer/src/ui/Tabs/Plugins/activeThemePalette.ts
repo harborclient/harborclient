@@ -1,19 +1,19 @@
-import type { ThemeColorToken } from '@harborclient/sdk';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import { parseCustomThemeSource } from '@harborclient/core/plugin/customThemeExport';
 import { parsePluginThemeValue } from '@harborclient/core/plugin/types';
-import { CUSTOM_THEME_TOKENS } from '@harborclient/core/types/customTheme';
+import { CUSTOM_THEME_METRICS, CUSTOM_THEME_TOKENS } from '@harborclient/core/types/customTheme';
 import type { CustomThemeType } from '@harborclient/core/types/customTheme';
 import type { ThemeSource } from '@harborclient/core/types/settings';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { shouldUseHighContrastTheme } from '#/renderer/src/theme';
-import { getDefaultCustomThemePalette } from './customThemeDefaults';
+import { getDefaultCustomThemeMetrics, getDefaultCustomThemePalette } from './customThemeDefaults';
 
 /**
- * Maps a theme color token to its `--mac-*` CSS custom property name.
+ * Maps a theme token to its `--mac-*` CSS custom property name.
  *
- * @param token - Theme color token without the `--mac-` prefix.
+ * @param token - Theme color or metric token without the `--mac-` prefix.
  */
-function toCssVariable(token: ThemeColorToken): string {
+function toCssVariable(token: string): string {
   return `--mac-${token}`;
 }
 
@@ -36,6 +36,27 @@ export function readActiveThemePalette(
   }
 
   return colors;
+}
+
+/**
+ * Reads the currently applied theme metrics from resolved `--mac-*` values on `:root`.
+ *
+ * @param fallbackType - Base appearance used for per-token defaults when a value is missing.
+ * @returns Metric overrides suitable for seeding a new Designer draft.
+ */
+export function readActiveThemeMetrics(
+  fallbackType: CustomThemeType
+): Partial<Record<ThemeMetricToken, string>> {
+  const computed = getComputedStyle(document.documentElement);
+  const fallback = getDefaultCustomThemeMetrics(fallbackType);
+  const metrics: Partial<Record<ThemeMetricToken, string>> = {};
+
+  for (const token of CUSTOM_THEME_METRICS) {
+    const value = computed.getPropertyValue(toCssVariable(token)).trim();
+    metrics[token] = value.length > 0 ? value : fallback[token];
+  }
+
+  return metrics;
 }
 
 /**

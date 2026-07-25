@@ -223,13 +223,25 @@ describeSqlite('SqliteStorage uuid import', () => {
       { key: 'publicId', value: 'visible', defaultValue: '', share: true }
     ];
     const headers = [{ key: 'X-Test', value: '1', enabled: true }];
-    await db.updateFolder(folder.id, 'Auth', variables, headers, '', '', defaultAuth(), [], []);
+    await db.updateFolder(
+      folder.id,
+      'Auth',
+      variables,
+      headers,
+      '',
+      '',
+      defaultAuth(),
+      'FolderAgent/1.0',
+      [],
+      []
+    );
 
     const exported = await db.exportCollectionData(collection.id);
     expect(exported.folders?.[0]?.variables).toEqual([
       { key: 'token', value: '', defaultValue: 'fallback', share: false },
       { key: 'publicId', value: 'visible', defaultValue: '', share: true }
     ]);
+    expect(exported.folders?.[0]?.userAgent).toBe('FolderAgent/1.0');
 
     const imported = await db.importCollectionData(exported);
     const importedFolders = await db.listFolders(imported.id);
@@ -237,6 +249,7 @@ describeSqlite('SqliteStorage uuid import', () => {
     expect(importedFolders).toHaveLength(1);
     expect(importedFolders[0]?.variables).toEqual(exported.folders?.[0]?.variables);
     expect(importedFolders[0]?.headers).toEqual(headers);
+    expect(importedFolders[0]?.userAgent).toBe('FolderAgent/1.0');
   });
 
   it('updateCollectionFromImport reuses folder by uuid when name changes', async () => {

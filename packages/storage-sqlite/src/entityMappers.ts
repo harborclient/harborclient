@@ -51,6 +51,19 @@ function readString(value: unknown, fallback = ''): string {
 }
 
 /**
+ * Reads a persisted User-Agent override from SQL (`user_agent`) or Firestore (`userAgent`).
+ *
+ * @param row - Row or document fields that may include either key.
+ * @returns The override string, or empty when unset (inherit).
+ */
+function readPersistedUserAgent(row: Record<string, unknown>): string {
+  if (typeof row.user_agent === 'string') {
+    return row.user_agent;
+  }
+  return readString(row.userAgent);
+}
+
+/**
  * Returns whether a raw field value is absent (null, undefined, or blank string).
  *
  * @param value - Raw field value.
@@ -203,6 +216,7 @@ export function rowToCollection(row: Record<string, unknown>): Collection {
     name: readString(row.name),
     variables: readVariables(row.variables),
     headers: readJsonArray<KeyValue>(row.headers, []),
+    userAgent: readPersistedUserAgent(row),
     auth: readAuth(row.auth),
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
@@ -406,6 +420,7 @@ export function rowToFolder(row: Record<string, unknown>): Folder {
     sort_order: readNumber(row.sort_order),
     variables: readVariables(row.variables),
     headers: readJsonArray<KeyValue>(row.headers, []),
+    userAgent: readPersistedUserAgent(row),
     auth: readAuth(row.auth),
     pre_request_script: preRequestScript,
     post_request_script: postRequestScript,
@@ -432,6 +447,7 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     method: readString(row.method, 'GET') as HttpMethod,
     url: readString(row.url),
     headers: readJsonArray<KeyValue>(row.headers, []),
+    userAgent: readPersistedUserAgent(row),
     params: readJsonArray<KeyValue>(row.params, []),
     auth: readAuth(row.auth),
     body: readString(row.body),

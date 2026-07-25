@@ -11,6 +11,12 @@ import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 
 export interface ContentProps {
   /**
+   * When true, the section header breaks out of horizontal inset padding using
+   * negative margins (same technique as collection sidebar `-mr-2` headers).
+   */
+  flush?: boolean;
+
+  /**
    * Section title shown in the inspector header.
    */
   title: string;
@@ -32,6 +38,7 @@ export const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
   itemRef,
   state,
   toggle,
+  flush = false,
   title,
   children
 }: SectionItemProps): JSX.Element {
@@ -41,20 +48,22 @@ export const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
   const { status, isMounted, isEnter } = state;
 
   return (
-    <section ref={itemElementRef} className="border-b border-separator last:border-b-0">
-      <div className="hc-sidebar-section-header flex min-h-8 items-center bg-sidebar-section py-0.5">
+    <section ref={itemElementRef} className={`mb-1 last:mb-0${flush ? ' -mx-3' : ''}`}>
+      <div className="hc-sidebar-section-header mb-1 flex min-h-8 items-center justify-between gap-2 bg-sidebar-section py-0.5 pr-2">
         <button
           {...buttonProps}
           type="button"
-          className="flex w-full cursor-pointer items-center gap-1.5 border-none bg-transparent px-0 py-0 text-left text-[14px] font-medium app-no-drag"
+          className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-left"
         >
-          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <span className="ms-2 inline-flex h-4 w-4 shrink-0 items-center justify-center">
             <FaIcon
               icon={isEnter ? faChevronDown : faChevronRight}
-              className="h-3 w-3 text-sidebar-section-text"
+              className="h-2 w-2 text-sidebar-section-text"
             />
           </span>
-          <h3 className="m-0 text-[14px] font-medium text-sidebar-section-text">{title}</h3>
+          <h2 className="m-0 text-[15px] leading-none font-medium tracking-wide text-sidebar-section-text uppercase">
+            {title}
+          </h2>
         </button>
       </div>
       {isMounted ? (

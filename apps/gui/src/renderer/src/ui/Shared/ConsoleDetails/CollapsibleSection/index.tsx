@@ -10,6 +10,11 @@ interface Props extends ContentProps {
   itemKey: string;
 
   /**
+   * When true, the section header breaks out of horizontal inset padding.
+   */
+  flush?: boolean;
+
+  /**
    * Whether the section body starts expanded on first mount.
    */
   initialEntered: boolean;
@@ -31,10 +36,11 @@ export function CollapsibleSection({
   itemKey,
   title,
   initialEntered,
+  flush,
   children
 }: Props): JSX.Element {
   return (
-    <AccordionSection itemKey={itemKey} initialEntered={initialEntered} title={title}>
+    <AccordionSection itemKey={itemKey} initialEntered={initialEntered} title={title} flush={flush}>
       {children}
     </AccordionSection>
   );

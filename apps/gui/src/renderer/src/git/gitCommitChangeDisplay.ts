@@ -8,11 +8,11 @@ import type { GitCommitChangeStatus, GitRequestFileStatus } from '@harborclient/
 export function gitCommitChangeNameClass(status: GitCommitChangeStatus): string {
   switch (status) {
     case 'added':
-      return 'text-git-unstaged';
+      return 'hc-git-status-text text-git-unstaged';
     case 'modified':
-      return 'text-git-uncommitted';
+      return 'hc-git-status-text text-git-uncommitted';
     case 'deleted':
-      return 'text-muted line-through';
+      return 'hc-git-status-text text-muted line-through';
     default:
       return '';
   }
@@ -146,15 +146,15 @@ export function gitItemNameClass(status?: GitRequestFileStatus): string {
     return '';
   }
   if (status.isUntracked === true) {
-    return 'text-git-untracked';
+    return 'hc-git-status-text text-git-untracked';
   }
   switch (status.displayStatus) {
     case 'staged':
-      return 'text-git-staged';
+      return 'hc-git-status-text text-git-staged';
     case 'uncommitted':
-      return 'text-git-uncommitted';
+      return 'hc-git-status-text text-git-uncommitted';
     case 'unstaged':
-      return 'text-git-unstaged';
+      return 'hc-git-status-text text-git-unstaged';
     default:
       return '';
   }

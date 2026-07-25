@@ -7,6 +7,7 @@ import {
   normalizeCodeEditorTheme
 } from './codeEditorSettings';
 import type { GeneralSettings, ProxyProtocol, ProxySettings, Variable } from './types';
+import { DEFAULT_USER_AGENT, normalizeCustomUserAgents, normalizeUserAgent } from './userAgent';
 
 export { HARD_MAX_RESPONSE_SIZE_MB, DEFAULT_PROXY_SETTINGS };
 
@@ -24,6 +25,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  userAgent: DEFAULT_USER_AGENT,
+  customUserAgents: [],
   scrollbarAutoHide: false,
   wrapTabs: true,
   closeToTray: false,
@@ -184,6 +187,8 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     ),
     verifySsl: input.verifySsl !== false,
     followRedirects: input.followRedirects !== false,
+    userAgent: normalizeUserAgent(input.userAgent) || DEFAULT_USER_AGENT,
+    customUserAgents: normalizeCustomUserAgents(input.customUserAgents),
     scrollbarAutoHide: input.scrollbarAutoHide === true,
     wrapTabs: input.wrapTabs !== false,
     closeToTray: input.closeToTray === true,

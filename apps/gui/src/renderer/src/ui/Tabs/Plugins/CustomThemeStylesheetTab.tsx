@@ -68,13 +68,13 @@ export function CustomThemeStylesheetTab({ page, tabId }: Props): JSX.Element {
       return;
     }
 
-    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet);
+    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet, draft.metrics);
 
     if (committedStylesheet !== lastSyncedStylesheetRef.current) {
       lastSyncedStylesheetRef.current = committedStylesheet;
       setLocalStylesheet(committedStylesheet);
     }
-  }, [committedStylesheet, draft.colors, draft.stylesheet, draft.type, initialized]);
+  }, [committedStylesheet, draft.colors, draft.metrics, draft.stylesheet, draft.type, initialized]);
 
   /**
    * Commits the local stylesheet buffer to the Designer draft and applies live preview.
@@ -87,7 +87,7 @@ export function CustomThemeStylesheetTab({ page, tabId }: Props): JSX.Element {
       })
     );
     lastSyncedStylesheetRef.current = localStylesheet;
-    applyCustomThemeColors(draft.colors, draft.type, localStylesheet);
+    applyCustomThemeColors(draft.colors, draft.type, localStylesheet, draft.metrics);
   }, [dispatch, draft, localStylesheet]);
 
   /**
@@ -96,8 +96,8 @@ export function CustomThemeStylesheetTab({ page, tabId }: Props): JSX.Element {
   const handleDiscard = useCallback((): void => {
     setLocalStylesheet(committedStylesheet);
     lastSyncedStylesheetRef.current = committedStylesheet;
-    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet);
-  }, [committedStylesheet, draft.colors, draft.stylesheet, draft.type]);
+    applyCustomThemeColors(draft.colors, draft.type, draft.stylesheet, draft.metrics);
+  }, [committedStylesheet, draft.colors, draft.metrics, draft.stylesheet, draft.type]);
 
   if (!initialized) {
     return <></>;

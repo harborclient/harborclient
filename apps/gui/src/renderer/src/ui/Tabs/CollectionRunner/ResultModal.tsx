@@ -38,6 +38,7 @@ export function ResultModal({ result, onClose }: Props): JSX.Element | null {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none' as const,
       body_raw: null,

@@ -13,6 +13,10 @@ import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/co
 export interface TeamHubFolderSettingsPayload {
   variables: Variable[];
   headers: KeyValue[];
+  /**
+   * Folder-level User-Agent override; empty inherits collection → global.
+   */
+  userAgent: string;
   auth: AuthConfig;
   pre_request_script: string;
   post_request_script: string;
@@ -45,6 +49,7 @@ export class TeamHubFolderSettings {
         server_id TEXT PRIMARY KEY,
         variables TEXT NOT NULL DEFAULT '[]',
         headers TEXT NOT NULL DEFAULT '[]',
+        user_agent TEXT NOT NULL DEFAULT '',
         auth TEXT NOT NULL DEFAULT '${DEFAULT_AUTH_JSON.replace(/'/g, "''")}',
         pre_request_script TEXT NOT NULL DEFAULT '',
         post_request_script TEXT NOT NULL DEFAULT '',
@@ -52,6 +57,20 @@ export class TeamHubFolderSettings {
         post_request_scripts TEXT NOT NULL DEFAULT '[]'
       );
     `);
+    this.ensureUserAgentColumn();
+  }
+
+  /**
+   * Adds the user_agent column to existing folder_settings tables created before it existed.
+   */
+  private ensureUserAgentColumn(): void {
+    const columns = this.getDb().prepare(`PRAGMA table_info(folder_settings)`).all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((column) => column.name === 'user_agent')) {
+      return;
+    }
+    this.getDb().exec(`ALTER TABLE folder_settings ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''`);
   }
 
   /**
@@ -75,7 +94,7 @@ export class TeamHubFolderSettings {
   get(serverId: string): TeamHubFolderSettingsPayload | null {
     const row = this.getDb()
       .prepare(
-        `SELECT variables, headers, auth, pre_request_script, post_request_script,
+        `SELECT variables, headers, user_agent, auth, pre_request_script, post_request_script,
           pre_request_scripts, post_request_scripts
          FROM folder_settings WHERE server_id = ?`
       )
@@ -90,6 +109,7 @@ export class TeamHubFolderSettings {
     return {
       variables: parseVariables(row.variables),
       headers: parseJsonArray<KeyValue>(row.headers, []),
+      userAgent: typeof row.user_agent === 'string' ? row.user_agent : '',
       auth: parseAuth(row.auth),
       pre_request_script: preRequestScript,
       post_request_script: postRequestScript,
@@ -110,6 +130,7 @@ export class TeamHubFolderSettings {
       variables: Variable[];
       headers: KeyValue[];
       auth: AuthConfig;
+      userAgent: string;
       preRequestScript: string;
       postRequestScript: string;
       preRequestScripts: ScriptRef[];
@@ -128,12 +149,13 @@ export class TeamHubFolderSettings {
     this.getDb()
       .prepare(
         `INSERT INTO folder_settings (
-          server_id, variables, headers, auth,
+          server_id, variables, headers, user_agent, auth,
           pre_request_script, post_request_script, pre_request_scripts, post_request_scripts
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(server_id) DO UPDATE SET
           variables = excluded.variables,
           headers = excluded.headers,
+          user_agent = excluded.user_agent,
           auth = excluded.auth,
           pre_request_script = excluded.pre_request_script,
           post_request_script = excluded.post_request_script,
@@ -144,6 +166,7 @@ export class TeamHubFolderSettings {
         serverId,
         JSON.stringify(settings.variables),
         JSON.stringify(settings.headers),
+        settings.userAgent,
         JSON.stringify(normalizeAuth(settings.auth)),
         preScripts.legacy,
         postScripts.legacy,

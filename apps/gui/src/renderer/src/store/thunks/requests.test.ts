@@ -52,6 +52,7 @@ function savedFrom(input: SaveRequestInput): SavedRequest {
     headers: input.headers,
     params: input.params,
     auth: input.auth,
+    userAgent: '',
     body: input.body,
     body_type: input.body_type,
     body_raw: input.body_raw ?? null,
@@ -118,7 +119,8 @@ describe('saveRequest folder handling', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -156,7 +158,8 @@ describe('saveRequest folder handling', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -196,7 +199,8 @@ describe('saveRequest folder handling', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -222,7 +226,8 @@ describe('saveRequest folder handling', () => {
               post_request_script: '',
               comment: '',
               tags: '',
-              auth: defaultAuth()
+              auth: defaultAuth(),
+              userAgent: ''
             })
           }
         ]
@@ -265,7 +270,8 @@ describe('saveRequest script lists', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -309,7 +315,8 @@ describe('saveRequest script lists', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -352,7 +359,8 @@ describe('saveRequest script lists', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -427,7 +435,8 @@ describe('saveAllDirtyRequests', () => {
     post_request_scripts: [],
     comment: '',
     tags: '',
-    auth: defaultAuth()
+    auth: defaultAuth(),
+    userAgent: ''
   };
 
   it('returns savedCount 0 when no tabs are dirty in the collection', async () => {
@@ -496,6 +505,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     headers: [],
     params: [],
     auth: defaultAuth(),
+    userAgent: '',
     body: '',
     body_type: 'none',
     body_raw: null,
@@ -562,6 +572,7 @@ describe('requestLoadRequest', () => {
       headers: [],
       params: [],
       auth: defaultAuth(),
+      userAgent: '',
       body: '',
       body_type: 'none',
       body_raw: null,
@@ -781,7 +792,8 @@ describe('executeRequestDraft hc.data threading', () => {
           post_request_scripts: [],
           comment: '',
           tags: '',
-          auth: defaultAuth()
+          auth: defaultAuth(),
+          userAgent: ''
         },
         requestId: 'req-thread-data'
       },
@@ -817,7 +829,8 @@ describe('cancelRequest', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 
@@ -918,7 +931,8 @@ describe('saveFromMenu', () => {
         post_request_scripts: [],
         comment: '',
         tags: '',
-        auth: defaultAuth()
+        auth: defaultAuth(),
+        userAgent: ''
       })
     );
 

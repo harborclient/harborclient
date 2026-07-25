@@ -47,6 +47,7 @@ export interface ApiCollections {
    * @param preRequestScript - Collection pre-request script.
    * @param postRequestScript - Collection post-request script.
    * @param auth - Default Authorization settings for requests in the collection.
+   * @param userAgent - User-Agent override; empty inherits the global default.
    * @returns The updated collection.
    */
   updateCollection: (
@@ -57,6 +58,7 @@ export interface ApiCollections {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ) => Promise<Collection>;
@@ -222,6 +224,7 @@ export interface ApiCollections {
    * @param preRequestScript - Folder pre-request script.
    * @param postRequestScript - Folder post-request script.
    * @param auth - Default Authorization settings for requests in the folder.
+   * @param userAgent - User-Agent override; empty inherits collection → global.
    * @returns The updated folder.
    */
   updateFolder: (
@@ -232,6 +235,7 @@ export interface ApiCollections {
     preRequestScript: string,
     postRequestScript: string,
     auth: AuthConfig,
+    userAgent: string,
     preRequestScripts?: ScriptRef[],
     postRequestScripts?: ScriptRef[]
   ) => Promise<Folder>;

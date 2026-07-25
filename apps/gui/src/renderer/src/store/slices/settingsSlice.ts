@@ -4,6 +4,7 @@ import {
   DEFAULT_CODE_EDITOR_SETUP
 } from '@harborclient/core/codeEditorSettings';
 import type { CodeEditorSetup, CodeEditorTheme, GeneralSettings } from '@harborclient/core/types';
+import { DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import type { RootState } from '#/renderer/src/store/redux';
 
 export const defaultGeneralSettings: GeneralSettings = {
@@ -48,7 +49,9 @@ export const defaultGeneralSettings: GeneralSettings = {
     password: ''
   },
   globalVariables: [],
-  logFilePath: ''
+  logFilePath: '',
+  userAgent: DEFAULT_USER_AGENT,
+  customUserAgents: []
 };
 
 export interface SettingsState {

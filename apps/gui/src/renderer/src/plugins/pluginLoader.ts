@@ -408,6 +408,7 @@ async function registerImportThemeContributions(plugin: PluginInfo): Promise<voi
         title: entry.title,
         type: entry.type,
         colors: resolved.colors,
+        metrics: resolved.metrics,
         stylesheet: resolved.stylesheet
       });
     } catch (error) {

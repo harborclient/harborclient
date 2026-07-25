@@ -1,4 +1,4 @@
-import type { ThemeColorToken } from '@harborclient/sdk';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import type { CustomThemeDraft } from './useCustomTheme';
 
 /**
@@ -21,7 +21,7 @@ export interface ThemeHistoryState {
 export const THEME_HISTORY_DEBOUNCE_MS = 350;
 
 /**
- * Deep-clones a Designer draft so history entries do not alias mutable color maps.
+ * Deep-clones a Designer draft so history entries do not alias mutable token maps.
  *
  * @param draft - Draft snapshot to clone.
  * @returns Independent copy safe to store in the history stack.
@@ -29,7 +29,8 @@ export const THEME_HISTORY_DEBOUNCE_MS = 350;
 export function cloneCustomThemeDraft(draft: CustomThemeDraft): CustomThemeDraft {
   return {
     ...draft,
-    colors: { ...draft.colors }
+    colors: { ...draft.colors },
+    metrics: { ...(draft.metrics ?? {}) }
   };
 }
 
@@ -38,7 +39,7 @@ export function cloneCustomThemeDraft(draft: CustomThemeDraft): CustomThemeDraft
  *
  * @param left - First draft snapshot.
  * @param right - Second draft snapshot.
- * @returns True when title, type, id, stylesheet, and all color tokens match.
+ * @returns True when title, type, id, stylesheet, and all color/metric tokens match.
  */
 export function customThemeDraftsEqual(left: CustomThemeDraft, right: CustomThemeDraft): boolean {
   if (
@@ -50,13 +51,24 @@ export function customThemeDraftsEqual(left: CustomThemeDraft, right: CustomThem
     return false;
   }
 
-  const leftKeys = Object.keys(left.colors) as ThemeColorToken[];
-  const rightKeys = Object.keys(right.colors) as ThemeColorToken[];
-  if (leftKeys.length !== rightKeys.length) {
+  const leftColorKeys = Object.keys(left.colors) as ThemeColorToken[];
+  const rightColorKeys = Object.keys(right.colors) as ThemeColorToken[];
+  if (leftColorKeys.length !== rightColorKeys.length) {
+    return false;
+  }
+  if (!leftColorKeys.every((token) => left.colors[token] === right.colors[token])) {
     return false;
   }
 
-  return leftKeys.every((token) => left.colors[token] === right.colors[token]);
+  const leftMetrics = left.metrics ?? {};
+  const rightMetrics = right.metrics ?? {};
+  const leftMetricKeys = Object.keys(leftMetrics) as ThemeMetricToken[];
+  const rightMetricKeys = Object.keys(rightMetrics) as ThemeMetricToken[];
+  if (leftMetricKeys.length !== rightMetricKeys.length) {
+    return false;
+  }
+
+  return leftMetricKeys.every((token) => leftMetrics[token] === rightMetrics[token]);
 }
 
 /**

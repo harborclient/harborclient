@@ -347,6 +347,7 @@ export function savedRequestToExportedRequest(
     method: request.method,
     url: request.url,
     headers: request.headers,
+    userAgent: request.userAgent,
     params: request.params,
     auth: request.auth,
     body: request.body,
@@ -407,6 +408,7 @@ export function exportedFolderFromFolder(folder: Folder): ExportedFolder {
     sort_order: folder.sort_order,
     variables: maskVariablesForExport(folder.variables),
     headers: folder.headers,
+    userAgent: folder.userAgent,
     auth: folder.auth,
     pre_request_script: folder.pre_request_script,
     post_request_script: folder.post_request_script,
@@ -426,6 +428,7 @@ export function serializeImportedFolderFields(folder: ExportedFolder): {
   variablesJson: string;
   headersJson: string;
   authJson: string;
+  userAgent: string;
   pre_request_script: string;
   post_request_script: string;
   pre_request_scripts_json: string;
@@ -444,6 +447,7 @@ export function serializeImportedFolderFields(folder: ExportedFolder): {
     variablesJson: JSON.stringify(folder.variables ?? []),
     headersJson: JSON.stringify(folder.headers ?? []),
     authJson: JSON.stringify(folder.auth ?? defaultAuth()),
+    userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
     pre_request_script: preScripts.legacy,
     post_request_script: postScripts.legacy,
     pre_request_scripts_json: preScripts.json,
@@ -462,6 +466,7 @@ export function resolveImportedFolderSettings(folder: ExportedFolder): {
   variables: Variable[];
   headers: KeyValue[];
   auth: AuthConfig;
+  userAgent: string;
   preRequestScript: string;
   postRequestScript: string;
   preRequestScripts: ScriptRef[];
@@ -473,6 +478,7 @@ export function resolveImportedFolderSettings(folder: ExportedFolder): {
     variables: folder.variables ?? [],
     headers: folder.headers ?? [],
     auth: folder.auth ?? defaultAuth(),
+    userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
     preRequestScript,
     postRequestScript,
     preRequestScripts: resolveScriptRefs(folder.pre_request_scripts, preRequestScript),
@@ -496,6 +502,7 @@ export function importedFolderToStoredRow(
   sort_order: number;
   variables: Variable[];
   headers: KeyValue[];
+  userAgent: string;
   auth: AuthConfig;
   pre_request_script: string;
   post_request_script: string;
@@ -519,6 +526,7 @@ export function importedFolderToStoredRow(
     sort_order: folder.sort_order ?? index,
     variables: folder.variables ?? [],
     headers: folder.headers ?? [],
+    userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
     auth: folder.auth ?? defaultAuth(),
     pre_request_script: preScripts.legacy,
     post_request_script: postScripts.legacy,
@@ -539,6 +547,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   method: ExportedRequest['method'];
   url: string;
   headersJson: string;
+  userAgent: string;
   paramsJson: string;
   authJson: string;
   body: string;
@@ -569,6 +578,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
     method: request.method,
     url: request.url,
     headersJson: JSON.stringify(request.headers),
+    userAgent: typeof request.userAgent === 'string' ? request.userAgent : '',
     paramsJson: JSON.stringify(request.params),
     authJson: JSON.stringify(request.auth ?? defaultAuth()),
     body: request.body,

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { Server } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -10,8 +9,11 @@ import { isValidMcpServerToken } from '#/main/settings/mcpSettings';
 import { registerHarborMcpTools, shouldRunMcpServer } from './tools';
 import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
 
+/** HTTP server instance returned by {@link Express.listen}. */
+type ExpressListenServer = ReturnType<Express['listen']>;
+
 interface RunningMcpServer {
-  httpServer: Server;
+  httpServer: ExpressListenServer;
   host: string;
   port: number;
 }
@@ -252,7 +254,7 @@ export async function startMcpServer(settings: McpServerSettings): Promise<McpSe
   }
 
   const app = createHarborMcpExpressApp(settings);
-  const httpServer = await new Promise<Server>((resolve, reject) => {
+  const httpServer = await new Promise<ExpressListenServer>((resolve, reject) => {
     const instance = app.listen(settings.port, settings.host, () => {
       resolve(instance);
     });

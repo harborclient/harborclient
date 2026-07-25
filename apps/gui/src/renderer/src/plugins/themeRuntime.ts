@@ -43,28 +43,44 @@ export function subscribeThemeColorsApplied(listener: () => void): () => void {
 /**
  * Maps theme token keys to --mac-* CSS custom property names.
  *
- * @param token - Theme color token without the `--mac-` prefix.
+ * @param token - Theme color or metric token without the `--mac-` prefix.
  */
 function toCssVariable(token: string): string {
   return `--mac-${token}`;
 }
 
 /**
+ * Formats color and metric token maps as CSS custom-property declarations.
+ *
+ * @param colors - Color token overrides without the `--mac-` prefix.
+ * @param metrics - Optional metric token overrides without the `--mac-` prefix.
+ * @returns Newline-joined declaration lines (including leading indentation).
+ */
+function tokenDeclarations(
+  colors: Record<string, string>,
+  metrics?: Record<string, string>
+): string {
+  return Object.entries({ ...colors, ...(metrics ?? {}) })
+    .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
+    .join('\n');
+}
+
+/**
  * Builds CSS for custom theme token overrides.
  *
- * @param colors - Token overrides without the `--mac-` prefix.
+ * @param colors - Color token overrides without the `--mac-` prefix.
  * @param type - Base appearance mode for color-scheme.
  * @param stylesheet - Optional raw CSS appended after token overrides.
+ * @param metrics - Optional metric token overrides without the `--mac-` prefix.
  */
 export function buildCustomThemeCss(
   colors: Record<string, string>,
   type: CustomThemeType,
-  stylesheet?: string
+  stylesheet?: string,
+  metrics?: Record<string, string>
 ): string {
   const colorScheme = type === 'light' ? 'light' : 'dark';
-  const declarations = Object.entries(colors)
-    .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
-    .join('\n');
+  const declarations = tokenDeclarations(colors, metrics);
   const rootBlock = `:root[data-theme='custom'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
   const stylesheetBlock = stylesheet && stylesheet.trim().length > 0 ? `\n${stylesheet}\n` : '';
   return `${rootBlock}${stylesheetBlock}`;
@@ -73,19 +89,19 @@ export function buildCustomThemeCss(
 /**
  * Builds CSS for built-in theme token overrides loaded from JSON palettes.
  *
- * @param colors - Token overrides without the `--mac-` prefix.
+ * @param colors - Color token overrides without the `--mac-` prefix.
  * @param dataTheme - Semantic root theme attribute for the built-in palette.
  * @param type - Base appearance mode for color-scheme.
+ * @param metrics - Optional metric token overrides without the `--mac-` prefix.
  */
 export function buildBuiltinThemeCss(
   colors: Record<string, string>,
   dataTheme: BuiltinThemeId,
-  type: CustomThemeType
+  type: CustomThemeType,
+  metrics?: Record<string, string>
 ): string {
   const colorScheme = type === 'light' ? 'light' : 'dark';
-  const declarations = Object.entries(colors)
-    .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
-    .join('\n');
+  const declarations = tokenDeclarations(colors, metrics);
   return `:root[data-theme='${dataTheme}'] {\n  color-scheme: ${colorScheme};\n${declarations}\n}\n`;
 }
 
@@ -99,19 +115,21 @@ function clearInjectedThemeStyle(): void {
 /**
  * Applies a custom theme palette to the document root for live preview or persisted use.
  *
- * @param colors - Token overrides without the `--mac-` prefix.
+ * @param colors - Color token overrides without the `--mac-` prefix.
  * @param type - Base appearance mode for color-scheme.
  * @param stylesheet - Optional raw CSS appended after token overrides.
+ * @param metrics - Optional metric token overrides without the `--mac-` prefix.
  */
 export function applyCustomThemeColors(
   colors: Record<string, string>,
   type: CustomThemeType,
-  stylesheet?: string
+  stylesheet?: string,
+  metrics?: Record<string, string>
 ): void {
   document.documentElement.setAttribute('data-theme', 'custom');
   clearInjectedThemeStyle();
 
-  const css = buildCustomThemeCss(colors, type, stylesheet);
+  const css = buildCustomThemeCss(colors, type, stylesheet, metrics);
   if (!css.trim()) {
     notifyThemeColorsApplied();
     return;
@@ -128,19 +146,21 @@ export function applyCustomThemeColors(
  * Applies a built-in theme palette from its JSON file while preserving semantic
  * `data-theme` attributes used by accessibility overrides.
  *
- * @param colors - Token overrides without the `--mac-` prefix.
+ * @param colors - Color token overrides without the `--mac-` prefix.
  * @param type - Base appearance mode for color-scheme.
  * @param dataTheme - Semantic built-in theme attribute value.
+ * @param metrics - Optional metric token overrides without the `--mac-` prefix.
  */
 export function applyBuiltinThemeColors(
   colors: Record<string, string>,
   type: CustomThemeType,
-  dataTheme: BuiltinThemeId
+  dataTheme: BuiltinThemeId,
+  metrics?: Record<string, string>
 ): void {
   document.documentElement.setAttribute('data-theme', dataTheme);
   clearInjectedThemeStyle();
 
-  const css = buildBuiltinThemeCss(colors, dataTheme, type);
+  const css = buildBuiltinThemeCss(colors, dataTheme, type, metrics);
   if (!css.trim()) {
     notifyThemeColorsApplied();
     return;
@@ -158,21 +178,19 @@ export function applyBuiltinThemeColors(
  *
  * @param pluginId - Plugin manifest id.
  * @param themeId - Theme id within the plugin.
- * @param colors - Optional token overrides.
+ * @param colors - Optional color token overrides.
  * @param stylesheet - Optional raw CSS appended after token overrides.
+ * @param metrics - Optional metric token overrides.
  */
 function buildThemeCss(
   pluginId: string,
   themeId: string,
   colors?: Record<string, string>,
-  stylesheet?: string
+  stylesheet?: string,
+  metrics?: Record<string, string>
 ): string {
   const selector = `:root[data-theme='plugin-${pluginId}-${themeId}']`;
-  const declarations = colors
-    ? Object.entries(colors)
-        .map(([token, value]) => `  ${toCssVariable(token)}: ${value};`)
-        .join('\n')
-    : '';
+  const declarations = tokenDeclarations(colors ?? {}, metrics);
   const rootBlock = declarations ? `${selector} {\n${declarations}\n}\n` : '';
   const stylesheetBlock = stylesheet && stylesheet.trim().length > 0 ? `\n${stylesheet}\n` : '';
   return `${rootBlock}${stylesheetBlock}`;
@@ -239,7 +257,7 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
     ? await resolvePluginStylesheetText(pluginId, theme.stylesheet)
     : '';
 
-  const css = buildThemeCss(pluginId, themeId, theme.colors, stylesheetText);
+  const css = buildThemeCss(pluginId, themeId, theme.colors, stylesheetText, theme.metrics);
   if (!css.trim()) {
     notifyThemeColorsApplied();
     return;
@@ -285,7 +303,7 @@ async function applyBuiltinThemePreference(theme: ThemeSource): Promise<void> {
     return;
   }
 
-  applyBuiltinThemeColors(stored.colors, stored.type, effectiveTheme);
+  applyBuiltinThemeColors(stored.colors, stored.type, effectiveTheme, stored.metrics);
 }
 
 /**
@@ -325,7 +343,12 @@ export async function applyThemePreference(theme: string): Promise<void> {
       return;
     }
 
-    applyCustomThemeColors(customTheme.colors, customTheme.type, customTheme.stylesheet);
+    applyCustomThemeColors(
+      customTheme.colors,
+      customTheme.type,
+      customTheme.stylesheet,
+      customTheme.metrics
+    );
     return;
   }
 

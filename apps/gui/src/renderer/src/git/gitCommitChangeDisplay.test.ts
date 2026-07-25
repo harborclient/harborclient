@@ -14,9 +14,9 @@ import {
 
 describe('gitCommitChangeDisplay', () => {
   it('maps commit statuses to name classes', () => {
-    expect(gitCommitChangeNameClass('added')).toBe('text-git-unstaged');
-    expect(gitCommitChangeNameClass('modified')).toBe('text-git-uncommitted');
-    expect(gitCommitChangeNameClass('deleted')).toBe('text-muted line-through');
+    expect(gitCommitChangeNameClass('added')).toBe('hc-git-status-text text-git-unstaged');
+    expect(gitCommitChangeNameClass('modified')).toBe('hc-git-status-text text-git-uncommitted');
+    expect(gitCommitChangeNameClass('deleted')).toBe('hc-git-status-text text-muted line-through');
   });
 
   it('maps working-tree statuses to compact markers', () => {
@@ -70,7 +70,7 @@ describe('gitCommitChangeDisplay', () => {
         canRemove: true,
         isUntracked: false
       })
-    ).toBe('text-git-staged');
+    ).toBe('hc-git-status-text text-git-staged');
     expect(
       gitItemNameClass({
         displayStatus: 'uncommitted',
@@ -78,7 +78,7 @@ describe('gitCommitChangeDisplay', () => {
         canRemove: true,
         isUntracked: false
       })
-    ).toBe('text-git-uncommitted');
+    ).toBe('hc-git-status-text text-git-uncommitted');
     expect(
       gitItemNameClass({
         displayStatus: 'unstaged',
@@ -86,7 +86,7 @@ describe('gitCommitChangeDisplay', () => {
         canRemove: false,
         isUntracked: false
       })
-    ).toBe('text-git-unstaged');
+    ).toBe('hc-git-status-text text-git-unstaged');
     expect(
       gitItemNameClass({
         displayStatus: 'unstaged',
@@ -94,7 +94,7 @@ describe('gitCommitChangeDisplay', () => {
         canRemove: false,
         isUntracked: true
       })
-    ).toBe('text-git-untracked');
+    ).toBe('hc-git-status-text text-git-untracked');
   });
 
   it('builds accessible labels for untracked collection items', () => {

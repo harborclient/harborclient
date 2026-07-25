@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HARD_MAX_RESPONSE_SIZE_MB } from '@harborclient/http';
+import { DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import {
   MAX_IPC_COMMENT_CHARS,
   MAX_IPC_REQUEST_BODY_CHARS,
@@ -272,7 +273,9 @@ describe('generalSettings', () => {
       password: ''
     },
     globalVariables: [],
-    logFilePath: ''
+    logFilePath: '',
+    userAgent: DEFAULT_USER_AGENT,
+    customUserAgents: []
   };
 
   it('parses generalSettings with numeric timeout and boolean verifySsl', () => {
