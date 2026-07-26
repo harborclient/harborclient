@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Add dismissedRequestEditorNotices to general settings. (`22551faa`)
+
+## 2.8.2 - 2026-07-26
+
 - Refactor release workflows for improved orchestration and versioning. (`c3291407`)
 
 ## 2.8.1 - 2026-07-26
