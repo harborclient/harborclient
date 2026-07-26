@@ -64,7 +64,7 @@ export function EditableSegment({
   onValueChange
 }: Props): JSX.Element {
   return (
-    <SegmentShell shape={shape} grow>
+    <SegmentShell shape={shape} tone="current" grow>
       {editing ? (
         <Input
           ref={inputRef}

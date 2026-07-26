@@ -3,6 +3,11 @@ import type { JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
 import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
+import {
+  SIDEBAR_CHEVRON_BUTTON_CLASS,
+  SIDEBAR_CHEVRON_ICON_CLASS,
+  SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS
+} from './sidebarItemClasses.js';
 import { stopSortableDragPointerDown } from './stopSortableDragPointerDown.js';
 
 interface Props {
@@ -109,7 +114,8 @@ interface Props {
 
 /**
  * Renders a collection folder row with expand/collapse control, optional color dot,
- * and optional drag-drop highlight affordance.
+ * and optional drag-drop highlight affordance. Chevron size and label spacing use
+ * the shared `SIDEBAR_CHEVRON_*` classes (Cursor-like explorer twisties).
  *
  * Wrap folder trees in {@link SidebarTree} and pass `as="li"` for valid tree semantics.
  */
@@ -177,7 +183,7 @@ export function SidebarFolderItem({
     >
       <button
         type="button"
-        className="app-no-drag inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text"
+        className={SIDEBAR_CHEVRON_BUTTON_CLASS}
         onClick={(event) => {
           event.stopPropagation();
           onToggleExpand();
@@ -186,10 +192,13 @@ export function SidebarFolderItem({
         tabIndex={-1}
         aria-label={chevronLabel}
       >
-        <FaIcon icon={expanded ? collapseIcon : expandIcon} className="h-2 w-2" />
+        <FaIcon
+          icon={expanded ? collapseIcon : expandIcon}
+          className={SIDEBAR_CHEVRON_ICON_CLASS}
+        />
       </button>
       <span
-        className="app-no-drag ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none font-medium text-inherit"
+        className={`app-no-drag ${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none font-medium text-inherit`}
         aria-current={selected ? 'true' : undefined}
       >
         <span className="inline-flex min-w-0 items-center gap-1.5">

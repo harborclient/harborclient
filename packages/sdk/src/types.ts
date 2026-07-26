@@ -824,7 +824,8 @@ export interface StatusBarItemContribution {
  * - `footer-icon-active` — active footer icon toggle color
  * - `toolbar-action-active` — pressed sidebar toolbar action icon color
  * - `breadcrumb-background` — request editor breadcrumb bar track
- * - `breadcrumb-segment` — breadcrumb chevron segment fill
+ * - `breadcrumb-segment` — breadcrumb chevron segment fill (collection/folder crumbs)
+ * - `breadcrumb-current` — trailing request-name breadcrumb segment fill
  * - `git-staged` — git-backed request names staged for commit
  * - `git-uncommitted` — git-backed request names with both staged and unstaged changes
  * - `git-unstaged` — git-backed request names with tracked unstaged changes
@@ -861,6 +862,7 @@ export type ThemeColorToken =
   | 'toolbar-action-active'
   | 'breadcrumb-background'
   | 'breadcrumb-segment'
+  | 'breadcrumb-current'
   | 'git-staged'
   | 'git-uncommitted'
   | 'git-unstaged'

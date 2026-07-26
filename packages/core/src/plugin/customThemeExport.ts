@@ -22,6 +22,7 @@ const themeColorTokenSchema = z.enum([
   'toolbar-action-active',
   'breadcrumb-background',
   'breadcrumb-segment',
+  'breadcrumb-current',
   'git-staged',
   'git-uncommitted',
   'git-unstaged',

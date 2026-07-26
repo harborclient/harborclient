@@ -44,6 +44,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'syntax.foldGutter',
   'syntax.highlightActiveLine',
   'syntax.highlightActiveLineGutter',
+  'ai.enterToSend',
   'ai.openaiApiKey',
   'ai.claudeApiKey',
   'ai.geminiApiKey',

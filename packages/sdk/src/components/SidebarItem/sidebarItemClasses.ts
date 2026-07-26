@@ -69,9 +69,27 @@ export const SIDEBAR_DRAG_HANDLE_CLASS =
   'app-no-drag inline-flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 hover:text-text focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:cursor-grabbing group-hover:opacity-100';
 
 /**
- * Extra left margin for document icons beside sortable request rows.
- * Combines with `SidebarDocumentItem`'s default `pl-1` so the glyph lines up
- * with method text (drag handle `w-4` + row `gap-1` + method badge `px-1` =
- * 24px total; `ml-5` provides the remaining 20px).
+ * Expand/collapse chevron button (collection and folder rows). 16×16 hit target
+ * sized to match Cursor’s file explorer twistie.
  */
-export const SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS = 'ml-5';
+export const SIDEBAR_CHEVRON_BUTTON_CLASS =
+  'app-no-drag inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text';
+
+/**
+ * Expand/collapse chevron glyph size (12×12), forced past Font Awesome's
+ * text-relative dimensions to match Cursor’s explorer carets.
+ */
+export const SIDEBAR_CHEVRON_ICON_CLASS = '!h-3 !w-3';
+
+/**
+ * Section-header chevron slot: tight left inset and 16×16 alignment box for the
+ * glyph when the whole header toggles expand/collapse.
+ */
+export const SIDEBAR_CHEVRON_SLOT_CLASS =
+  'ms-1 inline-flex h-4 w-4 shrink-0 items-center justify-center';
+
+/**
+ * Gap between a row chevron button and its label, matching Cursor’s explorer
+ * spacing (~10px).
+ */
+export const SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS = 'ml-2.5';

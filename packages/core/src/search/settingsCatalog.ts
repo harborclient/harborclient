@@ -29,6 +29,7 @@ export type SettingId =
   | 'syntax.foldGutter'
   | 'syntax.highlightActiveLine'
   | 'syntax.highlightActiveLineGutter'
+  | 'ai.enterToSend'
   | 'ai.openaiApiKey'
   | 'ai.claudeApiKey'
   | 'ai.geminiApiKey'
@@ -371,6 +372,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Highlight active line gutter',
     description: 'Highlight the gutter marker for the active line.',
     keywords: ['gutter', 'current line']
+  },
+  {
+    id: 'ai.enterToSend',
+    section: 'ai',
+    kind: 'field',
+    label: 'Enter sends message',
+    description:
+      'When enabled, Enter sends the AI chat message. When disabled, use Ctrl+Enter (Cmd+Enter on macOS). Shift+Enter always inserts a new line.',
+    keywords: ['enter', 'send', 'keyboard', 'composer', 'ctrl+enter', 'cmd+enter']
   },
   {
     id: 'ai.openaiApiKey',

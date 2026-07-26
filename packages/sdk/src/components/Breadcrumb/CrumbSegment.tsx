@@ -1,4 +1,5 @@
-import type { JSX, MouseEvent } from 'react';
+import type { JSX, MouseEvent, ReactNode } from 'react';
+import { FaIcon } from '../FaIcon/index.js';
 import { cn } from '../utils.js';
 import { type SegmentShape, SegmentShell } from './SegmentShell.js';
 import type { BreadcrumbSegment } from './types.js';
@@ -20,7 +21,7 @@ interface Props {
  */
 export function CrumbSegment({ segment, shape }: Props): JSX.Element {
   const contentClass = cn(
-    'block w-full truncate border-none bg-transparent p-0 text-left',
+    'flex w-full min-w-0 items-center gap-2 border-none bg-transparent p-0 text-left',
     segment.onClick && 'cursor-pointer hover:text-text focus-visible:text-text'
   );
 
@@ -34,8 +35,15 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
     segment.onClick?.();
   };
 
+  const content: ReactNode = (
+    <>
+      {segment.icon && <FaIcon icon={segment.icon} className="h-3.5 w-3.5 shrink-0" />}
+      <span className="min-w-0 truncate">{segment.label}</span>
+    </>
+  );
+
   return (
-    <SegmentShell shape={shape}>
+    <SegmentShell shape={shape} tone="path">
       {segment.onClick ? (
         <button
           type="button"
@@ -45,10 +53,10 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
           )}
           onClick={handleClick}
         >
-          {segment.label}
+          {content}
         </button>
       ) : (
-        <span className={contentClass}>{segment.label}</span>
+        <span className={contentClass}>{content}</span>
       )}
     </SegmentShell>
   );

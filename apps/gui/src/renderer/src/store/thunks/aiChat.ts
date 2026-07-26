@@ -190,6 +190,23 @@ export const refreshHubLlmModels = createAsyncThunk<void, void, ThunkApiConfig>(
 );
 
 /**
+ * Updates the Enter-to-send composer preference in Redux and on disk.
+ *
+ * Merges into the persisted session so open chat tabs are not wiped when the
+ * preference is changed from Settings while the AI sidebar is closed.
+ *
+ * @param enterToSend - Whether plain Enter should send the chat message.
+ */
+export const updateEnterToSend = createAsyncThunk<void, boolean, ThunkApiConfig>(
+  'aiChat/updateEnterToSend',
+  async (enterToSend, { dispatch }) => {
+    dispatch(setEnterToSend(enterToSend));
+    const session = await window.api.getAiChatSession();
+    await window.api.setAiChatSession({ ...session, enterToSend });
+  }
+);
+
+/**
  * Initializes AI chat state when the sidebar opens.
  */
 export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfig>(

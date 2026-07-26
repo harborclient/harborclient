@@ -2,17 +2,16 @@ import { Sidebar, Toolbar, type ToolbarAction } from '@harborclient/sdk/componen
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { hasAvailableAiModels } from '@harborclient/core/ai/models';
 
-import { faClockRotateLeft, faCircleCheck } from '#/renderer/src/fontawesome';
+import { faClockRotateLeft, faGear } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectAiSidebarVisible } from '#/renderer/src/store/slices/navigationSlice';
 import {
   selectGithubModelsConnected,
-  selectEnterToSend,
   selectHistoryOpen,
   selectHubModelGroups,
-  setEnterToSend,
   setHistoryOpen
 } from '#/renderer/src/store/slices/aiChatSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { openExistingChat, refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { ChatHistory } from './Chat/ChatHistory';
@@ -27,14 +26,13 @@ export function AiSidebar(): JSX.Element {
   const dispatch = useAppDispatch();
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const historyOpen = useAppSelector(selectHistoryOpen);
-  const enterToSend = useAppSelector(selectEnterToSend);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const githubConnected = useAppSelector(selectGithubModelsConnected);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const { aiSettings, loading } = useAiAvailability();
 
   /**
-   * Toolbar actions for chat history and enter-to-send.
+   * Toolbar actions for chat history and opening AI & MCP settings.
    */
   const toolbarActions = useMemo((): ToolbarAction[] => {
     return [
@@ -59,15 +57,14 @@ export function AiSidebar(): JSX.Element {
         ) : undefined
       },
       {
-        id: 'enter-to-send',
-        icon: faCircleCheck,
-        label: 'Enter to send',
-        title: enterToSend ? 'Enter sends message' : 'Use Ctrl+Enter to send',
-        ariaPressed: enterToSend,
-        onClick: () => dispatch(setEnterToSend(!enterToSend))
+        id: 'ai-settings',
+        icon: faGear,
+        label: 'AI & MCP settings',
+        title: 'AI & MCP settings',
+        onClick: () => dispatch(openPageTab({ type: 'settings', section: 'ai' }))
       }
     ];
-  }, [dispatch, enterToSend, historyOpen]);
+  }, [dispatch, historyOpen]);
 
   /**
    * Refreshes hub LLM models whenever the sidebar opens so newly added Team Hubs

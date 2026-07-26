@@ -1,7 +1,4 @@
-import {
-  SidebarDocumentItem,
-  SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS
-} from '@harborclient/sdk/components';
+import { SidebarDocumentItem } from '@harborclient/sdk/components';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import {
   buildGitItemAccessibleName,
@@ -68,8 +65,8 @@ interface Props {
  * Renders a static collection markdown document row with file icon and row actions menu.
  * Documents are pinned to the top of each container and sorted alphabetically by name.
  * The file icon uses the `doc-markdown` theme token at 16px (`h-4 w-4`, 2px larger than
- * the SDK default) and is indented so its left edge aligns with HTTP method text on
- * neighboring sortable request rows.
+ * the SDK default). Default `pl-1` on the icon keeps its left edge aligned with HTTP
+ * method text on neighboring request rows.
  */
 export function DocumentRow({
   doc,
@@ -91,7 +88,7 @@ export function DocumentRow({
   return (
     <div data-sidebar-document-id={doc.id} className="contents">
       <SidebarDocumentItem
-        iconClassName={`${SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS} h-4 w-4 text-doc-markdown`}
+        iconClassName="h-4 w-4 text-doc-markdown"
         name={doc.name}
         nameClassName={gitItemNameClass(gitItemStatus)}
         colorDot={{

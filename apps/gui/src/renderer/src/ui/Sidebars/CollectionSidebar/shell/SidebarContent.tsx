@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from 'react';
+import { useCallback, useMemo, useRef, useState, type JSX } from 'react';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
   usePluginSidebarPanels,
@@ -6,13 +6,12 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import {
   faSquareMinus,
-  faClock,
   faClockRotateLeft,
-  faCloud,
+  faEye,
   faFolder,
+  faGlobe,
   faLayerGroup,
-  faPalette,
-  faSun,
+  faPlay,
   faTrash
 } from '#/renderer/src/fontawesome';
 import {
@@ -38,17 +37,20 @@ import { TabGroups } from '../TabGroups';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
+import { SidebarViewMenu } from './SidebarViewMenu';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
+import { hasExpandedSidebarTrees } from '../expansion/hasExpandedSidebarTrees';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarListNavigation } from '../navigation/useSidebarListNavigation';
 import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
- * the panel switcher, search field, section toolbar, and the collapsible
- * Collections/Runs/History/Environments/Tab Groups sections. Sections source their own
- * data and actions, so this shell only wires layout and shared UI state.
+ * the panel switcher, search field, section toolbar (visibility toggles, View
+ * menu, collapse-all), and the collapsible Collections/Runs/History/Environments/
+ * Tab Groups sections. Sections source their own data and actions, so this shell
+ * only wires layout and shared UI state.
  */
 export function SidebarContent(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -71,6 +73,8 @@ export function SidebarContent(): JSX.Element {
     historySectionVisible,
     tabGroupsSectionVisible,
     trashSectionVisible,
+    expandedCollectionIds,
+    expandedFolderIds,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     showColorDots,
@@ -86,9 +90,25 @@ export function SidebarContent(): JSX.Element {
   const { searchQuery, setSearchQuery, searchActive, searchLoading, collapseAllSidebarTrees } =
     useSidebarSearchContext();
   const { openAddEnvironment } = useSidebarModals();
-  const { expanded, onToggle, pluginSectionExpanded } = useSidebarAccordion();
+  const { expanded, onToggle, pluginSectionExpanded, collapseAllSections } = useSidebarAccordion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
+
+  const viewMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+
+  /**
+   * Collapses collection/folder trees first; when none remain expanded, collapses
+   * every sidebar section header (built-in and plugin).
+   */
+  const handleCollapseAll = useCallback((): void => {
+    if (hasExpandedSidebarTrees(expandedCollectionIds, expandedFolderIds)) {
+      collapseAllSidebarTrees();
+      return;
+    }
+
+    collapseAllSections();
+  }, [collapseAllSections, collapseAllSidebarTrees, expandedCollectionIds, expandedFolderIds]);
 
   /**
    * Resolves the active switchable sidebar panel contribution, if any.
@@ -99,7 +119,7 @@ export function SidebarContent(): JSX.Element {
   );
 
   /**
-   * Toolbar actions for section visibility and storage badges.
+   * Left toolbar actions that show or hide sidebar sections.
    */
   const toolbarActions = useMemo((): ToolbarAction[] => {
     return [
@@ -113,7 +133,7 @@ export function SidebarContent(): JSX.Element {
       },
       {
         id: 'toggle-run-results-section',
-        icon: faClockRotateLeft,
+        icon: faPlay,
         label: 'Runs',
         title: runResultsSectionVisible ? 'Hide runs section' : 'Show runs section',
         ariaPressed: runResultsSectionVisible,
@@ -121,7 +141,7 @@ export function SidebarContent(): JSX.Element {
       },
       {
         id: 'toggle-history-section',
-        icon: faClock,
+        icon: faClockRotateLeft,
         label: 'History',
         title: historySectionVisible ? 'Hide history section' : 'Show history section',
         ariaPressed: historySectionVisible,
@@ -129,7 +149,7 @@ export function SidebarContent(): JSX.Element {
       },
       {
         id: 'toggle-environments-section',
-        icon: faSun,
+        icon: faGlobe,
         label: 'Environments',
         title: environmentsSectionVisible
           ? 'Hide environments section'
@@ -152,24 +172,6 @@ export function SidebarContent(): JSX.Element {
         title: trashSectionVisible ? 'Hide trash section' : 'Show trash section',
         ariaPressed: trashSectionVisible,
         onClick: toggleTrashSectionVisible
-      },
-      {
-        id: 'toggle-storage-badges',
-        icon: faCloud,
-        label: 'Storage location badges',
-        title: showStorageLocationBadges
-          ? 'Hide storage location badges'
-          : 'Show storage location badges',
-        ariaPressed: showStorageLocationBadges,
-        onClick: toggleStorageLocationBadges
-      },
-      {
-        id: 'toggle-color-dots',
-        icon: faPalette,
-        label: 'Color dots',
-        title: showColorDots ? 'Hide color dots' : 'Show color dots',
-        ariaPressed: showColorDots,
-        onClick: toggleColorDots
       }
     ];
   }, [
@@ -184,27 +186,53 @@ export function SidebarContent(): JSX.Element {
     toggleHistorySectionVisible,
     toggleTabGroupsSectionVisible,
     toggleTrashSectionVisible,
-    toggleRunResultsSectionVisible,
-    showStorageLocationBadges,
-    toggleStorageLocationBadges,
-    showColorDots,
-    toggleColorDots
+    toggleRunResultsSectionVisible
   ]);
 
   /**
-   * Right-aligned toolbar toggles such as collapse-all.
+   * Right-aligned toolbar controls: display preferences (View) and collapse-all.
    */
   const toolbarToggles = useMemo((): ToolbarAction[] => {
+    const viewOptionsActive = showStorageLocationBadges || showColorDots;
+
     return [
+      {
+        id: 'view-options',
+        icon: faEye,
+        label: 'View options',
+        title: 'View options',
+        ariaHaspopup: 'menu',
+        ariaExpanded: viewMenuOpen,
+        ariaPressed: viewOptionsActive,
+        buttonRef: viewMenuButtonRef,
+        onClick: () => setViewMenuOpen((open) => !open),
+        popover: viewMenuOpen ? (
+          <SidebarViewMenu
+            anchorRef={viewMenuButtonRef}
+            showStorageLocationBadges={showStorageLocationBadges}
+            showColorDots={showColorDots}
+            onToggleStorageLocationBadges={toggleStorageLocationBadges}
+            onToggleColorDots={toggleColorDots}
+            onClose={() => setViewMenuOpen(false)}
+          />
+        ) : undefined
+      },
       {
         id: 'collapse-all',
         icon: faSquareMinus,
         label: 'Collapse all',
-        title: 'Collapse all collections and folders',
-        onClick: collapseAllSidebarTrees
+        title: 'Collapse all collections, folders, and sections',
+        onClick: handleCollapseAll
       }
     ];
-  }, [collapseAllSidebarTrees]);
+  }, [
+    handleCollapseAll,
+    showColorDots,
+    showStorageLocationBadges,
+    toggleColorDots,
+    toggleStorageLocationBadges,
+    viewMenuOpen
+  ]);
 
   /**
    * Collapsible section config for the collections sidebar body.

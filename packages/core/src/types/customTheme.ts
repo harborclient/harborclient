@@ -167,6 +167,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'toolbar-action-active': 'Toolbar action active',
   'breadcrumb-background': 'Breadcrumb background',
   'breadcrumb-segment': 'Breadcrumb segment',
+  'breadcrumb-current': 'Breadcrumb current',
   'control': 'Control',
   'field': 'Field',
   'separator': 'Separator',
@@ -277,7 +278,7 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   },
   {
     label: 'Breadcrumb',
-    tokens: ['breadcrumb-background', 'breadcrumb-segment']
+    tokens: ['breadcrumb-background', 'breadcrumb-segment', 'breadcrumb-current']
   },
   {
     label: 'Text',

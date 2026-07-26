@@ -1,5 +1,6 @@
 import { Breadcrumb } from '@harborclient/sdk/components';
 import { useCallback, type JSX } from 'react';
+import { faFolder } from '#/renderer/src/fontawesome';
 import type {
   KeyValue,
   ScriptRunError,
@@ -162,13 +163,15 @@ export function Editor({
 
   const breadcrumbSegments = [
     ...(collectionName
-      ? [{ id: 'collection', label: collectionName, onClick: onCollectionClick }]
+      ? [{ id: 'collection', label: collectionName, icon: faFolder, onClick: onCollectionClick }]
       : []),
-    ...(folderName ? [{ id: 'folder', label: folderName, onClick: onFolderClick }] : [])
+    ...(folderName
+      ? [{ id: 'folder', label: folderName, icon: faFolder, onClick: onFolderClick }]
+      : [])
   ];
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col mt-1">
       <div className="shrink-0 border-b border-separator p-3">
         <Breadcrumb
           flush

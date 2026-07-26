@@ -47,6 +47,9 @@ import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDese
 import {
   EmptySectionLabel,
   FaIcon,
+  SIDEBAR_CHEVRON_BUTTON_CLASS,
+  SIDEBAR_CHEVRON_ICON_CLASS,
+  SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS,
   SidebarBadge,
   SidebarFolderItem
 } from '@harborclient/sdk/components';
@@ -865,10 +868,41 @@ export function Collections(): JSX.Element {
                       }));
                       setOpenMenuId(menuId);
                     }}
+                    trailing={
+                      <div onPointerDown={stopSortableDragPointerDown}>
+                        <ActionsMenu
+                          collection={collection}
+                          collectionIndex={collectionIndex}
+                          collectionsCount={collections.length}
+                          openMenuId={openMenuId}
+                          onOpenChange={setOpenMenuId}
+                          inspectPoint={inspectPointsByMenuId[`collection-${collection.id}`]}
+                          connectionType={connectionType}
+                          connectionName={connectionName}
+                          collectionConnectionId={collectionConnectionId}
+                          canShare={canShare}
+                          onMove={(direction) => void moveCollection(collection.id, direction)}
+                          hasDeselectableSelection={collectionHasDeselectableSelection(
+                            collection.id,
+                            {
+                              selectedCollectionId,
+                              selectedFolderId,
+                              selectedRequestIds,
+                              requestsByCollection,
+                              documentsByCollection,
+                              openRequestIds,
+                              openDocumentIds
+                            }
+                          )}
+                          onDeselectAll={() => handleDeselectAllInCollection(collection.id)}
+                          untrackedItemCount={untrackedItemCount}
+                        />
+                      </div>
+                    }
                   >
                     <button
                       type="button"
-                      className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text app-no-drag"
+                      className={SIDEBAR_CHEVRON_BUTTON_CLASS}
                       onClick={() => toggleCollection(collection.id)}
                       onPointerDown={stopSortableDragPointerDown}
                       aria-expanded={expanded}
@@ -876,12 +910,12 @@ export function Collections(): JSX.Element {
                     >
                       <FaIcon
                         icon={expanded ? faChevronDown : faChevronRight}
-                        className="h-2 w-2"
+                        className={SIDEBAR_CHEVRON_ICON_CLASS}
                       />
                     </button>
                     <button
                       type="button"
-                      className="ml-0.5 min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit app-no-drag"
+                      className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit app-no-drag`}
                       data-sidebar-collection-id={collection.id}
                       aria-current={selected ? 'true' : undefined}
                       onClick={() => handleCollectionNameClick(collection.id, expanded)}
@@ -948,35 +982,6 @@ export function Collections(): JSX.Element {
                         {collectionChangedCount}
                       </SidebarBadge>
                     )}
-                    <div onPointerDown={stopSortableDragPointerDown}>
-                      <ActionsMenu
-                        collection={collection}
-                        collectionIndex={collectionIndex}
-                        collectionsCount={collections.length}
-                        openMenuId={openMenuId}
-                        onOpenChange={setOpenMenuId}
-                        inspectPoint={inspectPointsByMenuId[`collection-${collection.id}`]}
-                        connectionType={connectionType}
-                        connectionName={connectionName}
-                        collectionConnectionId={collectionConnectionId}
-                        canShare={canShare}
-                        onMove={(direction) => void moveCollection(collection.id, direction)}
-                        hasDeselectableSelection={collectionHasDeselectableSelection(
-                          collection.id,
-                          {
-                            selectedCollectionId,
-                            selectedFolderId,
-                            selectedRequestIds,
-                            requestsByCollection,
-                            documentsByCollection,
-                            openRequestIds,
-                            openDocumentIds
-                          }
-                        )}
-                        onDeselectAll={() => handleDeselectAllInCollection(collection.id)}
-                        untrackedItemCount={untrackedItemCount}
-                      />
-                    </div>
                   </SortableRow>
 
                   {/**

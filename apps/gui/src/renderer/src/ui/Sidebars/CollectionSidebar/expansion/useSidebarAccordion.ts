@@ -20,6 +20,11 @@ interface Result {
    * Expansion state keyed by plugin sidebar section id.
    */
   pluginSectionExpanded: Record<string, boolean>;
+
+  /**
+   * Collapses every built-in and plugin sidebar section header.
+   */
+  collapseAllSections: () => void;
 }
 
 /**
@@ -160,5 +165,42 @@ export function useSidebarAccordion(): Result {
     pluginSidebarSections
   ]);
 
-  return { expanded, onToggle, pluginSectionExpanded };
+  /**
+   * Collapses every built-in section and each registered plugin section.
+   *
+   * Used as the second step of the Collapse all toolbar control when no
+   * collection or folder trees remain expanded.
+   */
+  const collapseAllSections = useCallback((): void => {
+    setCollectionsSectionExpanded(false);
+    setEnvironmentsSectionExpanded(false);
+    setRunResultsSectionExpanded(false);
+    setHistorySectionExpanded(false);
+    setTabGroupsSectionExpanded(false);
+    setTrashSectionExpanded(false);
+
+    setPluginSectionExpanded((current) => {
+      const next: Record<string, boolean> = { ...current };
+      let changed = false;
+
+      for (const section of pluginSidebarSections) {
+        if (next[section.id] !== false) {
+          next[section.id] = false;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [
+    pluginSidebarSections,
+    setCollectionsSectionExpanded,
+    setEnvironmentsSectionExpanded,
+    setRunResultsSectionExpanded,
+    setHistorySectionExpanded,
+    setTabGroupsSectionExpanded,
+    setTrashSectionExpanded
+  ]);
+
+  return { expanded, onToggle, pluginSectionExpanded, collapseAllSections };
 }

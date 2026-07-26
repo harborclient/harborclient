@@ -17,7 +17,7 @@ interface Props {
 
   /**
    * When true, renders a tab-height slot for wrapped tab lists; otherwise uses
-   * the compact circular control for horizontal scroll mode.
+   * the compact padded control for horizontal scroll mode.
    */
   wrapped: boolean;
 
@@ -43,6 +43,7 @@ export function TabNewButton({ ariaLabel, title, wrapped, onClick }: Props): JSX
           title={title}
           aria-label={ariaLabel}
           onClick={onClick}
+          style={{ width: 50 }}
         >
           <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
         </button>
@@ -54,10 +55,11 @@ export function TabNewButton({ ariaLabel, title, wrapped, onClick }: Props): JSX
     <div className="-mb-1 flex shrink-0 items-end px-1">
       <button
         type="button"
-        className="hc-tab-new-button app-no-drag mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
+        className="hc-tab-new-button app-no-drag mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent px-3 text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
         title={title}
         aria-label={ariaLabel}
         onClick={onClick}
+        style={{ width: 50 }}
       >
         <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
       </button>

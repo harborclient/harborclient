@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance AI chat settings and UI components. (`ad9d10c9`)
+
 ## 0.1.5 - 2026-07-26
 
 - Refactor resource paths and update documentation indexing. (`89d0d78f`)

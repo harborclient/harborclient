@@ -19,7 +19,10 @@ export {
   statusDotVariant,
   statusDotClass,
   SIDEBAR_ITEM_BUTTON_CLASS,
-  SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS
+  SIDEBAR_CHEVRON_BUTTON_CLASS,
+  SIDEBAR_CHEVRON_ICON_CLASS,
+  SIDEBAR_CHEVRON_SLOT_CLASS,
+  SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS
 } from './sidebarItemClasses.js';
 export { SidebarMethodBadge } from './SidebarMethodBadge.js';
 export { SidebarStatusDot } from './SidebarStatusDot.js';

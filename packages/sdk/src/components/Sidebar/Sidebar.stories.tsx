@@ -1,13 +1,14 @@
 import {
-  faClock,
   faClockRotateLeft,
   faCodeBranch,
   faDownload,
+  faEye,
   faFolder,
+  faGlobe,
   faLayerGroup,
   faPenToSquare,
-  faSquareMinus,
-  faSun
+  faPlay,
+  faSquareMinus
 } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type JSX, type ReactNode, useState } from 'react';
@@ -153,8 +154,16 @@ export const CollectionsLeft: Story = {
         onClick: fn()
       },
       {
+        id: 'toggle-runs',
+        icon: faPlay,
+        label: 'Runs',
+        title: 'Runs section',
+        ariaPressed: false,
+        onClick: fn()
+      },
+      {
         id: 'toggle-history',
-        icon: faClock,
+        icon: faClockRotateLeft,
         label: 'History',
         title: 'History section',
         ariaPressed: true,
@@ -162,7 +171,7 @@ export const CollectionsLeft: Story = {
       },
       {
         id: 'toggle-environments',
-        icon: faSun,
+        icon: faGlobe,
         label: 'Environments',
         title: 'Environments section',
         ariaPressed: false,
@@ -180,10 +189,18 @@ export const CollectionsLeft: Story = {
 
     const toolbarToggles: ToolbarAction[] = [
       {
+        id: 'view-options',
+        icon: faEye,
+        label: 'View options',
+        title: 'View options',
+        ariaHaspopup: 'menu',
+        onClick: fn()
+      },
+      {
         id: 'collapse-all',
         icon: faSquareMinus,
         label: 'Collapse all',
-        title: 'Collapse all collections and folders',
+        title: 'Collapse all collections, folders, and sections',
         onClick: fn()
       }
     ];

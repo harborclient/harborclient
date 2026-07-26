@@ -1,15 +1,14 @@
 import {
   faAnglesUp,
-  faClock,
   faClockRotateLeft,
-  faCloud,
   faDatabase,
+  faEye,
   faFolder,
+  faGlobe,
   faLayerGroup,
-  faPalette,
+  faPlay,
   faPlus,
   faSquareMinus,
-  faSun,
   faTrash,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
@@ -138,20 +137,28 @@ export const RightAlignedToggles: Story = {
         onClick: fn()
       },
       {
-        id: 'toggle-storage-badges',
-        icon: faDatabase,
-        label: 'Storage location badges',
-        title: 'Hide storage location badges',
-        ariaPressed: true,
+        id: 'toggle-runs-section',
+        icon: faPlay,
+        label: 'Runs',
+        title: 'Show runs section',
         onClick: fn()
       }
     ],
     toggles: [
       {
+        id: 'view-options',
+        icon: faEye,
+        label: 'View options',
+        title: 'View options',
+        ariaHaspopup: 'menu',
+        ariaPressed: true,
+        onClick: fn()
+      },
+      {
         id: 'collapse-all',
         icon: faAnglesUp,
         label: 'Collapse all',
-        title: 'Collapse all collections and folders',
+        title: 'Collapse all collections, folders, and sections',
         onClick: fn()
       }
     ]
@@ -173,20 +180,26 @@ export const WrapsWhenNarrow: Story = {
     ariaLabel: 'Collections sidebar',
     actions: [
       { id: 'collections', icon: faFolder, label: 'Collections', ariaPressed: true, onClick: fn() },
-      { id: 'runs', icon: faClockRotateLeft, label: 'Runs', onClick: fn() },
-      { id: 'history', icon: faClock, label: 'History', onClick: fn() },
-      { id: 'environments', icon: faSun, label: 'Environments', onClick: fn() },
+      { id: 'runs', icon: faPlay, label: 'Runs', onClick: fn() },
+      { id: 'history', icon: faClockRotateLeft, label: 'History', onClick: fn() },
+      { id: 'environments', icon: faGlobe, label: 'Environments', onClick: fn() },
       { id: 'tab-groups', icon: faLayerGroup, label: 'Tab groups', onClick: fn() },
-      { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() },
-      { id: 'cloud', icon: faCloud, label: 'Cloud', onClick: fn() },
-      { id: 'themes', icon: faPalette, label: 'Themes', onClick: fn() }
+      { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() }
     ],
     toggles: [
+      {
+        id: 'view-options',
+        icon: faEye,
+        label: 'View options',
+        title: 'View options',
+        ariaHaspopup: 'menu',
+        onClick: fn()
+      },
       {
         id: 'collapse-all',
         icon: faSquareMinus,
         label: 'Collapse all',
-        title: 'Collapse all collections and folders',
+        title: 'Collapse all collections, folders, and sections',
         onClick: fn()
       }
     ]

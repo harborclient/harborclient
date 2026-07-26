@@ -8,6 +8,10 @@ import {
 } from '@szhsin/react-accordion';
 import { type JSX, type MemoExoticComponent, type ReactNode, type Ref, memo } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
+import {
+  SIDEBAR_CHEVRON_ICON_CLASS,
+  SIDEBAR_CHEVRON_SLOT_CLASS
+} from '../SidebarItem/sidebarItemClasses.js';
 
 interface SectionContentProps {
   /**
@@ -57,6 +61,7 @@ type SectionItemProps = ItemStateProps<HTMLDivElement> & SectionContentProps;
 
 /**
  * Renders the sidebar section header row and animated body panel.
+ * Header chevron inset and title gap follow shared `SIDEBAR_CHEVRON_*` spacing.
  */
 const SectionItem = memo(function SectionItem({
   forwardedRef,
@@ -83,12 +88,12 @@ const SectionItem = memo(function SectionItem({
         <button
           {...buttonProps}
           type="button"
-          className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-left"
+          className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
         >
-          <span className="ms-2 inline-flex h-4 w-4 shrink-0 items-center justify-center">
+          <span className={SIDEBAR_CHEVRON_SLOT_CLASS}>
             <FaIcon
               icon={isEnter ? faChevronDown : faChevronRight}
-              className="h-2 w-2 text-sidebar-section-text"
+              className={`${SIDEBAR_CHEVRON_ICON_CLASS} text-sidebar-section-text`}
             />
           </span>
           <h2 className="m-0 text-[15px] leading-none font-medium tracking-wide text-sidebar-section-text uppercase">

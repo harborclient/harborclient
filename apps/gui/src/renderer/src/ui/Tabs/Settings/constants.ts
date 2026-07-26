@@ -24,8 +24,8 @@ import {
   faGlobe,
   faGithub,
   faKeyboard,
-  faRobot,
-  faServer
+  faServer,
+  faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import type { SettingsSection } from './types';
 
@@ -179,7 +179,7 @@ export const SETTINGS_SECTIONS: Array<{
   { value: 'git', label: 'Git', icon: faGithub },
   { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard },
   { value: 'syntax', label: 'Scripting', icon: faCode },
-  { value: 'ai', label: 'AI & MCP', icon: faRobot },
+  { value: 'ai', label: 'AI & MCP', icon: faWandMagicSparkles },
   { value: 'proxy', label: 'Proxy', icon: faServer },
   { value: 'backup-restore', label: 'Backup & Restore', icon: faFloppyDisk }
 ];

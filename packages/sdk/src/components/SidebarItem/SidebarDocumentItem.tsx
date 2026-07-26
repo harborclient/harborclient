@@ -17,8 +17,7 @@ interface Props {
   /**
    * Optional Tailwind classes merged onto the leading icon. The icon already
    * includes `pl-1` so its left edge aligns with `SidebarMethodBadge` text on
-   * non-sortable rows; pass `SIDEBAR_DOCUMENT_ICON_REQUEST_ALIGN_CLASS` for
-   * additional margin beside sortable request rows.
+   * neighboring request rows.
    */
   iconClassName?: string;
 

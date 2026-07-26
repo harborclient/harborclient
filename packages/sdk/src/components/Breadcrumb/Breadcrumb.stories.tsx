@@ -1,3 +1,4 @@
+import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type JSX, useState } from 'react';
 import { Breadcrumb, type BreadcrumbSegment } from './index.js';
@@ -66,7 +67,7 @@ export const EditableOnly: Story = {
 
 export const WithCollection: Story = {
   args: {
-    segments: [{ id: 'collection', label: 'My API', onClick: () => undefined }],
+    segments: [{ id: 'collection', label: 'My API', icon: faFolder, onClick: () => undefined }],
     initialValue: 'Get users',
     placeholder: 'Request name',
     editableLabel: 'Request name'
@@ -76,8 +77,8 @@ export const WithCollection: Story = {
 export const WithCollectionAndFolder: Story = {
   args: {
     segments: [
-      { id: 'collection', label: 'My API', onClick: () => undefined },
-      { id: 'folder', label: 'Users', onClick: () => undefined }
+      { id: 'collection', label: 'My API', icon: faFolder, onClick: () => undefined },
+      { id: 'folder', label: 'Users', icon: faFolder, onClick: () => undefined }
     ],
     initialValue: 'Create user',
     placeholder: 'Request name',

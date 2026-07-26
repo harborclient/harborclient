@@ -16,7 +16,8 @@
   --color-footer-icon-active: #f5f5f7;
   --color-toolbar-action-active: #f5f5f7;
   --color-breadcrumb-background: #252526;
-  --color-breadcrumb-segment: #252526;
+  --color-breadcrumb-segment: #323234;
+  --color-breadcrumb-current: #3a3a3c;
   --color-field: #1c1c1e;
   --color-selection: #48484a;
   --color-text: #f5f5f7;

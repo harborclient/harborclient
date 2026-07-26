@@ -94,12 +94,15 @@
 }
 
 /**
- * Compact circular new-tab control in horizontal scroll mode. Lives in SDK styles
- * so the rule overrides Tailwind rounded utilities on the same element.
+ * Compact new-tab control in horizontal scroll mode. Sized by horizontal
+ * padding (not a fixed square) so the "+" has visible side inset. Lives in SDK
+ * styles so the rule overrides Tailwind rounded utilities on the same element.
  */
 .hc-tab-new-button {
   align-self: center;
-  width: 1.75rem;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 2.75rem;
   height: 1.75rem;
   aspect-ratio: auto;
   border-radius: 9999px;

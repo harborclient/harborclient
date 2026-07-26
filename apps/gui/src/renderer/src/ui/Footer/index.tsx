@@ -14,10 +14,10 @@ import {
   faInbox,
   faPaperPlane,
   faCodeBranch,
-  faRobot,
   faSun,
   faTableColumns,
-  faTerminal
+  faTerminal,
+  faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
 import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/Shared/classes';
@@ -485,7 +485,7 @@ export function Footer({
             />
             <FooterIcon
               onClick={onToggleAiSidebar}
-              icon={faRobot}
+              icon={faWandMagicSparkles}
               active={aiSidebarOpen}
               activeStyle="selection"
               label="agent chat"

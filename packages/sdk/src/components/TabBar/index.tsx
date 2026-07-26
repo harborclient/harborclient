@@ -381,8 +381,8 @@ export function TabBar<TId extends string | number>({
 
   const tabRowClassName = wrap ? 'w-full min-w-0 py-1' : 'flex w-max flex-nowrap items-end py-1';
   const tabListClassName = wrap
-    ? 'flex min-w-0 w-full flex-wrap items-end gap-y-2'
-    : 'flex items-end';
+    ? 'flex min-w-0 w-full flex-wrap items-end gap-x-1.5 gap-y-2'
+    : 'flex items-end gap-x-1.5';
   const sortStrategy = wrap ? rectSortingStrategy : horizontalListSortingStrategy;
 
   const newTabButton = (

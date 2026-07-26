@@ -50,6 +50,10 @@
   --color-toolbar-action-active: var(--mac-toolbar-action-active, var(--mac-text));
   --color-breadcrumb-background: var(--mac-breadcrumb-background, var(--mac-sidebar));
   --color-breadcrumb-segment: var(--mac-breadcrumb-segment, var(--mac-sidebar));
+  --color-breadcrumb-current: var(
+    --mac-breadcrumb-current,
+    var(--mac-breadcrumb-segment, var(--mac-sidebar))
+  );
   --color-git-staged: var(--mac-git-staged);
   --color-git-uncommitted: var(--mac-git-uncommitted);
   --color-git-unstaged: var(--mac-git-unstaged);
@@ -117,7 +121,8 @@
     --mac-footer-icon-active: var(--mac-text);
     --mac-toolbar-action-active: var(--mac-text);
     --mac-breadcrumb-background: #ececee;
-    --mac-breadcrumb-segment: #ececee;
+    --mac-breadcrumb-segment: #d8d8dc;
+    --mac-breadcrumb-current: #c8c8ce;
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
@@ -227,7 +232,8 @@
       --mac-footer-icon-active: var(--mac-text);
       --mac-toolbar-action-active: var(--mac-text);
       --mac-breadcrumb-background: #252526;
-      --mac-breadcrumb-segment: #252526;
+      --mac-breadcrumb-segment: #323234;
+      --mac-breadcrumb-current: #3a3a3c;
       --mac-git-staged: var(--mac-success);
       --mac-git-uncommitted: var(--mac-warning);
       --mac-git-unstaged: var(--mac-muted);
@@ -277,7 +283,8 @@
     --mac-footer-icon-active: var(--mac-text);
     --mac-toolbar-action-active: var(--mac-text);
     --mac-breadcrumb-background: #252526;
-    --mac-breadcrumb-segment: #252526;
+    --mac-breadcrumb-segment: #323234;
+    --mac-breadcrumb-current: #3a3a3c;
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
@@ -336,7 +343,8 @@
     --mac-footer-icon-active: #ffd60a;
     --mac-toolbar-action-active: #ffd60a;
     --mac-breadcrumb-background: #000000;
-    --mac-breadcrumb-segment: #000000;
+    --mac-breadcrumb-segment: #141414;
+    --mac-breadcrumb-current: #1f1f1f;
     --mac-git-staged: #5ce06a;
     --mac-git-uncommitted: #ffb340;
     --mac-git-unstaged: #d0d0d0;
@@ -398,6 +406,7 @@
       --mac-toolbar-action-active: CanvasText;
       --mac-breadcrumb-background: Canvas;
       --mac-breadcrumb-segment: Canvas;
+      --mac-breadcrumb-current: Canvas;
       --mac-git-staged: CanvasText;
       --mac-git-uncommitted: CanvasText;
       --mac-git-unstaged: GrayText;
@@ -724,10 +733,6 @@
     border-color: var(--mac-separator) !important;
   }
 
-  :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'][aria-selected='true'] {
-    border-bottom-color: var(--mac-tab-underline) !important;
-  }
-
   :root[data-theme='high-contrast'] .hc-tab-bar [role='tab']:not([aria-selected='true']) {
     border-bottom-color: transparent !important;
   }
@@ -830,17 +835,29 @@
   }
 
   /**
-   * live in utilities so this overrides Tailwind's rounded-md on the same element.
-   * Drop self-stretch so the control stays square instead of a full-height pill.
-   *
-   * Footer slide-up panels (Console, Variables, plugin panels) reuse the same
-   * round hit target via their "Close …" aria-label.
+   * Compact tab-bar icon controls. Lives in utilities so this overrides
+   * Tailwind's rounded-md on the same element. Drop self-stretch so the
+   * control stays a fixed hit target instead of a full-height pill.
    */
-  .hc-tab-new-button,
   .hc-tab-bar-icon-button {
     align-self: center;
     width: 1.75rem;
     height: 1.75rem;
+    aspect-ratio: auto;
+    border-radius: var(--mac-tab-radius);
+  }
+
+  /**
+   * New-tab "+" control: wider than square via horizontal padding so the icon
+   * is not flush with the hover/focus chip edges.
+   */
+  .hc-tab-new-button {
+    align-self: center;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 2.75rem;
+    height: 1.75rem;
+    padding-inline: 0.75rem;
     aspect-ratio: auto;
     border-radius: var(--mac-tab-radius);
   }

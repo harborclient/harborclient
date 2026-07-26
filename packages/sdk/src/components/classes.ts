@@ -24,11 +24,12 @@ export function segment(active: boolean): string {
  *
  * @param active - Whether this tab is the selected editor.
  * @returns Border, background, and text color classes for the tab shell.
- *          Active tabs use a 2px bottom underline; inactive tabs reserve the
- *          same space with a transparent bottom border.
+ *          Selection is conveyed by background and text color; both states
+ *          reserve the same bottom border width with a transparent color so
+ *          tab height stays aligned with the bar rule.
  */
 export function tabItem(active: boolean): string {
   return active
-    ? 'border-separator/70 border-b-tab-underline bg-selection text-text [border-bottom-width:var(--mac-tab-border-width)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
+    ? 'border-separator/70 border-b-transparent bg-selection text-text [border-bottom-width:var(--mac-tab-border-width)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
     : 'border-separator/50 border-b-transparent bg-control/20 text-muted [border-bottom-width:var(--mac-tab-border-width)] hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 }

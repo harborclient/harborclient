@@ -183,8 +183,8 @@ interface Props {
 
 /**
  * Base shell for sidebar list rows. Applies shared row chrome, optional sortable
- * drag behavior via a leading grip handle, and a trailing actions slot suitable
- * for future Sidebar layout reuse.
+ * drag behavior via a trailing grip handle (before actions), and a trailing
+ * actions slot suitable for Sidebar layout reuse.
  */
 export function SidebarItem({
   selected = false,
@@ -201,19 +201,15 @@ export function SidebarItem({
 }: Props): JSX.Element {
   const rowClassName = cn('hc-sidebar-item', sourceRow(selected, compact), className);
 
-  const rowContent = (
-    <>
-      {children}
-      {actions != null ? (
-        <div
-          className="shrink-0"
-          {...(actionsStopDrag ? { onPointerDown: stopSortableDragPointerDown } : {})}
-        >
-          {actions}
-        </div>
-      ) : null}
-    </>
-  );
+  const actionsNode =
+    actions != null ? (
+      <div
+        className="shrink-0"
+        {...(actionsStopDrag ? { onPointerDown: stopSortableDragPointerDown } : {})}
+      >
+        {actions}
+      </div>
+    ) : null;
 
   const listboxOptionProps =
     listboxOption != null
@@ -279,16 +275,18 @@ export function SidebarItem({
         dragHandleLabel={sortable.dragHandleLabel}
         disabled={sortable.disabled}
         onRowContextMenu={onContextMenu}
+        trailing={actionsNode}
         {...interactiveProps}
       >
-        {rowContent}
+        {children}
       </SortableSidebarItem>
     );
   }
 
   return (
     <Container className={rowClassName} onContextMenu={onContextMenu} {...interactiveProps}>
-      {rowContent}
+      {children}
+      {actionsNode}
     </Container>
   );
 }

@@ -27,9 +27,14 @@ interface Props {
   dragHandleLabel: string;
 
   /**
-   * Row contents, typically label and action controls.
+   * Row contents (label, chevron, badges, etc.). Rendered before the trailing drag handle.
    */
   children: ReactNode;
+
+  /**
+   * Optional trailing slot after the drag handle (typically row actions).
+   */
+  trailing?: ReactNode;
 
   /**
    * When true, renders a static row without drag-and-drop behavior.
@@ -60,8 +65,10 @@ interface Props {
 
 /**
  * Wraps a sidebar row with dnd-kit sortable drag behavior. Reordering is activated
- * from a dedicated grip handle so keyboard users can focus it and use the keyboard
- * sensor; listbox option interaction and nested row controls stay on the row container.
+ * from a dedicated trailing grip handle so keyboard users can focus it and use the
+ * keyboard sensor; listbox option interaction and nested row controls stay on the
+ * row container. Keeping the handle after the label keeps leading content flush with
+ * non-sortable sections such as Runs and History.
  */
 export function SortableSidebarItem({
   id,
@@ -69,6 +76,7 @@ export function SortableSidebarItem({
   className,
   dragHandleLabel,
   children,
+  trailing,
   disabled = false,
   onRowContextMenu,
   role,
@@ -116,6 +124,7 @@ export function SortableSidebarItem({
     return (
       <Container className={className} onContextMenu={onRowContextMenu} {...interactiveProps}>
         {children}
+        {trailing}
       </Container>
     );
   }
@@ -134,6 +143,7 @@ export function SortableSidebarItem({
       onContextMenu={onRowContextMenu}
       {...interactiveProps}
     >
+      {children}
       <button
         type="button"
         ref={setActivatorNodeRef}
@@ -144,7 +154,7 @@ export function SortableSidebarItem({
       >
         <FaIcon icon={faGripVertical} className="h-2.5 w-2.5" aria-hidden />
       </button>
-      {children}
+      {trailing}
     </Container>
   );
 }
