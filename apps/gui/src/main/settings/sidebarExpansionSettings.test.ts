@@ -30,6 +30,7 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -38,12 +39,24 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: false,
         trash: false
       },
       collectionIds: [],
       folderIds: [],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
       showStorageLocationBadges: true,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
     expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
       sections: {
@@ -52,6 +65,7 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -60,12 +74,24 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: false,
         trash: false
       },
       collectionIds: [],
       folderIds: [],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
       showStorageLocationBadges: true,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
   });
 
@@ -84,6 +110,7 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -92,12 +119,24 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: false,
         trash: false
       },
       collectionIds: [1],
       folderIds: [9],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
       showStorageLocationBadges: true,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
   });
 
@@ -111,6 +150,7 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -119,12 +159,24 @@ describe('sidebarExpansionSettings', () => {
         runResults: false,
         history: true,
         tabGroups: true,
+        archive: false,
         trash: false
       },
       collectionIds: [2, 2, -3],
       folderIds: [8],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
       showStorageLocationBadges: false,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
@@ -134,6 +186,7 @@ describe('sidebarExpansionSettings', () => {
         runResults: true,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -142,12 +195,24 @@ describe('sidebarExpansionSettings', () => {
         runResults: false,
         history: true,
         tabGroups: true,
+        archive: false,
         trash: false
       },
       collectionIds: [2],
       folderIds: [8],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
       showStorageLocationBadges: false,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
   });
 });

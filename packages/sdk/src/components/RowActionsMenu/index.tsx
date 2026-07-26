@@ -8,9 +8,16 @@ import {
   useRef,
   useState
 } from '@harborclient/sdk/react';
-import type { ComponentPropsWithoutRef, JSX, KeyboardEvent, ReactNode } from 'react';
-import { Button, type ButtonVariant } from '../Button/index.js';
+import type {
+  ComponentPropsWithoutRef,
+  JSX,
+  KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode
+} from 'react';
+import { Button, type ButtonProps, type ButtonVariant } from '../Button/index.js';
 import { FaIcon } from '../FaIcon/index.js';
+import { FilterButtonIcon } from '../FilterButton/FilterButtonIcon.js';
 import {
   MENU_MIN_WIDTH_PX,
   type MenuPosition,
@@ -116,6 +123,13 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   triggerClassName?: string;
 
   /**
+   * When set, styles the trigger like {@link FilterButton}: muted when inactive,
+   * full-contrast when active, and an accent corner indicator on icon-only
+   * triggers while filters are applied.
+   */
+  triggerActive?: boolean;
+
+  /**
    * Whether the menu opens below or above the trigger. Defaults to opening downward.
    */
   placement?: 'down' | 'up';
@@ -148,6 +162,7 @@ export function RowActionsMenu({
   triggerAriaLabel,
   triggerTitle,
   triggerClassName,
+  triggerActive,
   placement = 'down',
   className,
   ...props
@@ -658,24 +673,57 @@ export function RowActionsMenu({
       ? 'secondary'
       : resolvedTriggerVariant;
 
+  const triggerActiveClassName =
+    triggerActive === undefined
+      ? undefined
+      : triggerActive
+        ? 'text-text hover:text-text'
+        : 'text-muted hover:text-text';
+
+  /**
+   * Toggles the menu from the trigger click without bubbling to the row.
+   *
+   * @param event - Native button click event.
+   */
+  const handleTriggerClick = (event: ReactMouseEvent<HTMLButtonElement>): void => {
+    event.stopPropagation();
+    if (isOpen) {
+      closeMenu();
+    } else {
+      openMenu(false);
+    }
+  };
+
+  /**
+   * Icon-only trigger props. Cast through `ButtonProps` so `triggerVariant`
+   * (including `toolbar`) is accepted alongside the default `icon` variant;
+   * `aria-label` is always provided for accessibility.
+   */
+  const iconOnlyTriggerProps = {
+    innerRef: triggerRef,
+    type: 'button' as const,
+    variant: resolvedTriggerVariant,
+    className: cn('hc-row-actions-menu-trigger', triggerActiveClassName, triggerClassName),
+    title: resolvedTriggerTitle,
+    'aria-label': resolvedTriggerAriaLabel,
+    'aria-haspopup': 'menu' as const,
+    'aria-expanded': isOpen,
+    'aria-controls': isOpen ? menuElementId : undefined,
+    onClick: handleTriggerClick,
+    onKeyDown: handleTriggerKeyDown
+  } as ButtonProps;
+
   const triggerButton = isLabeledTrigger ? (
     <Button
       innerRef={triggerRef}
       type="button"
       variant={labeledTriggerVariant as Exclude<ButtonVariant, 'icon' | 'iconDanger'>}
-      className={cn('hc-row-actions-menu-trigger', triggerClassName)}
+      className={cn('hc-row-actions-menu-trigger', triggerActiveClassName, triggerClassName)}
       title={resolvedTriggerTitle}
       aria-haspopup="menu"
       aria-expanded={isOpen}
       aria-controls={isOpen ? menuElementId : undefined}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (isOpen) {
-          closeMenu();
-        } else {
-          openMenu(false);
-        }
-      }}
+      onClick={handleTriggerClick}
       onKeyDown={handleTriggerKeyDown}
     >
       <FaIcon icon={triggerIcon} className="h-[1em] w-[1em] shrink-0" aria-hidden />
@@ -684,27 +732,12 @@ export function RowActionsMenu({
       </span>
     </Button>
   ) : (
-    <Button
-      innerRef={triggerRef}
-      type="button"
-      variant="icon"
-      className={cn('hc-row-actions-menu-trigger', triggerClassName)}
-      title={resolvedTriggerTitle}
-      aria-label={resolvedTriggerAriaLabel}
-      aria-haspopup="menu"
-      aria-expanded={isOpen}
-      aria-controls={isOpen ? menuElementId : undefined}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (isOpen) {
-          closeMenu();
-        } else {
-          openMenu(false);
-        }
-      }}
-      onKeyDown={handleTriggerKeyDown}
-    >
-      <FaIcon icon={triggerIcon} className="h-3.5 w-3.5" />
+    <Button {...iconOnlyTriggerProps}>
+      {triggerActive !== undefined ? (
+        <FilterButtonIcon active={triggerActive} icon={triggerIcon} />
+      ) : (
+        <FaIcon icon={triggerIcon} className="h-3.5 w-3.5" />
+      )}
     </Button>
   );
 

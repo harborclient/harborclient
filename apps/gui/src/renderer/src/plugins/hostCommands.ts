@@ -5,6 +5,7 @@ import { executePluginCommand, registerCommand } from './createPluginContext';
 import { registerHostRequestCommands } from './hostRequestCommands';
 import { registerHostEnvironmentCommands } from './hostEnvironmentCommands';
 import { registerHostGlobalsCommands } from './hostGlobalsCommands';
+import { registerHostImageCommands } from './hostImageCommands';
 
 const HOST_PLUGIN_ID = 'harborclient';
 
@@ -15,6 +16,7 @@ export function registerHostPluginCommands(): () => void {
   const unregisterRequestCommands = registerHostRequestCommands();
   const unregisterEnvironmentCommands = registerHostEnvironmentCommands();
   const unregisterGlobalsCommands = registerHostGlobalsCommands();
+  const unregisterImageCommands = registerHostImageCommands();
   const disposables = [
     registerCommand(HOST_PLUGIN_ID, 'openMainView', (pluginId, viewId) => {
       if (typeof pluginId !== 'string' || typeof viewId !== 'string') {
@@ -37,6 +39,7 @@ export function registerHostPluginCommands(): () => void {
     unregisterRequestCommands();
     unregisterEnvironmentCommands();
     unregisterGlobalsCommands();
+    unregisterImageCommands();
     for (const disposable of disposables) {
       disposable.dispose();
     }

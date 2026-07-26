@@ -117,7 +117,8 @@ describe('MoveCoordinator team hub source', () => {
       collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
       connectionId: 'hub-a',
       providerCollectionId: 10,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      archived: false
     };
 
     const mover = new MoveCoordinator(
@@ -249,7 +250,8 @@ describe('MoveCoordinator document copy', () => {
       collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
       connectionId: 'conn-a',
       providerCollectionId: 10,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      archived: false
     };
 
     const mover = new MoveCoordinator(
@@ -351,7 +353,8 @@ describe('MoveCoordinator document copy', () => {
       collectionUuid: '550e8400-e29b-41d4-a716-446655440000',
       connectionId: 'conn-a',
       providerCollectionId: 10,
-      created_at: '2026-01-01T00:00:00.000Z'
+      created_at: '2026-01-01T00:00:00.000Z',
+      archived: false
     };
 
     const mover = new MoveCoordinator(

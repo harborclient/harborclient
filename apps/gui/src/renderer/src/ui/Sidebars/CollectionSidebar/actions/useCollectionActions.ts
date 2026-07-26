@@ -37,7 +37,8 @@ import {
   reorderRequests,
   requestLoadDocument,
   requestLoadRequest,
-  saveAllDirtyRequests
+  saveAllDirtyRequests,
+  setCollectionArchived
 } from '#/renderer/src/store/thunks';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
@@ -130,6 +131,11 @@ export interface CollectionActions {
    * Deletes a collection, confirming first for team-hub-backed collections.
    */
   onDeleteCollection: (id: number, options?: { deleteRepoDirectory?: boolean }) => Promise<void>;
+
+  /**
+   * Archives a collection so it leaves the Collections tree.
+   */
+  onArchiveCollection: (id: number) => Promise<void>;
 
   /**
    * Exports a collection to disk.
@@ -405,6 +411,17 @@ export function useCollectionActions(): CollectionActions {
         }
       } catch (err) {
         showAlert(dispatch, formatErrorMessage(err, 'Failed to delete collection'));
+      }
+    },
+    onArchiveCollection: async (id) => {
+      const collection = collections.find((item) => item.id === id);
+      try {
+        await dispatch(setCollectionArchived({ id, archived: true })).unwrap();
+        toast.success(
+          collection ? `Archived collection "${collection.name}"` : 'Collection archived'
+        );
+      } catch (err) {
+        showAlert(dispatch, formatErrorMessage(err, 'Failed to archive collection'));
       }
     },
     onExportCollection: async (id) => {

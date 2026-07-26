@@ -38,8 +38,13 @@ import {
 import { faLayerGroup } from '#/renderer/src/fontawesome';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
+import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
+import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
+
+export { TabGroupsHeaderActions } from './TabGroupsHeaderActions';
 
 /**
  * Tab Groups sidebar section listing saved request tab groups with drag reordering.
@@ -47,10 +52,31 @@ import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './util
 export function TabGroups(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const groups = useAppSelector(selectTabGroups);
-  const { showColorDots } = useSidebarExpansion();
+  const allGroups = useAppSelector(selectTabGroups);
+  const { showColorDots, sectionSort } = useSidebarExpansion();
+  const { tabGroupsColorFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragGroup, setActiveDragGroup] = useState<TabGroup | null>(null);
+  const sortMode = sectionSort.tabGroups;
+  const sortActive = sortMode !== 'default';
+
+  /**
+   * Tab groups limited to the selected color when a color filter is active,
+   * then ordered by the Tab Groups section sort mode.
+   */
+  const groups = useMemo(() => {
+    const filtered = filterItemsByColor(allGroups, tabGroupsColorFilter);
+    return sortSidebarItems(filtered, sortMode, {
+      name: (group) => group.name,
+      createdAt: (group) => toSortTimestamp(group.createdAt),
+      color: (group) => group.color
+    });
+  }, [allGroups, sortMode, tabGroupsColorFilter]);
+
+  /**
+   * True when a color filter is active but no tab groups matched.
+   */
+  const noMatches = tabGroupsColorFilter != null && allGroups.length > 0 && groups.length === 0;
 
   /**
    * Tab group ids in on-screen list order for shift-click range selection.
@@ -227,7 +253,8 @@ export function TabGroups(): JSX.Element {
           }
         }}
       >
-        {groups.length === 0 ? <EmptySectionLabel label="No tab groups" /> : null}
+        {noMatches ? <div className="px-2 py-1.5 text-muted">No matching tab groups</div> : null}
+        {!noMatches && groups.length === 0 ? <EmptySectionLabel label="No tab groups" /> : null}
         <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
           {groups.map((group, groupIndex) => {
             const menuId = `tab-group-${group.id}`;
@@ -248,7 +275,8 @@ export function TabGroups(): JSX.Element {
                 }}
                 sortable={{
                   id: tabGroupDragId(group.id),
-                  dragHandleLabel: `Reorder tab group "${group.name}"`
+                  dragHandleLabel: `Reorder tab group "${group.name}"`,
+                  disabled: tabGroupsColorFilter != null || sortActive
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -292,11 +320,13 @@ export function TabGroups(): JSX.Element {
                         color: group.color ?? null
                       }}
                       groups={[
-                        ...buildReorderMenuGroup(
-                          groupIndex,
-                          groups.length,
-                          (direction) => void moveTabGroup(group.id, direction)
-                        ),
+                        ...(sortActive
+                          ? []
+                          : buildReorderMenuGroup(
+                              groupIndex,
+                              groups.length,
+                              (direction) => void moveTabGroup(group.id, direction)
+                            )),
                         [
                           {
                             label: 'Edit',

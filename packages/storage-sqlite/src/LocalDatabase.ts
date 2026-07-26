@@ -198,6 +198,12 @@ export interface CollectionRegistryEntry {
    * ISO 8601 timestamp when the registry entry was created.
    */
   created_at: string;
+
+  /**
+   * When true, the collection is hidden from the Collections tree and listed
+   * in the Archive sidebar section instead.
+   */
+  archived: boolean;
 }
 
 /**
@@ -303,7 +309,8 @@ function rowToRegistryEntry(row: Record<string, unknown>): CollectionRegistryEnt
     collectionUuid: (row.collection_uuid as string) ?? '',
     connectionId: row.connection_id as string,
     providerCollectionId: row.provider_collection_id as number,
-    created_at: row.created_at as string
+    created_at: row.created_at as string,
+    archived: Boolean(row.archived)
   };
 }
 
@@ -348,6 +355,7 @@ export class LocalDatabase {
         connection_id TEXT NOT NULL,
         provider_collection_id INTEGER NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
+        archived INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
@@ -469,6 +477,7 @@ export class LocalDatabase {
     this.migratePluginTables();
     this.migrateRegistrySortOrder();
     this.migrateRegistryCollectionUuid();
+    this.migrateRegistryArchived();
     this.migrateEnvironmentUuid();
     this.migrateEnvironmentSortOrder();
     this.migrateSnippetUuid();
@@ -621,6 +630,21 @@ export class LocalDatabase {
     }
     this.getDb().exec(
       "ALTER TABLE collection_registry ADD COLUMN collection_uuid TEXT NOT NULL DEFAULT ''"
+    );
+  }
+
+  /**
+   * Adds archived to legacy registry databases when missing.
+   */
+  private migrateRegistryArchived(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(collection_registry)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((col) => col.name === 'archived')) {
+      return;
+    }
+    this.getDb().exec(
+      'ALTER TABLE collection_registry ADD COLUMN archived INTEGER NOT NULL DEFAULT 0'
     );
   }
 
@@ -888,7 +912,7 @@ export class LocalDatabase {
   listRegistry(): CollectionRegistryEntry[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at FROM collection_registry ORDER BY sort_order ASC, name ASC'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry ORDER BY sort_order ASC, name ASC'
       )
       .all() as Record<string, unknown>[];
 
@@ -921,7 +945,7 @@ export class LocalDatabase {
   getRegistryEntry(id: number): CollectionRegistryEntry | undefined {
     const row = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at FROM collection_registry WHERE id = ?'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry WHERE id = ?'
       )
       .get(id) as Record<string, unknown> | undefined;
 
@@ -936,7 +960,7 @@ export class LocalDatabase {
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at FROM collection_registry WHERE collection_uuid = ?'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry WHERE collection_uuid = ?'
       )
       .get(trimmed) as Record<string, unknown> | undefined;
 
@@ -1022,6 +1046,26 @@ export class LocalDatabase {
    */
   deleteRegistryEntry(id: number): void {
     this.getDb().prepare('DELETE FROM collection_registry WHERE id = ?').run(id);
+  }
+
+  /**
+   * Sets whether a registry entry is archived in the Collections sidebar.
+   *
+   * @param id - Global collection id.
+   * @param archived - When true, hide the collection from the main tree.
+   * @returns The updated registry entry.
+   */
+  setRegistryArchived(id: number, archived: boolean): CollectionRegistryEntry {
+    const current = this.getRegistryEntry(id);
+    if (!current) throw new Error('Registry entry not found');
+
+    this.getDb()
+      .prepare('UPDATE collection_registry SET archived = ? WHERE id = ?')
+      .run(archived ? 1 : 0, id);
+
+    const updated = this.getRegistryEntry(id);
+    if (!updated) throw new Error('Registry entry not found after update');
+    return updated;
   }
 
   /**

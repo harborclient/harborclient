@@ -15,6 +15,8 @@ import { searchPageHits } from './pagesCatalog';
 import { searchSettingsHits, type buildSettingsSearchIndex } from './settings';
 import { searchSnippetHits, type buildSnippetCatalogSearchIndexForSearch } from './snippets';
 import {
+  formatArchivedCollectionLabel,
+  isArchivedCollection,
   searchSidebarEntities,
   sidebarEntitySubtitle,
   type SidebarSearchInput,
@@ -134,10 +136,15 @@ export function searchAll(query: string, context: SearchAllContext): UnifiedSear
 
   if (context.sidebarIndex != null) {
     for (const hit of searchSidebarEntities(context.sidebarInput, context.sidebarIndex, trimmed)) {
+      const collectionId =
+        hit.kind === 'collection' ? hit.entityId : (hit.collectionId ?? undefined);
+      const archived = isArchivedCollection(context.sidebarInput, collectionId);
+      const title =
+        hit.kind === 'collection' && archived ? formatArchivedCollectionLabel(hit.name) : hit.name;
       grouped[hit.kind].push({
         domain: hit.kind,
         id: `${hit.kind}:${hit.entityId}`,
-        title: hit.name,
+        title,
         subtitle: sidebarEntitySubtitle(context.sidebarInput, hit),
         method: hit.method,
         score: hit.score,

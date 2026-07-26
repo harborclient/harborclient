@@ -62,6 +62,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.logRequestToConsole': 'ui',
   'host.sendHttpRequest': 'network',
   'host.clearResponse': 'ui',
+  'host.openImageView': 'ui',
   'view.getContext': 'ui',
   'view.reportSize': 'ui',
   'ui.openModal': 'ui',
@@ -682,7 +683,8 @@ export class PluginUiBroker {
       case 'host.sendRequest':
       case 'host.updateEnvironmentVariables':
       case 'host.logRequestToConsole':
-      case 'host.clearResponse': {
+      case 'host.clearResponse':
+      case 'host.openImageView': {
         this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
           pluginId: session.pluginId,
           op,

@@ -190,3 +190,50 @@ describe('selectOpenDocumentIds', () => {
     expect(openDocumentIds.size).toBe(beforeCount + 1);
   });
 });
+
+describe('selectActiveCollections / selectArchivedCollections', () => {
+  it('partitions collections by the archived flag', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setCollections } = await import('#/renderer/src/store/slices/collectionsSlice');
+    const { selectActiveCollections, selectArchivedCollections } =
+      await import('#/renderer/src/store/selectors');
+
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: 'active-uuid',
+          name: 'Active',
+          variables: [],
+          headers: [],
+          userAgent: '',
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          archived: false
+        },
+        {
+          id: 2,
+          uuid: 'archived-uuid',
+          name: 'Archived',
+          variables: [],
+          headers: [],
+          userAgent: '',
+          auth: defaultAuth(),
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          archived: true
+        }
+      ])
+    );
+
+    expect(selectActiveCollections(store.getState()).map((item) => item.id)).toEqual([1]);
+    expect(selectArchivedCollections(store.getState()).map((item) => item.id)).toEqual([2]);
+  });
+});

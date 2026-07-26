@@ -18,6 +18,15 @@ Work through the checklist below. Each step explains what to do in the app and l
 - [ ] **Add a theme** — Open **File → Themes** (**Cmd/Ctrl+Shift+T**), install from **Marketplace** or **Designer**, or switch from **View → Theme**. See [Using themes](https://harborclient.com/using-themes).
 - [ ] **Create an environment** — Click **+** in the **Environments** sidebar, name it, add variables (for example `baseUrl`), save, then select it from the environment dropdown on the TabBar. See [Environments](https://harborclient.com/environments).
 
+## Import Collections
+
+Bring existing API work into HarborClient. Use **File → Import** or click **+** in the **Collections** sidebar and choose **Import from file**.
+
+- [ ] **Import Postman collections** — Choose a Postman v2.1 collection export (`.json`). Some Postman-specific settings may need adjustment after import. See [Collections](https://harborclient.com/collections#postman-collections).
+- [ ] **Import Bruno collections** — Select a Bruno collection folder or `bruno.json`. See [Collections](https://harborclient.com/collections#postman-collections).
+- [ ] **Import HAR files** — Select a browser HAR capture (`.har`) to turn recorded traffic into requests.
+- [ ] **Import OpenAPI using the OpenAPI plugin** — Install the OpenAPI plugin from **File → Plugins**, enable it, then import an OpenAPI/Swagger spec via **File → Import** or the plugin’s import action. See [Using plugins](https://harborclient.com/using-plugins).
+
 ## Frequently Asked Questions
 
 ### Do I need an account or subscription?

@@ -13,7 +13,8 @@ import {
   faPuzzlePiece,
   faCode,
   faCodeBranch,
-  faUsers
+  faUsers,
+  faImage
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Tabs/Settings/constants';
 import type { PageRoute } from '#/renderer/src/routing/types';
@@ -23,6 +24,7 @@ import {
   normalizeSettingsSection
 } from '#/renderer/src/store/routingHelpers';
 import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
+import { imageViewSourceKey } from '#/renderer/src/ui/Tabs/ImageView/imageViewHelpers';
 
 /**
  * Declarative registry of every configuration page tab.
@@ -316,6 +318,16 @@ export const pageRoutes = {
     Component: lazyNamed(
       () => import('#/renderer/src/ui/Tabs/Plugins/CustomThemeStylesheetTab'),
       'CustomThemeStylesheetTab'
+    ),
+    normalize: () => null
+  }),
+  'image-view': defineRoute({
+    key: (page) => `image-view:${page.source.kind}:${imageViewSourceKey(page.source)}`,
+    meta: (page) => ({ title: page.shortLabel, icon: faImage }),
+    closeName: (page) => page.fileName,
+    Component: lazyNamed(
+      () => import('#/renderer/src/routing/pages/ImageViewPageRoute'),
+      'ImageViewPageRoute'
     ),
     normalize: () => null
   })

@@ -1,3 +1,4 @@
+import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from './redux';
 import {
   defaultDraft,
@@ -29,6 +30,20 @@ const EMPTY_SCRIPT_ERRORS: ScriptRunError[] = [];
  */
 export const selectCollections = (state: RootState): RootState['collections']['collections'] =>
   state.collections.collections;
+
+/**
+ * Returns collections that are not archived (shown in the Collections tree).
+ */
+export const selectActiveCollections = createSelector([selectCollections], (collections) =>
+  collections.filter((collection) => !collection.archived)
+);
+
+/**
+ * Returns collections marked archived (shown in the Archive sidebar section).
+ */
+export const selectArchivedCollections = createSelector([selectCollections], (collections) =>
+  collections.filter((collection) => Boolean(collection.archived))
+);
 
 /**
  * Returns all saved run result summaries loaded in the store.

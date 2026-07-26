@@ -4,8 +4,12 @@ import { FOLDER_SETTINGS_DEFAULTS } from '../testFixtures/folder';
 import type { Collection, Environment, Folder, SavedRequest } from '../types';
 import {
   buildSidebarSearchIndex,
+  formatArchivedCollectionLabel,
+  isArchivedCollection,
+  partitionSidebarSearchFilter,
   searchSidebar,
   searchSidebarEntities,
+  sidebarEntitySubtitle,
   sidebarRequestBreadcrumb
 } from './sidebar';
 import { searchTextIndex } from './oramaIndex';
@@ -336,5 +340,92 @@ describe('sidebarRequestBreadcrumb', () => {
       collectionName: undefined,
       folderName: undefined
     });
+  });
+
+  it('prefixes archived collection names', () => {
+    const archivedInput = {
+      ...sampleInput,
+      collections: [{ ...collectionA, archived: true }, collectionB]
+    };
+    expect(sidebarRequestBreadcrumb(archivedInput, 1, 10)).toEqual({
+      collectionName: 'Archived: Public API',
+      folderName: 'Users'
+    });
+  });
+});
+
+describe('archived search helpers', () => {
+  const archivedCollection: Collection = {
+    ...collectionB,
+    archived: true
+  };
+  const archivedFolder: Folder = {
+    id: 20,
+    collection_id: 2,
+    uuid: 'folder-legacy',
+    name: 'Legacy',
+    sort_order: 0,
+    created_at: '2024-01-01T00:00:00.000Z',
+    ...FOLDER_SETTINGS_DEFAULTS
+  };
+  const archivedRequest: SavedRequest = {
+    ...requestHealth,
+    id: 200,
+    uuid: 'req-archived',
+    collection_id: 2,
+    name: 'Legacy health',
+    folder_id: 20,
+    url: 'https://legacy.example.com/health'
+  };
+  const archivedInput = {
+    collections: [collectionA, archivedCollection],
+    foldersByCollection: {
+      1: [folderUsers],
+      2: [archivedFolder]
+    },
+    requestsByCollection: {
+      1: [requestListUsers, requestCreateUser, requestHealth],
+      2: [archivedRequest]
+    },
+    environments: [environmentProd, environmentStaging]
+  };
+
+  it('formatArchivedCollectionLabel prefixes the name', () => {
+    expect(formatArchivedCollectionLabel('Old API')).toBe('Archived: Old API');
+  });
+
+  it('isArchivedCollection detects archived collections', () => {
+    expect(isArchivedCollection(archivedInput, 2)).toBe(true);
+    expect(isArchivedCollection(archivedInput, 1)).toBe(false);
+    expect(isArchivedCollection(archivedInput, undefined)).toBe(false);
+  });
+
+  it('partitionSidebarSearchFilter splits active and archived matches', () => {
+    const index = buildSidebarSearchIndex(archivedInput);
+    const filter = searchSidebar(archivedInput, index, 'Legacy');
+    expect(filter).not.toBeNull();
+    const partitioned = partitionSidebarSearchFilter(archivedInput, filter!);
+    expect([...partitioned.archived.collectionIds]).toEqual([2]);
+    expect([...partitioned.archived.folderIds]).toEqual([20]);
+    expect([...partitioned.archived.requestIds]).toEqual([200]);
+    expect(partitioned.active.collectionIds.size).toBe(0);
+    expect(partitioned.active.environmentIds.size).toBe(0);
+  });
+
+  it('sidebarEntitySubtitle prefixes archived collection names', () => {
+    expect(
+      sidebarEntitySubtitle(archivedInput, {
+        kind: 'folder',
+        collectionId: 2,
+        folderId: 20
+      })
+    ).toBe('Archived: Internal Tools');
+    expect(
+      sidebarEntitySubtitle(archivedInput, {
+        kind: 'request',
+        collectionId: 2,
+        folderId: 20
+      })
+    ).toBe('Archived: Internal Tools / Legacy');
   });
 });

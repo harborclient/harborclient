@@ -51,6 +51,7 @@ import {
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
+import { openImageView } from './hostImageCommands';
 import {
   createEnvironmentWithVariables,
   updateEnvironmentVariables
@@ -327,6 +328,9 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
       return;
     case 'host.clearResponse':
       clearActiveResponse();
+      return;
+    case 'host.openImageView':
+      openImageView((payload as { payload: never }).payload);
       return;
     default:
       return;

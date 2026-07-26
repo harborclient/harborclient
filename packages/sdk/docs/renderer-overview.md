@@ -349,6 +349,12 @@ export interface ApplyRequestDraftPayload {
   bodyType?: BodyType;
 }
 
+export type OpenImageViewPayload =
+  | { path: string; fileName?: string }
+  | { url: string; fileName?: string }
+  | { dataUrl: string; fileName: string }
+  | { base64: string; contentType: string; fileName: string };
+
 export interface PluginHost {
   openRequestDraft(payload: OpenRequestDraftPayload): Promise<void>;
   applyRequestDraft(payload: ApplyRequestDraftPayload): Promise<void>;
@@ -363,6 +369,7 @@ export interface PluginHost {
     variables: PluginVariableInput[]
   ): Promise<void>;
   createCollection(payload: CreateCollectionPayload): Promise<CreateCollectionResult>;
+  openImageView(payload: OpenImageViewPayload): Promise<void>;
 }
 
 export interface PluginHttpRequest {
@@ -560,6 +567,31 @@ Sends the active request editor tab using the same pipeline as the Send button. 
 
 ```typescript
 await hc.host.sendRequest();
+```
+
+### hc.host.openImageView(payload)
+
+**Signature:** `(payload: OpenImageViewPayload) => Promise<void>`
+
+Opens or focuses an image-view page tab for a local file, remote URL, or inline image. Provide exactly one source form. See [Themes and storage → hc.host.openImageView](/renderer-data#hchostopenimageviewpayload) for tab behavior and validation details.
+
+```typescript
+await hc.host.openImageView({ path: '/tmp/screenshot.png' });
+
+await hc.host.openImageView({
+  url: 'https://harborclient.com/images/logo.png'
+});
+
+await hc.host.openImageView({
+  dataUrl: 'data:image/png;base64,iVBORw0KGgo...',
+  fileName: 'chart.png'
+});
+
+await hc.host.openImageView({
+  base64: pngBase64,
+  contentType: 'image/png',
+  fileName: 'chart.png'
+});
 ```
 
 ## Related reference

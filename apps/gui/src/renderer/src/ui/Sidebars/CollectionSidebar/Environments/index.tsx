@@ -34,6 +34,9 @@ import {
 } from '#/renderer/src/store/thunks';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
+import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
+import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
 import { focusEnvironmentSettings } from '#/renderer/src/ui/Tabs/EnvironmentSettings/focusEnvironmentSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -41,10 +44,12 @@ import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMen
 import { ActionsMenu } from './ActionsMenu';
 import { environmentDragId, environmentSummaryText, parseEnvironmentDragId } from './utils';
 
+export { EnvironmentsHeaderActions } from './EnvironmentsHeaderActions';
+
 /**
  * Environment list with active-row highlight, drag reordering, and row actions.
  * Sources environments and the active id from the store, respects the sidebar
- * search filter, and dispatches its own environment actions.
+ * search and color filters, and dispatches its own environment actions.
  */
 export function Environments(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -52,22 +57,36 @@ export function Environments(): JSX.Element {
   const allEnvironments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const { searchFilter, searchActive } = useSidebarSearchContext();
-  const { showColorDots } = useSidebarExpansion();
+  const { environmentsColorFilter } = useSidebarSectionFilter();
+  const { showColorDots, sectionSort } = useSidebarExpansion();
+  const colorFilterActive = environmentsColorFilter != null;
+  const sortMode = sectionSort.environments;
+  const sortActive = sortMode !== 'default';
 
   /**
-   * Environments visible for the current sidebar search filter.
+   * Environments visible for the current sidebar search and color filters,
+   * then ordered by the Environments section sort mode.
    */
   const environments = useMemo(() => {
-    if (searchFilter == null) {
-      return allEnvironments;
-    }
-    return allEnvironments.filter((environment) => searchFilter.environmentIds.has(environment.id));
-  }, [allEnvironments, searchFilter]);
+    const searchMatched =
+      searchFilter == null
+        ? allEnvironments
+        : allEnvironments.filter((environment) => searchFilter.environmentIds.has(environment.id));
+    const filtered = filterItemsByColor(searchMatched, environmentsColorFilter);
+    return sortSidebarItems(filtered, sortMode, {
+      name: (environment) => environment.name,
+      createdAt: (environment) => toSortTimestamp(environment.created_at),
+      color: (environment) => environment.color
+    });
+  }, [allEnvironments, environmentsColorFilter, searchFilter, sortMode]);
 
   /**
-   * True when search is active but no environments matched the query.
+   * True when search and/or color filter is active but no environments matched.
    */
-  const noMatches = searchFilter != null && allEnvironments.length > 0 && environments.length === 0;
+  const noMatches =
+    (searchFilter != null || colorFilterActive) &&
+    allEnvironments.length > 0 &&
+    environments.length === 0;
 
   /**
    * Environment ids in on-screen list order for shift-click range selection.
@@ -321,7 +340,7 @@ export function Environments(): JSX.Element {
                 sortable={{
                   id: environmentDragId(environment.id),
                   dragHandleLabel: `Reorder environment "${environment.name}"`,
-                  disabled: searchActive
+                  disabled: searchActive || colorFilterActive || sortActive
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -356,6 +375,7 @@ export function Environments(): JSX.Element {
                     openMenuId={openMenuId}
                     onOpenChange={setOpenMenuId}
                     inspectPoint={inspectPointsByMenuId[menuId]}
+                    reorderEnabled={!searchActive && !colorFilterActive && !sortActive}
                     onMove={(direction) => void moveEnvironment(environment.id, direction)}
                     onConfigure={() => onConfigureEnvironment(environment.id)}
                     onExport={() => void onExportEnvironment(environment.id)}

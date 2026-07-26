@@ -1,4 +1,4 @@
-import { faCode, faSun } from '@fortawesome/free-solid-svg-icons';
+import { faCode, faFilter, faSun } from '@fortawesome/free-solid-svg-icons';
 import { useState } from '@harborclient/sdk/react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ComponentProps, ReactElement } from 'react';
@@ -188,6 +188,28 @@ export const WithDisabledItems: Story = {
     groups: [
       [{ label: 'Create a snippet', onSelect: fn() }],
       [{ label: 'No snippets saved yet', disabled: true, onSelect: fn() }]
+    ]
+  },
+  render: (args) => <RowActionsMenuDemo {...args} />
+};
+
+/**
+ * Filter-style trigger with the accent active indicator on the funnel icon.
+ */
+export const FilterTriggerActive: Story = {
+  args: {
+    menuId: 'history-collection-filter',
+    triggerVariant: 'toolbar',
+    triggerIcon: faFilter,
+    triggerAriaLabel: 'Filter history by collection',
+    triggerTitle: 'Filter by collection',
+    triggerActive: true,
+    groups: [
+      [
+        { label: 'All collections', checked: false, onSelect: fn() },
+        { label: 'Users API', checked: true, onSelect: fn() },
+        { label: 'Payments', checked: false, onSelect: fn() }
+      ]
     ]
   },
   render: (args) => <RowActionsMenuDemo {...args} />

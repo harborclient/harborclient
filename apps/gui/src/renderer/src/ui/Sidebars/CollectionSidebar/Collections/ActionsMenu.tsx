@@ -68,6 +68,11 @@ interface Props {
   canShare: boolean;
 
   /**
+   * When false, hides Move up/down (search, filter, or custom sort is active).
+   */
+  reorderEnabled?: boolean;
+
+  /**
    * Moves the collection one position up or down in the sidebar.
    */
   onMove: (direction: 'up' | 'down') => void;
@@ -139,6 +144,7 @@ export function ActionsMenu({
   connectionName,
   collectionConnectionId,
   canShare,
+  reorderEnabled = true,
   onMove,
   hasDeselectableSelection,
   onDeselectAll,
@@ -152,6 +158,7 @@ export function ActionsMenu({
     onConfigureCollection,
     onRunCollection,
     onDeleteCollection,
+    onArchiveCollection,
     onExportCollection,
     onDuplicateCollection,
     onShareCollection,
@@ -248,7 +255,9 @@ export function ActionsMenu({
       ]);
     }
 
-    const reorderGroups = buildReorderMenuGroup(collectionIndex, collectionsCount, onMove);
+    const reorderGroups = reorderEnabled
+      ? buildReorderMenuGroup(collectionIndex, collectionsCount, onMove)
+      : [];
     for (const group of reorderGroups) {
       groups.push(group);
     }
@@ -296,6 +305,15 @@ export function ActionsMenu({
       groups.push(group);
     }
 
+    groups.push([
+      {
+        label: 'Archive',
+        onSelect: () => {
+          void onArchiveCollection(collection.id);
+        }
+      }
+    ]);
+
     const dangerGroup: MenuItem[] = [];
     if (hasDeselectableSelection) {
       dangerGroup.push({
@@ -335,6 +353,7 @@ export function ActionsMenu({
     menuId,
     onConfigureCollection,
     onDeleteCollection,
+    onArchiveCollection,
     onDeselectAll,
     onDuplicateCollection,
     onExportCollection,
@@ -351,6 +370,7 @@ export function ActionsMenu({
     onShareCollection,
     onStageAllUntrackedItems,
     pluginContextMenuItems,
+    reorderEnabled,
     untrackedItemCount
   ]);
 

@@ -1,6 +1,43 @@
-import { Menu, type BrowserWindow, type WebContents } from 'electron';
+import { Menu, type BrowserWindow, type MenuItem, type WebContents } from 'electron';
 import { formatMenuAcceleratorDisplay } from '@harborclient/core/shortcuts';
 import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
+
+/**
+ * Serializes a single Electron menu item into a themed-menu snapshot entry.
+ *
+ * Items with a nested submenu (such as View > Theme) become a `submenu` entry
+ * whose children carry their own local indices for activation.
+ *
+ * @param entry - Electron menu item to serialize.
+ * @param index - Index of the item within its owning submenu.
+ * @returns Serializable snapshot entry for the renderer.
+ */
+function serializeSubmenuItem(entry: MenuItem, index: number): AppSubmenuItemSnapshot {
+  if (entry.type === 'separator') {
+    return { index, kind: 'separator' as const };
+  }
+
+  if (entry.submenu) {
+    return {
+      index,
+      kind: 'submenu' as const,
+      label: entry.label ?? '',
+      enabled: entry.enabled !== false,
+      submenu: entry.submenu.items.map(serializeSubmenuItem)
+    };
+  }
+
+  return {
+    index,
+    kind: entry.type === 'checkbox' ? ('checkbox' as const) : ('normal' as const),
+    label: entry.label ?? '',
+    checked: entry.type === 'checkbox' ? entry.checked : undefined,
+    enabled: entry.enabled !== false,
+    accelerator: entry.accelerator
+      ? formatMenuAcceleratorDisplay(entry.accelerator, process.platform)
+      : undefined
+  };
+}
 
 /**
  * Returns a serializable snapshot of a root application submenu for Linux in-app menus.
@@ -22,22 +59,7 @@ export function getAppSubmenuSnapshot(label: RootMenuLabel): AppSubmenuItemSnaps
     return [];
   }
 
-  return root.submenu.items.map((entry, index) => {
-    if (entry.type === 'separator') {
-      return { index, kind: 'separator' as const };
-    }
-
-    return {
-      index,
-      kind: entry.type === 'checkbox' ? ('checkbox' as const) : ('normal' as const),
-      label: entry.label ?? '',
-      checked: entry.type === 'checkbox' ? entry.checked : undefined,
-      enabled: entry.enabled !== false,
-      accelerator: entry.accelerator
-        ? formatMenuAcceleratorDisplay(entry.accelerator, process.platform)
-        : undefined
-    };
-  });
+  return root.submenu.items.map(serializeSubmenuItem);
 }
 
 /**
@@ -47,12 +69,14 @@ export function getAppSubmenuSnapshot(label: RootMenuLabel): AppSubmenuItemSnaps
  * @param index - Flat item index from {@link getAppSubmenuSnapshot}.
  * @param window - Browser window that opened the submenu.
  * @param webContents - Web contents that opened the submenu.
+ * @param nestedIndex - Index of a child item when activating a nested submenu entry (such as View > Theme).
  */
 export function activateAppSubmenuItem(
   label: RootMenuLabel,
   index: number,
   window: BrowserWindow,
-  webContents: WebContents
+  webContents: WebContents,
+  nestedIndex?: number
 ): void {
   const appMenu = Menu.getApplicationMenu();
   if (!appMenu) {
@@ -60,7 +84,12 @@ export function activateAppSubmenuItem(
   }
 
   const root = appMenu.items.find((entry) => entry.label === label);
-  const item = root?.submenu?.items[index];
+  const parent = root?.submenu?.items[index];
+  if (!parent) {
+    return;
+  }
+
+  const item = nestedIndex === undefined ? parent : parent.submenu?.items[nestedIndex];
   if (!item || item.type === 'separator' || item.enabled === false) {
     return;
   }

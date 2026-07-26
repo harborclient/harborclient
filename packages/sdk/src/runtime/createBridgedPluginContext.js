@@ -900,6 +900,10 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
       clearResponse: async () => {
         assertUi();
         await bridgeInvoke('host.clearResponse');
+      },
+      openImageView: async (payload) => {
+        assertUi();
+        await bridgeInvoke('host.openImageView', { payload });
       }
     },
     imports: {

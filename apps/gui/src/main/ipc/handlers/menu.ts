@@ -6,6 +6,11 @@ import {
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
   setMenuSidebarVisible,
+  setMenuShortcutsReferenceOpen,
+  setMenuConsoleVisible,
+  setMenuVariablesVisible,
+  setMenuMcpVisible,
+  setMenuTerminalVisible,
   setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
   setMenuSidebarDeselectAllAvailable,
@@ -21,22 +26,22 @@ import type { ThemeSource } from '@harborclient/core/types';
  * Registers IPC handlers that keep the application menu in sync with renderer state.
  */
 export function registerMenuHandlers(): void {
-  // Updates the View menu checkmark for sidebar visibility.
+  // Updates the View > Appearance submenu checkmark for sidebar visibility.
   handle('menu:setSidebarVisible', ipcArgSchemas.menuSidebarVisible, (_event, visible) => {
     setMenuSidebarVisible(visible);
   });
 
-  // Updates the View menu checkmark for AI sidebar visibility.
+  // Updates the View > Appearance submenu checkmark for AI sidebar visibility.
   handle('menu:setAiSidebarVisible', ipcArgSchemas.menuAiSidebarVisible, (_event, visible) => {
     setMenuAiSidebarVisible(visible);
   });
 
-  // Updates the View menu checkmark for Git sidebar visibility.
+  // Updates the View > Appearance submenu checkmark for Git sidebar visibility.
   handle('menu:setGitSidebarVisible', ipcArgSchemas.menuGitSidebarVisible, (_event, visible) => {
     setMenuGitSidebarVisible(visible);
   });
 
-  // Updates the View menu checkmark for request editor visibility.
+  // Updates the View > Appearance submenu checkmark for request editor visibility.
   handle(
     'menu:setRequestEditorVisible',
     ipcArgSchemas.menuRequestEditorVisible,
@@ -45,7 +50,7 @@ export function registerMenuHandlers(): void {
     }
   );
 
-  // Updates the View menu checkmark for response editor visibility.
+  // Updates the View > Appearance submenu checkmark for response editor visibility.
   handle(
     'menu:setResponseEditorVisible',
     ipcArgSchemas.menuResponseEditorVisible,
@@ -53,6 +58,35 @@ export function registerMenuHandlers(): void {
       setMenuResponseEditorVisible(visible);
     }
   );
+
+  // Updates the View > Appearance submenu checkmark for the shortcuts reference modal.
+  handle(
+    'menu:setShortcutsReferenceOpen',
+    ipcArgSchemas.menuShortcutsReferenceOpen,
+    (_event, open) => {
+      setMenuShortcutsReferenceOpen(open);
+    }
+  );
+
+  // Updates the View > Appearance submenu checkmark for console panel visibility.
+  handle('menu:setConsoleVisible', ipcArgSchemas.menuConsoleVisible, (_event, visible) => {
+    setMenuConsoleVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for variables panel visibility.
+  handle('menu:setVariablesVisible', ipcArgSchemas.menuVariablesVisible, (_event, visible) => {
+    setMenuVariablesVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for MCP panel visibility.
+  handle('menu:setMcpVisible', ipcArgSchemas.menuMcpVisible, (_event, visible) => {
+    setMenuMcpVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for terminal panel visibility.
+  handle('menu:setTerminalVisible', ipcArgSchemas.menuTerminalVisible, (_event, visible) => {
+    setMenuTerminalVisible(visible);
+  });
 
   // Updates View menu theme checkmarks and plugin theme entries from renderer state.
   handle('menu:setThemeMenuState', ipcArgSchemas.menuThemeMenuState, (_event, theme, options) => {
@@ -93,13 +127,13 @@ export function registerMenuHandlers(): void {
   handle(
     'menu:activateSubmenuItem',
     ipcArgSchemas.menuActivateSubmenuItem,
-    (event, label, index) => {
+    (event, label, index, nestedIndex) => {
       const window = BrowserWindow.fromWebContents(event.sender);
       if (!window) {
         return;
       }
 
-      activateAppSubmenuItem(label, index, window, event.sender);
+      activateAppSubmenuItem(label, index, window, event.sender, nestedIndex);
     }
   );
 

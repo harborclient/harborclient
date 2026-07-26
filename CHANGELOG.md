@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance menu functionality and visibility options. (`89cf8584`)
+
 ## 2.8.3 - 2026-07-26
 
 - Add dismissedRequestEditorNotices to general settings. (`22551faa`)

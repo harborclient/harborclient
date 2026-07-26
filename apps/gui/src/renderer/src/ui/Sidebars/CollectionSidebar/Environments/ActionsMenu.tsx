@@ -60,6 +60,11 @@ interface Props {
   inspectPoint: InspectPoint | undefined;
 
   /**
+   * When false, hides Move up/down (search, filter, or custom sort is active).
+   */
+  reorderEnabled?: boolean;
+
+  /**
    * Moves the environment one position up or down in the sidebar.
    */
   onMove: (direction: 'up' | 'down') => void;
@@ -215,11 +220,10 @@ export function ActionsMenu(props: Props): JSX.Element {
       }
     ];
 
-    const reorderGroups = buildReorderMenuGroup(
-      props.environmentIndex,
-      props.environmentsCount,
-      props.onMove
-    );
+    const reorderGroups =
+      props.reorderEnabled === false
+        ? []
+        : buildReorderMenuGroup(props.environmentIndex, props.environmentsCount, props.onMove);
     const inspectGroups = buildDevInspectMenuGroups(
       props.inspectPoint,
       menuId,

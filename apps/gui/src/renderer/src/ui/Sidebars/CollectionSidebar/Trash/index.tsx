@@ -5,7 +5,9 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';
 import { permanentlyDeleteTrashItem, restoreTrashItem } from '#/renderer/src/store/thunks/trash';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
+import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { ActionsMenu } from './ActionsMenu';
@@ -28,10 +30,24 @@ function trashItemAriaLabel(item: TrashItem): string {
 export function Trash(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const items = useAppSelector(selectTrashItems);
+  const allItems = useAppSelector(selectTrashItems);
+  const { sectionSort } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
+  );
+  const sortMode = sectionSort.trash;
+
+  /**
+   * Trash rows ordered by the Trash section sort mode.
+   */
+  const items = useMemo(
+    () =>
+      sortSidebarItems(allItems, sortMode, {
+        name: (item) => item.label,
+        createdAt: (item) => toSortTimestamp(item.deletedAt)
+      }),
+    [allItems, sortMode]
   );
 
   /**

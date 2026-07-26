@@ -27,6 +27,8 @@ export type MenuActionId =
   | 'focus-main-nav'
   | 'toggle-variables'
   | 'toggle-console'
+  | 'toggle-mcp'
+  | 'toggle-terminal'
   | 'toggle-ai-sidebar'
   | 'toggle-git-sidebar'
   | 'toggle-request-editor'
@@ -79,12 +81,12 @@ export type RootMenuLabel = 'File' | 'Edit' | 'View' | 'Team' | 'Git' | 'Help';
  */
 export type AppSubmenuItemSnapshot =
   | {
-      /** Flat index in the root submenu used to activate the item in the main process. */
+      /** Flat index in the owning submenu used to activate the item in the main process. */
       index: number;
       kind: 'separator';
     }
   | {
-      /** Flat index in the root submenu used to activate the item in the main process. */
+      /** Flat index in the owning submenu used to activate the item in the main process. */
       index: number;
       kind: 'normal' | 'checkbox';
       /** Visible menu label. */
@@ -95,6 +97,17 @@ export type AppSubmenuItemSnapshot =
       enabled: boolean;
       /** Keyboard shortcut hint shown beside the label. */
       accelerator?: string;
+    }
+  | {
+      /** Flat index in the root submenu used to locate the parent in the main process. */
+      index: number;
+      kind: 'submenu';
+      /** Visible menu label. */
+      label: string;
+      /** Whether the submenu can be opened. */
+      enabled: boolean;
+      /** Nested child entries, each indexed within this submenu. */
+      submenu: AppSubmenuItemSnapshot[];
     };
 
 /**

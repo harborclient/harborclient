@@ -23,7 +23,7 @@ import {
 const MENU_WIDTH_PX = 220;
 
 /** Estimated height before the panel is measured. */
-const MENU_HEIGHT_PX = 88;
+const MENU_HEIGHT_PX = 165;
 
 interface Props {
   /**
@@ -42,6 +42,16 @@ interface Props {
   showColorDots: boolean;
 
   /**
+   * Whether HTTP method badges currently use per-method colors.
+   */
+  showMethodColors: boolean;
+
+  /**
+   * Whether HTTP/run status indicators are currently shown on sidebar rows.
+   */
+  showIndicators: boolean;
+
+  /**
    * Toggles storage-location badge visibility.
    */
   onToggleStorageLocationBadges: () => void;
@@ -50,6 +60,16 @@ interface Props {
    * Toggles color-dot visibility.
    */
   onToggleColorDots: () => void;
+
+  /**
+   * Toggles HTTP method badge colors.
+   */
+  onToggleMethodColors: () => void;
+
+  /**
+   * Toggles status indicator visibility.
+   */
+  onToggleIndicators: () => void;
 
   /**
    * Closes the view options menu.
@@ -76,21 +96,29 @@ function getMenuPosition(anchor: HTMLElement | null): MenuPosition | null {
 
 /**
  * Portaled checkbox menu for Collections sidebar display preferences
- * (storage-location badges and color dots).
+ * (storage-location badges, colors, method colors, and status indicators).
  *
  * @param anchorRef - Toolbar View button used for positioning.
  * @param showStorageLocationBadges - Whether storage badges are visible.
  * @param showColorDots - Whether color dots are visible.
+ * @param showMethodColors - Whether method badges use per-method colors.
+ * @param showIndicators - Whether status indicators are visible.
  * @param onToggleStorageLocationBadges - Toggles storage badges.
  * @param onToggleColorDots - Toggles color dots.
+ * @param onToggleMethodColors - Toggles method colors.
+ * @param onToggleIndicators - Toggles status indicators.
  * @param onClose - Closes the menu.
  */
 export function SidebarViewMenu({
   anchorRef,
   showStorageLocationBadges,
   showColorDots,
+  showMethodColors,
+  showIndicators,
   onToggleStorageLocationBadges,
   onToggleColorDots,
+  onToggleMethodColors,
+  onToggleIndicators,
   onClose
 }: Props): ReactPortal | null {
   const reactId = useId();
@@ -109,9 +137,21 @@ export function SidebarViewMenu({
     },
     {
       id: 'color-dots',
-      label: 'Color dots',
+      label: 'Colors',
       checked: showColorDots,
       onSelect: onToggleColorDots
+    },
+    {
+      id: 'method-colors',
+      label: 'Method colors',
+      checked: showMethodColors,
+      onSelect: onToggleMethodColors
+    },
+    {
+      id: 'indicators',
+      label: 'Indicator',
+      checked: showIndicators,
+      onSelect: onToggleIndicators
     }
   ] as const;
 

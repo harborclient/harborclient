@@ -26,15 +26,19 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:themes', group: 'File', label: 'Themes' },
   { id: 'builtin:snippets', group: 'File', label: 'Snippets' },
   { id: 'builtin:cookies', group: 'File', label: 'Cookies' },
-  { id: 'builtin:toggle-sidebar', group: 'View', label: 'Toggle Sidebar' },
-  { id: 'builtin:toggle-ai-sidebar', group: 'View', label: 'Toggle Agent Chat' },
-  { id: 'builtin:toggle-git-sidebar', group: 'View', label: 'Toggle Git' },
-  { id: 'builtin:toggle-request-editor', group: 'View', label: 'Toggle Request' },
-  { id: 'builtin:toggle-response-editor', group: 'View', label: 'Toggle Response' },
+  { id: 'builtin:toggle-sidebar', group: 'Appearance', label: 'Toggle Sidebar' },
+  { id: 'builtin:toggle-ai-sidebar', group: 'Appearance', label: 'Toggle Agent Chat' },
+  { id: 'builtin:toggle-git-sidebar', group: 'Appearance', label: 'Toggle Git' },
+  { id: 'builtin:toggle-request-editor', group: 'Appearance', label: 'Toggle Request' },
+  { id: 'builtin:toggle-response-editor', group: 'Appearance', label: 'Toggle Response' },
+  { id: 'builtin:shortcuts-reference', group: 'Appearance', label: 'Toggle Shortcuts' },
+  { id: 'builtin:toggle-console', group: 'Appearance', label: 'Toggle Console' },
+  { id: 'builtin:toggle-variables', group: 'Appearance', label: 'Toggle Variables' },
+  { id: 'builtin:toggle-mcp', group: 'Appearance', label: 'Toggle MCP' },
   {
     id: 'builtin:toggle-terminal',
-    group: 'View',
-    label: 'Terminal',
+    group: 'Appearance',
+    label: 'Toggle Terminal',
     description: 'Open the terminal panel'
   },
   {
@@ -75,8 +79,8 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:git-settings', group: 'Git', label: 'Settings' },
   { id: 'builtin:getting-started', group: 'Help', label: 'Getting Started' },
   { id: 'builtin:check-for-updates', group: 'Help', label: 'Check for Updates' },
-  { id: 'builtin:shortcuts-reference', group: 'Help', label: 'Keyboard Shortcuts' },
-  { id: 'builtin:about', group: 'Help', label: 'About' }
+  { id: 'builtin:about', group: 'Help', label: 'About' },
+  { id: 'builtin:image-logo', group: 'Image', label: 'Logo' }
 ];
 
 /**
@@ -127,6 +131,26 @@ export function matchActionSuggestions(
   const filterText = query.slice(1).trim().toLowerCase();
   if (filterText.length === 0) {
     return actions;
+  }
+
+  return actions.filter((action) => actionSearchText(action).includes(filterText));
+}
+
+/**
+ * Filters actions whose group, label, or description match a plain query without
+ * requiring the `#` quick-open prefix. Used to surface actions like `Image: Logo`
+ * while the user is browsing the unified command palette.
+ *
+ * @param query - Raw input without a leading hash.
+ * @param actions - Full action catalog to search.
+ */
+export function matchInlineActionSuggestions(
+  query: string,
+  actions: ActionCommandDefinition[]
+): ActionCommandDefinition[] {
+  const filterText = query.trim().toLowerCase();
+  if (filterText.length === 0) {
+    return [];
   }
 
   return actions.filter((action) => actionSearchText(action).includes(filterText));

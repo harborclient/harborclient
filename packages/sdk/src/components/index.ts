@@ -58,6 +58,7 @@ export { EmptyState } from './EmptyState/index.js';
 export { EmptySectionLabel } from './EmptySectionLabel/index.js';
 export type { Props as EmptySectionLabelProps } from './EmptySectionLabel/index.js';
 export { FaIcon } from './FaIcon/index.js';
+export { FilterButton } from './FilterButton/index.js';
 export { FieldError } from './FieldError/index.js';
 export { FormDataEditor } from './FormDataEditor/index.js';
 export type { Props as FormDataEditorProps } from './FormDataEditor/index.js';
@@ -154,6 +155,10 @@ export { SettingIdLabel } from './SettingIdLabel/index.js';
 export type { Props as SettingIdLabelProps } from './SettingIdLabel/index.js';
 export { SettingSectionHeading } from './SettingSectionHeading/index.js';
 export type { Props as SettingSectionHeadingProps } from './SettingSectionHeading/index.js';
+export { SortButton } from './SortButton/index.js';
+export { SortButtonIcon } from './SortButton/SortButtonIcon.js';
+export { SortMenu } from './SortButton/SortMenu.js';
+export type { SortOption } from './SortButton/sortOptions.js';
 export { SegmentedTabs, SegmentedTabsGroup, SegmentedTabPanel } from './SegmentedTabs/index.js';
 export type { TabItem } from './SegmentedTabs/index.js';
 export { Spinner } from './Spinner/index.js';
@@ -225,6 +230,7 @@ export {
   SidebarBadge,
   sourceRow,
   METHOD_CLASSES,
+  methodBadgeClass,
   statusDotVariant,
   statusDotClass,
   SIDEBAR_ITEM_BUTTON_CLASS,

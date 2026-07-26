@@ -436,7 +436,133 @@ export interface SidebarRequestBreadcrumb {
 }
 
 /**
+ * Active and archived halves of a sidebar search filter.
+ */
+export interface PartitionedSidebarSearchFilter {
+  /**
+   * Visibility sets for non-archived collections (and their folders/requests).
+   */
+  active: SidebarSearchFilter;
+
+  /**
+   * Visibility sets for archived collections (and their folders/requests).
+   */
+  archived: SidebarSearchFilter;
+}
+
+/**
+ * Returns whether the collection with the given id is archived.
+ *
+ * @param input - Sidebar data for collection lookups.
+ * @param collectionId - Numeric collection id to check.
+ */
+export function isArchivedCollection(
+  input: SidebarSearchInput,
+  collectionId: number | undefined
+): boolean {
+  if (collectionId == null) {
+    return false;
+  }
+  const collection = input.collections.find((candidate) => candidate.id === collectionId);
+  return Boolean(collection?.archived);
+}
+
+/**
+ * Formats a collection display name with an archived prefix for search results.
+ *
+ * @param name - Raw collection name.
+ */
+export function formatArchivedCollectionLabel(name: string): string {
+  return `Archived: ${name}`;
+}
+
+/**
+ * Splits a sidebar search filter into active and archived partitions.
+ *
+ * Folder and request ids are retained only when they belong to a collection in
+ * the matching partition. Environment ids stay on the active half only.
+ *
+ * @param input - Sidebar data used to resolve archived flags and ownership.
+ * @param filter - Combined visibility sets from {@link searchSidebar}.
+ */
+export function partitionSidebarSearchFilter(
+  input: SidebarSearchInput,
+  filter: SidebarSearchFilter
+): PartitionedSidebarSearchFilter {
+  const archivedCollectionIds = new Set<number>();
+  const activeCollectionIds = new Set<number>();
+
+  for (const collectionId of filter.collectionIds) {
+    if (isArchivedCollection(input, collectionId)) {
+      archivedCollectionIds.add(collectionId);
+    } else {
+      activeCollectionIds.add(collectionId);
+    }
+  }
+
+  const folderById = new Map<number, Folder>();
+  const requestById = new Map<number, SavedRequest>();
+
+  for (const collection of input.collections) {
+    for (const folder of input.foldersByCollection[collection.id] ?? []) {
+      folderById.set(folder.id, folder);
+    }
+    for (const request of input.requestsByCollection[collection.id] ?? []) {
+      requestById.set(request.id, request);
+    }
+  }
+
+  /**
+   * Keeps folder ids whose parent collection is in `collectionIds`.
+   *
+   * @param collectionIds - Allowed parent collection ids.
+   */
+  const partitionFolderIds = (collectionIds: ReadonlySet<number>): Set<number> => {
+    const next = new Set<number>();
+    for (const folderId of filter.folderIds) {
+      const folder = folderById.get(folderId);
+      if (folder != null && collectionIds.has(folder.collection_id)) {
+        next.add(folderId);
+      }
+    }
+    return next;
+  };
+
+  /**
+   * Keeps request ids whose parent collection is in `collectionIds`.
+   *
+   * @param collectionIds - Allowed parent collection ids.
+   */
+  const partitionRequestIds = (collectionIds: ReadonlySet<number>): Set<number> => {
+    const next = new Set<number>();
+    for (const requestId of filter.requestIds) {
+      const request = requestById.get(requestId);
+      if (request != null && collectionIds.has(request.collection_id)) {
+        next.add(requestId);
+      }
+    }
+    return next;
+  };
+
+  return {
+    active: {
+      collectionIds: activeCollectionIds,
+      folderIds: partitionFolderIds(activeCollectionIds),
+      requestIds: partitionRequestIds(activeCollectionIds),
+      environmentIds: filter.environmentIds
+    },
+    archived: {
+      collectionIds: archivedCollectionIds,
+      folderIds: partitionFolderIds(archivedCollectionIds),
+      requestIds: partitionRequestIds(archivedCollectionIds),
+      environmentIds: new Set()
+    }
+  };
+}
+
+/**
  * Resolves collection and folder names for a saved request breadcrumb.
+ * Prefixes the collection name with "Archived: " when the parent is archived.
  *
  * @param input - Sidebar data for name lookups.
  * @param collectionId - Numeric collection id for the request.
@@ -458,14 +584,19 @@ export function sidebarRequestBreadcrumb(
         undefined)
       : undefined;
 
+  const rawName = collection?.name;
+  const collectionName =
+    rawName != null && collection?.archived ? formatArchivedCollectionLabel(rawName) : rawName;
+
   return {
-    collectionName: collection?.name,
+    collectionName,
     folderName
   };
 }
 
 /**
  * Resolves a subtitle for a sidebar entity hit using loaded sidebar data.
+ * Archived collection names are prefixed with "Archived: ".
  *
  * @param input - Sidebar data for name lookups.
  * @param hit - Parsed sidebar entity hit.
@@ -480,7 +611,10 @@ export function sidebarEntitySubtitle(
 ): string | undefined {
   if (hit.kind === 'folder' && hit.collectionId != null) {
     const collection = input.collections.find((candidate) => candidate.id === hit.collectionId);
-    return collection?.name;
+    if (collection == null) {
+      return undefined;
+    }
+    return collection.archived ? formatArchivedCollectionLabel(collection.name) : collection.name;
   }
   if (hit.kind === 'request' && hit.collectionId != null) {
     const { collectionName, folderName } = sidebarRequestBreadcrumb(

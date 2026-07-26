@@ -300,6 +300,24 @@ export type PageRef =
   | {
       type: 'theme-stylesheet';
       label: string;
+    }
+  | {
+      type: 'image-view';
+      /**
+       * Full filename shown in the page header.
+       */
+      fileName: string;
+      /**
+       * Shortened filename shown in the tab bar.
+       */
+      shortLabel: string;
+      /**
+       * Image bytes source for display, copy, and download.
+       */
+      source:
+        | { kind: 'path'; path: string }
+        | { kind: 'url'; url: string }
+        | { kind: 'data'; dataUrl: string };
     };
 
 /**

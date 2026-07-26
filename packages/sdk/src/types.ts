@@ -1716,6 +1716,58 @@ export interface OpenRequestDraftPayload {
 }
 
 /**
+ * Payload for {@link PluginHost.openImageView}.
+ *
+ * Exactly one source form must be provided: a local filesystem `path`, an
+ * `http(s)` `url`, an inline `dataUrl`, or `base64` with `contentType`.
+ */
+export type OpenImageViewPayload =
+  | {
+      /**
+       * Absolute path to a local image file.
+       */
+      path: string;
+      /**
+       * Optional display filename; defaults to the path basename.
+       */
+      fileName?: string;
+    }
+  | {
+      /**
+       * Remote image URL loaded directly by the viewer.
+       */
+      url: string;
+      /**
+       * Optional display filename; defaults to the last URL path segment.
+       */
+      fileName?: string;
+    }
+  | {
+      /**
+       * Full `data:` URL for an inline image.
+       */
+      dataUrl: string;
+      /**
+       * Display filename shown in the tab header.
+       */
+      fileName: string;
+    }
+  | {
+      /**
+       * Base64-encoded image bytes (with or without a `data:` prefix).
+       */
+      base64: string;
+      /**
+       * MIME type used when building a data URL from {@link base64}.
+       */
+      contentType: string;
+      /**
+       * Display filename shown in the tab header.
+       */
+      fileName: string;
+    };
+
+/**
  * Serializable payload passed to {@link PluginHost.applyRequestDraft}.
  *
  * Updates the active request editor tab in place. Provided fields replace the
@@ -1979,6 +2031,15 @@ export interface PluginHost {
    * @returns The database id of the created collection.
    */
   createCollection(payload: CreateCollectionPayload): Promise<CreateCollectionResult>;
+
+  /**
+   * Opens (or focuses) an image viewer page tab for a local path, URL, or inline image.
+   *
+   * Requires the `ui` permission. Session-only — image tabs are not restored on restart.
+   *
+   * @param payload - Image source and optional display filename.
+   */
+  openImageView(payload: OpenImageViewPayload): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------

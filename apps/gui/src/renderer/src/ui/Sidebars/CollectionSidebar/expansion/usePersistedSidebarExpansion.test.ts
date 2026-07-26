@@ -5,8 +5,18 @@ import {
   shouldPersistSidebarExpansion
 } from './usePersistedSidebarExpansion';
 
+const DEFAULT_SECTION_SORT = {
+  collections: 'default',
+  environments: 'default',
+  runResults: 'default',
+  history: 'default',
+  tabGroups: 'default',
+  archive: 'default',
+  trash: 'default'
+} as const;
+
 describe('serializeSidebarExpansion', () => {
-  it('serializes section flags and expanded ids', () => {
+  it('serializes section flags, sort modes, and expanded ids', () => {
     expect(
       serializeSidebarExpansion(
         {
@@ -15,6 +25,7 @@ describe('serializeSidebarExpansion', () => {
           runResults: false,
           history: true,
           tabGroups: true,
+          archive: true,
           trash: true
         },
         {
@@ -23,11 +34,19 @@ describe('serializeSidebarExpansion', () => {
           runResults: true,
           history: false,
           tabGroups: true,
+          archive: false,
           trash: false
+        },
+        {
+          ...DEFAULT_SECTION_SORT,
+          collections: 'name-asc',
+          history: 'created-desc'
         },
         new Set([1, 2]),
         new Set([9]),
         false,
+        true,
+        true,
         true
       )
     ).toEqual({
@@ -37,6 +56,7 @@ describe('serializeSidebarExpansion', () => {
         runResults: false,
         history: true,
         tabGroups: true,
+        archive: true,
         trash: true
       },
       sectionVisibility: {
@@ -45,12 +65,20 @@ describe('serializeSidebarExpansion', () => {
         runResults: true,
         history: false,
         tabGroups: true,
+        archive: false,
         trash: false
+      },
+      sectionSort: {
+        ...DEFAULT_SECTION_SORT,
+        collections: 'name-asc',
+        history: 'created-desc'
       },
       collectionIds: [1, 2],
       folderIds: [9],
       showStorageLocationBadges: false,
-      showColorDots: true
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true
     });
   });
 });

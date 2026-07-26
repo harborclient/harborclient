@@ -6,6 +6,7 @@ describe('clearExpansionSnapshot', () => {
     const snapshot = {
       collectionsSectionExpanded: true,
       environmentsSectionExpanded: false,
+      archiveSectionExpanded: true,
       expandedCollectionIds: new Set([1, 2]),
       expandedFolderIds: new Set([9])
     };
@@ -13,6 +14,7 @@ describe('clearExpansionSnapshot', () => {
     expect(clearExpansionSnapshot(snapshot)).toEqual({
       collectionsSectionExpanded: true,
       environmentsSectionExpanded: false,
+      archiveSectionExpanded: true,
       expandedCollectionIds: new Set(),
       expandedFolderIds: new Set()
     });

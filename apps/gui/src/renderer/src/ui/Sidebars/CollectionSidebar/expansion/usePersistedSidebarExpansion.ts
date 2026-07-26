@@ -7,7 +7,11 @@ import {
   type SetStateAction
 } from 'react';
 import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
-import type { SidebarExpansionState } from '@harborclient/core/types';
+import type {
+  SidebarExpansionState,
+  SidebarSectionKey,
+  SidebarSortMode
+} from '@harborclient/core/types';
 
 interface Options {
   /**
@@ -63,6 +67,11 @@ interface Result {
   trashSectionExpanded: boolean;
 
   /**
+   * Whether the Archive section body is visible.
+   */
+  archiveSectionExpanded: boolean;
+
+  /**
    * Toggles the Collections section expanded state.
    */
   toggleCollectionsSection: () => void;
@@ -91,6 +100,11 @@ interface Result {
    * Toggles the Trash section expanded state.
    */
   toggleTrashSection: () => void;
+
+  /**
+   * Toggles the Archive section expanded state.
+   */
+  toggleArchiveSection: () => void;
 
   /**
    * Sets the Collections section expanded state explicitly.
@@ -123,6 +137,11 @@ interface Result {
   setTrashSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Archive section expanded state explicitly.
+   */
+  setArchiveSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Whether the Collections section is rendered in the sidebar.
    */
   collectionsSectionVisible: boolean;
@@ -151,6 +170,11 @@ interface Result {
    * Whether the Trash section is rendered in the sidebar.
    */
   trashSectionVisible: boolean;
+
+  /**
+   * Whether the Archive section is rendered in the sidebar.
+   */
+  archiveSectionVisible: boolean;
 
   /**
    * Toggles the Collections section visibility.
@@ -183,6 +207,11 @@ interface Result {
   toggleTrashSectionVisible: () => void;
 
   /**
+   * Toggles the Archive section visibility.
+   */
+  toggleArchiveSectionVisible: () => void;
+
+  /**
    * Sets the Collections section visibility explicitly.
    */
   setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
@@ -211,6 +240,11 @@ interface Result {
    * Sets the Trash section visibility explicitly.
    */
   setTrashSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Archive section visibility explicitly.
+   */
+  setArchiveSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -243,6 +277,49 @@ interface Result {
   setShowColorDots: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Whether HTTP method badges use per-method colors in the sidebar.
+   */
+  showMethodColors: boolean;
+
+  /**
+   * Toggles method color usage in the sidebar.
+   */
+  toggleMethodColors: () => void;
+
+  /**
+   * Sets method color usage explicitly.
+   */
+  setShowMethodColors: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Whether HTTP/run status indicator dots appear on History and Runs rows.
+   */
+  showIndicators: boolean;
+
+  /**
+   * Toggles status indicator visibility in the sidebar.
+   */
+  toggleIndicators: () => void;
+
+  /**
+   * Sets status indicator visibility explicitly.
+   */
+  setShowIndicators: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Per-section sort mode for the collections sidebar lists.
+   */
+  sectionSort: Record<SidebarSectionKey, SidebarSortMode>;
+
+  /**
+   * Updates the sort mode for one sidebar section.
+   *
+   * @param key - Built-in section key.
+   * @param mode - Sort mode to apply.
+   */
+  setSectionSort: (key: SidebarSectionKey, mode: SidebarSortMode) => void;
+
+  /**
    * Collection ids whose request trees are expanded.
    */
   expandedCollectionIds: Set<number>;
@@ -268,6 +345,11 @@ interface Result {
   revealCollection: (collectionId: number) => void;
 
   /**
+   * Expands the Archive section for navigating to an archived collection.
+   */
+  revealArchivedCollection: (collectionId: number) => void;
+
+  /**
    * Expands the Collections section, parent collection, and folder for user navigation.
    */
   revealFolder: (collectionId: number, folderId: number) => void;
@@ -278,26 +360,35 @@ interface Result {
  *
  * @param sections - Section expanded flags.
  * @param sectionVisibility - Section show/hide flags.
+ * @param sectionSort - Per-section sort modes.
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
  * @param showStorageLocationBadges - Whether storage location badges are shown.
  * @param showColorDots - Whether user-assigned color dots are shown.
+ * @param showMethodColors - Whether HTTP method badges use per-method colors.
+ * @param showIndicators - Whether HTTP/run status indicator dots are shown.
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
   sectionVisibility: SidebarExpansionState['sectionVisibility'],
+  sectionSort: SidebarExpansionState['sectionSort'],
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>,
   showStorageLocationBadges: boolean,
-  showColorDots: boolean
+  showColorDots: boolean,
+  showMethodColors: boolean,
+  showIndicators: boolean
 ): SidebarExpansionState {
   return {
     sections,
     sectionVisibility,
+    sectionSort,
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds],
     showStorageLocationBadges,
-    showColorDots
+    showColorDots,
+    showMethodColors,
+    showIndicators
   };
 }
 
@@ -355,6 +446,7 @@ export function usePersistedSidebarExpansion({
     defaults.sections.tabGroups
   );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
+  const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
   const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
     defaults.sectionVisibility.collections
   );
@@ -371,10 +463,17 @@ export function usePersistedSidebarExpansion({
     defaults.sectionVisibility.tabGroups
   );
   const [trashSectionVisible, setTrashSectionVisible] = useState(defaults.sectionVisibility.trash);
+  const [archiveSectionVisible, setArchiveSectionVisible] = useState(
+    defaults.sectionVisibility.archive
+  );
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
   );
   const [showColorDots, setShowColorDots] = useState(defaults.showColorDots);
+  const [showMethodColors, setShowMethodColors] = useState(defaults.showMethodColors);
+  const [showIndicators, setShowIndicators] = useState(defaults.showIndicators);
+  const [sectionSort, setSectionSortState] =
+    useState<Record<SidebarSectionKey, SidebarSortMode>>(defaults.sectionSort);
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
@@ -400,14 +499,19 @@ export function usePersistedSidebarExpansion({
       setHistorySectionExpanded(stored.sections.history);
       setTabGroupsSectionExpanded(stored.sections.tabGroups);
       setTrashSectionExpanded(stored.sections.trash);
+      setArchiveSectionExpanded(stored.sections.archive);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
       setRunResultsSectionVisible(stored.sectionVisibility.runResults);
       setHistorySectionVisible(stored.sectionVisibility.history);
       setTabGroupsSectionVisible(stored.sectionVisibility.tabGroups);
       setTrashSectionVisible(stored.sectionVisibility.trash);
+      setArchiveSectionVisible(stored.sectionVisibility.archive);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setShowColorDots(stored.showColorDots);
+      setShowMethodColors(stored.showMethodColors);
+      setShowIndicators(stored.showIndicators);
+      setSectionSortState(stored.sectionSort);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
       setLoaded(true);
@@ -437,6 +541,7 @@ export function usePersistedSidebarExpansion({
         runResults: runResultsSectionExpanded,
         history: historySectionExpanded,
         tabGroups: tabGroupsSectionExpanded,
+        archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
       {
@@ -445,12 +550,16 @@ export function usePersistedSidebarExpansion({
         runResults: runResultsSectionVisible,
         history: historySectionVisible,
         tabGroups: tabGroupsSectionVisible,
+        archive: archiveSectionVisible,
         trash: trashSectionVisible
       },
+      sectionSort,
       expandedCollectionIds,
       expandedFolderIds,
       showStorageLocationBadges,
-      showColorDots
+      showColorDots,
+      showMethodColors,
+      showIndicators
     );
 
     void window.api.setSidebarExpansion(snapshot);
@@ -461,17 +570,22 @@ export function usePersistedSidebarExpansion({
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    archiveSectionVisible,
     trashSectionVisible,
+    sectionSort,
     expandedCollectionIds,
     expandedFolderIds,
     showStorageLocationBadges,
-    showColorDots
+    showColorDots,
+    showMethodColors,
+    showIndicators
   ]);
 
   /**
@@ -491,6 +605,26 @@ export function usePersistedSidebarExpansion({
     },
     [onExpandCollection]
   );
+
+  /**
+   * Shows and expands the Archive section for an archived collection hit.
+   *
+   * @param collectionId - Archived collection to reveal in the Archive list.
+   */
+  const revealArchivedCollection = useCallback((collectionId: number) => {
+    setArchiveSectionVisible(true);
+    setArchiveSectionExpanded(true);
+    setExpandedCollectionIds((prev) => {
+      if (prev.has(collectionId)) return prev;
+      const next = new Set(prev);
+      next.add(collectionId);
+      return next;
+    });
+    requestAnimationFrame(() => {
+      const row = document.querySelector(`[data-sidebar-archive-id="${collectionId}"]`);
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+  }, []);
 
   /**
    * Expands the Collections section, parent collection, and folder for user navigation.
@@ -563,6 +697,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Archive section expanded state.
+   */
+  const toggleArchiveSection = useCallback(() => {
+    setArchiveSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Collections section visibility.
    */
   const toggleCollectionsSectionVisible = useCallback(() => {
@@ -605,6 +746,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Archive section visibility.
+   */
+  const toggleArchiveSectionVisible = useCallback(() => {
+    setArchiveSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
    * Toggles storage location badge visibility in the collections list.
    */
   const toggleStorageLocationBadges = useCallback(() => {
@@ -618,6 +766,35 @@ export function usePersistedSidebarExpansion({
     setShowColorDots((visible) => !visible);
   }, []);
 
+  /**
+   * Toggles method color usage in the sidebar.
+   */
+  const toggleMethodColors = useCallback(() => {
+    setShowMethodColors((visible) => !visible);
+  }, []);
+
+  /**
+   * Toggles status indicator visibility in the sidebar.
+   */
+  const toggleIndicators = useCallback(() => {
+    setShowIndicators((visible) => !visible);
+  }, []);
+
+  /**
+   * Updates the sort mode for one sidebar section.
+   *
+   * @param key - Built-in section key.
+   * @param mode - Sort mode to apply.
+   */
+  const setSectionSort = useCallback((key: SidebarSectionKey, mode: SidebarSortMode): void => {
+    setSectionSortState((prev) => {
+      if (prev[key] === mode) {
+        return prev;
+      }
+      return { ...prev, [key]: mode };
+    });
+  }, []);
+
   return {
     loaded,
     collectionsSectionExpanded,
@@ -626,47 +803,62 @@ export function usePersistedSidebarExpansion({
     historySectionExpanded,
     tabGroupsSectionExpanded,
     trashSectionExpanded,
+    archiveSectionExpanded,
     toggleCollectionsSection,
     toggleEnvironmentsSection,
     toggleRunResultsSection,
     toggleHistorySection,
     toggleTabGroupsSection,
     toggleTrashSection,
+    toggleArchiveSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setTabGroupsSectionExpanded,
     setTrashSectionExpanded,
+    setArchiveSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
     trashSectionVisible,
+    archiveSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
     toggleTabGroupsSectionVisible,
     toggleTrashSectionVisible,
+    toggleArchiveSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
     setRunResultsSectionVisible,
     setHistorySectionVisible,
     setTabGroupsSectionVisible,
     setTrashSectionVisible,
+    setArchiveSectionVisible,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,
     showColorDots,
     toggleColorDots,
     setShowColorDots,
+    showMethodColors,
+    toggleMethodColors,
+    setShowMethodColors,
+    showIndicators,
+    toggleIndicators,
+    setShowIndicators,
+    sectionSort,
+    setSectionSort,
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,
     setExpandedFolderIds,
     revealCollection,
+    revealArchivedCollection,
     revealFolder
   };
 }

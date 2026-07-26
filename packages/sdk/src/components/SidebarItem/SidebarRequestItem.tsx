@@ -31,6 +31,11 @@ interface Props {
   };
 
   /**
+   * When false, renders the method badge in neutral theme text instead of per-method colors.
+   */
+  methodColors?: boolean;
+
+  /**
    * Optional git change status marker shown after the name in git sidebar rows.
    */
   statusMarker?: {
@@ -101,6 +106,7 @@ export function SidebarRequestItem({
   name,
   nameClassName,
   colorDot,
+  methodColors = true,
   statusMarker,
   selected = false,
   sortable,
@@ -133,7 +139,7 @@ export function SidebarRequestItem({
       }
     >
       <span className={SIDEBAR_ITEM_BUTTON_CLASS}>
-        <SidebarMethodBadge method={method} />
+        <SidebarMethodBadge method={method} methodColors={methodColors} />
         {colorDot != null ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <span className={`min-w-0 truncate ${nameClassName ?? ''}`}>{name}</span>

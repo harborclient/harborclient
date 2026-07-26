@@ -7,12 +7,13 @@ import { selectRequestHistory } from '#/renderer/src/store/slices/requestHistory
 import { clearRequestHistory } from '#/renderer/src/store/thunks/requestHistory';
 import { faEraser, faFilter } from '#/renderer/src/fontawesome';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
+import { SidebarSortButton } from '../sort/SidebarSortButton';
 import { historyEntryCollectionId } from './historyEntryCollection';
 
 const HISTORY_FILTER_MENU_ID = 'history-collection-filter';
 
 /**
- * Header actions for the History sidebar section (clear + collection filter).
+ * Header actions for the History sidebar section (sort + collection filter + clear).
  */
 export function HistoryHeaderActions(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -88,6 +89,20 @@ export function HistoryHeaderActions(): JSX.Element {
 
   return (
     <>
+      <SidebarSortButton sectionKey="history" ariaLabel="Sort history" title="Sort history" />
+      {collectionsInHistory.length > 0 ? (
+        <RowActionsMenu
+          menuId={HISTORY_FILTER_MENU_ID}
+          openMenuId={openMenuId}
+          onOpenChange={setOpenMenuId}
+          triggerVariant="toolbar"
+          triggerIcon={faFilter}
+          triggerAriaLabel="Filter history by collection"
+          triggerTitle="Filter by collection"
+          triggerActive={filterActive}
+          groups={filterMenuGroups}
+        />
+      ) : null}
       <Button
         variant="toolbar"
         className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
@@ -99,21 +114,6 @@ export function HistoryHeaderActions(): JSX.Element {
       >
         <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
       </Button>
-      {collectionsInHistory.length > 0 ? (
-        <RowActionsMenu
-          menuId={HISTORY_FILTER_MENU_ID}
-          openMenuId={openMenuId}
-          onOpenChange={setOpenMenuId}
-          triggerVariant="toolbar"
-          triggerIcon={faFilter}
-          triggerAriaLabel="Filter history by collection"
-          triggerTitle="Filter by collection"
-          triggerClassName={
-            filterActive ? 'text-text hover:text-text' : 'text-muted hover:text-text'
-          }
-          groups={filterMenuGroups}
-        />
-      ) : null}
     </>
   );
 }

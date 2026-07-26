@@ -211,8 +211,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && node scripts/copy-runtime.mjs && node scripts/assert-dist-publishable.mjs",
     "attw": "attw --profile esm-only --no-summary",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write --cache --cache-location ../../.prettier-cache/sdk .",
+    "format:check": "prettier --check --cache --cache-location ../../.prettier-cache/sdk .",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

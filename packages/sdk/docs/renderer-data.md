@@ -409,8 +409,9 @@ Requires the `ipc` permission. Call `hc.ipc.invoke(channel, ...args)` instead of
 Typed wrappers for built-in request editor commands. See [Renderer API](/renderer-overview).
 
 Requires the `ui` permission. Use `hc.host.openRequestDraft`,
-`hc.host.applyRequestDraft`, `hc.host.loadRequest`, `hc.host.sendRequest`, and
-`hc.host.createCollection` instead of `hc.commands.execute('harborclient:…')`.
+`hc.host.applyRequestDraft`, `hc.host.loadRequest`, `hc.host.sendRequest`,
+`hc.host.createCollection`, and `hc.host.openImageView` instead of
+`hc.commands.execute('harborclient:…')`.
 
 ### Request creation and update choices
 
@@ -422,12 +423,15 @@ Pick the host API based on the user-facing result you want:
 | Update the active request tab in place         | `hc.host.applyRequestDraft` | Replaces supplied fields on the active draft and marks the tab dirty     |
 | Open an existing saved request by database id  | `hc.host.loadRequest`       | Focuses an already-open tab or loads the saved request from a collection |
 | Bulk-create saved requests in a new collection | `hc.host.createCollection`  | Persists a collection, optional folders, and saved requests              |
+| Open an image in a dedicated viewer tab        | `hc.host.openImageView`     | Opens or focuses a session-only image-view tab for a path, URL, or bytes |
 
 Use `openRequestDraft` for history/recent-request style workflows where the
 plugin should not disturb the current tab. Use `applyRequestDraft` when the user
 is intentionally transforming the active request, such as a cURL/import preview
 tab with an **Update** button. Use `createCollection` for importers that create
-saved requests rather than editing the current tab.
+saved requests rather than editing the current tab. Use `openImageView` for
+screenshots, logos, generated charts, or import previews that belong in a
+dedicated image tab.
 
 ### hc.host.openRequestDraft(payload)
 
@@ -502,6 +506,53 @@ const { collectionId } = await hc.host.createCollection({
       bodyType: 'json'
     }
   ]
+});
+```
+
+### hc.host.openImageView(payload)
+
+**Signature:** `(payload: OpenImageViewPayload) => Promise<void>`
+
+Opens or focuses an image-view page tab. Use this to display screenshots, logos,
+generated charts, or import previews in a dedicated tab with **Copy location**
+and **Download** actions. Prefer this typed API over
+`hc.commands.execute('harborclient:openImageView', payload)`.
+
+See also [Renderer API → hc.host](/renderer-overview#hchost).
+
+**Payload rules**
+
+- Provide exactly one source: `path`, `url`, `dataUrl`, or `base64` with
+  `contentType`.
+- `fileName` is optional for `path` and `url` (derived from the basename or last
+  URL path segment). It is required for inline `dataUrl` and `base64` payloads.
+- Inline `dataUrl` / `base64` payloads are capped by the same IPC body-size limit
+  as large request bodies.
+
+**Tab behavior**
+
+| Aspect         | Behavior                                                                      |
+| -------------- | ----------------------------------------------------------------------------- |
+| Tab label      | Shortened filename (middle ellipsis, extension preserved)                     |
+| Page header    | Full filename                                                                 |
+| Deduping       | Reopening the same source focuses the existing tab                            |
+| Persistence    | Session-only — image tabs are not restored after restart                      |
+| In-tab actions | **Copy location** (path, URL, or data URL) and **Download** via a save dialog |
+
+```typescript
+// From a menu action or command handler
+await hc.host.openImageView({
+  url: 'https://harborclient.com/images/logo.png'
+});
+
+// After the user picks a file with hc.fs.pickFile
+await hc.host.openImageView({ path: selectedPath });
+
+// Inline bytes from a plugin-generated PNG
+await hc.host.openImageView({
+  fileName: 'preview.png',
+  base64: pngBase64,
+  contentType: 'image/png'
 });
 ```
 

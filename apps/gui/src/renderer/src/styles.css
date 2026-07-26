@@ -1016,14 +1016,22 @@
   }
 
   /**
-   * Sidebar section header actions (+, clear, plugin controls) use tighter
-   * padding so the section title row is not forced tall by toolbar buttons.
+   * Sidebar section header actions (+, filter, clear, plugin controls) share a
+   * fixed square so filter and secondary-action columns align across sections.
    */
-  .hc-sidebar-section-header .hc-sidebar-add-button {
+  .hc-sidebar-section-header-actions .hc-button,
+  .hc-sidebar-section-header-actions .hc-sidebar-add-button {
     width: 1.75rem;
     height: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0;
+    justify-content: center;
   }
 
+  /**
+   * Fallback for header buttons rendered outside the action cluster (e.g.
+   * console inspector sections that reuse the header chrome class).
+   */
   .hc-sidebar-section-header .hc-button {
     min-height: 1.75rem;
     padding-block: 2px;

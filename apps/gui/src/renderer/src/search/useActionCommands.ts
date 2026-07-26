@@ -17,11 +17,14 @@ import {
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   toggleAiSidebar,
+  toggleConsole,
   toggleGitSidebar,
+  toggleMcp,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
-  toggleTerminal
+  toggleTerminal,
+  toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -30,6 +33,7 @@ import {
   runSync,
   saveFromMenu
 } from '#/renderer/src/store/thunks';
+import { openImageView } from '#/renderer/src/plugins/hostImageCommands';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -131,6 +135,9 @@ export function useActionCommands(): UseActionCommandsResult {
       'builtin:getting-started': () => {
         dispatch(openPageTab({ type: 'getting-started' }));
       },
+      'builtin:image-logo': () => {
+        openImageView({ url: 'https://harborclient.com/images/logo.png' });
+      },
       'builtin:join-shared-collection': () => {
         dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));
       },
@@ -175,6 +182,15 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-response-editor': () => {
         dispatch(toggleResponseEditor());
+      },
+      'builtin:toggle-console': () => {
+        dispatch(toggleConsole());
+      },
+      'builtin:toggle-variables': () => {
+        dispatch(toggleVariables());
+      },
+      'builtin:toggle-mcp': () => {
+        dispatch(toggleMcp());
       },
       'builtin:toggle-terminal': () => {
         dispatch(toggleTerminal());

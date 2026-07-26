@@ -71,6 +71,13 @@ export interface ApiCollections {
    */
   setCollectionColor: (id: number, color: string | null) => Promise<Collection>;
   /**
+   * Marks or unmarks a collection as archived in the local registry.
+   *
+   * @param id - Collection ID to update.
+   * @param archived - When true, hide the collection from the Collections tree.
+   */
+  setCollectionArchived: (id: number, archived: boolean) => Promise<void>;
+  /**
    * Deletes a collection and all of its saved requests.
    *
    * @param id - Collection ID to delete.

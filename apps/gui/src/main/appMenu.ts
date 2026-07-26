@@ -9,6 +9,11 @@ let gitSidebarVisible = false;
 let aiSidebarVisible = false;
 let requestEditorVisible = true;
 let responseEditorVisible = true;
+let shortcutsReferenceOpen = false;
+let consoleVisible = false;
+let variablesVisible = false;
+let mcpVisible = false;
+let terminalVisible = false;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
 let designerUndoRedoActive = false;
@@ -19,28 +24,28 @@ let sidebarDeselectAllAvailable = false;
 let gitCollectionActive = false;
 
 /**
- * Returns the sidebar visibility state reflected in the View menu checkbox.
+ * Returns the sidebar visibility state reflected in the View > Appearance submenu checkbox.
  */
 export function getMenuSidebarVisible(): boolean {
   return sidebarVisible;
 }
 
 /**
- * Returns the AI sidebar visibility state reflected in the View menu checkbox.
+ * Returns the AI sidebar visibility state reflected in the View > Appearance submenu checkbox.
  */
 export function getMenuAiSidebarVisible(): boolean {
   return aiSidebarVisible;
 }
 
 /**
- * Returns the request editor visibility state reflected in the View menu checkbox.
+ * Returns the request editor visibility state reflected in the View > Appearance submenu checkbox.
  */
 export function getMenuRequestEditorVisible(): boolean {
   return requestEditorVisible;
 }
 
 /**
- * Returns the response editor visibility state reflected in the View menu checkbox.
+ * Returns the response editor visibility state reflected in the View > Appearance submenu checkbox.
  */
 export function getMenuResponseEditorVisible(): boolean {
   return responseEditorVisible;
@@ -61,7 +66,7 @@ export function getMenuPluginThemeOptions(): ThemeMenuOption[] {
 }
 
 /**
- * Updates the View menu Sidebar checkbox and rebuilds the menu when the value changes.
+ * Updates the View > Appearance submenu Sidebar checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the sidebar is currently visible in the renderer.
  */
@@ -74,14 +79,14 @@ export function setMenuSidebarVisible(visible: boolean): void {
 }
 
 /**
- * Returns the Git sidebar visibility state reflected in the View menu checkbox.
+ * Returns the Git sidebar visibility state reflected in the View > Appearance submenu checkbox.
  */
 export function getMenuGitSidebarVisible(): boolean {
   return gitSidebarVisible;
 }
 
 /**
- * Updates the View menu AI checkbox and rebuilds the menu when the value changes.
+ * Updates the View > Appearance submenu AI checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the AI sidebar is currently visible in the renderer.
  */
@@ -94,7 +99,7 @@ export function setMenuAiSidebarVisible(visible: boolean): void {
 }
 
 /**
- * Updates the View menu Git checkbox and rebuilds the menu when the value changes.
+ * Updates the View > Appearance submenu Git checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the Git sidebar is currently visible in the renderer.
  */
@@ -107,7 +112,7 @@ export function setMenuGitSidebarVisible(visible: boolean): void {
 }
 
 /**
- * Updates the View menu Request checkbox and rebuilds the menu when the value changes.
+ * Updates the View > Appearance submenu Request checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the request editor is currently visible in the renderer.
  */
@@ -120,7 +125,7 @@ export function setMenuRequestEditorVisible(visible: boolean): void {
 }
 
 /**
- * Updates the View menu Response checkbox and rebuilds the menu when the value changes.
+ * Updates the View > Appearance submenu Response checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether the response editor is currently visible in the renderer.
  */
@@ -129,6 +134,71 @@ export function setMenuResponseEditorVisible(visible: boolean): void {
     return;
   }
   responseEditorVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Shortcuts checkbox and rebuilds the menu when the value changes.
+ *
+ * @param open - Whether the shortcuts reference modal is currently open.
+ */
+export function setMenuShortcutsReferenceOpen(open: boolean): void {
+  if (shortcutsReferenceOpen === open) {
+    return;
+  }
+  shortcutsReferenceOpen = open;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Console checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the console panel is currently open.
+ */
+export function setMenuConsoleVisible(visible: boolean): void {
+  if (consoleVisible === visible) {
+    return;
+  }
+  consoleVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Variables checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the variables panel is currently open.
+ */
+export function setMenuVariablesVisible(visible: boolean): void {
+  if (variablesVisible === visible) {
+    return;
+  }
+  variablesVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu MCP checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the MCP panel is currently open.
+ */
+export function setMenuMcpVisible(visible: boolean): void {
+  if (mcpVisible === visible) {
+    return;
+  }
+  mcpVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Terminal checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the terminal panel is currently open.
+ */
+export function setMenuTerminalVisible(visible: boolean): void {
+  if (terminalVisible === visible) {
+    return;
+  }
+  terminalVisible = visible;
   rebuildAppMenu();
 }
 
@@ -272,6 +342,11 @@ export function rebuildAppMenu(): void {
       gitSidebarVisible,
       requestEditorVisible,
       responseEditorVisible,
+      shortcutsReferenceOpen,
+      consoleVisible,
+      variablesVisible,
+      mcpVisible,
+      terminalVisible,
       activeTheme,
       pluginThemeOptions,
       rebuildAppMenu,

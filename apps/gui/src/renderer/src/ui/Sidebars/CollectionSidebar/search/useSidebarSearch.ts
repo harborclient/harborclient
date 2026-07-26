@@ -8,7 +8,11 @@ import {
   type SetStateAction
 } from 'react';
 import type { Collection, Folder } from '@harborclient/core/types';
-import { searchSidebar, type SidebarSearchFilter } from '@harborclient/core/search/sidebar';
+import {
+  partitionSidebarSearchFilter,
+  searchSidebar,
+  type SidebarSearchFilter
+} from '@harborclient/core/search/sidebar';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollectionContents } from '#/renderer/src/store/thunks';
@@ -25,6 +29,11 @@ interface ExpansionSnapshot {
   environmentsSectionExpanded: boolean;
 
   /**
+   * Whether the Archive section was expanded before search started.
+   */
+  archiveSectionExpanded: boolean;
+
+  /**
    * Collection ids expanded before search started.
    */
   expandedCollectionIds: Set<number>;
@@ -37,7 +46,7 @@ interface ExpansionSnapshot {
 
 interface Options {
   /**
-   * Collections in sidebar display order.
+   * Collections in sidebar display order (active and archived).
    */
   collections: Collection[];
 
@@ -57,6 +66,11 @@ interface Options {
   environmentsSectionExpanded: boolean;
 
   /**
+   * Whether the Archive section body is visible.
+   */
+  archiveSectionExpanded: boolean;
+
+  /**
    * Sets the Collections section expanded state.
    */
   setCollectionsSectionExpanded: Dispatch<SetStateAction<boolean>>;
@@ -67,6 +81,11 @@ interface Options {
   setEnvironmentsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Archive section expanded state.
+   */
+  setArchiveSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Sets the Collections section visibility.
    */
   setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
@@ -75,6 +94,11 @@ interface Options {
    * Sets the Environments section visibility.
    */
   setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Archive section visibility.
+   */
+  setArchiveSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Collection ids whose request trees are expanded.
@@ -112,6 +136,11 @@ interface Result {
    * Visibility sets for filtering sidebar rows, or null when search is inactive.
    */
   searchFilter: SidebarSearchFilter | null;
+
+  /**
+   * Archived half of the search filter, or null when search is inactive.
+   */
+  archivedSearchFilter: SidebarSearchFilter | null;
 
   /**
    * True while a non-empty query is active and some collection contents are still loading.
@@ -164,10 +193,13 @@ export function useSidebarSearch({
   foldersByCollection,
   collectionsSectionExpanded,
   environmentsSectionExpanded,
+  archiveSectionExpanded,
   setCollectionsSectionExpanded,
   setEnvironmentsSectionExpanded,
+  setArchiveSectionExpanded,
   setCollectionsSectionVisible,
   setEnvironmentsSectionVisible,
+  setArchiveSectionVisible,
   expandedCollectionIds,
   expandedFolderIds,
   setExpandedCollectionIds,
@@ -180,6 +212,7 @@ export function useSidebarSearch({
   const expansionStateRef = useRef({
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    archiveSectionExpanded,
     expandedCollectionIds,
     expandedFolderIds
   });
@@ -191,12 +224,14 @@ export function useSidebarSearch({
     expansionStateRef.current = {
       collectionsSectionExpanded,
       environmentsSectionExpanded,
+      archiveSectionExpanded,
       expandedCollectionIds,
       expandedFolderIds
     };
   }, [
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    archiveSectionExpanded,
     expandedCollectionIds,
     expandedFolderIds
   ]);
@@ -208,6 +243,26 @@ export function useSidebarSearch({
     () => (sidebarIndex == null ? null : searchSidebar(sidebarInput, sidebarIndex, searchQuery)),
     [sidebarInput, sidebarIndex, searchQuery]
   );
+
+  /**
+   * Active and archived halves of the current search filter.
+   */
+  const partitionedSearchFilter = useMemo(() => {
+    if (searchFilter == null) {
+      return null;
+    }
+    return partitionSidebarSearchFilter(sidebarInput, searchFilter);
+  }, [searchFilter, sidebarInput]);
+
+  /**
+   * Archived collection matches partitioned from the active search filter.
+   */
+  const archivedSearchFilter = partitionedSearchFilter?.archived ?? null;
+
+  /**
+   * Active (non-archived) collection matches partitioned from the search filter.
+   */
+  const activeSearchFilter = partitionedSearchFilter?.active ?? null;
 
   /**
    * True when search is active but at least one collection's contents have not loaded yet.
@@ -250,6 +305,7 @@ export function useSidebarSearch({
 
       setCollectionsSectionExpanded(snapshot.collectionsSectionExpanded);
       setEnvironmentsSectionExpanded(snapshot.environmentsSectionExpanded);
+      setArchiveSectionExpanded(snapshot.archiveSectionExpanded);
       setExpandedCollectionIds(new Set(snapshot.expandedCollectionIds));
       setExpandedFolderIds(new Set(snapshot.expandedFolderIds));
       expansionSnapshotRef.current = null;
@@ -264,11 +320,13 @@ export function useSidebarSearch({
     expansionSnapshotRef.current = {
       collectionsSectionExpanded: current.collectionsSectionExpanded,
       environmentsSectionExpanded: current.environmentsSectionExpanded,
+      archiveSectionExpanded: current.archiveSectionExpanded,
       expandedCollectionIds: new Set(current.expandedCollectionIds),
       expandedFolderIds: new Set(current.expandedFolderIds)
     };
   }, [
     searchQuery,
+    setArchiveSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setExpandedCollectionIds,
@@ -276,42 +334,50 @@ export function useSidebarSearch({
   ]);
 
   /**
-   * Opens both sidebar sections and expands rows that match the active search filter.
+   * Opens matching sidebar sections and expands rows that match the active search filter.
    */
   useEffect(() => {
-    if (searchFilter == null) {
+    if (searchFilter == null || activeSearchFilter == null || archivedSearchFilter == null) {
       return;
     }
 
-    setCollectionsSectionExpanded((current) => (current ? current : true));
-    setEnvironmentsSectionExpanded((current) => (current ? current : true));
-
     if (
-      searchFilter.collectionIds.size > 0 ||
-      searchFilter.folderIds.size > 0 ||
-      searchFilter.requestIds.size > 0
+      activeSearchFilter.collectionIds.size > 0 ||
+      activeSearchFilter.folderIds.size > 0 ||
+      activeSearchFilter.requestIds.size > 0
     ) {
+      setCollectionsSectionExpanded((current) => (current ? current : true));
       setCollectionsSectionVisible(true);
     }
 
-    if (searchFilter.environmentIds.size > 0) {
+    if (activeSearchFilter.environmentIds.size > 0) {
+      setEnvironmentsSectionExpanded((current) => (current ? current : true));
       setEnvironmentsSectionVisible(true);
+    }
+
+    if (archivedSearchFilter.collectionIds.size > 0) {
+      setArchiveSectionExpanded((current) => (current ? current : true));
+      setArchiveSectionVisible(true);
     }
 
     setExpandedCollectionIds((current) => {
       const next = new Set(current);
-      return addIdsToSet(next, searchFilter.collectionIds) ? next : current;
+      return addIdsToSet(next, activeSearchFilter.collectionIds) ? next : current;
     });
 
     setExpandedFolderIds((current) => {
       const next = new Set(current);
-      return addIdsToSet(next, searchFilter.folderIds) ? next : current;
+      return addIdsToSet(next, activeSearchFilter.folderIds) ? next : current;
     });
   }, [
+    activeSearchFilter,
+    archivedSearchFilter,
     searchFilter,
+    setArchiveSectionExpanded,
+    setArchiveSectionVisible,
     setCollectionsSectionExpanded,
-    setEnvironmentsSectionExpanded,
     setCollectionsSectionVisible,
+    setEnvironmentsSectionExpanded,
     setEnvironmentsSectionVisible,
     setExpandedCollectionIds,
     setExpandedFolderIds
@@ -336,6 +402,7 @@ export function useSidebarSearch({
     searchQuery,
     setSearchQuery,
     searchFilter,
+    archivedSearchFilter,
     searchLoading,
     collapseAllSidebarTrees
   };

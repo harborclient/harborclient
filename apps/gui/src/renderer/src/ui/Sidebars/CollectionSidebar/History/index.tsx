@@ -11,7 +11,9 @@ import {
   openRequestHistoryRun
 } from '#/renderer/src/store/thunks/requestHistory';
 import { loadSavedRequest, openRequestDraft } from '#/renderer/src/plugins/hostRequestCommands';
+import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
+import { sortSidebarItems } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { faPersonRunning } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -76,22 +78,30 @@ export function History(): JSX.Element {
   const allEntries = useAppSelector(selectRequestHistory);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const { historyCollectionFilter } = useSidebarSectionFilter();
+  const { showIndicators, showMethodColors, sectionSort } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
+  const sortMode = sectionSort.history;
 
   /**
-   * History entries limited to the selected collection when a filter is active.
+   * History entries limited to the selected collection when a filter is active,
+   * then ordered by the History section sort mode.
    */
   const entries = useMemo(() => {
-    if (historyCollectionFilter == null) {
-      return allEntries;
-    }
-    return allEntries.filter(
-      (entry) => historyEntryCollectionId(entry, requestsByCollection) === historyCollectionFilter
-    );
-  }, [allEntries, historyCollectionFilter, requestsByCollection]);
+    const filtered =
+      historyCollectionFilter == null
+        ? allEntries
+        : allEntries.filter(
+            (entry) =>
+              historyEntryCollectionId(entry, requestsByCollection) === historyCollectionFilter
+          );
+    return sortSidebarItems(filtered, sortMode, {
+      name: (entry) => entry.name ?? entry.url,
+      createdAt: (entry) => entry.ts
+    });
+  }, [allEntries, historyCollectionFilter, requestsByCollection, sortMode]);
 
   /**
    * History entry ids in on-screen list order for shift-click range selection.
@@ -199,6 +209,8 @@ export function History(): JSX.Element {
             isRun={isRun}
             status={isRun ? undefined : entry.status}
             statusText={isRun ? undefined : entry.statusText}
+            statusDotVisible={showIndicators}
+            methodColors={showMethodColors}
             runIcon={faPersonRunning}
             selected={selected}
             title={`${rowTitle} — ${rowDate}`}

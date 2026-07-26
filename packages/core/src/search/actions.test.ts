@@ -4,6 +4,7 @@ import {
   BUILTIN_ACTIONS,
   isActionQuery,
   matchActionSuggestions,
+  matchInlineActionSuggestions,
   pluginActionId,
   type ActionCommandDefinition
 } from './actions';
@@ -64,10 +65,22 @@ describe('matchActionSuggestions', () => {
     expect(matchActionSuggestions('#terminal', BUILTIN_ACTIONS)).toEqual([
       {
         id: 'builtin:toggle-terminal',
-        group: 'View',
-        label: 'Terminal',
+        group: 'Appearance',
+        label: 'Toggle Terminal',
         description: 'Open the terminal panel'
       }
+    ]);
+  });
+
+  it('filters Image: Logo action by label', () => {
+    expect(matchActionSuggestions('#logo', BUILTIN_ACTIONS)).toEqual([
+      { id: 'builtin:image-logo', group: 'Image', label: 'Logo' }
+    ]);
+  });
+
+  it('filters Image: Logo action without a hash prefix', () => {
+    expect(matchInlineActionSuggestions('Image:', BUILTIN_ACTIONS)).toEqual([
+      { id: 'builtin:image-logo', group: 'Image', label: 'Logo' }
     ]);
   });
 });

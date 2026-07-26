@@ -33,6 +33,16 @@ interface Props {
   statusText?: string;
 
   /**
+   * When false, hides the HTTP status indicator even when status is available.
+   */
+  statusDotVisible?: boolean;
+
+  /**
+   * When false, renders the method badge in neutral theme text instead of per-method colors.
+   */
+  methodColors?: boolean;
+
+  /**
    * Icon shown for run history entries.
    */
   runIcon?: IconDefinition;
@@ -82,6 +92,8 @@ export function SidebarHistoryItem({
   isRun = false,
   status,
   statusText,
+  statusDotVisible = true,
+  methodColors = true,
   runIcon,
   selected = false,
   title,
@@ -113,7 +125,7 @@ export function SidebarHistoryItem({
       }
     >
       <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} py-0.5`} title={title}>
-        <SidebarMethodBadge method={method} uppercase />
+        <SidebarMethodBadge method={method} uppercase methodColors={methodColors} />
         <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
           <span className="min-w-0 flex-1 truncate text-text">{name}</span>
           {isRun && runIcon != null ? (
@@ -123,6 +135,7 @@ export function SidebarHistoryItem({
         {!isRun && status != null && statusText != null ? (
           <SidebarStatusDot
             className={statusDotClass(status)}
+            visible={statusDotVisible}
             title={`${status} ${statusText}`}
             srOnlyLabel={`${status} ${statusText}`}
           />

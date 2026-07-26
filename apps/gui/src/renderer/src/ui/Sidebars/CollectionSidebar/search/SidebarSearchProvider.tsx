@@ -14,7 +14,7 @@ interface ProviderProps {
 
 /**
  * Owns sidebar search state and shares it with the search field, toolbar, and
- * collection/environment sections so they no longer receive it via props.
+ * collection/environment/archive sections so they no longer receive it via props.
  */
 export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element {
   const collections = useAppSelector(selectCollections);
@@ -22,42 +22,62 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
   const {
     collectionsSectionExpanded,
     environmentsSectionExpanded,
+    archiveSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    setArchiveSectionExpanded,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
+    setArchiveSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
     setExpandedCollectionIds,
     setExpandedFolderIds
   } = useSidebarExpansion();
 
-  const { searchQuery, setSearchQuery, searchFilter, searchLoading, collapseAllSidebarTrees } =
-    useSidebarSearch({
-      collections,
-      foldersByCollection,
-      collectionsSectionExpanded,
-      environmentsSectionExpanded,
-      setCollectionsSectionExpanded,
-      setEnvironmentsSectionExpanded,
-      setCollectionsSectionVisible,
-      setEnvironmentsSectionVisible,
-      expandedCollectionIds,
-      expandedFolderIds,
-      setExpandedCollectionIds,
-      setExpandedFolderIds
-    });
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchFilter,
+    archivedSearchFilter,
+    searchLoading,
+    collapseAllSidebarTrees
+  } = useSidebarSearch({
+    collections,
+    foldersByCollection,
+    collectionsSectionExpanded,
+    environmentsSectionExpanded,
+    archiveSectionExpanded,
+    setCollectionsSectionExpanded,
+    setEnvironmentsSectionExpanded,
+    setArchiveSectionExpanded,
+    setCollectionsSectionVisible,
+    setEnvironmentsSectionVisible,
+    setArchiveSectionVisible,
+    expandedCollectionIds,
+    expandedFolderIds,
+    setExpandedCollectionIds,
+    setExpandedFolderIds
+  });
 
   const value = useMemo<SidebarSearchContextValue>(
     () => ({
       searchQuery,
       setSearchQuery,
       searchFilter,
+      archivedSearchFilter,
       searchActive: searchFilter != null,
       searchLoading,
       collapseAllSidebarTrees
     }),
-    [searchQuery, setSearchQuery, searchFilter, searchLoading, collapseAllSidebarTrees]
+    [
+      searchQuery,
+      setSearchQuery,
+      searchFilter,
+      archivedSearchFilter,
+      searchLoading,
+      collapseAllSidebarTrees
+    ]
   );
 
   return <SidebarSearchContext.Provider value={value}>{children}</SidebarSearchContext.Provider>;

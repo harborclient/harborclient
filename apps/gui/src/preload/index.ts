@@ -195,6 +195,16 @@ function setCollectionColor(id: number, color: string | null): Promise<Collectio
 }
 
 /**
+ * Marks or unmarks a collection as archived via IPC.
+ *
+ * @param id - Collection ID to update.
+ * @param archived - When true, hide the collection from the Collections tree.
+ */
+function setCollectionArchived(id: number, archived: boolean): Promise<void> {
+  return ipcRenderer.invoke('collections:setArchived', id, archived);
+}
+
+/**
  * Deletes a collection via IPC.
  *
  * @param id - Collection ID to delete.
@@ -1093,7 +1103,7 @@ function onDeepLink(callback: (payload: HarborDeepLink) => void): () => void {
 }
 
 /**
- * Syncs sidebar visibility to the View menu checkbox in the main process.
+ * Syncs sidebar visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the sidebar is currently visible in the renderer.
  */
@@ -1102,7 +1112,7 @@ function setMenuSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
- * Syncs AI sidebar visibility to the View menu checkbox in the main process.
+ * Syncs AI sidebar visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the AI sidebar is currently visible in the renderer.
  */
@@ -1111,7 +1121,7 @@ function setMenuAiSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
- * Syncs Git sidebar visibility to the View menu checkbox in the main process.
+ * Syncs Git sidebar visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the Git sidebar is currently visible in the renderer.
  */
@@ -1120,7 +1130,7 @@ function setMenuGitSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
- * Syncs request editor visibility to the View menu checkbox in the main process.
+ * Syncs request editor visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the request editor is currently visible in the renderer.
  */
@@ -1129,12 +1139,57 @@ function setMenuRequestEditorVisible(visible: boolean): Promise<void> {
 }
 
 /**
- * Syncs response editor visibility to the View menu checkbox in the main process.
+ * Syncs response editor visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the response editor is currently visible in the renderer.
  */
 function setMenuResponseEditorVisible(visible: boolean): Promise<void> {
   return ipcRenderer.invoke('menu:setResponseEditorVisible', visible);
+}
+
+/**
+ * Syncs shortcuts reference modal open state to the View > Appearance submenu checkbox.
+ *
+ * @param open - Whether the shortcuts reference modal is currently open.
+ */
+function setMenuShortcutsReferenceOpen(open: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setShortcutsReferenceOpen', open);
+}
+
+/**
+ * Syncs console panel visibility to the View > Appearance submenu checkbox in the main process.
+ *
+ * @param visible - Whether the console panel is currently open.
+ */
+function setMenuConsoleVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setConsoleVisible', visible);
+}
+
+/**
+ * Syncs variables panel visibility to the View > Appearance submenu checkbox in the main process.
+ *
+ * @param visible - Whether the variables panel is currently open.
+ */
+function setMenuVariablesVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setVariablesVisible', visible);
+}
+
+/**
+ * Syncs MCP panel visibility to the View > Appearance submenu checkbox in the main process.
+ *
+ * @param visible - Whether the MCP panel is currently open.
+ */
+function setMenuMcpVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setMcpVisible', visible);
+}
+
+/**
+ * Syncs terminal panel visibility to the View > Appearance submenu checkbox in the main process.
+ *
+ * @param visible - Whether the terminal panel is currently open.
+ */
+function setMenuTerminalVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setTerminalVisible', visible);
 }
 
 /**
@@ -1229,9 +1284,14 @@ function getAppSubmenuSnapshot(label: RootMenuLabel): Promise<AppSubmenuItemSnap
  *
  * @param label - Root menu label that owns the item.
  * @param index - Flat item index from {@link getAppSubmenuSnapshot}.
+ * @param nestedIndex - Index of a child item when activating a nested submenu entry (such as View > Theme).
  */
-function activateAppSubmenuItem(label: RootMenuLabel, index: number): Promise<void> {
-  return ipcRenderer.invoke('menu:activateSubmenuItem', label, index);
+function activateAppSubmenuItem(
+  label: RootMenuLabel,
+  index: number,
+  nestedIndex?: number
+): Promise<void> {
+  return ipcRenderer.invoke('menu:activateSubmenuItem', label, index, nestedIndex);
 }
 
 /**
@@ -3029,6 +3089,42 @@ function openPath(path: string): Promise<void> {
 }
 
 /**
+ * Reads a local image file and returns a data URL for the image viewer.
+ *
+ * @param path - Absolute path to an image file.
+ * @returns Data URL and basename of the file.
+ */
+function readImageDataUrl(path: string): Promise<{ dataUrl: string; fileName: string }> {
+  return ipcRenderer.invoke('files:readImageDataUrl', path);
+}
+
+/**
+ * Copies a local file to a destination chosen via a native save dialog.
+ *
+ * @param sourcePath - Absolute path of the source file.
+ * @param defaultFileName - Suggested filename shown in the save dialog.
+ */
+function copyFileToSaveDialog(
+  sourcePath: string,
+  defaultFileName: string
+): Promise<{ canceled: boolean; path?: string }> {
+  return ipcRenderer.invoke('files:copyFileToSaveDialog', sourcePath, defaultFileName);
+}
+
+/**
+ * Writes image bytes from a data URL or remote URL via a native save dialog.
+ *
+ * @param payload - Exactly one of `dataUrl` or `url`, plus a suggested filename.
+ */
+function saveDataUrlToFile(payload: {
+  dataUrl?: string;
+  url?: string;
+  defaultFileName: string;
+}): Promise<{ canceled: boolean; path?: string }> {
+  return ipcRenderer.invoke('files:saveDataUrlToFile', payload);
+}
+
+/**
  * Creates a signed, encrypted share token for a specific recipient via IPC.
  *
  * @param collectionId - Global collection id to share.
@@ -3801,6 +3897,7 @@ const api: Api = {
   createCollection,
   updateCollection,
   setCollectionColor,
+  setCollectionArchived,
   deleteCollection,
   duplicateCollection,
   exportCollection,
@@ -3892,6 +3989,11 @@ const api: Api = {
   setMenuGitSidebarVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
+  setMenuShortcutsReferenceOpen,
+  setMenuConsoleVisible,
+  setMenuVariablesVisible,
+  setMenuMcpVisible,
+  setMenuTerminalVisible,
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
   setTabGroupAvailable,
@@ -4074,6 +4176,9 @@ const api: Api = {
   selectDirectory,
   selectSaveFile,
   openPath,
+  readImageDataUrl,
+  copyFileToSaveDialog,
+  saveDataUrlToFile,
   createShareToken,
   joinSharedCollection,
   getSharingIdentity,

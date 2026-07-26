@@ -86,6 +86,12 @@ export interface Collection {
    * Optional sidebar color for visual grouping (CSS hex or rgba string).
    */
   color?: string | null;
+
+  /**
+   * When true, the collection is hidden from the Collections tree and listed
+   * in the Archive sidebar section instead. Stored in the local registry.
+   */
+  archived?: boolean;
 }
 
 /**

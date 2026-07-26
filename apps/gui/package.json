@@ -24,8 +24,8 @@
     "test:watch": "vitest",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "format": "prettier --write . && node ../../scripts/sort-priority-deps.mjs --write && prettier --write package.json",
-    "format:check": "prettier --check . && node ../../scripts/sort-priority-deps.mjs --check",
+    "format": "prettier --write --cache --cache-location ../../.prettier-cache/gui . && node ../../scripts/sort-priority-deps.mjs --write && prettier --write --cache --cache-location ../../.prettier-cache/gui package.json",
+    "format:check": "prettier --check --cache --cache-location ../../.prettier-cache/gui . && node ../../scripts/sort-priority-deps.mjs --check",
     "kill": "pkill -f \"harborclient/node_modules/.pnpm/electron\"",
     "screenshots": "node ../../scripts/capture-screenshots.mjs --build",
     "index-docs": "node ../../scripts/index-docs.mjs"

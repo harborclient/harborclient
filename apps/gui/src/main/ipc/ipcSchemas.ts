@@ -606,6 +606,7 @@ export const sidebarExpansion = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     tabGroups: z.boolean(),
+    archive: z.boolean(),
     trash: z.boolean()
   }),
   sectionVisibility: z.object({
@@ -614,12 +615,66 @@ export const sidebarExpansion = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     tabGroups: z.boolean(),
+    archive: z.boolean(),
     trash: z.boolean()
+  }),
+  sectionSort: z.object({
+    collections: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    environments: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    runResults: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    history: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    tabGroups: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    archive: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'color'
+    ]),
+    trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color'])
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
   showStorageLocationBadges: z.boolean(),
-  showColorDots: z.boolean()
+  showColorDots: z.boolean(),
+  showMethodColors: z.boolean(),
+  showIndicators: z.boolean()
 }) satisfies z.ZodType<SidebarExpansionState>;
 
 export const requestHistoryEntry = z.object({
@@ -713,6 +768,11 @@ export const ipcArgSchemas = {
   menuGitSidebarVisible: z.tuple([z.boolean()]),
   menuRequestEditorVisible: z.tuple([z.boolean()]),
   menuResponseEditorVisible: z.tuple([z.boolean()]),
+  menuShortcutsReferenceOpen: z.tuple([z.boolean()]),
+  menuConsoleVisible: z.tuple([z.boolean()]),
+  menuVariablesVisible: z.tuple([z.boolean()]),
+  menuMcpVisible: z.tuple([z.boolean()]),
+  menuTerminalVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuTabGroupAvailable: z.tuple([z.boolean()]),
@@ -720,7 +780,11 @@ export const ipcArgSchemas = {
   menuGitCollectionActive: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
   menuGetSubmenuSnapshot: z.tuple([rootMenuLabel]),
-  menuActivateSubmenuItem: z.tuple([rootMenuLabel, z.number().int().nonnegative()]),
+  menuActivateSubmenuItem: z.tuple([
+    rootMenuLabel,
+    z.number().int().nonnegative(),
+    z.number().int().nonnegative().optional()
+  ]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
@@ -866,6 +930,15 @@ export const ipcArgSchemas = {
   openPath: z.tuple([z.string().min(1)]),
   saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
+  readImageDataUrl: z.tuple([z.string().min(1)]),
+  copyFileToSaveDialog: z.tuple([z.string().min(1), z.string()]),
+  saveDataUrlToFile: z.tuple([
+    z.object({
+      dataUrl: z.string().max(MAX_IPC_REQUEST_BODY_CHARS).optional(),
+      url: z.string().max(MAX_IPC_URL_CHARS).optional(),
+      defaultFileName: z.string()
+    })
+  ]),
   backupExport: z.tuple([z.record(z.string(), z.string())]),
   gitCommit: z.tuple([
     connectionId,
@@ -1113,6 +1186,7 @@ export const ipcArgSchemas = {
   tabGroupsReorder: z.tuple([z.array(dbId)]),
   tabGroupsSetColor: z.tuple([dbId, sidebarColor]),
   collectionsSetColor: z.tuple([dbId, sidebarColor]),
+  collectionsSetArchived: z.tuple([dbId, z.boolean()]),
   foldersSetColor: z.tuple([dbId, sidebarColor]),
   requestsSetColor: z.tuple([dbId, sidebarColor]),
   documentsSetColor: z.tuple([dbId, sidebarColor]),

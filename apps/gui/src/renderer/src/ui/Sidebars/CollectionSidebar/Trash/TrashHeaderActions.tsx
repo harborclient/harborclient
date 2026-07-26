@@ -4,10 +4,11 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';
 import { emptyTrash } from '#/renderer/src/store/thunks/trash';
-import { faCircleMinus } from '#/renderer/src/fontawesome';
+import { faEraser } from '#/renderer/src/fontawesome';
+import { SidebarSortButton } from '../sort/SidebarSortButton';
 
 /**
- * Header actions for the Trash sidebar section.
+ * Header actions for the Trash sidebar section (sort + empty trash).
  */
 export function TrashHeaderActions(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -31,16 +32,24 @@ export function TrashHeaderActions(): JSX.Element {
   }, [confirm, dispatch]);
 
   return (
-    <Button
-      variant="toolbar"
-      className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
-      aria-label="Empty trash"
-      disabled={isEmpty}
-      onClick={() => {
-        void handleEmptyTrash();
-      }}
-    >
-      <FaIcon icon={faCircleMinus} className="h-3.5 w-3.5" />
-    </Button>
+    <>
+      <SidebarSortButton
+        sectionKey="trash"
+        dateLabel="Date deleted"
+        ariaLabel="Sort trash"
+        title="Sort trash"
+      />
+      <Button
+        variant="toolbar"
+        className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Empty trash"
+        disabled={isEmpty}
+        onClick={() => {
+          void handleEmptyTrash();
+        }}
+      >
+        <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
+      </Button>
+    </>
   );
 }

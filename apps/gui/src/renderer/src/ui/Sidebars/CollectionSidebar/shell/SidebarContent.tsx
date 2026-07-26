@@ -6,6 +6,7 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import {
   faSquareMinus,
+  faBoxArchive,
   faClockRotateLeft,
   faEye,
   faFolder,
@@ -29,11 +30,12 @@ import {
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateTabGroupFromOpenTabs } from '#/renderer/src/store/thunks/tabGroups';
-import { Collections } from '../Collections';
-import { Environments } from '../Environments';
+import { Collections, CollectionsHeaderActions } from '../Collections';
+import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
 import { RunResults, RunsHeaderActions } from '../RunResults';
-import { TabGroups } from '../TabGroups';
+import { TabGroups, TabGroupsHeaderActions } from '../TabGroups';
+import { Archive, ArchiveHeaderActions } from '../Archive';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
@@ -66,12 +68,14 @@ export function SidebarContent(): JSX.Element {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    archiveSectionVisible,
     trashSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
@@ -79,11 +83,16 @@ export function SidebarContent(): JSX.Element {
     toggleStorageLocationBadges,
     showColorDots,
     toggleColorDots,
+    showMethodColors,
+    toggleMethodColors,
+    showIndicators,
+    toggleIndicators,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
     toggleTabGroupsSectionVisible,
+    toggleArchiveSectionVisible,
     toggleTrashSectionVisible
   } = useSidebarExpansion();
 
@@ -166,6 +175,14 @@ export function SidebarContent(): JSX.Element {
         onClick: toggleTabGroupsSectionVisible
       },
       {
+        id: 'toggle-archive-section',
+        icon: faBoxArchive,
+        label: 'Archive',
+        title: archiveSectionVisible ? 'Hide archive section' : 'Show archive section',
+        ariaPressed: archiveSectionVisible,
+        onClick: toggleArchiveSectionVisible
+      },
+      {
         id: 'toggle-trash-section',
         icon: faTrash,
         label: 'Trash',
@@ -175,12 +192,14 @@ export function SidebarContent(): JSX.Element {
       }
     ];
   }, [
+    archiveSectionVisible,
     collectionsSectionVisible,
     environmentsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
     trashSectionVisible,
     runResultsSectionVisible,
+    toggleArchiveSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleHistorySectionVisible,
@@ -193,7 +212,8 @@ export function SidebarContent(): JSX.Element {
    * Right-aligned toolbar controls: display preferences (View) and collapse-all.
    */
   const toolbarToggles = useMemo((): ToolbarAction[] => {
-    const viewOptionsActive = showStorageLocationBadges || showColorDots;
+    const viewOptionsActive =
+      showStorageLocationBadges || showColorDots || showMethodColors || showIndicators;
 
     return [
       {
@@ -211,8 +231,12 @@ export function SidebarContent(): JSX.Element {
             anchorRef={viewMenuButtonRef}
             showStorageLocationBadges={showStorageLocationBadges}
             showColorDots={showColorDots}
+            showMethodColors={showMethodColors}
+            showIndicators={showIndicators}
             onToggleStorageLocationBadges={toggleStorageLocationBadges}
             onToggleColorDots={toggleColorDots}
+            onToggleMethodColors={toggleMethodColors}
+            onToggleIndicators={toggleIndicators}
             onClose={() => setViewMenuOpen(false)}
           />
         ) : undefined
@@ -228,8 +252,12 @@ export function SidebarContent(): JSX.Element {
   }, [
     handleCollapseAll,
     showColorDots,
+    showIndicators,
+    showMethodColors,
     showStorageLocationBadges,
     toggleColorDots,
+    toggleIndicators,
+    toggleMethodColors,
     toggleStorageLocationBadges,
     viewMenuOpen
   ]);
@@ -248,6 +276,7 @@ export function SidebarContent(): JSX.Element {
         initialEntered: collectionsSectionExpanded,
         onAdd: () => dispatch(openCollectionModal({ mode: 'create' })),
         addLabel: 'Add Collection',
+        headerActions: <CollectionsHeaderActions />,
         children: <Collections key={searchActive ? 'search' : 'browse'} />
       });
     }
@@ -282,6 +311,7 @@ export function SidebarContent(): JSX.Element {
         initialEntered: environmentsSectionExpanded,
         onAdd: openAddEnvironment,
         addLabel: 'Add Environment',
+        headerActions: <EnvironmentsHeaderActions />,
         children: <Environments />
       });
     }
@@ -294,7 +324,19 @@ export function SidebarContent(): JSX.Element {
         initialEntered: tabGroupsSectionExpanded,
         onAdd: () => void dispatch(requestCreateTabGroupFromOpenTabs()),
         addLabel: 'Add Tab Group',
+        headerActions: <TabGroupsHeaderActions />,
         children: <TabGroups />
+      });
+    }
+
+    if (archiveSectionVisible) {
+      result.push({
+        key: 'archive',
+        title: 'Archive',
+        ariaLabel: 'Archive',
+        initialEntered: archiveSectionExpanded,
+        headerActions: <ArchiveHeaderActions />,
+        children: <Archive />
       });
     }
 
@@ -352,6 +394,8 @@ export function SidebarContent(): JSX.Element {
     searchActive,
     tabGroupsSectionVisible,
     tabGroupsSectionExpanded,
+    archiveSectionVisible,
+    archiveSectionExpanded,
     trashSectionVisible,
     trashSectionExpanded
   ]);

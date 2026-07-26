@@ -30,6 +30,7 @@ import { importTabGroupData } from './tabGroups';
 import { importCustomThemeData } from './customThemeImport';
 import { importSnippetData } from './snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { readHarborclientExport } from '@harborclient/core/harborclientExport';
@@ -337,6 +338,14 @@ export function registerCollectionHandlers(db: IStorage): void {
 
   handle('collections:setColor', ipcArgSchemas.collectionsSetColor, (_event, id, color) =>
     db.setCollectionColor(id, color)
+  );
+
+  handle(
+    'collections:setArchived',
+    ipcArgSchemas.collectionsSetArchived,
+    (_event, id, archived) => {
+      getLocalDatabase().setRegistryArchived(id, archived);
+    }
   );
 
   // Deletes a collection and all of its folders and requests.

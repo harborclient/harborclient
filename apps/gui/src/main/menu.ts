@@ -41,21 +41,21 @@ function sendMenuThemeSelect(window: BrowserWindow, theme: ThemeSource, label: s
 }
 
 /**
- * Builds checkbox menu items for built-in and plugin appearance themes.
+ * Builds the View menu "Theme" submenu with built-in themes first, then any
+ * installed custom and plugin themes below a separator.
  *
  * @param window - Browser window that receives theme selection events.
  * @param activeTheme - Currently persisted appearance theme.
- * @param pluginThemeOptions - Plugin-provided theme menu options.
+ * @param pluginThemeOptions - Installed custom and plugin theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after click so Electron checkbox toggles do not desync checkmarks.
+ * @returns A single parent menu item containing the theme checkbox submenu.
  */
 export function buildThemeMenuItems(
   window: BrowserWindow,
   activeTheme: ThemeSource,
   pluginThemeOptions: ThemeMenuOption[],
   onThemeMenuClick?: () => void
-): MenuItemConstructorOptions[] {
-  const items: MenuItemConstructorOptions[] = [{ type: 'separator' }];
-
+): MenuItemConstructorOptions {
   /**
    * Sends the theme selection and restores checkbox state from persisted preferences.
    *
@@ -67,16 +67,137 @@ export function buildThemeMenuItems(
     onThemeMenuClick?.();
   };
 
-  for (const option of BUILTIN_THEME_OPTIONS) {
-    items.push({
-      label: option.label,
-      type: 'checkbox',
-      checked: option.value === activeTheme,
-      click: () => handleThemeClick(option.value, option.label)
-    });
+  /**
+   * Maps a theme option to a checkbox menu item marked active when it matches
+   * the persisted appearance preference.
+   *
+   * @param option - Theme menu option to render.
+   * @returns Checkbox menu item wired to the theme selection handler.
+   */
+  const toThemeItem = (option: ThemeMenuOption): MenuItemConstructorOptions => ({
+    label: option.label,
+    type: 'checkbox',
+    checked: option.value === activeTheme,
+    click: () => handleThemeClick(option.value, option.label)
+  });
+
+  const submenu: MenuItemConstructorOptions[] = BUILTIN_THEME_OPTIONS.map(toThemeItem);
+
+  if (pluginThemeOptions.length > 0) {
+    submenu.push({ type: 'separator' });
+    submenu.push(...pluginThemeOptions.map(toThemeItem));
   }
 
-  return items;
+  return { label: 'Theme', submenu };
+}
+
+/**
+ * Builds the View menu "Appearance" submenu with layout and footer panel visibility checkboxes.
+ *
+ * @param window - Browser window that receives menu action events.
+ * @param sidebarVisible - Whether the collections sidebar checkbox should appear checked.
+ * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
+ * @param gitSidebarVisible - Whether the Git sidebar checkbox should appear checked.
+ * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
+ * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
+ * @param shortcutsReferenceOpen - Whether the shortcuts reference modal checkbox should appear checked.
+ * @param consoleVisible - Whether the console panel checkbox should appear checked.
+ * @param variablesVisible - Whether the variables panel checkbox should appear checked.
+ * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
+ * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
+ * @param accelerators - Resolved shortcut accelerators for menu items.
+ * @returns A single parent menu item containing the panel visibility checkbox submenu.
+ */
+export function buildAppearanceMenuItems(
+  window: BrowserWindow,
+  sidebarVisible: boolean,
+  aiSidebarVisible: boolean,
+  gitSidebarVisible: boolean,
+  requestEditorVisible: boolean,
+  responseEditorVisible: boolean,
+  shortcutsReferenceOpen: boolean,
+  consoleVisible: boolean,
+  variablesVisible: boolean,
+  mcpVisible: boolean,
+  terminalVisible: boolean,
+  accelerators: Map<ShortcutId, string>
+): MenuItemConstructorOptions {
+  return {
+    label: 'Appearance',
+    submenu: [
+      {
+        label: 'Collections Sidebar',
+        type: 'checkbox',
+        checked: sidebarVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-sidebar'),
+        click: () => sendMenuAction(window, 'toggle-sidebar')
+      },
+      {
+        label: 'Agent Chat',
+        type: 'checkbox',
+        checked: aiSidebarVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-ai-sidebar'),
+        click: () => sendMenuAction(window, 'toggle-ai-sidebar')
+      },
+      {
+        label: 'Git Sidebar',
+        type: 'checkbox',
+        checked: gitSidebarVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-git-sidebar'),
+        click: () => sendMenuAction(window, 'toggle-git-sidebar')
+      },
+      {
+        label: 'Request',
+        type: 'checkbox',
+        checked: requestEditorVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-request-editor'),
+        click: () => sendMenuAction(window, 'toggle-request-editor')
+      },
+      {
+        label: 'Response',
+        type: 'checkbox',
+        checked: responseEditorVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-response-editor'),
+        click: () => sendMenuAction(window, 'toggle-response-editor')
+      },
+      { type: 'separator' },
+      {
+        label: 'Shortcuts',
+        type: 'checkbox',
+        checked: shortcutsReferenceOpen,
+        accelerator: acceleratorFor(accelerators, 'shortcuts-reference'),
+        click: () => sendMenuAction(window, 'shortcuts-reference')
+      },
+      {
+        label: 'Console',
+        type: 'checkbox',
+        checked: consoleVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-console'),
+        click: () => sendMenuAction(window, 'toggle-console')
+      },
+      {
+        label: 'Variables',
+        type: 'checkbox',
+        checked: variablesVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-variables'),
+        click: () => sendMenuAction(window, 'toggle-variables')
+      },
+      {
+        label: 'MCP',
+        type: 'checkbox',
+        checked: mcpVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-mcp'),
+        click: () => sendMenuAction(window, 'toggle-mcp')
+      },
+      {
+        label: 'Terminal',
+        type: 'checkbox',
+        checked: terminalVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-terminal'),
+        click: () => sendMenuAction(window, 'toggle-terminal')
+      }
+    ]
+  };
 }
 
 /**
@@ -98,8 +219,13 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
  * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
+ * @param shortcutsReferenceOpen - Whether the shortcuts reference modal checkbox should appear checked.
+ * @param consoleVisible - Whether the console panel checkbox should appear checked.
+ * @param variablesVisible - Whether the variables panel checkbox should appear checked.
+ * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
+ * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
- * @param pluginThemeOptions - Plugin-provided theme menu options.
+ * @param pluginThemeOptions - Installed custom and plugin theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
  * @param designerUndoRedoActive - Whether the Designer tab owns Edit menu undo/redo.
  * @param designerCanUndo - Whether Designer undo is currently available.
@@ -116,6 +242,11 @@ export function buildMenu(
   gitSidebarVisible = false,
   requestEditorVisible = true,
   responseEditorVisible = true,
+  shortcutsReferenceOpen = false,
+  consoleVisible = false,
+  variablesVisible = false,
+  mcpVisible = false,
+  terminalVisible = false,
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
   onThemeMenuClick?: () => void,
@@ -238,41 +369,20 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'action-menu')
         },
         { type: 'separator' },
-        {
-          label: 'Collections Sidebar',
-          type: 'checkbox',
-          checked: sidebarVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-sidebar'),
-          click: () => sendMenuAction(window, 'toggle-sidebar')
-        },
-        {
-          label: 'Agent Chat',
-          type: 'checkbox',
-          checked: aiSidebarVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-ai-sidebar'),
-          click: () => sendMenuAction(window, 'toggle-ai-sidebar')
-        },
-        {
-          label: 'Git Sidebar',
-          type: 'checkbox',
-          checked: gitSidebarVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-git-sidebar'),
-          click: () => sendMenuAction(window, 'toggle-git-sidebar')
-        },
-        {
-          label: 'Request',
-          type: 'checkbox',
-          checked: requestEditorVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-request-editor'),
-          click: () => sendMenuAction(window, 'toggle-request-editor')
-        },
-        {
-          label: 'Response',
-          type: 'checkbox',
-          checked: responseEditorVisible,
-          accelerator: acceleratorFor(accelerators, 'toggle-response-editor'),
-          click: () => sendMenuAction(window, 'toggle-response-editor')
-        },
+        buildAppearanceMenuItems(
+          window,
+          sidebarVisible,
+          aiSidebarVisible,
+          gitSidebarVisible,
+          requestEditorVisible,
+          responseEditorVisible,
+          shortcutsReferenceOpen,
+          consoleVisible,
+          variablesVisible,
+          mcpVisible,
+          terminalVisible,
+          accelerators
+        ),
         { type: 'separator' },
         {
           role: 'togglefullscreen',
@@ -293,7 +403,8 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'reset-zoom'),
           click: () => resetZoom(window.webContents)
         },
-        ...buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick),
+        { type: 'separator' },
+        buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick),
         ...(isDeveloperToolsEnabled()
           ? [
               { type: 'separator' as const },

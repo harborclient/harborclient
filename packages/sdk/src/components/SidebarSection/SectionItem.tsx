@@ -62,6 +62,8 @@ type SectionItemProps = ItemStateProps<HTMLDivElement> & SectionContentProps;
 /**
  * Renders the sidebar section header row and animated body panel.
  * Header chevron inset and title gap follow shared `SIDEBAR_CHEVRON_*` spacing.
+ * Right-side controls use `hc-sidebar-section-header-actions` so host CSS can
+ * apply a shared fixed square size across filter, clear, and add buttons.
  */
 const SectionItem = memo(function SectionItem({
   forwardedRef,
@@ -101,7 +103,7 @@ const SectionItem = memo(function SectionItem({
           </h2>
         </button>
         {(headerActions || onAdd) && (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="hc-sidebar-section-header-actions flex shrink-0 items-center gap-1">
             {headerActions}
             {onAdd ? (
               <button
@@ -111,7 +113,7 @@ const SectionItem = memo(function SectionItem({
                 aria-label={addLabel ?? 'Add'}
                 onClick={onAdd}
               >
-                <FaIcon icon={faPlus} className="h-4 w-4" />
+                <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
               </button>
             ) : null}
           </div>

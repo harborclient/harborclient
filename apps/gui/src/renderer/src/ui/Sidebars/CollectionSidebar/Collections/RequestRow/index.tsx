@@ -174,7 +174,7 @@ export function RequestRow({
   onGitStageItem,
   onGitUnstageItem
 }: Props): JSX.Element {
-  const { showColorDots } = useSidebarExpansion();
+  const { showColorDots, showMethodColors } = useSidebarExpansion();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
 
   const menuId = `request-${req.id}`;
@@ -191,6 +191,7 @@ export function RequestRow({
           visible: showColorDots,
           label: `Color for ${req.name}`
         }}
+        methodColors={showMethodColors}
         selected={rowHighlighted}
         sortable={{
           id: requestDragId(req.id),

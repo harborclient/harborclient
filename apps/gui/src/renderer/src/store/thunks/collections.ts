@@ -477,6 +477,24 @@ export const deleteCollection = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
+ * Marks or unmarks a collection as archived and refreshes the sidebar lists.
+ *
+ * @param id - Collection id to update.
+ * @param archived - When true, move the collection into the Archive section.
+ */
+export const setCollectionArchived = createAsyncThunk<
+  void,
+  { id: number; archived: boolean },
+  ThunkApiConfig
+>('collections/setArchived', async ({ id, archived }, { dispatch, getState }) => {
+  await window.api.setCollectionArchived(id, archived);
+  if (archived && getState().collections.selectedCollectionId === id) {
+    dispatch(setSelectedCollectionId(null));
+  }
+  await dispatch(refreshCollections());
+});
+
+/**
  * Deep-copies a collection and places the duplicate directly below the original.
  */
 export const duplicateCollection = createAsyncThunk<Collection, number, ThunkApiConfig>(

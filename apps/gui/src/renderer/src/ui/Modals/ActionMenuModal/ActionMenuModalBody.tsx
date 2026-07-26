@@ -13,6 +13,7 @@ import {
   isActionQuery,
   isSlashCommandQuery,
   matchActionSuggestions,
+  matchInlineActionSuggestions,
   matchSlashCommandSuggestions,
   resolveSlashCommand,
   searchAll,
@@ -74,12 +75,19 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
   );
 
   /**
-   * Action suggestions matching the current `#` query prefix.
+   * Action suggestions from `#` quick-open mode or plain-text matches in unified search.
    */
-  const actionSuggestions = useMemo(
-    () => (actionMode ? matchActionSuggestions(query, actions) : []),
-    [actionMode, actions, query]
-  );
+  const actionSuggestions = useMemo(() => {
+    if (actionMode) {
+      return matchActionSuggestions(query, actions);
+    }
+    return matchInlineActionSuggestions(query, actions);
+  }, [actionMode, actions, query]);
+
+  /**
+   * Count of action rows shown above unified search hits.
+   */
+  const actionSuggestionCount = actionSuggestions.length;
 
   /**
    * Fully resolved slash command when the keyword is complete, otherwise null.
@@ -200,29 +208,6 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
    */
   const handleInputKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
-      if (actionMode) {
-        if (actionSuggestions.length === 0) {
-          return;
-        }
-
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          setActiveIndex((current) => (current + 1) % actionSuggestions.length);
-        } else if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          setActiveIndex(
-            (current) => (current - 1 + actionSuggestions.length) % actionSuggestions.length
-          );
-        } else if (event.key === 'Enter') {
-          event.preventDefault();
-          const suggestion = actionSuggestions[activeIndex];
-          if (suggestion != null) {
-            runAction(suggestion.id);
-          }
-        }
-        return;
-      }
-
       if (slashMode) {
         if (resolvedCommand != null) {
           if (event.key === 'Enter') {
@@ -252,18 +237,29 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
         return;
       }
 
-      if (hits.length === 0) {
+      const hitCount = actionMode ? 0 : hits.length;
+      const selectableCount = actionSuggestionCount + hitCount;
+      if (selectableCount === 0) {
         return;
       }
+
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setActiveIndex((current) => (current + 1) % hits.length);
+        setActiveIndex((current) => (current + 1) % selectableCount);
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setActiveIndex((current) => (current - 1 + hits.length) % hits.length);
+        setActiveIndex((current) => (current - 1 + selectableCount) % selectableCount);
       } else if (event.key === 'Enter') {
         event.preventDefault();
-        const hit = hits[activeIndex];
+        if (activeIndex < actionSuggestionCount) {
+          const suggestion = actionSuggestions[activeIndex];
+          if (suggestion != null) {
+            runAction(suggestion.id);
+          }
+          return;
+        }
+
+        const hit = hits[activeIndex - actionSuggestionCount];
         if (hit != null) {
           handleActivate(hit);
         }
@@ -271,6 +267,7 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
     },
     [
       actionMode,
+      actionSuggestionCount,
       actionSuggestions,
       activeIndex,
       handleActivate,
@@ -284,21 +281,22 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
     ]
   );
 
-  const hasActionSuggestions = actionMode && actionSuggestions.length > 0;
+  const hasActionSuggestions = actionSuggestionCount > 0;
   const hasSlashSuggestions = slashMode && resolvedCommand == null && suggestions.length > 0;
   const hasSlashArmedCommand = slashMode && resolvedCommand != null;
   const hasSearchResults = !slashMode && !actionMode && hits.length > 0;
   const showNoSearchResults =
     !slashMode && !actionMode && debouncedQuery.trim().length > 0 && hits.length === 0;
-  const activeDescendantId = hasActionSuggestions
-    ? `action-menu-action-${activeIndex}`
-    : hasSlashArmedCommand
-      ? 'action-menu-command-armed'
-      : hasSlashSuggestions
-        ? `action-menu-suggestion-${activeIndex}`
-        : hasSearchResults
-          ? `action-menu-result-${activeIndex}`
-          : undefined;
+  const activeDescendantId =
+    hasActionSuggestions && activeIndex < actionSuggestionCount
+      ? `action-menu-action-${activeIndex}`
+      : hasSlashArmedCommand
+        ? 'action-menu-command-armed'
+        : hasSlashSuggestions
+          ? `action-menu-suggestion-${activeIndex}`
+          : hasSearchResults
+            ? `action-menu-result-${activeIndex - actionSuggestionCount}`
+            : undefined;
 
   return (
     <Modal
@@ -397,7 +395,7 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
               domain={group.domain}
               hits={group.hits}
               activeIndex={activeIndex}
-              indexOffset={groupOffsets[groupIndex] ?? 0}
+              indexOffset={(groupOffsets[groupIndex] ?? 0) + actionSuggestionCount}
               sidebarInput={sidebarInput}
               onActivate={handleActivate}
               onHighlight={setActiveIndex}

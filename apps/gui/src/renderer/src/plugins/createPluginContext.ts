@@ -52,6 +52,7 @@ import {
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
+import { openImageView } from './hostImageCommands';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
 import { createPluginDatabaseApi } from '@harborclient/core/plugin/pluginDatabaseApi';
 import type { ImportHandler } from '@harborclient/core/plugin/importHandlers';
@@ -608,6 +609,10 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       clearResponse: async () => {
         assertUi();
         clearActiveResponse();
+      },
+      openImageView: async (payload) => {
+        assertUi();
+        openImageView(payload);
       }
     },
     imports: {

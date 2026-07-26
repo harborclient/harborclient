@@ -33,6 +33,20 @@ export const METHOD_CLASSES: Record<string, string> = {
 };
 
 /**
+ * Returns Tailwind classes for an HTTP method badge in the sidebar.
+ *
+ * @param method - HTTP method string.
+ * @param methodColors - When false, uses neutral theme text instead of per-method colors.
+ * @returns Combined Tailwind class string for the method badge.
+ */
+export function methodBadgeClass(method: string, methodColors = true): string {
+  if (!methodColors) {
+    return 'hc-method-badge text-text';
+  }
+  return METHOD_CLASSES[method.toLowerCase()] ?? 'hc-method-badge text-text';
+}
+
+/**
  * Status dot variant for an HTTP response code.
  *
  * @param status - HTTP status code, or 0 for network errors.

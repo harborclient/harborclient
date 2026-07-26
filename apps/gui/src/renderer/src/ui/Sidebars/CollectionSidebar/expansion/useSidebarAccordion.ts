@@ -42,25 +42,28 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setTabGroupsSectionExpanded,
+    setArchiveSectionExpanded,
     setTrashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    archiveSectionVisible,
     trashSectionVisible
   } = useSidebarExpansion();
 
   /**
    * Writes accordion item state into the persisted sidebar expansion booleans.
    *
-   * @param key - Accordion item key (`collections`, `environments`, `runResults`, `history`, or a plugin section id).
+   * @param key - Accordion item key (`collections`, `environments`, `runResults`, `history`, `archive`, `trash`, or a plugin section id).
    * @param isEnter - Whether the section body should be expanded.
    */
   const onToggle = useCallback(
@@ -90,6 +93,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'archive') {
+        setArchiveSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       if (key === 'trash') {
         setTrashSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
@@ -109,6 +117,7 @@ export function useSidebarAccordion(): Result {
       setRunResultsSectionExpanded,
       setHistorySectionExpanded,
       setTabGroupsSectionExpanded,
+      setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
   );
@@ -139,6 +148,10 @@ export function useSidebarAccordion(): Result {
       desiredExpansion.tabGroups = tabGroupsSectionExpanded;
     }
 
+    if (archiveSectionVisible) {
+      desiredExpansion.archive = archiveSectionExpanded;
+    }
+
     if (trashSectionVisible) {
       desiredExpansion.trash = trashSectionExpanded;
     }
@@ -154,12 +167,14 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     tabGroupsSectionExpanded,
+    archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
     tabGroupsSectionVisible,
+    archiveSectionVisible,
     trashSectionVisible,
     pluginSectionExpanded,
     pluginSidebarSections
@@ -177,6 +192,7 @@ export function useSidebarAccordion(): Result {
     setRunResultsSectionExpanded(false);
     setHistorySectionExpanded(false);
     setTabGroupsSectionExpanded(false);
+    setArchiveSectionExpanded(false);
     setTrashSectionExpanded(false);
 
     setPluginSectionExpanded((current) => {
@@ -199,6 +215,7 @@ export function useSidebarAccordion(): Result {
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setTabGroupsSectionExpanded,
+    setArchiveSectionExpanded,
     setTrashSectionExpanded
   ]);
 

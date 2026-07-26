@@ -276,6 +276,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "hc.host.sendRequest()",
             "link": "/renderer-overview#hchostsendrequest"
+          },
+          {
+            "text": "hc.host.openImageView(payload)",
+            "link": "/renderer-overview#hchostopenimageviewpayload"
           }
         ],
         "collapsed": false
@@ -520,6 +524,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "hc.host.createCollection(payload)",
             "link": "/renderer-data#hchostcreatecollectionpayload"
+          },
+          {
+            "text": "hc.host.openImageView(payload)",
+            "link": "/renderer-data#hchostopenimageviewpayload"
           }
         ],
         "collapsed": false

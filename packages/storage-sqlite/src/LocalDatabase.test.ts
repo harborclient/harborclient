@@ -61,6 +61,76 @@ describeSqlite('LocalDatabase collection order', () => {
   });
 });
 
+describeSqlite('LocalDatabase collection archive', () => {
+  it('defaults new registry entries to not archived', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addRegistryEntry({
+      name: 'Alpha',
+      connectionId: 'conn-a',
+      providerCollectionId: 1
+    });
+
+    expect(entry.archived).toBe(false);
+    expect(database.getRegistryEntry(entry.id)?.archived).toBe(false);
+  });
+
+  it('setRegistryArchived round-trips the archived flag', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addRegistryEntry({
+      name: 'Alpha',
+      connectionId: 'conn-a',
+      providerCollectionId: 1
+    });
+
+    const archived = database.setRegistryArchived(entry.id, true);
+    expect(archived.archived).toBe(true);
+    expect(database.listRegistry().find((item) => item.id === entry.id)?.archived).toBe(true);
+
+    const restored = database.setRegistryArchived(entry.id, false);
+    expect(restored.archived).toBe(false);
+    expect(database.getRegistryEntry(entry.id)?.archived).toBe(false);
+  });
+
+  it('migrates legacy registry databases missing the archived column', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-registry-legacy-'));
+    const Database = (await import('better-sqlite3')).default;
+    const legacy = new Database(join(rootDir, 'harborclient-registry.db'));
+    legacy.exec(`
+      CREATE TABLE collection_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        collection_uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_collection_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    legacy
+      .prepare(
+        `INSERT INTO collection_registry (name, collection_uuid, connection_id, provider_collection_id, sort_order)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run('Legacy', 'legacy-uuid', 'conn-a', 1, 0);
+    legacy.close();
+
+    const database = new LocalDatabase(rootDir);
+    await database.init();
+    cleanups.push(async () => {
+      await database.close();
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    const entries = database.listRegistry();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.name).toBe('Legacy');
+    expect(entries[0]?.archived).toBe(false);
+
+    const updated = database.setRegistryArchived(entries[0]!.id, true);
+    expect(updated.archived).toBe(true);
+  });
+});
+
 describeSqlite('LocalDatabase environment order', () => {
   it('lists new environments by insertion order rather than name', async () => {
     const { database } = await createRegistry();

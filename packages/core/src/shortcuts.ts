@@ -35,6 +35,8 @@ export type ShortcutId =
   | 'previous-sidebar-list-item'
   | 'toggle-variables'
   | 'toggle-console'
+  | 'toggle-mcp'
+  | 'toggle-terminal'
   | 'toggle-ai-sidebar'
   | 'toggle-git-sidebar'
   | 'toggle-request-editor'
@@ -359,6 +361,20 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'Alt+Shift+L',
     kind: 'action',
     actionId: 'toggle-console'
+  },
+  {
+    id: 'toggle-mcp',
+    label: 'Toggle MCP panel',
+    defaultAccelerator: 'Alt+Shift+M',
+    kind: 'action',
+    actionId: 'toggle-mcp'
+  },
+  {
+    id: 'toggle-terminal',
+    label: 'Toggle terminal',
+    defaultAccelerator: 'CmdOrCtrl+`',
+    kind: 'action',
+    actionId: 'toggle-terminal'
   },
   {
     id: 'toggle-ai-sidebar',

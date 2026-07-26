@@ -6,11 +6,12 @@ import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
 import { clearRunResults } from '#/renderer/src/store/thunks/runResults';
 import { faEraser, faFilter } from '#/renderer/src/fontawesome';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
+import { SidebarSortButton } from '../sort/SidebarSortButton';
 
 const RUNS_FILTER_MENU_ID = 'runs-collection-filter';
 
 /**
- * Header actions for the Runs sidebar section (clear + collection filter).
+ * Header actions for the Runs sidebar section (sort + collection filter + clear).
  */
 export function RunsHeaderActions(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -73,6 +74,20 @@ export function RunsHeaderActions(): JSX.Element {
 
   return (
     <>
+      <SidebarSortButton sectionKey="runResults" ariaLabel="Sort runs" title="Sort runs" />
+      {collectionNames.length > 0 ? (
+        <RowActionsMenu
+          menuId={RUNS_FILTER_MENU_ID}
+          openMenuId={openMenuId}
+          onOpenChange={setOpenMenuId}
+          triggerVariant="toolbar"
+          triggerIcon={faFilter}
+          triggerAriaLabel="Filter runs by collection"
+          triggerTitle="Filter by collection"
+          triggerActive={filterActive}
+          groups={filterMenuGroups}
+        />
+      ) : null}
       <Button
         variant="toolbar"
         className="text-muted hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
@@ -84,21 +99,6 @@ export function RunsHeaderActions(): JSX.Element {
       >
         <FaIcon icon={faEraser} className="h-3.5 w-3.5" />
       </Button>
-      {collectionNames.length > 0 ? (
-        <RowActionsMenu
-          menuId={RUNS_FILTER_MENU_ID}
-          openMenuId={openMenuId}
-          onOpenChange={setOpenMenuId}
-          triggerVariant="toolbar"
-          triggerIcon={faFilter}
-          triggerAriaLabel="Filter runs by collection"
-          triggerTitle="Filter by collection"
-          triggerClassName={
-            filterActive ? 'text-text hover:text-text' : 'text-muted hover:text-text'
-          }
-          groups={filterMenuGroups}
-        />
-      ) : null}
     </>
   );
 }

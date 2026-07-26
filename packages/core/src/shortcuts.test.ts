@@ -171,6 +171,12 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'toggle-console')?.accelerator).toBe(
       'Alt+Shift+L'
     );
+    expect(bindings.find((binding) => binding.id === 'toggle-mcp')?.accelerator).toBe(
+      'Alt+Shift+M'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-terminal')?.accelerator).toBe(
+      'CmdOrCtrl+`'
+    );
     expect(bindings.find((binding) => binding.id === 'next-sidebar-list-item')?.accelerator).toBe(
       'CmdOrCtrl+Tab'
     );

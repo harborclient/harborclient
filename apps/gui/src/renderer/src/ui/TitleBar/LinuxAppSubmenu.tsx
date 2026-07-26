@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX } from 'react';
 import { createPortal } from 'react-dom';
 import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
+import { LinuxAppSubmenuItem } from './LinuxAppSubmenuItem';
 
 interface Position {
   /** Viewport X coordinate where the menu opens. */
@@ -57,11 +58,12 @@ export function LinuxAppSubmenu({ label, items, position, onClose }: Props): JSX
    * Activates a submenu item through the main-process application menu.
    *
    * @param index - Flat submenu index from the snapshot.
+   * @param nestedIndex - Child index when activating a nested submenu entry.
    */
   const activateItem = useCallback(
-    (index: number): void => {
+    (index: number, nestedIndex?: number): void => {
       closeMenu();
-      void window.api.activateAppSubmenuItem(label, index);
+      void window.api.activateAppSubmenuItem(label, index, nestedIndex);
     },
     [closeMenu, label]
   );
@@ -121,46 +123,13 @@ export function LinuxAppSubmenu({ label, items, position, onClose }: Props): JSX
       className="fixed z-50 min-w-[240px] rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
       style={{ left: clampedPosition.x, top: clampedPosition.y }}
     >
-      {items.map((item) => {
-        if (item.kind === 'separator') {
-          return (
-            <div
-              key={`sep-${item.index}`}
-              role="separator"
-              className="my-1 border-t border-separator"
-            />
-          );
-        }
-
-        const itemClass = item.enabled
-          ? 'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text hover:bg-selection app-no-drag'
-          : 'flex w-full cursor-default items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text-secondary opacity-60 app-no-drag';
-
-        return (
-          <button
-            key={`item-${item.index}`}
-            type="button"
-            role="menuitem"
-            disabled={!item.enabled}
-            aria-checked={item.kind === 'checkbox' ? item.checked === true : undefined}
-            className={itemClass}
-            onClick={() => {
-              if (!item.enabled) {
-                return;
-              }
-              activateItem(item.index);
-            }}
-          >
-            <span className="w-4 shrink-0 text-center" aria-hidden="true">
-              {item.kind === 'checkbox' && item.checked ? '✓' : ''}
-            </span>
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            {item.accelerator ? (
-              <span className="shrink-0 pl-4 text-text-secondary">{item.accelerator}</span>
-            ) : null}
-          </button>
-        );
-      })}
+      {items.map((item) => (
+        <LinuxAppSubmenuItem
+          key={`${item.kind}-${item.index}`}
+          item={item}
+          onActivate={activateItem}
+        />
+      ))}
     </div>,
     document.body
   );

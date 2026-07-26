@@ -21,6 +21,12 @@ export interface SidebarSearchContextValue {
   searchFilter: SidebarSearchFilter | null;
 
   /**
+   * Archived half of the search filter, or null when search is inactive.
+   * Used by the Archive section to show matching archived collections.
+   */
+  archivedSearchFilter: SidebarSearchFilter | null;
+
+  /**
    * Convenience flag: true when a search filter is active.
    */
   searchActive: boolean;

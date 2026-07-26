@@ -7,6 +7,7 @@ import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
+import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
@@ -46,21 +47,28 @@ export function RunResults(): JSX.Element {
   const allRunResults = useAppSelector(selectRunResults);
   const { runsCollectionFilter } = useSidebarSectionFilter();
   const { connectionNamesById } = useSidebarProviders();
-  const { showStorageLocationBadges } = useSidebarExpansion();
+  const { showStorageLocationBadges, showIndicators, showMethodColors, sectionSort } =
+    useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
+  const sortMode = sectionSort.runResults;
 
   /**
-   * Run results limited to the selected collection name when a filter is active.
+   * Run results limited to the selected collection name when a filter is active,
+   * then ordered by the Runs section sort mode.
    */
   const runResults = useMemo(() => {
-    if (runsCollectionFilter == null) {
-      return allRunResults;
-    }
-    return allRunResults.filter((runResult) => runResult.collectionName === runsCollectionFilter);
-  }, [allRunResults, runsCollectionFilter]);
+    const filtered =
+      runsCollectionFilter == null
+        ? allRunResults
+        : allRunResults.filter((runResult) => runResult.collectionName === runsCollectionFilter);
+    return sortSidebarItems(filtered, sortMode, {
+      name: (runResult) => runResult.label || runResult.collectionName || String(runResult.id),
+      createdAt: (runResult) => toSortTimestamp(runResult.createdAt)
+    });
+  }, [allRunResults, runsCollectionFilter, sortMode]);
 
   /**
    * Run result ids in on-screen list order for shift-click range selection.
@@ -150,6 +158,8 @@ export function RunResults(): JSX.Element {
               showStorageLocationBadges && connectionName != null ? connectionName : undefined
             }
             statusDotClassName={runResultStatusDotClass(runResult.summary)}
+            statusDotVisible={showIndicators}
+            methodColors={showMethodColors}
             statusSummary={summaryText}
             selected={selected}
             title={`${runResult.label} — ${rowDate}`}

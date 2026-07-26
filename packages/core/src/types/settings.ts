@@ -5,6 +5,30 @@ import type { ProxySettings } from '@harborclient/http';
 export type { ProxyProtocol, ProxySettings } from '@harborclient/http';
 
 /**
+ * Built-in collections sidebar section keys used for expansion, visibility, and
+ * per-section sort preferences.
+ */
+export type SidebarSectionKey =
+  | 'collections'
+  | 'environments'
+  | 'runResults'
+  | 'history'
+  | 'tabGroups'
+  | 'archive'
+  | 'trash';
+
+/**
+ * Persisted sort mode for a collections sidebar section.
+ */
+export type SidebarSortMode =
+  | 'default'
+  | 'name-asc'
+  | 'name-desc'
+  | 'created-asc'
+  | 'created-desc'
+  | 'color';
+
+/**
  * Persisted sidebar expansion state for sections, collections, and folders.
  */
 export interface SidebarExpansionState {
@@ -36,6 +60,11 @@ export interface SidebarExpansionState {
      * Whether the Tab Groups section body is visible.
      */
     tabGroups: boolean;
+
+    /**
+     * Whether the Archive section body is visible.
+     */
+    archive: boolean;
 
     /**
      * Whether the Trash section body is visible.
@@ -83,10 +112,20 @@ export interface SidebarExpansionState {
     tabGroups: boolean;
 
     /**
+     * Whether the Archive section is shown in the sidebar.
+     */
+    archive: boolean;
+
+    /**
      * Whether the Trash section is shown in the sidebar.
      */
     trash: boolean;
   };
+
+  /**
+   * Per-section sort mode for the collections sidebar lists.
+   */
+  sectionSort: Record<SidebarSectionKey, SidebarSortMode>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -97,6 +136,16 @@ export interface SidebarExpansionState {
    * Whether user-assigned color dots appear beside sidebar row names.
    */
   showColorDots: boolean;
+
+  /**
+   * Whether HTTP method badges use per-method colors in the sidebar.
+   */
+  showMethodColors: boolean;
+
+  /**
+   * Whether HTTP/run status indicator dots appear on History and Runs rows.
+   */
+  showIndicators: boolean;
 }
 
 /** Default request editor split height in pixels when both editors are visible. */

@@ -72,4 +72,15 @@ describe('pageTabMeta', () => {
 
     expect(meta.title).toBe('Auth helper');
   });
+
+  it('uses the shortened label for image view tabs', () => {
+    const meta = pageTabMeta({
+      type: 'image-view',
+      fileName: 'screenshot-2024-01-15-at-midnight.png',
+      shortLabel: 'screenshot…night.png',
+      source: { kind: 'path', path: '/tmp/screenshot-2024-01-15-at-midnight.png' }
+    });
+
+    expect(meta.title).toBe('screenshot…night.png');
+  });
 });

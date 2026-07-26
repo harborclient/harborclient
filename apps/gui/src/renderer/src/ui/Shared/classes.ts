@@ -4,13 +4,21 @@
 
 import {
   METHOD_CLASSES,
+  methodBadgeClass,
   sourceRow,
   statusDotClass,
   statusDotVariant,
   tabItem as requestTabItem
 } from '@harborclient/sdk/components';
 
-export { requestTabItem, sourceRow, METHOD_CLASSES, statusDotClass, statusDotVariant };
+export {
+  requestTabItem,
+  sourceRow,
+  METHOD_CLASSES,
+  methodBadgeClass,
+  statusDotClass,
+  statusDotVariant
+};
 
 export const separator = 'h-px bg-separator';
 

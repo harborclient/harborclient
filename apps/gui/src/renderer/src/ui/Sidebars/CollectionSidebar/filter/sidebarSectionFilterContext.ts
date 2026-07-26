@@ -1,9 +1,21 @@
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
+import type { CollectionsFilterCriteria } from '../Collections/collectionsFilter';
 
 /**
- * Collection filter state shared between Runs/History section headers and lists.
+ * Section filter state shared between Collections/Runs/History/Tab Groups/
+ * Environments/Archive headers and lists.
  */
 export interface SidebarSectionFilterContextValue {
+  /**
+   * Applied Collections section filter criteria, or all-null when inactive.
+   */
+  collectionsFilter: CollectionsFilterCriteria;
+
+  /**
+   * Updates the Collections section filter criteria.
+   */
+  setCollectionsFilter: Dispatch<SetStateAction<CollectionsFilterCriteria>>;
+
   /**
    * Collection display name to filter Runs by, or null when showing all runs.
    */
@@ -23,17 +35,47 @@ export interface SidebarSectionFilterContextValue {
    * Updates the History collection id filter.
    */
   setHistoryCollectionFilter: Dispatch<SetStateAction<number | null>>;
+
+  /**
+   * CSS color to filter Tab Groups by, or null when showing all tab groups.
+   */
+  tabGroupsColorFilter: string | null;
+
+  /**
+   * Updates the Tab Groups color filter.
+   */
+  setTabGroupsColorFilter: Dispatch<SetStateAction<string | null>>;
+
+  /**
+   * CSS color to filter Environments by, or null when showing all environments.
+   */
+  environmentsColorFilter: string | null;
+
+  /**
+   * Updates the Environments color filter.
+   */
+  setEnvironmentsColorFilter: Dispatch<SetStateAction<string | null>>;
+
+  /**
+   * CSS color to filter Archive by, or null when showing all archived collections.
+   */
+  archiveColorFilter: string | null;
+
+  /**
+   * Updates the Archive color filter.
+   */
+  setArchiveColorFilter: Dispatch<SetStateAction<string | null>>;
 }
 
 /**
- * React context for Runs/History section collection filters.
+ * React context for Collections/Runs/History/Tab Groups/Environments/Archive section filters.
  */
 export const SidebarSectionFilterContext = createContext<SidebarSectionFilterContextValue | null>(
   null
 );
 
 /**
- * Returns shared Runs/History collection filter state.
+ * Returns shared sidebar section filter state.
  *
  * @throws When called outside `SidebarSectionFilterProvider`.
  */

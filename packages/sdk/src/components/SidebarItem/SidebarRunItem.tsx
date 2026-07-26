@@ -27,6 +27,16 @@ interface Props {
   statusDotClassName: string;
 
   /**
+   * When false, hides the pass/fail status indicator.
+   */
+  statusDotVisible?: boolean;
+
+  /**
+   * When false, renders the method badge in neutral theme text instead of per-method colors.
+   */
+  methodColors?: boolean;
+
+  /**
    * Screen-reader text describing the run summary status.
    */
   statusSummary: string;
@@ -95,6 +105,8 @@ export function SidebarRunItem({
   label,
   connectionBadge,
   statusDotClassName,
+  statusDotVisible = true,
+  methodColors = true,
   statusSummary,
   selected = false,
   title,
@@ -133,7 +145,9 @@ export function SidebarRunItem({
           ? { 'data-sidebar-run-result-id': String(dataSidebarRunResultId) }
           : {})}
       >
-        {method != null && method !== '' ? <SidebarMethodBadge method={method} uppercase /> : null}
+        {method != null && method !== '' ? (
+          <SidebarMethodBadge method={method} uppercase methodColors={methodColors} />
+        ) : null}
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           <span className="min-w-0 truncate text-text">{label}</span>
           {connectionBadge != null ? (
@@ -142,7 +156,11 @@ export function SidebarRunItem({
             </SidebarBadge>
           ) : null}
         </span>
-        <SidebarStatusDot className={statusDotClassName} srOnlyLabel={statusSummary} />
+        <SidebarStatusDot
+          className={statusDotClassName}
+          visible={statusDotVisible}
+          srOnlyLabel={statusSummary}
+        />
       </span>
     </SidebarItem>
   );

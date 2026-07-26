@@ -2349,6 +2349,7 @@ export class RoutingStorage implements IStorage {
       created_at: record?.created_at ?? entry.created_at,
       deletion_locked: record?.deletion_locked,
       color: record?.color ?? null,
+      archived: entry.archived,
       connectionId: entry.connectionId
     };
   }

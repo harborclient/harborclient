@@ -9,21 +9,29 @@ import {
   openCollectionModal,
   openActionMenuModal,
   openShortcutsReferenceModal,
+  closeShortcutsReferenceModal,
   openSyncModal,
-  openUpdateModal
+  openUpdateModal,
+  selectShortcutsReferenceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
+  selectShowConsole,
+  selectShowMcp,
   selectShowRequestEditor,
   selectShowResponseEditor,
+  selectShowTerminal,
+  selectShowVariables,
   selectSidebarVisible,
   toggleAiSidebar,
+  toggleConsole,
   toggleGitSidebar,
+  toggleMcp,
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
-  toggleConsole,
+  toggleTerminal,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
@@ -95,42 +103,82 @@ export function useMenuActions(): void {
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
+  const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
+  const consoleVisible = useAppSelector(selectShowConsole);
+  const variablesVisible = useAppSelector(selectShowVariables);
+  const mcpVisible = useAppSelector(selectShowMcp);
+  const terminalVisible = useAppSelector(selectShowTerminal);
   const lastFocusedRef = useLastFocusedElement();
 
   /**
-   * Keeps the View menu Sidebar checkbox aligned with effective sidebar visibility.
+   * Keeps the View > Appearance submenu Sidebar checkbox aligned with effective sidebar visibility.
    */
   useEffect(() => {
     void window.api.setMenuSidebarVisible(sidebarVisible);
   }, [sidebarVisible]);
 
   /**
-   * Keeps the View menu AI checkbox aligned with effective AI sidebar visibility.
+   * Keeps the View > Appearance submenu AI checkbox aligned with effective AI sidebar visibility.
    */
   useEffect(() => {
     void window.api.setMenuAiSidebarVisible(aiSidebarVisible);
   }, [aiSidebarVisible]);
 
   /**
-   * Keeps the View menu Git checkbox aligned with effective Git sidebar visibility.
+   * Keeps the View > Appearance submenu Git checkbox aligned with effective Git sidebar visibility.
    */
   useEffect(() => {
     void window.api.setMenuGitSidebarVisible(gitSidebarVisible);
   }, [gitSidebarVisible]);
 
   /**
-   * Keeps the View menu Request checkbox aligned with request editor visibility.
+   * Keeps the View > Appearance submenu Request checkbox aligned with request editor visibility.
    */
   useEffect(() => {
     void window.api.setMenuRequestEditorVisible(requestEditorVisible);
   }, [requestEditorVisible]);
 
   /**
-   * Keeps the View menu Response checkbox aligned with response editor visibility.
+   * Keeps the View > Appearance submenu Response checkbox aligned with response editor visibility.
    */
   useEffect(() => {
     void window.api.setMenuResponseEditorVisible(responseEditorVisible);
   }, [responseEditorVisible]);
+
+  /**
+   * Keeps the View > Appearance submenu Shortcuts checkbox aligned with the reference modal.
+   */
+  useEffect(() => {
+    void window.api.setMenuShortcutsReferenceOpen(shortcutsReferenceOpen);
+  }, [shortcutsReferenceOpen]);
+
+  /**
+   * Keeps the View > Appearance submenu Console checkbox aligned with console panel visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuConsoleVisible(consoleVisible);
+  }, [consoleVisible]);
+
+  /**
+   * Keeps the View > Appearance submenu Variables checkbox aligned with variables panel visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuVariablesVisible(variablesVisible);
+  }, [variablesVisible]);
+
+  /**
+   * Keeps the View > Appearance submenu MCP checkbox aligned with MCP panel visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuMcpVisible(mcpVisible);
+  }, [mcpVisible]);
+
+  /**
+   * Keeps the View > Appearance submenu Terminal checkbox aligned with terminal panel visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuTerminalVisible(terminalVisible);
+  }, [terminalVisible]);
 
   /**
    * Wires File menu shortcuts to navigation, modal, and thunk actions.
@@ -226,6 +274,12 @@ export function useMenuActions(): void {
         case 'toggle-console':
           dispatch(toggleConsole());
           break;
+        case 'toggle-mcp':
+          dispatch(toggleMcp());
+          break;
+        case 'toggle-terminal':
+          dispatch(toggleTerminal());
+          break;
         case 'toggle-ai-sidebar':
           dispatch(toggleAiSidebar());
           break;
@@ -257,7 +311,11 @@ export function useMenuActions(): void {
           dispatch(openAboutModal());
           break;
         case 'shortcuts-reference':
-          dispatch(openShortcutsReferenceModal());
+          if (store.getState().modals.shortcutsReference?.open === true) {
+            dispatch(closeShortcutsReferenceModal());
+          } else {
+            dispatch(openShortcutsReferenceModal());
+          }
           break;
         case 'action-menu':
           dispatch(openActionMenuModal());

@@ -9,33 +9,51 @@ describe('buildThemeMenuItems', () => {
     webContents: { send: vi.fn() }
   } as unknown as BrowserWindow;
 
-  it('adds a separator before built-in themes with a checkmark on the active theme', () => {
-    const items = buildThemeMenuItems(window, 'dark', []);
+  it('nests built-in themes under a Theme submenu with a checkmark on the active theme', () => {
+    const item = buildThemeMenuItems(window, 'dark', []);
 
-    expect(items[0]).toEqual({ type: 'separator' });
-    expect(items).toHaveLength(BUILTIN_THEME_OPTIONS.length + 1);
+    expect(item.label).toBe('Theme');
+    const submenu = item.submenu as MenuItemConstructorOptions[];
+    expect(submenu).toHaveLength(BUILTIN_THEME_OPTIONS.length);
 
-    const darkItem = items.find((item) => item.label === 'Dark') as MenuItemConstructorOptions;
-    const lightItem = items.find((item) => item.label === 'Light') as MenuItemConstructorOptions;
+    const darkItem = submenu.find((entry) => entry.label === 'Dark') as MenuItemConstructorOptions;
+    const lightItem = submenu.find(
+      (entry) => entry.label === 'Light'
+    ) as MenuItemConstructorOptions;
 
     expect(darkItem.type).toBe('checkbox');
     expect(darkItem.checked).toBe(true);
     expect(lightItem.checked).toBe(false);
   });
 
-  it('does not add plugin themes to the View menu', () => {
-    const items = buildThemeMenuItems(window, 'system', [
+  it('lists installed themes after a separator below the built-in themes', () => {
+    const item = buildThemeMenuItems(window, 'system', [
       { value: 'plugin:com.example:midnight', label: 'Midnight' }
     ]);
 
-    expect(items).toHaveLength(BUILTIN_THEME_OPTIONS.length + 1);
-    expect(items.some((item) => item.label === 'Midnight')).toBe(false);
+    const submenu = item.submenu as MenuItemConstructorOptions[];
+    expect(submenu).toHaveLength(BUILTIN_THEME_OPTIONS.length + 2);
+    expect(submenu[BUILTIN_THEME_OPTIONS.length]).toEqual({ type: 'separator' });
+
+    const midnightItem = submenu.find(
+      (entry) => entry.label === 'Midnight'
+    ) as MenuItemConstructorOptions;
+    expect(midnightItem.type).toBe('checkbox');
+    expect(midnightItem.checked).toBe(false);
+  });
+
+  it('omits the installed-theme separator when there are no installed themes', () => {
+    const item = buildThemeMenuItems(window, 'system', []);
+    const submenu = item.submenu as MenuItemConstructorOptions[];
+
+    expect(submenu.some((entry) => entry.type === 'separator')).toBe(false);
   });
 
   it('rebuilds the menu after a theme click so active checkmarks stay checked', () => {
     const onThemeMenuClick = vi.fn();
-    const items = buildThemeMenuItems(window, 'dark', [], onThemeMenuClick);
-    const darkItem = items.find((item) => item.label === 'Dark') as MenuItemConstructorOptions;
+    const item = buildThemeMenuItems(window, 'dark', [], onThemeMenuClick);
+    const submenu = item.submenu as MenuItemConstructorOptions[];
+    const darkItem = submenu.find((entry) => entry.label === 'Dark') as MenuItemConstructorOptions;
 
     (darkItem.click as () => void)();
 

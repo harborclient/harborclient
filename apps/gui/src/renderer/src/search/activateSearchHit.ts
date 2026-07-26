@@ -1,8 +1,11 @@
 import { useCallback } from 'react';
 import { entryById, type SettingId } from '@harborclient/core/search/settingsCatalog';
 import { settingAnchorId } from '#/renderer/src/ui/Tabs/Settings/settingAnchorId';
-import { parseSidebarDocumentId } from '@harborclient/core/search/sidebar';
-import type { SidebarSearchInput } from '@harborclient/core/search/sidebar';
+import {
+  isArchivedCollection,
+  parseSidebarDocumentId,
+  type SidebarSearchInput
+} from '@harborclient/core/search/sidebar';
 import type { UnifiedSearchHit } from '@harborclient/core/search/types';
 import type { SavedRequest } from '@harborclient/core/types';
 import { useSearchIndexes } from './useSearchIndexes';
@@ -45,6 +48,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
   const { sidebarInput } = useSearchIndexes();
   const {
     revealCollection,
+    revealArchivedCollection,
     revealFolder,
     setEnvironmentsSectionVisible,
     setEnvironmentsSectionExpanded
@@ -65,6 +69,11 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
             return;
           }
           void dispatch(requestLoadRequest({ req }));
+          if (isArchivedCollection(sidebarInput, req.collection_id)) {
+            dispatch(setShowSidebar(true));
+            revealArchivedCollection(req.collection_id);
+            return;
+          }
           dispatch(focusSidebarItem({ collectionId: req.collection_id, folderId: req.folder_id }));
           if (req.folder_id != null) {
             revealFolder(req.collection_id, req.folder_id);
@@ -79,6 +88,10 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
             return;
           }
           dispatch(setShowSidebar(true));
+          if (isArchivedCollection(sidebarInput, parsed.entityId)) {
+            revealArchivedCollection(parsed.entityId);
+            return;
+          }
           dispatch(setSelectedCollectionId(parsed.entityId));
           revealCollection(parsed.entityId);
           return;
@@ -93,6 +106,10 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
             return;
           }
           dispatch(setShowSidebar(true));
+          if (isArchivedCollection(sidebarInput, collectionId)) {
+            revealArchivedCollection(collectionId);
+            return;
+          }
           dispatch(focusSidebarItem({ collectionId, folderId: parsed.entityId }));
           revealFolder(collectionId, parsed.entityId);
           return;
@@ -171,6 +188,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
     },
     [
       dispatch,
+      revealArchivedCollection,
       revealCollection,
       revealFolder,
       setEnvironmentsSectionExpanded,

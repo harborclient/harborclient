@@ -52,6 +52,7 @@ function pluginSearchResultLabel(hit: UnifiedSearchHit): string | undefined {
 
 /**
  * Builds an accessible label for a request search result row.
+ * Includes an "Archived: " collection prefix when the parent is archived.
  *
  * @param hit - Unified search hit for a saved request.
  * @param breadcrumb - Resolved collection and folder names for the request.
@@ -68,6 +69,21 @@ function requestSearchResultLabel(
     (part): part is string => part != null && part.length > 0
   );
   return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
+/**
+ * Builds an accessible label for a folder search result row.
+ *
+ * @param hit - Unified search hit for a folder.
+ */
+function folderSearchResultLabel(hit: UnifiedSearchHit): string | undefined {
+  if (hit.domain !== 'folder') {
+    return undefined;
+  }
+  if (hit.subtitle != null && hit.subtitle.length > 0) {
+    return `${hit.subtitle}, ${hit.title}`;
+  }
+  return hit.title;
 }
 
 interface Props {
@@ -145,8 +161,9 @@ export function SearchResultGroup({
             requestBreadcrumb != null
               ? requestSearchResultLabel(hit, requestBreadcrumb)
               : undefined;
+          const folderLabel = folderSearchResultLabel(hit);
           const pluginLabel = pluginSearchResultLabel(hit);
-          const rowLabel = requestLabel ?? pluginLabel;
+          const rowLabel = requestLabel ?? folderLabel ?? pluginLabel;
 
           return (
             <li
@@ -177,6 +194,11 @@ export function SearchResultGroup({
                         {hit.method}
                       </span>
                     ) : null}
+                    <span className="min-w-0 flex-1 truncate">{hit.title}</span>
+                  </span>
+                ) : hit.domain === 'folder' ? (
+                  <span className="flex min-w-0 w-full items-center gap-1">
+                    <InlineBreadcrumbPrefix collectionName={hit.subtitle} />
                     <span className="min-w-0 flex-1 truncate">{hit.title}</span>
                   </span>
                 ) : hit.domain === 'plugin' || hit.domain === 'theme' ? (

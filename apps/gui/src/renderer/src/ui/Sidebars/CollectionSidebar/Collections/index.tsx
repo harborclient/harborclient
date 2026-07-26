@@ -26,8 +26,8 @@ import type {
 } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  selectActiveCollections,
   selectActiveDocumentId,
-  selectCollections,
   selectDocumentsByCollection,
   selectDraft,
   selectFoldersByCollection,
@@ -61,7 +61,7 @@ import { usePluginContextMenuItems } from '#/renderer/src/plugins/pluginHooks';
 import { buildPluginContextMenuGroups } from '#/renderer/src/plugins/pluginContextMenuHelpers';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
-import { METHOD_CLASSES, sourceRow } from '#/renderer/src/ui/Shared/classes';
+import { methodBadgeClass, sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/Shared/Animated/AnimatedCollapse';
 import {
   buildDevInspectMenuGroups,
@@ -105,6 +105,11 @@ import {
   type ContainerItemRef,
   type DragKind
 } from './utils';
+import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
+import { buildCollectionsTreeFilter, isCollectionsFilterActive } from './collectionsFilter';
+import { sortSidebarItems, toSortTimestamp } from '../sort/sidebarSort';
+
+export { CollectionsHeaderActions } from './CollectionsHeaderActions';
 
 /**
  * Collections list with expandable folders and drag-and-drop organization.
@@ -116,7 +121,7 @@ import {
  */
 export function Collections(): JSX.Element {
   const dispatch = useAppDispatch();
-  const collections = useAppSelector(selectCollections);
+  const collections = useAppSelector(selectActiveCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const documentsByCollection = useAppSelector(selectDocumentsByCollection);
@@ -133,7 +138,9 @@ export function Collections(): JSX.Element {
     setExpandedCollectionIds,
     setExpandedFolderIds,
     showStorageLocationBadges,
-    showColorDots
+    showColorDots,
+    showMethodColors,
+    sectionSort
   } = useSidebarExpansion();
   const { primaryConnectionId, connectionNamesById, connectionTypesById } = useSidebarProviders();
   const {
@@ -145,7 +152,8 @@ export function Collections(): JSX.Element {
     openSourceControl: onOpenSourceControl,
     openSwitchBranch: onOpenSwitchBranch
   } = useSidebarGit();
-  const { searchFilter, searchActive } = useSidebarSearchContext();
+  const { searchFilter, searchActive, archivedSearchFilter } = useSidebarSearchContext();
+  const { collectionsFilter } = useSidebarSectionFilter();
   const {
     onExpandCollection,
     onSelectCollection,
@@ -294,37 +302,98 @@ export function Collections(): JSX.Element {
   };
 
   /**
+   * Visibility sets for the Collections section filter form, or null when inactive.
+   */
+  const treeFilter = useMemo(
+    () =>
+      buildCollectionsTreeFilter(
+        {
+          collections,
+          foldersByCollection,
+          requestsByCollection,
+          documentsByCollection,
+          primaryConnectionId
+        },
+        collectionsFilter
+      ),
+    [
+      collections,
+      collectionsFilter,
+      documentsByCollection,
+      foldersByCollection,
+      primaryConnectionId,
+      requestsByCollection
+    ]
+  );
+
+  const collectionsFilterActive = isCollectionsFilterActive(collectionsFilter);
+  const treeFilterActive = searchActive || collectionsFilterActive;
+  const sortMode = sectionSort.collections;
+  const sortActive = sortMode !== 'default';
+  /** Disables drag reorder while search, filter, or a custom sort is active. */
+  const reorderDisabled = treeFilterActive || sortActive;
+
+  /**
    * Gets sortable sidebar items (requests only) for a collection root or folder container.
    *
    * @param collectionId The collection id to read items from.
    * @param folderId The folder id, or null for collection root.
    */
-  const getContainerItems = (collectionId: number, folderId: number | null): ContainerItem[] => {
-    const requests = requestsByCollection[collectionId] ?? [];
-    let items = mergeContainerItems(requests, [], folderId);
+  const getContainerItems = useCallback(
+    (collectionId: number, folderId: number | null): ContainerItem[] => {
+      const requests = requestsByCollection[collectionId] ?? [];
+      let items = mergeContainerItems(requests, [], folderId);
 
-    if (searchFilter != null) {
-      items = items.filter((item) => searchFilter.requestIds.has(item.id));
-    }
+      if (searchFilter != null) {
+        items = items.filter((item) => searchFilter.requestIds.has(item.id));
+      }
+      if (treeFilter != null) {
+        items = items.filter((item) => treeFilter.requestIds.has(item.id));
+      }
 
-    return items;
-  };
+      return sortSidebarItems(items, sortMode, {
+        name: (item) => item.name,
+        createdAt: (item) => {
+          const request = requests.find((entry) => entry.id === item.id);
+          return toSortTimestamp(request?.created_at);
+        },
+        color: (item) => requests.find((entry) => entry.id === item.id)?.color
+      });
+    },
+    [requestsByCollection, searchFilter, sortMode, treeFilter]
+  );
 
   /**
-   * Gets markdown documents for a collection root or folder, sorted alphabetically by name.
-   * Documents are always shown during search regardless of request matches.
+   * Gets markdown documents for a collection root or folder, sorted by the
+   * Collections section sort mode (falls back to alphabetical for default).
+   * Documents are always shown during text search; the collections section filter may hide them.
    *
    * @param collectionId The collection id to read documents from.
    * @param folderId The folder id, or null for collection root.
    */
-  const getContainerDocuments = (
-    collectionId: number,
-    folderId: number | null
-  ): CollectionDocument[] => {
-    const documents = documentsByCollection[collectionId] ?? [];
-    const inContainer = documents.filter((document) => (document.folder_id ?? null) === folderId);
-    return sortContainerDocuments(inContainer);
-  };
+  const getContainerDocuments = useCallback(
+    (collectionId: number, folderId: number | null): CollectionDocument[] => {
+      const documents = documentsByCollection[collectionId] ?? [];
+      const inContainer = documents.filter((document) => {
+        if ((document.folder_id ?? null) !== folderId) {
+          return false;
+        }
+        if (treeFilter != null && !treeFilter.documentIds.has(document.id)) {
+          return false;
+        }
+        return true;
+      });
+      if (sortMode === 'default') {
+        return sortContainerDocuments(inContainer);
+      }
+      return sortSidebarItems(inContainer, sortMode, {
+        name: (document) => document.name,
+        createdAt: (document) => toSortTimestamp(document.created_at),
+        color: (document) => document.color
+      });
+    },
+    [documentsByCollection, sortMode, treeFilter]
+  );
 
   /**
    * Moves a collection one position up or down in the sidebar list.
@@ -443,38 +512,93 @@ export function Collections(): JSX.Element {
 
   /**
    * Precomputes per-collection folder and root item groupings for rendering.
+   * Applies sidebar text search, the Collections section filter, and section sort.
    */
   const collectionTrees = useMemo(() => {
     const trees = collections.map((collection) => {
       const folders = foldersByCollection[collection.id] ?? [];
-      const rootItems = mergeContainerItems(
-        requestsByCollection[collection.id] ?? [],
-        [],
-        null
-      ).filter((item) => searchFilter == null || searchFilter.requestIds.has(item.id));
-      const rootDocuments = sortContainerDocuments(
-        (documentsByCollection[collection.id] ?? []).filter(
-          (document) => (document.folder_id ?? null) === null
-        )
-      );
+      const requests = requestsByCollection[collection.id] ?? [];
+      const rootItems = mergeContainerItems(requests, [], null).filter((item) => {
+        if (searchFilter != null && !searchFilter.requestIds.has(item.id)) {
+          return false;
+        }
+        if (treeFilter != null && !treeFilter.requestIds.has(item.id)) {
+          return false;
+        }
+        return true;
+      });
+      const rootDocuments = (documentsByCollection[collection.id] ?? []).filter((document) => {
+        if ((document.folder_id ?? null) !== null) {
+          return false;
+        }
+        if (treeFilter != null && !treeFilter.documentIds.has(document.id)) {
+          return false;
+        }
+        return true;
+      });
 
       return {
         collection,
-        folders:
-          searchFilter == null
-            ? folders
-            : folders.filter((folder) => searchFilter.folderIds.has(folder.id)),
-        rootItems,
-        rootDocuments
+        folders: sortSidebarItems(
+          folders.filter((folder) => {
+            if (searchFilter != null && !searchFilter.folderIds.has(folder.id)) {
+              return false;
+            }
+            if (treeFilter != null && !treeFilter.folderIds.has(folder.id)) {
+              return false;
+            }
+            return true;
+          }),
+          sortMode,
+          {
+            name: (folder) => folder.name,
+            createdAt: (folder) => toSortTimestamp(folder.created_at),
+            color: (folder) => folder.color
+          }
+        ),
+        rootItems: sortSidebarItems(rootItems, sortMode, {
+          name: (item) => item.name,
+          createdAt: (item) => {
+            const request = requests.find((entry) => entry.id === item.id);
+            return toSortTimestamp(request?.created_at);
+          },
+          color: (item) => requests.find((entry) => entry.id === item.id)?.color
+        }),
+        rootDocuments:
+          sortMode === 'default'
+            ? sortContainerDocuments(rootDocuments)
+            : sortSidebarItems(rootDocuments, sortMode, {
+                name: (document) => document.name,
+                createdAt: (document) => toSortTimestamp(document.created_at),
+                color: (document) => document.color
+              })
       };
     });
 
-    if (searchFilter == null) {
-      return trees;
-    }
+    const filtered = trees.filter(({ collection }) => {
+      if (searchFilter != null && !searchFilter.collectionIds.has(collection.id)) {
+        return false;
+      }
+      if (treeFilter != null && !treeFilter.collectionIds.has(collection.id)) {
+        return false;
+      }
+      return true;
+    });
 
-    return trees.filter(({ collection }) => searchFilter.collectionIds.has(collection.id));
-  }, [collections, foldersByCollection, requestsByCollection, documentsByCollection, searchFilter]);
+    return sortSidebarItems(filtered, sortMode, {
+      name: ({ collection }) => collection.name,
+      createdAt: ({ collection }) => toSortTimestamp(collection.created_at),
+      color: ({ collection }) => collection.color
+    });
+  }, [
+    collections,
+    foldersByCollection,
+    requestsByCollection,
+    documentsByCollection,
+    searchFilter,
+    sortMode,
+    treeFilter
+  ]);
 
   /**
    * Request ids in on-screen sidebar order for shift-click range selection.
@@ -483,10 +607,7 @@ export function Collections(): JSX.Element {
     const ids: number[] = [];
 
     for (const { collection, folders, rootItems } of collectionTrees) {
-      const expanded =
-        searchActive && searchFilter != null
-          ? searchFilter.collectionIds.has(collection.id)
-          : expandedCollectionIds.has(collection.id);
+      const expanded = treeFilterActive ? true : expandedCollectionIds.has(collection.id);
       if (!expanded) {
         continue;
       }
@@ -496,19 +617,12 @@ export function Collections(): JSX.Element {
       }
 
       for (const folder of folders) {
-        const folderExpanded =
-          searchActive && searchFilter != null
-            ? searchFilter.folderIds.has(folder.id)
-            : expandedFolderIds.has(folder.id);
+        const folderExpanded = treeFilterActive ? true : expandedFolderIds.has(folder.id);
         if (!folderExpanded) {
           continue;
         }
 
-        const folderItems = mergeContainerItems(
-          requestsByCollection[collection.id] ?? [],
-          [],
-          folder.id
-        ).filter((item) => searchFilter == null || searchFilter.requestIds.has(item.id));
+        const folderItems = getContainerItems(collection.id, folder.id);
         for (const item of folderItems) {
           ids.push(item.id);
         }
@@ -520,9 +634,8 @@ export function Collections(): JSX.Element {
     collectionTrees,
     expandedCollectionIds,
     expandedFolderIds,
-    requestsByCollection,
-    searchActive,
-    searchFilter
+    getContainerItems,
+    treeFilterActive
   ]);
 
   /**
@@ -807,17 +920,17 @@ export function Collections(): JSX.Element {
         {collections.length === 0 && (
           <div className="px-2 py-1.5 text-muted">No collections yet</div>
         )}
-        {searchActive && collections.length > 0 && collectionTrees.length === 0 && (
-          <div className="px-2 py-1.5 text-muted">No matching collections or requests</div>
-        )}
+        {treeFilterActive &&
+          collections.length > 0 &&
+          collectionTrees.length === 0 &&
+          (archivedSearchFilter == null || archivedSearchFilter.collectionIds.size === 0) && (
+            <div className="px-2 py-1.5 text-muted">No matching collections or items</div>
+          )}
 
         <SortableContext items={collectionIds} strategy={verticalListSortingStrategy}>
           {collectionTrees.map(
             ({ collection, folders, rootItems, rootDocuments }, collectionIndex) => {
-              const expanded =
-                searchActive && searchFilter != null
-                  ? searchFilter.collectionIds.has(collection.id)
-                  : expandedCollectionIds.has(collection.id);
+              const expanded = treeFilterActive ? true : expandedCollectionIds.has(collection.id);
               const selected = selectedCollectionId === collection.id;
               const loaded =
                 requestsByCollection[collection.id] != null &&
@@ -857,7 +970,7 @@ export function Collections(): JSX.Element {
                     id={collectionDragId(collection.id)}
                     className={sourceRow(selected, true)}
                     dragHandleLabel={`Reorder collection "${collection.name}"`}
-                    disabled={searchActive}
+                    disabled={reorderDisabled}
                     onRowContextMenu={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -881,6 +994,7 @@ export function Collections(): JSX.Element {
                           connectionName={connectionName}
                           collectionConnectionId={collectionConnectionId}
                           canShare={canShare}
+                          reorderEnabled={!reorderDisabled}
                           onMove={(direction) => void moveCollection(collection.id, direction)}
                           hasDeselectableSelection={collectionHasDeselectableSelection(
                             collection.id,
@@ -1011,7 +1125,7 @@ export function Collections(): JSX.Element {
 
                             <DropZone
                               id={dropRootId(collection.id)}
-                              disabled={searchActive}
+                              disabled={reorderDisabled}
                               className={
                                 [
                                   rootDropHighlight,
@@ -1140,7 +1254,7 @@ export function Collections(): JSX.Element {
                                             }
                                           });
                                         }}
-                                        dragDisabled={searchActive}
+                                        dragDisabled={reorderDisabled}
                                         gitItemStatus={
                                           connectionType === 'git'
                                             ? itemGitStatusByUuid[req.uuid]
@@ -1178,10 +1292,9 @@ export function Collections(): JSX.Element {
                               strategy={verticalListSortingStrategy}
                             >
                               {folders.map((folder, folderIndex) => {
-                                const folderExpanded =
-                                  searchActive && searchFilter != null
-                                    ? searchFilter.folderIds.has(folder.id)
-                                    : expandedFolderIds.has(folder.id);
+                                const folderExpanded = treeFilterActive
+                                  ? true
+                                  : expandedFolderIds.has(folder.id);
                                 const folderItems = getContainerItems(collection.id, folder.id);
                                 const folderDocuments = getContainerDocuments(
                                   collection.id,
@@ -1202,7 +1315,10 @@ export function Collections(): JSX.Element {
                                       folderHighlighted ? dropTargetHighlightClass : undefined
                                     }
                                   >
-                                    <DropZone id={dropFolderId(folder.id)} disabled={searchActive}>
+                                    <DropZone
+                                      id={dropFolderId(folder.id)}
+                                      disabled={reorderDisabled}
+                                    >
                                       <SidebarFolderItem
                                         name={folder.name}
                                         expanded={folderExpanded}
@@ -1218,7 +1334,7 @@ export function Collections(): JSX.Element {
                                         sortable={{
                                           id: folderDragId(folder.id),
                                           dragHandleLabel: `Reorder folder "${folder.name}"`,
-                                          disabled: searchActive
+                                          disabled: reorderDisabled
                                         }}
                                         onToggleExpand={() => toggleFolder(folder.id)}
                                         onNameClick={() =>
@@ -1306,12 +1422,14 @@ export function Collections(): JSX.Element {
                                                     ]
                                                   ]
                                                 : []),
-                                              ...buildReorderMenuGroup(
-                                                folderIndex,
-                                                folders.length,
-                                                (direction) =>
-                                                  moveFolder(collection.id, folder.id, direction)
-                                              ),
+                                              ...(!reorderDisabled
+                                                ? buildReorderMenuGroup(
+                                                    folderIndex,
+                                                    folders.length,
+                                                    (direction) =>
+                                                      moveFolder(collection.id, folder.id, direction)
+                                                  )
+                                                : []),
                                               [
                                                 {
                                                   label: 'Import Request',
@@ -1479,7 +1597,7 @@ export function Collections(): JSX.Element {
                                                     }
                                                   });
                                                 }}
-                                                dragDisabled={searchActive}
+                                                dragDisabled={reorderDisabled}
                                                 gitItemStatus={
                                                   connectionType === 'git'
                                                     ? itemGitStatusByUuid[req.uuid]
@@ -1529,7 +1647,7 @@ export function Collections(): JSX.Element {
                             activeDragRequest ? (
                               <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                                 <span
-                                  className={`shrink-0 px-1 py-px ${METHOD_CLASSES[activeDragRequest.method.toLowerCase()] ?? 'text-info'}`}
+                                  className={`shrink-0 px-1 py-px ${methodBadgeClass(activeDragRequest.method, showMethodColors)}`}
                                 >
                                   {activeDragRequest.method}
                                 </span>

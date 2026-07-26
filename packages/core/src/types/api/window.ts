@@ -28,35 +28,65 @@ export interface ApiWindow {
    */
   onDeepLink: (callback: (payload: HarborDeepLink) => void) => () => void;
   /**
-   * Syncs sidebar visibility to the View menu checkbox in the main process.
+   * Syncs sidebar visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the sidebar is currently visible in the renderer.
    */
   setMenuSidebarVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs AI sidebar visibility to the View menu checkbox in the main process.
+   * Syncs AI sidebar visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the AI sidebar is currently visible in the renderer.
    */
   setMenuAiSidebarVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs Git sidebar visibility to the View menu checkbox in the main process.
+   * Syncs Git sidebar visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the Git sidebar is currently visible in the renderer.
    */
   setMenuGitSidebarVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs request editor visibility to the View menu checkbox in the main process.
+   * Syncs request editor visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the request editor is currently visible in the renderer.
    */
   setMenuRequestEditorVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs response editor visibility to the View menu checkbox in the main process.
+   * Syncs response editor visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the response editor is currently visible in the renderer.
    */
   setMenuResponseEditorVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs shortcuts reference modal open state to the View > Appearance submenu checkbox.
+   *
+   * @param open - Whether the shortcuts reference modal is currently open.
+   */
+  setMenuShortcutsReferenceOpen: (open: boolean) => Promise<void>;
+  /**
+   * Syncs console panel visibility to the View > Appearance submenu checkbox in the main process.
+   *
+   * @param visible - Whether the console panel is currently open.
+   */
+  setMenuConsoleVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs variables panel visibility to the View > Appearance submenu checkbox in the main process.
+   *
+   * @param visible - Whether the variables panel is currently open.
+   */
+  setMenuVariablesVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs MCP panel visibility to the View > Appearance submenu checkbox in the main process.
+   *
+   * @param visible - Whether the MCP panel is currently open.
+   */
+  setMenuMcpVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs terminal panel visibility to the View > Appearance submenu checkbox in the main process.
+   *
+   * @param visible - Whether the terminal panel is currently open.
+   */
+  setMenuTerminalVisible: (visible: boolean) => Promise<void>;
   /**
    * Syncs active theme and plugin theme options to the View menu in the main process.
    *
@@ -116,8 +146,13 @@ export interface ApiWindow {
    *
    * @param label - Root menu label that owns the item.
    * @param index - Flat item index from {@link getAppSubmenuSnapshot}.
+   * @param nestedIndex - Index of a child item when activating a nested submenu entry (such as View > Theme).
    */
-  activateAppSubmenuItem: (label: RootMenuLabel, index: number) => Promise<void>;
+  activateAppSubmenuItem: (
+    label: RootMenuLabel,
+    index: number,
+    nestedIndex?: number
+  ) => Promise<void>;
   /**
    * Returns the application version from package.json.
    */
@@ -254,4 +289,31 @@ export interface ApiWindow {
    * @param path - Absolute path to open in the system file browser or default handler.
    */
   openPath: (path: string) => Promise<void>;
+  /**
+   * Reads a local image file and returns a data URL for display.
+   *
+   * @param path - Absolute path to an image file.
+   * @returns Data URL and basename of the file.
+   */
+  readImageDataUrl: (path: string) => Promise<{ dataUrl: string; fileName: string }>;
+  /**
+   * Copies a local file to a destination chosen via a native save dialog.
+   *
+   * @param sourcePath - Absolute path of the source file.
+   * @param defaultFileName - Suggested filename shown in the save dialog.
+   */
+  copyFileToSaveDialog: (
+    sourcePath: string,
+    defaultFileName: string
+  ) => Promise<{ canceled: boolean; path?: string }>;
+  /**
+   * Writes image bytes from a data URL or remote URL via a native save dialog.
+   *
+   * @param payload - Exactly one of `dataUrl` or `url`, plus a suggested filename.
+   */
+  saveDataUrlToFile: (payload: {
+    dataUrl?: string;
+    url?: string;
+    defaultFileName: string;
+  }) => Promise<{ canceled: boolean; path?: string }>;
 }
