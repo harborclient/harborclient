@@ -15,15 +15,112 @@ on:
 
 permissions:
   contents: write
+  actions: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 jobs:
+  package-releases:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ORCHESTRATION_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Release packages
+        run: |
+          set -euo pipefail
+
+          # Dispatches one package workflow with this parent run's correlation ID.
+          dispatch_workflow() {
+            local workflow="$1"
+
+            echo "Dispatching ${workflow} with a ${{ inputs.release_type }} bump."
+            gh workflow run "${workflow}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --ref main \
+              -f branch=main \
+              -f bump="${{ inputs.release_type }}" \
+              -f orchestration_id="${ORCHESTRATION_ID}"
+          }
+
+          # Finds the correlated child run and waits for a successful conclusion.
+          wait_for_workflow() {
+            local workflow="$1"
+            local run_id=''
+            local run_url=''
+            local run_data
+            local match
+
+            for attempt in $(seq 1 30); do
+              run_data=$(
+                gh run list \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --workflow "${workflow}" \
+                  --event workflow_dispatch \
+                  --limit 50 \
+                  --json databaseId,displayTitle,url
+              )
+              match=$(
+                jq -r \
+                  --arg marker "[${ORCHESTRATION_ID}]" \
+                  '[.[] | select(.displayTitle | contains($marker))][0] |
+                    if . == null then empty else "\(.databaseId)\t\(.url)" end' \
+                  <<< "${run_data}"
+              )
+
+              if [ -n "${match}" ]; then
+                IFS=$'\t' read -r run_id run_url <<< "${match}"
+                break
+              fi
+
+              echo "Waiting for ${workflow} to appear (${attempt}/30)..."
+              sleep 2
+            done
+
+            if [ -z "${run_id}" ]; then
+              echo "::error::Could not find the correlated ${workflow} run."
+              return 1
+            fi
+
+            {
+              echo "- [${workflow} run ${run_id}](${run_url})"
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if ! gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status; then
+              echo "::error::${workflow} did not complete successfully."
+              return 1
+            fi
+          }
+
+          dispatch_workflow http-release.yml
+          dispatch_workflow sdk-release.yml
+
+          dependency_status=0
+          wait_for_workflow http-release.yml || dependency_status=1
+          wait_for_workflow sdk-release.yml || dependency_status=1
+          if [ "${dependency_status}" -ne 0 ]; then
+            echo "::error::Core release was not dispatched because a dependency release failed."
+            exit "${dependency_status}"
+          fi
+
+          # Core depends on HTTP and SDK, so publish it from their updated manifests.
+          dispatch_workflow core-release.yml
+          wait_for_workflow core-release.yml
+
   ci:
+    needs: package-releases
     uses: ./.github/workflows/ci.yml
+    with:
+      ref: main
     secrets: inherit
 
   release:
     needs: ci
     runs-on: ubuntu-latest
+    env:
+      VERSION: ''
     outputs:
       version: ${{ steps.bump.outputs.version }}
 
@@ -31,6 +128,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 

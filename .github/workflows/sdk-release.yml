@@ -1,18 +1,14 @@
 name: SDK release
 
+run-name: >-
+  SDK release (${{ inputs.bump }})${{ inputs.orchestration_id != '' && format(' [{0}]', inputs.orchestration_id) || '' }}
+
 # Release workflow for @harborclient/sdk (npm).
 #
-# Automatic (push to `main` that touches packages/sdk):
-#   Releases when either:
-#     - `## Unreleased` in packages/sdk/CHANGELOG.md has content (bumps patch,
-#       renames section, commits, tags, publishes), or
-#     - packages/sdk/package.json version has no matching `sdk-v*` git tag
-#       (publishes current version as-is; recovery path for manual version bumps).
-#   Skips only when the version is already tagged and Unreleased is empty.
-#
-# Manual (workflow_dispatch):
-#   Always releases from the chosen branch with the selected bump type
-#   (major, minor, or patch), regardless of Unreleased content.
+# Runs only when manually dispatched, either directly or by the desktop Release
+# workflow. Always releases from the chosen branch with the selected bump type
+# (major, minor, or patch), regardless of Unreleased content. Orchestrated runs
+# include a correlation ID so the parent workflow can wait for the exact run.
 #
 #   gh workflow run sdk-release.yml \
 #     -f branch=main \
@@ -31,12 +27,6 @@ name: SDK release
 #   2. Branch protection on release branches must allow github-actions[bot] to push.
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - packages/sdk/**
-      - .github/workflows/sdk-release.yml
   workflow_dispatch:
     inputs:
       branch:
@@ -53,107 +43,30 @@ on:
           - patch
           - minor
           - major
+      orchestration_id:
+        description: 'Optional parent release run correlation ID'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: sdk-release-${{ github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', github.event.inputs.branch) || github.ref }}
+  group: sdk-release-${{ inputs.branch }}
   cancel-in-progress: false
 
 env:
-  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
+  RELEASE_REF: ${{ inputs.branch }}
 
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
     with:
-      ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
-
-  changelog:
-    needs: ci
-    runs-on: ubuntu-latest
-    outputs:
-      ready: ${{ steps.check.outputs.ready }}
-      mode: ${{ steps.check.outputs.mode }}
-      reason: ${{ steps.check.outputs.reason }}
-    steps:
-      - name: Checkout release ref
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_REF }}
-          fetch-depth: 0
-
-      - name: Check release readiness
-        id: check
-        working-directory: packages/sdk
-        run: |
-          set -euo pipefail
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "mode=manual" >> "$GITHUB_OUTPUT"
-            echo "Manual release requested; forcing release with ${{ github.event.inputs.bump }} bump."
-            exit 0
-          fi
-
-          CURRENT=$(node -p "require('./package.json').version")
-
-          if python3 - <<'PY'
-          import re
-          import pathlib
-
-          path = pathlib.Path("CHANGELOG.md")
-          if not path.exists():
-              raise SystemExit(1)
-          text = path.read_text()
-          match = re.search(r"^## Unreleased\s*\n(.*?)(?=^## |\Z)", text, flags=re.S | re.M)
-          if not match or not match.group(1).strip():
-              raise SystemExit(1)
-          PY
-          then
-            HAS_UNRELEASED=true
-          else
-            HAS_UNRELEASED=false
-          fi
-
-          if git rev-parse -q --verify "refs/tags/sdk-v${CURRENT}" >/dev/null; then
-            TAG_EXISTS=true
-          else
-            TAG_EXISTS=false
-          fi
-
-          if [ "$HAS_UNRELEASED" = true ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "mode=unreleased" >> "$GITHUB_OUTPUT"
-            echo "Unreleased changelog content found; releasing."
-          elif [ "$TAG_EXISTS" = false ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "mode=untagged" >> "$GITHUB_OUTPUT"
-            echo "Version sdk-v${CURRENT} has no git tag; publishing current version."
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "mode=skip" >> "$GITHUB_OUTPUT"
-            echo "reason=Version sdk-v${CURRENT} is already tagged and Unreleased is empty." >> "$GITHUB_OUTPUT"
-            echo "Version sdk-v${CURRENT} is already tagged and Unreleased is empty; skipping release."
-          fi
-
-  release-skipped:
-    needs: changelog
-    if: needs.changelog.outputs.ready == 'false'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Summarize skip reason
-        run: |
-          {
-            echo "## SDK release skipped"
-            echo
-            echo "${{ needs.changelog.outputs.reason }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+      ref: ${{ inputs.branch }}
 
   release:
-    needs: [ci, changelog]
-    if: needs.changelog.outputs.ready == 'true'
+    needs: ci
     runs-on: ubuntu-latest
     env:
       VERSION: ''
@@ -181,32 +94,13 @@ jobs:
       - name: Build
         run: pnpm --filter @harborclient/sdk build
 
-      - name: Resolve release version (unreleased)
-        if: needs.changelog.outputs.mode == 'unreleased'
+      - name: Resolve release version
         working-directory: packages/sdk
         run: |
           set -euo pipefail
-          VERSION=$(pnpm version patch --no-git-tag-version | tail -n1 | sed 's/^v//')
+          VERSION=$(pnpm version ${{ inputs.bump }} --no-git-tag-version | tail -n1 | sed 's/^v//')
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "Bumped to $VERSION"
-
-      - name: Resolve release version (manual)
-        if: needs.changelog.outputs.mode == 'manual'
-        working-directory: packages/sdk
-        run: |
-          set -euo pipefail
-          VERSION=$(pnpm version ${{ github.event.inputs.bump }} --no-git-tag-version | tail -n1 | sed 's/^v//')
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "Bumped to $VERSION (${{ github.event.inputs.bump }})"
-
-      - name: Resolve release version (untagged)
-        if: needs.changelog.outputs.mode == 'untagged'
-        working-directory: packages/sdk
-        run: |
-          set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "Publishing untagged version $VERSION"
+          echo "Bumped to $VERSION (${{ inputs.bump }})"
 
       - name: Verify tag does not exist
         if: env.VERSION != ''
@@ -218,7 +112,7 @@ jobs:
           fi
 
       - name: Update CHANGELOG.md for release
-        if: (needs.changelog.outputs.mode == 'unreleased' || needs.changelog.outputs.mode == 'manual') && env.VERSION != ''
+        if: env.VERSION != ''
         working-directory: packages/sdk
         run: |
           set -euo pipefail
@@ -251,8 +145,8 @@ jobs:
           path.write_text(new_text)
           PY
 
-      - name: Commit, tag, and push (unreleased or manual)
-        if: (needs.changelog.outputs.mode == 'unreleased' || needs.changelog.outputs.mode == 'manual') && env.VERSION != ''
+      - name: Commit, tag, and push
+        if: env.VERSION != ''
         run: |
           set -euo pipefail
           RELEASE_REF="${{ env.RELEASE_REF }}"
@@ -284,15 +178,6 @@ jobs:
 
           git tag -a "${TAG}" -m "Release @harborclient/sdk v${VERSION}"
           git push origin "refs/tags/${TAG}"
-
-      - name: Tag and push (untagged)
-        if: needs.changelog.outputs.mode == 'untagged' && env.VERSION != ''
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "sdk-v${VERSION}" -m "Release @harborclient/sdk v${VERSION}"
-          git push origin "refs/tags/sdk-v${VERSION}"
 
       - name: Publish to npm
         if: env.VERSION != ''
