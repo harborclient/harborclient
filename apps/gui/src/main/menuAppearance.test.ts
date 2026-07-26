@@ -23,13 +23,16 @@ describe('buildAppearanceMenuItems', () => {
       true,
       false,
       true,
+      false,
+      true,
       accelerators
     );
 
     expect(item.label).toBe('Appearance');
     const submenu = item.submenu as MenuItemConstructorOptions[];
-    expect(submenu).toHaveLength(11);
+    expect(submenu).toHaveLength(14);
     expect(submenu[5]).toEqual({ type: 'separator' });
+    expect(submenu[11]).toEqual({ type: 'separator' });
 
     const sidebarItem = submenu.find(
       (entry) => entry.label === 'Collections Sidebar'
@@ -50,6 +53,12 @@ describe('buildAppearanceMenuItems', () => {
     const terminalItem = submenu.find(
       (entry) => entry.label === 'Terminal'
     ) as MenuItemConstructorOptions;
+    const filtersItem = submenu.find(
+      (entry) => entry.label === 'Filters'
+    ) as MenuItemConstructorOptions;
+    const sortingItem = submenu.find(
+      (entry) => entry.label === 'Sorting'
+    ) as MenuItemConstructorOptions;
 
     expect(sidebarItem.type).toBe('checkbox');
     expect(sidebarItem.checked).toBe(true);
@@ -64,5 +73,9 @@ describe('buildAppearanceMenuItems', () => {
     expect(mcpItem.accelerator).toBe(accelerators.get('toggle-mcp'));
     expect(terminalItem.checked).toBe(true);
     expect(terminalItem.accelerator).toBe(accelerators.get('toggle-terminal'));
+    expect(filtersItem.checked).toBe(false);
+    expect(filtersItem.accelerator).toBe(accelerators.get('toggle-filters'));
+    expect(sortingItem.checked).toBe(true);
+    expect(sortingItem.accelerator).toBe(accelerators.get('toggle-sorting'));
   });
 });

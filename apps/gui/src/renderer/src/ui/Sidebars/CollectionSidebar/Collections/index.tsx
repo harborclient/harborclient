@@ -1208,8 +1208,10 @@ export function Collections(): JSX.Element {
                                         onOpenChange={setOpenMenuId}
                                         onRowClick={handleRequestRowClick}
                                         onBeforeContextMenu={handleRequestBeforeContextMenu}
-                                        canMoveUp={itemIndex > 0}
-                                        canMoveDown={itemIndex < rootItems.length - 1}
+                                        canMoveUp={!reorderDisabled && itemIndex > 0}
+                                        canMoveDown={
+                                          !reorderDisabled && itemIndex < rootItems.length - 1
+                                        }
                                         onMoveUp={() =>
                                           void moveContainerItemInList(
                                             collection.id,
@@ -1427,7 +1429,11 @@ export function Collections(): JSX.Element {
                                                     folderIndex,
                                                     folders.length,
                                                     (direction) =>
-                                                      moveFolder(collection.id, folder.id, direction)
+                                                      moveFolder(
+                                                        collection.id,
+                                                        folder.id,
+                                                        direction
+                                                      )
                                                   )
                                                 : []),
                                               [
@@ -1547,8 +1553,11 @@ export function Collections(): JSX.Element {
                                                 onOpenChange={setOpenMenuId}
                                                 onRowClick={handleRequestRowClick}
                                                 onBeforeContextMenu={handleRequestBeforeContextMenu}
-                                                canMoveUp={itemIndex > 0}
-                                                canMoveDown={itemIndex < folderItems.length - 1}
+                                                canMoveUp={!reorderDisabled && itemIndex > 0}
+                                                canMoveDown={
+                                                  !reorderDisabled &&
+                                                  itemIndex < folderItems.length - 1
+                                                }
                                                 onMoveUp={() =>
                                                   void moveContainerItemInList(
                                                     collection.id,

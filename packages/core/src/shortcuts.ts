@@ -37,6 +37,8 @@ export type ShortcutId =
   | 'toggle-console'
   | 'toggle-mcp'
   | 'toggle-terminal'
+  | 'toggle-filters'
+  | 'toggle-sorting'
   | 'toggle-ai-sidebar'
   | 'toggle-git-sidebar'
   | 'toggle-request-editor'
@@ -375,6 +377,20 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+`',
     kind: 'action',
     actionId: 'toggle-terminal'
+  },
+  {
+    id: 'toggle-filters',
+    label: 'Toggle sidebar filters',
+    defaultAccelerator: 'Alt+Shift+F',
+    kind: 'action',
+    actionId: 'toggle-filters'
+  },
+  {
+    id: 'toggle-sorting',
+    label: 'Toggle sidebar sorting',
+    defaultAccelerator: 'Alt+Shift+G',
+    kind: 'action',
+    actionId: 'toggle-sorting'
   },
   {
     id: 'toggle-ai-sidebar',

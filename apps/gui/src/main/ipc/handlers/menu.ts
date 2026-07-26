@@ -11,6 +11,8 @@ import {
   setMenuVariablesVisible,
   setMenuMcpVisible,
   setMenuTerminalVisible,
+  setMenuFiltersVisible,
+  setMenuSortingVisible,
   setMenuDesignerUndoRedo,
   setMenuTabGroupAvailable,
   setMenuSidebarDeselectAllAvailable,
@@ -86,6 +88,16 @@ export function registerMenuHandlers(): void {
   // Updates the View > Appearance submenu checkmark for terminal panel visibility.
   handle('menu:setTerminalVisible', ipcArgSchemas.menuTerminalVisible, (_event, visible) => {
     setMenuTerminalVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for sidebar filter controls.
+  handle('menu:setFiltersVisible', ipcArgSchemas.menuFiltersVisible, (_event, visible) => {
+    setMenuFiltersVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for sidebar sort controls.
+  handle('menu:setSortingVisible', ipcArgSchemas.menuSortingVisible, (_event, visible) => {
+    setMenuSortingVisible(visible);
   });
 
   // Updates View menu theme checkmarks and plugin theme entries from renderer state.

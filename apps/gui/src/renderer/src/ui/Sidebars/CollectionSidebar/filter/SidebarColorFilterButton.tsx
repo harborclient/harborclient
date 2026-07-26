@@ -32,8 +32,8 @@ interface Props {
 
 /**
  * Toolbar color-filter control for flat sidebar sections (Tab Groups,
- * Environments). Visible only when color dots are enabled and the section has
- * at least one colored item. Opens an immediate-apply swatch menu.
+ * Environments). Visible only when filters and color dots are enabled and the
+ * section has at least one colored item. Opens an immediate-apply swatch menu.
  *
  * @param colors - Distinct colors from the section items.
  * @param filter - Applied color filter, or null for all.
@@ -48,7 +48,7 @@ export function SidebarColorFilterButton({
   ariaLabel,
   title
 }: Props): JSX.Element | null {
-  const { showColorDots } = useSidebarExpansion();
+  const { showColorDots, showFilters } = useSidebarExpansion();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -78,7 +78,7 @@ export function SidebarColorFilterButton({
     });
   }, []);
 
-  if (!showColorDots || colors.length === 0) {
+  if (!showFilters || !showColorDots || colors.length === 0) {
     return null;
   }
 

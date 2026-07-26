@@ -29,6 +29,8 @@ export type MenuActionId =
   | 'toggle-console'
   | 'toggle-mcp'
   | 'toggle-terminal'
+  | 'toggle-filters'
+  | 'toggle-sorting'
   | 'toggle-ai-sidebar'
   | 'toggle-git-sidebar'
   | 'toggle-request-editor'

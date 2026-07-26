@@ -1193,6 +1193,24 @@ function setMenuTerminalVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Syncs sidebar filter-control visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether section-header filter controls are shown.
+ */
+function setMenuFiltersVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setFiltersVisible', visible);
+}
+
+/**
+ * Syncs sidebar sort-control visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether section-header sort controls are shown.
+ */
+function setMenuSortingVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setSortingVisible', visible);
+}
+
+/**
  * Syncs active theme and plugin theme options to the View menu in the main process.
  *
  * @param theme - Persisted appearance theme preference.
@@ -3994,6 +4012,8 @@ const api: Api = {
   setMenuVariablesVisible,
   setMenuMcpVisible,
   setMenuTerminalVisible,
+  setMenuFiltersVisible,
+  setMenuSortingVisible,
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
   setTabGroupAvailable,

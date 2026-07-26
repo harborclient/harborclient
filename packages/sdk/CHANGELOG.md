@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add Filters and Sorting Options to Sidebar Menu. (`d17dea07`)
 - Enhance menu functionality and visibility options. (`89cf8584`)
 
 ## 1.3.2 - 2026-07-26

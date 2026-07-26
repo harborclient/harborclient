@@ -36,7 +36,9 @@ describe('defaultSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 });
@@ -87,7 +89,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -131,7 +135,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -176,7 +182,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -222,7 +230,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: false,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -268,7 +278,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: false,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -314,7 +326,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: false,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 
@@ -360,7 +374,58 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: false
+      showIndicators: false,
+      showFilters: false,
+      showSorting: false
+    });
+  });
+
+  it('preserves persisted filter and sorting visibility flags', () => {
+    expect(
+      normalizeSidebarExpansion({
+        sections: { collections: true, environments: true },
+        sectionVisibility: { collections: true, environments: true },
+        collectionIds: [],
+        folderIds: [],
+        showFilters: true,
+        showSorting: true
+      })
+    ).toEqual({
+      sections: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true,
+        archive: true,
+        trash: true
+      },
+      sectionVisibility: {
+        collections: true,
+        environments: true,
+        runResults: true,
+        history: true,
+        tabGroups: true,
+        archive: false,
+        trash: false
+      },
+      collectionIds: [],
+      folderIds: [],
+      sectionSort: {
+        collections: 'default',
+        environments: 'default',
+        runResults: 'default',
+        history: 'default',
+        tabGroups: 'default',
+        archive: 'default',
+        trash: 'default'
+      },
+      showStorageLocationBadges: true,
+      showColorDots: true,
+      showMethodColors: true,
+      showIndicators: true,
+      showFilters: true,
+      showSorting: true
     });
   });
 
@@ -414,7 +479,9 @@ describe('normalizeSidebarExpansion', () => {
       showStorageLocationBadges: true,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: false,
+      showSorting: false
     });
   });
 });

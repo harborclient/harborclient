@@ -7,6 +7,8 @@ import { statusDotVariantClass } from '../StatusDot/index.js';
 
 /**
  * Tailwind classes for a sidebar source row (collection, folder, request, etc.).
+ * Uses left padding only so trailing hamburger menus align with section header
+ * Add/Erase actions (which sit at the sidebar body's `pr-2` inset).
  *
  * @param selected - Whether this row is the active selection.
  * @param compact - When true, uses tighter vertical padding for top-level list rows.
@@ -15,8 +17,8 @@ import { statusDotVariantClass } from '../StatusDot/index.js';
 export function sourceRow(selected: boolean, compact = false): string {
   const py = compact ? 'py-0' : 'py-0.5';
   return selected
-    ? `group flex items-center gap-1 rounded-md bg-selection px-1.5 ${py} app-no-drag`
-    : `group flex items-center gap-1 rounded-md px-1.5 ${py} hover:bg-selection/60 app-no-drag`;
+    ? `group flex items-center gap-1 rounded-md bg-selection pl-1.5 pr-0 ${py} app-no-drag`
+    : `group flex items-center gap-1 rounded-md pl-1.5 pr-0 ${py} hover:bg-selection/60 app-no-drag`;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { ComponentPropsWithoutRef, JSX, RefObject } from 'react';
 import { Button } from '../Button/index.js';
 import { cn } from '../utils.js';
@@ -9,6 +10,11 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'a
    * color. When false, the icon uses muted text until hover.
    */
   active?: boolean;
+
+  /**
+   * Font Awesome icon to render. Defaults to `faArrowDownShortWide`.
+   */
+  icon?: IconDefinition;
 
   /**
    * Accessible name for the icon-only control.
@@ -31,6 +37,7 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'a
  */
 export function SortButton({
   active = false,
+  icon,
   className,
   title,
   innerRef,
@@ -52,7 +59,7 @@ export function SortButton({
         className
       )}
     >
-      <SortButtonIcon active={active} />
+      <SortButtonIcon active={active} icon={icon} />
     </Button>
   );
 }

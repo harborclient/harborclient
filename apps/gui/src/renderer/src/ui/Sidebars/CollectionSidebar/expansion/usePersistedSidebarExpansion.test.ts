@@ -47,6 +47,8 @@ describe('serializeSidebarExpansion', () => {
         false,
         true,
         true,
+        true,
+        true,
         true
       )
     ).toEqual({
@@ -78,7 +80,9 @@ describe('serializeSidebarExpansion', () => {
       showStorageLocationBadges: false,
       showColorDots: true,
       showMethodColors: true,
-      showIndicators: true
+      showIndicators: true,
+      showFilters: true,
+      showSorting: true
     });
   });
 });

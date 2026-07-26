@@ -7,7 +7,10 @@ import { selectTrashItems } from '#/renderer/src/store/slices/trashSlice';
 import { permanentlyDeleteTrashItem, restoreTrashItem } from '#/renderer/src/store/thunks/trash';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
-import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
+import {
+  sortSidebarItems,
+  toSortTimestamp
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { ActionsMenu } from './ActionsMenu';
@@ -130,7 +133,7 @@ export function Trash(): JSX.Element {
   }
 
   return (
-    <div className="sidebar-source-list flex flex-col gap-0.5 px-1 pb-1">
+    <div className="sidebar-source-list flex flex-col gap-0.5 pb-1">
       {items.map((item) => {
         const menuId = `trash-item-${item.id}`;
         const selected = isSelected(item.id);

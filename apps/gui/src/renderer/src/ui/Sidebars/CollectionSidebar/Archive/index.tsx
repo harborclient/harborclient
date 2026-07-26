@@ -10,7 +10,10 @@ import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/co
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
-import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
+import {
+  sortSidebarItems,
+  toSortTimestamp
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
@@ -130,7 +133,7 @@ export function Archive(): JSX.Element {
   }
 
   return (
-    <div className="sidebar-source-list flex flex-col gap-0.5 px-1 pb-1">
+    <div className="sidebar-source-list flex flex-col gap-0.5 pb-1">
       {collections.map((collection) => {
         const menuId = `archive-collection-${collection.id}`;
         const displayName = searchActive

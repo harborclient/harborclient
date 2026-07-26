@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add Filters and Sorting Options to Sidebar Menu. (`d17dea07`)
 - Enhance menu functionality and visibility options. (`89cf8584`)
 
 ## 2.8.3 - 2026-07-26

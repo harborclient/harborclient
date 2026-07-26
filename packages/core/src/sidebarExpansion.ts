@@ -1,8 +1,4 @@
-import type {
-  SidebarExpansionState,
-  SidebarSectionKey,
-  SidebarSortMode
-} from './types/settings';
+import type { SidebarExpansionState, SidebarSectionKey, SidebarSortMode } from './types/settings';
 
 const DEFAULT_SECTIONS = {
   collections: true,
@@ -57,6 +53,8 @@ const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
 const DEFAULT_SHOW_COLOR_DOTS = true;
 const DEFAULT_SHOW_METHOD_COLORS = true;
 const DEFAULT_SHOW_INDICATORS = true;
+const DEFAULT_SHOW_FILTERS = false;
+const DEFAULT_SHOW_SORTING = false;
 
 /**
  * Returns the default sidebar expansion state for first launch.
@@ -71,7 +69,9 @@ export function defaultSidebarExpansion(): SidebarExpansionState {
     showStorageLocationBadges: DEFAULT_SHOW_STORAGE_LOCATION_BADGES,
     showColorDots: DEFAULT_SHOW_COLOR_DOTS,
     showMethodColors: DEFAULT_SHOW_METHOD_COLORS,
-    showIndicators: DEFAULT_SHOW_INDICATORS
+    showIndicators: DEFAULT_SHOW_INDICATORS,
+    showFilters: DEFAULT_SHOW_FILTERS,
+    showSorting: DEFAULT_SHOW_SORTING
   };
 }
 
@@ -119,7 +119,9 @@ function isSidebarSortMode(value: unknown): value is SidebarSortMode {
  */
 function normalizeSectionSort(value: unknown): Record<SidebarSectionKey, SidebarSortMode> {
   const raw =
-    value && typeof value === 'object' ? (value as Partial<Record<SidebarSectionKey, unknown>>) : {};
+    value && typeof value === 'object'
+      ? (value as Partial<Record<SidebarSectionKey, unknown>>)
+      : {};
   const result = { ...DEFAULT_SECTION_SORT };
 
   for (const key of SIDEBAR_SECTION_KEYS) {
@@ -219,6 +221,8 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
     showMethodColors:
       typeof raw.showMethodColors === 'boolean' ? raw.showMethodColors : DEFAULT_SHOW_METHOD_COLORS,
     showIndicators:
-      typeof raw.showIndicators === 'boolean' ? raw.showIndicators : DEFAULT_SHOW_INDICATORS
+      typeof raw.showIndicators === 'boolean' ? raw.showIndicators : DEFAULT_SHOW_INDICATORS,
+    showFilters: typeof raw.showFilters === 'boolean' ? raw.showFilters : DEFAULT_SHOW_FILTERS,
+    showSorting: typeof raw.showSorting === 'boolean' ? raw.showSorting : DEFAULT_SHOW_SORTING
   };
 }

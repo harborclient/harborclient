@@ -8,6 +8,7 @@ import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSideba
 
 /**
  * Handles sidebar section toggle shortcuts and focus-first-collection/environment actions.
+ * Also syncs Filters/Sorting Appearance checkboxes and handles their menu actions.
  */
 export function useSidebarSectionMenuSync(): void {
   const dispatch = useAppDispatch();
@@ -19,11 +20,29 @@ export function useSidebarSectionMenuSync(): void {
     setCollectionsSectionVisible,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionVisible,
-    setEnvironmentsSectionExpanded
+    setEnvironmentsSectionExpanded,
+    showFilters,
+    showSorting,
+    toggleFilters,
+    toggleSorting
   } = useSidebarExpansion();
 
   /**
-   * Handles section toggle shortcuts and sidebar list focus shortcuts.
+   * Keeps the View > Appearance submenu Filters checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuFiltersVisible(showFilters);
+  }, [showFilters]);
+
+  /**
+   * Keeps the View > Appearance submenu Sorting checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuSortingVisible(showSorting);
+  }, [showSorting]);
+
+  /**
+   * Handles section toggle shortcuts, filter/sort toggles, and sidebar list focus shortcuts.
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
@@ -36,6 +55,12 @@ export function useSidebarSectionMenuSync(): void {
           break;
         case 'toggle-run-results-section':
           toggleRunResultsSectionVisible();
+          break;
+        case 'toggle-filters':
+          toggleFilters();
+          break;
+        case 'toggle-sorting':
+          toggleSorting();
           break;
         case 'focus-first-collection':
           focusFirstCollectionSidebar(dispatch, store.getState, {
@@ -58,6 +83,8 @@ export function useSidebarSectionMenuSync(): void {
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
+    toggleFilters,
+    toggleSorting,
     setCollectionsSectionVisible,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionVisible,

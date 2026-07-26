@@ -6,6 +6,7 @@ import { selectCollections, selectRequestsByCollection } from '#/renderer/src/st
 import { selectRequestHistory } from '#/renderer/src/store/slices/requestHistorySlice';
 import { clearRequestHistory } from '#/renderer/src/store/thunks/requestHistory';
 import { faEraser, faFilter } from '#/renderer/src/fontawesome';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
 import { SidebarSortButton } from '../sort/SidebarSortButton';
 import { historyEntryCollectionId } from './historyEntryCollection';
@@ -21,6 +22,7 @@ export function HistoryHeaderActions(): JSX.Element {
   const entries = useAppSelector(selectRequestHistory);
   const collections = useAppSelector(selectCollections);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const { showFilters } = useSidebarExpansion();
   const { historyCollectionFilter, setHistoryCollectionFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const isEmpty = entries.length === 0;
@@ -90,7 +92,7 @@ export function HistoryHeaderActions(): JSX.Element {
   return (
     <>
       <SidebarSortButton sectionKey="history" ariaLabel="Sort history" title="Sort history" />
-      {collectionsInHistory.length > 0 ? (
+      {showFilters && collectionsInHistory.length > 0 ? (
         <RowActionsMenu
           menuId={HISTORY_FILTER_MENU_ID}
           openMenuId={openMenuId}

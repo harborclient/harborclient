@@ -1,18 +1,18 @@
 import {
+  type KeyboardEvent,
+  type ReactPortal,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
   useLayoutEffect,
   useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactPortal,
-  type RefObject
+  useState
 } from 'react';
 import {
+  type MenuPosition,
   clampMenuPosition,
-  getTriggerAnchoredMenuPosition,
-  type MenuPosition
+  getTriggerAnchoredMenuPosition
 } from '../menuPosition.js';
 import { portalToBody } from '../portalToBody.js';
 import { resolveTabListKeyAction } from '../utils.js';

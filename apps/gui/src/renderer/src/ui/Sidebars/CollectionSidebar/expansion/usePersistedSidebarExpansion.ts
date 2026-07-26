@@ -12,6 +12,7 @@ import type {
   SidebarSectionKey,
   SidebarSortMode
 } from '@harborclient/core/types';
+import { clearRegisteredSectionFilters } from '../filter/clearRegisteredSectionFilters';
 
 interface Options {
   /**
@@ -307,6 +308,38 @@ interface Result {
   setShowIndicators: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Whether section-header filter controls appear in the collections sidebar.
+   */
+  showFilters: boolean;
+
+  /**
+   * Toggles section-header filter control visibility. Turning off also clears
+   * every applied section filter.
+   */
+  toggleFilters: () => void;
+
+  /**
+   * Sets section-header filter control visibility explicitly.
+   */
+  setShowFilters: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Whether section-header sort controls appear in the collections sidebar.
+   */
+  showSorting: boolean;
+
+  /**
+   * Toggles section-header sort control visibility. Turning off also resets
+   * every section sort mode to default.
+   */
+  toggleSorting: () => void;
+
+  /**
+   * Sets section-header sort control visibility explicitly.
+   */
+  setShowSorting: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Per-section sort mode for the collections sidebar lists.
    */
   sectionSort: Record<SidebarSectionKey, SidebarSortMode>;
@@ -367,6 +400,8 @@ interface Result {
  * @param showColorDots - Whether user-assigned color dots are shown.
  * @param showMethodColors - Whether HTTP method badges use per-method colors.
  * @param showIndicators - Whether HTTP/run status indicator dots are shown.
+ * @param showFilters - Whether section-header filter controls are shown.
+ * @param showSorting - Whether section-header sort controls are shown.
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
@@ -377,7 +412,9 @@ export function serializeSidebarExpansion(
   showStorageLocationBadges: boolean,
   showColorDots: boolean,
   showMethodColors: boolean,
-  showIndicators: boolean
+  showIndicators: boolean,
+  showFilters: boolean,
+  showSorting: boolean
 ): SidebarExpansionState {
   return {
     sections,
@@ -388,7 +425,9 @@ export function serializeSidebarExpansion(
     showStorageLocationBadges,
     showColorDots,
     showMethodColors,
-    showIndicators
+    showIndicators,
+    showFilters,
+    showSorting
   };
 }
 
@@ -472,12 +511,24 @@ export function usePersistedSidebarExpansion({
   const [showColorDots, setShowColorDots] = useState(defaults.showColorDots);
   const [showMethodColors, setShowMethodColors] = useState(defaults.showMethodColors);
   const [showIndicators, setShowIndicators] = useState(defaults.showIndicators);
-  const [sectionSort, setSectionSortState] =
-    useState<Record<SidebarSectionKey, SidebarSortMode>>(defaults.sectionSort);
+  const [showFilters, setShowFilters] = useState(defaults.showFilters);
+  const [showSorting, setShowSorting] = useState(defaults.showSorting);
+  const [sectionSort, setSectionSortState] = useState<Record<SidebarSectionKey, SidebarSortMode>>(
+    defaults.sectionSort
+  );
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
   const skipPersistRef = useRef(true);
+  const showFiltersRef = useRef(showFilters);
+
+  /**
+   * Keeps a ref of filter-control visibility for toggle handlers that clear
+   * session filters when hiding.
+   */
+  useEffect(() => {
+    showFiltersRef.current = showFilters;
+  }, [showFilters]);
 
   /**
    * Restores persisted expansion after collections are listed so stale collection
@@ -511,6 +562,8 @@ export function usePersistedSidebarExpansion({
       setShowColorDots(stored.showColorDots);
       setShowMethodColors(stored.showMethodColors);
       setShowIndicators(stored.showIndicators);
+      setShowFilters(stored.showFilters);
+      setShowSorting(stored.showSorting);
       setSectionSortState(stored.sectionSort);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
@@ -559,7 +612,9 @@ export function usePersistedSidebarExpansion({
       showStorageLocationBadges,
       showColorDots,
       showMethodColors,
-      showIndicators
+      showIndicators,
+      showFilters,
+      showSorting
     );
 
     void window.api.setSidebarExpansion(snapshot);
@@ -585,7 +640,9 @@ export function usePersistedSidebarExpansion({
     showStorageLocationBadges,
     showColorDots,
     showMethodColors,
-    showIndicators
+    showIndicators,
+    showFilters,
+    showSorting
   ]);
 
   /**
@@ -781,6 +838,31 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles section-header filter control visibility. Turning off clears every
+   * session section filter so lists are not left filtered without UI.
+   */
+  const toggleFilters = useCallback(() => {
+    if (showFiltersRef.current) {
+      clearRegisteredSectionFilters();
+    }
+    setShowFilters((visible) => !visible);
+  }, []);
+
+  /**
+   * Toggles section-header sort control visibility. Turning off resets every
+   * section sort mode to default so lists are no longer sorted without UI.
+   */
+  const toggleSorting = useCallback(() => {
+    setShowSorting((visible) => {
+      const next = !visible;
+      if (!next) {
+        setSectionSortState({ ...defaultSidebarExpansion().sectionSort });
+      }
+      return next;
+    });
+  }, []);
+
+  /**
    * Updates the sort mode for one sidebar section.
    *
    * @param key - Built-in section key.
@@ -851,6 +933,12 @@ export function usePersistedSidebarExpansion({
     showIndicators,
     toggleIndicators,
     setShowIndicators,
+    showFilters,
+    toggleFilters,
+    setShowFilters,
+    showSorting,
+    toggleSorting,
+    setShowSorting,
     sectionSort,
     setSectionSort,
     expandedCollectionIds,

@@ -40,7 +40,10 @@ import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSid
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
-import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
+import {
+  sortSidebarItems,
+  toSortTimestamp
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { parseTabGroupDragId, tabGroupDragId, tabGroupSummaryText } from './utils';
 

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { sidebarSortOptions, sortSidebarItems, toSortTimestamp } from './sidebarSort';
+import { faArrowDownShortWide, faArrowUpShortWide } from '@fortawesome/free-solid-svg-icons';
+import {
+  sidebarSortIcon,
+  sidebarSortOptions,
+  sortSidebarItems,
+  toSortTimestamp
+} from './sidebarSort';
 
 interface Item {
   name: string;
@@ -39,6 +45,20 @@ describe('sidebarSortOptions', () => {
   });
 });
 
+describe('sidebarSortIcon', () => {
+  it('uses arrow-up-short-wide for ascending and color modes', () => {
+    expect(sidebarSortIcon('name-asc')).toBe(faArrowUpShortWide);
+    expect(sidebarSortIcon('created-asc')).toBe(faArrowUpShortWide);
+    expect(sidebarSortIcon('color')).toBe(faArrowUpShortWide);
+  });
+
+  it('uses arrow-down-short-wide for descending and default modes', () => {
+    expect(sidebarSortIcon('default')).toBe(faArrowDownShortWide);
+    expect(sidebarSortIcon('name-desc')).toBe(faArrowDownShortWide);
+    expect(sidebarSortIcon('created-desc')).toBe(faArrowDownShortWide);
+  });
+});
+
 describe('sortSidebarItems', () => {
   const items: Item[] = [
     { name: 'Charlie', createdAt: 300, color: '#ff0000' },
@@ -71,12 +91,12 @@ describe('sortSidebarItems', () => {
   });
 
   it('sorts by created date ascending and descending', () => {
-    expect(sortSidebarItems(items, 'created-asc', accessors).map((item) => item.createdAt)).toEqual([
-      100, 200, 300
-    ]);
-    expect(sortSidebarItems(items, 'created-desc', accessors).map((item) => item.createdAt)).toEqual(
-      [300, 200, 100]
+    expect(sortSidebarItems(items, 'created-asc', accessors).map((item) => item.createdAt)).toEqual(
+      [100, 200, 300]
     );
+    expect(
+      sortSidebarItems(items, 'created-desc', accessors).map((item) => item.createdAt)
+    ).toEqual([300, 200, 100]);
   });
 
   it('sorts by color with uncolored items last', () => {
@@ -91,7 +111,9 @@ describe('sortSidebarItems', () => {
 describe('toSortTimestamp', () => {
   it('parses ISO strings and numbers', () => {
     expect(toSortTimestamp(1_700_000_000_000)).toBe(1_700_000_000_000);
-    expect(toSortTimestamp('2024-01-01T00:00:00.000Z')).toBe(Date.parse('2024-01-01T00:00:00.000Z'));
+    expect(toSortTimestamp('2024-01-01T00:00:00.000Z')).toBe(
+      Date.parse('2024-01-01T00:00:00.000Z')
+    );
     expect(toSortTimestamp(null)).toBe(0);
     expect(toSortTimestamp('not-a-date')).toBe(0);
   });

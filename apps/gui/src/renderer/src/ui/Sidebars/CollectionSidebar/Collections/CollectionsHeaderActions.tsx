@@ -2,6 +2,7 @@ import { FilterButton } from '@harborclient/sdk/components';
 import { useCallback, useRef, useState, type JSX } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections } from '#/renderer/src/store/selectors';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
 import { SidebarSortButton } from '../sort/SidebarSortButton';
 import {
@@ -16,6 +17,7 @@ import { CollectionsFilterMenu } from './CollectionsFilterMenu';
  */
 export function CollectionsHeaderActions(): JSX.Element {
   const collections = useAppSelector(selectCollections);
+  const { showFilters } = useSidebarExpansion();
   const { collectionsFilter, setCollectionsFilter } = useSidebarSectionFilter();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -58,7 +60,7 @@ export function CollectionsHeaderActions(): JSX.Element {
         ariaLabel="Sort collections"
         title="Sort collections"
       />
-      {collections.length > 0 ? (
+      {showFilters && collections.length > 0 ? (
         <>
           <FilterButton
             active={filterActive}

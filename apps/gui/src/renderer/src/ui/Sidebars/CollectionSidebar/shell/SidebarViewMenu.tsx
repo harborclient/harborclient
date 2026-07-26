@@ -23,7 +23,7 @@ import {
 const MENU_WIDTH_PX = 220;
 
 /** Estimated height before the panel is measured. */
-const MENU_HEIGHT_PX = 165;
+const MENU_HEIGHT_PX = 230;
 
 interface Props {
   /**
@@ -52,6 +52,16 @@ interface Props {
   showIndicators: boolean;
 
   /**
+   * Whether section-header filter controls are currently shown.
+   */
+  showFilters: boolean;
+
+  /**
+   * Whether section-header sort controls are currently shown.
+   */
+  showSorting: boolean;
+
+  /**
    * Toggles storage-location badge visibility.
    */
   onToggleStorageLocationBadges: () => void;
@@ -70,6 +80,16 @@ interface Props {
    * Toggles status indicator visibility.
    */
   onToggleIndicators: () => void;
+
+  /**
+   * Toggles section-header filter control visibility.
+   */
+  onToggleFilters: () => void;
+
+  /**
+   * Toggles section-header sort control visibility.
+   */
+  onToggleSorting: () => void;
 
   /**
    * Closes the view options menu.
@@ -96,17 +116,22 @@ function getMenuPosition(anchor: HTMLElement | null): MenuPosition | null {
 
 /**
  * Portaled checkbox menu for Collections sidebar display preferences
- * (storage-location badges, colors, method colors, and status indicators).
+ * (storage-location badges, colors, method colors, status indicators, filters,
+ * and sorting).
  *
  * @param anchorRef - Toolbar View button used for positioning.
  * @param showStorageLocationBadges - Whether storage badges are visible.
  * @param showColorDots - Whether color dots are visible.
  * @param showMethodColors - Whether method badges use per-method colors.
  * @param showIndicators - Whether status indicators are visible.
+ * @param showFilters - Whether section-header filter controls are visible.
+ * @param showSorting - Whether section-header sort controls are visible.
  * @param onToggleStorageLocationBadges - Toggles storage badges.
  * @param onToggleColorDots - Toggles color dots.
  * @param onToggleMethodColors - Toggles method colors.
  * @param onToggleIndicators - Toggles status indicators.
+ * @param onToggleFilters - Toggles filter controls.
+ * @param onToggleSorting - Toggles sort controls.
  * @param onClose - Closes the menu.
  */
 export function SidebarViewMenu({
@@ -115,10 +140,14 @@ export function SidebarViewMenu({
   showColorDots,
   showMethodColors,
   showIndicators,
+  showFilters,
+  showSorting,
   onToggleStorageLocationBadges,
   onToggleColorDots,
   onToggleMethodColors,
   onToggleIndicators,
+  onToggleFilters,
+  onToggleSorting,
   onClose
 }: Props): ReactPortal | null {
   const reactId = useId();
@@ -149,9 +178,21 @@ export function SidebarViewMenu({
     },
     {
       id: 'indicators',
-      label: 'Indicator',
+      label: 'Indicators',
       checked: showIndicators,
       onSelect: onToggleIndicators
+    },
+    {
+      id: 'filters',
+      label: 'Filters',
+      checked: showFilters,
+      onSelect: onToggleFilters
+    },
+    {
+      id: 'sorting',
+      label: 'Sorting',
+      checked: showSorting,
+      onSelect: onToggleSorting
     }
   ] as const;
 

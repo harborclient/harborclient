@@ -643,30 +643,9 @@ export const sidebarExpansion = z.object({
       'created-desc',
       'color'
     ]),
-    history: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'color'
-    ]),
-    tabGroups: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'color'
-    ]),
-    archive: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'color'
-    ]),
+    history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
+    tabGroups: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
+    archive: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
     trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color'])
   }),
   collectionIds: z.array(dbId),
@@ -674,7 +653,9 @@ export const sidebarExpansion = z.object({
   showStorageLocationBadges: z.boolean(),
   showColorDots: z.boolean(),
   showMethodColors: z.boolean(),
-  showIndicators: z.boolean()
+  showIndicators: z.boolean(),
+  showFilters: z.boolean(),
+  showSorting: z.boolean()
 }) satisfies z.ZodType<SidebarExpansionState>;
 
 export const requestHistoryEntry = z.object({
@@ -773,6 +754,8 @@ export const ipcArgSchemas = {
   menuVariablesVisible: z.tuple([z.boolean()]),
   menuMcpVisible: z.tuple([z.boolean()]),
   menuTerminalVisible: z.tuple([z.boolean()]),
+  menuFiltersVisible: z.tuple([z.boolean()]),
+  menuSortingVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
   menuTabGroupAvailable: z.tuple([z.boolean()]),

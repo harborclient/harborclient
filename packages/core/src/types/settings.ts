@@ -146,6 +146,16 @@ export interface SidebarExpansionState {
    * Whether HTTP/run status indicator dots appear on History and Runs rows.
    */
   showIndicators: boolean;
+
+  /**
+   * Whether section-header filter controls appear in the collections sidebar.
+   */
+  showFilters: boolean;
+
+  /**
+   * Whether section-header sort controls appear in the collections sidebar.
+   */
+  showSorting: boolean;
 }
 
 /** Default request editor split height in pixels when both editors are visible. */

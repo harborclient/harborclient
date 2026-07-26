@@ -615,12 +615,15 @@
   }
 
   /**
-   * Tighter sidebar source rows (collections, folders, requests, environments).
-   * RowActionsMenu icon buttons default to 30px; shrink to align with row height.
+   * Sidebar row hamburger triggers match section header action size (1.75rem)
+   * so icon centers share a column with Add/Erase when right edges align.
    */
-  .sidebar-source-list .hc-row-actions-menu .hc-button {
-    width: 1.25rem;
-    height: 1.25rem;
+  .hc-sidebar .hc-row-actions-menu .hc-button {
+    width: 1.75rem;
+    height: 1.75rem;
+    min-height: 1.75rem;
+    padding: 0;
+    justify-content: center;
   }
 
   /**
@@ -1057,9 +1060,9 @@
   }
 
   /**
-   * Hamburger row-action triggers in the collections and environments lists.
+   * Circular hover target for sidebar row hamburger triggers.
    */
-  .sidebar-source-list .hc-row-actions-menu .hc-button {
+  .hc-sidebar .hc-row-actions-menu .hc-button {
     border-radius: 9999px;
   }
 

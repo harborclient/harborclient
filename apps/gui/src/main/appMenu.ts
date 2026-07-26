@@ -14,6 +14,8 @@ let consoleVisible = false;
 let variablesVisible = false;
 let mcpVisible = false;
 let terminalVisible = false;
+let filtersVisible = false;
+let sortingVisible = false;
 let activeTheme: ThemeSource = 'system';
 let pluginThemeOptions: ThemeMenuOption[] = [];
 let designerUndoRedoActive = false;
@@ -203,6 +205,32 @@ export function setMenuTerminalVisible(visible: boolean): void {
 }
 
 /**
+ * Updates the View > Appearance submenu Filters checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether sidebar section filter controls are shown.
+ */
+export function setMenuFiltersVisible(visible: boolean): void {
+  if (filtersVisible === visible) {
+    return;
+  }
+  filtersVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Sorting checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether sidebar section sort controls are shown.
+ */
+export function setMenuSortingVisible(visible: boolean): void {
+  if (sortingVisible === visible) {
+    return;
+  }
+  sortingVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
  * Updates the View menu theme checkmarks and rebuilds the menu when the value changes.
  *
  * @param theme - Persisted appearance theme preference.
@@ -347,6 +375,8 @@ export function rebuildAppMenu(): void {
       variablesVisible,
       mcpVisible,
       terminalVisible,
+      filtersVisible,
+      sortingVisible,
       activeTheme,
       pluginThemeOptions,
       rebuildAppMenu,

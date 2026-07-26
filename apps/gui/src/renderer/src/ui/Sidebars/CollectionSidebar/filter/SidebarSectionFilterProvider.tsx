@@ -1,8 +1,9 @@
-import { useMemo, useState, type JSX, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import {
   EMPTY_COLLECTIONS_FILTER,
   type CollectionsFilterCriteria
 } from '../Collections/collectionsFilter';
+import { registerClearSectionFiltersHandler } from './clearRegisteredSectionFilters';
 import {
   SidebarSectionFilterContext,
   type SidebarSectionFilterContextValue
@@ -30,6 +31,27 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
   const [archiveColorFilter, setArchiveColorFilter] = useState<string | null>(null);
 
   /**
+   * Clears every section filter so lists show unfiltered content (used when the
+   * View menu hides filter controls).
+   */
+  const clearAllSectionFilters = useCallback((): void => {
+    setCollectionsFilter(EMPTY_COLLECTIONS_FILTER);
+    setRunsCollectionFilter(null);
+    setHistoryCollectionFilter(null);
+    setTabGroupsColorFilter(null);
+    setEnvironmentsColorFilter(null);
+    setArchiveColorFilter(null);
+  }, []);
+
+  /**
+   * Publishes the clear handler so expansion toggles outside this provider can
+   * reset filters when hiding filter controls.
+   */
+  useEffect(() => {
+    return registerClearSectionFiltersHandler(clearAllSectionFilters);
+  }, [clearAllSectionFilters]);
+
+  /**
    * Memoizes the context value so consumers only re-render when a filter changes.
    */
   const value = useMemo<SidebarSectionFilterContextValue>(
@@ -45,15 +67,17 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
       environmentsColorFilter,
       setEnvironmentsColorFilter,
       archiveColorFilter,
-      setArchiveColorFilter
+      setArchiveColorFilter,
+      clearAllSectionFilters
     }),
     [
+      archiveColorFilter,
+      clearAllSectionFilters,
       collectionsFilter,
-      runsCollectionFilter,
-      historyCollectionFilter,
-      tabGroupsColorFilter,
       environmentsColorFilter,
-      archiveColorFilter
+      historyCollectionFilter,
+      runsCollectionFilter,
+      tabGroupsColorFilter
     ]
   );
 

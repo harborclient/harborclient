@@ -177,6 +177,12 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'toggle-terminal')?.accelerator).toBe(
       'CmdOrCtrl+`'
     );
+    expect(bindings.find((binding) => binding.id === 'toggle-filters')?.accelerator).toBe(
+      'Alt+Shift+F'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-sorting')?.accelerator).toBe(
+      'Alt+Shift+G'
+    );
     expect(bindings.find((binding) => binding.id === 'next-sidebar-list-item')?.accelerator).toBe(
       'CmdOrCtrl+Tab'
     );

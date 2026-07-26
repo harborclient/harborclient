@@ -1,3 +1,5 @@
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faArrowDownShortWide, faArrowUpShortWide } from '@fortawesome/free-solid-svg-icons';
 import type { SortOption } from '@harborclient/sdk/components';
 import type { SidebarSortMode } from '@harborclient/core/types';
 
@@ -53,10 +55,7 @@ function compareNames(a: string, b: string): number {
  * @param dateLabel - Prefix for date options; defaults to "Date created".
  * @returns Ordered sort options for the listbox.
  */
-export function sidebarSortOptions(
-  hasColor: boolean,
-  dateLabel = 'Date created'
-): SortOption[] {
+export function sidebarSortOptions(hasColor: boolean, dateLabel = 'Date created'): SortOption[] {
   const options: SortOption[] = [
     { id: 'default', label: 'Default' },
     { id: 'name-asc', label: 'A-Z ascending' },
@@ -68,6 +67,24 @@ export function sidebarSortOptions(
     options.push({ id: 'color', label: 'Color' });
   }
   return options;
+}
+
+/**
+ * Returns the Font Awesome icon for a sidebar sort mode. Ascending modes use
+ * `arrow-up-short-wide`; descending and default use `arrow-down-short-wide`.
+ *
+ * @param mode - Active sort mode for the section.
+ * @returns Icon reflecting ascending vs descending direction.
+ */
+export function sidebarSortIcon(mode: SidebarSortMode): IconDefinition {
+  switch (mode) {
+    case 'name-asc':
+    case 'created-asc':
+    case 'color':
+      return faArrowUpShortWide;
+    default:
+      return faArrowDownShortWide;
+  }
 }
 
 /**

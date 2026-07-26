@@ -2,7 +2,7 @@ import { SortButton, SortMenu } from '@harborclient/sdk/components';
 import type { SidebarSectionKey, SidebarSortMode } from '@harborclient/core/types';
 import { useCallback, useMemo, useRef, useState, type JSX } from 'react';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
-import { sidebarSortOptions } from './sidebarSort';
+import { sidebarSortIcon, sidebarSortOptions } from './sidebarSort';
 
 interface Props {
   /**
@@ -36,6 +36,7 @@ interface Props {
 /**
  * Toolbar sort control for a collections sidebar section. Opens a single-select
  * listbox of sort modes and persists the choice via sidebar expansion settings.
+ * Hidden when the View menu Sorting preference is off.
  *
  * @param sectionKey - Section whose sort mode to read/write.
  * @param hasColorOption - Whether to show the Color option.
@@ -49,8 +50,8 @@ export function SidebarSortButton({
   dateLabel,
   ariaLabel,
   title
-}: Props): JSX.Element {
-  const { sectionSort, setSectionSort, showColorDots } = useSidebarExpansion();
+}: Props): JSX.Element | null {
+  const { sectionSort, setSectionSort, showColorDots, showSorting } = useSidebarExpansion();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -92,10 +93,15 @@ export function SidebarSortButton({
     });
   }, []);
 
+  if (!showSorting) {
+    return null;
+  }
+
   return (
     <>
       <SortButton
         active={active}
+        icon={sidebarSortIcon(value)}
         innerRef={triggerRef}
         aria-label={ariaLabel}
         aria-haspopup="listbox"

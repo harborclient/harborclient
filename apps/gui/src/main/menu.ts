@@ -105,6 +105,8 @@ export function buildThemeMenuItems(
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
  * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
+ * @param filtersVisible - Whether the sidebar Filters checkbox should appear checked.
+ * @param sortingVisible - Whether the sidebar Sorting checkbox should appear checked.
  * @param accelerators - Resolved shortcut accelerators for menu items.
  * @returns A single parent menu item containing the panel visibility checkbox submenu.
  */
@@ -120,6 +122,8 @@ export function buildAppearanceMenuItems(
   variablesVisible: boolean,
   mcpVisible: boolean,
   terminalVisible: boolean,
+  filtersVisible: boolean,
+  sortingVisible: boolean,
   accelerators: Map<ShortcutId, string>
 ): MenuItemConstructorOptions {
   return {
@@ -195,6 +199,21 @@ export function buildAppearanceMenuItems(
         checked: terminalVisible,
         accelerator: acceleratorFor(accelerators, 'toggle-terminal'),
         click: () => sendMenuAction(window, 'toggle-terminal')
+      },
+      { type: 'separator' },
+      {
+        label: 'Filters',
+        type: 'checkbox',
+        checked: filtersVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-filters'),
+        click: () => sendMenuAction(window, 'toggle-filters')
+      },
+      {
+        label: 'Sorting',
+        type: 'checkbox',
+        checked: sortingVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-sorting'),
+        click: () => sendMenuAction(window, 'toggle-sorting')
       }
     ]
   };
@@ -224,6 +243,8 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
  * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
+ * @param filtersVisible - Whether the sidebar Filters checkbox should appear checked.
+ * @param sortingVisible - Whether the sidebar Sorting checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
  * @param pluginThemeOptions - Installed custom and plugin theme menu options.
  * @param onThemeMenuClick - Rebuilds the menu after a theme item click.
@@ -247,6 +268,8 @@ export function buildMenu(
   variablesVisible = false,
   mcpVisible = false,
   terminalVisible = false,
+  filtersVisible = false,
+  sortingVisible = false,
   activeTheme: ThemeSource = 'system',
   pluginThemeOptions: ThemeMenuOption[] = [],
   onThemeMenuClick?: () => void,
@@ -381,6 +404,8 @@ export function buildMenu(
           variablesVisible,
           mcpVisible,
           terminalVisible,
+          filtersVisible,
+          sortingVisible,
           accelerators
         ),
         { type: 'separator' },

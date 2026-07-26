@@ -65,6 +65,11 @@ export interface SidebarSectionFilterContextValue {
    * Updates the Archive color filter.
    */
   setArchiveColorFilter: Dispatch<SetStateAction<string | null>>;
+
+  /**
+   * Clears every section filter so lists show unfiltered content.
+   */
+  clearAllSectionFilters: () => void;
 }
 
 /**

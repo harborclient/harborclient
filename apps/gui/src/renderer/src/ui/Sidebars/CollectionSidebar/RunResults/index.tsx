@@ -7,7 +7,10 @@ import { deleteRunResult, openSavedRunResult } from '#/renderer/src/store/thunks
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
-import { sortSidebarItems, toSortTimestamp } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
+import {
+  sortSidebarItems,
+  toSortTimestamp
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';

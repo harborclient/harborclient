@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
 import { clearRunResults } from '#/renderer/src/store/thunks/runResults';
 import { faEraser, faFilter } from '#/renderer/src/fontawesome';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
 import { SidebarSortButton } from '../sort/SidebarSortButton';
 
@@ -17,6 +18,7 @@ export function RunsHeaderActions(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const runResults = useAppSelector(selectRunResults);
+  const { showFilters } = useSidebarExpansion();
   const { runsCollectionFilter, setRunsCollectionFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const isEmpty = runResults.length === 0;
@@ -75,7 +77,7 @@ export function RunsHeaderActions(): JSX.Element {
   return (
     <>
       <SidebarSortButton sectionKey="runResults" ariaLabel="Sort runs" title="Sort runs" />
-      {collectionNames.length > 0 ? (
+      {showFilters && collectionNames.length > 0 ? (
         <RowActionsMenu
           menuId={RUNS_FILTER_MENU_ID}
           openMenuId={openMenuId}

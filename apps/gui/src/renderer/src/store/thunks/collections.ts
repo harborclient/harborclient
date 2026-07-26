@@ -68,6 +68,7 @@ import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 import { defaultDraft, isRequestTab, isTabDirty, type Tab } from '#/renderer/src/store/tabs';
 import { closeTab } from '#/renderer/src/store/slices/tabsSlice';
 import { requestLoadDocument } from './documents';
+import { selectArchivedCollections } from '#/renderer/src/store/selectors';
 import { requestLoadRequest } from './requests';
 
 const COLLECTIONS_REFRESH_KEY = 'collections';
@@ -471,6 +472,34 @@ export const deleteCollection = createAsyncThunk<void, number, ThunkApiConfig>(
     if (getState().collections.selectedCollectionId === id) {
       dispatch(setSelectedCollectionId(null));
     }
+    await dispatch(refreshCollections());
+    await syncTrash(dispatch);
+  }
+);
+
+/**
+ * Moves every archived collection to trash, closing related tabs once per
+ * collection and refreshing the sidebar lists a single time afterward.
+ */
+export const emptyArchive = createAsyncThunk<void, void, ThunkApiConfig>(
+  'collections/emptyArchive',
+  async (_arg, { dispatch, getState }) => {
+    const archived = selectArchivedCollections(getState());
+    if (archived.length === 0) {
+      return;
+    }
+
+    const archivedIds = new Set(archived.map((collection) => collection.id));
+    for (const collection of archived) {
+      await window.api.deleteCollection(collection.id);
+      dispatch(closeTabsForCollection(collection.id));
+    }
+
+    const selectedId = getState().collections.selectedCollectionId;
+    if (selectedId != null && archivedIds.has(selectedId)) {
+      dispatch(setSelectedCollectionId(null));
+    }
+
     await dispatch(refreshCollections());
     await syncTrash(dispatch);
   }

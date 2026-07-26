@@ -88,6 +88,18 @@ export interface ApiWindow {
    */
   setMenuTerminalVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs sidebar filter-control visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether section-header filter controls are shown.
+   */
+  setMenuFiltersVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs sidebar sort-control visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether section-header sort controls are shown.
+   */
+  setMenuSortingVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs active theme and plugin theme options to the View menu in the main process.
    *
    * @param theme - Persisted appearance theme preference.
