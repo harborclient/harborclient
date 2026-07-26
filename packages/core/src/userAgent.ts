@@ -116,6 +116,72 @@ export function buildHarborClientUserAgent(runtime: HarborClientUserAgentRuntime
 }
 
 /**
+ * Strict shape of a string produced by {@link buildHarborClientUserAgent}.
+ *
+ * Also matches {@link DEFAULT_USER_AGENT} and {@link LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT}
+ * so those migrate when the app rebuilds the User-Agent on startup. Hand-written
+ * `HarborClient/...` values that omit the Electron/Chrome segments are excluded.
+ */
+const GENERATED_HARBOR_CLIENT_USER_AGENT = /^HarborClient\/\S+ \(.+\) Electron\/\S+ Chrome\/\S+$/;
+
+/**
+ * Returns whether a value matches the exact shape emitted by
+ * {@link buildHarborClientUserAgent}.
+ *
+ * Used on startup to decide which persisted User-Agent strings are safe to
+ * overwrite with the current machine-specific value. Hand-written strings that
+ * merely start with `HarborClient/` are left alone.
+ *
+ * @param value - Candidate User-Agent from storage or UI.
+ * @returns True when the trimmed value matches the generated HarborClient shape.
+ */
+export function isGeneratedHarborClientUserAgent(value: unknown): boolean {
+  const trimmed = normalizeUserAgent(value);
+  return trimmed !== '' && GENERATED_HARBOR_CLIENT_USER_AGENT.test(trimmed);
+}
+
+/**
+ * Replaces every generated HarborClient entry in the custom preset list with
+ * the current machine-specific string, keeping the position of the first such
+ * entry so dropdown order stays stable.
+ *
+ * When the list has no generated entry, appends {@link current}. Non-generated
+ * customs are left untouched. The result is passed through
+ * {@link normalizeCustomUserAgents} for trim/dedupe.
+ *
+ * @param customUserAgents - Current custom User-Agent preset list.
+ * @param current - Fresh HarborClient User-Agent from the running process.
+ * @returns Updated custom list with a single current HarborClient entry.
+ */
+export function syncHarborClientUserAgentPresets(
+  customUserAgents: readonly string[],
+  current: string
+): string[] {
+  const nextCurrent = normalizeUserAgent(current);
+  if (!nextCurrent) {
+    return normalizeCustomUserAgents(customUserAgents);
+  }
+
+  const normalized = normalizeCustomUserAgents(customUserAgents);
+  let inserted = false;
+  const synced: string[] = [];
+  for (const entry of normalized) {
+    if (isGeneratedHarborClientUserAgent(entry)) {
+      if (!inserted) {
+        synced.push(nextCurrent);
+        inserted = true;
+      }
+      continue;
+    }
+    synced.push(entry);
+  }
+  if (!inserted) {
+    synced.push(nextCurrent);
+  }
+  return normalizeCustomUserAgents(synced);
+}
+
+/**
  * Normalizes a scoped or global User-Agent string.
  *
  * @param value - Raw User-Agent from storage or UI.

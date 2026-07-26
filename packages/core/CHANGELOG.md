@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
+
 ## 0.1.6 - 2026-07-26
 
 - Enhance AI chat settings and UI components. (`ad9d10c9`)

@@ -6,10 +6,12 @@ import {
   buildHarborClientUserAgent,
   DEFAULT_USER_AGENT,
   hasManualUserAgentHeader,
+  isGeneratedHarborClientUserAgent,
   LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT,
   listUserAgentPresets,
   normalizeCustomUserAgents,
-  resolveEffectiveUserAgent
+  resolveEffectiveUserAgent,
+  syncHarborClientUserAgentPresets
 } from './userAgent';
 
 describe('BUILTIN_USER_AGENT_PRESETS', () => {
@@ -103,6 +105,68 @@ describe('buildHarborClientUserAgent', () => {
         chromeVersion: '140.0.0.0'
       })
     ).toBe('HarborClient/2.6.0 (X11; Linux aarch64) Electron/39.0.0 Chrome/140.0.0.0');
+  });
+});
+
+describe('isGeneratedHarborClientUserAgent', () => {
+  it('matches strings produced by buildHarborClientUserAgent', () => {
+    const generated = buildHarborClientUserAgent({
+      appVersion: '2.6.0',
+      platform: 'linux',
+      arch: 'x64',
+      osRelease: '6.8.0',
+      electronVersion: '42.6.1',
+      chromeVersion: '148.0.7778.280'
+    });
+    expect(isGeneratedHarborClientUserAgent(generated)).toBe(true);
+  });
+
+  it('matches DEFAULT_USER_AGENT and the legacy static constant', () => {
+    expect(isGeneratedHarborClientUserAgent(DEFAULT_USER_AGENT)).toBe(true);
+    expect(isGeneratedHarborClientUserAgent(LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT)).toBe(true);
+  });
+
+  it('rejects hand-written HarborClient strings and unrelated agents', () => {
+    expect(isGeneratedHarborClientUserAgent('HarborClient/2.6.0')).toBe(false);
+    expect(isGeneratedHarborClientUserAgent('HarborClient/2.6.0 (custom)')).toBe(false);
+    expect(isGeneratedHarborClientUserAgent('CustomClient/1.0')).toBe(false);
+    expect(isGeneratedHarborClientUserAgent('')).toBe(false);
+    expect(isGeneratedHarborClientUserAgent(null)).toBe(false);
+  });
+});
+
+describe('syncHarborClientUserAgentPresets', () => {
+  const current = 'HarborClient/2.7.0 (X11; Linux x86_64) Electron/42.6.1 Chrome/148.0.7778.280';
+  const stale = 'HarborClient/2.6.0 (X11; Linux x86_64) Electron/39.0.0 Chrome/140.0.0.0';
+
+  it('replaces a stale generated entry in place without accumulating', () => {
+    expect(syncHarborClientUserAgentPresets([stale, 'Custom/1.0'], current)).toEqual([
+      current,
+      'Custom/1.0'
+    ]);
+  });
+
+  it('keeps the position of the first generated entry and collapses duplicates', () => {
+    expect(
+      syncHarborClientUserAgentPresets(
+        ['Custom/1.0', stale, 'Other/2.0', LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT],
+        current
+      )
+    ).toEqual(['Custom/1.0', current, 'Other/2.0']);
+  });
+
+  it('appends the current value when no generated entry exists', () => {
+    expect(syncHarborClientUserAgentPresets(['Custom/1.0'], current)).toEqual([
+      'Custom/1.0',
+      current
+    ]);
+  });
+
+  it('leaves non-generated customs untouched when current is already present', () => {
+    expect(syncHarborClientUserAgentPresets([current, 'Custom/1.0'], current)).toEqual([
+      current,
+      'Custom/1.0'
+    ]);
   });
 });
 

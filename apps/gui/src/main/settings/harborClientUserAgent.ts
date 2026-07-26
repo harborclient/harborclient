@@ -7,10 +7,10 @@ import {
 import { parseJson } from '@harborclient/core/parseJson';
 import type { GeneralSettings } from '@harborclient/core/types';
 import {
-  appendCustomUserAgent,
   buildHarborClientUserAgent,
-  LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT,
-  normalizeUserAgent
+  isGeneratedHarborClientUserAgent,
+  normalizeUserAgent,
+  syncHarborClientUserAgentPresets
 } from '@harborclient/core/userAgent';
 import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import { setGeneralSettings } from './generalSettings';
@@ -40,25 +40,59 @@ export function buildHarborClientUserAgentFromProcess(): string {
 }
 
 /**
- * Returns whether persisted general settings need a HarborClient User-Agent capture.
+ * Reconciles persisted general settings against the current HarborClient User-Agent.
+ *
+ * Refreshes `userAgent` when it is missing, empty, or a generated HarborClient
+ * string that no longer matches {@link current}. Independently syncs
+ * `customUserAgents` so a stale preset is replaced even when the global default
+ * points at a non-HarborClient value. Returns null when nothing needs writing.
  *
  * @param stored - Partial settings parsed from the registry, or null when unset.
- * @returns True when the global User-Agent should be set from runtime values.
+ * @param current - Fresh HarborClient User-Agent from the running process.
+ * @returns Settings to persist, or null when already up to date.
  */
-export function needsHarborClientUserAgentCapture(
-  stored: Partial<GeneralSettings> | null
-): boolean {
-  if (stored == null) {
-    return true;
+export function resolveHarborClientUserAgentSettings(
+  stored: Partial<GeneralSettings> | null,
+  current: string
+): GeneralSettings | null {
+  const nextCurrent = normalizeUserAgent(current);
+  if (!nextCurrent) {
+    return null;
   }
-  const userAgent = normalizeUserAgent(stored.userAgent);
-  return userAgent === '' || userAgent === LEGACY_STATIC_HARBOR_CLIENT_USER_AGENT;
+
+  const base = normalizeGeneralSettings({
+    ...DEFAULT_GENERAL_SETTINGS,
+    ...(stored ?? {})
+  });
+  const previousUserAgent = normalizeUserAgent(stored?.userAgent);
+  const shouldRefreshUserAgent =
+    previousUserAgent === '' ||
+    (isGeneratedHarborClientUserAgent(previousUserAgent) && previousUserAgent !== nextCurrent);
+  const nextUserAgent = shouldRefreshUserAgent ? nextCurrent : base.userAgent;
+  const nextCustoms = syncHarborClientUserAgentPresets(base.customUserAgents, nextCurrent);
+  const customsUnchanged =
+    nextCustoms.length === base.customUserAgents.length &&
+    nextCustoms.every((entry, index) => entry === base.customUserAgents[index]);
+
+  if (!shouldRefreshUserAgent && customsUnchanged) {
+    return null;
+  }
+
+  return {
+    ...base,
+    userAgent: nextUserAgent,
+    customUserAgents: nextCustoms
+  };
 }
 
 /**
- * On first run (or when upgrading from the legacy static HarborClient UA), capture
- * a machine-specific User-Agent, persist it as the global default, and add it to
- * the shared custom preset list.
+ * On every startup, rebuild the HarborClient User-Agent from the current app,
+ * Electron, Chrome, and OS versions, then update the global default and the
+ * custom preset list when a generated value has gone stale.
+ *
+ * Non-generated User-Agent strings (user-authored defaults or presets) are left
+ * untouched. Skips persistence when nothing changed so file logger, spell check,
+ * and tray side effects in {@link setGeneralSettings} are not re-run needlessly.
  *
  * @param database - Local registry holding the `general` settings JSON blob.
  */
@@ -66,20 +100,12 @@ export function ensureHarborClientUserAgentSettings(database: LocalDatabase): vo
   const raw = database.getSetting(STORE_KEY);
   const stored =
     raw === undefined || raw.trim() === '' ? null : parseJson<Partial<GeneralSettings>>(raw, {});
-
-  if (!needsHarborClientUserAgentCapture(stored)) {
+  const next = resolveHarborClientUserAgentSettings(
+    stored,
+    buildHarborClientUserAgentFromProcess()
+  );
+  if (next == null) {
     return;
   }
-
-  const dynamicUa = buildHarborClientUserAgentFromProcess();
-  const base = normalizeGeneralSettings({
-    ...DEFAULT_GENERAL_SETTINGS,
-    ...(stored ?? {})
-  });
-  const next: GeneralSettings = {
-    ...base,
-    userAgent: dynamicUa,
-    customUserAgents: appendCustomUserAgent(base.customUserAgents, dynamicUa)
-  };
   setGeneralSettings(next);
 }
