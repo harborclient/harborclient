@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-07-26
+
 - Refactor resource paths and update documentation indexing. (`89d0d78f`)
 
 ## 0.1.4 - 2026-07-26
