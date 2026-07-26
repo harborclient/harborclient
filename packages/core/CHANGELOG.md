@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-07-26
+
 - Add dismissedRequestEditorNotices to general settings. (`22551faa`)
 
 ## 0.2.1 - 2026-07-26
