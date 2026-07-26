@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-07-26
+
 - Enhance AI chat settings and UI components. (`ad9d10c9`)
 
 ## 0.1.5 - 2026-07-26
