@@ -17,7 +17,7 @@ import type { ApiCustomThemes } from './customThemes';
 import type { ApiDocs } from './docs';
 import type { ApiMcp } from './mcp';
 import type { ApiRequestHistory } from './requestHistory';
-import type { ApiTabGroups } from './tabGroup';
+import type { ApiWorkspaces } from './workspace';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
 
@@ -44,7 +44,7 @@ export interface Api
     ApiDocs,
     ApiMcp,
     ApiRequestHistory,
-    ApiTabGroups,
+    ApiWorkspaces,
     ApiTrash,
     ApiTerminal,
     ApiCustomThemes {}

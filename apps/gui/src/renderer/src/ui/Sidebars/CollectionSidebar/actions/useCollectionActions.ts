@@ -9,7 +9,7 @@ import { setSelectedCollectionId } from '#/renderer/src/store/slices/collections
 import {
   openCollectionRunner,
   openShareModal,
-  openTabGroupModal
+  openWorkspaceModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { loadRequest, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -300,9 +300,9 @@ export interface CollectionActions {
   onOpenSelectedRequests: (requests: SavedRequest[]) => void;
 
   /**
-   * Opens the tab group modal to create a group from a sidebar selection.
+   * Opens the workspace modal to create a group from a sidebar selection.
    */
-  onCreateTabGroupFromSelection: (requestIds: number[]) => void;
+  onCreateWorkspaceFromSelection: (requestIds: number[]) => void;
 
   /**
    * Deletes every saved request in the selection after one confirmation.
@@ -581,9 +581,9 @@ export function useCollectionActions(): CollectionActions {
         dispatch(loadRequest({ req, activate: index === 0 }));
       });
     },
-    onCreateTabGroupFromSelection: (requestIds) => {
+    onCreateWorkspaceFromSelection: (requestIds) => {
       dispatch(
-        openTabGroupModal({
+        openWorkspaceModal({
           mode: 'createFromSelection',
           requestIds,
           name: ''

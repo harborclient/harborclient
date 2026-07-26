@@ -58,8 +58,8 @@ async function refreshAfterRestore(
         (await import('#/renderer/src/store/thunks/requestHistory')).refreshRequestHistory()
       );
       break;
-    case 'tabGroup':
-      await dispatch((await import('#/renderer/src/store/thunks/tabGroups')).refreshTabGroups());
+    case 'workspace':
+      await dispatch((await import('#/renderer/src/store/thunks/workspaces')).refreshWorkspaces());
       break;
     default:
       break;

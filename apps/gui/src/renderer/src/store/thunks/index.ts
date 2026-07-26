@@ -10,7 +10,7 @@ export * from './aiChat';
 export * from './collectionRunner';
 export * from './runResults';
 export * from './requestHistory';
-export * from './tabGroups';
+export * from './workspaces';
 export * from './sidebarDeselect';
 export * from './trash';
 export * from './settings';
@@ -24,7 +24,7 @@ import { refreshCollections, openSeededBuiltinRequestIfNeeded } from './collecti
 import { refreshEnvironments } from './environments';
 import { refreshRunResults } from './runResults';
 import { refreshRequestHistory } from './requestHistory';
-import { refreshTabGroups } from './tabGroups';
+import { refreshWorkspaces } from './workspaces';
 import { refreshTrash } from './trash';
 import { refreshSnippets } from './snippets';
 import { hydrateOpenTabs } from './tabs';
@@ -43,7 +43,7 @@ export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(refreshSnippets());
   void dispatch(refreshRunResults());
   void dispatch(refreshRequestHistory());
-  void dispatch(refreshTabGroups());
+  void dispatch(refreshWorkspaces());
   void dispatch(refreshTrash());
   void window.api.getGeneralSettings().then((settings) => {
     dispatch(setGeneralSettingsState(settings));

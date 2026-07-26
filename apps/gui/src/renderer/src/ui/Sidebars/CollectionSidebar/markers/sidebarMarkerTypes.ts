@@ -7,4 +7,4 @@ export type SidebarMarkerTarget =
   | { kind: 'request'; collectionId: number; id: number; marker: string | null }
   | { kind: 'document'; collectionId: number; id: number; marker: string | null }
   | { kind: 'environment'; id: number; marker: string | null }
-  | { kind: 'tabGroup'; id: number; marker: string | null };
+  | { kind: 'workspace'; id: number; marker: string | null };

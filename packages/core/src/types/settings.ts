@@ -13,7 +13,7 @@ export type SidebarSectionKey =
   | 'environments'
   | 'runResults'
   | 'history'
-  | 'tabGroups'
+  | 'workspaces'
   | 'archive'
   | 'trash';
 
@@ -57,9 +57,9 @@ export interface SidebarExpansionState {
     history: boolean;
 
     /**
-     * Whether the Tab Groups section body is visible.
+     * Whether the Workspaces section body is visible.
      */
-    tabGroups: boolean;
+    workspaces: boolean;
 
     /**
      * Whether the Archive section body is visible.
@@ -107,9 +107,9 @@ export interface SidebarExpansionState {
     history: boolean;
 
     /**
-     * Whether the Tab Groups section is shown in the sidebar.
+     * Whether the Workspaces section is shown in the sidebar.
      */
-    tabGroups: boolean;
+    workspaces: boolean;
 
     /**
      * Whether the Archive section is shown in the sidebar.
@@ -385,14 +385,14 @@ export interface GeneralSettings {
   warnWhenClickingReadonlySnippet: boolean;
 
   /**
-   * When true, creating a tab group from open request tabs shows a confirmation dialog.
+   * When true, creating a workspace from open request tabs shows a confirmation dialog.
    */
-  warnWhenCreatingTabGroup: boolean;
+  warnWhenCreatingWorkspace: boolean;
 
   /**
-   * When true, clicking a tab group in the sidebar shows a confirmation dialog before opening tabs.
+   * When true, clicking a workspace in the sidebar shows a confirmation dialog before opening tabs.
    */
-  warnWhenOpeningTabGroup: boolean;
+  warnWhenOpeningWorkspace: boolean;
 
   /**
    * When true, the AI agent must confirm before sending commands to the footer terminal.

@@ -40,7 +40,7 @@ export interface TabBarItem<TId extends string | number> {
   dragLabel: ReactNode;
 
   /**
-   * When true, uses active styling even when not selected (for example tab group edit).
+   * When true, uses active styling even when not selected (for example workspace edit).
    */
   highlighted?: boolean;
 }

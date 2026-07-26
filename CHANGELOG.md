@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rename Tab Groups to Workspaces across the UI, IPC, local registry SQLite tables, settings keys, and portable export format (`harborclientExport: "workspace"`). Existing local databases and settings migrate automatically; `@harborclient/core` and `@harborclient/sdk` type/component renames are breaking and require major releases.
 - Refactor sidebar color handling to markers. (`6f53f3d7`)
 - Add Filters and Sorting Options to Sidebar Menu. (`d17dea07`)
 - Enhance menu functionality and visibility options. (`89cf8584`)

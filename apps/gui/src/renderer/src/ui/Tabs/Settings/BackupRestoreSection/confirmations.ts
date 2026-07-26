@@ -80,16 +80,16 @@ export const CONFIRMATION_ROWS: ConfirmationRow[] = [
       'When enabled, clicking a read-only linked snippet in the script list shows an informational dialog.'
   },
   {
-    key: 'warnWhenCreatingTabGroup',
-    label: 'Creating a tab group from open tabs',
+    key: 'warnWhenCreatingWorkspace',
+    label: 'Creating a workspace from open tabs',
     description:
-      'When enabled, creating a tab group from open request tabs shows a confirmation dialog.'
+      'When enabled, creating a workspace from open request tabs shows a confirmation dialog.'
   },
   {
-    key: 'warnWhenOpeningTabGroup',
-    label: 'Opening all requests in a tab group',
+    key: 'warnWhenOpeningWorkspace',
+    label: 'Opening all requests in a workspace',
     description:
-      'When enabled, opening a tab group in the sidebar shows a confirmation dialog before opening tabs.'
+      'When enabled, opening a workspace in the sidebar shows a confirmation dialog before opening tabs.'
   },
   {
     key: 'warnWhenAgentUsesTerminal',

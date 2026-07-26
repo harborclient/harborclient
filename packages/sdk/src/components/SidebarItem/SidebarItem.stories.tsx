@@ -19,9 +19,9 @@ import {
   SidebarListbox,
   SidebarRequestItem,
   SidebarRunItem,
-  SidebarTabGroupItem,
   SidebarTree,
-  SidebarTreeGroup
+  SidebarTreeGroup,
+  SidebarWorkspaceItem
 } from './index.js';
 
 const meta = {
@@ -263,19 +263,19 @@ export const EnvironmentItem: Story = {
   )
 };
 
-export const TabGroupItem: Story = {
+export const WorkspaceItem: Story = {
   render: () => (
     <div className="w-72 rounded-md border border-separator bg-sidebar p-2">
-      <SidebarListbox aria-label="Tab groups" multiselectable>
-        <SidebarTabGroupItem
+      <SidebarListbox aria-label="Workspaces" multiselectable>
+        <SidebarWorkspaceItem
           name="API review"
           summary="4 tabs"
           icon={faLayerGroup}
           markerDot={{ marker: '#32D2E2', visible: true, label: 'Color marker for API review' }}
-          sortable={{ id: 'tab-group-1', dragHandleLabel: 'Reorder tab group "API review"' }}
+          sortable={{ id: 'workspace-1', dragHandleLabel: 'Reorder workspace "API review"' }}
           actions={
             <RowActionsMenu
-              menuId="tab-group-1"
+              menuId="workspace-1"
               openMenuId={null}
               onOpenChange={fn()}
               groups={noopMenuGroups}

@@ -47,7 +47,7 @@ import type {
   ShortcutOverrides,
   SidebarExpansionState,
   RequestHistoryEntry,
-  CreateTabGroupInput,
+  CreateWorkspaceInput,
   McpClientServer,
   McpServerSettings
 } from '@harborclient/core/types';
@@ -293,8 +293,8 @@ export const generalSettings = z.object({
   warnWhenEditingSnippet: z.boolean(),
   warnWhenCloningSnippet: z.boolean(),
   warnWhenClickingReadonlySnippet: z.boolean(),
-  warnWhenCreatingTabGroup: z.boolean(),
-  warnWhenOpeningTabGroup: z.boolean(),
+  warnWhenCreatingWorkspace: z.boolean(),
+  warnWhenOpeningWorkspace: z.boolean(),
   warnWhenAgentUsesTerminal: z.boolean(),
   dismissedRequestEditorNotices: z.array(editorTab),
   gitAutoAdd: z.boolean(),
@@ -605,7 +605,7 @@ export const sidebarExpansion = z.object({
     environments: z.boolean(),
     runResults: z.boolean(),
     history: z.boolean(),
-    tabGroups: z.boolean(),
+    workspaces: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -614,7 +614,7 @@ export const sidebarExpansion = z.object({
     environments: z.boolean(),
     runResults: z.boolean(),
     history: z.boolean(),
-    tabGroups: z.boolean(),
+    workspaces: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -644,7 +644,7 @@ export const sidebarExpansion = z.object({
       'marker'
     ]),
     history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
-    tabGroups: z.enum([
+    workspaces: z.enum([
       'default',
       'name-asc',
       'name-desc',
@@ -684,17 +684,17 @@ export const requestHistoryEntry = z.object({
   runRequestId: z.number().int().positive().nullable().optional()
 }) satisfies z.ZodType<RequestHistoryEntry>;
 
-export const tabGroupRequest = z.object({
+export const workspaceRequest = z.object({
   requestUuid: z.string().trim().min(1),
   collectionId: z.number().int().positive().optional(),
   requestName: z.string().optional()
 });
 
-export const createTabGroupInput = z.object({
+export const createWorkspaceInput = z.object({
   name: z.string().trim().min(1),
-  requests: z.array(tabGroupRequest),
+  requests: z.array(workspaceRequest),
   marker: sidebarMarker.optional()
-}) satisfies z.ZodType<CreateTabGroupInput>;
+}) satisfies z.ZodType<CreateWorkspaceInput>;
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
@@ -765,7 +765,7 @@ export const ipcArgSchemas = {
   menuSortingVisible: z.tuple([z.boolean()]),
   menuThemeMenuState: z.tuple([themeSource, z.array(themeMenuOption)]),
   menuDesignerUndoRedo: z.tuple([z.boolean(), z.boolean(), z.boolean()]),
-  menuTabGroupAvailable: z.tuple([z.boolean()]),
+  menuWorkspaceAvailable: z.tuple([z.boolean()]),
   menuSidebarDeselectAllAvailable: z.tuple([z.boolean()]),
   menuGitCollectionActive: z.tuple([z.boolean()]),
   menuPopupSubmenu: z.tuple([rootMenuLabel, z.number(), z.number()]),
@@ -1168,13 +1168,13 @@ export const ipcArgSchemas = {
   inspectElement: z.tuple([z.object({ x: z.number(), y: z.number() })]),
   requestHistoryAdd: z.tuple([requestHistoryEntry]),
   requestHistoryDelete: z.tuple([z.number().int()]),
-  tabGroupsCreate: z.tuple([createTabGroupInput]),
-  tabGroupsUpdate: z.tuple([z.number().int().positive(), z.array(tabGroupRequest)]),
-  tabGroupsRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
-  tabGroupsClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
-  tabGroupsDelete: z.tuple([z.number().int().positive()]),
-  tabGroupsReorder: z.tuple([z.array(dbId)]),
-  tabGroupsSetMarker: z.tuple([dbId, sidebarMarker]),
+  workspacesCreate: z.tuple([createWorkspaceInput]),
+  workspacesUpdate: z.tuple([z.number().int().positive(), z.array(workspaceRequest)]),
+  workspacesRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
+  workspacesClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
+  workspacesDelete: z.tuple([z.number().int().positive()]),
+  workspacesReorder: z.tuple([z.array(dbId)]),
+  workspacesSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetArchived: z.tuple([dbId, z.boolean()]),
   foldersSetMarker: z.tuple([dbId, sidebarMarker]),

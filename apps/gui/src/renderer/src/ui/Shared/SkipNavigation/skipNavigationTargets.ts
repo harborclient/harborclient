@@ -70,18 +70,18 @@ export interface SkipNavigationVisibility {
   gitSidebarVisible: boolean;
 
   /**
-   * Whether the active tab is a request workspace rather than a settings/page tab.
+   * Whether the active tab is a request tab rather than a settings/page tab.
    */
-  isRequestWorkspace: boolean;
+  isRequestTab: boolean;
 }
 
 /**
  * Builds the skip links that should appear for the current layout state.
  *
- * Hidden panels and non-request workspaces omit their links so keyboard users
+ * Hidden panels and non-request tabs omit their links so keyboard users
  * never land on targets that are absent from the DOM.
  *
- * @param visibility - Current panel and workspace visibility flags.
+ * @param visibility - Current panel and request-tab visibility flags.
  * @returns Ordered skip links for the skip navigation menu.
  */
 export function resolveSkipNavigationLinks(
@@ -97,7 +97,7 @@ export function resolveSkipNavigationLinks(
     });
   }
 
-  if (visibility.isRequestWorkspace && visibility.requestEditorVisible) {
+  if (visibility.isRequestTab && visibility.requestEditorVisible) {
     links.push({
       id: 'request-editor',
       label: 'Skip to Request editor',
@@ -105,7 +105,7 @@ export function resolveSkipNavigationLinks(
     });
   }
 
-  if (visibility.isRequestWorkspace && visibility.responseEditorVisible) {
+  if (visibility.isRequestTab && visibility.responseEditorVisible) {
     links.push({
       id: 'response-editor',
       label: 'Skip to Response viewer',

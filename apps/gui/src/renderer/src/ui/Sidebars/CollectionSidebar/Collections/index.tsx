@@ -181,7 +181,7 @@ export function Collections(): JSX.Element {
     onDuplicateRequest,
     onExportRequest,
     onOpenSelectedRequests,
-    onCreateTabGroupFromSelection,
+    onCreateWorkspaceFromSelection,
     onDeleteSelectedRequests,
     onRunSelectedRequests
   } = useCollectionActions();
@@ -1242,8 +1242,8 @@ export function Collections(): JSX.Element {
                                         onOpenSelected={() =>
                                           onOpenSelectedRequests(selectedRequestsOrdered)
                                         }
-                                        onNewTabGroupFromSelected={() =>
-                                          onCreateTabGroupFromSelection(
+                                        onNewWorkspaceFromSelected={() =>
+                                          onCreateWorkspaceFromSelection(
                                             selectedRequestsOrdered.map((request) => request.id)
                                           )
                                         }
@@ -1590,8 +1590,8 @@ export function Collections(): JSX.Element {
                                                 onOpenSelected={() =>
                                                   onOpenSelectedRequests(selectedRequestsOrdered)
                                                 }
-                                                onNewTabGroupFromSelected={() =>
-                                                  onCreateTabGroupFromSelection(
+                                                onNewWorkspaceFromSelected={() =>
+                                                  onCreateWorkspaceFromSelection(
                                                     selectedRequestsOrdered.map(
                                                       (request) => request.id
                                                     )

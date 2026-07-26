@@ -25,7 +25,7 @@ export const Default: Story = {
     actions: <PanelCloseButton onClose={fn()} ariaLabel="Close environment settings" />,
     children: (
       <p className="m-0 text-[14px] text-muted">
-        Configure variables and defaults for this workspace.
+        Configure variables and defaults for this environment.
       </p>
     )
   }

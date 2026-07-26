@@ -36,10 +36,10 @@ describe('trashSlice', () => {
         },
         {
           id: 2,
-          entityType: 'tabGroup',
+          entityType: 'workspace',
           label: 'Morning tabs',
           connectionId: null,
-          originalIds: { tabGroupId: 2 },
+          originalIds: { workspaceId: 2 },
           payload: {},
           deletedAt: '2026-01-02T00:00:00.000Z'
         }

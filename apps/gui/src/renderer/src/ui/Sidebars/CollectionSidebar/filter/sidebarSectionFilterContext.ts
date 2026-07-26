@@ -2,7 +2,7 @@ import { createContext, useContext, type Dispatch, type SetStateAction } from 'r
 import type { CollectionsFilterCriteria } from '../Collections/collectionsFilter';
 
 /**
- * Section filter state shared between Collections/Runs/History/Tab Groups/
+ * Section filter state shared between Collections/Runs/History/Workspaces/
  * Environments/Archive headers and lists.
  */
 export interface SidebarSectionFilterContextValue {
@@ -37,14 +37,14 @@ export interface SidebarSectionFilterContextValue {
   setHistoryCollectionFilter: Dispatch<SetStateAction<number | null>>;
 
   /**
-   * CSS marker to filter Tab Groups by, or null when showing all tab groups.
+   * CSS marker to filter Workspaces by, or null when showing all workspaces.
    */
-  tabGroupsMarkerFilter: string | null;
+  workspacesMarkerFilter: string | null;
 
   /**
-   * Updates the Tab Groups marker filter.
+   * Updates the Workspaces marker filter.
    */
-  setTabGroupsMarkerFilter: Dispatch<SetStateAction<string | null>>;
+  setWorkspacesMarkerFilter: Dispatch<SetStateAction<string | null>>;
 
   /**
    * CSS marker to filter Environments by, or null when showing all environments.
@@ -73,7 +73,7 @@ export interface SidebarSectionFilterContextValue {
 }
 
 /**
- * React context for Collections/Runs/History/Tab Groups/Environments/Archive section filters.
+ * React context for Collections/Runs/History/Workspaces/Environments/Archive section filters.
  */
 export const SidebarSectionFilterContext = createContext<SidebarSectionFilterContextValue | null>(
   null

@@ -28,8 +28,8 @@ describe('confirmations helpers', () => {
       'warnWhenEditingSnippet',
       'warnWhenCloningSnippet',
       'warnWhenClickingReadonlySnippet',
-      'warnWhenCreatingTabGroup',
-      'warnWhenOpeningTabGroup',
+      'warnWhenCreatingWorkspace',
+      'warnWhenOpeningWorkspace',
       'warnWhenAgentUsesTerminal'
     ]);
   });
@@ -62,7 +62,7 @@ describe('confirmations helpers', () => {
     expect(
       areAllConfirmationsDisabled({
         ...generalWithConfirmations(false),
-        warnWhenOpeningTabGroup: true
+        warnWhenOpeningWorkspace: true
       })
     ).toBe(false);
     expect(
@@ -81,8 +81,8 @@ describe('confirmations helpers', () => {
       warnWhenEditingSnippet: false,
       warnWhenCloningSnippet: false,
       warnWhenClickingReadonlySnippet: false,
-      warnWhenCreatingTabGroup: false,
-      warnWhenOpeningTabGroup: false,
+      warnWhenCreatingWorkspace: false,
+      warnWhenOpeningWorkspace: false,
       warnWhenAgentUsesTerminal: false,
       dismissedRequestEditorNotices: [
         'params',

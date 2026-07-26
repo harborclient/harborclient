@@ -38,8 +38,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenEditingSnippet: true,
   warnWhenCloningSnippet: true,
   warnWhenClickingReadonlySnippet: true,
-  warnWhenCreatingTabGroup: true,
-  warnWhenOpeningTabGroup: true,
+  warnWhenCreatingWorkspace: true,
+  warnWhenOpeningWorkspace: true,
   warnWhenAgentUsesTerminal: true,
   dismissedRequestEditorNotices: [],
   gitAutoAdd: true,
@@ -179,10 +179,30 @@ function normalizeDismissedRequestEditorNotices(input: unknown): EditorTab[] {
 /**
  * Normalizes a general settings object with defaults for invalid fields.
  *
+ * Accepts legacy `warnWhenCreatingTabGroup` / `warnWhenOpeningTabGroup` keys from
+ * older persisted blobs and maps them onto the renamed workspace fields.
+ *
  * @param input - Raw settings from storage or user input.
  * @returns Normalized settings.
  */
 export function normalizeGeneralSettings(input: Partial<GeneralSettings>): GeneralSettings {
+  const legacy = input as Partial<GeneralSettings> & {
+    warnWhenCreatingTabGroup?: boolean;
+    warnWhenOpeningTabGroup?: boolean;
+  };
+  const warnWhenCreatingWorkspace =
+    typeof legacy.warnWhenCreatingWorkspace === 'boolean'
+      ? legacy.warnWhenCreatingWorkspace
+      : typeof legacy.warnWhenCreatingTabGroup === 'boolean'
+        ? legacy.warnWhenCreatingTabGroup
+        : true;
+  const warnWhenOpeningWorkspace =
+    typeof legacy.warnWhenOpeningWorkspace === 'boolean'
+      ? legacy.warnWhenOpeningWorkspace
+      : typeof legacy.warnWhenOpeningTabGroup === 'boolean'
+        ? legacy.warnWhenOpeningTabGroup
+        : true;
+
   return {
     requestTimeoutMs: normalizeNonNegativeNumber(
       input.requestTimeoutMs,
@@ -218,8 +238,8 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     warnWhenEditingSnippet: input.warnWhenEditingSnippet !== false,
     warnWhenCloningSnippet: input.warnWhenCloningSnippet !== false,
     warnWhenClickingReadonlySnippet: input.warnWhenClickingReadonlySnippet !== false,
-    warnWhenCreatingTabGroup: input.warnWhenCreatingTabGroup !== false,
-    warnWhenOpeningTabGroup: input.warnWhenOpeningTabGroup !== false,
+    warnWhenCreatingWorkspace,
+    warnWhenOpeningWorkspace,
     warnWhenAgentUsesTerminal: input.warnWhenAgentUsesTerminal !== false,
     dismissedRequestEditorNotices: normalizeDismissedRequestEditorNotices(
       input.dismissedRequestEditorNotices

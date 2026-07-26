@@ -14,7 +14,7 @@ import {
   setMenuFiltersVisible,
   setMenuSortingVisible,
   setMenuDesignerUndoRedo,
-  setMenuTabGroupAvailable,
+  setMenuWorkspaceAvailable,
   setMenuSidebarDeselectAllAvailable,
   setMenuGitCollectionActive,
   setMenuThemeMenuState
@@ -114,9 +114,13 @@ export function registerMenuHandlers(): void {
     }
   );
 
-  handle('menu:setTabGroupAvailable', ipcArgSchemas.menuTabGroupAvailable, (_event, available) => {
-    setMenuTabGroupAvailable(available);
-  });
+  handle(
+    'menu:setWorkspaceAvailable',
+    ipcArgSchemas.menuWorkspaceAvailable,
+    (_event, available) => {
+      setMenuWorkspaceAvailable(available);
+    }
+  );
 
   handle(
     'menu:setSidebarDeselectAllAvailable',

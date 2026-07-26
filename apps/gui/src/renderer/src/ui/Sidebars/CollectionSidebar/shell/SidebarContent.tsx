@@ -29,12 +29,12 @@ import {
 } from '#/renderer/src/store/selectors';
 import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
-import { requestCreateTabGroupFromOpenTabs } from '#/renderer/src/store/thunks/tabGroups';
+import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
 import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
 import { RunResults, RunsHeaderActions } from '../RunResults';
-import { TabGroups, TabGroupsHeaderActions } from '../TabGroups';
+import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
 import { Archive, ArchiveHeaderActions } from '../Archive';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
@@ -51,7 +51,7 @@ import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
  * Inner sidebar body rendered inside the sidebar context providers. Composes
  * the panel switcher, search field, section toolbar (visibility toggles, View
  * menu, collapse-all), and the collapsible Collections/Runs/History/Environments/
- * Tab Groups sections. Sections source their own data and actions, so this shell
+ * Workspaces sections. Sections source their own data and actions, so this shell
  * only wires layout and shared UI state.
  */
 export function SidebarContent(): JSX.Element {
@@ -67,14 +67,14 @@ export function SidebarContent(): JSX.Element {
     environmentsSectionExpanded,
     runResultsSectionExpanded,
     historySectionExpanded,
-    tabGroupsSectionExpanded,
+    workspacesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     expandedCollectionIds,
@@ -95,7 +95,7 @@ export function SidebarContent(): JSX.Element {
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
-    toggleTabGroupsSectionVisible,
+    toggleWorkspacesSectionVisible,
     toggleArchiveSectionVisible,
     toggleTrashSectionVisible
   } = useSidebarExpansion();
@@ -173,10 +173,10 @@ export function SidebarContent(): JSX.Element {
       {
         id: 'toggle-tab-groups-section',
         icon: faLayerGroup,
-        label: 'Tab Groups',
-        title: tabGroupsSectionVisible ? 'Hide tab groups section' : 'Show tab groups section',
-        ariaPressed: tabGroupsSectionVisible,
-        onClick: toggleTabGroupsSectionVisible
+        label: 'Workspaces',
+        title: workspacesSectionVisible ? 'Hide workspaces section' : 'Show workspaces section',
+        ariaPressed: workspacesSectionVisible,
+        onClick: toggleWorkspacesSectionVisible
       },
       {
         id: 'toggle-archive-section',
@@ -200,14 +200,14 @@ export function SidebarContent(): JSX.Element {
     collectionsSectionVisible,
     environmentsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     trashSectionVisible,
     runResultsSectionVisible,
     toggleArchiveSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleHistorySectionVisible,
-    toggleTabGroupsSectionVisible,
+    toggleWorkspacesSectionVisible,
     toggleTrashSectionVisible,
     toggleRunResultsSectionVisible
   ]);
@@ -333,16 +333,16 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (tabGroupsSectionVisible) {
+    if (workspacesSectionVisible) {
       result.push({
-        key: 'tabGroups',
-        title: 'Tab Groups',
-        ariaLabel: 'Tab Groups',
-        initialEntered: tabGroupsSectionExpanded,
-        onAdd: () => void dispatch(requestCreateTabGroupFromOpenTabs()),
-        addLabel: 'Add Tab Group',
-        headerActions: <TabGroupsHeaderActions />,
-        children: <TabGroups />
+        key: 'workspaces',
+        title: 'Workspaces',
+        ariaLabel: 'Workspaces',
+        initialEntered: workspacesSectionExpanded,
+        onAdd: () => void dispatch(requestCreateWorkspaceFromOpenTabs()),
+        addLabel: 'Add Workspace',
+        headerActions: <WorkspacesHeaderActions />,
+        children: <Workspaces />
       });
     }
 
@@ -409,8 +409,8 @@ export function SidebarContent(): JSX.Element {
     runResultsSectionVisible,
     runResultsSectionExpanded,
     searchActive,
-    tabGroupsSectionVisible,
-    tabGroupsSectionExpanded,
+    workspacesSectionVisible,
+    workspacesSectionExpanded,
     archiveSectionVisible,
     archiveSectionExpanded,
     trashSectionVisible,

@@ -26,10 +26,36 @@ function getStore(): Store<{ sidebarExpansion: SidebarExpansionState }> {
 
 /**
  * Returns persisted sidebar expansion state.
+ *
+ * Rewrites legacy `tabGroups` keys onto `workspaces` when present so the
+ * on-disk electron-store blob stays current after upgrade.
  */
 export function getSidebarExpansion(): SidebarExpansionState {
   const stored = getStore().get(STORE_KEY, defaultSidebarExpansion());
-  return normalizeSidebarExpansion(stored);
+  const normalized = normalizeSidebarExpansion(stored);
+  const raw =
+    stored && typeof stored === 'object'
+      ? (stored as Partial<SidebarExpansionState> & {
+          sections?: Record<string, unknown>;
+          sectionVisibility?: Record<string, unknown>;
+          sectionSort?: Record<string, unknown>;
+        })
+      : null;
+  const hasLegacy =
+    raw != null &&
+    ((raw.sections != null &&
+      Object.prototype.hasOwnProperty.call(raw.sections, 'tabGroups') &&
+      !Object.prototype.hasOwnProperty.call(raw.sections, 'workspaces')) ||
+      (raw.sectionVisibility != null &&
+        Object.prototype.hasOwnProperty.call(raw.sectionVisibility, 'tabGroups') &&
+        !Object.prototype.hasOwnProperty.call(raw.sectionVisibility, 'workspaces')) ||
+      (raw.sectionSort != null &&
+        Object.prototype.hasOwnProperty.call(raw.sectionSort, 'tabGroups') &&
+        !Object.prototype.hasOwnProperty.call(raw.sectionSort, 'workspaces')));
+  if (hasLegacy) {
+    getStore().set(STORE_KEY, normalized);
+  }
+  return normalized;
 }
 
 /**

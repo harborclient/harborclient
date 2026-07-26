@@ -22,16 +22,31 @@ export {
 const STORE_KEY = 'general';
 
 /**
- * Reads persisted general request settings.
+ * Returns current general settings with defaults applied.
  *
- * @returns Current general settings with defaults applied.
+ * Rewrites legacy `warnWhenCreatingTabGroup` / `warnWhenOpeningTabGroup` keys
+ * onto the workspace field names when present so the SQLite blob stays current
+ * after upgrade.
+ *
+ * @returns Normalized general settings.
  */
 export function getGeneralSettings(): GeneralSettings {
-  const stored = parseJson<Partial<GeneralSettings>>(
-    getLocalDatabase().getSetting(STORE_KEY),
-    DEFAULT_GENERAL_SETTINGS
-  );
-  return normalizeGeneralSettings(stored);
+  const raw = getLocalDatabase().getSetting(STORE_KEY);
+  const stored = parseJson<Partial<GeneralSettings>>(raw, DEFAULT_GENERAL_SETTINGS);
+  const normalized = normalizeGeneralSettings(stored);
+  const legacy = stored as Partial<GeneralSettings> & {
+    warnWhenCreatingTabGroup?: boolean;
+    warnWhenOpeningTabGroup?: boolean;
+  };
+  const hasLegacy =
+    (Object.prototype.hasOwnProperty.call(legacy, 'warnWhenCreatingTabGroup') &&
+      !Object.prototype.hasOwnProperty.call(legacy, 'warnWhenCreatingWorkspace')) ||
+    (Object.prototype.hasOwnProperty.call(legacy, 'warnWhenOpeningTabGroup') &&
+      !Object.prototype.hasOwnProperty.call(legacy, 'warnWhenOpeningWorkspace'));
+  if (hasLegacy) {
+    getLocalDatabase().setSetting(STORE_KEY, JSON.stringify(normalized));
+  }
+  return normalized;
 }
 
 /**

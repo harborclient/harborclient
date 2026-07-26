@@ -17,7 +17,7 @@ interface Props {
 }
 
 /**
- * Owns session-only filters for the Collections, Runs, History, Tab Groups,
+ * Owns session-only filters for the Collections, Runs, History, Workspaces,
  * Environments, and Archive sidebar sections so their headers and lists can
  * share the same selection without prop drilling.
  */
@@ -26,7 +26,7 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
     useState<CollectionsFilterCriteria>(EMPTY_COLLECTIONS_FILTER);
   const [runsCollectionFilter, setRunsCollectionFilter] = useState<string | null>(null);
   const [historyCollectionFilter, setHistoryCollectionFilter] = useState<number | null>(null);
-  const [tabGroupsMarkerFilter, setTabGroupsMarkerFilter] = useState<string | null>(null);
+  const [workspacesMarkerFilter, setWorkspacesMarkerFilter] = useState<string | null>(null);
   const [environmentsMarkerFilter, setEnvironmentsMarkerFilter] = useState<string | null>(null);
   const [archiveMarkerFilter, setArchiveMarkerFilter] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
     setCollectionsFilter(EMPTY_COLLECTIONS_FILTER);
     setRunsCollectionFilter(null);
     setHistoryCollectionFilter(null);
-    setTabGroupsMarkerFilter(null);
+    setWorkspacesMarkerFilter(null);
     setEnvironmentsMarkerFilter(null);
     setArchiveMarkerFilter(null);
   }, []);
@@ -62,8 +62,8 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
       setRunsCollectionFilter,
       historyCollectionFilter,
       setHistoryCollectionFilter,
-      tabGroupsMarkerFilter,
-      setTabGroupsMarkerFilter,
+      workspacesMarkerFilter,
+      setWorkspacesMarkerFilter,
       environmentsMarkerFilter,
       setEnvironmentsMarkerFilter,
       archiveMarkerFilter,
@@ -77,7 +77,7 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
       environmentsMarkerFilter,
       historyCollectionFilter,
       runsCollectionFilter,
-      tabGroupsMarkerFilter
+      workspacesMarkerFilter
     ]
   );
 

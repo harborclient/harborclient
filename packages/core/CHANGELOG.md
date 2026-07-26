@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rename Tab Groups to Workspaces (`TabGroup` → `Workspace`, export kind `workspace`). Breaking type rename; requires a major release.
 - Refactor sidebar color handling to markers. (`6f53f3d7`)
 - Add Filters and Sorting Options to Sidebar Menu. (`d17dea07`)
 - Enhance menu functionality and visibility options. (`89cf8584`)

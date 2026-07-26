@@ -368,30 +368,30 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenClosingUnsavedRequests).toBe(false);
   });
 
-  it('defaults warnWhenCreatingTabGroup to true when unset', () => {
-    expect(getGeneralSettings().warnWhenCreatingTabGroup).toBe(true);
+  it('defaults warnWhenCreatingWorkspace to true when unset', () => {
+    expect(getGeneralSettings().warnWhenCreatingWorkspace).toBe(true);
   });
 
-  it('persists warnWhenCreatingTabGroup false', () => {
+  it('persists warnWhenCreatingWorkspace false', () => {
     setGeneralSettings({
       ...DEFAULT_GENERAL_SETTINGS,
-      warnWhenCreatingTabGroup: false
+      warnWhenCreatingWorkspace: false
     });
 
-    expect(getGeneralSettings().warnWhenCreatingTabGroup).toBe(false);
+    expect(getGeneralSettings().warnWhenCreatingWorkspace).toBe(false);
   });
 
-  it('defaults warnWhenOpeningTabGroup to true when unset', () => {
-    expect(getGeneralSettings().warnWhenOpeningTabGroup).toBe(true);
+  it('defaults warnWhenOpeningWorkspace to true when unset', () => {
+    expect(getGeneralSettings().warnWhenOpeningWorkspace).toBe(true);
   });
 
-  it('persists warnWhenOpeningTabGroup false', () => {
+  it('persists warnWhenOpeningWorkspace false', () => {
     setGeneralSettings({
       ...DEFAULT_GENERAL_SETTINGS,
-      warnWhenOpeningTabGroup: false
+      warnWhenOpeningWorkspace: false
     });
 
-    expect(getGeneralSettings().warnWhenOpeningTabGroup).toBe(false);
+    expect(getGeneralSettings().warnWhenOpeningWorkspace).toBe(false);
   });
 
   it('defaults warnWhenClickingReadonlySnippet to true when unset', () => {

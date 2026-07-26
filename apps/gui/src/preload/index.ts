@@ -101,11 +101,11 @@ import type {
   Variable,
   KeyValue,
   RequestHistoryEntry,
-  CreateTabGroupInput,
-  TabGroup,
+  CreateWorkspaceInput,
+  Workspace,
   TrashEntityType,
   TrashItem,
-  TabGroupRequest
+  WorkspaceRequest
 } from '@harborclient/core/types';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
 import type {
@@ -353,84 +353,84 @@ function deleteRequestHistory(id: number): Promise<RequestHistoryEntry[]> {
 }
 
 /**
- * Lists persisted tab groups via IPC.
+ * Lists persisted workspaces via IPC.
  */
-function listTabGroups(): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:list');
+function listWorkspaces(): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:list');
 }
 
 /**
- * Creates a tab group and returns the refreshed list.
+ * Creates a workspace and returns the refreshed list.
  *
  * @param input - Group name and ordered request members.
  */
-function createTabGroup(input: CreateTabGroupInput): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:create', input);
+function createWorkspace(input: CreateWorkspaceInput): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:create', input);
 }
 
 /**
- * Replaces tab group members and returns the refreshed list.
+ * Replaces workspace members and returns the refreshed list.
  *
- * @param id - Tab group id.
+ * @param id - Workspace id.
  * @param requests - Ordered saved request members.
  */
-function updateTabGroup(id: number, requests: TabGroupRequest[]): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:update', id, requests);
+function updateWorkspace(id: number, requests: WorkspaceRequest[]): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:update', id, requests);
 }
 
 /**
- * Renames a tab group and returns the refreshed list.
+ * Renames a workspace and returns the refreshed list.
  *
- * @param id - Tab group id.
+ * @param id - Workspace id.
  * @param name - New display name.
  */
-function renameTabGroup(id: number, name: string): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:rename', id, name);
+function renameWorkspace(id: number, name: string): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:rename', id, name);
 }
 
 /**
- * Clones a tab group and returns the refreshed list.
+ * Clones a workspace and returns the refreshed list.
  *
- * @param id - Source tab group id.
+ * @param id - Source workspace id.
  * @param name - Name for the cloned group.
  */
-function cloneTabGroup(id: number, name: string): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:clone', id, name);
+function cloneWorkspace(id: number, name: string): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:clone', id, name);
 }
 
 /**
- * Deletes a tab group and returns the refreshed list.
+ * Deletes a workspace and returns the refreshed list.
  *
- * @param id - Tab group id.
+ * @param id - Workspace id.
  */
-function deleteTabGroup(id: number): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:delete', id);
+function deleteWorkspace(id: number): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:delete', id);
 }
 
 /**
- * Persists a new sidebar order for tab groups and returns the refreshed list.
+ * Persists a new sidebar order for workspaces and returns the refreshed list.
  *
- * @param orderedTabGroupIds - Tab group ids in desired order.
+ * @param orderedWorkspaceIds - Workspace ids in desired order.
  */
-function reorderTabGroups(orderedTabGroupIds: number[]): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:reorder', orderedTabGroupIds);
+function reorderWorkspaces(orderedWorkspaceIds: number[]): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:reorder', orderedWorkspaceIds);
 }
 
 /**
- * Updates a tab group sidebar marker and returns the refreshed list.
+ * Updates a workspace sidebar marker and returns the refreshed list.
  *
- * @param id - Tab group id.
+ * @param id - Workspace id.
  * @param marker - CSS marker string, or null to clear.
  */
-function setTabGroupMarker(id: number, marker: string | null): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:setMarker', id, marker);
+function setWorkspaceMarker(id: number, marker: string | null): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:setMarker', id, marker);
 }
 
 /**
- * Imports a tab group from a JSON file via IPC.
+ * Imports a workspace from a JSON file via IPC.
  */
-function importTabGroup(): Promise<TabGroup[] | null> {
-  return ipcRenderer.invoke('tabGroups:import');
+function importWorkspace(): Promise<Workspace[] | null> {
+  return ipcRenderer.invoke('workspaces:import');
 }
 
 /**
@@ -1240,8 +1240,8 @@ function setMenuDesignerUndoRedo(
  *
  * @param available - Whether at least one saved request tab is open.
  */
-function setTabGroupAvailable(available: boolean): Promise<void> {
-  return ipcRenderer.invoke('menu:setTabGroupAvailable', available);
+function setWorkspaceAvailable(available: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setWorkspaceAvailable', available);
 }
 
 /**
@@ -3939,15 +3939,15 @@ const api: Api = {
   addRequestHistory,
   clearRequestHistory,
   deleteRequestHistory,
-  listTabGroups,
-  createTabGroup,
-  updateTabGroup,
-  renameTabGroup,
-  cloneTabGroup,
-  deleteTabGroup,
-  reorderTabGroups,
-  setTabGroupMarker,
-  importTabGroup,
+  listWorkspaces,
+  createWorkspace,
+  updateWorkspace,
+  renameWorkspace,
+  cloneWorkspace,
+  deleteWorkspace,
+  reorderWorkspaces,
+  setWorkspaceMarker,
+  importWorkspace,
   listTrashItems,
   restoreTrashItem,
   permanentlyDeleteTrashItem,
@@ -4023,7 +4023,7 @@ const api: Api = {
   setMenuSortingVisible,
   setMenuThemeMenuState,
   setMenuDesignerUndoRedo,
-  setTabGroupAvailable,
+  setWorkspaceAvailable,
   setSidebarDeselectAllAvailable,
   setMenuGitCollectionActive,
   onMenuSelectTheme,

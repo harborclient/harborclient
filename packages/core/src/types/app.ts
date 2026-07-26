@@ -57,7 +57,7 @@ export type MenuActionId =
   | 'action-menu'
   | 'undo'
   | 'redo'
-  | 'create-tab-group'
+  | 'create-workspace'
   | 'deselect-all-sidebar'
   | 'format-markdown-document'
   | 'new-collection-git'

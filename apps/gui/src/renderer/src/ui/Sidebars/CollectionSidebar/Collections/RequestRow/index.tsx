@@ -113,9 +113,9 @@ interface Props {
   onOpenSelected: () => void;
 
   /**
-   * Creates a tab group from the current multi-selection.
+   * Creates a workspace from the current multi-selection.
    */
-  onNewTabGroupFromSelected: () => void;
+  onNewWorkspaceFromSelected: () => void;
 
   /**
    * Deletes every request in the current multi-selection.
@@ -167,7 +167,7 @@ export function RequestRow({
   onCopyToChat,
   onRunSelected,
   onOpenSelected,
-  onNewTabGroupFromSelected,
+  onNewWorkspaceFromSelected,
   onDeleteSelected,
   dragDisabled = false,
   gitItemStatus,
@@ -229,7 +229,7 @@ export function RequestRow({
             onCopyToChat={onCopyToChat}
             onRunSelected={onRunSelected}
             onOpenSelected={onOpenSelected}
-            onNewTabGroupFromSelected={onNewTabGroupFromSelected}
+            onNewWorkspaceFromSelected={onNewWorkspaceFromSelected}
             onDeleteSelected={onDeleteSelected}
             gitItemStatus={gitItemStatus}
             onGitStageItem={onGitStageItem}

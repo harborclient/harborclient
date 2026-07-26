@@ -5,7 +5,7 @@ const DEFAULT_SECTIONS = {
   environments: true,
   runResults: true,
   history: true,
-  tabGroups: true,
+  workspaces: true,
   archive: true,
   trash: true
 } as const;
@@ -15,7 +15,7 @@ const DEFAULT_SECTION_VISIBILITY = {
   environments: true,
   runResults: true,
   history: true,
-  tabGroups: true,
+  workspaces: true,
   archive: false,
   trash: false
 } as const;
@@ -25,7 +25,7 @@ const DEFAULT_SECTION_SORT: Record<SidebarSectionKey, SidebarSortMode> = {
   environments: 'default',
   runResults: 'default',
   history: 'default',
-  tabGroups: 'default',
+  workspaces: 'default',
   archive: 'default',
   trash: 'default'
 };
@@ -35,7 +35,7 @@ const SIDEBAR_SECTION_KEYS: readonly SidebarSectionKey[] = [
   'environments',
   'runResults',
   'history',
-  'tabGroups',
+  'workspaces',
   'archive',
   'trash'
 ];
@@ -112,16 +112,34 @@ function isSidebarSortMode(value: unknown): value is SidebarSortMode {
 }
 
 /**
+ * Reads a boolean section preference, preferring the renamed `workspaces` key and
+ * falling back to the legacy `tabGroups` key from older persisted blobs.
+ *
+ * @param raw - Partial sections or sectionVisibility object.
+ * @param fallback - Default when neither key is a boolean.
+ */
+function readWorkspacesBoolean(
+  raw: Partial<Record<string, unknown>> | undefined,
+  fallback: boolean
+): boolean {
+  if (raw && typeof raw.workspaces === 'boolean') {
+    return raw.workspaces;
+  }
+  if (raw && typeof raw.tabGroups === 'boolean') {
+    return raw.tabGroups;
+  }
+  return fallback;
+}
+
+/**
  * Normalizes persisted per-section sort modes, falling back to defaults for
- * missing or unknown values.
+ * missing or unknown values. Accepts the legacy `tabGroups` key as an alias for
+ * `workspaces`.
  *
  * @param value - Raw stored sectionSort object.
  */
 function normalizeSectionSort(value: unknown): Record<SidebarSectionKey, SidebarSortMode> {
-  const raw =
-    value && typeof value === 'object'
-      ? (value as Partial<Record<SidebarSectionKey, unknown>>)
-      : {};
+  const raw = value && typeof value === 'object' ? (value as Partial<Record<string, unknown>>) : {};
   const result = { ...DEFAULT_SECTION_SORT };
 
   for (const key of SIDEBAR_SECTION_KEYS) {
@@ -131,11 +149,18 @@ function normalizeSectionSort(value: unknown): Record<SidebarSectionKey, Sidebar
     }
   }
 
+  if (!isSidebarSortMode(raw.workspaces) && isSidebarSortMode(raw.tabGroups)) {
+    result.workspaces = raw.tabGroups;
+  }
+
   return result;
 }
 
 /**
  * Normalizes persisted sidebar expansion state from electron-store.
+ *
+ * Accepts legacy `tabGroups` keys in sections, sectionVisibility, and sectionSort
+ * and maps them onto the renamed `workspaces` fields.
  *
  * @param value - Raw stored value.
  */
@@ -145,8 +170,8 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
   }
 
   const raw = value as Partial<SidebarExpansionState>;
-  const sectionsRaw = raw.sections;
-  const visibilityRaw = raw.sectionVisibility;
+  const sectionsRaw = raw.sections as Partial<Record<string, unknown>> | undefined;
+  const visibilityRaw = raw.sectionVisibility as Partial<Record<string, unknown>> | undefined;
 
   return {
     sections: {
@@ -166,10 +191,7 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
         sectionsRaw && typeof sectionsRaw.history === 'boolean'
           ? sectionsRaw.history
           : DEFAULT_SECTIONS.history,
-      tabGroups:
-        sectionsRaw && typeof sectionsRaw.tabGroups === 'boolean'
-          ? sectionsRaw.tabGroups
-          : DEFAULT_SECTIONS.tabGroups,
+      workspaces: readWorkspacesBoolean(sectionsRaw, DEFAULT_SECTIONS.workspaces),
       archive:
         sectionsRaw && typeof sectionsRaw.archive === 'boolean'
           ? sectionsRaw.archive
@@ -196,10 +218,7 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
         visibilityRaw && typeof visibilityRaw.history === 'boolean'
           ? visibilityRaw.history
           : DEFAULT_SECTION_VISIBILITY.history,
-      tabGroups:
-        visibilityRaw && typeof visibilityRaw.tabGroups === 'boolean'
-          ? visibilityRaw.tabGroups
-          : DEFAULT_SECTION_VISIBILITY.tabGroups,
+      workspaces: readWorkspacesBoolean(visibilityRaw, DEFAULT_SECTION_VISIBILITY.workspaces),
       archive:
         visibilityRaw && typeof visibilityRaw.archive === 'boolean'
           ? visibilityRaw.archive

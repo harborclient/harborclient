@@ -11,7 +11,7 @@ import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
 import settingsDraftReducer from '#/renderer/src/store/slices/settingsDraftSlice';
 import runResultsReducer from '#/renderer/src/store/slices/runResultsSlice';
 import requestHistoryReducer from '#/renderer/src/store/slices/requestHistorySlice';
-import tabGroupsReducer from '#/renderer/src/store/slices/tabGroupSlice';
+import workspacesReducer from '#/renderer/src/store/slices/workspaceSlice';
 import trashReducer from '#/renderer/src/store/slices/trashSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardSlice';
@@ -37,7 +37,7 @@ export const store = configureStore({
     scriptClipboard: scriptClipboardReducer,
     runResults: runResultsReducer,
     requestHistory: requestHistoryReducer,
-    tabGroups: tabGroupsReducer,
+    workspaces: workspacesReducer,
     trash: trashReducer,
     aiChat: aiChatReducer,
     terminals: terminalsReducer,

@@ -21,8 +21,8 @@ export function trashEntityTypeLabel(entityType: TrashEntityType): string {
       return 'History';
     case 'environment':
       return 'Environment';
-    case 'tabGroup':
-      return 'Tab group';
+    case 'workspace':
+      return 'Workspace';
     default:
       return 'Item';
   }

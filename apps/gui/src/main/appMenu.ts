@@ -21,7 +21,7 @@ let pluginThemeOptions: ThemeMenuOption[] = [];
 let designerUndoRedoActive = false;
 let designerCanUndo = false;
 let designerCanRedo = false;
-let tabGroupAvailable = false;
+let workspaceAvailable = false;
 let sidebarDeselectAllAvailable = false;
 let gitCollectionActive = false;
 
@@ -308,15 +308,15 @@ export function setMenuDesignerUndoRedo(active: boolean, canUndo: boolean, canRe
 }
 
 /**
- * Updates the File menu New Tab Group item and rebuilds when the value changes.
+ * Updates the File menu New Workspace item and rebuilds when the value changes.
  *
  * @param available - Whether at least one saved request tab is open.
  */
-export function setMenuTabGroupAvailable(available: boolean): void {
-  if (tabGroupAvailable === available) {
+export function setMenuWorkspaceAvailable(available: boolean): void {
+  if (workspaceAvailable === available) {
     return;
   }
-  tabGroupAvailable = available;
+  workspaceAvailable = available;
   rebuildAppMenu();
 }
 
@@ -383,7 +383,7 @@ export function rebuildAppMenu(): void {
       designerUndoRedoActive,
       designerCanUndo,
       designerCanRedo,
-      tabGroupAvailable,
+      workspaceAvailable,
       sidebarDeselectAllAvailable,
       gitCollectionActive
     )

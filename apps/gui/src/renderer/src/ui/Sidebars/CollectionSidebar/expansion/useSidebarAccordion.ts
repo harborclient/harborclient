@@ -41,21 +41,21 @@ export function useSidebarAccordion(): Result {
     environmentsSectionExpanded,
     runResultsSectionExpanded,
     historySectionExpanded,
-    tabGroupsSectionExpanded,
+    workspacesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
-    setTabGroupsSectionExpanded,
+    setWorkspacesSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     archiveSectionVisible,
     trashSectionVisible
   } = useSidebarExpansion();
@@ -88,8 +88,8 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
-      if (key === 'tabGroups') {
-        setTabGroupsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+      if (key === 'workspaces') {
+        setWorkspacesSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
       }
 
@@ -116,7 +116,7 @@ export function useSidebarAccordion(): Result {
       setEnvironmentsSectionExpanded,
       setRunResultsSectionExpanded,
       setHistorySectionExpanded,
-      setTabGroupsSectionExpanded,
+      setWorkspacesSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
@@ -144,8 +144,8 @@ export function useSidebarAccordion(): Result {
       desiredExpansion.history = historySectionExpanded;
     }
 
-    if (tabGroupsSectionVisible) {
-      desiredExpansion.tabGroups = tabGroupsSectionExpanded;
+    if (workspacesSectionVisible) {
+      desiredExpansion.workspaces = workspacesSectionExpanded;
     }
 
     if (archiveSectionVisible) {
@@ -166,14 +166,14 @@ export function useSidebarAccordion(): Result {
     environmentsSectionExpanded,
     runResultsSectionExpanded,
     historySectionExpanded,
-    tabGroupsSectionExpanded,
+    workspacesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     pluginSectionExpanded,
@@ -191,7 +191,7 @@ export function useSidebarAccordion(): Result {
     setEnvironmentsSectionExpanded(false);
     setRunResultsSectionExpanded(false);
     setHistorySectionExpanded(false);
-    setTabGroupsSectionExpanded(false);
+    setWorkspacesSectionExpanded(false);
     setArchiveSectionExpanded(false);
     setTrashSectionExpanded(false);
 
@@ -214,7 +214,7 @@ export function useSidebarAccordion(): Result {
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
-    setTabGroupsSectionExpanded,
+    setWorkspacesSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded
   ]);

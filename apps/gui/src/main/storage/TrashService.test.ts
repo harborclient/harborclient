@@ -54,21 +54,21 @@ describeSqlite('TrashService registry entities', () => {
     expect(trash.listTrashItems()).toEqual([]);
   });
 
-  it('moves a tab group to trash and restores it', async () => {
+  it('moves a workspace to trash and restores it', async () => {
     const { database } = await createRegistry();
-    const groups = database.createTabGroup({
+    const groups = database.createWorkspace({
       name: 'Morning',
       requests: [{ requestUuid: 'req-1', requestName: 'Health', collectionId: 1 }]
     });
-    const tabGroupId = groups[0]!.id;
+    const workspaceId = groups[0]!.id;
 
     const trash = new TrashService({} as IStorage, database);
-    trash.moveTabGroupToTrash(tabGroupId);
+    trash.moveWorkspaceToTrash(workspaceId);
 
-    expect(database.listTabGroups()).toEqual([]);
+    expect(database.listWorkspaces()).toEqual([]);
     await trash.restoreTrashItem(trash.listTrashItems()[0]!.id);
 
-    expect(database.listTabGroups()).toEqual([
+    expect(database.listWorkspaces()).toEqual([
       expect.objectContaining({
         name: 'Morning',
         requests: [

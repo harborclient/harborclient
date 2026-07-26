@@ -21,7 +21,7 @@ export const TitleOnly: Story = {
 export const WithDescription: Story = {
   args: {
     title: 'Environment variables',
-    description: 'Manage variables scoped to this workspace.'
+    description: 'Manage variables scoped to this environment.'
   }
 };
 

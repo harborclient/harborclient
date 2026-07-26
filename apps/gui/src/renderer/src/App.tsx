@@ -55,7 +55,7 @@ import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
-import { TabGroupModal } from '#/renderer/src/ui/Modals/TabGroupModal';
+import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
 import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
 import { HostedModalOverlay } from '#/renderer/src/ui/HostedModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/Modals/ShareModal';
@@ -78,7 +78,7 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
-import { TabGroupEditBar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/TabGroups/TabGroupEditBar';
+import { WorkspaceEditBar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Workspaces/WorkspaceEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
@@ -305,7 +305,7 @@ export default function App(): JSX.Element {
       responseEditorVisible,
       aiSidebarVisible,
       gitSidebarVisible,
-      isRequestWorkspace: activeTab != null && isRequestTab(activeTab)
+      isRequestTab: activeTab != null && isRequestTab(activeTab)
     };
   }, [
     activeTab,
@@ -446,7 +446,7 @@ export default function App(): JSX.Element {
                 </div>
               </SidebarModalsProvider>
 
-              <TabGroupEditBar />
+              <WorkspaceEditBar />
 
               <Footer
                 consoleOpen={showConsole}
@@ -476,7 +476,7 @@ export default function App(): JSX.Element {
               />
 
               <CollectionModal />
-              <TabGroupModal />
+              <WorkspaceModal />
               <ShareModal />
               <UnsavedLoadPrompt />
               <QuitPrompt />

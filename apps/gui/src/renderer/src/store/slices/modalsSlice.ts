@@ -272,16 +272,16 @@ export interface PendingLoadDocument {
   reason: 'settings';
 }
 
-export type TabGroupModalMode = 'create' | 'rename' | 'clone' | 'createFromSelection';
+export type WorkspaceModalMode = 'create' | 'rename' | 'clone' | 'createFromSelection';
 
 /**
- * Tab group modal state for create, rename, and clone flows.
+ * Workspace modal state for create, rename, and clone flows.
  */
-export interface TabGroupModalState {
-  mode: TabGroupModalMode;
+export interface WorkspaceModalState {
+  mode: WorkspaceModalMode;
   groupId?: number;
   /**
-   * Saved request ids used when creating a tab group from a sidebar selection.
+   * Saved request ids used when creating a workspace from a sidebar selection.
    */
   requestIds?: number[];
   name: string;
@@ -290,7 +290,7 @@ export interface TabGroupModalState {
 
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
-  tabGroupModal: TabGroupModalState | null;
+  workspaceModal: WorkspaceModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
   pendingLoadDocument: PendingLoadDocument | null;
@@ -311,7 +311,7 @@ export interface ModalsState {
 
 const initialState: ModalsState = {
   collectionModal: null,
-  tabGroupModal: null,
+  workspaceModal: null,
   share: null,
   pendingLoadRequest: null,
   pendingLoadDocument: null,
@@ -360,18 +360,18 @@ const modalsSlice = createSlice({
       state.collectionModal = null;
     },
     /**
-     * Opens the tab group modal for create, rename, or clone.
+     * Opens the workspace modal for create, rename, or clone.
      */
-    openTabGroupModal(
+    openWorkspaceModal(
       state,
       action: PayloadAction<{
-        mode: TabGroupModalMode;
+        mode: WorkspaceModalMode;
         groupId?: number;
         requestIds?: number[];
         name?: string;
       }>
     ) {
-      state.tabGroupModal = {
+      state.workspaceModal = {
         mode: action.payload.mode,
         groupId: action.payload.groupId,
         requestIds: action.payload.requestIds,
@@ -380,26 +380,26 @@ const modalsSlice = createSlice({
       };
     },
     /**
-     * Closes the tab group modal.
+     * Closes the workspace modal.
      */
-    closeTabGroupModal(state) {
-      state.tabGroupModal = null;
+    closeWorkspaceModal(state) {
+      state.workspaceModal = null;
     },
     /**
-     * Updates the tab group name field in the modal.
+     * Updates the workspace name field in the modal.
      */
-    setTabGroupModalName(state, action: PayloadAction<string>) {
-      if (state.tabGroupModal) {
-        state.tabGroupModal.name = action.payload;
-        state.tabGroupModal.submitError = null;
+    setWorkspaceModalName(state, action: PayloadAction<string>) {
+      if (state.workspaceModal) {
+        state.workspaceModal.name = action.payload;
+        state.workspaceModal.submitError = null;
       }
     },
     /**
-     * Sets an inline submit error on the tab group modal.
+     * Sets an inline submit error on the workspace modal.
      */
-    setTabGroupModalSubmitError(state, action: PayloadAction<string | null>) {
-      if (state.tabGroupModal) {
-        state.tabGroupModal.submitError = action.payload;
+    setWorkspaceModalSubmitError(state, action: PayloadAction<string | null>) {
+      if (state.workspaceModal) {
+        state.workspaceModal.submitError = action.payload;
       }
     },
     /**
@@ -1051,10 +1051,10 @@ export const {
   openActionMenuModal,
   closeActionMenuModal,
   setHostedModal,
-  openTabGroupModal,
-  closeTabGroupModal,
-  setTabGroupModalName,
-  setTabGroupModalSubmitError
+  openWorkspaceModal,
+  closeWorkspaceModal,
+  setWorkspaceModalName,
+  setWorkspaceModalSubmitError
 } = modalsSlice.actions;
 
 /**
@@ -1064,10 +1064,10 @@ export const selectCollectionModal = (state: RootState): CollectionModalState | 
   state.modals.collectionModal;
 
 /**
- * Returns tab group modal state when open.
+ * Returns workspace modal state when open.
  */
-export const selectTabGroupModal = (state: RootState): TabGroupModalState | null =>
-  state.modals.tabGroupModal;
+export const selectWorkspaceModal = (state: RootState): WorkspaceModalState | null =>
+  state.modals.workspaceModal;
 
 /**
  * Returns share modal state when open.
@@ -1157,7 +1157,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   const modals = state.modals;
   return (
     modals.collectionModal != null ||
-    modals.tabGroupModal != null ||
+    modals.workspaceModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||
     modals.pendingLoadDocument != null ||

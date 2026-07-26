@@ -4,7 +4,7 @@ import type { CustomTheme } from './customTheme';
 import type { Environment } from './environment';
 import type { SavedRequest } from './request';
 import type { Snippet } from './snippet';
-import type { TabGroup } from './tabGroup';
+import type { Workspace } from './workspace';
 import type { ScriptRef } from './script';
 import type { BodyType, HttpMethod, KeyValue, Variable } from './common';
 
@@ -650,7 +650,7 @@ export type ImportEntityResult =
   | { kind: 'collection'; collection: Collection; action: ImportAction }
   | { kind: 'request'; request: SavedRequest; action: ImportAction }
   | { kind: 'environment'; environment: Environment; action: ImportAction }
-  | { kind: 'tab_group'; tabGroups: TabGroup[]; action: ImportAction }
+  | { kind: 'workspace'; workspaces: Workspace[]; action: ImportAction }
   | { kind: 'snippet'; snippet: Snippet; action: ImportAction }
   | { kind: 'theme'; theme: CustomTheme; action: ImportAction }
   | { kind: 'run-results'; data: RunResultsExport }

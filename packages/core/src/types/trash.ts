@@ -9,7 +9,7 @@ export type TrashEntityType =
   | 'runResult'
   | 'history'
   | 'environment'
-  | 'tabGroup';
+  | 'workspace';
 
 /**
  * A snapshot row stored in the registry trash table.

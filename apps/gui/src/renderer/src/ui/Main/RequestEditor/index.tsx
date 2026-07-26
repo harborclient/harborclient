@@ -20,7 +20,7 @@ import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands'
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
-import { selectEditSessionHiddenTabIds } from '#/renderer/src/store/slices/tabGroupSlice';
+import { selectEditSessionHiddenTabIds } from '#/renderer/src/store/slices/workspaceSlice';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import {
   selectActiveEnvironmentId,
@@ -168,7 +168,7 @@ function mergeVariables(
 }
 
 /**
- * Request workspace: tab bar, editor, and response viewer.
+ * Request editor: tab bar, editor, and response viewer.
  */
 export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -177,7 +177,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const editSessionHiddenTabIds = useAppSelector(selectEditSessionHiddenTabIds);
 
   /**
-   * Tab ids hidden from the tab bar during tab group edit mode.
+   * Tab ids hidden from the tab bar during workspace edit mode.
    */
   const hiddenTabIds = useMemo(() => new Set(editSessionHiddenTabIds), [editSessionHiddenTabIds]);
 
@@ -213,11 +213,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const showSplitLayout = showRequestEditor && showResponseEditor;
 
   /**
-   * Keeps the native File menu New Tab Group item in sync with open saved request tabs.
+   * Keeps the native File menu New Workspace item in sync with open saved request tabs.
    */
   useEffect(() => {
     const hasOpenSavedRequests = tabs.some((tab) => isRequestTab(tab) && tab.draft.id != null);
-    void window.api.setTabGroupAvailable(hasOpenSavedRequests);
+    void window.api.setWorkspaceAvailable(hasOpenSavedRequests);
   }, [tabs]);
 
   /**

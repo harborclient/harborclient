@@ -183,7 +183,7 @@ export const WrapsWhenNarrow: Story = {
       { id: 'runs', icon: faPlay, label: 'Runs', onClick: fn() },
       { id: 'history', icon: faClockRotateLeft, label: 'History', onClick: fn() },
       { id: 'environments', icon: faGlobe, label: 'Environments', onClick: fn() },
-      { id: 'tab-groups', icon: faLayerGroup, label: 'Tab groups', onClick: fn() },
+      { id: 'workspaces', icon: faLayerGroup, label: 'Workspaces', onClick: fn() },
       { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() }
     ],
     toggles: [

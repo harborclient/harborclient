@@ -582,7 +582,7 @@ export function extractSavedRunMetadata(payload: RunResultsExport): {
  * Resolves local collection and request ids from portable uuids in an import file.
  *
  * @param data - Parsed run-results export from disk.
- * @param collections - Collections currently loaded in the workspace.
+ * @param collections - Collections currently loaded in the app.
  * @param requestsByCollection - Saved requests keyed by collection id.
  * @returns Local ids when matches exist, or detached placeholders when not found.
  */

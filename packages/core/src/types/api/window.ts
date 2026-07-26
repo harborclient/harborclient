@@ -119,7 +119,7 @@ export interface ApiWindow {
    *
    * @param available - Whether at least one saved request tab is open.
    */
-  setTabGroupAvailable: (available: boolean) => Promise<void>;
+  setWorkspaceAvailable: (available: boolean) => Promise<void>;
   /**
    * Syncs collections sidebar deselect availability to the Edit menu in the main process.
    *

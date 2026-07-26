@@ -7,13 +7,13 @@ export const DEFAULT_HEIGHT = 280;
 export const MIN_HEIGHT = 120;
 
 /**
- * Resolves the main workspace row above the footer for max-height measurement.
+ * Resolves the main content row above the footer for max-height measurement.
  *
  * Prefers the flex row wrapping `#main-content` so measurement stays correct
- * when the app shell includes skip links or other elements before the workspace.
+ * when the app shell includes skip links or other elements before the main content area.
  *
  * @param containerRef - Ref attached to the panel root element.
- * @returns Workspace row element, if found.
+ * @returns Main content row element, if found.
  */
 function resolveFooterPanelContentArea(
   containerRef: RefObject<HTMLDivElement | null>
@@ -41,7 +41,7 @@ function resolveFooterPanelContentArea(
  * Computes the maximum height for a footer slide-up panel from the main content area.
  *
  * Walks from the panel container up to the app shell and measures the flex row
- * above the footer so panels cannot grow past the usable workspace.
+ * above the footer so panels cannot grow past the usable main content area.
  *
  * @param containerRef - Ref attached to the panel root element.
  * @returns Maximum panel height in pixels.

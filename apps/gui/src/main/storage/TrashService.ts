@@ -4,14 +4,14 @@ import type { IStorage } from './IStorage';
 import { RoutingStorage } from './RoutingStorage';
 import type {
   CollectionDocument,
-  CreateTabGroupInput,
+  CreateWorkspaceInput,
   Environment,
   Folder,
   RequestHistoryEntry,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
-  TabGroup
+  Workspace
 } from '@harborclient/core/types';
 import type {
   InsertTrashItemInput,
@@ -203,8 +203,8 @@ export class TrashService {
       case 'environment':
         await this.restoreEnvironment(item);
         break;
-      case 'tabGroup':
-        await this.restoreTabGroup(item);
+      case 'workspace':
+        await this.restoreWorkspace(item);
         break;
       default:
         throw new Error(`Unsupported trash entity type: ${String(item.entityType)}`);
@@ -418,23 +418,23 @@ export class TrashService {
   }
 
   /**
-   * Snapshots a tab group and deletes it.
+   * Snapshots a workspace and deletes it.
    *
-   * @param id - Tab group id.
+   * @param id - Workspace id.
    */
-  moveTabGroupToTrash(id: number): void {
-    const tabGroup = this.database.listTabGroups().find((group) => group.id === id);
-    if (!tabGroup) {
-      throw new Error(`Tab group ${id} not found`);
+  moveWorkspaceToTrash(id: number): void {
+    const workspace = this.database.listWorkspaces().find((group) => group.id === id);
+    if (!workspace) {
+      throw new Error(`Workspace ${id} not found`);
     }
 
-    this.database.deleteTabGroup(id);
+    this.database.deleteWorkspace(id);
 
     this.database.insertTrashItem({
-      entityType: 'tabGroup',
-      label: tabGroup.name,
-      originalIds: { tabGroupId: id },
-      payload: { tabGroup }
+      entityType: 'workspace',
+      label: workspace.name,
+      originalIds: { workspaceId: id },
+      payload: { workspace }
     });
   }
 
@@ -589,17 +589,17 @@ export class TrashService {
   }
 
   /**
-   * Restores a tab group and its member requests.
+   * Restores a workspace and its member requests.
    *
    * @param item - Trash snapshot row.
    */
-  private restoreTabGroup(item: TrashItem): void {
-    const payload = item.payload as { tabGroup: TabGroup };
-    const input: CreateTabGroupInput = {
-      name: payload.tabGroup.name,
-      requests: payload.tabGroup.requests.map((request) => ({ ...request }))
+  private restoreWorkspace(item: TrashItem): void {
+    const payload = item.payload as { workspace: Workspace };
+    const input: CreateWorkspaceInput = {
+      name: payload.workspace.name,
+      requests: payload.workspace.requests.map((request) => ({ ...request }))
     };
-    this.database.createTabGroup(input);
+    this.database.createWorkspace(input);
   }
 
   /**

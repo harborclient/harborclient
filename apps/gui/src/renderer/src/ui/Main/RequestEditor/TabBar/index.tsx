@@ -21,9 +21,9 @@ import {
   resolveRunnerTargetNames,
   runnerTargetLabel
 } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
-import { selectEditingTabGroupId } from '#/renderer/src/store/slices/tabGroupSlice';
+import { selectEditingWorkspaceId } from '#/renderer/src/store/slices/workspaceSlice';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
-import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/tabGroups';
+import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/workspaces';
 
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
@@ -81,7 +81,7 @@ interface Props {
   onReorder: (orderedTabIds: string[]) => void;
 
   /**
-   * Open tab ids hidden from the tab bar during tab group edit mode.
+   * Open tab ids hidden from the tab bar during workspace edit mode.
    */
   hiddenTabIds?: ReadonlySet<string>;
 }
@@ -104,13 +104,13 @@ export function TabBar({
   const allEnvironments = useAppSelector(selectEnvironments);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
-  const editingTabGroupId = useAppSelector(selectEditingTabGroupId);
+  const editingWorkspaceId = useAppSelector(selectEditingWorkspaceId);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const { teamHubs } = useTeamHubs();
   const wrapTabs = useAppSelector(selectWrapTabs);
 
   /**
-   * Tabs rendered in the tab bar, excluding those hidden during tab group edit mode.
+   * Tabs rendered in the tab bar, excluding those hidden during workspace edit mode.
    */
   const visibleTabs = useMemo(() => {
     if (hiddenTabIds == null || hiddenTabIds.size === 0) {
@@ -199,15 +199,15 @@ export function TabBar({
   ]);
 
   /**
-   * Tab ids that should appear highlighted during tab group edit mode.
+   * Tab ids that should appear highlighted during workspace edit mode.
    */
   const highlightedTabIds = useMemo(() => {
-    if (editingTabGroupId == null) {
+    if (editingWorkspaceId == null) {
       return undefined;
     }
 
     return new Set(visibleTabs.filter((tab) => isOpenSavedRequestTab(tab)).map((tab) => tab.tabId));
-  }, [editingTabGroupId, visibleTabs]);
+  }, [editingWorkspaceId, visibleTabs]);
 
   /**
    * Maps visible request editor tabs into SDK tab bar rows.

@@ -7,7 +7,7 @@ export * from './snippet';
 export * from './collection';
 export * from './request';
 export * from './requestHistory';
-export * from './tabGroup';
+export * from './workspace';
 export * from './trash';
 export * from './script';
 export * from './settings';

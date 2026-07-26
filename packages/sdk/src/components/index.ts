@@ -248,7 +248,7 @@ export {
   SidebarRunItem,
   SidebarHistoryItem,
   SidebarEnvironmentItem,
-  SidebarTabGroupItem,
+  SidebarWorkspaceItem,
   SidebarCommitItem,
   type SidebarItemSortableConfig,
   type SidebarBadgeVariant,

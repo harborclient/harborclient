@@ -11,9 +11,9 @@ import {
 } from './skipNavigationTargets';
 
 /**
- * Builds a visibility fixture with every panel open on a request workspace.
+ * Builds a visibility fixture with every panel open on a request tab.
  */
-function allVisibleRequestWorkspace(
+function allVisibleRequestTab(
   overrides: Partial<SkipNavigationVisibility> = {}
 ): SkipNavigationVisibility {
   return {
@@ -22,14 +22,14 @@ function allVisibleRequestWorkspace(
     responseEditorVisible: true,
     aiSidebarVisible: true,
     gitSidebarVisible: true,
-    isRequestWorkspace: true,
+    isRequestTab: true,
     ...overrides
   };
 }
 
 describe('resolveSkipNavigationLinks', () => {
   it('returns all major region links when every panel is visible on a request tab', () => {
-    expect(resolveSkipNavigationLinks(allVisibleRequestWorkspace())).toEqual([
+    expect(resolveSkipNavigationLinks(allVisibleRequestTab())).toEqual([
       {
         id: 'collections-sidebar',
         label: 'Skip to Collections sidebar',
@@ -65,7 +65,7 @@ describe('resolveSkipNavigationLinks', () => {
 
   it('omits hidden sidebars from the skip menu', () => {
     const links = resolveSkipNavigationLinks(
-      allVisibleRequestWorkspace({
+      allVisibleRequestTab({
         sidebarVisible: false,
         aiSidebarVisible: false,
         gitSidebarVisible: false
@@ -79,10 +79,10 @@ describe('resolveSkipNavigationLinks', () => {
     ]);
   });
 
-  it('omits request and response links outside a request workspace', () => {
+  it('omits request and response links outside a request tab', () => {
     const links = resolveSkipNavigationLinks(
-      allVisibleRequestWorkspace({
-        isRequestWorkspace: false
+      allVisibleRequestTab({
+        isRequestTab: false
       })
     );
 
@@ -96,7 +96,7 @@ describe('resolveSkipNavigationLinks', () => {
 
   it('omits request and response links when those panels are hidden', () => {
     const links = resolveSkipNavigationLinks(
-      allVisibleRequestWorkspace({
+      allVisibleRequestTab({
         requestEditorVisible: false,
         responseEditorVisible: false
       })
@@ -112,7 +112,7 @@ describe('resolveSkipNavigationLinks', () => {
 
   it('always includes the footer link', () => {
     const hiddenPanels = resolveSkipNavigationLinks(
-      allVisibleRequestWorkspace({
+      allVisibleRequestTab({
         sidebarVisible: false,
         requestEditorVisible: false,
         responseEditorVisible: false,
@@ -129,7 +129,7 @@ describe('resolveSkipNavigationLinks', () => {
       }
     ]);
 
-    const visiblePanels = resolveSkipNavigationLinks(allVisibleRequestWorkspace());
+    const visiblePanels = resolveSkipNavigationLinks(allVisibleRequestTab());
     expect(visiblePanels.some((link) => link.id === 'app-footer')).toBe(true);
   });
 });

@@ -31,7 +31,7 @@ interface Props {
 }
 
 /**
- * Toolbar marker-filter control for flat sidebar sections (Tab Groups,
+ * Toolbar marker-filter control for flat sidebar sections (Workspaces,
  * Environments). Visible only when filters and marker dots are enabled and the
  * section has at least one colored item. Opens an immediate-apply swatch menu.
  *

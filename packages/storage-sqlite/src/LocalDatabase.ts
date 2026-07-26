@@ -18,12 +18,12 @@ import type {
   ChatMessage,
   ChatRole,
   ChatSummary,
-  CreateTabGroupInput,
+  CreateWorkspaceInput,
   Environment,
   RequestHistoryEntry,
   Snippet,
-  TabGroup,
-  TabGroupRequest,
+  Workspace,
+  WorkspaceRequest,
   Variable
 } from '@harborclient/core/types';
 import type { InsertTrashItemInput, TrashItem } from '@harborclient/core/types/trash';
@@ -34,7 +34,7 @@ import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
-const TAB_GROUP_COLUMNS = 'id, name, created_at, updated_at, marker';
+const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker';
 
 /**
  * Row shape returned from request_history queries.
@@ -348,6 +348,10 @@ export class LocalDatabase {
       this.#db.pragma('journal_mode = WAL');
       this.#db.pragma('foreign_keys = ON');
 
+      // Must run before CREATE TABLE IF NOT EXISTS workspaces so we do not
+      // create an empty workspaces table alongside the legacy tab_groups table.
+      this.migrateLegacyTabGroupTables();
+
       this.#db.exec(`
       CREATE TABLE IF NOT EXISTS collection_registry (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -446,20 +450,20 @@ export class LocalDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_request_history_ts ON request_history (ts DESC);
 
-      CREATE TABLE IF NOT EXISTS tab_groups (
+      CREATE TABLE IF NOT EXISTS workspaces (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT    NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-      CREATE TABLE IF NOT EXISTS tab_group_requests (
-        group_id      INTEGER NOT NULL REFERENCES tab_groups(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS workspace_requests (
+        workspace_id  INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
         request_uuid  TEXT    NOT NULL,
         collection_id INTEGER,
         request_name  TEXT,
         sort_order    INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY (group_id, request_uuid)
+        PRIMARY KEY (workspace_id, request_uuid)
       );
 
       CREATE TABLE IF NOT EXISTS trash_items (
@@ -487,10 +491,11 @@ export class LocalDatabase {
     this.migrateSnippetMarketplaceFields();
     this.migrateSnippetRegistryTable();
     this.migrateRequestHistoryTable();
-    this.migrateTabGroupsTable();
+    this.migrateWorkspacesTable();
     this.migrateTrashTable();
+    this.migrateLegacyTabGroupTrashItems();
     migrateSidebarMarkerColumn(this.getDb(), 'environments');
-    migrateSidebarMarkerColumn(this.getDb(), 'tab_groups');
+    migrateSidebarMarkerColumn(this.getDb(), 'workspaces');
   }
 
   /**
@@ -511,24 +516,122 @@ export class LocalDatabase {
   }
 
   /**
-   * Ensures tab group tables exist on legacy databases.
+   * Renames legacy `tab_groups` / `tab_group_requests` tables to `workspaces` /
+   * `workspace_requests` when upgrading an existing registry database.
+   *
+   * Runs before `CREATE TABLE IF NOT EXISTS workspaces` so an empty workspaces
+   * table is not created beside the legacy tables. Idempotent: no-ops when the
+   * legacy tables are absent or the new tables already exist.
    */
-  private migrateTabGroupsTable(): void {
+  private migrateLegacyTabGroupTables(): void {
+    const db = this.getDb();
+    const tables = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`)
+      .all() as Array<{ name: string }>;
+    const names = new Set(tables.map((row) => row.name));
+
+    if (names.has('tab_groups') && !names.has('workspaces')) {
+      // Parent rename rewrites child REFERENCES clauses when legacy_alter_table is off.
+      db.exec('ALTER TABLE tab_groups RENAME TO workspaces');
+    }
+
+    if (names.has('tab_group_requests') && !names.has('workspace_requests')) {
+      db.exec('ALTER TABLE tab_group_requests RENAME TO workspace_requests');
+      names.delete('tab_group_requests');
+      names.add('workspace_requests');
+    }
+
+    if (names.has('workspace_requests')) {
+      const requestColumns = db.prepare(`PRAGMA table_info(workspace_requests)`).all() as Array<{
+        name: string;
+      }>;
+      if (
+        requestColumns.some((column) => column.name === 'group_id') &&
+        !requestColumns.some((column) => column.name === 'workspace_id')
+      ) {
+        db.exec('ALTER TABLE workspace_requests RENAME COLUMN group_id TO workspace_id');
+      }
+    }
+  }
+
+  /**
+   * Rewrites trash snapshot rows that still use the legacy tab-group entity type
+   * and JSON keys onto the workspace naming.
+   */
+  private migrateLegacyTabGroupTrashItems(): void {
+    const db = this.getDb();
+    const rows = db
+      .prepare(`SELECT id, original_ids, payload FROM trash_items WHERE entity_type = 'tabGroup'`)
+      .all() as Array<{ id: number; original_ids: string; payload: string }>;
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    const update = db.prepare(
+      `UPDATE trash_items SET entity_type = 'workspace', original_ids = ?, payload = ? WHERE id = ?`
+    );
+
+    const migrate = db.transaction(() => {
+      for (const row of rows) {
+        let originalIds: Record<string, unknown> = {};
+        let payload: unknown = null;
+        try {
+          originalIds = JSON.parse(row.original_ids) as Record<string, unknown>;
+        } catch {
+          originalIds = {};
+        }
+        try {
+          payload = JSON.parse(row.payload);
+        } catch {
+          payload = null;
+        }
+
+        if (
+          Object.prototype.hasOwnProperty.call(originalIds, 'tabGroupId') &&
+          !Object.prototype.hasOwnProperty.call(originalIds, 'workspaceId')
+        ) {
+          originalIds.workspaceId = originalIds.tabGroupId;
+          delete originalIds.tabGroupId;
+        }
+
+        if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+          const payloadObj = payload as Record<string, unknown>;
+          if (
+            Object.prototype.hasOwnProperty.call(payloadObj, 'tabGroup') &&
+            !Object.prototype.hasOwnProperty.call(payloadObj, 'workspace')
+          ) {
+            payloadObj.workspace = payloadObj.tabGroup;
+            delete payloadObj.tabGroup;
+          }
+        }
+
+        update.run(JSON.stringify(originalIds), JSON.stringify(payload), row.id);
+      }
+    });
+
+    migrate();
+  }
+
+  /**
+   * Ensures workspace tables exist on legacy databases.
+   */
+  private migrateWorkspacesTable(): void {
     this.getDb().exec(`
-      CREATE TABLE IF NOT EXISTS tab_groups (
+      CREATE TABLE IF NOT EXISTS workspaces (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT    NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-      CREATE TABLE IF NOT EXISTS tab_group_requests (
-        group_id      INTEGER NOT NULL REFERENCES tab_groups(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS workspace_requests (
+        workspace_id  INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
         request_uuid  TEXT    NOT NULL,
         collection_id INTEGER,
         request_name  TEXT,
         sort_order    INTEGER NOT NULL DEFAULT 0,
-        PRIMARY KEY (group_id, request_uuid)
+        PRIMARY KEY (workspace_id, request_uuid)
       );
     `);
   }
@@ -2064,13 +2167,13 @@ export class LocalDatabase {
   }
 
   /**
-   * Loads all tab groups with their saved request members.
+   * Loads all workspaces with their saved request members.
    *
-   * @returns Tab groups ordered by sort order then name.
+   * @returns Workspaces ordered by sort order then name.
    */
-  listTabGroups(): TabGroup[] {
-    const groupRows = this.getDb()
-      .prepare(`SELECT ${TAB_GROUP_COLUMNS} FROM tab_groups ORDER BY sort_order ASC, name ASC`)
+  listWorkspaces(): Workspace[] {
+    const workspaceRows = this.getDb()
+      .prepare(`SELECT ${WORKSPACE_COLUMNS} FROM workspaces ORDER BY sort_order ASC, name ASC`)
       .all() as Array<{
       id: number;
       name: string;
@@ -2081,32 +2184,32 @@ export class LocalDatabase {
 
     const requestRows = this.getDb()
       .prepare(
-        `SELECT group_id, request_uuid, collection_id, request_name
-         FROM tab_group_requests
+        `SELECT workspace_id, request_uuid, collection_id, request_name
+         FROM workspace_requests
          ORDER BY sort_order ASC, request_uuid ASC`
       )
       .all() as Array<{
-      group_id: number;
+      workspace_id: number;
       request_uuid: string;
       collection_id: number | null;
       request_name: string | null;
     }>;
 
-    const requestsByGroup = new Map<number, TabGroupRequest[]>();
+    const requestsByWorkspace = new Map<number, WorkspaceRequest[]>();
     for (const row of requestRows) {
-      const members = requestsByGroup.get(row.group_id) ?? [];
+      const members = requestsByWorkspace.get(row.workspace_id) ?? [];
       members.push({
         requestUuid: row.request_uuid,
         collectionId: row.collection_id ?? undefined,
         requestName: row.request_name ?? undefined
       });
-      requestsByGroup.set(row.group_id, members);
+      requestsByWorkspace.set(row.workspace_id, members);
     }
 
-    return groupRows.map((row) => ({
+    return workspaceRows.map((row) => ({
       id: row.id,
       name: row.name,
-      requests: requestsByGroup.get(row.id) ?? [],
+      requests: requestsByWorkspace.get(row.id) ?? [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       marker: readSidebarMarker(row.marker)
@@ -2114,30 +2217,30 @@ export class LocalDatabase {
   }
 
   /**
-   * Returns the next sort order for a new tab group.
+   * Returns the next sort order for a new workspace.
    */
-  private nextTabGroupSortOrder(): number {
+  private nextWorkspaceSortOrder(): number {
     const row = this.getDb()
-      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM tab_groups')
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM workspaces')
       .get() as { next_order: number };
     return row.next_order;
   }
 
   /**
-   * Inserts request members for one tab group.
+   * Inserts request members for one workspace.
    *
-   * @param groupId - Parent tab group id.
+   * @param workspaceId - Parent workspace id.
    * @param requests - Ordered saved request references.
    */
-  private insertTabGroupRequests(groupId: number, requests: TabGroupRequest[]): void {
+  private insertWorkspaceRequests(workspaceId: number, requests: WorkspaceRequest[]): void {
     const insert = this.getDb().prepare(
-      `INSERT INTO tab_group_requests (group_id, request_uuid, collection_id, request_name, sort_order)
+      `INSERT INTO workspace_requests (workspace_id, request_uuid, collection_id, request_name, sort_order)
        VALUES (?, ?, ?, ?, ?)`
     );
 
     requests.forEach((request, index) => {
       insert.run(
-        groupId,
+        workspaceId,
         request.requestUuid,
         request.collectionId ?? null,
         request.requestName ?? null,
@@ -2147,129 +2250,129 @@ export class LocalDatabase {
   }
 
   /**
-   * Creates a tab group and returns the refreshed list.
+   * Creates a workspace and returns the refreshed list.
    *
-   * @param input - Group name and ordered request members.
-   * @returns Updated tab group list.
+   * @param input - Workspace name and ordered request members.
+   * @returns Updated workspace list.
    */
-  createTabGroup(input: CreateTabGroupInput): TabGroup[] {
-    const trimmedName = trimRequiredName(input.name, 'Tab group name');
+  createWorkspace(input: CreateWorkspaceInput): Workspace[] {
+    const trimmedName = trimRequiredName(input.name, 'Workspace name');
     const now = Date.now();
-    const sortOrder = this.nextTabGroupSortOrder();
+    const sortOrder = this.nextWorkspaceSortOrder();
     const db = this.getDb();
 
     const transaction = db.transaction(() => {
       const result = db
         .prepare(
-          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at, marker) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO workspaces (name, sort_order, created_at, updated_at, marker) VALUES (?, ?, ?, ?, ?)'
         )
         .run(trimmedName, sortOrder, now, now, serializeSidebarMarker(input.marker));
-      const groupId = Number(result.lastInsertRowid);
-      this.insertTabGroupRequests(groupId, input.requests);
+      const workspaceId = Number(result.lastInsertRowid);
+      this.insertWorkspaceRequests(workspaceId, input.requests);
     });
 
     transaction();
-    return this.listTabGroups();
+    return this.listWorkspaces();
   }
 
   /**
-   * Replaces the saved requests in a tab group and returns the refreshed list.
+   * Replaces the saved requests in a workspace and returns the refreshed list.
    *
-   * @param id - Tab group id.
+   * @param id - Workspace id.
    * @param requests - Ordered saved request members.
-   * @returns Updated tab group list.
+   * @returns Updated workspace list.
    */
-  updateTabGroup(id: number, requests: TabGroupRequest[]): TabGroup[] {
-    const source = this.listTabGroups().find((group) => group.id === id);
+  updateWorkspace(id: number, requests: WorkspaceRequest[]): Workspace[] {
+    const source = this.listWorkspaces().find((workspace) => workspace.id === id);
     if (!source) {
-      throw new Error(`Tab group ${id} not found`);
+      throw new Error(`Workspace ${id} not found`);
     }
 
     const db = this.getDb();
     const transaction = db.transaction(() => {
-      db.prepare('DELETE FROM tab_group_requests WHERE group_id = ?').run(id);
-      this.insertTabGroupRequests(id, requests);
-      db.prepare('UPDATE tab_groups SET updated_at = ? WHERE id = ?').run(Date.now(), id);
+      db.prepare('DELETE FROM workspace_requests WHERE workspace_id = ?').run(id);
+      this.insertWorkspaceRequests(id, requests);
+      db.prepare('UPDATE workspaces SET updated_at = ? WHERE id = ?').run(Date.now(), id);
     });
 
     transaction();
-    return this.listTabGroups();
+    return this.listWorkspaces();
   }
 
   /**
-   * Updates a tab group's sidebar marker and returns the refreshed list.
+   * Updates a workspace's sidebar marker and returns the refreshed list.
    *
-   * @param id - Tab group id.
+   * @param id - Workspace id.
    * @param marker - CSS marker string, or null to clear.
-   * @returns Updated tab group list.
+   * @returns Updated workspace list.
    */
-  setTabGroupMarker(id: number, marker: string | null): TabGroup[] {
+  setWorkspaceMarker(id: number, marker: string | null): Workspace[] {
     this.getDb()
-      .prepare('UPDATE tab_groups SET marker = ?, updated_at = ? WHERE id = ?')
+      .prepare('UPDATE workspaces SET marker = ?, updated_at = ? WHERE id = ?')
       .run(serializeSidebarMarker(marker), Date.now(), id);
-    return this.listTabGroups();
+    return this.listWorkspaces();
   }
 
   /**
-   * Renames a tab group and returns the refreshed list.
+   * Renames a workspace and returns the refreshed list.
    *
-   * @param id - Tab group id.
+   * @param id - Workspace id.
    * @param name - New display name.
-   * @returns Updated tab group list.
+   * @returns Updated workspace list.
    */
-  renameTabGroup(id: number, name: string): TabGroup[] {
-    const trimmedName = trimRequiredName(name, 'Tab group name');
+  renameWorkspace(id: number, name: string): Workspace[] {
+    const trimmedName = trimRequiredName(name, 'Workspace name');
     this.getDb()
-      .prepare('UPDATE tab_groups SET name = ?, updated_at = ? WHERE id = ?')
+      .prepare('UPDATE workspaces SET name = ?, updated_at = ? WHERE id = ?')
       .run(trimmedName, Date.now(), id);
-    return this.listTabGroups();
+    return this.listWorkspaces();
   }
 
   /**
-   * Clones a tab group under a new name and returns the refreshed list.
+   * Clones a workspace under a new name and returns the refreshed list.
    *
-   * @param id - Source tab group id.
-   * @param name - Name for the cloned group.
-   * @returns Updated tab group list.
+   * @param id - Source workspace id.
+   * @param name - Name for the cloned workspace.
+   * @returns Updated workspace list.
    */
-  cloneTabGroup(id: number, name: string): TabGroup[] {
-    const source = this.listTabGroups().find((group) => group.id === id);
+  cloneWorkspace(id: number, name: string): Workspace[] {
+    const source = this.listWorkspaces().find((workspace) => workspace.id === id);
     if (!source) {
-      throw new Error(`Tab group ${id} not found`);
+      throw new Error(`Workspace ${id} not found`);
     }
 
-    return this.createTabGroup({
+    return this.createWorkspace({
       name,
       requests: source.requests.map((request) => ({ ...request }))
     });
   }
 
   /**
-   * Deletes a tab group and returns the refreshed list.
+   * Deletes a workspace and returns the refreshed list.
    *
-   * @param id - Tab group id.
-   * @returns Updated tab group list.
+   * @param id - Workspace id.
+   * @returns Updated workspace list.
    */
-  deleteTabGroup(id: number): TabGroup[] {
-    this.getDb().prepare('DELETE FROM tab_groups WHERE id = ?').run(id);
-    return this.listTabGroups();
+  deleteWorkspace(id: number): Workspace[] {
+    this.getDb().prepare('DELETE FROM workspaces WHERE id = ?').run(id);
+    return this.listWorkspaces();
   }
 
   /**
-   * Persists a new sidebar order for tab groups and returns the refreshed list.
+   * Persists a new sidebar order for workspaces and returns the refreshed list.
    *
-   * @param orderedIds - Tab group ids in desired order.
-   * @returns Updated tab group list.
+   * @param orderedIds - Workspace ids in desired order.
+   * @returns Updated workspace list.
    */
-  reorderTabGroups(orderedIds: number[]): TabGroup[] {
+  reorderWorkspaces(orderedIds: number[]): Workspace[] {
     const reorder = this.getDb().transaction((ids: number[]) => {
-      const stmt = this.getDb().prepare('UPDATE tab_groups SET sort_order = ? WHERE id = ?');
+      const stmt = this.getDb().prepare('UPDATE workspaces SET sort_order = ? WHERE id = ?');
       ids.forEach((id, index) => {
         stmt.run(index, id);
       });
     });
     reorder(orderedIds);
-    return this.listTabGroups();
+    return this.listWorkspaces();
   }
 
   /**

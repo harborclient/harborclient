@@ -26,7 +26,7 @@ import {
   openImportFile
 } from './importDialogs';
 import { importEnvironmentData } from './environments';
-import { importTabGroupData } from './tabGroups';
+import { importWorkspaceData } from './workspaces';
 import { importCustomThemeData } from './customThemeImport';
 import { importSnippetData } from './snippetImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
@@ -611,15 +611,15 @@ export function registerCollectionHandlers(db: IStorage): void {
           } satisfies ImportEntityResult;
         }
 
-        if (exportKind === 'tab_group') {
+        if (exportKind === 'workspace') {
           logImportVerbose('imports:auto classified', { kind: 'tab-group' });
-          const tabGroups = await importTabGroupData(win, parsed);
-          if (!tabGroups) {
+          const workspaces = await importWorkspaceData(win, parsed);
+          if (!workspaces) {
             return null;
           }
           return {
-            kind: 'tab_group',
-            tabGroups,
+            kind: 'workspace',
+            workspaces,
             action: 'created'
           } satisfies ImportEntityResult;
         }

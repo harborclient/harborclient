@@ -5,13 +5,13 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { newTab } from '#/renderer/src/store/slices/tabsSlice';
 
 /**
- * Empty workspace shown when every request tab has been closed.
+ * Empty request editor shown when every request tab has been closed.
  */
 export function NoOpenRequests(): JSX.Element {
   const dispatch = useAppDispatch();
 
   /**
-   * Opens a blank request tab from the empty workspace.
+   * Opens a blank request tab from the empty request editor.
    */
   const handleNewRequest = (): void => {
     dispatch(newTab());

@@ -117,9 +117,9 @@ interface Props {
   onOpenSelected: () => void;
 
   /**
-   * Creates a tab group from the current multi-selection.
+   * Creates a workspace from the current multi-selection.
    */
-  onNewTabGroupFromSelected: () => void;
+  onNewWorkspaceFromSelected: () => void;
 
   /**
    * Deletes every request in the current multi-selection.
@@ -183,7 +183,7 @@ export function ActionsMenu(props: Props): JSX.Element {
     if (showBulkMenu) {
       groups.push([{ label: 'Run', onSelect: props.onRunSelected }]);
       groups.push([{ label: 'Open', onSelect: props.onOpenSelected }]);
-      groups.push([{ label: 'New Tab Group', onSelect: props.onNewTabGroupFromSelected }]);
+      groups.push([{ label: 'New Workspace', onSelect: props.onNewWorkspaceFromSelected }]);
       groups.push([
         {
           label: 'Delete',

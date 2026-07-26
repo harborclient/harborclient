@@ -5,7 +5,7 @@ describe('trash sidebar utils', () => {
   it('maps entity types to readable labels', () => {
     expect(trashEntityTypeLabel('collection')).toBe('Collection');
     expect(trashEntityTypeLabel('runResult')).toBe('Run');
-    expect(trashEntityTypeLabel('tabGroup')).toBe('Tab group');
+    expect(trashEntityTypeLabel('workspace')).toBe('Workspace');
   });
 
   it('formats deleted timestamps for display', () => {

@@ -251,7 +251,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param designerUndoRedoActive - Whether the Designer tab owns Edit menu undo/redo.
  * @param designerCanUndo - Whether Designer undo is currently available.
  * @param designerCanRedo - Whether Designer redo is currently available.
- * @param tabGroupAvailable - Whether at least one saved request tab is open for tab groups.
+ * @param workspaceAvailable - Whether at least one saved request tab is open for workspaces.
  * @param sidebarDeselectAllAvailable - Whether the collections sidebar has selection to clear.
  * @param gitCollectionActive - Whether the active collection is git-backed.
  * @returns The constructed application menu.
@@ -276,7 +276,7 @@ export function buildMenu(
   designerUndoRedoActive = false,
   designerCanUndo = false,
   designerCanRedo = false,
-  tabGroupAvailable = false,
+  workspaceAvailable = false,
   sidebarDeselectAllAvailable = false,
   gitCollectionActive = false
 ): Menu {
@@ -301,9 +301,9 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-environment')
         },
         {
-          label: 'New Tab Group',
-          enabled: tabGroupAvailable,
-          click: () => sendMenuAction(window, 'create-tab-group')
+          label: 'New Workspace',
+          enabled: workspaceAvailable,
+          click: () => sendMenuAction(window, 'create-workspace')
         },
         { type: 'separator' },
         {

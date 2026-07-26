@@ -9,7 +9,7 @@ export type SidebarMarkerTable =
   | 'requests'
   | 'documents'
   | 'environments'
-  | 'tab_groups';
+  | 'workspaces';
 
 /**
  * Ensures a SQLite table carries a nullable `marker` TEXT column.

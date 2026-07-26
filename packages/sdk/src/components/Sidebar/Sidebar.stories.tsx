@@ -178,10 +178,10 @@ export const CollectionsLeft: Story = {
         onClick: fn()
       },
       {
-        id: 'toggle-tab-groups',
+        id: 'toggle-workspaces',
         icon: faLayerGroup,
-        label: 'Tab Groups',
-        title: 'Tab groups section',
+        label: 'Workspaces',
+        title: 'Workspaces section',
         ariaPressed: false,
         onClick: fn()
       }

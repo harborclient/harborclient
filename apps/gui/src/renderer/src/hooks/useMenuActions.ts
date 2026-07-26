@@ -43,7 +43,7 @@ import {
 import {
   dispatchNewRequest,
   importFromMenu,
-  requestCreateTabGroupFromOpenTabs,
+  requestCreateWorkspaceFromOpenTabs,
   runSync,
   saveFromMenu,
   sendRequest
@@ -319,8 +319,8 @@ export function useMenuActions(): void {
         case 'action-menu':
           dispatch(openActionMenuModal());
           break;
-        case 'create-tab-group':
-          void dispatch(requestCreateTabGroupFromOpenTabs());
+        case 'create-workspace':
+          void dispatch(requestCreateWorkspaceFromOpenTabs());
           break;
         case 'check-for-updates':
           dispatch(openUpdateModal());

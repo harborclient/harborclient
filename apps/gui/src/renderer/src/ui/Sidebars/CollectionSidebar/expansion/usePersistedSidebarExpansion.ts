@@ -58,9 +58,9 @@ interface Result {
   historySectionExpanded: boolean;
 
   /**
-   * Whether the Tab Groups section body is visible.
+   * Whether the Workspaces section body is visible.
    */
-  tabGroupsSectionExpanded: boolean;
+  workspacesSectionExpanded: boolean;
 
   /**
    * Whether the Trash section body is visible.
@@ -93,9 +93,9 @@ interface Result {
   toggleHistorySection: () => void;
 
   /**
-   * Toggles the Tab Groups section expanded state.
+   * Toggles the Workspaces section expanded state.
    */
-  toggleTabGroupsSection: () => void;
+  toggleWorkspacesSection: () => void;
 
   /**
    * Toggles the Trash section expanded state.
@@ -128,9 +128,9 @@ interface Result {
   setHistorySectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
-   * Sets the Tab Groups section expanded state explicitly.
+   * Sets the Workspaces section expanded state explicitly.
    */
-  setTabGroupsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+  setWorkspacesSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Sets the Trash section expanded state explicitly.
@@ -163,9 +163,9 @@ interface Result {
   historySectionVisible: boolean;
 
   /**
-   * Whether the Tab Groups section is rendered in the sidebar.
+   * Whether the Workspaces section is rendered in the sidebar.
    */
-  tabGroupsSectionVisible: boolean;
+  workspacesSectionVisible: boolean;
 
   /**
    * Whether the Trash section is rendered in the sidebar.
@@ -198,9 +198,9 @@ interface Result {
   toggleHistorySectionVisible: () => void;
 
   /**
-   * Toggles the Tab Groups section visibility.
+   * Toggles the Workspaces section visibility.
    */
-  toggleTabGroupsSectionVisible: () => void;
+  toggleWorkspacesSectionVisible: () => void;
 
   /**
    * Toggles the Trash section visibility.
@@ -233,9 +233,9 @@ interface Result {
   setHistorySectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
-   * Sets the Tab Groups section visibility explicitly.
+   * Sets the Workspaces section visibility explicitly.
    */
-  setTabGroupsSectionVisible: Dispatch<SetStateAction<boolean>>;
+  setWorkspacesSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Sets the Trash section visibility explicitly.
@@ -481,8 +481,8 @@ export function usePersistedSidebarExpansion({
     defaults.sections.runResults
   );
   const [historySectionExpanded, setHistorySectionExpanded] = useState(defaults.sections.history);
-  const [tabGroupsSectionExpanded, setTabGroupsSectionExpanded] = useState(
-    defaults.sections.tabGroups
+  const [workspacesSectionExpanded, setWorkspacesSectionExpanded] = useState(
+    defaults.sections.workspaces
   );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
@@ -498,8 +498,8 @@ export function usePersistedSidebarExpansion({
   const [historySectionVisible, setHistorySectionVisible] = useState(
     defaults.sectionVisibility.history
   );
-  const [tabGroupsSectionVisible, setTabGroupsSectionVisible] = useState(
-    defaults.sectionVisibility.tabGroups
+  const [workspacesSectionVisible, setWorkspacesSectionVisible] = useState(
+    defaults.sectionVisibility.workspaces
   );
   const [trashSectionVisible, setTrashSectionVisible] = useState(defaults.sectionVisibility.trash);
   const [archiveSectionVisible, setArchiveSectionVisible] = useState(
@@ -548,14 +548,14 @@ export function usePersistedSidebarExpansion({
       setEnvironmentsSectionExpanded(stored.sections.environments);
       setRunResultsSectionExpanded(stored.sections.runResults);
       setHistorySectionExpanded(stored.sections.history);
-      setTabGroupsSectionExpanded(stored.sections.tabGroups);
+      setWorkspacesSectionExpanded(stored.sections.workspaces);
       setTrashSectionExpanded(stored.sections.trash);
       setArchiveSectionExpanded(stored.sections.archive);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
       setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
       setRunResultsSectionVisible(stored.sectionVisibility.runResults);
       setHistorySectionVisible(stored.sectionVisibility.history);
-      setTabGroupsSectionVisible(stored.sectionVisibility.tabGroups);
+      setWorkspacesSectionVisible(stored.sectionVisibility.workspaces);
       setTrashSectionVisible(stored.sectionVisibility.trash);
       setArchiveSectionVisible(stored.sectionVisibility.archive);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
@@ -593,7 +593,7 @@ export function usePersistedSidebarExpansion({
         environments: environmentsSectionExpanded,
         runResults: runResultsSectionExpanded,
         history: historySectionExpanded,
-        tabGroups: tabGroupsSectionExpanded,
+        workspaces: workspacesSectionExpanded,
         archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
@@ -602,7 +602,7 @@ export function usePersistedSidebarExpansion({
         environments: environmentsSectionVisible,
         runResults: runResultsSectionVisible,
         history: historySectionVisible,
-        tabGroups: tabGroupsSectionVisible,
+        workspaces: workspacesSectionVisible,
         archive: archiveSectionVisible,
         trash: trashSectionVisible
       },
@@ -624,14 +624,14 @@ export function usePersistedSidebarExpansion({
     environmentsSectionExpanded,
     runResultsSectionExpanded,
     historySectionExpanded,
-    tabGroupsSectionExpanded,
+    workspacesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     sectionSort,
@@ -740,10 +740,10 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
-   * Toggles the Tab Groups section expanded state.
+   * Toggles the Workspaces section expanded state.
    */
-  const toggleTabGroupsSection = useCallback(() => {
-    setTabGroupsSectionExpanded((open) => !open);
+  const toggleWorkspacesSection = useCallback(() => {
+    setWorkspacesSectionExpanded((open) => !open);
   }, []);
 
   /**
@@ -789,10 +789,10 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
-   * Toggles the Tab Groups section visibility.
+   * Toggles the Workspaces section visibility.
    */
-  const toggleTabGroupsSectionVisible = useCallback(() => {
-    setTabGroupsSectionVisible((visible) => !visible);
+  const toggleWorkspacesSectionVisible = useCallback(() => {
+    setWorkspacesSectionVisible((visible) => !visible);
   }, []);
 
   /**
@@ -883,42 +883,42 @@ export function usePersistedSidebarExpansion({
     environmentsSectionExpanded,
     runResultsSectionExpanded,
     historySectionExpanded,
-    tabGroupsSectionExpanded,
+    workspacesSectionExpanded,
     trashSectionExpanded,
     archiveSectionExpanded,
     toggleCollectionsSection,
     toggleEnvironmentsSection,
     toggleRunResultsSection,
     toggleHistorySection,
-    toggleTabGroupsSection,
+    toggleWorkspacesSection,
     toggleTrashSection,
     toggleArchiveSection,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
-    setTabGroupsSectionExpanded,
+    setWorkspacesSectionExpanded,
     setTrashSectionExpanded,
     setArchiveSectionExpanded,
     collectionsSectionVisible,
     environmentsSectionVisible,
     runResultsSectionVisible,
     historySectionVisible,
-    tabGroupsSectionVisible,
+    workspacesSectionVisible,
     trashSectionVisible,
     archiveSectionVisible,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
-    toggleTabGroupsSectionVisible,
+    toggleWorkspacesSectionVisible,
     toggleTrashSectionVisible,
     toggleArchiveSectionVisible,
     setCollectionsSectionVisible,
     setEnvironmentsSectionVisible,
     setRunResultsSectionVisible,
     setHistorySectionVisible,
-    setTabGroupsSectionVisible,
+    setWorkspacesSectionVisible,
     setTrashSectionVisible,
     setArchiveSectionVisible,
     showStorageLocationBadges,

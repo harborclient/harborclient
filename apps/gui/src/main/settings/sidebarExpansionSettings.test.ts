@@ -29,7 +29,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: true,
         trash: true
       },
@@ -38,7 +38,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: false,
         trash: false
       },
@@ -49,7 +49,7 @@ describe('sidebarExpansionSettings', () => {
         environments: 'default',
         runResults: 'default',
         history: 'default',
-        tabGroups: 'default',
+        workspaces: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -66,7 +66,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: true,
         trash: true
       },
@@ -75,7 +75,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: false,
         trash: false
       },
@@ -86,7 +86,7 @@ describe('sidebarExpansionSettings', () => {
         environments: 'default',
         runResults: 'default',
         history: 'default',
-        tabGroups: 'default',
+        workspaces: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -113,7 +113,7 @@ describe('sidebarExpansionSettings', () => {
         environments: false,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: true,
         trash: true
       },
@@ -122,7 +122,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: false,
         trash: false
       },
@@ -133,7 +133,7 @@ describe('sidebarExpansionSettings', () => {
         environments: 'default',
         runResults: 'default',
         history: 'default',
-        tabGroups: 'default',
+        workspaces: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -155,7 +155,7 @@ describe('sidebarExpansionSettings', () => {
         environments: false,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: true,
         trash: true
       },
@@ -164,7 +164,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: false,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: false,
         trash: false
       },
@@ -175,7 +175,7 @@ describe('sidebarExpansionSettings', () => {
         environments: 'default',
         runResults: 'default',
         history: 'default',
-        tabGroups: 'default',
+        workspaces: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -193,7 +193,7 @@ describe('sidebarExpansionSettings', () => {
         environments: false,
         runResults: true,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: true,
         trash: true
       },
@@ -202,7 +202,7 @@ describe('sidebarExpansionSettings', () => {
         environments: true,
         runResults: false,
         history: true,
-        tabGroups: true,
+        workspaces: true,
         archive: false,
         trash: false
       },
@@ -213,7 +213,7 @@ describe('sidebarExpansionSettings', () => {
         environments: 'default',
         runResults: 'default',
         history: 'default',
-        tabGroups: 'default',
+        workspaces: 'default',
         archive: 'default',
         trash: 'default'
       },

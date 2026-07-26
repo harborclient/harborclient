@@ -6,7 +6,7 @@ const footerShell: Decorator = (Story) => (
   <div className="relative h-[420px] w-full max-w-3xl overflow-hidden rounded-md border border-separator">
     <div className="flex h-full min-h-0 flex-col">
       <div id="main-content" className="min-h-0 flex-1 p-4 text-[14px] text-muted">
-        Main workspace — footer panel slides up from the bottom edge.
+        Main content area — footer panel slides up from the bottom edge.
       </div>
       <div className="relative shrink-0">
         <Story />

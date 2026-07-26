@@ -6,7 +6,7 @@ import {
 } from '#/renderer/src/store/thunks/collections';
 import { setRequestSidebarMarker } from '#/renderer/src/store/thunks/requests';
 import { setEnvironmentSidebarMarker } from '#/renderer/src/store/thunks/environments';
-import { setTabGroupSidebarMarker } from '#/renderer/src/store/thunks/tabGroups';
+import { setWorkspaceSidebarMarker } from '#/renderer/src/store/thunks/workspaces';
 import type { SidebarMarkerTarget } from './sidebarMarkerTypes';
 
 /**
@@ -43,8 +43,8 @@ export function dispatchSidebarMarker(
     case 'environment':
       void dispatch(setEnvironmentSidebarMarker({ id: target.id, marker }));
       break;
-    case 'tabGroup':
-      void dispatch(setTabGroupSidebarMarker({ id: target.id, marker }));
+    case 'workspace':
+      void dispatch(setWorkspaceSidebarMarker({ id: target.id, marker }));
       break;
     default:
       break;

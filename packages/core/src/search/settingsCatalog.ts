@@ -516,7 +516,7 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
       'theme',
       'unsaved',
       'snippet',
-      'tab group'
+      'workspace'
     ]
   }
 ];

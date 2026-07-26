@@ -56,7 +56,7 @@ import {
 import { refreshEnvironments } from './environments';
 import { refreshDocuments } from './documents';
 import { refreshSnippets } from './snippets';
-import { setTabGroups } from '#/renderer/src/store/slices/tabGroupSlice';
+import { setWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import { syncTrash } from './trash';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
@@ -663,9 +663,9 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         toast.success(result.action === 'updated' ? 'Theme updated' : 'Theme imported');
         break;
       }
-      case 'tab_group': {
-        dispatch(setTabGroups(result.tabGroups));
-        toast.success('Tab group imported');
+      case 'workspace': {
+        dispatch(setWorkspaces(result.workspaces));
+        toast.success('Workspace imported');
         break;
       }
     }

@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import Database from 'better-sqlite3';
 import { afterEach, expect, it } from 'vitest';
 import { LocalDatabase } from './LocalDatabase';
 import { describeSqlite } from '#/test/nativeModules';
@@ -464,11 +465,104 @@ describeSqlite('LocalDatabase request history', () => {
   });
 });
 
-describeSqlite('LocalDatabase tab groups', () => {
-  it('creates, lists, renames, clones, and deletes tab groups', async () => {
+describeSqlite('LocalDatabase workspaces', () => {
+  it('migrates legacy tab_groups tables and trash snapshots to workspaces', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-registry-legacy-'));
+    const dbPath = join(rootDir, 'harborclient-registry.db');
+    const seed = new Database(dbPath);
+    seed.exec(`
+      CREATE TABLE tab_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        marker TEXT
+      );
+      CREATE TABLE tab_group_requests (
+        group_id INTEGER NOT NULL REFERENCES tab_groups(id) ON DELETE CASCADE,
+        request_uuid TEXT NOT NULL,
+        collection_id INTEGER,
+        request_name TEXT,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (group_id, request_uuid)
+      );
+      CREATE TABLE trash_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        connection_id TEXT,
+        original_ids TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    seed
+      .prepare(
+        'INSERT INTO tab_groups (name, sort_order, created_at, updated_at, marker) VALUES (?, 0, 1, 1, ?)'
+      )
+      .run('Auth', '#ff0000');
+    seed
+      .prepare(
+        'INSERT INTO tab_group_requests (group_id, request_uuid, request_name, sort_order) VALUES (1, ?, ?, 0)'
+      )
+      .run('uuid-1', 'Login');
+    seed
+      .prepare(
+        `INSERT INTO trash_items (entity_type, label, original_ids, payload) VALUES ('tabGroup', 'Old', ?, ?)`
+      )
+      .run(
+        JSON.stringify({ tabGroupId: 9 }),
+        JSON.stringify({
+          tabGroup: { id: 9, name: 'Old', requests: [], createdAt: 1, updatedAt: 1 }
+        })
+      );
+    seed.close();
+
+    const database = new LocalDatabase(rootDir);
+    await database.init();
+    cleanups.push(async () => {
+      await database.close();
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    const workspaces = database.listWorkspaces();
+    expect(workspaces).toHaveLength(1);
+    expect(workspaces[0]).toMatchObject({
+      name: 'Auth',
+      marker: '#ff0000',
+      requests: [{ requestUuid: 'uuid-1', requestName: 'Login' }]
+    });
+
+    const trash = database.listTrashItems();
+    expect(trash[0]?.entityType).toBe('workspace');
+    expect(trash[0]?.originalIds).toEqual({ workspaceId: 9 });
+    expect(trash[0]?.payload).toEqual({
+      workspace: { id: 9, name: 'Old', requests: [], createdAt: 1, updatedAt: 1 }
+    });
+
+    const verify = new Database(dbPath);
+    const tableNames = (
+      verify.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).all() as Array<{
+        name: string;
+      }>
+    ).map((row) => row.name);
+    expect(tableNames).toContain('workspaces');
+    expect(tableNames).toContain('workspace_requests');
+    expect(tableNames).not.toContain('tab_groups');
+    expect(tableNames).not.toContain('tab_group_requests');
+    const requestColumns = (
+      verify.prepare('PRAGMA table_info(workspace_requests)').all() as Array<{ name: string }>
+    ).map((column) => column.name);
+    expect(requestColumns).toContain('workspace_id');
+    expect(requestColumns).not.toContain('group_id');
+    verify.close();
+  });
+
+  it('creates, lists, renames, clones, and deletes workspaces', async () => {
     const { database } = await createRegistry();
 
-    const created = database.createTabGroup({
+    const created = database.createWorkspace({
       name: 'Auth flows',
       requests: [
         { requestUuid: 'uuid-1', collectionId: 1, requestName: 'Login' },
@@ -485,10 +579,10 @@ describeSqlite('LocalDatabase tab groups', () => {
       ]
     });
 
-    const renamed = database.renameTabGroup(created[0]!.id, 'Auth');
+    const renamed = database.renameWorkspace(created[0]!.id, 'Auth');
     expect(renamed[0]?.name).toBe('Auth');
 
-    const updated = database.updateTabGroup(created[0]!.id, [
+    const updated = database.updateWorkspace(created[0]!.id, [
       { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' },
       { requestUuid: 'uuid-3', collectionId: 2, requestName: 'Logout' }
     ]);
@@ -497,34 +591,34 @@ describeSqlite('LocalDatabase tab groups', () => {
       { requestUuid: 'uuid-3', collectionId: 2, requestName: 'Logout' }
     ]);
 
-    const cloned = database.cloneTabGroup(created[0]!.id, 'Auth copy');
+    const cloned = database.cloneWorkspace(created[0]!.id, 'Auth copy');
     expect(cloned).toHaveLength(2);
     expect(cloned[1]?.name).toBe('Auth copy');
     expect(cloned[1]?.requests).toEqual(updated[0]?.requests);
 
-    const remaining = database.deleteTabGroup(created[0]!.id);
+    const remaining = database.deleteWorkspace(created[0]!.id);
     expect(remaining).toHaveLength(1);
     expect(remaining[0]?.name).toBe('Auth copy');
   });
 
-  it('reorderTabGroups persists sidebar order', async () => {
+  it('reorderWorkspaces persists sidebar order', async () => {
     const { database } = await createRegistry();
 
-    const first = database.createTabGroup({
+    const first = database.createWorkspace({
       name: 'Alpha',
       requests: [{ requestUuid: 'uuid-1' }]
     });
-    const second = database.createTabGroup({
+    const second = database.createWorkspace({
       name: 'Beta',
       requests: [{ requestUuid: 'uuid-2' }]
     });
-    const third = database.createTabGroup({
+    const third = database.createWorkspace({
       name: 'Gamma',
       requests: [{ requestUuid: 'uuid-3' }]
     });
 
     const ids = [first[0]!.id, second[1]!.id, third[2]!.id];
-    const reordered = database.reorderTabGroups([ids[2]!, ids[0]!, ids[1]!]);
+    const reordered = database.reorderWorkspaces([ids[2]!, ids[0]!, ids[1]!]);
 
     expect(reordered.map((group) => group.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
   });
@@ -563,10 +657,10 @@ describeSqlite('LocalDatabase trash items', () => {
       }
     });
     database.insertTrashItem({
-      entityType: 'tabGroup',
+      entityType: 'workspace',
       label: 'Tabs',
-      originalIds: { tabGroupId: 2 },
-      payload: { tabGroup: { id: 2, name: 'Tabs', requests: [], createdAt: 1, updatedAt: 1 } }
+      originalIds: { workspaceId: 2 },
+      payload: { workspace: { id: 2, name: 'Tabs', requests: [], createdAt: 1, updatedAt: 1 } }
     });
 
     database.clearTrash();

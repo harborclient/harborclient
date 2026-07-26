@@ -108,7 +108,7 @@ interface BuildItemsOptions {
   pageTabDisplays: Map<string, { title: string; icon?: IconDefinition }>;
 
   /**
-   * Whether matching saved request tabs should use active styling during tab group edit.
+   * Whether matching saved request tabs should use active styling during workspace edit.
    */
   highlightedTabIds?: ReadonlySet<string>;
 
