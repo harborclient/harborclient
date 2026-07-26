@@ -34,7 +34,8 @@ interface VariantStyles {
 
 const markdownStyles: VariantStyles = {
   link: 'text-accent underline underline-offset-2 hover:opacity-90',
-  inlineCode: 'rounded bg-selection px-1 py-0.5 font-mono text-[14px]',
+  inlineCode:
+    'rounded border border-separator bg-accent/15 px-1 py-0.5 font-mono text-[14px] text-text',
   blockCode: 'font-mono text-[14px]',
   blockquote:
     'my-2 border-l-2 border-separator pl-3 text-muted last:mb-0 [&>p]:mb-1 [&>p:last-child]:mb-0',

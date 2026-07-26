@@ -70,7 +70,7 @@ describe('buildBuiltinThemeCss', () => {
     const css = buildBuiltinThemeCss(
       {
         surface: '#1e1e1e',
-        accent: '#0a84ff'
+        accent: '#4098dc'
       },
       'dark',
       'dark'
@@ -79,7 +79,7 @@ describe('buildBuiltinThemeCss', () => {
     expect(css).toContain(":root[data-theme='dark']");
     expect(css).toContain('color-scheme: dark;');
     expect(css).toContain('--mac-surface: #1e1e1e;');
-    expect(css).toContain('--mac-accent: #0a84ff;');
+    expect(css).toContain('--mac-accent: #4098dc;');
   });
 });
 

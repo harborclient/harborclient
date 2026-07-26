@@ -94,13 +94,34 @@ jobs:
         if: env.VERSION != ''
         run: |
           set -euo pipefail
+          TAG="v${VERSION}"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add apps/harborclient/package.json CHANGELOG.md
           git commit -m "chore(changelog): release v${VERSION} [skip ci]"
-          git tag -a "v${VERSION}" -m "Release v${VERSION}"
-          git push origin HEAD:main --follow-tags
+
+          git fetch origin main
+          max_attempts=5
+          for attempt in $(seq 1 "${max_attempts}"); do
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "::error::Rebase onto origin/main failed."
+              exit 1
+            fi
+            if git push origin HEAD:main; then
+              break
+            fi
+            if [ "${attempt}" -eq "${max_attempts}" ]; then
+              echo "::error::Failed to push release commit after ${max_attempts} attempts."
+              exit 1
+            fi
+            echo "Push rejected (attempt ${attempt}/${max_attempts}); fetching and rebasing..."
+            git fetch origin main
+          done
+
+          git tag -a "${TAG}" -m "Release v${VERSION}"
+          git push origin "refs/tags/${TAG}"
 
   build:
     needs: release

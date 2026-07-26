@@ -57,6 +57,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: http-release-${{ github.event_name == 'workflow_dispatch' && format('refs/heads/{0}', github.event.inputs.branch) || github.ref }}
+  cancel-in-progress: false
+
 env:
   RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || 'main' }}
 
@@ -251,12 +255,35 @@ jobs:
         if: (needs.changelog.outputs.mode == 'unreleased' || needs.changelog.outputs.mode == 'manual') && env.VERSION != ''
         run: |
           set -euo pipefail
+          RELEASE_REF="${{ env.RELEASE_REF }}"
+          TAG="http-v${VERSION}"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add packages/http/package.json packages/http/CHANGELOG.md
           git commit -m "chore(changelog): release @harborclient/http v${VERSION} [skip ci]"
-          git tag -a "http-v${VERSION}" -m "Release @harborclient/http v${VERSION}"
-          git push origin HEAD:${{ env.RELEASE_REF }} --follow-tags
+
+          git fetch origin "${RELEASE_REF}"
+          max_attempts=5
+          for attempt in $(seq 1 "${max_attempts}"); do
+            if ! git rebase "origin/${RELEASE_REF}"; then
+              git rebase --abort
+              echo "::error::Rebase onto origin/${RELEASE_REF} failed."
+              exit 1
+            fi
+            if git push origin "HEAD:${RELEASE_REF}"; then
+              break
+            fi
+            if [ "${attempt}" -eq "${max_attempts}" ]; then
+              echo "::error::Failed to push release commit after ${max_attempts} attempts."
+              exit 1
+            fi
+            echo "Push rejected (attempt ${attempt}/${max_attempts}); fetching and rebasing..."
+            git fetch origin "${RELEASE_REF}"
+          done
+
+          git tag -a "${TAG}" -m "Release @harborclient/http v${VERSION}"
+          git push origin "refs/tags/${TAG}"
 
       - name: Tag and push (untagged)
         if: needs.changelog.outputs.mode == 'untagged' && env.VERSION != ''

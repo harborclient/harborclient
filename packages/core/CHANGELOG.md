@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance release workflows with concurrency and rebase logic. (`e26c79de`)
 - Enhance testing and plugin management functionality. (`48799cc9`)
 - Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
 

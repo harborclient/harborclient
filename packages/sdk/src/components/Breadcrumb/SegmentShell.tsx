@@ -93,7 +93,7 @@ export function SegmentShell({
   const usesPillCap = shape === 'first' || shape === 'only';
 
   const layoutClass = cn(
-    'hc-breadcrumb-segment relative flex min-h-[28px] min-w-0 items-center py-2',
+    'hc-breadcrumb-segment relative flex min-h-[26px] min-w-0 items-center py-2',
     grow ? 'min-w-[6rem] flex-1' : 'max-w-[45%] shrink-0',
     hasChevron && shape !== 'last' && '-mr-[6px]',
     !needsLeadingInset && 'pl-5',

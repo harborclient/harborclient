@@ -62,7 +62,7 @@ describe('customThemeExport', () => {
       theme: {
         ...sampleExport.theme,
         'script-stage-before-all': '#1360ae',
-        'script-stage-before-each': '#0a84ff',
+        'script-stage-before-each': '#4098dc',
         'script-stage-main': '#32d2e2',
         'script-stage-after-each': '#ff9f0a',
         'script-stage-after-all': '#ae7213'

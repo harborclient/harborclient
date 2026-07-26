@@ -27,7 +27,7 @@ export const checkboxInput =
 
 /** Custom checkbox box styled via `peer-checked` / `peer-focus-visible` on {@link checkboxInput}. */
 export const checkboxBox =
-  'pointer-events-none flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-sm border border-separator bg-field text-white peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 [&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100';
+  'pointer-events-none flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-sm border border-separator bg-field text-accent peer-checked:border-transparent peer-checked:bg-selection peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 [&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100';
 
 /** Transparent overlay radio input sized to {@link radioCircle}. */
 export const radioInput =
@@ -35,7 +35,7 @@ export const radioInput =
 
 /** Custom radio circle styled via `peer-checked` / `peer-focus-visible` on {@link radioInput}. */
 export const radioCircle =
-  'pointer-events-none relative h-[18px] w-[18px] shrink-0 leading-none rounded-full border border-separator bg-field peer-checked:border-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 [&>span]:opacity-0 peer-checked:[&>span]:opacity-100';
+  'pointer-events-none relative h-[18px] w-[18px] shrink-0 leading-none rounded-full border border-separator bg-field peer-checked:border-transparent peer-checked:bg-selection peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 [&>span]:opacity-0 peer-checked:[&>span]:opacity-100';
 
 /** Checked-state dot centered inside {@link radioCircle}. */
 export const radioDot =
@@ -47,7 +47,7 @@ export const switchInput =
 
 /** Pill track styled via `peer-checked` / `peer-focus-visible` on {@link switchInput}. */
 export const switchTrack =
-  'pointer-events-none relative block h-[26px] w-[44px] shrink-0 rounded-full border border-separator bg-field transition-colors duration-150 motion-reduce:transition-none peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-checked:[&>span]:translate-x-[18px]';
+  'pointer-events-none relative block h-[26px] w-[44px] shrink-0 rounded-full border border-separator bg-field transition-colors duration-150 motion-reduce:transition-none peer-checked:border-transparent peer-checked:bg-selection peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-checked:[&>span]:translate-x-[18px]';
 
 /** Knob that slides across {@link switchTrack} when {@link switchInput} is checked. */
 export const switchThumb =

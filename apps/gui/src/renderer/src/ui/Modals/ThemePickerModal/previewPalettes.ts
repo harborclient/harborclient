@@ -42,7 +42,7 @@ export const LIGHT_PREVIEW_PALETTE: ThemePreviewPalette = {
   control: '#ffffff',
   text: 'rgba(0, 0, 0, 0.85)',
   muted: 'rgba(0, 0, 0, 0.58)',
-  accent: '#007aff',
+  accent: '#007acc',
   border: 'rgba(0, 0, 0, 0.08)'
 };
 
@@ -55,7 +55,7 @@ export const DARK_PREVIEW_PALETTE: ThemePreviewPalette = {
   control: '#3a3a3c',
   text: 'rgba(255, 255, 255, 0.85)',
   muted: 'rgba(255, 255, 255, 0.58)',
-  accent: '#0a84ff',
+  accent: '#4098dc',
   border: 'rgba(255, 255, 255, 0.08)'
 };
 

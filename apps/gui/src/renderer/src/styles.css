@@ -133,12 +133,12 @@
     --mac-text: rgba(0, 0, 0, 0.85);
     --mac-text-secondary: rgba(0, 0, 0, 0.65);
     --mac-muted: rgba(0, 0, 0, 0.58);
-    --mac-accent: #007aff;
+    --mac-accent: #007acc;
     --mac-tab-underline: var(--mac-accent);
     --mac-resize-handle: var(--mac-accent);
     --mac-variable-token: var(--mac-accent);
-    --mac-selection: rgba(0, 122, 255, 0.18);
-    --mac-doc-markdown: #007aff;
+    --mac-selection: rgba(0, 122, 204, 0.18);
+    --mac-doc-markdown: #007acc;
     --mac-tab-unsaved: #b45309;
     --mac-danger: #ff3b30;
     --mac-danger-light: #d70015;
@@ -157,7 +157,7 @@
     --mac-scrollbar-thumb-hover: rgba(0, 0, 0, 0.55);
     --mac-scrollbar-thumb-active: rgba(0, 0, 0, 0.66);
     --mac-script-stage-before-all: #1360ae;
-    --mac-script-stage-before-each: #0a84ff;
+    --mac-script-stage-before-each: #007acc;
     --mac-script-stage-main: #32d2e2;
     --mac-script-stage-after-each: #ff9f0a;
     --mac-script-stage-after-all: #ae7213;
@@ -244,12 +244,12 @@
       --mac-text: rgba(255, 255, 255, 0.85);
       --mac-text-secondary: rgba(255, 255, 255, 0.65);
       --mac-muted: rgba(255, 255, 255, 0.58);
-      --mac-accent: #0a84ff;
+      --mac-accent: #4098dc;
       --mac-tab-underline: #ffffff;
       --mac-resize-handle: var(--mac-accent);
       --mac-variable-token: var(--mac-accent);
-      --mac-selection: rgba(10, 132, 255, 0.22);
-      --mac-doc-markdown: #0a84ff;
+      --mac-selection: rgba(64, 152, 220, 0.22);
+      --mac-doc-markdown: #4098dc;
       --mac-tab-unsaved: #ffb340;
       --mac-danger: #ff453a;
       --mac-danger-light: #ff6961;
@@ -261,7 +261,7 @@
       --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
       --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
       --mac-script-stage-before-all: #1360ae;
-      --mac-script-stage-before-each: #0a84ff;
+      --mac-script-stage-before-each: #4098dc;
       --mac-script-stage-main: #32d2e2;
       --mac-script-stage-after-each: #ff9f0a;
       --mac-script-stage-after-all: #ae7213;
@@ -295,12 +295,12 @@
     --mac-text: rgba(255, 255, 255, 0.85);
     --mac-text-secondary: rgba(255, 255, 255, 0.65);
     --mac-muted: rgba(255, 255, 255, 0.58);
-    --mac-accent: #0a84ff;
+    --mac-accent: #4098dc;
     --mac-tab-underline: #ffffff;
     --mac-resize-handle: var(--mac-accent);
     --mac-variable-token: var(--mac-accent);
-    --mac-selection: rgba(10, 132, 255, 0.22);
-    --mac-doc-markdown: #0a84ff;
+    --mac-selection: rgba(64, 152, 220, 0.22);
+    --mac-doc-markdown: #4098dc;
     --mac-tab-unsaved: #ffb340;
     --mac-danger: #ff453a;
     --mac-danger-light: #ff6961;
@@ -314,7 +314,7 @@
     --mac-scrollbar-thumb-hover: rgba(255, 255, 255, 0.55);
     --mac-scrollbar-thumb-active: rgba(255, 255, 255, 0.66);
     --mac-script-stage-before-all: #1360ae;
-    --mac-script-stage-before-each: #0a84ff;
+    --mac-script-stage-before-each: #4098dc;
     --mac-script-stage-main: #32d2e2;
     --mac-script-stage-after-each: #ff9f0a;
     --mac-script-stage-after-all: #ae7213;
@@ -1315,9 +1315,9 @@
 }
 
 :root[data-theme='high-contrast'] .hc-script-reference-badge {
-  border-color: var(--mac-accent);
-  background-color: color-mix(in srgb, var(--mac-accent) 12%, transparent);
-  color: var(--mac-accent);
+  border-color: var(--mac-separator);
+  background-color: color-mix(in srgb, var(--mac-accent) 15%, transparent);
+  color: var(--mac-text);
 }
 
 :root[data-theme='high-contrast'] .hc-user-message-bubble .hc-script-reference-badge {

@@ -36,7 +36,7 @@ describe('customThemes storage', () => {
       type: 'light',
       colors: {
         surface: '#f5f5f7',
-        accent: '#007aff'
+        accent: '#007acc'
       }
     });
 
@@ -166,7 +166,7 @@ describe('customThemes storage', () => {
       type: 'dark',
       colors: {
         surface: '#111111',
-        accent: '#0a84ff'
+        accent: '#4098dc'
       },
       stylesheet: ':root[data-theme="custom"] { --extra: red; }'
     });

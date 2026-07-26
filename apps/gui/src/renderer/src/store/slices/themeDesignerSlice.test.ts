@@ -21,7 +21,7 @@ const baseDraft = (): CustomThemeDraft => ({
   id: 'my-theme',
   title: 'My Theme',
   type: 'dark',
-  colors: { surface: '#111111', accent: '#0a84ff' },
+  colors: { surface: '#111111', accent: '#4098dc' },
   metrics: {}
 });
 

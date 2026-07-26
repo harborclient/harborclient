@@ -2,7 +2,7 @@
 @import 'overlayscrollbars/overlayscrollbars.css';
 
 @theme {
-  --color-accent: #0a84ff;
+  --color-accent: #4098dc;
   --color-separator: #3a3a3c;
   --color-control: #3a3a3c;
   --color-surface: #2c2c2e;
@@ -22,9 +22,9 @@
   --color-selection: #48484a;
   --color-text: #f5f5f7;
   --color-muted: #98989d;
-  --color-tab-underline: #0a84ff;
-  --color-resize-handle: #0a84ff;
-  --color-variable-token: #0a84ff;
+  --color-tab-underline: #4098dc;
+  --color-resize-handle: #4098dc;
+  --color-variable-token: #4098dc;
   --color-danger: #ff453a;
   --color-success: #30d158;
   --color-warning: #ffd60a;
@@ -38,7 +38,7 @@
   --color-method-head: var(--mac-method-head);
   --color-method-options: var(--mac-method-options);
 
-  --mac-accent: #0a84ff;
+  --mac-accent: #4098dc;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;

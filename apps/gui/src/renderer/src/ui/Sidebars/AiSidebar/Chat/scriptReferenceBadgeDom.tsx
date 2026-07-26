@@ -4,7 +4,7 @@ import { faCode, faXmark } from '#/renderer/src/fontawesome';
 
 /** Shared Tailwind classes for script reference badges on neutral backgrounds. */
 export const SCRIPT_REFERENCE_BADGE_CLASS =
-  'hc-script-reference-badge inline-flex max-w-full items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 align-middle font-medium text-accent';
+  'hc-script-reference-badge inline-flex max-w-full items-center gap-1 rounded-full border border-separator bg-accent/15 px-2 py-0.5 align-middle font-medium text-text';
 
 /** Badge styling for user message bubbles that use a solid accent background. */
 export const SCRIPT_REFERENCE_BADGE_ON_ACCENT_CLASS =
@@ -15,7 +15,7 @@ export type ScriptReferenceBadgeVariant = 'default' | 'onAccent';
 /**
  * Returns Tailwind classes for a script reference badge variant.
  *
- * @param variant - Default accent chip or white-on-accent chip for user bubbles.
+ * @param variant - Subtle accent chip (default) or white-on-accent chip for user bubbles.
  */
 export function getScriptReferenceBadgeClass(variant: ScriptReferenceBadgeVariant): string {
   return variant === 'onAccent'
