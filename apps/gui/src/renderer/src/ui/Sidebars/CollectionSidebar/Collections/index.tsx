@@ -423,12 +423,18 @@ export function Collections(): JSX.Element {
     direction: 'up' | 'down'
   ): Promise<void> => {
     const folders = foldersByCollection[collectionId] ?? [];
-    const ids = folders.map((folder) => folder.id);
+    const movingFolder = folders.find((folder) => folder.id === folderId);
+    if (!movingFolder) return;
+    const parentFolderId = movingFolder.parent_folder_id ?? null;
+    const siblings = folders.filter(
+      (folder) => (folder.parent_folder_id ?? null) === parentFolderId
+    );
+    const ids = siblings.map((folder) => folder.id);
     const index = ids.findIndex((id) => id === folderId);
     if (index < 0) return;
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= ids.length) return;
-    await onReorderFolders(collectionId, arrayMove(ids, index, targetIndex));
+    await onReorderFolders(collectionId, parentFolderId, arrayMove(ids, index, targetIndex));
   };
 
   /**
@@ -772,18 +778,27 @@ export function Collections(): JSX.Element {
         return;
       }
 
-      const oldIndex = folders.findIndex((folder) => folder.id === activeParsed.id);
-      const newIndex = folders.findIndex((folder) => folder.id === overFolderId);
+      const activeFolder = folders.find((folder) => folder.id === activeParsed.id);
+      if (!activeFolder) {
+        clearDragState();
+        return;
+      }
+      const parentFolderId = activeFolder.parent_folder_id ?? null;
+      const siblings = folders.filter(
+        (folder) => (folder.parent_folder_id ?? null) === parentFolderId
+      );
+      const oldIndex = siblings.findIndex((folder) => folder.id === activeParsed.id);
+      const newIndex = siblings.findIndex((folder) => folder.id === overFolderId);
       if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) {
         clearDragState();
         return;
       }
       const nextOrder = arrayMove(
-        folders.map((folder) => folder.id),
+        siblings.map((folder) => folder.id),
         oldIndex,
         newIndex
       );
-      const persist = onReorderFolders(collectionId, nextOrder);
+      const persist = onReorderFolders(collectionId, parentFolderId, nextOrder);
       clearDragState();
       await persist;
       return;

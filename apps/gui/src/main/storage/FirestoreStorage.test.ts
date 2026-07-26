@@ -54,7 +54,7 @@ describeFirestore('FirestoreStorage reorder ownership', () => {
     const folderA = await db.createFolder(collectionA.id, 'Folder A');
     const folderB = await db.createFolder(collectionB.id, 'Folder B');
 
-    await expect(db.reorderFolders(collectionA.id, [folderA.id, folderB.id])).rejects.toThrow(
+    await expect(db.reorderFolders(collectionA.id, null, [folderA.id, folderB.id])).rejects.toThrow(
       'Folder not found'
     );
 

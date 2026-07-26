@@ -32,8 +32,15 @@ export function registerRequestHandlers(db: IStorage): void {
   );
 
   // Creates a folder in a collection.
-  handle('folders:create', ipcArgSchemas.folderCreate, (_event, collectionId, folderName) =>
-    db.createFolder(collectionId, folderName)
+  handle(
+    'folders:create',
+    ipcArgSchemas.folderCreate,
+    (_event, collectionId, folderName, parentFolderId) =>
+      db.createFolder(collectionId, folderName, parentFolderId)
+  );
+
+  handle('folders:move', ipcArgSchemas.folderMove, (_event, folderId, parentFolderId, sortOrder) =>
+    db.moveFolder(folderId, parentFolderId, sortOrder)
   );
 
   // Renames a folder.
@@ -82,8 +89,11 @@ export function registerRequestHandlers(db: IStorage): void {
   );
 
   // Reorders folders within a collection.
-  handle('folders:reorder', ipcArgSchemas.folderReorder, (_event, collectionId, orderedFolderIds) =>
-    db.reorderFolders(collectionId, orderedFolderIds)
+  handle(
+    'folders:reorder',
+    ipcArgSchemas.folderReorder,
+    (_event, collectionId, parentFolderId, orderedFolderIds) =>
+      db.reorderFolders(collectionId, parentFolderId, orderedFolderIds)
   );
 
   // Reorders requests within a collection folder (or at collection root).

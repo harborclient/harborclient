@@ -9,11 +9,11 @@ import {
   importedRequestScriptFields,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
-  exportedFolderFromFolder,
-  resolveImportedFolderSettings,
   serializeImportedDocumentFields,
+  resolveImportedFolderSettings,
   serializeImportedRequestFields
 } from './collectionImport';
+import { exportFoldersWithParents } from './folderStorage';
 import {
   maskVariablesForExport,
   normalizeVariable,
@@ -248,6 +248,7 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
     id: localId,
     uuid: record.id,
     collection_id: localCollectionId,
+    parent_folder_id: null,
     name: record.name,
     sort_order: record.sortOrder,
     variables: [],
@@ -1180,13 +1181,70 @@ export class TeamHubStorage implements IStorage {
    *
    * @param collectionId - Provider-local collection id.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id; ignored until Team Hub supports nesting.
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ): Promise<Folder> {
+    if (parentFolderId != null) {
+      throw new Error('Nested folders are not supported for Team Hub collections yet');
+    }
     const collectionServerId = this.requireServerId('collection', collectionId);
     const record = await this.client.createFolder(collectionServerId, {
       name: trimRequiredName(name, 'Folder name')
     });
     return serverToFolder(record, this.idMap.toLocalId('folder', record.id), collectionId);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * Team Hub collections currently support only flat folder trees on the server.
+   *
+   * @param folderId - Provider-local folder id.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder when only reordering at collection root.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    const { collectionId } = await this.findFolderContainer(folderId);
+    const folders = await this.listFolders(collectionId);
+    const folder = folders.find((entry) => entry.id === folderId);
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    if (
+      parentFolderId !== (folder.parent_folder_id ?? null) &&
+      (parentFolderId != null || folder.parent_folder_id != null)
+    ) {
+      throw new Error('Nested folders are not supported for Team Hub collections yet');
+    }
+
+    if (sortOrder == null) {
+      return folder;
+    }
+
+    const rootSiblings = folders
+      .filter((entry) => (entry.parent_folder_id ?? null) === null)
+      .sort(
+        (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
+      );
+    const orderedIds = rootSiblings.map((entry) => entry.id);
+    const currentIndex = orderedIds.indexOf(folderId);
+    if (currentIndex < 0) {
+      throw new Error('Folder not found');
+    }
+    orderedIds.splice(currentIndex, 1);
+    orderedIds.splice(Math.max(0, Math.min(sortOrder, orderedIds.length)), 0, folderId);
+    await this.reorderFolders(collectionId, null, orderedIds);
+    return (await this.listFolders(collectionId)).find((entry) => entry.id === folderId) ?? folder;
   }
 
   /**
@@ -1284,8 +1342,19 @@ export class TeamHubStorage implements IStorage {
 
   /**
    * Reorders folders within a collection on the server.
+   *
+   * @param collectionId - Provider-local collection id.
+   * @param parentFolderId - Parent folder id; only collection root is supported today.
+   * @param orderedFolderIds - Sibling folder ids in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
+    if (parentFolderId != null) {
+      throw new Error('Nested folders are not supported for Team Hub collections yet');
+    }
     const collectionServerId = this.requireServerId('collection', collectionId);
     const orderedFolderServerIds = orderedFolderIds.map((folderId) =>
       this.requireServerId('folder', folderId)
@@ -1357,7 +1426,7 @@ export class TeamHubStorage implements IStorage {
     }
 
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(exportedFolderFromFolder);
+    const folders = exportFoldersWithParents(folderRows);
     const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
 
@@ -1440,7 +1509,7 @@ export class TeamHubStorage implements IStorage {
     }
 
     if (orderedFolderIds.length > 0) {
-      await this.reorderFolders(updated.id, orderedFolderIds);
+      await this.reorderFolders(updated.id, null, orderedFolderIds);
     }
 
     for (const request of exportData.requests) {
@@ -1584,7 +1653,7 @@ export class TeamHubStorage implements IStorage {
     }
 
     if (orderedFolderIds.length > 0) {
-      await this.reorderFolders(id, orderedFolderIds);
+      await this.reorderFolders(id, null, orderedFolderIds);
     }
 
     const existingRequests = await this.listRequests(id);

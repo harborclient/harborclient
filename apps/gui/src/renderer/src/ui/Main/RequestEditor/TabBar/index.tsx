@@ -21,15 +21,12 @@ import {
   resolveRunnerTargetNames,
   runnerTargetLabel
 } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
-import { selectEditingWorkspaceId } from '#/renderer/src/store/slices/workspaceSlice';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
-import { isOpenSavedRequestTab } from '#/renderer/src/store/thunks/workspaces';
 
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
 import { focusFirstFocusableInRequestTabPanel } from './focusRequestTabPanel';
 import { buildRequestTabBarItems } from './buildRequestTabBarItems';
-import { mergeVisibleTabOrder } from './mergeVisibleTabOrder';
 
 interface Props {
   /**
@@ -79,11 +76,6 @@ interface Props {
    * @param orderedTabIds - Tab ids in display order.
    */
   onReorder: (orderedTabIds: string[]) => void;
-
-  /**
-   * Open tab ids hidden from the tab bar during workspace edit mode.
-   */
-  hiddenTabIds?: ReadonlySet<string>;
 }
 
 /**
@@ -97,28 +89,15 @@ export function TabBar({
   onCloseMany,
   onCloseSaved,
   onNew,
-  onReorder,
-  hiddenTabIds
+  onReorder
 }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
-  const editingWorkspaceId = useAppSelector(selectEditingWorkspaceId);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const { teamHubs } = useTeamHubs();
   const wrapTabs = useAppSelector(selectWrapTabs);
-
-  /**
-   * Tabs rendered in the tab bar, excluding those hidden during workspace edit mode.
-   */
-  const visibleTabs = useMemo(() => {
-    if (hiddenTabIds == null || hiddenTabIds.size === 0) {
-      return tabs;
-    }
-
-    return tabs.filter((tab) => !hiddenTabIds.has(tab.tabId));
-  }, [hiddenTabIds, tabs]);
 
   /**
    * Resolves display metadata for each page tab using current entity names.
@@ -126,7 +105,7 @@ export function TabBar({
   const pageTabDisplays = useMemo(() => {
     const displays = new Map<string, ReturnType<typeof pageTabMeta>>();
 
-    for (const tab of visibleTabs) {
+    for (const tab of tabs) {
       if (!isPageTab(tab)) {
         continue;
       }
@@ -189,39 +168,20 @@ export function TabBar({
     }
 
     return displays;
-  }, [
-    visibleTabs,
-    collections,
-    allEnvironments,
-    foldersByCollection,
-    requestsByCollection,
-    teamHubs
-  ]);
+  }, [tabs, collections, allEnvironments, foldersByCollection, requestsByCollection, teamHubs]);
 
   /**
-   * Tab ids that should appear highlighted during workspace edit mode.
-   */
-  const highlightedTabIds = useMemo(() => {
-    if (editingWorkspaceId == null) {
-      return undefined;
-    }
-
-    return new Set(visibleTabs.filter((tab) => isOpenSavedRequestTab(tab)).map((tab) => tab.tabId));
-  }, [editingWorkspaceId, visibleTabs]);
-
-  /**
-   * Maps visible request editor tabs into SDK tab bar rows.
+   * Maps open request editor tabs into SDK tab bar rows.
    */
   const tabBarItems = useMemo(
     (): TabBarItem<string>[] =>
       buildRequestTabBarItems({
-        tabs: visibleTabs,
+        tabs,
         activeTabId,
         pageTabDisplays,
-        highlightedTabIds,
         themeDesignerDirty
       }),
-    [activeTabId, highlightedTabIds, pageTabDisplays, themeDesignerDirty, visibleTabs]
+    [activeTabId, pageTabDisplays, themeDesignerDirty, tabs]
   );
 
   /**
@@ -251,15 +211,7 @@ export function TabBar({
       }}
       onSelect={onSelect}
       onClose={onClose}
-      onReorder={(reorderedVisibleIds) => {
-        onReorder(
-          mergeVisibleTabOrder(
-            tabs.map((tab) => tab.tabId),
-            hiddenTabIds ?? new Set<string>(),
-            reorderedVisibleIds
-          )
-        );
-      }}
+      onReorder={onReorder}
       buildContextMenuGroups={(targetId, orderedIds) =>
         buildTabCloseMenuGroups(orderedIds, targetId, {
           onClose,
@@ -269,7 +221,7 @@ export function TabBar({
       }
       onFocusTab={focusRequestTabControl}
       onArrowDownIntoPanel={(tabId) => {
-        const tab = visibleTabs.find((entry) => entry.tabId === tabId);
+        const tab = tabs.find((entry) => entry.tabId === tabId);
         if (tab == null || (!isRequestTab(tab) && !isMarkdownTab(tab))) {
           return false;
         }

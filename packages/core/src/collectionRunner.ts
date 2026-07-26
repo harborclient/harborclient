@@ -1,3 +1,4 @@
+import { buildFolderTree, type FolderTreeNode } from './folderTree';
 import type {
   Folder,
   HttpMethod,
@@ -651,8 +652,12 @@ export function normalizeCollectionRunnerConfig(
 /**
  * Returns saved requests in sidebar run order for a collection or folder target.
  *
+ * Collection runs emit root requests first, then each folder subtree depth-first
+ * (folder requests, then child folders). Folder runs include the target folder and
+ * all descendant folders.
+ *
  * @param collectionId - Collection whose requests are included.
- * @param folderId - When set, only requests in that folder; otherwise full collection order.
+ * @param folderId - When set, requests in that folder subtree; otherwise full collection order.
  * @param requests - All saved requests for the collection (already loaded in Redux).
  * @param folders - Folders for the collection (already loaded in Redux).
  * @returns Requests ordered for sequential execution.
@@ -664,31 +669,62 @@ export function getRequestsInRunOrder(
   folders: Folder[]
 ): SavedRequest[] {
   const collectionRequests = requests.filter((request) => request.collection_id === collectionId);
+  const collectionFolders = folders.filter((folder) => folder.collection_id === collectionId);
 
   const sortRequests = (items: SavedRequest[]): SavedRequest[] =>
     [...items].sort(
       (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
     );
 
+  const requestsInFolder = (id: number): SavedRequest[] =>
+    sortRequests(collectionRequests.filter((request) => request.folder_id === id));
+
+  const tree = buildFolderTree(collectionFolders);
+
+  /**
+   * Collects requests for a folder node and its descendants in depth-first order.
+   *
+   * @param node - Folder tree node to walk.
+   * @returns Requests in run order for the subtree.
+   */
+  function collectSubtree(node: FolderTreeNode): SavedRequest[] {
+    const own = requestsInFolder(node.folder.id);
+    const childRequests = node.children.flatMap((child) => collectSubtree(child));
+    return [...own, ...childRequests];
+  }
+
   if (folderId != null) {
-    return sortRequests(collectionRequests.filter((request) => request.folder_id === folderId));
+    /**
+     * Finds the tree node for the target folder id.
+     *
+     * @param nodes - Nodes to search.
+     * @returns Matching node, or null when missing.
+     */
+    function findNode(nodes: readonly FolderTreeNode[]): FolderTreeNode | null {
+      for (const node of nodes) {
+        if (node.folder.id === folderId) {
+          return node;
+        }
+        const nested = findNode(node.children);
+        if (nested) {
+          return nested;
+        }
+      }
+      return null;
+    }
+
+    const target = findNode(tree);
+    if (!target) {
+      return requestsInFolder(folderId);
+    }
+    return collectSubtree(target);
   }
 
   const rootRequests = sortRequests(
     collectionRequests.filter((request) => request.folder_id == null)
   );
-
-  const sortedFolders = [...folders]
-    .filter((folder) => folder.collection_id === collectionId)
-    .sort(
-      (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
-    );
-
-  const nestedRequests = sortedFolders.flatMap((folder) =>
-    sortRequests(collectionRequests.filter((request) => request.folder_id === folder.id))
-  );
-
-  return [...rootRequests, ...nestedRequests];
+  const folderRequests = tree.flatMap((node) => collectSubtree(node));
+  return [...rootRequests, ...folderRequests];
 }
 
 /**

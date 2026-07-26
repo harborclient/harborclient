@@ -431,6 +431,8 @@ export function rowToFolder(row: Record<string, unknown>): Folder {
     id: readNumber(row.id),
     uuid: readString(row.uuid),
     collection_id: readNumber(row.collection_id),
+    parent_folder_id:
+      row.parent_folder_id != null ? readNullableNumber(row.parent_folder_id) : null,
     name: readString(row.name),
     sort_order: readNumber(row.sort_order),
     variables: readVariables(row.variables),

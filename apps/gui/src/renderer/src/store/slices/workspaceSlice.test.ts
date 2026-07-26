@@ -13,9 +13,7 @@ const baseWorkspace = (
 });
 
 const reorderState = (): WorkspaceState => ({
-  items: [baseWorkspace({ id: 1, name: 'Alpha' }), baseWorkspace({ id: 2, name: 'Beta' })],
-  editingWorkspaceId: null,
-  editSessionHiddenTabIds: []
+  items: [baseWorkspace({ id: 1, name: 'Alpha' }), baseWorkspace({ id: 2, name: 'Beta' })]
 });
 
 describe('workspaceSlice reorderWorkspacesLocal', () => {

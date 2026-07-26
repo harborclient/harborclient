@@ -668,6 +668,97 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(await db.listRequests(collection.id)).toEqual([]);
     });
 
+    it('createFolder creates a subfolder under a parent folder', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Nested');
+      const parent = await db.createFolder(collection.id, 'Auth');
+      const child = await db.createFolder(collection.id, 'Users', parent.id);
+
+      expect(child.parent_folder_id).toBe(parent.id);
+      expect(child.sort_order).toBe(0);
+      expect((await db.listFolders(collection.id)).map((folder) => folder.name).sort()).toEqual([
+        'Auth',
+        'Users'
+      ]);
+    });
+
+    it('reorderFolders reorders siblings under the same parent only', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Nested Reorder');
+      const parent = await db.createFolder(collection.id, 'Auth');
+      const alpha = await db.createFolder(collection.id, 'Alpha', parent.id);
+      const beta = await db.createFolder(collection.id, 'Beta', parent.id);
+      const root = await db.createFolder(collection.id, 'Root');
+
+      await db.reorderFolders(collection.id, parent.id, [beta.id, alpha.id]);
+
+      const folders = await db.listFolders(collection.id);
+      expect(folders.find((folder) => folder.id === beta.id)?.sort_order).toBe(0);
+      expect(folders.find((folder) => folder.id === alpha.id)?.sort_order).toBe(1);
+      expect(folders.find((folder) => folder.id === root.id)?.sort_order).toBe(1);
+      expect(folders.find((folder) => folder.id === parent.id)?.sort_order).toBe(0);
+    });
+
+    it('moveFolder reparents a folder and preserves sibling order', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Move Folder');
+      const source = await db.createFolder(collection.id, 'Source');
+      const destination = await db.createFolder(collection.id, 'Destination');
+      const child = await db.createFolder(collection.id, 'Child', source.id);
+
+      const moved = await db.moveFolder(child.id, destination.id, 0);
+
+      expect(moved.parent_folder_id).toBe(destination.id);
+      expect(moved.sort_order).toBe(0);
+      expect((await db.listFolders(collection.id)).find((folder) => folder.id === child.id)).toEqual(
+        expect.objectContaining({ parent_folder_id: destination.id, sort_order: 0 })
+      );
+    });
+
+    it('moveFolder rejects moving a folder under itself or a descendant', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Cycle Guard');
+      const parent = await db.createFolder(collection.id, 'Parent');
+      const child = await db.createFolder(collection.id, 'Child', parent.id);
+
+      await expect(db.moveFolder(parent.id, parent.id)).rejects.toThrow(
+        'Cannot move a folder under itself or a descendant'
+      );
+      await expect(db.moveFolder(parent.id, child.id)).rejects.toThrow(
+        'Cannot move a folder under itself or a descendant'
+      );
+    });
+
+    it('deleteFolder recursively removes descendant folders and their contents', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Recursive Delete');
+      const parent = await db.createFolder(collection.id, 'Parent');
+      const child = await db.createFolder(collection.id, 'Child', parent.id);
+      await db.saveRequest(baseRequestInput(collection.id, { name: 'Parent Req', folder_id: parent.id }));
+      await db.saveRequest(baseRequestInput(collection.id, { name: 'Child Req', folder_id: child.id }));
+      await db.saveDocument(baseDocumentInput(collection.id, { name: 'child.md', folder_id: child.id }));
+
+      await db.deleteFolder(parent.id);
+
+      expect(await db.listFolders(collection.id)).toEqual([]);
+      expect(await db.listRequests(collection.id)).toEqual([]);
+      expect(await db.listDocuments(collection.id)).toEqual([]);
+    });
+
+    it('createFolder allows duplicate names under different parents', async () => {
+      const { db } = await createTestDb();
+      const collection = await db.createCollection('Duplicate Names');
+      const auth = await db.createFolder(collection.id, 'Auth');
+      const admin = await db.createFolder(collection.id, 'Admin');
+      const authUsers = await db.createFolder(collection.id, 'Users', auth.id);
+      const adminUsers = await db.createFolder(collection.id, 'Users', admin.id);
+
+      expect(authUsers.name).toBe('Users');
+      expect(adminUsers.name).toBe('Users');
+      expect(authUsers.parent_folder_id).toBe(auth.id);
+      expect(adminUsers.parent_folder_id).toBe(admin.id);
+    });
+
     it('export and import preserve folders', async () => {
       const { db } = await createTestDb();
       const collection = await db.createCollection('Export Folders');
@@ -680,7 +771,12 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(exported.harborclientVersion).toBe(1);
       expect(exported.harborclientExport).toBe('collection');
       expect(exported.folders).toEqual([
-        expect.objectContaining({ name: 'Auth', sort_order: 0, uuid: folder.uuid })
+        expect.objectContaining({
+          name: 'Auth',
+          sort_order: 0,
+          uuid: folder.uuid,
+          parent_folder_uuid: null
+        })
       ]);
       expect(exported.requests[0]?.folder_name).toBe('Auth');
       expect(exported.requests[0]?.folder_uuid).toBe(folder.uuid);

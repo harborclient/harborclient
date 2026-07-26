@@ -830,10 +830,31 @@ function listFolders(collectionId: number): Promise<Folder[]> {
  *
  * @param collectionId - Collection to add the folder to.
  * @param name - Display name for the folder.
+ * @param parentFolderId - Parent folder id, or null/omitted for collection root.
  * @returns The newly created folder.
  */
-function createFolder(collectionId: number, name: string): Promise<Folder> {
-  return ipcRenderer.invoke('folders:create', collectionId, name);
+function createFolder(
+  collectionId: number,
+  name: string,
+  parentFolderId?: number | null
+): Promise<Folder> {
+  return ipcRenderer.invoke('folders:create', collectionId, name, parentFolderId);
+}
+
+/**
+ * Moves a folder to a new parent and optional sibling index.
+ *
+ * @param folderId - Folder to move.
+ * @param parentFolderId - New parent folder id, or null for collection root.
+ * @param sortOrder - Optional zero-based index among new siblings.
+ * @returns The updated folder.
+ */
+function moveFolder(
+  folderId: number,
+  parentFolderId: number | null,
+  sortOrder?: number
+): Promise<Folder> {
+  return ipcRenderer.invoke('folders:move', folderId, parentFolderId, sortOrder);
 }
 
 /**
@@ -909,13 +930,18 @@ function deleteFolder(id: number): Promise<void> {
 }
 
 /**
- * Reorders folders within a collection.
+ * Reorders sibling folders that share the same parent within a collection.
  *
  * @param collectionId - Collection containing the folders.
- * @param orderedFolderIds - Folder IDs in desired order.
+ * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+ * @param orderedFolderIds - Sibling folder IDs in desired order.
  */
-function reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
-  return ipcRenderer.invoke('folders:reorder', collectionId, orderedFolderIds);
+function reorderFolders(
+  collectionId: number,
+  parentFolderId: number | null,
+  orderedFolderIds: number[]
+): Promise<void> {
+  return ipcRenderer.invoke('folders:reorder', collectionId, parentFolderId, orderedFolderIds);
 }
 
 /**
@@ -4029,6 +4055,7 @@ const api: Api = {
   deleteRequest,
   listFolders,
   createFolder,
+  moveFolder,
   renameFolder,
   updateFolder,
   setFolderMarker,

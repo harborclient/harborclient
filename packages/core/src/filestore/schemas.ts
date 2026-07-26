@@ -40,6 +40,7 @@ const exportedFolderRow = z
   .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
+    parent_folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
     sort_order: z.number().optional(),
     variables: importVariables.optional(),
     headers: z.array(keyValue).optional(),
@@ -63,6 +64,7 @@ const exportedFolderRow = z
   .transform((folder) => ({
     uuid: folder.uuid,
     name: folder.name.trim(),
+    parent_folder_uuid: folder.parent_folder_uuid ?? null,
     sort_order: folder.sort_order,
     variables: folder.variables,
     headers: folder.headers,
@@ -76,22 +78,28 @@ const exportedFolderRow = z
   }));
 
 /**
- * Returns the index of the first duplicate folder name, or null when all names are unique.
+ * Returns the index of the first duplicate folder name among siblings, or null when unique.
  *
- * @param folders - Folder rows with normalized names.
- * @returns Index of the second occurrence, or null when names are unique.
+ * Sibling scope is `(parent_folder_uuid ?? null, name)`. Folders under different parents may
+ * share the same display name.
+ *
+ * @param folders - Folder rows with normalized names and optional parent uuids.
+ * @returns Index of the second occurrence, or null when sibling names are unique.
  */
-export function findDuplicateFolderIndex(folders: ReadonlyArray<{ name: string }>): number | null {
+export function findDuplicateFolderIndex(
+  folders: ReadonlyArray<{ name: string; parent_folder_uuid?: string | null }>
+): number | null {
   const seen = new Set<string>();
   for (let index = 0; index < folders.length; index++) {
-    const name = folders[index]?.name;
-    if (name === undefined) {
+    const folder = folders[index];
+    if (folder?.name === undefined) {
       continue;
     }
-    if (seen.has(name)) {
+    const key = `${folder.parent_folder_uuid ?? ''}\0${folder.name}`;
+    if (seen.has(key)) {
       return index;
     }
-    seen.add(name);
+    seen.add(key);
   }
   return null;
 }
@@ -130,6 +138,7 @@ export const exportedFolders = z
       (folder, index): ExportedFolder => ({
         uuid: folder.uuid,
         name: folder.name,
+        parent_folder_uuid: folder.parent_folder_uuid ?? null,
         sort_order: typeof folder.sort_order === 'number' ? folder.sort_order : index,
         variables: folder.variables,
         headers: folder.headers,

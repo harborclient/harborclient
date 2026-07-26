@@ -396,15 +396,96 @@ export function serializeImportedCollectionScriptFields(payload: CollectionExpor
 }
 
 /**
+ * Sorts exported folders so every parent row appears before its descendants.
+ *
+ * Rows whose parent uuid is missing from the export are imported as collection-root folders.
+ *
+ * @param folders - Folder rows from a collection export payload.
+ * @returns The same folders in parent-before-child order.
+ */
+export function orderExportedFoldersForImport(
+  folders: readonly ExportedFolder[]
+): ExportedFolder[] {
+  const byUuid = new Map<string, ExportedFolder>();
+  for (const folder of folders) {
+    const uuid = folder.uuid?.trim();
+    if (uuid) {
+      byUuid.set(uuid, folder);
+    }
+  }
+
+  const sorted: ExportedFolder[] = [];
+  const visited = new Set<ExportedFolder>();
+  const visiting = new Set<ExportedFolder>();
+
+  /**
+   * Visits a folder after its exported parent so inserts can resolve parent ids.
+   *
+   * @param folder - Folder row to append once ancestors are processed.
+   */
+  function visit(folder: ExportedFolder): void {
+    if (visited.has(folder)) {
+      return;
+    }
+    if (visiting.has(folder)) {
+      sorted.push(folder);
+      visited.add(folder);
+      return;
+    }
+
+    visiting.add(folder);
+    const parentUuid = folder.parent_folder_uuid?.trim();
+    if (parentUuid) {
+      const parent = byUuid.get(parentUuid);
+      if (parent) {
+        visit(parent);
+      }
+    }
+    visiting.delete(folder);
+    visited.add(folder);
+    sorted.push(folder);
+  }
+
+  for (const folder of folders) {
+    visit(folder);
+  }
+
+  return sorted;
+}
+
+/**
+ * Resolves a folder's parent id from an exported parent uuid during import.
+ *
+ * @param folder - Exported folder row being inserted or updated.
+ * @param folderIdByUuid - Map of folder uuid to local folder id built during import.
+ * @returns Local parent folder id, or null for collection root.
+ */
+export function resolveImportedFolderParentId(
+  folder: ExportedFolder,
+  folderIdByUuid: Map<string, number>
+): number | null {
+  const parentUuid = folder.parent_folder_uuid?.trim();
+  if (!parentUuid) {
+    return null;
+  }
+  return folderIdByUuid.get(parentUuid) ?? null;
+}
+
+/**
  * Converts a persisted folder row into a portable export shape.
  *
  * @param folder - Folder loaded from storage.
+ * @param parentFolderUuid - Portable uuid of the parent folder, or null at collection root.
  * @returns Portable folder export row.
  */
-export function exportedFolderFromFolder(folder: Folder): ExportedFolder {
+export function exportedFolderFromFolder(
+  folder: Folder,
+  parentFolderUuid: string | null = null
+): ExportedFolder {
   return {
     uuid: folder.uuid,
     name: folder.name,
+    parent_folder_uuid: parentFolderUuid,
     sort_order: folder.sort_order,
     variables: maskVariablesForExport(folder.variables),
     headers: folder.headers,

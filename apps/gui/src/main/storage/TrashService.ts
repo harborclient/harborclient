@@ -1,4 +1,5 @@
 import type { SaveRunResultInput } from '@harborclient/core/collectionRunner';
+import { getFolderDescendants } from '@harborclient/core/folderTree';
 import type { LocalDatabase } from './LocalDatabase';
 import type { IStorage } from './IStorage';
 import { RoutingStorage } from './RoutingStorage';
@@ -21,7 +22,7 @@ import type {
 import { deleteStorageConnection, listStorageConnections } from '#/main/settings/storageSettings';
 
 /**
- * Folder trash payload containing the folder and all direct child items.
+ * Folder trash payload containing the folder subtree and contained items.
  */
 interface FolderTrashPayload {
   /**
@@ -30,12 +31,17 @@ interface FolderTrashPayload {
   folder: Folder;
 
   /**
-   * Requests that lived directly inside the folder.
+   * Descendant folders removed with the subtree, parent-first.
+   */
+  childFolders: Folder[];
+
+  /**
+   * Requests that lived inside the deleted subtree.
    */
   requests: SavedRequest[];
 
   /**
-   * Markdown documents that lived directly inside the folder.
+   * Markdown documents that lived inside the deleted subtree.
    */
   documents: CollectionDocument[];
 }
@@ -262,14 +268,17 @@ export class TrashService {
     }
 
     const { folder, collectionId, connectionId } = located;
+    const allFolders = await router.listFolders(collectionId);
+    const childFolders = getFolderDescendants(folder.id, allFolders);
+    const subtreeFolderIds = new Set([folder.id, ...childFolders.map((entry) => entry.id)]);
     const requests = (await router.listRequests(collectionId)).filter(
-      (request) => request.folder_id === id
+      (request) => request.folder_id != null && subtreeFolderIds.has(request.folder_id)
     );
     const documents = (await router.listDocuments(collectionId)).filter(
-      (document) => document.folder_id === id
+      (document) => document.folder_id != null && subtreeFolderIds.has(document.folder_id)
     );
 
-    const payload: FolderTrashPayload = { folder, requests, documents };
+    const payload: FolderTrashPayload = { folder, childFolders, requests, documents };
     await router.deleteFolder(id);
 
     this.database.insertTrashItem({
@@ -474,26 +483,41 @@ export class TrashService {
       throw new Error('Original collection no longer exists');
     }
 
-    const created = await router.createFolder(collectionId, payload.folder.name);
-    await router.updateFolder(
-      created.id,
-      payload.folder.name,
-      payload.folder.variables,
-      payload.folder.headers,
-      payload.folder.pre_request_script,
-      payload.folder.post_request_script,
-      payload.folder.auth,
-      payload.folder.userAgent ?? '',
-      payload.folder.pre_request_scripts,
-      payload.folder.post_request_scripts
-    );
+    const foldersToRestore = [payload.folder, ...(payload.childFolders ?? [])];
+    const folderIdMap = new Map<number, number>();
+
+    for (const folder of foldersToRestore) {
+      const parentFolderId =
+        folder.parent_folder_id != null
+          ? (folderIdMap.get(folder.parent_folder_id) ??
+            (await this.resolveRestoreFolderId(router, collectionId, folder.parent_folder_id)))
+          : null;
+      const created = await router.createFolder(collectionId, folder.name, parentFolderId);
+      await router.updateFolder(
+        created.id,
+        folder.name,
+        folder.variables,
+        folder.headers,
+        folder.pre_request_script,
+        folder.post_request_script,
+        folder.auth,
+        folder.userAgent ?? '',
+        folder.pre_request_scripts,
+        folder.post_request_scripts
+      );
+      folderIdMap.set(folder.id, created.id);
+    }
 
     for (const request of payload.requests) {
-      await router.saveRequest(savedRequestToSaveInput(request, collectionId, created.id));
+      const targetFolderId =
+        request.folder_id != null ? (folderIdMap.get(request.folder_id) ?? null) : null;
+      await router.saveRequest(savedRequestToSaveInput(request, collectionId, targetFolderId));
     }
 
     for (const document of payload.documents) {
-      await router.saveDocument(documentToSaveInput(document, collectionId, created.id));
+      const targetFolderId =
+        document.folder_id != null ? (folderIdMap.get(document.folder_id) ?? null) : null;
+      await router.saveDocument(documentToSaveInput(document, collectionId, targetFolderId));
     }
   }
 

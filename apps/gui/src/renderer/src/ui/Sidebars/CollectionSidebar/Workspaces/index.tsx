@@ -30,10 +30,10 @@ import { openWorkspaceModal } from '#/renderer/src/store/slices/modalsSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import {
   deleteWorkspace,
-  editWorkspace,
   exportWorkspace,
   requestOpenWorkspace,
-  reorderWorkspaces
+  reorderWorkspaces,
+  saveWorkspace
 } from '#/renderer/src/store/thunks/workspaces';
 import { faLayerGroup } from '#/renderer/src/fontawesome';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
@@ -45,6 +45,7 @@ import {
   toSortTimestamp
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import toast from 'react-hot-toast';
 import { parseWorkspaceDragId, workspaceDragId, workspaceSummaryText } from './utils';
 
 export { WorkspacesHeaderActions } from './WorkspacesHeaderActions';
@@ -113,6 +114,22 @@ export function Workspaces(): JSX.Element {
   const handleOpenGroup = useCallback(
     (group: Workspace): void => {
       void dispatch(requestOpenWorkspace(group.id));
+    },
+    [dispatch]
+  );
+
+  /**
+   * Saves the current open tabs and layout into a workspace.
+   *
+   * @param group - Workspace to overwrite with the current UI snapshot.
+   */
+  const handleSaveGroup = useCallback(
+    async (group: Workspace): Promise<void> => {
+      try {
+        await dispatch(saveWorkspace(group.id)).unwrap();
+      } catch (err) {
+        toast.error(formatErrorMessage(err, 'Failed to save workspace'));
+      }
     },
     [dispatch]
   );
@@ -332,9 +349,9 @@ export function Workspaces(): JSX.Element {
                             )),
                         [
                           {
-                            label: 'Edit',
+                            label: 'Save',
                             onSelect: () => {
-                              void dispatch(editWorkspace(group.id));
+                              void handleSaveGroup(group);
                             }
                           },
                           {

@@ -35,6 +35,14 @@ import { deriveRequestFileStatus, isCountedCollectionChange } from '#/main/git/g
 import { GitSyncManager } from '#/main/git/GitSyncManager';
 import { maskVariablesForExport, validateCollectionExport } from './collectionData';
 import { trimRequiredName } from './trimRequiredName';
+import {
+  assertFolderSiblingReorder,
+  assertValidFolderParent,
+  folderSubtreeIdsForDeletion,
+  maxSiblingFolderSortOrder,
+  sortExportedFoldersParentFirst,
+  wouldCreateFolderCycle
+} from './folderStorage';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from './IStorage';
@@ -148,6 +156,7 @@ function buildCollectionExportFromLoaded(loaded: LoadedCollection): CollectionEx
     folders: loaded.manifest.folders.map((folder) => ({
       uuid: folder.uuid,
       name: folder.name,
+      parent_folder_uuid: folder.parent_uuid ?? null,
       sort_order: folder.sort_order,
       variables: folder.variables ?? [],
       headers: folder.headers ?? [],
@@ -845,16 +854,94 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ): Promise<Folder> {
     const loaded = this.requireCollection(collectionId);
     const trimmedName = trimRequiredName(name, 'Folder name');
-    const sort_order = loaded.manifest.folders.length;
-    const folder = createStoredFolder(trimmedName, sort_order);
+    const parentId = parentFolderId ?? null;
+    const existingFolders = this.buildFolders(collectionId, loaded);
+    assertValidFolderParent(existingFolders, collectionId, parentId);
+    const parentUuid =
+      parentId != null
+        ? (loaded.manifest.folders.find((row) => this.#idIndex.folderIds[row.uuid] === parentId)
+            ?.uuid ?? null)
+        : null;
+    if (parentId != null && parentUuid == null) {
+      throw new Error('Folder not found');
+    }
+    const sort_order = maxSiblingFolderSortOrder(existingFolders, parentId) + 1;
+    const folder = createStoredFolder(trimmedName, sort_order, parentUuid);
     loaded.manifest.folders.push(folder);
     const folderId = assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', folder.uuid);
     this.persistCollection(collectionId);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
     return this.storedFolderToFolder(collectionId, folder, folderId);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Folder to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    for (const [collectionId, loaded] of this.#collections.entries()) {
+      const folder = loaded.manifest.folders.find(
+        (row) => this.#idIndex.folderIds[row.uuid] === folderId
+      );
+      if (!folder) {
+        continue;
+      }
+
+      const folders = this.buildFolders(collectionId, loaded);
+      assertValidFolderParent(folders, collectionId, parentFolderId);
+      if (wouldCreateFolderCycle(folderId, parentFolderId, folders)) {
+        throw new Error('Cannot move a folder under itself or a descendant');
+      }
+
+      const parentUuid =
+        parentFolderId != null
+          ? (loaded.manifest.folders.find(
+              (row) => this.#idIndex.folderIds[row.uuid] === parentFolderId
+            )?.uuid ?? null)
+          : null;
+      if (parentFolderId != null && parentUuid == null) {
+        throw new Error('Folder not found');
+      }
+
+      const destSiblings = folders
+        .filter(
+          (candidate) =>
+            candidate.id !== folderId && (candidate.parent_folder_id ?? null) === parentFolderId
+        )
+        .sort(
+          (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
+        );
+      const targetIndex =
+        sortOrder != null
+          ? Math.max(0, Math.min(sortOrder, destSiblings.length))
+          : destSiblings.length;
+      const orderedIds = [
+        ...destSiblings.slice(0, targetIndex).map((candidate) => candidate.id),
+        folderId,
+        ...destSiblings.slice(targetIndex).map((candidate) => candidate.id)
+      ];
+
+      folder.parent_uuid = parentUuid;
+      await this.reorderFolders(collectionId, parentFolderId, orderedIds);
+      this.persistCollection(collectionId);
+      return this.storedFolderToFolder(collectionId, folder, folderId);
+    }
+    throw new Error('Folder not found');
   }
 
   /**
@@ -963,50 +1050,80 @@ export class GitStorage implements IStorage {
       const folder = loaded.manifest.folders.find(
         (row) => this.#idIndex.folderIds[row.uuid] === id
       );
-      if (folder) {
-        const folderName = folder.name;
-        loaded.manifest.folders = loaded.manifest.folders.filter((row) => row.uuid !== folder.uuid);
-        delete this.#idIndex.folderIds[folder.uuid];
-        loaded.requests = loaded.requests.filter((request) => request.folder_name !== folderName);
-        for (const document of loaded.documents) {
-          if (
-            document.folder_uuid === folder.uuid ||
-            (document.folder_name ?? null) === folderName
-          ) {
-            const documentUuid = resolveImportUuid(document.uuid);
-            delete this.#idIndex.documentIds[documentUuid];
-            this.#documentTimestamps.delete(documentUuid);
-          }
-        }
-        loaded.documents = loaded.documents.filter(
-          (document) =>
-            document.folder_uuid !== folder.uuid && (document.folder_name ?? null) !== folderName
-        );
-        this.persistCollection(collectionId);
-        saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
-        return;
+      if (!folder) {
+        continue;
       }
+
+      const folders = this.buildFolders(collectionId, loaded);
+      const subtreeIds = new Set(folderSubtreeIdsForDeletion(id, folders));
+      const subtreeUuids = new Set(
+        loaded.manifest.folders
+          .filter((row) => subtreeIds.has(this.#idIndex.folderIds[row.uuid] ?? -1))
+          .map((row) => row.uuid)
+      );
+      const subtreeNames = new Set(
+        loaded.manifest.folders.filter((row) => subtreeUuids.has(row.uuid)).map((row) => row.name)
+      );
+
+      loaded.manifest.folders = loaded.manifest.folders.filter(
+        (row) => !subtreeUuids.has(row.uuid)
+      );
+      for (const folderUuid of subtreeUuids) {
+        delete this.#idIndex.folderIds[folderUuid];
+      }
+
+      loaded.requests = loaded.requests.filter(
+        (request) =>
+          (request.folder_uuid == null || !subtreeUuids.has(request.folder_uuid)) &&
+          (request.folder_name == null || !subtreeNames.has(request.folder_name))
+      );
+      for (const document of loaded.documents) {
+        if (
+          (document.folder_uuid != null && subtreeUuids.has(document.folder_uuid)) ||
+          ((document.folder_name ?? null) != null && subtreeNames.has(document.folder_name!))
+        ) {
+          const documentUuid = resolveImportUuid(document.uuid);
+          delete this.#idIndex.documentIds[documentUuid];
+          this.#documentTimestamps.delete(documentUuid);
+        }
+      }
+      loaded.documents = loaded.documents.filter(
+        (document) =>
+          (document.folder_uuid == null || !subtreeUuids.has(document.folder_uuid)) &&
+          (document.folder_name == null || !subtreeNames.has(document.folder_name!))
+      );
+      this.persistCollection(collectionId);
+      saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+      return;
     }
     throw new Error('Folder not found');
   }
 
   /**
-   * @inheritdoc
+   * Reorders sibling folders that share the same parent within a collection.
+   *
+   * @param collectionId - Collection containing the folders.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
     const loaded = this.requireCollection(collectionId);
+    const folders = this.buildFolders(collectionId, loaded);
+    assertFolderSiblingReorder(folders, collectionId, parentFolderId, orderedFolderIds);
+
     const idToFolder = new Map(
-      loaded.manifest.folders.map((folder) => [this.#idIndex.folderIds[folder.uuid], folder])
+      loaded.manifest.folders.map((row) => [this.#idIndex.folderIds[row.uuid], row])
     );
-    const reordered: StoredFolderRow[] = [];
     for (let index = 0; index < orderedFolderIds.length; index++) {
       const folder = idToFolder.get(orderedFolderIds[index]);
       if (folder) {
         folder.sort_order = index;
-        reordered.push(folder);
       }
     }
-    loaded.manifest.folders = reordered;
     this.persistCollection(collectionId);
   }
 
@@ -1432,9 +1549,13 @@ export class GitStorage implements IStorage {
       post_request_script: collectionScripts.post_request_script,
       pre_request_scripts: exportData.pre_request_scripts ?? [],
       post_request_scripts: exportData.post_request_scripts ?? [],
-      folders: (exportData.folders ?? []).map((folder, index) =>
-        importedFolderToStoredRow(folder, index)
-      ),
+      folders: (exportData.folders ?? []).map((folder, index) => ({
+        ...importedFolderToStoredRow(folder, index),
+        parent_uuid:
+          folder.parent_folder_uuid == null || folder.parent_folder_uuid === ''
+            ? null
+            : resolveImportUuid(folder.parent_folder_uuid)
+      })),
       created_at: new Date().toISOString()
     };
     const requests = exportData.requests;
@@ -1507,19 +1628,28 @@ export class GitStorage implements IStorage {
       post_request_scripts: exportData.post_request_scripts ?? []
     };
 
-    for (const folder of exportData.folders ?? []) {
+    for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
       const folderUuid = resolveImportUuid(folder.uuid);
       const existingByUuid = loaded.manifest.folders.find((row) => row.uuid === folderUuid);
       const existingByName = loaded.manifest.folders.find((row) => row.name === folder.name);
       const existing = existingByUuid ?? existingByName;
+      const parentUuid =
+        folder.parent_folder_uuid == null || folder.parent_folder_uuid === ''
+          ? null
+          : resolveImportUuid(folder.parent_folder_uuid);
 
       if (existing) {
-        Object.assign(existing, importedFolderToStoredRow(folder, existing.sort_order));
+        Object.assign(existing, importedFolderToStoredRow(folder, existing.sort_order), {
+          parent_uuid: parentUuid
+        });
         assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', existing.uuid);
         continue;
       }
 
-      const stored = importedFolderToStoredRow(folder, loaded.manifest.folders.length);
+      const stored = {
+        ...importedFolderToStoredRow(folder, loaded.manifest.folders.length),
+        parent_uuid: parentUuid
+      };
       loaded.manifest.folders.push(stored);
       assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', stored.uuid);
     }
@@ -1962,6 +2092,10 @@ export class GitStorage implements IStorage {
         uuid: resolveImportUuid(folder.uuid),
         name: folder.name,
         sort_order: folder.sort_order ?? index,
+        parent_uuid:
+          folder.parent_folder_uuid == null || folder.parent_folder_uuid === ''
+            ? null
+            : resolveImportUuid(folder.parent_folder_uuid),
         variables: folder.variables ?? [],
         headers: folder.headers ?? [],
         userAgent: typeof folder.userAgent === 'string' ? folder.userAgent : '',
@@ -2040,9 +2174,15 @@ export class GitStorage implements IStorage {
   ): Folder {
     const preRequestScript = folder.pre_request_script ?? '';
     const postRequestScript = folder.post_request_script ?? '';
+    const parentUuid = folder.parent_uuid?.trim();
+    const parent_folder_id =
+      parentUuid != null && parentUuid !== ''
+        ? (this.#idIndex.folderIds[parentUuid] ?? null)
+        : null;
     return {
       id: folderId,
       collection_id: collectionId,
+      parent_folder_id,
       uuid: folder.uuid,
       name: folder.name,
       sort_order: folder.sort_order,

@@ -814,13 +814,16 @@ export const deleteFolder = createAsyncThunk<
  */
 export const reorderFolders = createAsyncThunk<
   void,
-  { collectionId: number; orderedFolderIds: number[] },
+  { collectionId: number; parentFolderId: number | null; orderedFolderIds: number[] },
   ThunkApiConfig
->('collections/reorderFolders', async ({ collectionId, orderedFolderIds }, { dispatch }) => {
-  dispatch(reorderFoldersLocal({ collectionId, orderedFolderIds }));
-  await window.api.reorderFolders(collectionId, orderedFolderIds);
-  await dispatch(refreshFolders(collectionId));
-});
+>(
+  'collections/reorderFolders',
+  async ({ collectionId, parentFolderId, orderedFolderIds }, { dispatch }) => {
+    dispatch(reorderFoldersLocal({ collectionId, parentFolderId, orderedFolderIds }));
+    await window.api.reorderFolders(collectionId, parentFolderId, orderedFolderIds);
+    await dispatch(refreshFolders(collectionId));
+  }
+);
 
 /**
  * Persists a new request order within a folder or the collection root.

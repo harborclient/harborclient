@@ -6,6 +6,7 @@ import type { Folder } from '../types';
  */
 export const FOLDER_SETTINGS_DEFAULTS: Pick<
   Folder,
+  | 'parent_folder_id'
   | 'variables'
   | 'headers'
   | 'userAgent'
@@ -15,6 +16,7 @@ export const FOLDER_SETTINGS_DEFAULTS: Pick<
   | 'pre_request_scripts'
   | 'post_request_scripts'
 > = {
+  parent_folder_id: null,
   variables: [],
   headers: [],
   userAgent: '',

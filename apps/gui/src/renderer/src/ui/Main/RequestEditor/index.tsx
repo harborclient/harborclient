@@ -20,7 +20,6 @@ import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands'
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
-import { selectEditSessionHiddenTabIds } from '#/renderer/src/store/slices/workspaceSlice';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import {
   selectActiveEnvironmentId,
@@ -174,12 +173,6 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { revealCollection, revealFolder } = useSidebarExpansion();
   const tabs = useAppSelector(selectTabs);
-  const editSessionHiddenTabIds = useAppSelector(selectEditSessionHiddenTabIds);
-
-  /**
-   * Tab ids hidden from the tab bar during workspace edit mode.
-   */
-  const hiddenTabIds = useMemo(() => new Set(editSessionHiddenTabIds), [editSessionHiddenTabIds]);
 
   const activeTabId = useAppSelector(selectActiveTabId);
   const activePage = useAppSelector(selectActivePage);
@@ -544,7 +537,6 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       <TabBar
         tabs={tabs}
         activeTabId={activeTabId}
-        hiddenTabIds={hiddenTabIds.size > 0 ? hiddenTabIds : undefined}
         onSelect={(tabId) => dispatch(setActiveTab(tabId))}
         onClose={handleCloseTab}
         onCloseMany={handleCloseMany}

@@ -1182,6 +1182,12 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
           ? null
           : typeof folder.marker === 'string'
             ? folder.marker.trim() || null
+            : null,
+      parent_folder_uuid:
+        folder.parent_folder_uuid == null || folder.parent_folder_uuid === ''
+          ? null
+          : typeof folder.parent_folder_uuid === 'string'
+            ? resolveImportUuid(folder.parent_folder_uuid)
             : null
     }))
     .filter((row) => row.name.length > 0);
@@ -1780,9 +1786,14 @@ export interface StoredFolderRow {
   name: string;
 
   /**
-   * Position among sibling folders.
+   * Position among sibling folders that share the same parent.
    */
   sort_order: number;
+
+  /**
+   * Portable uuid of the parent folder, or null for a collection-root folder.
+   */
+  parent_uuid?: string | null;
 
   /**
    * Folder-scoped variables for {{key}} substitution in requests.
@@ -1834,13 +1845,19 @@ export interface StoredFolderRow {
  * Creates a new stored folder row with a fresh uuid.
  *
  * @param name - Folder display name.
- * @param sort_order - Folder position.
+ * @param sort_order - Folder position among siblings.
+ * @param parent_uuid - Parent folder uuid, or null for collection root.
  */
-export function createStoredFolder(name: string, sort_order: number): StoredFolderRow {
+export function createStoredFolder(
+  name: string,
+  sort_order: number,
+  parent_uuid: string | null = null
+): StoredFolderRow {
   return {
     uuid: generateDocumentUuid(),
     name: name.trim(),
     sort_order,
+    parent_uuid,
     variables: [],
     headers: [],
     userAgent: '',

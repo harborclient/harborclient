@@ -171,6 +171,7 @@ function folderFixture(id: number, collectionId: number, name: string): Folder {
     id,
     uuid: `folder-${id}`,
     collection_id: collectionId,
+    parent_folder_id: null,
     name,
     variables: [],
     headers: [],
@@ -1765,6 +1766,7 @@ hc.test("Status code is 2xx", () => {
     const folder: Folder = {
       id: 10,
       collection_id: 1,
+      parent_folder_id: null,
       uuid: folderUuid,
       name: 'Auth',
       sort_order: 0,
@@ -1819,6 +1821,7 @@ hc.test("Status code is 2xx", () => {
     const folder: Folder = {
       id: 10,
       collection_id: 1,
+      parent_folder_id: null,
       uuid: folderUuid,
       name: 'Auth',
       sort_order: 0,

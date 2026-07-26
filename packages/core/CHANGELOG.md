@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance Folder Management with Parent-Child Relationships. (`6c0cc7e9`)
 - Add OpenCollection Import Functionality. (`ac4dc71a`)
 - Add Appearance Options for Storage Locations, Color Markers, Highlights, and Indicators. (`ee9e54d5`)
 - Rename Tab Groups to Workspaces (`TabGroup` → `Workspace`, export kind `workspace`). Breaking type rename; requires a major release.

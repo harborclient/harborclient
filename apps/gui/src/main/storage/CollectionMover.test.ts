@@ -158,6 +158,7 @@ describe('MoveCoordinator document copy', () => {
     const sourceFolder: Folder = {
       id: 50,
       collection_id: 10,
+      parent_folder_id: null,
       uuid: 'folder-uuid',
       name: 'Docs',
       variables: [],

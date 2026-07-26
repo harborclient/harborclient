@@ -884,7 +884,8 @@ export const ipcArgSchemas = {
   collectionMove: z.tuple([dbId, connectionId]),
   collectionReorder: z.tuple([z.array(dbId)]),
   environmentReorder: z.tuple([z.array(dbId)]),
-  folderCreate: z.tuple([dbId, name]),
+  folderCreate: z.tuple([dbId, name, z.union([dbId, z.null()]).optional()]),
+  folderMove: z.tuple([dbId, z.union([dbId, z.null()]), z.number().optional()]),
   folderRename: z.tuple([dbId, name]),
   folderUpdate: z.tuple([
     dbId,
@@ -898,7 +899,7 @@ export const ipcArgSchemas = {
     ipcScriptRefArray,
     ipcScriptRefArray
   ]),
-  folderReorder: z.tuple([dbId, z.array(dbId)]),
+  folderReorder: z.tuple([dbId, z.union([dbId, z.null()]), z.array(dbId)]),
   requestReorder: z.tuple([dbId, nullableFolderId, z.array(dbId)]),
   requestMove: z.tuple([dbId, nullableFolderId, dbId]),
   containerItemRef: z.object({

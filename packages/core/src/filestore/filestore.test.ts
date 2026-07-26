@@ -136,7 +136,7 @@ describe('validateCollectionExport', () => {
     ).toThrow('Invalid collection file: unsupported format version');
   });
 
-  it('rejects duplicate folder names', () => {
+  it('rejects duplicate folder names among siblings', () => {
     expect(() =>
       validateCollectionExport({
         ...validV1Export,
@@ -160,6 +160,33 @@ describe('validateCollectionExport', () => {
         requests: []
       })
     ).toThrow('Invalid collection file: folder 2 has a duplicate name');
+  });
+
+  it('allows the same folder name under different parents', () => {
+    const parentUuid = '55555555-5555-4555-8555-555555555555';
+    const childA = '66666666-6666-4666-8666-666666666666';
+    const childB = '77777777-7777-4777-8777-777777777777';
+    expect(() =>
+      validateCollectionExport({
+        ...validV1Export,
+        folders: [
+          { uuid: parentUuid, name: 'Auth', sort_order: 0 },
+          {
+            uuid: childA,
+            name: 'Users',
+            parent_folder_uuid: parentUuid,
+            sort_order: 0
+          },
+          {
+            uuid: childB,
+            name: 'Users',
+            parent_folder_uuid: null,
+            sort_order: 1
+          }
+        ],
+        requests: []
+      })
+    ).not.toThrow();
   });
 
   it('rejects duplicate folder uuids', () => {

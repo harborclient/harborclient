@@ -78,7 +78,6 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
-import { WorkspaceEditBar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/Workspaces/WorkspaceEditBar';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
@@ -445,8 +444,6 @@ export default function App(): JSX.Element {
                   </AnimatedHorizontalPanel>
                 </div>
               </SidebarModalsProvider>
-
-              <WorkspaceEditBar />
 
               <Footer
                 consoleOpen={showConsole}

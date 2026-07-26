@@ -210,9 +210,27 @@ export interface ApiCollections {
    *
    * @param collectionId - Collection to add the folder to.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  createFolder: (collectionId: number, name: string) => Promise<Folder>;
+  createFolder: (
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ) => Promise<Folder>;
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Folder to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  moveFolder: (
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ) => Promise<Folder>;
   /**
    * Renames a folder.
    *
@@ -255,18 +273,23 @@ export interface ApiCollections {
    */
   setFolderMarker: (id: number, marker: string | null) => Promise<Folder>;
   /**
-   * Deletes a folder and all requests inside it.
+   * Deletes a folder, its descendant folders, and all requests/documents inside the subtree.
    *
    * @param id - Folder ID to delete.
    */
   deleteFolder: (id: number) => Promise<void>;
   /**
-   * Reorders folders within a collection.
+   * Reorders sibling folders that share the same parent within a collection.
    *
    * @param collectionId - Collection containing the folders.
-   * @param orderedFolderIds - Folder IDs in desired order.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  reorderFolders: (collectionId: number, orderedFolderIds: number[]) => Promise<void>;
+  reorderFolders: (
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ) => Promise<void>;
   /**
    * Reorders requests within a folder or at collection root.
    *

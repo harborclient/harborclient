@@ -112,7 +112,7 @@ export interface ListCollectionsResult {
 }
 
 /**
- * A folder for organizing requests within a collection (single level).
+ * A folder for organizing requests within a collection (supports nested subfolders).
  */
 export interface Folder {
   /**
@@ -126,6 +126,11 @@ export interface Folder {
   collection_id: number;
 
   /**
+   * Parent folder ID within the same collection, or null for a collection-root folder.
+   */
+  parent_folder_id: number | null;
+
+  /**
    * Stable portable identifier for export/import deduplication.
    */
   uuid: string;
@@ -136,7 +141,7 @@ export interface Folder {
   name: string;
 
   /**
-   * Position among sibling folders for sidebar ordering.
+   * Position among sibling folders that share the same parent for sidebar ordering.
    */
   sort_order: number;
 
@@ -463,7 +468,12 @@ export interface ExportedFolder {
   name: string;
 
   /**
-   * Position among sibling folders for sidebar ordering.
+   * Portable uuid of the parent folder, or null/omitted for a collection-root folder.
+   */
+  parent_folder_uuid?: string | null;
+
+  /**
+   * Position among sibling folders that share the same parent for sidebar ordering.
    */
   sort_order: number;
 

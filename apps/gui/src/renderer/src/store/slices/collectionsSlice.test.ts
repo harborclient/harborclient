@@ -34,6 +34,7 @@ const baseCollection = (
 
 const baseFolder = (overrides: Partial<Folder> & Pick<Folder, 'id' | 'name'>): Folder => ({
   collection_id: 1,
+  parent_folder_id: null,
   uuid: `folder-${overrides.id}`,
   sort_order: 0,
   variables: [],
@@ -157,7 +158,7 @@ describe('collectionsSlice', () => {
   it('reorderFoldersLocal reorders folders within a collection', () => {
     const state = collectionsReducer(
       reorderState(),
-      reorderFoldersLocal({ collectionId: 1, orderedFolderIds: [11, 10] })
+      reorderFoldersLocal({ collectionId: 1, parentFolderId: null, orderedFolderIds: [11, 10] })
     );
 
     expect(state.foldersByCollection[1]?.map((folder) => folder.id)).toEqual([11, 10]);
@@ -167,7 +168,7 @@ describe('collectionsSlice', () => {
     const initial = reorderState();
     const state = collectionsReducer(
       initial,
-      reorderFoldersLocal({ collectionId: 1, orderedFolderIds: [10] })
+      reorderFoldersLocal({ collectionId: 1, parentFolderId: null, orderedFolderIds: [10] })
     );
 
     expect(state.foldersByCollection[1]?.map((folder) => folder.id)).toEqual(

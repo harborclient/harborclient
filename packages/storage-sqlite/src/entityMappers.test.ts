@@ -142,6 +142,23 @@ describe('entityMappers', () => {
       });
     });
 
+    it('rowToFolder parses nullable parent_folder_id', () => {
+      const row = {
+        id: 4,
+        uuid: '66666666-6666-4666-8666-666666666666',
+        collection_id: 1,
+        parent_folder_id: 3,
+        name: 'Users',
+        sort_order: 0,
+        created_at: '2024-01-03T00:00:00.000Z'
+      };
+
+      expect(rowToFolder(row)).toMatchObject({
+        id: 4,
+        parent_folder_id: 3
+      });
+    });
+
     it('rowToRequest parses nullable folder_id and JSON header/param arrays', () => {
       const row = {
         id: 4,

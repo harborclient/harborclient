@@ -12,10 +12,19 @@ import {
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
   serializeImportedDocumentFields,
-  exportedFolderFromFolder,
   serializeImportedFolderFields,
   serializeImportedRequestFields
 } from './collectionImport';
+import {
+  assertFolderSiblingReorder,
+  assertValidFolderParent,
+  exportFoldersWithParents,
+  folderSubtreeIdsForDeletion,
+  maxSiblingFolderSortOrder,
+  resolveImportParentFolderId,
+  sortExportedFoldersParentFirst,
+  wouldCreateFolderCycle
+} from './folderStorage';
 import {
   maskVariablesForExport,
   normalizeVariable,
@@ -274,6 +283,8 @@ export class MySqlStorage implements IStorage {
     );
     await this.addColumnIfMissing('snippets', 'stage', "VARCHAR(32) NOT NULL DEFAULT 'main'");
     await this.getPool().execute("UPDATE snippets SET stage = 'main' WHERE stage = 'run'");
+    await this.addColumnIfMissing('folders', 'parent_folder_id', 'INT NULL');
+    await this.addParentFolderForeignKeyIfMissing();
     await this.backfillDocumentUuids('collections');
     await this.backfillDocumentUuids('requests');
     await this.backfillDocumentUuids('environments');
@@ -361,6 +372,24 @@ export class MySqlStorage implements IStorage {
     if (Number(rows[0]?.count ?? 0) > 0) return;
 
     await this.getPool().execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+
+  /**
+   * Adds the nested-folder parent foreign key when it is not already present.
+   */
+  private async addParentFolderForeignKeyIfMissing(): Promise<void> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT COUNT(*) AS count FROM information_schema.TABLE_CONSTRAINTS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'folders' AND CONSTRAINT_NAME = 'folders_parent_folder_id_fkey'`,
+      [this.#settings.database]
+    );
+    if (Number(rows[0]?.count ?? 0) > 0) {
+      return;
+    }
+    await this.getPool().execute(
+      `ALTER TABLE folders ADD CONSTRAINT folders_parent_folder_id_fkey
+       FOREIGN KEY (parent_folder_id) REFERENCES folders(id) ON DELETE CASCADE`
+    );
   }
 
   /**
@@ -824,20 +853,24 @@ export class MySqlStorage implements IStorage {
    *
    * @param collectionId - Collection to add the folder to.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ): Promise<Folder> {
     const trimmedName = trimRequiredName(name, 'Folder name');
+    const parentId = parentFolderId ?? null;
+    const existingFolders = await this.listFolders(collectionId);
+    assertValidFolderParent(existingFolders, collectionId, parentId);
     const createdAt = new Date().toISOString();
-    const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
-      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM folders WHERE collection_id = ?',
-      [collectionId]
-    );
-    const maxOrder = (maxRows[0]?.max_order as number) ?? -1;
+    const maxOrder = maxSiblingFolderSortOrder(existingFolders, parentId);
 
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'INSERT INTO folders (collection_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?)',
-      [collectionId, trimmedName, maxOrder + 1, generateDocumentUuid(), createdAt]
+      'INSERT INTO folders (collection_id, parent_folder_id, name, sort_order, uuid, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [collectionId, parentId, trimmedName, maxOrder + 1, generateDocumentUuid(), createdAt]
     );
 
     const [rows] = await this.getPool().execute<RowDataPacket[]>(
@@ -847,6 +880,66 @@ export class MySqlStorage implements IStorage {
     const row = rows[0];
     if (!row) throw new Error('Folder not found after insert');
     return rowToFolder(row);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Folder to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    const [folderRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM folders WHERE id = ?',
+      [folderId]
+    );
+    const folderRow = folderRows[0];
+    if (!folderRow) throw new Error('Folder not found');
+
+    const collectionId = folderRow.collection_id as number;
+    const folders = await this.listFolders(collectionId);
+    assertValidFolderParent(folders, collectionId, parentFolderId);
+    if (wouldCreateFolderCycle(folderId, parentFolderId, folders)) {
+      throw new Error('Cannot move a folder under itself or a descendant');
+    }
+
+    const destSiblings = folders
+      .filter(
+        (folder) => folder.id !== folderId && (folder.parent_folder_id ?? null) === parentFolderId
+      )
+      .sort(
+        (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
+      );
+
+    const targetIndex =
+      sortOrder != null
+        ? Math.max(0, Math.min(sortOrder, destSiblings.length))
+        : destSiblings.length;
+    const orderedIds = [
+      ...destSiblings.slice(0, targetIndex).map((folder) => folder.id),
+      folderId,
+      ...destSiblings.slice(targetIndex).map((folder) => folder.id)
+    ];
+
+    await this.getPool().execute('UPDATE folders SET parent_folder_id = ? WHERE id = ?', [
+      parentFolderId,
+      folderId
+    ]);
+    await this.reorderFolders(collectionId, parentFolderId, orderedIds);
+
+    const [updatedRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT * FROM folders WHERE id = ?',
+      [folderId]
+    );
+    const updatedRow = updatedRows[0];
+    if (!updatedRow) throw new Error('Folder not found');
+    return rowToFolder(updatedRow);
   }
 
   /**
@@ -955,17 +1048,29 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Deletes a folder and all requests and documents inside it.
+   * Deletes a folder, its descendant folders, and all requests and documents inside the subtree.
    *
    * @param id - Folder ID to delete.
    */
   async deleteFolder(id: number): Promise<void> {
+    const [folderRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT collection_id FROM folders WHERE id = ?',
+      [id]
+    );
+    const collectionId = folderRows[0]?.collection_id as number | undefined;
+    if (collectionId == null) throw new Error('Folder not found');
+
+    const folders = await this.listFolders(collectionId);
+    const folderIds = folderSubtreeIdsForDeletion(id, folders);
+
     const connection = await this.getPool().getConnection();
     try {
       await connection.beginTransaction();
-      await connection.execute('DELETE FROM requests WHERE folder_id = ?', [id]);
-      await connection.execute('DELETE FROM documents WHERE folder_id = ?', [id]);
-      await connection.execute('DELETE FROM folders WHERE id = ?', [id]);
+      for (const folderId of folderIds) {
+        await connection.execute('DELETE FROM requests WHERE folder_id = ?', [folderId]);
+        await connection.execute('DELETE FROM documents WHERE folder_id = ?', [folderId]);
+        await connection.execute('DELETE FROM folders WHERE id = ?', [folderId]);
+      }
       await connection.commit();
     } catch (err) {
       await connection.rollback();
@@ -976,12 +1081,20 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Reorders folders within a collection.
+   * Reorders sibling folders that share the same parent within a collection.
    *
    * @param collectionId - Collection containing the folders.
-   * @param orderedFolderIds - Folder IDs in desired order.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
+    const folders = await this.listFolders(collectionId);
+    assertFolderSiblingReorder(folders, collectionId, parentFolderId, orderedFolderIds);
+
     const connection = await this.getPool().getConnection();
     try {
       await connection.beginTransaction();
@@ -1356,7 +1469,7 @@ export class MySqlStorage implements IStorage {
 
     const collection = rowToCollection(row);
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(exportedFolderFromFolder);
+    const folders = exportFoldersWithParents(folderRecords);
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
@@ -1445,16 +1558,21 @@ export class MySqlStorage implements IStorage {
         folderUuidById: new Map()
       };
 
-      for (const folder of exportData.folders ?? []) {
+      for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
         const folderUuid = resolveImportedFolderUuid(folder);
         const folderFields = serializeImportedFolderFields(folder);
+        const parentFolderId = resolveImportParentFolderId(
+          folder.parent_folder_uuid,
+          folderMaps.folderIdByUuid
+        );
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
-            collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
+            collection_id, parent_folder_id, name, sort_order, uuid, variables, headers, user_agent, auth,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
+            parentFolderId,
             folder.name,
             folder.sort_order,
             folderUuid,
@@ -1643,16 +1761,21 @@ export class MySqlStorage implements IStorage {
       );
       const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
-      for (const folder of exportData.folders ?? []) {
+      for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
         const plan = planImportedFolderUpsert(folder, folderMaps);
+        const parentFolderId = resolveImportParentFolderId(
+          folder.parent_folder_uuid,
+          folderMaps.folderIdByUuid
+        );
         if (plan.action === 'update') {
           const folderFields = serializeImportedFolderFields(folder);
           await connection.execute(
-            `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
+            `UPDATE folders SET name = ?, parent_folder_id = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
               pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, marker = ?
              WHERE id = ? AND collection_id = ?`,
             [
               plan.name,
+              parentFolderId,
               plan.sort_order,
               folderFields.variablesJson,
               folderFields.headersJson,
@@ -1674,11 +1797,12 @@ export class MySqlStorage implements IStorage {
         const folderFields = serializeImportedFolderFields(folder);
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
-            collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
+            collection_id, parent_folder_id, name, sort_order, uuid, variables, headers, user_agent, auth,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
+            parentFolderId,
             plan.name,
             plan.sort_order,
             plan.uuid,

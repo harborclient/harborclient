@@ -214,6 +214,53 @@ describeSqlite('SqliteStorage uuid import', () => {
     expect(importedFolders[0]?.uuid).toBe(folder.uuid);
   });
 
+  it('round-trips nested folders through export and import', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Nested Folder Round Trip');
+    const auth = await db.createFolder(collection.id, 'Auth');
+    const users = await db.createFolder(collection.id, 'Users', auth.id);
+    await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'Login', folder_id: auth.id, method: 'POST' })
+    );
+    await db.saveRequest(
+      baseRequestInput(collection.id, { name: 'List Users', folder_id: users.id })
+    );
+
+    const exported = await db.exportCollectionData(collection.id);
+    expect(exported.folders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Auth',
+          uuid: auth.uuid,
+          parent_folder_uuid: null,
+          sort_order: 0
+        }),
+        expect.objectContaining({
+          name: 'Users',
+          uuid: users.uuid,
+          parent_folder_uuid: auth.uuid,
+          sort_order: 0
+        })
+      ])
+    );
+
+    const imported = await db.importCollectionData(exported);
+    const importedFolders = await db.listFolders(imported.id);
+    const importedAuth = importedFolders.find((folder) => folder.uuid === auth.uuid);
+    const importedUsers = importedFolders.find((folder) => folder.uuid === users.uuid);
+
+    expect(importedAuth?.parent_folder_id ?? null).toBeNull();
+    expect(importedUsers?.parent_folder_id).toBe(importedAuth?.id);
+
+    const importedRequests = await db.listRequests(imported.id);
+    expect(importedRequests.find((request) => request.name === 'Login')?.folder_id).toBe(
+      importedAuth?.id
+    );
+    expect(importedRequests.find((request) => request.name === 'List Users')?.folder_id).toBe(
+      importedUsers?.id
+    );
+  });
+
   it('round-trips folder settings through export and import', async () => {
     const { db } = await createTestDb();
     const collection = await db.createCollection('Folder Settings');

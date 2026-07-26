@@ -437,7 +437,7 @@ describeSqlite('RoutingStorage global ids', () => {
     );
 
     await expect(
-      router.reorderFolders(collectionA.id, [folderB.id, remoteFolder.id])
+      router.reorderFolders(collectionA.id, null, [folderB.id, remoteFolder.id])
     ).rejects.toThrow(/does not belong to backend slot 0/);
 
     await expect(

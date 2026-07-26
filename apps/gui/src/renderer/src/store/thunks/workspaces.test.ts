@@ -62,31 +62,6 @@ describe('resolveWorkspaceMembersFromOpenTabs', () => {
       }
     ]);
   });
-
-  it('excludes hidden tabs when resolving members for workspace edit save', () => {
-    const memberTab = createTab(draftFromSaved(savedRequest)) as RequestTab;
-    const hiddenRequest: SavedRequest = {
-      ...savedRequest,
-      id: 8,
-      uuid: 'request-uuid-8',
-      name: 'Create user'
-    };
-    const hiddenTab = createTab(draftFromSaved(hiddenRequest)) as RequestTab;
-    const hiddenTabIds = new Set([hiddenTab.tabId]);
-    const visibleTabs = [memberTab, hiddenTab].filter((tab) => !hiddenTabIds.has(tab.tabId));
-
-    const members = resolveWorkspaceMembersFromOpenTabs(visibleTabs, {
-      3: [savedRequest, hiddenRequest]
-    });
-
-    expect(members).toEqual([
-      {
-        requestUuid: 'request-uuid-7',
-        collectionId: 3,
-        requestName: 'Get users'
-      }
-    ]);
-  });
 });
 
 describe('resolveWorkspaceMembersFromRequests', () => {

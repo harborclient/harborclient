@@ -7,15 +7,11 @@ import type {
   WorkspaceRequest
 } from '@harborclient/core/types/workspace';
 import { isRequestTab, type Tab } from '#/renderer/src/store/tabs';
-import { loadRequest, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
+import { loadRequest } from '#/renderer/src/store/slices/tabsSlice';
 import {
   reorderWorkspacesLocal,
   setWorkspaces,
-  selectWorkspaces,
-  startEditingWorkspace,
-  stopEditingWorkspace,
-  selectEditingWorkspaceId,
-  selectEditSessionHiddenTabIds
+  selectWorkspaces
 } from '#/renderer/src/store/slices/workspaceSlice';
 import { openWorkspaceModal } from '#/renderer/src/store/slices/modalsSlice';
 import { refreshRequests } from './collections';
@@ -62,27 +58,6 @@ export function isOpenSavedRequestTab(
   tab: Tab
 ): tab is Tab & { draft: { id: number; collection_id: number } } {
   return isRequestTab(tab) && tab.draft.id != null && tab.draft.collection_id != null;
-}
-
-/**
- * Resolves the saved request uuid for an open saved request tab.
- *
- * @param tab - Open editor tab to evaluate.
- * @param requestsByCollection - Cached saved requests keyed by collection id.
- * @returns Request uuid when the tab references a saved request.
- */
-function resolveOpenTabRequestUuid(
-  tab: Tab,
-  requestsByCollection: Record<number, SavedRequest[]>
-): string | undefined {
-  if (!isOpenSavedRequestTab(tab)) {
-    return undefined;
-  }
-
-  const saved = (requestsByCollection[tab.draft.collection_id] ?? []).find(
-    (request) => request.id === tab.draft.id
-  );
-  return saved?.uuid;
 }
 
 /**
@@ -430,61 +405,24 @@ export const openWorkspace = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
- * Enters workspace edit mode, opening members and hiding unrelated open tabs.
+ * Persists the current open saved request tabs and UI layout into a workspace.
+ *
+ * @param groupId - Workspace to overwrite with the current UI snapshot.
  */
-export const editWorkspace = createAsyncThunk<void, number, ThunkApiConfig>(
-  'workspaces/edit',
+export const saveWorkspace = createAsyncThunk<void, number, ThunkApiConfig>(
+  'workspaces/save',
   async (groupId, { dispatch, getState }) => {
-    await dispatch(openWorkspace(groupId));
-
     const state = getState();
     const group = selectWorkspaces(state).find((entry) => entry.id === groupId);
     if (!group) {
-      return;
+      throw new Error(`Workspace ${groupId} not found`);
     }
 
-    const memberUuids = new Set(group.requests.map((request) => request.requestUuid));
-    const requestsByCollection = state.collections.requestsByCollection;
     const tabs = state.tabs.tabs;
-    const hiddenTabIds: string[] = [];
-
-    for (const tab of tabs) {
-      const requestUuid = resolveOpenTabRequestUuid(tab, requestsByCollection);
-      if (requestUuid == null || !memberUuids.has(requestUuid)) {
-        hiddenTabIds.push(tab.tabId);
-      }
-    }
-
-    dispatch(startEditingWorkspace({ groupId, hiddenTabIds }));
-
-    const activeTabId = state.tabs.activeTabId;
-    if (activeTabId != null && hiddenTabIds.includes(activeTabId)) {
-      const firstVisibleTab = tabs.find((tab) => !hiddenTabIds.includes(tab.tabId));
-      if (firstVisibleTab != null) {
-        dispatch(setActiveTab(firstVisibleTab.tabId));
-      }
-    }
-  }
-);
-
-/**
- * Persists workspace membership from visible open tabs and exits edit mode.
- */
-export const saveWorkspaceEdit = createAsyncThunk<void, void, ThunkApiConfig>(
-  'workspaces/saveEdit',
-  async (_arg, { dispatch, getState }) => {
-    const state = getState();
-    const editingWorkspaceId = selectEditingWorkspaceId(state);
-    if (editingWorkspaceId == null) {
-      return;
-    }
-
-    const hiddenTabIds = new Set(selectEditSessionHiddenTabIds(state));
-    const visibleTabs = state.tabs.tabs.filter((tab) => !hiddenTabIds.has(tab.tabId));
     const requestsByCollection = state.collections.requestsByCollection;
 
     const collectionsToRefresh = new Set<number>();
-    for (const tab of visibleTabs) {
+    for (const tab of tabs) {
       if (!isOpenSavedRequestTab(tab)) {
         continue;
       }
@@ -499,28 +437,17 @@ export const saveWorkspaceEdit = createAsyncThunk<void, void, ThunkApiConfig>(
     }
 
     const members = resolveWorkspaceMembersFromOpenTabs(
-      visibleTabs,
+      getState().tabs.tabs,
       getState().collections.requestsByCollection
     );
 
     if (members.length === 0) {
-      throw new Error('No open requests to add');
+      throw new Error('No open requests to save');
     }
 
     const layout = await captureWorkspaceLayout(getState());
-    const items = await window.api.updateWorkspace(editingWorkspaceId, members, layout);
+    const items = await window.api.updateWorkspace(groupId, members, layout);
     dispatch(setWorkspaces(items));
-    dispatch(stopEditingWorkspace());
     toast.success('Workspace saved');
-  }
-);
-
-/**
- * Exits workspace edit mode without persisting changes.
- */
-export const cancelWorkspaceEdit = createAsyncThunk<void, void, ThunkApiConfig>(
-  'workspaces/cancelEdit',
-  async (_arg, { dispatch }) => {
-    dispatch(stopEditingWorkspace());
   }
 );

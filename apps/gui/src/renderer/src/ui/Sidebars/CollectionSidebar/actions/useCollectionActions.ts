@@ -210,7 +210,11 @@ export interface CollectionActions {
   /**
    * Persists a new folder order within a collection.
    */
-  onReorderFolders: (collectionId: number, orderedFolderIds: number[]) => Promise<void>;
+  onReorderFolders: (
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ) => Promise<void>;
 
   /**
    * Persists a new request order within a folder or collection root.
@@ -524,8 +528,8 @@ export function useCollectionActions(): CollectionActions {
     onReorderCollections: async (orderedCollectionIds) => {
       await dispatch(reorderCollections({ orderedCollectionIds }));
     },
-    onReorderFolders: async (collectionId, orderedFolderIds) => {
-      await dispatch(reorderFolders({ collectionId, orderedFolderIds }));
+    onReorderFolders: async (collectionId, parentFolderId, orderedFolderIds) => {
+      await dispatch(reorderFolders({ collectionId, parentFolderId, orderedFolderIds }));
     },
     onReorderRequests: async (collectionId, folderId, orderedRequestIds) => {
       await dispatch(reorderRequests({ collectionId, folderId, orderedRequestIds }));

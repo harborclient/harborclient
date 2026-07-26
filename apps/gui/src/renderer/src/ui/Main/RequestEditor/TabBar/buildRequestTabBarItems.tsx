@@ -108,11 +108,6 @@ interface BuildItemsOptions {
   pageTabDisplays: Map<string, { title: string; icon?: IconDefinition }>;
 
   /**
-   * Whether matching saved request tabs should use active styling during workspace edit.
-   */
-  highlightedTabIds?: ReadonlySet<string>;
-
-  /**
    * Whether the Theme Designer has unsaved edits (Themes page tab indicator).
    */
   themeDesignerDirty: boolean;
@@ -128,7 +123,6 @@ export function buildRequestTabBarItems({
   tabs,
   activeTabId,
   pageTabDisplays,
-  highlightedTabIds,
   themeDesignerDirty
 }: BuildItemsOptions): TabBarItem<string>[] {
   return tabs.map((tab) => {
@@ -146,7 +140,6 @@ export function buildRequestTabBarItems({
     return {
       id: tab.tabId,
       active: tab.tabId === activeTabId,
-      highlighted: highlightedTabIds?.has(tab.tabId),
       accessibleName: ariaLabel,
       closeAccessibleName: tabCloseAccessibleName(tab, pageTitle, dirty),
       title: documentTabTitle(tab, pageTitle),

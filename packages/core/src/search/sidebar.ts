@@ -1,3 +1,4 @@
+import { getFolderPath } from '../folderTree';
 import type { Collection, Environment, Folder, SavedRequest } from '../types';
 import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 import { normalizeRequestTags } from '../requestTags';
@@ -431,7 +432,10 @@ export function searchSidebarEntities(
 export interface SidebarRequestBreadcrumb {
   /** Parent collection display name. */
   collectionName?: string;
-  /** Parent folder display name when the request is nested. */
+  /**
+   * Folder path from collection root to the request's folder when nested.
+   * Nested folders are joined with `" / "` (for example `Auth / Users`).
+   */
   folderName?: string;
 }
 
@@ -578,11 +582,9 @@ export function sidebarRequestBreadcrumb(
   }
 
   const collection = input.collections.find((candidate) => candidate.id === collectionId);
-  const folderName =
-    folderId != null
-      ? (input.foldersByCollection[collectionId]?.find((folder) => folder.id === folderId)?.name ??
-        undefined)
-      : undefined;
+  const folders = input.foldersByCollection[collectionId] ?? [];
+  const folderPath = folderId != null ? getFolderPath(folderId, folders) : '';
+  const folderName = folderPath.length > 0 ? folderPath : undefined;
 
   const rawName = collection?.name;
   const collectionName =

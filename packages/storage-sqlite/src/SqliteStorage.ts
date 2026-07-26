@@ -5,10 +5,12 @@ import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
   buildRequestUuidIndex,
+  orderExportedFoldersForImport,
   planImportedFolderUpsert,
   registerImportedFolderInMaps,
   resolveImportFolderId,
   resolveImportedCollectionUuid,
+  resolveImportedFolderParentId,
   resolveImportedFolderUuid,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
@@ -18,6 +20,7 @@ import {
   serializeImportedFolderFields,
   serializeImportedRequestFields
 } from './collectionImport';
+import { wouldCreateFolderCycle } from '@harborclient/core/folderTree';
 import {
   maskVariablesForExport,
   normalizeVariable,
@@ -213,11 +216,16 @@ export class SqliteStorage implements IStorage {
     CREATE TABLE IF NOT EXISTS folders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       collection_id INTEGER NOT NULL,
+      parent_folder_id INTEGER,
       name TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+      FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_folder_id) REFERENCES folders(id) ON DELETE CASCADE
     );
+
+    CREATE INDEX IF NOT EXISTS idx_folders_collection_parent_sort
+      ON folders (collection_id, parent_folder_id, sort_order);
 
     CREATE TABLE IF NOT EXISTS documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -365,6 +373,16 @@ export class SqliteStorage implements IStorage {
     if (!folderColumns.some((col) => col.name === 'user_agent')) {
       this.#db.exec("ALTER TABLE folders ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
     }
+    if (!folderColumns.some((col) => col.name === 'parent_folder_id')) {
+      this.#db.exec(
+        'ALTER TABLE folders ADD COLUMN parent_folder_id INTEGER NULL REFERENCES folders(id) ON DELETE CASCADE'
+      );
+    }
+
+    this.#db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_folders_collection_parent_sort
+        ON folders (collection_id, parent_folder_id, sort_order)
+    `);
 
     this.normalizeContainerOrders();
   }
@@ -915,29 +933,174 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Validates that a parent folder belongs to the given collection.
+   *
+   * @param collectionId - Collection that should own the parent folder.
+   * @param parentFolderId - Parent folder id, or null for collection root.
+   * @throws When the parent folder is missing or belongs to another collection.
+   */
+  private assertFolderParentInCollection(
+    collectionId: number,
+    parentFolderId: number | null
+  ): void {
+    if (parentFolderId == null) {
+      return;
+    }
+
+    const row = this.getDb()
+      .prepare('SELECT collection_id FROM folders WHERE id = ?')
+      .get(parentFolderId) as { collection_id: number } | undefined;
+
+    if (!row || row.collection_id !== collectionId) {
+      throw new Error('Folder not found');
+    }
+  }
+
+  /**
+   * Returns the next sibling sort_order for folders under a parent within a collection.
+   *
+   * @param collectionId - Collection that owns the folders.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @returns Zero-based sort index for a new folder appended at the end.
+   */
+  private nextFolderSiblingSortOrder(collectionId: number, parentFolderId: number | null): number {
+    const row = this.getDb()
+      .prepare(
+        `SELECT COALESCE(MAX(sort_order), -1) AS max_order
+           FROM folders
+          WHERE collection_id = ?
+            AND ((? IS NULL AND parent_folder_id IS NULL) OR parent_folder_id = ?)`
+      )
+      .get(collectionId, parentFolderId, parentFolderId) as { max_order: number };
+
+    return row.max_order + 1;
+  }
+
+  /**
    * Creates a new folder in a collection.
    *
    * @param collectionId - Collection to add the folder to.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId: number | null = null
+  ): Promise<Folder> {
     const trimmedName = trimRequiredName(name, 'Folder name');
-    const maxOrder = this.getDb()
-      .prepare(
-        'SELECT COALESCE(MAX(sort_order), -1) as max_order FROM folders WHERE collection_id = ?'
-      )
-      .get(collectionId) as { max_order: number };
+    this.assertFolderParentInCollection(collectionId, parentFolderId);
+    const sortOrder = this.nextFolderSiblingSortOrder(collectionId, parentFolderId);
 
     const result = this.getDb()
-      .prepare('INSERT INTO folders (collection_id, name, sort_order, uuid) VALUES (?, ?, ?, ?)')
-      .run(collectionId, trimmedName, maxOrder.max_order + 1, generateDocumentUuid());
+      .prepare(
+        'INSERT INTO folders (collection_id, parent_folder_id, name, sort_order, uuid) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run(collectionId, parentFolderId, trimmedName, sortOrder, generateDocumentUuid());
 
     const row = this.getDb()
       .prepare('SELECT * FROM folders WHERE id = ?')
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
     return rowToFolder(row);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Folder to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    const row = this.getDb().prepare('SELECT * FROM folders WHERE id = ?').get(folderId) as
+      | Record<string, unknown>
+      | undefined;
+    if (!row) {
+      throw new Error('Folder not found');
+    }
+
+    const folder = rowToFolder(row);
+    const collectionId = folder.collection_id;
+    const sourceParentId = folder.parent_folder_id ?? null;
+
+    this.assertFolderParentInCollection(collectionId, parentFolderId);
+
+    const allFolders = await this.listFolders(collectionId);
+    if (wouldCreateFolderCycle(folderId, parentFolderId, allFolders)) {
+      throw new Error('Cannot move a folder under itself or a descendant');
+    }
+
+    /**
+     * Compares sibling folders for stable reordering during move.
+     *
+     * @param left - First folder.
+     * @param right - Second folder.
+     * @returns Negative when left sorts before right.
+     */
+    const compareSiblings = (left: Folder, right: Folder): number =>
+      left.sort_order - right.sort_order || left.name.localeCompare(right.name);
+
+    const database = this.getDb();
+    const move = database.transaction(() => {
+      const destSiblings = allFolders
+        .filter(
+          (candidate) =>
+            (candidate.parent_folder_id ?? null) === parentFolderId && candidate.id !== folderId
+        )
+        .sort(compareSiblings);
+
+      const targetIndex =
+        sortOrder != null
+          ? Math.max(0, Math.min(sortOrder, destSiblings.length))
+          : destSiblings.length;
+
+      database
+        .prepare('UPDATE folders SET parent_folder_id = ? WHERE id = ?')
+        .run(parentFolderId, folderId);
+
+      const reorderedDestination = [...destSiblings];
+      reorderedDestination.splice(targetIndex, 0, {
+        ...folder,
+        parent_folder_id: parentFolderId
+      });
+
+      const updateSort = database.prepare('UPDATE folders SET sort_order = ? WHERE id = ?');
+      reorderedDestination.forEach((sibling, index) => {
+        updateSort.run(index, sibling.id);
+      });
+
+      if (sourceParentId !== parentFolderId) {
+        const sourceSiblings = allFolders
+          .filter(
+            (candidate) =>
+              (candidate.parent_folder_id ?? null) === sourceParentId && candidate.id !== folderId
+          )
+          .sort(compareSiblings);
+
+        sourceSiblings.forEach((sibling, index) => {
+          updateSort.run(index, sibling.id);
+        });
+      }
+    });
+
+    move();
+
+    const updatedRow = this.getDb().prepare('SELECT * FROM folders WHERE id = ?').get(folderId) as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!updatedRow) {
+      throw new Error('Folder not found');
+    }
+
+    return rowToFolder(updatedRow);
   }
 
   /**
@@ -1039,33 +1202,65 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
-   * Deletes a folder and all requests inside it.
+   * Deletes a folder, its descendant folders, and all requests/documents in the subtree.
    *
    * @param id - Folder ID to delete.
    */
   async deleteFolder(id: number): Promise<void> {
     const database = this.getDb();
-    const deleteFolderContents = database.transaction((folderId: number) => {
+
+    /**
+     * Deletes a folder subtree depth-first when cascade constraints are unavailable.
+     *
+     * @param folderId - Root folder id to remove.
+     */
+    const deleteRecursive = database.transaction((folderId: number) => {
+      const children = database
+        .prepare('SELECT id FROM folders WHERE parent_folder_id = ?')
+        .all(folderId) as Array<{ id: number }>;
+
+      for (const child of children) {
+        deleteRecursive(child.id);
+      }
+
       database.prepare('DELETE FROM requests WHERE folder_id = ?').run(folderId);
       database.prepare('DELETE FROM documents WHERE folder_id = ?').run(folderId);
       database.prepare('DELETE FROM folders WHERE id = ?').run(folderId);
     });
-    deleteFolderContents(id);
+
+    const row = database.prepare('SELECT id FROM folders WHERE id = ?').get(id) as
+      | { id: number }
+      | undefined;
+    if (!row) {
+      throw new Error('Folder not found');
+    }
+
+    deleteRecursive(id);
   }
 
   /**
-   * Reorders folders within a collection.
+   * Reorders sibling folders that share the same parent within a collection.
    *
    * @param collectionId - Collection containing the folders.
-   * @param orderedFolderIds - Folder IDs in desired order.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
+    this.assertFolderParentInCollection(collectionId, parentFolderId);
+
     const reorder = this.getDb().transaction((ids: number[]) => {
       const stmt = this.getDb().prepare(
-        'UPDATE folders SET sort_order = ? WHERE id = ? AND collection_id = ?'
+        `UPDATE folders SET sort_order = ?
+          WHERE id = ?
+            AND collection_id = ?
+            AND ((? IS NULL AND parent_folder_id IS NULL) OR parent_folder_id = ?)`
       );
       ids.forEach((folderId, index) => {
-        stmt.run(index, folderId, collectionId);
+        stmt.run(index, folderId, collectionId, parentFolderId, parentFolderId);
       });
     });
     reorder(orderedFolderIds);
@@ -1399,9 +1594,16 @@ export class SqliteStorage implements IStorage {
 
     const collection = rowToCollection(row);
     const folderRows = await this.listFolders(id);
-    const folders = folderRows.map(exportedFolderFromFolder);
-    const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRows.map((folder) => [folder.id, folder.uuid]));
+    const folders = folderRows.map((folder) =>
+      exportedFolderFromFolder(
+        folder,
+        folder.parent_folder_id != null
+          ? (folderUuidById.get(folder.parent_folder_id) ?? null)
+          : null
+      )
+    );
+    const folderNameById = new Map(folderRows.map((folder) => [folder.id, folder.name]));
 
     const requests = (await this.listRequests(id)).map((request) =>
       savedRequestToExportedRequest(
@@ -1485,18 +1687,20 @@ export class SqliteStorage implements IStorage {
         folderUuidById: new Map()
       };
 
-      for (const folder of payload.folders ?? []) {
+      for (const folder of orderExportedFoldersForImport(payload.folders ?? [])) {
         const folderUuid = resolveImportedFolderUuid(folder);
+        const parentFolderId = resolveImportedFolderParentId(folder, folderMaps.folderIdByUuid);
         const folderFields = serializeImportedFolderFields(folder);
         const folderResult = database
           .prepare(
             `INSERT INTO folders (
-              collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
+              collection_id, parent_folder_id, name, sort_order, uuid, variables, headers, user_agent, auth,
               pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, marker
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             collectionId,
+            parentFolderId,
             folder.name,
             folder.sort_order,
             folderUuid,
@@ -1670,18 +1874,20 @@ export class SqliteStorage implements IStorage {
         .all(id) as Record<string, unknown>[];
       const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
-      for (const folder of payload.folders ?? []) {
+      for (const folder of orderExportedFoldersForImport(payload.folders ?? [])) {
         const plan = planImportedFolderUpsert(folder, folderMaps);
+        const parentFolderId = resolveImportedFolderParentId(folder, folderMaps.folderIdByUuid);
         if (plan.action === 'update') {
           const folderFields = serializeImportedFolderFields(folder);
           database
             .prepare(
-              `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
+              `UPDATE folders SET name = ?, parent_folder_id = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
                 pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, marker = ?
                WHERE id = ? AND collection_id = ?`
             )
             .run(
               plan.name,
+              parentFolderId,
               plan.sort_order,
               folderFields.variablesJson,
               folderFields.headersJson,
@@ -1703,12 +1909,13 @@ export class SqliteStorage implements IStorage {
         const folderResult = database
           .prepare(
             `INSERT INTO folders (
-              collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
+              collection_id, parent_folder_id, name, sort_order, uuid, variables, headers, user_agent, auth,
               pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, marker
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .run(
             id,
+            parentFolderId,
             plan.name,
             plan.sort_order,
             plan.uuid,

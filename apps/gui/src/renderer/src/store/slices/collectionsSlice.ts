@@ -211,21 +211,30 @@ const collectionsSlice = createSlice({
      */
     reorderFoldersLocal(
       state,
-      action: PayloadAction<{ collectionId: number; orderedFolderIds: number[] }>
+      action: PayloadAction<{
+        collectionId: number;
+        parentFolderId: number | null;
+        orderedFolderIds: number[];
+      }>
     ) {
-      const { collectionId, orderedFolderIds } = action.payload;
+      const { collectionId, parentFolderId, orderedFolderIds } = action.payload;
       const folders = state.foldersByCollection[collectionId] ?? [];
-      if (orderedFolderIds.length !== folders.length) {
+      const siblings = folders.filter(
+        (folder) => (folder.parent_folder_id ?? null) === parentFolderId
+      );
+      if (orderedFolderIds.length !== siblings.length) {
         return;
       }
 
       const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
-      const reordered = orderedFolderIds.map((id) => foldersById.get(id));
-      if (reordered.some((folder) => folder == null)) {
+      const reorderedSiblings = orderedFolderIds.map((id) => foldersById.get(id));
+      if (reorderedSiblings.some((folder) => folder == null)) {
         return;
       }
 
-      state.foldersByCollection[collectionId] = reordered as Folder[];
+      const siblingIds = new Set(orderedFolderIds);
+      const unchanged = folders.filter((folder) => !siblingIds.has(folder.id));
+      state.foldersByCollection[collectionId] = [...unchanged, ...(reorderedSiblings as Folder[])];
     },
     /**
      * Optimistically rewrites unified container sort_order values before IPC persistence.

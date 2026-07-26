@@ -810,13 +810,45 @@ export class RoutingStorage implements IStorage {
    *
    * @param collectionId - Collection to add the folder to.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ): Promise<Folder> {
     const entry = this.requireEntry(collectionId);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
-    const created = await backend.db.createFolder(entry.providerCollectionId, name);
+    const localParentId =
+      parentFolderId != null ? this.decodeLocalIdForBackend(parentFolderId, backend) : null;
+    const created = await backend.db.createFolder(entry.providerCollectionId, name, localParentId);
     return this.toGlobalFolder(created, backend, collectionId);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Global folder id to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    const { slot, localId } = decodeGlobalId(folderId);
+    const backend = this.bySlot.get(slot);
+    if (!backend) {
+      throw new Error(`Database backend for slot ${slot} is unavailable.`);
+    }
+    const localParentId = parentFolderId != null ? decodeGlobalId(parentFolderId).localId : null;
+    const updated = await backend.db.moveFolder(localId, localParentId, sortOrder);
+    const entry = this.findEntryForBackendCollection(backend.connectionId, updated.collection_id);
+    const globalCollectionId = entry?.id ?? updated.collection_id;
+    return this.toGlobalFolder(updated, backend, globalCollectionId);
   }
 
   /**
@@ -921,18 +953,25 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
-   * Reorders folders within a collection.
+   * Reorders sibling folders that share the same parent within a collection.
    *
    * @param collectionId - Collection containing the folders.
-   * @param orderedFolderIds - Folder IDs in desired order.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
     const entry = this.requireEntry(collectionId);
     const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const localParentId =
+      parentFolderId != null ? this.decodeLocalIdForBackend(parentFolderId, backend) : null;
     const localIds = orderedFolderIds.map((folderId) =>
       this.decodeLocalIdForBackend(folderId, backend)
     );
-    await backend.db.reorderFolders(entry.providerCollectionId, localIds);
+    await backend.db.reorderFolders(entry.providerCollectionId, localParentId, localIds);
   }
 
   /**

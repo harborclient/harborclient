@@ -45,6 +45,7 @@ function makeCollection(overrides: Partial<Collection> & Pick<Collection, 'id'>)
 function makeFolder(overrides: Partial<Folder> & Pick<Folder, 'id' | 'collection_id'>): Folder {
   return {
     uuid: `folder-${overrides.id}`,
+    parent_folder_id: null,
     name: `Folder ${overrides.id}`,
     sort_order: 0,
     variables: [],

@@ -1096,10 +1096,6 @@
   .busy-progress-bar {
     animation: busy-progress-slide 1.2s ease-in-out infinite;
   }
-
-  .tab-group-edit-bar-attention {
-    animation: tab-group-edit-bar-attention 1.2s ease-out forwards;
-  }
 }
 
 @keyframes busy-progress-slide {
@@ -1112,28 +1108,11 @@
   }
 }
 
-@keyframes tab-group-edit-bar-attention {
-  0%,
-  15% {
-    background-color: color-mix(in srgb, var(--mac-warning) 40%, var(--mac-surface));
-    border-top-color: color-mix(in srgb, var(--mac-warning) 55%, var(--mac-separator));
-  }
-
-  100% {
-    background-color: var(--mac-surface);
-    border-top-color: var(--mac-separator);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .busy-progress-bar {
     animation: none;
     width: 100%;
     transform: none;
-  }
-
-  .tab-group-edit-bar-attention {
-    animation: none;
   }
 
   .animate-spin {

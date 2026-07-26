@@ -1,4 +1,5 @@
 import type { MountedBackend, RoutingInternals } from './routingInternals';
+import { sortFoldersParentFirst } from './folderStorage';
 import type {
   Collection,
   CollectionDocument,
@@ -327,11 +328,16 @@ async function copyCollectionContents(
   documents: CollectionDocument[]
 ): Promise<void> {
   const folderIdMap = new Map<number, number>();
-  const sortedFolders = [...folders].sort(
-    (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
-  );
+  const sortedFolders = sortFoldersParentFirst(folders);
   for (const folder of sortedFolders) {
-    const createdFolder = await targetBackend.db.createFolder(targetCollectionId, folder.name);
+    const sourceParentId = folder.parent_folder_id;
+    const targetParentId =
+      sourceParentId != null ? (folderIdMap.get(sourceParentId) ?? null) : null;
+    const createdFolder = await targetBackend.db.createFolder(
+      targetCollectionId,
+      folder.name,
+      targetParentId
+    );
     await targetBackend.db.updateFolder(
       createdFolder.id,
       folder.name,
@@ -346,11 +352,21 @@ async function copyCollectionContents(
     );
     folderIdMap.set(folder.id, createdFolder.id);
   }
-  if (sortedFolders.length > 0) {
-    await targetBackend.db.reorderFolders(
-      targetCollectionId,
-      sortedFolders.map((folder) => folderIdMap.get(folder.id)!)
-    );
+
+  const siblingsByParent = new Map<number | null, number[]>();
+  for (const folder of sortedFolders) {
+    const targetParentId =
+      folder.parent_folder_id != null ? (folderIdMap.get(folder.parent_folder_id) ?? null) : null;
+    const targetFolderId = folderIdMap.get(folder.id);
+    if (targetFolderId == null) {
+      continue;
+    }
+    const siblings = siblingsByParent.get(targetParentId) ?? [];
+    siblings.push(targetFolderId);
+    siblingsByParent.set(targetParentId, siblings);
+  }
+  for (const [parentFolderId, orderedFolderIds] of siblingsByParent.entries()) {
+    await targetBackend.db.reorderFolders(targetCollectionId, parentFolderId, orderedFolderIds);
   }
 
   const sortedRequests = [...requests].sort(

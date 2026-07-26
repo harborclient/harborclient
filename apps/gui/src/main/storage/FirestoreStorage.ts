@@ -36,11 +36,20 @@ import {
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
-  exportedFolderFromFolder,
   serializeImportedDocumentFields,
   serializeImportedFolderFields,
   serializeImportedRequestFields
 } from './collectionImport';
+import {
+  assertFolderSiblingReorder,
+  assertValidFolderParent,
+  exportFoldersWithParents,
+  folderSubtreeIdsForDeletion,
+  maxSiblingFolderSortOrder,
+  resolveImportParentFolderId,
+  sortExportedFoldersParentFirst,
+  wouldCreateFolderCycle
+} from './folderStorage';
 import {
   docToCollection,
   docToDocument,
@@ -836,18 +845,26 @@ export class FirestoreStorage implements IStorage {
    *
    * @param collectionId - Collection to add the folder to.
    * @param name - Display name for the folder.
+   * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  async createFolder(collectionId: number, name: string): Promise<Folder> {
+  async createFolder(
+    collectionId: number,
+    name: string,
+    parentFolderId?: number | null
+  ): Promise<Folder> {
     const trimmedName = trimRequiredName(name, 'Folder name');
-    const existing = await this.listFolders(collectionId);
-    const maxOrder = existing.reduce((max, folder) => Math.max(max, folder.sort_order), -1);
+    const parentId = parentFolderId ?? null;
+    const existingFolders = await this.listFolders(collectionId);
+    assertValidFolderParent(existingFolders, collectionId, parentId);
+    const maxOrder = maxSiblingFolderSortOrder(existingFolders, parentId);
     const id = await this.nextId('folders');
     const createdAt = new Date().toISOString();
     const data = {
       id,
       uuid: generateDocumentUuid(),
       collection_id: collectionId,
+      parent_folder_id: parentId,
       name: trimmedName,
       sort_order: maxOrder + 1,
       variables: [],
@@ -864,6 +881,57 @@ export class FirestoreStorage implements IStorage {
 
     await setDoc(doc(this.getFirestore(), 'folders', String(id)), data);
     return docToFolder(id, data);
+  }
+
+  /**
+   * Moves a folder to a new parent and optional sibling index.
+   *
+   * @param folderId - Folder to move.
+   * @param parentFolderId - New parent folder id, or null for collection root.
+   * @param sortOrder - Optional zero-based index among new siblings.
+   * @returns The updated folder.
+   */
+  async moveFolder(
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
+  ): Promise<Folder> {
+    const firestore = this.getFirestore();
+    const ref = doc(firestore, 'folders', String(folderId));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Folder not found');
+
+    const existing = docToFolder(folderId, snap.data() as Record<string, unknown>);
+    const folders = await this.listFolders(existing.collection_id);
+    assertValidFolderParent(folders, existing.collection_id, parentFolderId);
+    if (wouldCreateFolderCycle(folderId, parentFolderId, folders)) {
+      throw new Error('Cannot move a folder under itself or a descendant');
+    }
+
+    const destSiblings = folders
+      .filter(
+        (folder) => folder.id !== folderId && (folder.parent_folder_id ?? null) === parentFolderId
+      )
+      .sort(
+        (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
+      );
+
+    const targetIndex =
+      sortOrder != null
+        ? Math.max(0, Math.min(sortOrder, destSiblings.length))
+        : destSiblings.length;
+    const orderedIds = [
+      ...destSiblings.slice(0, targetIndex).map((folder) => folder.id),
+      folderId,
+      ...destSiblings.slice(targetIndex).map((folder) => folder.id)
+    ];
+
+    await updateDoc(ref, { parent_folder_id: parentFolderId });
+    await this.reorderFolders(existing.collection_id, parentFolderId, orderedIds);
+
+    const updatedSnap = await getDoc(ref);
+    if (!updatedSnap.exists()) throw new Error('Folder not found');
+    return docToFolder(folderId, updatedSnap.data() as Record<string, unknown>);
   }
 
   /**
@@ -952,24 +1020,33 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Deletes a folder and all requests inside it.
+   * Deletes a folder, its descendant folders, and all requests and documents inside the subtree.
    *
    * @param id - Folder ID to delete.
    */
   async deleteFolder(id: number): Promise<void> {
     const firestore = this.getFirestore();
-    const requestsSnap = await getDocs(
-      query(collection(firestore, 'requests'), where('folder_id', '==', id))
-    );
-    const documentsSnap = await getDocs(
-      query(collection(firestore, 'documents'), where('folder_id', '==', id))
-    );
+    const folderSnap = await getDoc(doc(firestore, 'folders', String(id)));
+    if (!folderSnap.exists()) throw new Error('Folder not found');
 
-    const refs = [
-      ...requestsSnap.docs.map((requestDoc) => requestDoc.ref),
-      ...documentsSnap.docs.map((documentDoc) => documentDoc.ref),
-      doc(firestore, 'folders', String(id))
-    ];
+    const folder = docToFolder(id, folderSnap.data() as Record<string, unknown>);
+    const folders = await this.listFolders(folder.collection_id);
+    const folderIds = folderSubtreeIdsForDeletion(id, folders);
+
+    const refs: ReturnType<typeof doc>[] = [];
+    for (const folderId of folderIds) {
+      const requestsSnap = await getDocs(
+        query(collection(firestore, 'requests'), where('folder_id', '==', folderId))
+      );
+      const documentsSnap = await getDocs(
+        query(collection(firestore, 'documents'), where('folder_id', '==', folderId))
+      );
+      refs.push(
+        ...requestsSnap.docs.map((requestDoc) => requestDoc.ref),
+        ...documentsSnap.docs.map((documentDoc) => documentDoc.ref),
+        doc(firestore, 'folders', String(folderId))
+      );
+    }
     await this.commitBatchedDeletes(firestore, refs);
   }
 
@@ -1204,13 +1281,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Reorders folders within a collection.
+   * Reorders sibling folders that share the same parent within a collection.
    *
    * @param collectionId - Collection containing the folders.
-   * @param orderedFolderIds - Folder IDs in desired order.
+   * @param parentFolderId - Parent folder id, or null for collection-root siblings.
+   * @param orderedFolderIds - Sibling folder IDs in desired order.
    */
-  async reorderFolders(collectionId: number, orderedFolderIds: number[]): Promise<void> {
+  async reorderFolders(
+    collectionId: number,
+    parentFolderId: number | null,
+    orderedFolderIds: number[]
+  ): Promise<void> {
     const firestore = this.getFirestore();
+    const folders = await this.listFolders(collectionId);
+    assertFolderSiblingReorder(folders, collectionId, parentFolderId, orderedFolderIds);
+
     await Promise.all(
       orderedFolderIds.map(async (folderId) => {
         const snap = await getDoc(doc(firestore, 'folders', String(folderId)));
@@ -1314,7 +1399,7 @@ export class FirestoreStorage implements IStorage {
     const collectionUuid = await this.ensureDocumentUuid('collections', String(id), data);
     const collectionRecord = docToCollection(id, { ...data, uuid: collectionUuid });
     const folderRecords = await this.listFolders(id);
-    const folders = folderRecords.map(exportedFolderFromFolder);
+    const folders = exportFoldersWithParents(folderRecords);
     const folderNameById = new Map(folderRecords.map((folder) => [folder.id, folder.name]));
     const folderUuidById = new Map(folderRecords.map((folder) => [folder.id, folder.uuid]));
 
@@ -1365,7 +1450,7 @@ export class FirestoreStorage implements IStorage {
     const id = await this.nextId('collections');
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
-    const folders = exportData.folders ?? [];
+    const folders = sortExportedFoldersParentFirst(exportData.folders ?? []);
 
     const collectionScripts = serializeImportedCollectionScriptFields(exportData);
     const collectionData = {
@@ -1401,6 +1486,10 @@ export class FirestoreStorage implements IStorage {
       const folderId = folderIds[index];
       const folderUuid = resolveImportedFolderUuid(folder);
       const folderFields = serializeImportedFolderFields(folder);
+      const parentFolderId = resolveImportParentFolderId(
+        folder.parent_folder_uuid,
+        folderMaps.folderIdByUuid
+      );
       registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
       writes.push({
         ref: doc(firestore, 'folders', String(folderId)),
@@ -1408,6 +1497,7 @@ export class FirestoreStorage implements IStorage {
           id: folderId,
           uuid: folderUuid,
           collection_id: id,
+          parent_folder_id: parentFolderId,
           name: folder.name,
           sort_order: folder.sort_order,
           variables: folder.variables ?? [],
@@ -1591,12 +1681,17 @@ export class FirestoreStorage implements IStorage {
     const existingFolders = await this.listFolders(id);
     const folderMaps = buildFolderImportMaps(existingFolders);
 
-    for (const folder of exportData.folders ?? []) {
+    for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
       const plan = planImportedFolderUpsert(folder, folderMaps);
+      const parentFolderId = resolveImportParentFolderId(
+        folder.parent_folder_uuid,
+        folderMaps.folderIdByUuid
+      );
       if (plan.action === 'update') {
         const folderFields = serializeImportedFolderFields(folder);
         await updateDoc(doc(firestore, 'folders', String(plan.existingId)), {
           name: plan.name,
+          parent_folder_id: parentFolderId,
           sort_order: plan.sort_order,
           variables: folder.variables ?? [],
           headers: folder.headers ?? [],
@@ -1618,6 +1713,7 @@ export class FirestoreStorage implements IStorage {
         id: folderId,
         uuid: plan.uuid,
         collection_id: id,
+        parent_folder_id: parentFolderId,
         name: plan.name,
         sort_order: plan.sort_order,
         variables: folder.variables ?? [],

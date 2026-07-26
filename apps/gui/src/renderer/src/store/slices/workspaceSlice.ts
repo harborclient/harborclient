@@ -3,44 +3,17 @@ import type { Workspace } from '@harborclient/core/types/workspace';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
- * Payload for entering workspace edit mode.
- */
-export interface StartEditingWorkspacePayload {
-  /**
-   * Workspace being edited.
-   */
-  groupId: number;
-
-  /**
-   * Open tab ids that were already open before edit and are not group members.
-   */
-  hiddenTabIds: string[];
-}
-
-/**
- * Redux state for persisted workspaces and transient edit sessions.
+ * Redux state for persisted workspaces.
  */
 export interface WorkspaceState {
   /**
    * Workspaces loaded from the local registry.
    */
   items: Workspace[];
-
-  /**
-   * Workspace currently in edit mode, if any.
-   */
-  editingWorkspaceId: number | null;
-
-  /**
-   * Open tabs hidden from the tab bar during the current edit session.
-   */
-  editSessionHiddenTabIds: string[];
 }
 
 const initialState: WorkspaceState = {
-  items: [],
-  editingWorkspaceId: null,
-  editSessionHiddenTabIds: []
+  items: []
 };
 
 const workspaceSlice = createSlice({
@@ -54,21 +27,6 @@ const workspaceSlice = createSlice({
       state.items = action.payload;
     },
 
-    /**
-     * Enters workspace edit mode and records tabs hidden from the tab bar.
-     */
-    startEditingWorkspace(state, action: PayloadAction<StartEditingWorkspacePayload>) {
-      state.editingWorkspaceId = action.payload.groupId;
-      state.editSessionHiddenTabIds = action.payload.hiddenTabIds;
-    },
-
-    /**
-     * Exits workspace edit mode and restores hidden tabs in the tab bar.
-     */
-    stopEditingWorkspace(state) {
-      state.editingWorkspaceId = null;
-      state.editSessionHiddenTabIds = [];
-    },
     /**
      * Optimistically reorders workspaces to match drag-and-drop before IPC persistence.
      */
@@ -89,44 +47,13 @@ const workspaceSlice = createSlice({
   }
 });
 
-export const {
-  setWorkspaces,
-  startEditingWorkspace,
-  stopEditingWorkspace,
-  reorderWorkspacesLocal
-} = workspaceSlice.actions;
+export const { setWorkspaces, reorderWorkspacesLocal } = workspaceSlice.actions;
 
 /**
  * Selects all workspaces currently loaded in the store.
  */
 export function selectWorkspaces(state: RootState): Workspace[] {
   return state.workspaces.items;
-}
-
-/**
- * Selects the workspace id currently being edited, if any.
- */
-export function selectEditingWorkspaceId(state: RootState): number | null {
-  return state.workspaces.editingWorkspaceId;
-}
-
-/**
- * Selects open tab ids hidden during the current workspace edit session.
- */
-export function selectEditSessionHiddenTabIds(state: RootState): string[] {
-  return state.workspaces.editSessionHiddenTabIds;
-}
-
-/**
- * Selects the workspace currently being edited, if any.
- */
-export function selectEditingWorkspace(state: RootState): Workspace | null {
-  const editingWorkspaceId = state.workspaces.editingWorkspaceId;
-  if (editingWorkspaceId == null) {
-    return null;
-  }
-
-  return state.workspaces.items.find((group) => group.id === editingWorkspaceId) ?? null;
 }
 
 export default workspaceSlice.reducer;

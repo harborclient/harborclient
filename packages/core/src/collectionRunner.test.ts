@@ -118,6 +118,38 @@ describe('getRequestsInRunOrder', () => {
     const order = getRequestsInRunOrder(1, 10, requests, folders).map((request) => request.id);
     expect(order).toEqual([4, 3]);
   });
+
+  it('includes descendant folder requests when running a parent folder', () => {
+    const nestedFolders: Folder[] = [
+      {
+        id: 10,
+        collection_id: 1,
+        uuid: 'f1',
+        name: 'Folder A',
+        sort_order: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+        ...FOLDER_SETTINGS_DEFAULTS
+      },
+      {
+        id: 12,
+        collection_id: 1,
+        uuid: 'f1-child',
+        name: 'Child',
+        sort_order: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+        ...FOLDER_SETTINGS_DEFAULTS,
+        parent_folder_id: 10
+      }
+    ];
+    const nestedRequests: SavedRequest[] = [
+      sampleRequest({ id: 4, name: 'In A-1', sort_order: 0, folder_id: 10 }),
+      sampleRequest({ id: 6, name: 'In Child', sort_order: 0, folder_id: 12 })
+    ];
+    const order = getRequestsInRunOrder(1, 10, nestedRequests, nestedFolders).map(
+      (request) => request.id
+    );
+    expect(order).toEqual([4, 6]);
+  });
 });
 
 describe('getCollectionRunnerRequests', () => {
