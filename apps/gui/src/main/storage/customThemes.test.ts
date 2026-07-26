@@ -9,7 +9,7 @@ vi.mock('electron', () => ({
   app: {
     getPath,
     isPackaged: false,
-    getAppPath: vi.fn(() => join(process.cwd()))
+    getAppPath: vi.fn(() => join(process.cwd(), '../..'))
   }
 }));
 

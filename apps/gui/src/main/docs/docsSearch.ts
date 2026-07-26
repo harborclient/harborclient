@@ -80,7 +80,7 @@ export function getDocsSearchIndexPaths(): string[] {
   }
 
   paths.add(join(app.getAppPath(), 'resources/docsSearchIndex.json'));
-  paths.add(join(__dirname, '../../resources/docsSearchIndex.json'));
+  paths.add(join(__dirname, '../../../../resources/docsSearchIndex.json'));
 
   return [...paths];
 }

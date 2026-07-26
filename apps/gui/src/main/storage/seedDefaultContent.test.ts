@@ -21,8 +21,13 @@ import {
 import type { SqliteSettings, StorageConnection } from '@harborclient/core/types';
 import { describeSqlite } from '#/test/nativeModules';
 
+/**
+ * Repo root relative to the GUI package cwd used by vitest (`apps/gui`).
+ */
+const REPO_ROOT = join(process.cwd(), '../..');
+
 const { getAppPath } = vi.hoisted(() => ({
-  getAppPath: vi.fn(() => join(process.cwd()))
+  getAppPath: vi.fn(() => join(process.cwd(), '../..'))
 }));
 
 const TEST_APP_DATA = join(tmpdir(), 'harborclient-seed-appdata');
@@ -53,7 +58,7 @@ const SQLITE_CONNECTION: StorageConnection = {
   settings: { ...BASE_SQLITE_SETTINGS, dbFilename: 'seed.db' }
 };
 
-const BUILTIN_COLLECTIONS_DIR = join(process.cwd(), 'resources/builtin_collections');
+const BUILTIN_COLLECTIONS_DIR = join(REPO_ROOT, 'resources/builtin_collections');
 
 const cleanups: Array<() => void | Promise<void>> = [];
 
@@ -268,7 +273,7 @@ describe('parseBuiltinCollectionOpenRequestTarget', () => {
 
 describeSqlite('seedDefaultContentIfNeeded', () => {
   beforeEach(() => {
-    getAppPath.mockReturnValue(process.cwd());
+    getAppPath.mockReturnValue(REPO_ROOT);
   });
 
   it('imports built-in collections on a fresh install', async () => {
@@ -345,7 +350,7 @@ describe('isSeedFlagEnabled', () => {
 
 describeSqlite('seedBuiltinCollectionsIfMissing', () => {
   beforeEach(() => {
-    getAppPath.mockReturnValue(process.cwd());
+    getAppPath.mockReturnValue(REPO_ROOT);
   });
 
   it('imports built-in collections on an empty database', async () => {

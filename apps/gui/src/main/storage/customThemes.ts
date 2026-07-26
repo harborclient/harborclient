@@ -31,7 +31,7 @@ export function getBuiltinThemesResourceDirectories(): string[] {
   }
 
   directories.add(join(app.getAppPath(), 'resources/builtin_themes'));
-  directories.add(join(__dirname, '../../resources/builtin_themes'));
+  directories.add(join(__dirname, '../../../../resources/builtin_themes'));
 
   return [...directories];
 }

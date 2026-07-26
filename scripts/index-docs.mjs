@@ -19,9 +19,8 @@ import OpenAI from 'openai';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const guiRoot = path.resolve(repoRoot, 'apps/gui');
 
-const DEFAULT_OUT = path.join(guiRoot, 'resources', 'docsSearchIndex.json');
+const DEFAULT_OUT = path.join(repoRoot, 'resources', 'docsSearchIndex.json');
 const DEFAULT_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;
 const BATCH_SIZE = 100;

@@ -19,11 +19,11 @@ extraResources:
     to: icon.png
   - from: ../../plugins/catalog.json
     to: plugins/catalog.json
-  - from: resources/docsSearchIndex.json
+  - from: ../../resources/docsSearchIndex.json
     to: docsSearchIndex.json
-  - from: resources/builtin_themes
+  - from: ../../resources/builtin_themes
     to: builtin_themes
-  - from: resources/builtin_collections
+  - from: ../../resources/builtin_collections
     to: builtin_collections
   - from: ../cli/dist/index.js
     to: cli/index.js

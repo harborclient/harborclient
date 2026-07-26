@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor resource paths and update documentation indexing. (`89d0d78f`)
 - Add new images and plugin metadata. (`9aa3f8ac`)
 - Update build process and documentation for @harborclient. (`694dc348`)
 

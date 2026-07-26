@@ -39,7 +39,7 @@ export function getBuiltinCollectionsResourceDirectories(): string[] {
   }
 
   directories.add(join(app.getAppPath(), 'resources/builtin_collections'));
-  directories.add(join(__dirname, '../../resources/builtin_collections'));
+  directories.add(join(__dirname, '../../../../resources/builtin_collections'));
 
   return [...directories];
 }

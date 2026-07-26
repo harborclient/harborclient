@@ -5,7 +5,7 @@
  * answers instead of Chai/Postman guesses. Pin behavior with scriptExpect tests
  * before changing the guidance below.
  *
- * User-facing site docs and `apps/gui/resources/docsSearchIndex.json` are rebuilt
+ * User-facing site docs and `resources/docsSearchIndex.json` are rebuilt
  * separately via `pnpm index-docs` from the sibling site repo; prefer this tool
  * for exact hc syntax over `search_docs` embeddings.
  */
