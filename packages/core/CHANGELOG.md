@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Refactor resource paths and update documentation indexing. (`89d0d78f`)
+
+## 0.1.4 - 2026-07-26
+
 - Add new images and plugin metadata. (`37969b6e`)
 
 ## 0.1.3 - 2026-07-25
