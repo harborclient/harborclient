@@ -29,6 +29,7 @@ import {
 import CodeMirrorImport from '@uiw/react-codemirror';
 import type { ComponentPropsWithoutRef, JSX } from 'react';
 import type { CodeEditorSetup, CodeEditorTheme, Variable } from '../../types.js';
+import { isAppearanceDark } from '../../ui/appearanceTheme.js';
 import { normalizeCodeEditorFontSize } from '../../ui/codeEditorSettings.js';
 import { VARIABLE_NAME_CHARS, getVariableTooltipContent } from '../../variables/index.js';
 import { Button } from '../Button/index.js';
@@ -1230,9 +1231,7 @@ export function CodeEditor({
   const resolvedSetup = setupOverride ?? (readOnly ? null : config.setup);
   const resolvedFontSize = normalizeCodeEditorFontSize(fontSize ?? config.fontSize);
   const resolvedEditable = editable ?? !readOnly;
-  const [isDark, setIsDark] = useState(
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
+  const [isDark, setIsDark] = useState(() => isAppearanceDark());
   const [selectionTooltip, setSelectionTooltip] = useState<SelectionTooltipState | null>(null);
   const selectionTooltipRef = useRef(selectionTooltip);
   selectionTooltipRef.current = selectionTooltip;
@@ -1468,13 +1467,28 @@ export function CodeEditor({
   const editorThemeExt = useMemo(() => createEditorTheme(resolvedFontSize), [resolvedFontSize]);
 
   /**
-   * Tracks system dark mode so syntax highlighting matches the active theme.
+   * Tracks the resolved app appearance so syntax highlighting and placeholder
+   * rendering match the active theme. Listens for host theme applications
+   * (`harborclient:theme-colors-applied`), OS color-scheme changes (System
+   * appearance), and `data-theme` attribute swaps on the document root, and
+   * cleans up all listeners on unmount.
    */
   useEffect(() => {
+    const syncAppearance = (): void => setIsDark(isAppearanceDark());
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (): void => setIsDark(media.matches);
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
+    media.addEventListener('change', syncAppearance);
+    window.addEventListener('harborclient:theme-colors-applied', syncAppearance);
+    const observer = new MutationObserver(syncAppearance);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+    syncAppearance();
+    return () => {
+      media.removeEventListener('change', syncAppearance);
+      window.removeEventListener('harborclient:theme-colors-applied', syncAppearance);
+      observer.disconnect();
+    };
   }, []);
 
   /**

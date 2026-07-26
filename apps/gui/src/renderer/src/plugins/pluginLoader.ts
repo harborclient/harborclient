@@ -369,12 +369,25 @@ export function getAgentLoadPhaseForTests(pluginId: string): AgentLoadPhase | un
   return getAgentLoadPhase(pluginId);
 }
 
+interface UnloadPluginOptions {
+  /**
+   * When false, skips re-applying the persisted theme after clearing contributions.
+   * Used by `loadPlugin`, which re-registers themes and applies once at the end.
+   */
+  reapplyTheme?: boolean;
+}
+
 /**
  * Deactivates and unloads one plugin from the renderer host.
  *
  * @param pluginId - Plugin manifest id.
+ * @param options - Unload behavior; theme re-apply defaults to true for disable paths.
  */
-export async function unloadPlugin(pluginId: string): Promise<void> {
+export async function unloadPlugin(
+  pluginId: string,
+  options: UnloadPluginOptions = {}
+): Promise<void> {
+  const { reapplyTheme = true } = options;
   unmountAgentWebview(pluginId);
   clearPluginContributions(pluginId);
   clearPluginImportHandlers(pluginId);
@@ -383,9 +396,10 @@ export async function unloadPlugin(pluginId: string): Promise<void> {
   } catch {
     // Main entry may not have been active.
   }
-  await applyPersistedPluginTheme();
+  if (reapplyTheme) {
+    await applyPersistedPluginTheme();
+  }
 }
-
 /**
  * Registers themes declared via `contributes.themes[].import` JSON files.
  *
@@ -430,7 +444,9 @@ async function loadPlugin(plugin: PluginInfo): Promise<void> {
     return;
   }
 
-  await unloadPlugin(plugin.id);
+  // Skip theme re-apply during unload so clearing contributions does not strip
+  // the active plugin theme before it is registered again below.
+  await unloadPlugin(plugin.id, { reapplyTheme: false });
 
   try {
     await registerImportThemeContributions(plugin);

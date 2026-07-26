@@ -3,6 +3,12 @@ import { getRegisteredMenuItems, subscribePluginRegistry } from './registry';
 /**
  * Pushes serialized menu contributions to the main process for menu merge.
  */
+/** Last serialized menu payload sent to the main process. */
+let lastSyncedMenuKey = '';
+
+/**
+ * Syncs plugin menu contributions to the main process when the payload changes.
+ */
 async function syncMenuContributions(): Promise<void> {
   const items = getRegisteredMenuItems().map((entry) => ({
     pluginId: entry.pluginId,
@@ -12,6 +18,12 @@ async function syncMenuContributions(): Promise<void> {
     group: entry.group,
     order: entry.order
   }));
+  const nextKey = JSON.stringify(items);
+  const unchanged = nextKey === lastSyncedMenuKey;
+  if (unchanged) {
+    return;
+  }
+  lastSyncedMenuKey = nextKey;
   await window.api.setPluginMenuContributions(items);
 }
 

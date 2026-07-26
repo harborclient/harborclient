@@ -3,12 +3,44 @@ import type { SerializableMenuContribution } from '@harborclient/core/plugin/typ
 let menuContributions: SerializableMenuContribution[] = [];
 
 /**
- * Replaces the current plugin menu contribution list.
+ * Returns whether two menu contribution lists describe the same entries in order.
+ *
+ * @param left - Previously stored contributions.
+ * @param right - Incoming contributions from the renderer.
+ */
+function menuContributionsEqual(
+  left: SerializableMenuContribution[],
+  right: SerializableMenuContribution[]
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((entry, index) => {
+    const next = right[index];
+    return (
+      next != null &&
+      entry.pluginId === next.pluginId &&
+      entry.menu === next.menu &&
+      entry.command === next.command &&
+      entry.label === next.label &&
+      entry.group === next.group &&
+      entry.order === next.order
+    );
+  });
+}
+
+/**
+ * Replaces the current plugin menu contribution list when it actually changes.
  *
  * @param contributions - Serializable menu entries from the renderer registry.
+ * @returns True when the stored list changed and the app menu should rebuild.
  */
-export function setPluginMenuContributions(contributions: SerializableMenuContribution[]): void {
+export function setPluginMenuContributions(contributions: SerializableMenuContribution[]): boolean {
+  if (menuContributionsEqual(menuContributions, contributions)) {
+    return false;
+  }
   menuContributions = [...contributions];
+  return true;
 }
 
 /**

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
 import type { PluginInfo } from '@harborclient/core/plugin/types';
+import { installedPluginScreenshotIdentity } from '../installedPluginScreenshotIdentity';
 import { loadInstalledPluginScreenshotSrcs } from '../resolvePluginScreenshot';
 
 interface UsePluginDetailArgs {
@@ -60,6 +61,7 @@ export function usePluginDetail({
     'idle' | 'loading' | 'loaded' | 'error'
   >('idle');
   const [detailScreenshotSrcs, setDetailScreenshotSrcs] = useState<string[]>([]);
+  const openPluginIdRef = useRef<string | null>(null);
 
   /**
    * Resolves the open detail plugin from the latest installed plugin list.
@@ -77,6 +79,13 @@ export function usePluginDetail({
    * @param plugin - Plugin row to inspect.
    */
   const openDetail = useCallback((plugin: PluginInfo): void => {
+    // Re-opening the same plugin happens on every plugins:changed refresh.
+    // Clearing loaded assets there blanks the screenshot and description.
+    if (openPluginIdRef.current === plugin.id) {
+      return;
+    }
+
+    openPluginIdRef.current = plugin.id;
     setDescriptionMarkdown('');
     setDescriptionLoadState(plugin.manifest.description ? 'loading' : 'idle');
     setDetailScreenshotSrcs([]);
@@ -87,25 +96,40 @@ export function usePluginDetail({
    * Closes the read-only detail modal and clears loaded description text.
    */
   const closeDetail = useCallback((): void => {
+    openPluginIdRef.current = null;
     setDetailPluginId(null);
     setDescriptionMarkdown('');
     setDescriptionLoadState('idle');
     setDetailScreenshotSrcs([]);
   }, []);
 
+  const descriptionPath = detailPlugin?.manifest.description;
+  const detailCatalogEntry = detailPlugin ? catalogById.get(detailPlugin.id) : undefined;
+
   /**
-   * Loads the detail plugin description markdown when the detail modal opens.
+   * Stable screenshot identity so enable/reload refreshes do not rebuild data URLs
+   * and collapse the detail-tab preview height while the image reloads.
+   */
+  const screenshotIdentity = useMemo(() => {
+    if (!detailPlugin) {
+      return null;
+    }
+    return installedPluginScreenshotIdentity(detailPlugin, detailCatalogEntry);
+  }, [detailPlugin, detailCatalogEntry]);
+
+  /**
+   * Loads the detail plugin description markdown when the detail view opens or
+   * the description asset path changes — not on every plugin list object refresh.
    */
   useEffect(() => {
     let active = true;
-    const descriptionPath = detailPlugin?.manifest.description;
-    if (!detailPlugin || !descriptionPath) {
+    if (!detailPluginId || !descriptionPath) {
       return () => {
         active = false;
       };
     }
     void window.api
-      .readPluginAsset(detailPlugin.id, descriptionPath)
+      .readPluginAsset(detailPluginId, descriptionPath)
       .then((asset) => {
         if (active) {
           setDescriptionMarkdown(atob(asset.content));
@@ -121,14 +145,16 @@ export function usePluginDetail({
     return () => {
       active = false;
     };
-  }, [detailPlugin]);
+  }, [detailPluginId, descriptionPath]);
 
   /**
-   * Loads the installed plugin screenshot when the detail modal opens.
+   * Loads installed plugin screenshots when screenshot-relevant fields change.
+   * Skips enablement-only list refreshes that would otherwise swap in new data
+   * URLs and shrink the tab carousel to 0px until decode finishes.
    */
   useEffect(() => {
     let active = true;
-    if (!detailPlugin) {
+    if (!detailPlugin || !screenshotIdentity) {
       return () => {
         active = false;
       };
@@ -136,18 +162,29 @@ export function usePluginDetail({
 
     void loadInstalledPluginScreenshotSrcs(
       detailPlugin,
-      catalogById.get(detailPlugin.id)?.screenshots,
-      catalogById.get(detailPlugin.id)?.screenshot
+      detailCatalogEntry?.screenshots,
+      detailCatalogEntry?.screenshot
     ).then((screenshotSrcs) => {
-      if (active) {
-        setDetailScreenshotSrcs(screenshotSrcs);
+      if (!active) {
+        return;
       }
+      setDetailScreenshotSrcs((previous) => {
+        if (
+          previous.length === screenshotSrcs.length &&
+          previous.every((src, index) => src === screenshotSrcs[index])
+        ) {
+          return previous;
+        }
+        return screenshotSrcs;
+      });
     });
 
     return () => {
       active = false;
     };
-  }, [detailPlugin, catalogById]);
+    // screenshotIdentity gates reloads; detailPlugin/catalog are read for that identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional narrow deps
+  }, [screenshotIdentity]);
 
   return {
     detailPlugin,

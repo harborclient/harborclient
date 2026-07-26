@@ -43,7 +43,7 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
   );
 
   return (
-    <SegmentShell shape={shape} tone="path">
+    <SegmentShell shape={shape} tone={shape === 'first' ? 'selection' : 'path'}>
       {segment.onClick ? (
         <button
           type="button"

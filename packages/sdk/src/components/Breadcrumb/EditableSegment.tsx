@@ -1,4 +1,6 @@
+import { faPen } from '@fortawesome/free-solid-svg-icons';
 import type { JSX, RefObject } from 'react';
+import { FaIcon } from '../FaIcon/index.js';
 import { Input } from '../forms/index.js';
 import { type SegmentShape, SegmentShell } from './SegmentShell.js';
 
@@ -87,12 +89,17 @@ export function EditableSegment({
           type="button"
           aria-current="page"
           aria-label={editableLabel}
-          className="app-no-drag flex w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          className="app-no-drag inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           onClick={onStartEditing}
         >
           <span className="min-w-0 truncate">
             {value ? value : <span className="font-normal text-muted">{placeholder}</span>}
           </span>
+          <FaIcon
+            icon={faPen}
+            className="ms-3 h-2.5 w-2.5 shrink-0 cursor-pointer text-muted opacity-60"
+            aria-hidden
+          />
         </button>
       )}
     </SegmentShell>

@@ -106,10 +106,49 @@ export function buildBuiltinThemeCss(
 }
 
 /**
- * Removes injected theme CSS from the document.
+ * Applies `data-theme` and injected theme CSS without removing the previous
+ * stylesheet node first. That avoids a one-frame unstyled paint when plugins
+ * reload and re-apply the same (or updated) theme.
+ *
+ * @param dataTheme - Root `data-theme` value, or null to remove the attribute.
+ * @param css - Full stylesheet text to inject, or empty to remove the style node.
  */
-function clearInjectedThemeStyle(): void {
-  document.getElementById(STYLE_ELEMENT_ID)?.remove();
+function applyThemeDocumentState(dataTheme: string | null, css: string): void {
+  const root = document.documentElement;
+  const previousTheme = root.getAttribute('data-theme');
+  const themeChanged = dataTheme === null ? previousTheme !== null : previousTheme !== dataTheme;
+
+  if (dataTheme === null) {
+    root.removeAttribute('data-theme');
+  } else {
+    root.setAttribute('data-theme', dataTheme);
+  }
+
+  const existing = document.getElementById(STYLE_ELEMENT_ID) as HTMLStyleElement | null;
+  const nextCss = css.trim();
+  let styleChanged = false;
+
+  if (!nextCss) {
+    if (existing) {
+      existing.remove();
+      styleChanged = true;
+    }
+  } else if (existing) {
+    if (existing.textContent !== nextCss) {
+      existing.textContent = nextCss;
+      styleChanged = true;
+    }
+  } else {
+    const style = document.createElement('style');
+    style.id = STYLE_ELEMENT_ID;
+    style.textContent = nextCss;
+    document.head.appendChild(style);
+    styleChanged = true;
+  }
+
+  if (themeChanged || styleChanged) {
+    notifyThemeColorsApplied();
+  }
 }
 
 /**
@@ -126,20 +165,7 @@ export function applyCustomThemeColors(
   stylesheet?: string,
   metrics?: Record<string, string>
 ): void {
-  document.documentElement.setAttribute('data-theme', 'custom');
-  clearInjectedThemeStyle();
-
-  const css = buildCustomThemeCss(colors, type, stylesheet, metrics);
-  if (!css.trim()) {
-    notifyThemeColorsApplied();
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = STYLE_ELEMENT_ID;
-  style.textContent = css;
-  document.head.appendChild(style);
-  notifyThemeColorsApplied();
+  applyThemeDocumentState('custom', buildCustomThemeCss(colors, type, stylesheet, metrics));
 }
 
 /**
@@ -157,20 +183,7 @@ export function applyBuiltinThemeColors(
   dataTheme: BuiltinThemeId,
   metrics?: Record<string, string>
 ): void {
-  document.documentElement.setAttribute('data-theme', dataTheme);
-  clearInjectedThemeStyle();
-
-  const css = buildBuiltinThemeCss(colors, dataTheme, type, metrics);
-  if (!css.trim()) {
-    notifyThemeColorsApplied();
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = STYLE_ELEMENT_ID;
-  style.textContent = css;
-  document.head.appendChild(style);
-  notifyThemeColorsApplied();
+  applyThemeDocumentState(dataTheme, buildBuiltinThemeCss(colors, dataTheme, type, metrics));
 }
 
 /**
@@ -236,6 +249,9 @@ async function resolvePluginStylesheetText(pluginId: string, stylesheet: string)
 /**
  * Applies a plugin theme to the document root and injects CSS overrides.
  *
+ * Resolves stylesheet text before mutating the document so the previous theme
+ * CSS stays visible until the replacement is ready.
+ *
  * @param pluginId - Plugin manifest id.
  * @param themeId - Theme id within the plugin.
  */
@@ -244,32 +260,17 @@ export async function applyPluginTheme(pluginId: string, themeId: string): Promi
     (entry) => entry.pluginId === pluginId && entry.id === themeId
   );
   if (!theme) {
-    document.documentElement.removeAttribute('data-theme');
-    clearInjectedThemeStyle();
-    notifyThemeColorsApplied();
+    applyThemeDocumentState(null, '');
     return;
   }
-
-  document.documentElement.setAttribute('data-theme', `plugin-${pluginId}-${themeId}`);
-  clearInjectedThemeStyle();
 
   const stylesheetText = theme.stylesheet
     ? await resolvePluginStylesheetText(pluginId, theme.stylesheet)
     : '';
 
   const css = buildThemeCss(pluginId, themeId, theme.colors, stylesheetText, theme.metrics);
-  if (!css.trim()) {
-    notifyThemeColorsApplied();
-    return;
-  }
-
-  const style = document.createElement('style');
-  style.id = STYLE_ELEMENT_ID;
-  style.textContent = css;
-  document.head.appendChild(style);
-  notifyThemeColorsApplied();
+  applyThemeDocumentState(`plugin-${pluginId}-${themeId}`, css);
 }
-
 /**
  * Resolves the effective built-in palette id for a persisted theme preference.
  *
@@ -298,14 +299,16 @@ async function applyBuiltinThemePreference(theme: ThemeSource): Promise<void> {
   const stored = await window.api.getCustomTheme(effectiveTheme);
 
   if (!stored) {
-    clearInjectedThemeStyle();
+    // Resolve the attribute first so we can clear/inject style without a gap
+    // where both data-theme and overrides are missing.
     applyThemeAttribute(theme);
+    const nextTheme = document.documentElement.getAttribute('data-theme');
+    applyThemeDocumentState(nextTheme, '');
     return;
   }
 
   applyBuiltinThemeColors(stored.colors, stored.type, effectiveTheme, stored.metrics);
 }
-
 /**
  * Re-applies the persisted theme, falling back to System when a plugin theme is unavailable.
  */
@@ -337,8 +340,7 @@ export async function applyThemePreference(theme: string): Promise<void> {
   if (customParsed) {
     const customTheme = await window.api.getCustomTheme(customParsed.id);
     if (!customTheme) {
-      clearInjectedThemeStyle();
-      document.documentElement.removeAttribute('data-theme');
+      applyThemeDocumentState(null, '');
       await window.api.setTheme('system');
       return;
     }
@@ -363,6 +365,7 @@ export async function applyThemePreference(theme: string): Promise<void> {
     return;
   }
 
-  clearInjectedThemeStyle();
   applyThemeAttribute(theme as ThemeSource);
+  const nextTheme = document.documentElement.getAttribute('data-theme');
+  applyThemeDocumentState(nextTheme, '');
 }

@@ -1,5 +1,5 @@
-import { Button } from '@harborclient/sdk/components';
-import type { JSX, MouseEvent } from 'react';
+import { Button, Switch } from '@harborclient/sdk/components';
+import type { JSX, SyntheticEvent } from 'react';
 import type { PluginInfo } from '@harborclient/core/plugin/types';
 import { formatThemeDisplayName } from '@harborclient/core/plugin/themeCategory';
 import type { PluginManagementKind } from './constants';
@@ -65,8 +65,8 @@ interface Props {
 }
 
 /**
- * Enable/disable, update/reload, and remove buttons shared by installed plugin
- * cards and the plugin detail modal footer.
+ * Enable/disable toggle plus update/reload and remove buttons shared by
+ * installed plugin cards and the plugin detail modal footer.
  */
 export function InstalledPluginFooterActions({
   kind,
@@ -92,11 +92,11 @@ export function InstalledPluginFooterActions({
   /**
    * Stops event bubbling when embedded in an activatable card row.
    *
-   * @param event - Click event on a footer button.
+   * @param event - Click or change event on a footer control.
    */
   const handleClickStop =
     (action: () => void) =>
-    (event: MouseEvent<HTMLButtonElement>): void => {
+    (event: SyntheticEvent): void => {
       if (stopPropagation) {
         event.stopPropagation();
       }
@@ -116,15 +116,12 @@ export function InstalledPluginFooterActions({
           Use
         </Button>
       ) : (
-        <Button
-          type="button"
-          variant="toolbar"
-          className={buttonClassName}
+        <Switch
+          className="self-center"
+          checked={plugin.enabled}
           aria-label={`${toggleLabel} ${displayName}`}
-          onClick={handleClickStop(() => onToggleEnabled(plugin))}
-        >
-          {toggleLabel}
-        </Button>
+          onChange={handleClickStop(() => onToggleEnabled(plugin))}
+        />
       )}
       {middleAction === 'update' ? (
         <Button

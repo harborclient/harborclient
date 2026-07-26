@@ -171,11 +171,10 @@ export function Editor({
   ];
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col mt-1">
+    <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col">
       <div className="shrink-0 border-b border-separator p-3">
         <Breadcrumb
-          flush
-          className="mb-4"
+          className="mb-3 mt-1"
           segments={breadcrumbSegments}
           value={draft.name}
           placeholder="Request name"

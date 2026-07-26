@@ -18,6 +18,7 @@ HarborClient tests focus on **observable behavior**, not implementation details.
 
 ```bash
 pnpm test          # required before merge
+pnpm test:changed  # fast iteration — only tests affected by git changes
 pnpm test:watch    # local iteration only
 ```
 
@@ -30,6 +31,15 @@ pnpm test:watch    # local iteration only
 Do **not** run `vitest` or `pnpm exec vitest run` directly — it skips the rebuild/restore cycle and can leave native modules built for the wrong ABI, breaking `pnpm dev` and `pnpm build`.
 
 Use `pnpm test:watch` only when actively iterating on tests; it leaves modules built for system Node until you run `pnpm test` or `pnpm install` again.
+
+### Fast iteration
+
+`pnpm test:changed` runs vitest with `--changed` in every package, selecting
+only tests affected by uncommitted git changes. The GUI package still goes
+through `test-with-native.mjs`, so the native rebuild/restore cycle is
+preserved. Use it while iterating; run the full `pnpm test` (or `pnpm check`,
+which also lints, format-checks, and typechecks in parallel) before merge or
+when you touched shared contracts.
 
 ### CI
 

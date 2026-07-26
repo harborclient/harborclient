@@ -7,6 +7,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "declaration": true,
     "declarationMap": true,
     "forceConsistentCasingInFileNames": true

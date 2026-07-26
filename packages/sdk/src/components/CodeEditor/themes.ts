@@ -10,6 +10,7 @@ import {
 } from '@uiw/codemirror-themes-all';
 import type { CodeEditorTheme } from '../../types.js';
 import { CODE_EDITOR_THEME_IDS } from '../../ui/codeEditorSettings.js';
+import { createBuiltInSyntaxHighlighting } from './editorChrome.js';
 
 export { CODE_EDITOR_THEME_IDS };
 
@@ -48,4 +49,35 @@ export function getCodeEditorThemeExtension(value: CodeEditorTheme): Extension |
     return null;
   }
   return themeExtensions[value];
+}
+
+/**
+ * Syntax themes whose token colors are designed for light backgrounds.
+ */
+const LIGHT_NATIVE_THEMES: ReadonlySet<CodeEditorTheme> = new Set([
+  'githubLight',
+  'solarizedLight'
+]);
+
+/**
+ * Resolves syntax highlighting for placeholder ghost rendering.
+ *
+ * Placeholders render on the transparent editor surface, so dark-background
+ * themes (Monokai, Dracula, ...) produce washed-out pastel tokens in light
+ * appearance. In light mode, only light-native themes keep their own colors;
+ * everything else falls back to the built-in light highlight style. Dark mode
+ * keeps the user's selected theme unchanged.
+ *
+ * @param theme - Persisted CodeMirror theme selection.
+ * @param isDark - Whether the resolved app appearance is dark.
+ * @returns Extension providing readable token colors for the placeholder.
+ */
+export function resolvePlaceholderSyntaxHighlighting(
+  theme: CodeEditorTheme,
+  isDark: boolean
+): Extension {
+  if (!isDark && !LIGHT_NATIVE_THEMES.has(theme)) {
+    return createBuiltInSyntaxHighlighting(false);
+  }
+  return getCodeEditorThemeExtension(theme) ?? createBuiltInSyntaxHighlighting(isDark);
 }

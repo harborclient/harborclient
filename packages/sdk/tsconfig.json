@@ -3,6 +3,8 @@
     "declaration": true,
     "declarationMap": true,
     "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "jsx": "react-jsx",
     "jsxImportSource": "@harborclient/sdk",
     "module": "ESNext",

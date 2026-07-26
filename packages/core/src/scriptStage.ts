@@ -8,12 +8,32 @@ export const DEFAULT_SCRIPT_STAGE: ScriptStage = 'main';
 /**
  * Select options for script stage fields in editors and modals.
  */
-export const SCRIPT_STAGE_OPTIONS: { value: ScriptStage; label: string }[] = [
-  { value: 'before-all', label: 'Before all' },
-  { value: 'before-each', label: 'Before each' },
-  { value: 'main', label: 'Main' },
-  { value: 'after-each', label: 'After each' },
-  { value: 'after-all', label: 'After all' }
+export const SCRIPT_STAGE_OPTIONS: { value: ScriptStage; label: string; description: string }[] = [
+  {
+    value: 'before-all',
+    label: 'Before all',
+    description: 'Runs once at the start, before any main scripts.'
+  },
+  {
+    value: 'before-each',
+    label: 'Before each',
+    description: 'Runs before each main script.'
+  },
+  {
+    value: 'main',
+    label: 'Main',
+    description: 'Primary script for this request stage; runs in list order.'
+  },
+  {
+    value: 'after-each',
+    label: 'After each',
+    description: 'Runs after each main script.'
+  },
+  {
+    value: 'after-all',
+    label: 'After all',
+    description: 'Runs once at the end, after all main scripts.'
+  }
 ];
 
 const SCRIPT_STAGES = new Set<ScriptStage>(SCRIPT_STAGE_OPTIONS.map((option) => option.value));

@@ -121,8 +121,8 @@
     --mac-footer-icon-active: var(--mac-text);
     --mac-toolbar-action-active: var(--mac-text);
     --mac-breadcrumb-background: #ececee;
-    --mac-breadcrumb-segment: #d8d8dc;
-    --mac-breadcrumb-current: #c8c8ce;
+    --mac-breadcrumb-segment: #f5f5f7;
+    --mac-breadcrumb-current: #ffffff;
     --mac-git-staged: var(--mac-success);
     --mac-git-uncommitted: var(--mac-warning);
     --mac-git-unstaged: var(--mac-muted);
@@ -722,19 +722,21 @@
   }
 
   /**
-   * Document tab bar: full-opacity yellow borders. SDK tabItem() uses
-   * border-separator/50 and /70 which mute yellow; override to solid yellow.
+   * Document tab bar: full-opacity yellow borders on inactive tabs. Active
+   * tabs use surface for background and bottom border so they merge with
+   * the editor panel below. The bar container has no bottom border.
    */
-  :root[data-theme='high-contrast'] .hc-tab-bar {
-    border-bottom-color: var(--mac-separator) !important;
-  }
-
   :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'] {
     border-color: var(--mac-separator) !important;
   }
 
+  :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'][aria-selected='true'] {
+    background-color: var(--mac-surface) !important;
+    border-bottom-color: var(--mac-surface) !important;
+  }
+
   :root[data-theme='high-contrast'] .hc-tab-bar [role='tab']:not([aria-selected='true']) {
-    border-bottom-color: transparent !important;
+    border-color: var(--mac-separator) !important;
   }
 
   /**
@@ -1272,10 +1274,10 @@
 
 /**
  * Top fade overlay for the AI chat message list. Messages scroll underneath
- * so they appear to dissolve into the sidebar background at the top edge.
+ * so they appear to dissolve into the chat panel surface at the top edge.
  */
 .hc-chat-fade-top {
-  background: linear-gradient(to bottom, var(--mac-sidebar), transparent);
+  background: linear-gradient(to bottom, var(--mac-surface), transparent);
 }
 
 .hc-chat-composer-codemirror .cm-editor {

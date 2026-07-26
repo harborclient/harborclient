@@ -379,7 +379,9 @@ export function TabBar<TId extends string | number>({
     }
   };
 
-  const tabRowClassName = wrap ? 'w-full min-w-0 py-1' : 'flex w-max flex-nowrap items-end py-1';
+  const tabRowClassName = wrap
+    ? 'w-full min-w-0 pt-1 pb-0'
+    : 'flex w-max flex-nowrap items-end pt-1 pb-0';
   const tabListClassName = wrap
     ? 'flex min-w-0 w-full flex-wrap items-end gap-x-1.5 gap-y-2'
     : 'flex items-end gap-x-1.5';
@@ -515,10 +517,7 @@ export function TabBar<TId extends string | number>({
 
   const scrollContainer = renderScrollContainer ?? defaultScrollContainer;
 
-  const containerClassName = cn(
-    'app-no-drag flex shrink-0 items-end border-b border-separator bg-sidebar px-2',
-    className
-  );
+  const containerClassName = cn('app-no-drag flex shrink-0 items-end bg-sidebar px-2', className);
 
   return (
     <div className={containerClassName}>

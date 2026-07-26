@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance testing and plugin management functionality. (`48799cc9`)
 - Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
 
 ## 0.1.6 - 2026-07-26

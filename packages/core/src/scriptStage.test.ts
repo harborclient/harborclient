@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { ScriptStage } from '@harborclient/sdk';
 import {
   mergeScriptRefGroups,
   orderScriptRefsByStage,
+  SCRIPT_STAGE_OPTIONS,
   scriptRowStageSuffix,
   scriptStageBorderColor,
   scriptStageGroup,
@@ -9,6 +11,17 @@ import {
   splitScriptRefsByGroup
 } from './scriptStage';
 import { createInlineScriptRef } from './scriptRefs';
+
+const ALL_STAGES: ScriptStage[] = ['before-all', 'before-each', 'main', 'after-each', 'after-all'];
+
+describe('SCRIPT_STAGE_OPTIONS', () => {
+  it('includes a non-empty description for every script stage', () => {
+    expect(SCRIPT_STAGE_OPTIONS.map((option) => option.value)).toEqual(ALL_STAGES);
+    for (const option of SCRIPT_STAGE_OPTIONS) {
+      expect(option.description.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
 
 describe('scriptRowStageSuffix', () => {
   it('returns title-case suffixes for before and after stages only', () => {

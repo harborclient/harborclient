@@ -26,6 +26,7 @@ packages/core/src/**/*.d.ts.map
 *.log
 .*-audit.json
 .eslintcache
+*.tsbuildinfo
 *.scratch.txt
 *.scratch.md
 REVIEW.md

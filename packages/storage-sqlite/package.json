@@ -38,6 +38,7 @@
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "test:changed": "vitest run --changed",
     "test:watch": "vitest"
   },
   "dependencies": {

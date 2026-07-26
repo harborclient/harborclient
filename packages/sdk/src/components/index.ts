@@ -79,6 +79,7 @@ export {
   Checkbox,
   Radio,
   Select,
+  Switch,
   Textarea,
   field,
   fieldFrame,

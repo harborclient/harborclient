@@ -2,9 +2,8 @@ import { javascript } from '@codemirror/lang-javascript';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import type { CodeEditorTheme } from '../../types.js';
-import { createBuiltInSyntaxHighlighting } from './editorChrome.js';
 import { type SlashCommandSpec, createSlashCommandHighlighter } from './slashCommandHighlighter.js';
-import { getCodeEditorThemeExtension } from './themes.js';
+import { resolvePlaceholderSyntaxHighlighting } from './themes.js';
 
 /**
  * Inputs for rendering a muted syntax-highlighted placeholder document.
@@ -77,12 +76,7 @@ function buildOffscreenPlaceholderExtensions(
     })
   ];
 
-  const themeExtension = getCodeEditorThemeExtension(options.theme);
-  if (themeExtension) {
-    extensions.push(themeExtension);
-  } else {
-    extensions.push(createBuiltInSyntaxHighlighting(options.isDark));
-  }
+  extensions.push(resolvePlaceholderSyntaxHighlighting(options.theme, options.isDark));
 
   if (options.slashCommands && options.slashCommands.length > 0) {
     extensions.push(createSlashCommandHighlighter(options.slashCommands));
@@ -126,7 +120,8 @@ export function renderHighlightedPlaceholderDom(
   wrap.style.display = 'inline-block';
   wrap.style.verticalAlign = 'top';
   wrap.style.whiteSpace = 'pre-wrap';
-  wrap.style.opacity = '0.55';
+  // Light token colors need less fading to stay readable on the light surface.
+  wrap.style.opacity = options.isDark ? '0.55' : '0.75';
   wrap.style.fontFamily = 'var(--font-mono)';
   wrap.style.fontSize = options.fontSize;
   wrap.style.userSelect = 'none';

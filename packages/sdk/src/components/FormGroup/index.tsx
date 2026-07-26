@@ -47,12 +47,12 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'clas
   error?: ReactNode;
 
   /**
-   * Explicit id for the error element; defaults to `${htmlFor}-error` when `htmlFor` is set.
+   * Explicit id for the error element; defaults to `${controlId}-error`.
    */
   errorId?: string;
 
   /**
-   * Explicit id for the description element; defaults to `${htmlFor}-description` when `htmlFor` is set.
+   * Explicit id for the description element; defaults to `${controlId}-description`.
    */
   descriptionId?: string;
 
@@ -192,12 +192,10 @@ export function FormGroup({
   if (layout === 'checkbox') {
     const resolvedDescriptionId =
       description != null && description !== ''
-        ? (descriptionId ?? (htmlFor ? `${htmlFor}-description` : undefined))
+        ? (descriptionId ?? `${controlId}-description`)
         : undefined;
     const resolvedErrorId =
-      error != null && error !== ''
-        ? (errorId ?? (htmlFor ? `${htmlFor}-error` : undefined))
-        : undefined;
+      error != null && error !== '' ? (errorId ?? `${controlId}-error`) : undefined;
     const describedByIds = [resolvedDescriptionId, resolvedErrorId].filter(
       (id): id is string => id != null
     );
@@ -250,12 +248,10 @@ export function FormGroup({
 
   const resolvedDescriptionId =
     description != null && description !== ''
-      ? (descriptionId ?? (htmlFor ? `${htmlFor}-description` : undefined))
+      ? (descriptionId ?? `${controlId}-description`)
       : undefined;
   const resolvedErrorId =
-    error != null && error !== ''
-      ? (errorId ?? (htmlFor ? `${htmlFor}-error` : undefined))
-      : undefined;
+    error != null && error !== '' ? (errorId ?? `${controlId}-error`) : undefined;
   const describedByIds = [resolvedDescriptionId, resolvedErrorId].filter(
     (id): id is string => id != null
   );

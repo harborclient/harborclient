@@ -1,4 +1,4 @@
-import { Button, Modal, ModalFormLayout, Select } from '@harborclient/sdk/components';
+import { Button, FormGroup, Modal, ModalFormLayout, Radio } from '@harborclient/sdk/components';
 import { useId, useState, type JSX } from 'react';
 import type { ScriptStage } from '@harborclient/sdk';
 import { DEFAULT_SCRIPT_STAGE, SCRIPT_STAGE_OPTIONS } from '@harborclient/core/scriptStage';
@@ -22,14 +22,14 @@ interface Props {
  */
 export function AddScriptStageModal({ onCancel, onConfirm }: Props): JSX.Element {
   const [stage, setStage] = useState<ScriptStage>(DEFAULT_SCRIPT_STAGE);
-  const stageSelectId = useId();
+  const radioGroupName = useId();
 
   return (
     <Modal
       labelledBy="add-script-stage-title"
       onClose={onCancel}
       title="Add script"
-      description="Choose the script stage for this row within the current request stage."
+      className="w-120"
     >
       <ModalFormLayout
         actions={
@@ -38,23 +38,24 @@ export function AddScriptStageModal({ onCancel, onConfirm }: Props): JSX.Element
           </Button>
         }
       >
-        <div className="flex flex-col gap-1">
-          <label className="text-[14px] font-medium text-text" htmlFor={stageSelectId}>
-            Stage
-          </label>
-          <Select
-            id={stageSelectId}
-            className="w-full"
-            value={stage}
-            onChange={(event) => setStage(event.target.value as ScriptStage)}
-          >
-            {SCRIPT_STAGE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <fieldset className="m-0 flex flex-col gap-2 border-none p-0">
+          <legend className="mb-1 font-medium text-text">Stage</legend>
+          {SCRIPT_STAGE_OPTIONS.map((option) => (
+            <FormGroup
+              key={option.value}
+              label={option.label}
+              description={option.description}
+              layout="checkbox"
+              bordered={false}
+            >
+              <Radio
+                name={radioGroupName}
+                checked={stage === option.value}
+                onChange={() => setStage(option.value)}
+              />
+            </FormGroup>
+          ))}
+        </fieldset>
       </ModalFormLayout>
     </Modal>
   );

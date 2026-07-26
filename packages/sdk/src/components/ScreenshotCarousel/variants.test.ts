@@ -5,6 +5,13 @@ import {
 } from './variants.js';
 
 describe('screenshotCarouselImageFrameClassName', () => {
+  it('keeps aspect-video sizing for card variant screenshots', () => {
+    const className = screenshotCarouselImageFrameClassName('card');
+
+    expect(className).toContain('aspect-video');
+    expect(className).toContain('object-cover');
+  });
+
   it('applies max-height containment for tab variant screenshots', () => {
     const className = screenshotCarouselImageFrameClassName('tab');
 

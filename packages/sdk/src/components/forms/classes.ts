@@ -41,6 +41,18 @@ export const radioCircle =
 export const radioDot =
   'absolute left-1/2 top-1/2 block h-2 w-2 -translate-x-1/2 -translate-y-1/2 shrink-0 rounded-full bg-accent';
 
+/** Transparent overlay checkbox input sized to {@link switchTrack}. */
+export const switchInput =
+  'peer absolute inset-0 m-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed';
+
+/** Pill track styled via `peer-checked` / `peer-focus-visible` on {@link switchInput}. */
+export const switchTrack =
+  'pointer-events-none relative block h-[26px] w-[44px] shrink-0 rounded-full border border-separator bg-field transition-colors duration-150 motion-reduce:transition-none peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-checked:[&>span]:translate-x-[18px]';
+
+/** Knob that slides across {@link switchTrack} when {@link switchInput} is checked. */
+export const switchThumb =
+  'absolute left-[2px] top-[2px] block h-[20px] w-[20px] rounded-full bg-white shadow-sm transition-transform duration-150 motion-reduce:transition-none';
+
 /**
  * Merges a field variant preset with optional caller classes.
  *

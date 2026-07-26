@@ -37,13 +37,22 @@ single component (`SidebarRequestItem.tsx`, `SidebarTreeGroup.tsx`, and so on).
 
 ## Linting
 
-After making code changes, always run from the monorepo root:
+While iterating on SDK-only changes, run scoped checks:
 
 ```bash
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
+pnpm --filter @harborclient/sdk lint
+pnpm --filter @harborclient/sdk format:check
+pnpm --filter @harborclient/sdk typecheck
+pnpm --filter @harborclient/sdk test
+```
+
+The SDK's public API is consumed by other packages through its `dist/` output,
+so if you changed exported types or components, build it (`pnpm build:sdk`
+from the root) and check dependents too. Before finishing, run the full suite
+from the monorepo root:
+
+```bash
+pnpm check
 ```
 
 Fix any reported issues before finishing the task.

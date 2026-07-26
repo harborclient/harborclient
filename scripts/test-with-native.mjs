@@ -42,7 +42,8 @@ if (rebuildStatus !== 0) {
   process.exit(rebuildStatus)
 }
 
-const testStatus = run('pnpm', ['exec', 'vitest', 'run'])
+// Forward extra CLI args (e.g. `--changed`) to vitest.
+const testStatus = run('pnpm', ['exec', 'vitest', 'run', ...process.argv.slice(2)])
 
 // Always restore, even when tests fail or are interrupted, so the dev app
 // never ends up with modules built against the wrong Node ABI.

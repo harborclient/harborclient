@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type JSX, type KeyboardEvent } from 'react';
 import type { PluginCatalogEntry } from '@harborclient/core/plugin/catalog';
 import { PLUGIN_CATALOG_CATEGORY_LABELS } from '@harborclient/core/plugin/catalogCategories';
 import type { PluginInfo } from '@harborclient/core/plugin/types';
@@ -9,6 +9,7 @@ import type { PluginManagementKind } from './constants';
 import { ErrorMessages } from './ErrorMessages';
 import { InstalledPluginFooterActions } from './InstalledPluginFooterActions';
 import { resolveInstalledPluginSummary, stopRowActivation } from './helpers';
+import { installedPluginScreenshotIdentity } from './installedPluginScreenshotIdentity';
 import { loadInstalledPluginScreenshotSrcs } from './resolvePluginScreenshot';
 import { Badge, Card, ScreenshotCarousel } from '@harborclient/sdk/components';
 
@@ -99,15 +100,40 @@ export function InstalledPluginCard({
     (plugin.runtimeError != null && plugin.enabled);
 
   /**
+   * Stable key for screenshot-relevant plugin/catalog fields so enablement-only
+   * refreshes do not re-fetch and flash the preview.
+   */
+  const screenshotIdentity = useMemo(
+    () => installedPluginScreenshotIdentity(plugin, catalogEntry),
+    [plugin, catalogEntry]
+  );
+
+  /**
+   * Snapshot of load inputs that only updates when screenshotIdentity changes.
+   * Keeps the previous plugin/catalog pair for enablement-only refreshes.
+   */
+  const screenshotLoadInput = useMemo(
+    () => ({
+      plugin,
+      catalogScreenshots: catalogEntry?.screenshots,
+      catalogScreenshot: catalogEntry?.screenshot
+    }),
+    // screenshotIdentity is derived from the visual fields on plugin/catalogEntry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional narrow deps
+    [screenshotIdentity]
+  );
+
+  /**
    * Loads screenshot previews for the card from manifest assets or catalog URLs.
+   * Re-runs only when screenshotIdentity changes (id, version, screenshot paths).
    */
   useEffect(() => {
     let active = true;
 
     void loadInstalledPluginScreenshotSrcs(
-      plugin,
-      catalogEntry?.screenshots,
-      catalogEntry?.screenshot
+      screenshotLoadInput.plugin,
+      screenshotLoadInput.catalogScreenshots,
+      screenshotLoadInput.catalogScreenshot
     ).then((srcs) => {
       if (active) {
         setScreenshotSrcs(srcs);
@@ -117,7 +143,7 @@ export function InstalledPluginCard({
     return () => {
       active = false;
     };
-  }, [plugin, catalogEntry]);
+  }, [screenshotLoadInput, screenshotIdentity]);
 
   /**
    * Opens the detail modal when the card body is activated from the keyboard.

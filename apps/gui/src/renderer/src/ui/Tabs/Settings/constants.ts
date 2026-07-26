@@ -74,7 +74,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   gitCommitAuthorName: '',
   gitCommitAuthorEmail: '',
   gitCommitAuthorPrompted: false,
-  codeEditorTheme: 'default',
+  codeEditorTheme: 'monokai',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   proxy: { ...DEFAULT_PROXY_SETTINGS },

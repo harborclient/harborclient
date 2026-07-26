@@ -418,8 +418,11 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   );
 
   handle('plugins:setMenuContributions', ipcArgSchemas.pluginMenuContributions, (_event, items) => {
-    setPluginMenuContributions(items);
-    rebuildAppMenu();
+    // Skip Menu.setApplicationMenu when contributions are unchanged — rebuilding
+    // the native menu on every plugin toggle flashes the window on Linux.
+    if (setPluginMenuContributions(items)) {
+      rebuildAppMenu();
+    }
   });
 
   handle(

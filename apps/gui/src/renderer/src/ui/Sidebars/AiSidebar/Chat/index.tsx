@@ -56,7 +56,7 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
           role="tabpanel"
           id={`ai-chat-panel-${activeChatId}`}
           aria-labelledby={`ai-chat-tab-${activeChatId}`}
-          className="flex min-h-0 flex-1 flex-col"
+          className="flex min-h-0 flex-1 flex-col bg-surface"
         >
           <MessageList messages={activeMessages} sending={sending} />
           <ChatComposer
@@ -67,7 +67,7 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
           />
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center p-4">
+        <div className="flex flex-1 items-center justify-center bg-surface p-4">
           <div
             role="status"
             aria-label="Open or create a chat to begin."

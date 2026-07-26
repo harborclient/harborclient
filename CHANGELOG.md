@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance testing and plugin management functionality. (`48799cc9`)
 - Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
 - Enhance ConsolePanel with search functionality and improve User-Agent handling. (`305b8798`)
 - Enhance AI chat settings and UI components. (`ad9d10c9`)

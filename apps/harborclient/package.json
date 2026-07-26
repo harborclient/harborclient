@@ -20,6 +20,7 @@
     "dist:rpm": "node ./scripts/dist.mjs --linux rpm --publish never",
     "dist:linux": "node ./scripts/dist.mjs --linux --publish never",
     "test": "vitest run",
+    "test:changed": "vitest run --changed",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

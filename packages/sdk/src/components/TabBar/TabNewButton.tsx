@@ -37,7 +37,7 @@ export function TabNewButton({ ariaLabel, title, wrapped, onClick }: Props): JSX
         <button
           type="button"
           className={cn(
-            'app-no-drag -mb-1 inline-flex min-h-12 shrink-0 cursor-pointer items-center justify-center self-end rounded-t-lg border border-b-2 px-3 text-[14px]',
+            'app-no-drag inline-flex min-h-12 shrink-0 cursor-pointer items-center justify-center self-end rounded-t-lg border border-b-2 px-3 text-[14px]',
             tabItem(false)
           )}
           title={title}
@@ -52,7 +52,7 @@ export function TabNewButton({ ariaLabel, title, wrapped, onClick }: Props): JSX
   }
 
   return (
-    <div className="-mb-1 flex shrink-0 items-end px-1">
+    <div className="flex shrink-0 items-end px-1">
       <button
         type="button"
         className="hc-tab-new-button app-no-drag mb-2.5 inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent px-3 text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"

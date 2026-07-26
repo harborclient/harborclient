@@ -121,7 +121,7 @@ export function TabBarShell<TId extends string | number>({
       title={item.title}
       tabIndex={exiting ? -1 : tabIndex}
       className={cn(
-        'group -mb-1 flex min-h-12 shrink-0 items-stretch gap-2.5 self-stretch rounded-t-lg border border-b-2 px-4',
+        'group flex min-h-12 shrink-0 items-stretch gap-2.5 self-stretch rounded-t-lg border border-b-2 px-4',
         maxTabWidthClass,
         exiting ? 'pointer-events-none' : cursorClass,
         tabItem(showActive)

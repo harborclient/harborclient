@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance testing and plugin management functionality. (`48799cc9`)
 - Enhance AI chat settings and UI components. (`ad9d10c9`)
 - Enhance Toolbar component to support responsive action icon wrapping. (`f1cad2f6`)
 

@@ -216,6 +216,7 @@
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:changed": "vitest run --changed",
     "test:watch": "vitest",
     "clean": "rm -rf dist",
     "dev": "node scripts/copy-runtime.mjs && concurrently --kill-others --prefixColors=auto -n runtime,tsc \"node scripts/watch-runtime.mjs\" \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\"",

@@ -9,6 +9,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "jsx": "react-jsx",
     "ignoreDeprecations": "5.0",
     "baseUrl": ".",

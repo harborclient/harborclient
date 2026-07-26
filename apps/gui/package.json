@@ -20,6 +20,7 @@
     "preview": "env -u ELECTRON_RUN_AS_NODE ELECTRON_DISABLE_SANDBOX=1 electron-vite preview",
     "postinstall": "node ../../scripts/install-app-deps.mjs && node ../../scripts/ensure-electron.mjs",
     "test": "node ../../scripts/test-with-native.mjs",
+    "test:changed": "node ../../scripts/test-with-native.mjs --changed",
     "test:watch": "vitest",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
