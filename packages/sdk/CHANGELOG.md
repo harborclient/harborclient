@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.3.2 - 2026-07-26
+
 - Add dismissedRequestEditorNotices to general settings. (`22551faa`)
 
 ## 1.3.0 - 2026-07-26
