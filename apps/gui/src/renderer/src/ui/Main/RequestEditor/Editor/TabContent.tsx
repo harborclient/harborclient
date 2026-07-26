@@ -147,14 +147,6 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="headers">
-        <div className="mb-4">
-          <UserAgentField
-            id="request-user-agent"
-            value={draft.userAgent}
-            allowEmpty
-            onChange={(userAgent) => update({ userAgent })}
-          />
-        </div>
         <KeyValueEditor
           rows={draft.headers}
           onChange={(headers) => update({ headers })}
@@ -165,6 +157,16 @@ export function TabContent({
           keySource={headerKeySource}
           valueSource={headerValueSource}
         />
+        <div className="mt-4">
+          <UserAgentField
+            id="request-user-agent"
+            value={draft.userAgent}
+            allowEmpty
+            collectionId={draft.collection_id}
+            folderId={draft.folder_id}
+            onChange={(userAgent) => update({ userAgent })}
+          />
+        </div>
       </SegmentedTabPanel>
       <SegmentedTabPanel value="auth">
         <AuthEditor

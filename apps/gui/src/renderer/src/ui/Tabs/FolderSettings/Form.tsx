@@ -113,6 +113,7 @@ export function Form({
           onChange={state.setHeaders}
           onUserAgentChange={state.setUserAgent}
           disabled={state.saving}
+          collectionId={folder.collection_id}
         />
       )}
       renderAuth={(state) => (

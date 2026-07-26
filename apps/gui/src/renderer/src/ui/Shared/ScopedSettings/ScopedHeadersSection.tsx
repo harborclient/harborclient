@@ -41,12 +41,17 @@ interface Props {
    * Disables editors while a save is in flight.
    */
   disabled?: boolean;
+
+  /**
+   * Parent collection id for folder-scope User-Agent inheritance.
+   */
+  collectionId?: number | null;
 }
 
 /**
  * Headers editor for collection or folder settings tabs.
  *
- * Includes a dedicated User-Agent control above the key/value table. An explicit
+ * Includes a dedicated User-Agent control below the key/value table. An explicit
  * User-Agent row in the table still takes precedence at send time.
  */
 export function ScopedHeadersSection({
@@ -56,7 +61,8 @@ export function ScopedHeadersSection({
   variables,
   onChange,
   onUserAgentChange,
-  disabled = false
+  disabled = false,
+  collectionId
 }: Props): JSX.Element {
   return (
     <FormSection
@@ -69,15 +75,6 @@ export function ScopedHeadersSection({
         </>
       }
     >
-      <div className="mb-4">
-        <UserAgentField
-          id={`${scope}-user-agent`}
-          value={userAgent}
-          allowEmpty
-          disabled={disabled}
-          onChange={onUserAgentChange}
-        />
-      </div>
       <KeyValueEditor
         rows={headers}
         onChange={onChange}
@@ -87,6 +84,16 @@ export function ScopedHeadersSection({
         keySource={headerKeySource}
         valueSource={headerValueSource}
       />
+      <div className="mt-4">
+        <UserAgentField
+          id={`${scope}-user-agent`}
+          value={userAgent}
+          allowEmpty
+          collectionId={scope === 'folder' ? collectionId : undefined}
+          disabled={disabled}
+          onChange={onUserAgentChange}
+        />
+      </div>
     </FormSection>
   );
 }
