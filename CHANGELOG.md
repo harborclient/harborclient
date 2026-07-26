@@ -4,6 +4,9 @@
 
 - Enhance testing and plugin management functionality. (`48799cc9`)
 - Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
+
+## 2.8.0 - 2026-07-26
+
 - Enhance ConsolePanel with search functionality and improve User-Agent handling. (`305b8798`)
 - Enhance AI chat settings and UI components. (`ad9d10c9`)
 - Refactor resource paths and update documentation indexing. (`89d0d78f`)
