@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add dismissedRequestEditorNotices to general settings. (`22551faa`)
+
 ## 0.2.1 - 2026-07-26
 
 - Enhance release workflows with concurrency and rebase logic. (`e26c79de`)

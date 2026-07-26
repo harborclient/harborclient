@@ -1,5 +1,7 @@
 import type { GeneralSettings } from '@harborclient/core/types';
 
+import { REQUEST_EDITOR_NOTICE_TABS } from '#/renderer/src/ui/Main/RequestEditor/Editor/requestEditorNotices';
+
 /**
  * Keys on {@link GeneralSettings} that control whether a confirmation prompt is shown.
  */
@@ -17,6 +19,24 @@ export interface ConfirmationRow {
   label: string;
   /** Longer description of when the prompt appears. */
   description: string;
+}
+
+/**
+ * One row in the Show confirmations table with row-level read and patch
+ * behavior, so simple boolean prompts and computed aggregate rows (like the
+ * request editor tab tips) can share the same table.
+ */
+export interface ConfirmationTableRow {
+  /** Stable id used for checkbox DOM ids. */
+  id: string;
+  /** Short label shown in the table. */
+  label: string;
+  /** Longer description of when the prompt appears. */
+  description: string;
+  /** Returns whether the prompt is currently enabled. */
+  isEnabled: (general: GeneralSettings) => boolean;
+  /** Builds the general-settings patch that enables or disables the prompt. */
+  patch: (enabled: boolean) => Partial<GeneralSettings>;
 }
 
 /**
@@ -80,12 +100,45 @@ export const CONFIRMATION_ROWS: ConfirmationRow[] = [
 ];
 
 /**
+ * Aggregate row for the dismissible request editor tab tips. Enabled only when
+ * no tab tip has been dismissed; enabling it restores every tip, disabling it
+ * dismisses every tip.
+ */
+export const REQUEST_EDITOR_NOTICES_ROW: ConfirmationTableRow = {
+  id: 'requestEditorNotices',
+  label: 'Request editor tab tips',
+  description:
+    'When enabled, each request editor tab (Params, Body, Headers, and so on) shows a short dismissible tip above its content.',
+  isEnabled: (general) => general.dismissedRequestEditorNotices.length === 0,
+  patch: (enabled) => ({
+    dismissedRequestEditorNotices: enabled ? [] : [...REQUEST_EDITOR_NOTICE_TABS]
+  })
+};
+
+/**
+ * Every row shown in the Show confirmations table: boolean confirmation
+ * prompts followed by the aggregate request editor tips row.
+ */
+export const CONFIRMATION_TABLE_ROWS: ConfirmationTableRow[] = [
+  ...CONFIRMATION_ROWS.map(
+    (row): ConfirmationTableRow => ({
+      id: row.key,
+      label: row.label,
+      description: row.description,
+      isEnabled: (general) => general[row.key],
+      patch: (enabled) => ({ [row.key]: enabled })
+    })
+  ),
+  REQUEST_EDITOR_NOTICES_ROW
+];
+
+/**
  * Returns whether every confirmation prompt is currently enabled.
  *
  * @param general - Live general settings from the renderer store.
  */
 export function areAllConfirmationsEnabled(general: GeneralSettings): boolean {
-  return CONFIRMATION_ROWS.every((row) => general[row.key]);
+  return CONFIRMATION_TABLE_ROWS.every((row) => row.isEnabled(general));
 }
 
 /**
@@ -94,16 +147,18 @@ export function areAllConfirmationsEnabled(general: GeneralSettings): boolean {
  * @param general - Live general settings from the renderer store.
  */
 export function areAllConfirmationsDisabled(general: GeneralSettings): boolean {
-  return CONFIRMATION_ROWS.every((row) => !general[row.key]);
+  return CONFIRMATION_TABLE_ROWS.every((row) => !row.isEnabled(general));
 }
 
 /**
- * Builds a partial {@link GeneralSettings} patch that sets every confirmation flag to the same value.
+ * Builds a partial {@link GeneralSettings} patch that sets every confirmation
+ * row (including the aggregate request editor tips row) to the same state.
  *
  * @param enabled - When true, every confirmation prompt is shown; when false, all are suppressed.
  */
 export function confirmationSettingsPatch(enabled: boolean): Partial<GeneralSettings> {
-  return Object.fromEntries(
-    CONFIRMATION_ROWS.map((row) => [row.key, enabled])
-  ) as Partial<GeneralSettings>;
+  return CONFIRMATION_TABLE_ROWS.reduce<Partial<GeneralSettings>>(
+    (patch, row) => ({ ...patch, ...row.patch(enabled) }),
+    {}
+  );
 }

@@ -341,6 +341,12 @@ export interface GeneralSettings {
   warnWhenAgentUsesTerminal: boolean;
 
   /**
+   * Built-in request editor tabs whose inline help notice the user dismissed.
+   * Empty means every tab still shows its notice.
+   */
+  dismissedRequestEditorNotices: EditorTab[];
+
+  /**
    * When true, HarborClient automatically tracks all requests and files added to git-backed
    * collections before committing. When false, only files tracked via request Add actions are
    * included in commits.

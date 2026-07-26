@@ -31,6 +31,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   warnWhenCreatingTabGroup: true,
   warnWhenOpeningTabGroup: true,
   warnWhenAgentUsesTerminal: true,
+  dismissedRequestEditorNotices: [],
   gitAutoAdd: true,
   externalMergeEditorPath: '',
   gitCommitAuthorName: '',

@@ -26,6 +26,7 @@ import { BodyEditor } from './BodyEditor';
 import { CommentEditor } from './CommentEditor';
 import { RequestTagsInput } from './RequestTagsInput';
 import { CookiesEditor } from './CookiesEditor';
+import { RequestEditorNotice } from './RequestEditorNotice';
 import {
   headerKeySource,
   headerValueSource,
@@ -135,6 +136,7 @@ export function TabContent({
   return (
     <div className="flex min-h-0 flex-1 flex-col pt-4">
       <SegmentedTabPanel value="params">
+        <RequestEditorNotice tab="params" />
         <KeyValueEditor
           rows={draft.params}
           onChange={onParamsChange}
@@ -147,6 +149,7 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="headers">
+        <RequestEditorNotice tab="headers" />
         <KeyValueEditor
           rows={draft.headers}
           onChange={(headers) => update({ headers })}
@@ -169,6 +172,7 @@ export function TabContent({
         </div>
       </SegmentedTabPanel>
       <SegmentedTabPanel value="auth">
+        <RequestEditorNotice tab="auth" />
         <AuthEditor
           auth={draft.auth}
           onChange={(auth) => update({ auth })}
@@ -178,10 +182,12 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="cookies">
+        <RequestEditorNotice tab="cookies" />
         <CookiesEditor url={draft.url} variables={variables} />
       </SegmentedTabPanel>
       {showBody && (
         <SegmentedTabPanel value="body" className="flex min-h-0 flex-1 flex-col mb-4">
+          <RequestEditorNotice tab="body" />
           <BodyEditor
             bodyType={draft.body_type}
             body={draft.body}
@@ -194,6 +200,7 @@ export function TabContent({
         </SegmentedTabPanel>
       )}
       <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col mb-4">
+        <RequestEditorNotice tab="pre" />
         <ScriptListEditor
           phase="pre"
           scripts={draft.pre_request_scripts}
@@ -214,6 +221,7 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col mb-4">
+        <RequestEditorNotice tab="post" />
         <ScriptListEditor
           phase="post"
           scripts={draft.post_request_scripts}
@@ -234,6 +242,7 @@ export function TabContent({
         />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment" className="mb-4 flex min-h-0 flex-1 flex-col gap-2">
+        <RequestEditorNotice tab="comment" />
         <RequestTagsInput value={draft.tags} onChange={(tags) => update({ tags })} />
         <CommentEditor
           value={draft.comment}

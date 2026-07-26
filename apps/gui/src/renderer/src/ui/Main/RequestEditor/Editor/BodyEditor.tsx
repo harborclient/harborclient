@@ -3,7 +3,8 @@ import {
   FormGroup,
   KeyValueEditor,
   CodeEditor,
-  Radio
+  Radio,
+  fieldFrame
 } from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import { useCallback, useId, useMemo, useState, type JSX } from 'react';
@@ -335,7 +336,9 @@ export function BodyEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border border-separator p-4">
+      <div
+        className={`mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 ${fieldFrame} p-4`}
+      >
         <span className="text-muted">Body type</span>
         {BODY_TYPE_OPTIONS.map(({ value, label }) => (
           <FormGroup key={value} label={label} layout="radio">
@@ -412,7 +415,7 @@ export function BodyEditor({
         </>
       )}
       {bodyType !== 'none' && bodyType !== 'multipart' && bodyType !== 'urlencoded' && (
-        <div className="flex min-h-0 flex-1 flex-col border border-separator p-4">
+        <div className={`flex min-h-0 flex-1 flex-col ${fieldFrame} p-4`}>
           <CodeEditor
             value={body}
             onChange={handleBodyChange}

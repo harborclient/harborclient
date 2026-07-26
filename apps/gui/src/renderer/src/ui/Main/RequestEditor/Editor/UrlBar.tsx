@@ -8,9 +8,14 @@ import {
 import type { JSX } from 'react';
 import type { HttpMethod, Variable } from '@harborclient/core/types';
 
-import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
+import { faStop, faFloppyDisk, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectAiSidebarVisible,
+  toggleAiSidebar
+} from '#/renderer/src/store/slices/navigationSlice';
 import { REQUEST_URL_INPUT_ID } from './focusRequestUrl';
 
 interface Props {
@@ -76,7 +81,7 @@ interface Props {
 }
 
 /**
- * Method selector, URL input, plugin toolbar actions, Save, and Send buttons.
+ * Method selector, URL input, plugin toolbar actions, Send, Save, and Agent Chat toggle.
  */
 export function UrlBar({
   method,
@@ -92,6 +97,8 @@ export function UrlBar({
   onCancel,
   onEditVariables
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
+  const aiSidebarOpen = useAppSelector(selectAiSidebarVisible);
   const toolbarActions = usePluginRequestToolbarActions();
 
   /**
@@ -99,10 +106,15 @@ export function UrlBar({
    */
   const saveInactive = saveDisabled || savingRequest;
 
+  /**
+   * Accessible name for the Agent Chat toggle, matching the footer icon pattern.
+   */
+  const aiChatLabel = aiSidebarOpen ? 'Hide agent chat' : 'Show agent chat';
+
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`request-url-bar flex min-w-0 flex-1 items-center ps-2 ${fieldFrame} rounded-full!`}
+        className={`request-url-bar flex min-w-0 flex-1 items-center ps-2 ${fieldFrame} rounded-l-full! rounded-r-lg!`}
       >
         <MethodSelect value={method} onChange={onMethodChange} className="mt-0.5" />
         <div className="h-5 w-px shrink-0 bg-separator" />
@@ -162,6 +174,17 @@ export function UrlBar({
         className={`hc-save-button inline-flex w-16 shrink-0 items-center justify-center${saveInactive ? ' cursor-not-allowed opacity-50' : ''}`}
       >
         <FaIcon icon={faFloppyDisk} className="h-3.5 w-3.5" aria-hidden />
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        aria-label={aiChatLabel}
+        aria-pressed={aiSidebarOpen}
+        title={aiChatLabel}
+        onClick={() => dispatch(toggleAiSidebar())}
+        className={`hc-ai-chat-button inline-flex w-16 shrink-0 items-center justify-center${aiSidebarOpen ? ' bg-selection' : ''}`}
+      >
+        <FaIcon icon={faWandMagicSparkles} className="h-3.5 w-3.5" aria-hidden />
       </Button>
     </div>
   );

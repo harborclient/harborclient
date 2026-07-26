@@ -109,7 +109,7 @@ export function SegmentShell({
         className={cn(
           layoutClass,
           'overflow-hidden',
-          shape === 'only' ? 'rounded-full!' : 'rounded-l-full!'
+          shape === 'only' ? 'rounded-full!' : 'rounded-lg!'
         )}
         style={needsLeadingInset ? { paddingLeft: `${CHEVRON_PX + 16}px` } : undefined}
       >

@@ -296,6 +296,7 @@ export const generalSettings = z.object({
   warnWhenCreatingTabGroup: z.boolean(),
   warnWhenOpeningTabGroup: z.boolean(),
   warnWhenAgentUsesTerminal: z.boolean(),
+  dismissedRequestEditorNotices: z.array(editorTab),
   gitAutoAdd: z.boolean(),
   externalMergeEditorPath: z.string(),
   gitCommitAuthorName: z.string(),

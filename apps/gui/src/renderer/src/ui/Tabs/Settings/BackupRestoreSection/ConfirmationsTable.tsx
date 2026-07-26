@@ -6,9 +6,9 @@ import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import {
   areAllConfirmationsDisabled,
   areAllConfirmationsEnabled,
-  CONFIRMATION_ROWS,
+  CONFIRMATION_TABLE_ROWS,
   confirmationSettingsPatch,
-  type ConfirmationSettingKey
+  type ConfirmationTableRow
 } from './confirmations';
 
 /**
@@ -42,14 +42,14 @@ export function ConfirmationsTable(): JSX.Element {
   };
 
   /**
-   * Persists a single confirmation prompt toggle.
+   * Persists a single confirmation row toggle using the row's own patch builder.
    *
-   * @param key - General settings field for the confirmation prompt.
+   * @param row - Confirmation table row being toggled.
    */
   const handleRowChange =
-    (key: ConfirmationSettingKey) =>
+    (row: ConfirmationTableRow) =>
     (event: ChangeEvent<HTMLInputElement>): void => {
-      void dispatch(patchGeneralSettings({ [key]: event.target.checked }));
+      void dispatch(patchGeneralSettings(row.patch(event.target.checked)));
     };
 
   return (
@@ -72,17 +72,17 @@ export function ConfirmationsTable(): JSX.Element {
           </tr>
         </thead>
         <tbody>
-          {CONFIRMATION_ROWS.map((row) => {
-            const checkboxId = `confirmation-${row.key}`;
+          {CONFIRMATION_TABLE_ROWS.map((row) => {
+            const checkboxId = `confirmation-${row.id}`;
 
             return (
-              <tr key={row.key} className="border-b border-separator last:border-b-0">
+              <tr key={row.id} className="border-b border-separator last:border-b-0">
                 <td className="px-3 py-2 align-top">
                   <Checkbox
                     id={checkboxId}
-                    checked={general[row.key]}
+                    checked={row.isEnabled(general)}
                     aria-labelledby={`${checkboxId}-label`}
-                    onChange={handleRowChange(row.key)}
+                    onChange={handleRowChange(row)}
                   />
                 </td>
                 <td className="px-3 py-2 align-top">

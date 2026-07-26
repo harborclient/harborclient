@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add dismissedRequestEditorNotices to general settings. (`22551faa`)
+
 ## 1.3.0 - 2026-07-26
 
 - Enhance release workflows with concurrency and rebase logic. (`e26c79de`)

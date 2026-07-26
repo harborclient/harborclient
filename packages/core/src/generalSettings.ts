@@ -6,7 +6,8 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from './codeEditorSettings';
-import type { GeneralSettings, ProxyProtocol, ProxySettings, Variable } from './types';
+import { normalizeEditorTab } from './requestEditorTab';
+import type { EditorTab, GeneralSettings, ProxyProtocol, ProxySettings, Variable } from './types';
 import { DEFAULT_USER_AGENT, normalizeCustomUserAgents, normalizeUserAgent } from './userAgent';
 
 export { HARD_MAX_RESPONSE_SIZE_MB, DEFAULT_PROXY_SETTINGS };
@@ -40,6 +41,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenCreatingTabGroup: true,
   warnWhenOpeningTabGroup: true,
   warnWhenAgentUsesTerminal: true,
+  dismissedRequestEditorNotices: [],
   gitAutoAdd: true,
   externalMergeEditorPath: '',
   gitCommitAuthorName: '',
@@ -158,6 +160,23 @@ function normalizeAllowedNetworkPlugins(input: unknown): string[] {
 }
 
 /**
+ * Normalizes the list of request editor tabs whose inline notice was dismissed,
+ * dropping unknown tab ids and duplicates.
+ *
+ * @param input - Raw tab id list from storage or user input.
+ * @returns Unique valid built-in editor tab ids.
+ */
+function normalizeDismissedRequestEditorNotices(input: unknown): EditorTab[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  const tabs = input
+    .map((entry) => normalizeEditorTab(entry))
+    .filter((entry): entry is EditorTab => entry != null);
+  return [...new Set(tabs)];
+}
+
+/**
  * Normalizes a general settings object with defaults for invalid fields.
  *
  * @param input - Raw settings from storage or user input.
@@ -202,6 +221,9 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     warnWhenCreatingTabGroup: input.warnWhenCreatingTabGroup !== false,
     warnWhenOpeningTabGroup: input.warnWhenOpeningTabGroup !== false,
     warnWhenAgentUsesTerminal: input.warnWhenAgentUsesTerminal !== false,
+    dismissedRequestEditorNotices: normalizeDismissedRequestEditorNotices(
+      input.dismissedRequestEditorNotices
+    ),
     gitAutoAdd: input.gitAutoAdd !== false,
     externalMergeEditorPath:
       typeof input.externalMergeEditorPath === 'string' ? input.externalMergeEditorPath.trim() : '',

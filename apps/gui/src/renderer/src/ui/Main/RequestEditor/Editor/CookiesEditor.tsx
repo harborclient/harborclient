@@ -1,5 +1,7 @@
+import { FaIcon } from '@harborclient/sdk/components';
 import { useMemo, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
+import { faCookieBite } from '#/renderer/src/fontawesome';
 import { buildRuntimeVars, substituteWithMap } from '#/renderer/src/scripting/scriptOrchestration';
 import { DomainCookiesEditor } from '#/renderer/src/ui/Tabs/Cookies/DomainCookiesEditor';
 import { hostFromUrl } from './cookieHost';
@@ -34,7 +36,8 @@ export function CookiesEditor({ url, variables }: Props): JSX.Element {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-muted mb-2 border border-separator p-4">
+      <p className="m-0 mb-2 flex items-center gap-2 rounded-lg border border-separator p-4 text-muted">
+        <FaIcon icon={faCookieBite} className="h-4 w-4 shrink-0" aria-hidden />
         Cookies for <span className="font-medium text-text">{host}</span>
       </p>
       <DomainCookiesEditor domain={host} variables={variables} />

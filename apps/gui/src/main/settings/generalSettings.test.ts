@@ -420,6 +420,37 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().warnWhenAgentUsesTerminal).toBe(false);
   });
 
+  it('defaults dismissedRequestEditorNotices to an empty list when unset', () => {
+    expect(getGeneralSettings().dismissedRequestEditorNotices).toEqual([]);
+  });
+
+  it('persists dismissed request editor notices', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedRequestEditorNotices: ['params', 'body']
+    });
+
+    expect(getGeneralSettings().dismissedRequestEditorNotices).toEqual(['params', 'body']);
+  });
+
+  it('drops unknown and duplicate dismissed request editor notices', () => {
+    settingsStore.general = JSON.stringify({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedRequestEditorNotices: ['params', 'params', 'bogus', 42, 'headers']
+    });
+
+    expect(getGeneralSettings().dismissedRequestEditorNotices).toEqual(['params', 'headers']);
+  });
+
+  it('returns empty dismissedRequestEditorNotices when stored value is invalid', () => {
+    settingsStore.general = JSON.stringify({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedRequestEditorNotices: 'not-an-array'
+    });
+
+    expect(getGeneralSettings().dismissedRequestEditorNotices).toEqual([]);
+  });
+
   it('defaults codeEditorFontSize to 16px when unset', () => {
     expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
   });

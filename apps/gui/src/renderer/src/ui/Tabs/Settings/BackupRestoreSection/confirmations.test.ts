@@ -5,11 +5,13 @@ import {
   areAllConfirmationsDisabled,
   areAllConfirmationsEnabled,
   CONFIRMATION_ROWS,
-  confirmationSettingsPatch
+  CONFIRMATION_TABLE_ROWS,
+  confirmationSettingsPatch,
+  REQUEST_EDITOR_NOTICES_ROW
 } from './confirmations';
 
 /**
- * Builds a general-settings object with every confirmation flag set to the same value.
+ * Builds a general-settings object with every confirmation row set to the same state.
  *
  * @param enabled - Whether every confirmation prompt should be shown.
  */
@@ -32,12 +34,25 @@ describe('confirmations helpers', () => {
     ]);
   });
 
+  it('appends the request editor tips aggregate row to the table rows', () => {
+    expect(CONFIRMATION_TABLE_ROWS.map((row) => row.id)).toEqual([
+      ...CONFIRMATION_ROWS.map((row) => row.key),
+      'requestEditorNotices'
+    ]);
+  });
+
   it('detects when all confirmations are enabled', () => {
     expect(areAllConfirmationsEnabled(generalWithConfirmations(true))).toBe(true);
     expect(
       areAllConfirmationsEnabled({
         ...generalWithConfirmations(true),
         warnWhenEditingSnippet: false
+      })
+    ).toBe(false);
+    expect(
+      areAllConfirmationsEnabled({
+        ...generalWithConfirmations(true),
+        dismissedRequestEditorNotices: ['params']
       })
     ).toBe(false);
   });
@@ -50,9 +65,15 @@ describe('confirmations helpers', () => {
         warnWhenOpeningTabGroup: true
       })
     ).toBe(false);
+    expect(
+      areAllConfirmationsDisabled({
+        ...generalWithConfirmations(false),
+        dismissedRequestEditorNotices: []
+      })
+    ).toBe(false);
   });
 
-  it('builds a patch that toggles every confirmation flag together', () => {
+  it('builds a patch that toggles every confirmation row together', () => {
     expect(confirmationSettingsPatch(false)).toEqual({
       warnWhenSwitchingThemes: false,
       warnWhenExitingWithUnsavedChanges: false,
@@ -62,7 +83,29 @@ describe('confirmations helpers', () => {
       warnWhenClickingReadonlySnippet: false,
       warnWhenCreatingTabGroup: false,
       warnWhenOpeningTabGroup: false,
-      warnWhenAgentUsesTerminal: false
+      warnWhenAgentUsesTerminal: false,
+      dismissedRequestEditorNotices: [
+        'params',
+        'body',
+        'headers',
+        'auth',
+        'cookies',
+        'pre',
+        'post',
+        'comment'
+      ]
     });
+    expect(confirmationSettingsPatch(true).dismissedRequestEditorNotices).toEqual([]);
+  });
+
+  it('treats the tips row as enabled only when no tab tip is dismissed', () => {
+    const general = generalWithConfirmations(true);
+    expect(REQUEST_EDITOR_NOTICES_ROW.isEnabled(general)).toBe(true);
+    expect(
+      REQUEST_EDITOR_NOTICES_ROW.isEnabled({
+        ...general,
+        dismissedRequestEditorNotices: ['cookies']
+      })
+    ).toBe(false);
   });
 });

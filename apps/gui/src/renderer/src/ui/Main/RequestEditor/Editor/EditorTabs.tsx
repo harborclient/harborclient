@@ -155,10 +155,10 @@ export function EditorTabs({
   const tabs = useMemo(
     () => [
       { value: 'params', label: 'Params', indicator: tabIndicators.params },
+      { value: 'body', label: 'Body', hidden: !showBody, indicator: tabIndicators.body },
       { value: 'headers', label: 'Headers', indicator: tabIndicators.headers },
       { value: 'auth', label: 'Authorization', indicator: tabIndicators.auth },
       { value: 'cookies', label: 'Cookies', indicator: tabIndicators.cookies },
-      { value: 'body', label: 'Body', hidden: !showBody, indicator: tabIndicators.body },
       { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
       { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
       { value: 'comment', label: 'Notes', indicator: tabIndicators.comment },
