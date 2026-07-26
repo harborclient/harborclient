@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Refactor release workflows for improved orchestration and versioning. (`c3291407`)
+
+## 2.8.1 - 2026-07-26
+
 - Enhance release workflows with concurrency and rebase logic. (`e26c79de`)
 - Enhance testing and plugin management functionality. (`48799cc9`)
 - Refactor User-Agent handling and enhance settings reconciliation. (`eb753bae`)
