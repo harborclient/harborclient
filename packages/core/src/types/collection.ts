@@ -83,9 +83,9 @@ export interface Collection {
   connectionId?: string;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 
   /**
    * When true, the collection is hidden from the Collections tree and listed
@@ -186,9 +186,9 @@ export interface Folder {
   created_at: string;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -241,9 +241,9 @@ export interface CollectionDocument {
   updated_at: string;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -286,9 +286,9 @@ export interface SaveDocumentInput {
   sort_order?: number;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -326,9 +326,9 @@ export interface ExportedDocument {
   folder_uuid?: string | null;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -443,9 +443,9 @@ export interface ExportedRequest {
   folder_uuid?: string | null;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -508,9 +508,9 @@ export interface ExportedFolder {
   post_request_scripts?: ScriptRef[];
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -593,9 +593,9 @@ export interface CollectionExport {
   documents?: ExportedDocument[];
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**

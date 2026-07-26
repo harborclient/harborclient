@@ -6,24 +6,24 @@ import { selectArchivedCollections } from '#/renderer/src/store/selectors';
 import { emptyArchive } from '#/renderer/src/store/thunks/collections';
 import { faEraser } from '#/renderer/src/fontawesome';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
-import { collectSidebarItemColors } from '../filter/sidebarColorFilter';
-import { SidebarColorFilterButton } from '../filter/SidebarColorFilterButton';
+import { collectSidebarItemMarkers } from '../filter/sidebarMarkerFilter';
+import { SidebarMarkerFilterButton } from '../filter/SidebarMarkerFilterButton';
 import { SidebarSortButton } from '../sort/SidebarSortButton';
 
 /**
- * Header actions for the Archive sidebar section (sort, color filter, empty archive).
+ * Header actions for the Archive sidebar section (sort, marker filter, empty archive).
  */
 export function ArchiveHeaderActions(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const collections = useAppSelector(selectArchivedCollections);
-  const { archiveColorFilter, setArchiveColorFilter } = useSidebarSectionFilter();
+  const { archiveMarkerFilter, setArchiveMarkerFilter } = useSidebarSectionFilter();
   const isEmpty = collections.length === 0;
 
   /**
-   * Distinct colors assigned to archived collections, sorted for the filter menu.
+   * Distinct markers assigned to archived collections, sorted for the filter menu.
    */
-  const colors = useMemo(() => collectSidebarItemColors(collections), [collections]);
+  const markers = useMemo(() => collectSidebarItemMarkers(collections), [collections]);
 
   /**
    * Moves every archived collection to trash after confirmation.
@@ -44,16 +44,16 @@ export function ArchiveHeaderActions(): JSX.Element {
     <>
       <SidebarSortButton
         sectionKey="archive"
-        hasColorOption
+        hasMarkerOption
         ariaLabel="Sort archive"
         title="Sort archive"
       />
-      <SidebarColorFilterButton
-        colors={colors}
-        filter={archiveColorFilter}
-        onFilterChange={setArchiveColorFilter}
-        ariaLabel="Filter archive by color"
-        title="Filter by color"
+      <SidebarMarkerFilterButton
+        markers={markers}
+        filter={archiveMarkerFilter}
+        onFilterChange={setArchiveMarkerFilter}
+        ariaLabel="Filter archive by color marker"
+        title="Filter by color marker"
       />
       <Button
         variant="toolbar"

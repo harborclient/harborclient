@@ -135,9 +135,9 @@ export interface SavedRequest {
   updated_at: string;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 /**
  * Portable single-request export file format.
@@ -246,9 +246,9 @@ export interface RequestExport {
   tags: string;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -361,7 +361,7 @@ export interface SaveRequestInput {
   folder_id?: number | null;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }

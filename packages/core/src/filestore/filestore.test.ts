@@ -122,7 +122,7 @@ describe('validateCollectionExport', () => {
 
     expect(result.harborclientVersion).toBe(1);
     expect(result.folders).toHaveLength(1);
-    expect(result.folders?.[0]).toMatchObject({ name: 'API', sort_order: 0, color: null });
+    expect(result.folders?.[0]).toMatchObject({ name: 'API', sort_order: 0, marker: null });
   });
 
   it('rejects legacy format version 2 exports', () => {

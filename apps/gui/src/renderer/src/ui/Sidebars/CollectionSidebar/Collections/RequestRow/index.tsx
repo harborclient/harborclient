@@ -174,7 +174,7 @@ export function RequestRow({
   onGitStageItem,
   onGitUnstageItem
 }: Props): JSX.Element {
-  const { showColorDots, showMethodColors } = useSidebarExpansion();
+  const { showMarkers, showMethodColors } = useSidebarExpansion();
   const [inspectPoint, setInspectPoint] = useState<InspectPoint | undefined>(undefined);
 
   const menuId = `request-${req.id}`;
@@ -186,10 +186,10 @@ export function RequestRow({
         method={req.method}
         name={req.name}
         nameClassName={gitItemNameClass(gitItemStatus)}
-        colorDot={{
-          color: req.color,
-          visible: showColorDots,
-          label: `Color for ${req.name}`
+        markerDot={{
+          marker: req.marker,
+          visible: showMarkers,
+          label: `Color marker for ${req.name}`
         }}
         methodColors={showMethodColors}
         selected={rowHighlighted}

@@ -11,10 +11,10 @@ interface Props {
   sectionKey: SidebarSectionKey;
 
   /**
-   * When true, includes the Color option (section items have colors and dots
+   * When true, includes the Marker option (section items have markers and dots
    * are visible).
    */
-  hasColorOption?: boolean;
+  hasMarkerOption?: boolean;
 
   /**
    * Label prefix for date options. Defaults to "Date created"; Trash uses
@@ -39,19 +39,19 @@ interface Props {
  * Hidden when the View menu Sorting preference is off.
  *
  * @param sectionKey - Section whose sort mode to read/write.
- * @param hasColorOption - Whether to show the Color option.
+ * @param hasMarkerOption - Whether to show the Marker option.
  * @param dateLabel - Prefix for date sort labels.
  * @param ariaLabel - Accessible name for the trigger.
  * @param title - Tooltip for the trigger.
  */
 export function SidebarSortButton({
   sectionKey,
-  hasColorOption = false,
+  hasMarkerOption = false,
   dateLabel,
   ariaLabel,
   title
 }: Props): JSX.Element | null {
-  const { sectionSort, setSectionSort, showColorDots, showSorting } = useSidebarExpansion();
+  const { sectionSort, setSectionSort, showMarkers, showSorting } = useSidebarExpansion();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -59,12 +59,12 @@ export function SidebarSortButton({
   const active = value !== 'default';
 
   /**
-   * Options for the listbox; Color is omitted when colors are hidden or the
-   * section has no color field.
+   * Options for the listbox; Marker is omitted when markers are hidden or the
+   * section has no marker field.
    */
   const options = useMemo(
-    () => sidebarSortOptions(hasColorOption && showColorDots, dateLabel),
-    [dateLabel, hasColorOption, showColorDots]
+    () => sidebarSortOptions(hasMarkerOption && showMarkers, dateLabel),
+    [dateLabel, hasMarkerOption, showMarkers]
   );
 
   /**

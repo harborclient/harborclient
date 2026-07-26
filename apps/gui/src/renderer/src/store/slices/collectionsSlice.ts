@@ -93,9 +93,9 @@ const collectionsSlice = createSlice({
       pruneCollectionCache(state.documentsByCollection, validCollectionIds);
     },
     /**
-     * Updates one collection row after a sidebar color change.
+     * Updates one collection row after a sidebar marker change.
      */
-    updateCollectionColor(state, action: PayloadAction<Collection>) {
+    updateCollectionMarker(state, action: PayloadAction<Collection>) {
       const index = state.collections.findIndex(
         (collection) => collection.id === action.payload.id
       );
@@ -170,7 +170,7 @@ const collectionsSlice = createSlice({
       state.foldersByCollection[collectionId] = next;
     },
     /**
-     * Replaces one request row in a collection cache after a sidebar color change.
+     * Replaces one request row in a collection cache after a sidebar marker change.
      */
     upsertRequestInCollection(
       state,
@@ -330,7 +330,7 @@ export const {
   setSelectedCollectionId,
   focusSidebarItem,
   setCollections,
-  updateCollectionColor,
+  updateCollectionMarker,
   setRequestsForCollection,
   setDocumentsForCollection,
   setFoldersForCollection,

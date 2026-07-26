@@ -11,6 +11,7 @@ import { applyParamsToUrl, mergeParamsFromUrl } from '@harborclient/core/queryPa
 
 import type { RequestTabContext } from '@harborclient/core/plugin/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
+import { AiChatToggleButton } from './AiChatToggleButton';
 import { EditorTabs } from './EditorTabs';
 import { UrlBar } from './UrlBar';
 
@@ -173,14 +174,17 @@ export function Editor({
   return (
     <div className="flex h-full min-h-0 min-w-0 max-w-full flex-col">
       <div className="shrink-0 border-b border-separator p-3">
-        <Breadcrumb
-          className="mb-3 mt-1"
-          segments={breadcrumbSegments}
-          value={draft.name}
-          placeholder="Request name"
-          editableLabel="Request name"
-          onValueChange={(name) => update({ name })}
-        />
+        <div className="mb-3 mt-1 flex items-center gap-2">
+          <Breadcrumb
+            className="min-w-0 flex-1"
+            segments={breadcrumbSegments}
+            value={draft.name}
+            placeholder="Request name"
+            editableLabel="Request name"
+            onValueChange={(name) => update({ name })}
+          />
+          <AiChatToggleButton />
+        </div>
 
         <UrlBar
           method={draft.method}

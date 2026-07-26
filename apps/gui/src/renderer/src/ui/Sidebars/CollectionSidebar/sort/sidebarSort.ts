@@ -18,16 +18,16 @@ export interface SortAccessors<T> {
   createdAt: (item: T) => number;
 
   /**
-   * Optional color accessor; used only for the `color` sort mode.
+   * Optional marker accessor; used only for the `marker` sort mode.
    */
-  color?: (item: T) => string | null | undefined;
+  marker?: (item: T) => string | null | undefined;
 }
 
 /**
- * Normalizes a CSS color string for case-insensitive comparison.
+ * Normalizes a CSS marker string for case-insensitive comparison.
  *
- * @param value - Raw color string from storage or user input.
- * @returns Trimmed lowercase color string, or empty when missing.
+ * @param value - Raw marker string from storage or user input.
+ * @returns Trimmed lowercase marker string, or empty when missing.
  */
 function normalizeCssColor(value: string | null | undefined): string {
   if (value == null) {
@@ -50,12 +50,12 @@ function compareNames(a: string, b: string): number {
 /**
  * Builds the sort option list for a sidebar section header menu.
  *
- * @param hasColor - When true, includes the Color option (colors are visible and
- *   the section's items carry a color field).
+ * @param hasMarker - When true, includes the Marker option (markers are visible and
+ *   the section's items carry a marker field).
  * @param dateLabel - Prefix for date options; defaults to "Date created".
  * @returns Ordered sort options for the listbox.
  */
-export function sidebarSortOptions(hasColor: boolean, dateLabel = 'Date created'): SortOption[] {
+export function sidebarSortOptions(hasMarker: boolean, dateLabel = 'Date created'): SortOption[] {
   const options: SortOption[] = [
     { id: 'default', label: 'Default' },
     { id: 'name-asc', label: 'A-Z ascending' },
@@ -63,8 +63,8 @@ export function sidebarSortOptions(hasColor: boolean, dateLabel = 'Date created'
     { id: 'created-asc', label: `${dateLabel} ascending` },
     { id: 'created-desc', label: `${dateLabel} descending` }
   ];
-  if (hasColor) {
-    options.push({ id: 'color', label: 'Color' });
+  if (hasMarker) {
+    options.push({ id: 'marker', label: 'Color marker' });
   }
   return options;
 }
@@ -80,7 +80,7 @@ export function sidebarSortIcon(mode: SidebarSortMode): IconDefinition {
   switch (mode) {
     case 'name-asc':
     case 'created-asc':
-    case 'color':
+    case 'marker':
       return faArrowUpShortWide;
     default:
       return faArrowDownShortWide;
@@ -93,7 +93,7 @@ export function sidebarSortIcon(mode: SidebarSortMode): IconDefinition {
  *
  * @param items - Items to sort.
  * @param mode - Active sort mode.
- * @param accessors - Name/createdAt/color accessors for the item type.
+ * @param accessors - Name/createdAt/marker accessors for the item type.
  * @returns Sorted array (or a copy of the input when mode is `default`).
  */
 export function sortSidebarItems<T>(
@@ -116,21 +116,21 @@ export function sortSidebarItems<T>(
         return accessors.createdAt(left) - accessors.createdAt(right);
       case 'created-desc':
         return accessors.createdAt(right) - accessors.createdAt(left);
-      case 'color': {
-        const leftColor = normalizeCssColor(accessors.color?.(left));
-        const rightColor = normalizeCssColor(accessors.color?.(right));
-        if (leftColor === '' && rightColor === '') {
+      case 'marker': {
+        const leftMarker = normalizeCssColor(accessors.marker?.(left));
+        const rightMarker = normalizeCssColor(accessors.marker?.(right));
+        if (leftMarker === '' && rightMarker === '') {
           return compareNames(accessors.name(left), accessors.name(right));
         }
-        if (leftColor === '') {
+        if (leftMarker === '') {
           return 1;
         }
-        if (rightColor === '') {
+        if (rightMarker === '') {
           return -1;
         }
-        const colorCmp = leftColor.localeCompare(rightColor);
-        if (colorCmp !== 0) {
-          return colorCmp;
+        const markerCmp = leftMarker.localeCompare(rightMarker);
+        if (markerCmp !== 0) {
+          return markerCmp;
         }
         return compareNames(accessors.name(left), accessors.name(right));
       }

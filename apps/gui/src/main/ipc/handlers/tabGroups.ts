@@ -22,7 +22,7 @@ export async function importTabGroupData(
   return getLocalDatabase().createTabGroup({
     name: exportData.name,
     requests: exportData.requestUuids.map((requestUuid) => ({ requestUuid })),
-    color: exportData.color ?? null
+    marker: exportData.marker ?? null
   });
 }
 
@@ -57,8 +57,8 @@ export function registerTabGroupHandlers(): void {
     getLocalDatabase().reorderTabGroups(orderedIds)
   );
 
-  handle('tabGroups:setColor', ipcArgSchemas.tabGroupsSetColor, (_event, id, color) =>
-    getLocalDatabase().setTabGroupColor(id, color)
+  handle('tabGroups:setMarker', ipcArgSchemas.tabGroupsSetMarker, (_event, id, marker) =>
+    getLocalDatabase().setTabGroupMarker(id, marker)
   );
 
   handle('tabGroups:import', ipcArgSchemas.none, async () => {

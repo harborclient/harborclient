@@ -2,36 +2,36 @@ import { useMemo, type JSX } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectTabGroups } from '#/renderer/src/store/slices/tabGroupSlice';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
-import { collectSidebarItemColors } from '../filter/sidebarColorFilter';
-import { SidebarColorFilterButton } from '../filter/SidebarColorFilterButton';
+import { collectSidebarItemMarkers } from '../filter/sidebarMarkerFilter';
+import { SidebarMarkerFilterButton } from '../filter/SidebarMarkerFilterButton';
 import { SidebarSortButton } from '../sort/SidebarSortButton';
 
 /**
- * Header actions for the Tab Groups sidebar section (sort + color filter).
+ * Header actions for the Tab Groups sidebar section (sort + marker filter).
  */
 export function TabGroupsHeaderActions(): JSX.Element {
   const groups = useAppSelector(selectTabGroups);
-  const { tabGroupsColorFilter, setTabGroupsColorFilter } = useSidebarSectionFilter();
+  const { tabGroupsMarkerFilter, setTabGroupsMarkerFilter } = useSidebarSectionFilter();
 
   /**
-   * Distinct colors assigned to tab groups, sorted for the filter menu.
+   * Distinct markers assigned to tab groups, sorted for the filter menu.
    */
-  const colors = useMemo(() => collectSidebarItemColors(groups), [groups]);
+  const markers = useMemo(() => collectSidebarItemMarkers(groups), [groups]);
 
   return (
     <>
       <SidebarSortButton
         sectionKey="tabGroups"
-        hasColorOption
+        hasMarkerOption
         ariaLabel="Sort tab groups"
         title="Sort tab groups"
       />
-      <SidebarColorFilterButton
-        colors={colors}
-        filter={tabGroupsColorFilter}
-        onFilterChange={setTabGroupsColorFilter}
-        ariaLabel="Filter tab groups by color"
-        title="Filter by color"
+      <SidebarMarkerFilterButton
+        markers={markers}
+        filter={tabGroupsMarkerFilter}
+        onFilterChange={setTabGroupsMarkerFilter}
+        ariaLabel="Filter tab groups by color marker"
+        title="Filter by color marker"
       />
     </>
   );

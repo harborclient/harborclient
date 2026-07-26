@@ -50,9 +50,9 @@ export interface TabGroup {
   updatedAt: number;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -70,9 +70,9 @@ export interface CreateTabGroupInput {
   requests: TabGroupRequest[];
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -100,9 +100,9 @@ export interface TabGroupExport {
   requestUuids: string[];
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -113,7 +113,7 @@ export const tabGroupExportSchema = z.object({
   harborclientExport: z.literal('tab_group'),
   name: z.string().trim().min(1),
   requestUuids: z.array(z.string().trim().min(1)),
-  color: z.union([z.string().trim().min(1), z.null()]).optional()
+  marker: z.union([z.string().trim().min(1), z.null()]).optional()
 }) satisfies z.ZodType<TabGroupExport>;
 
 /**

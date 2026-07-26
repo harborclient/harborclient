@@ -49,6 +49,16 @@ export function methodBadgeClass(method: string, methodColors = true): string {
 }
 
 /**
+ * Returns Tailwind classes for a collection markdown document icon in the sidebar.
+ *
+ * @param methodColors - When false, uses neutral theme text instead of the doc-markdown accent.
+ * @returns Tailwind text color class for the document icon.
+ */
+export function documentIconClass(methodColors = true): string {
+  return methodColors ? 'text-doc-markdown' : 'text-text';
+}
+
+/**
  * Status dot variant for an HTTP response code.
  *
  * @param status - HTTP status code, or 0 for network errors.

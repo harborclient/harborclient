@@ -10,8 +10,8 @@ import {
 } from './entityMappers';
 import { trimRequiredName } from './trimRequiredName';
 import { generateDocumentUuid } from './uuid';
-import { migrateSidebarColorColumn, serializeSidebarColor } from './sidebarColorMigration';
-import { readSidebarColor } from '@harborclient/core/sidebarColor';
+import { migrateSidebarMarkerColumn, serializeSidebarMarker } from './sidebarMarkerMigration';
+import { readSidebarMarker } from '@harborclient/core/sidebarMarker';
 import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '@harborclient/core/ai/chatTitle';
 import type {
   Chat,
@@ -33,8 +33,8 @@ import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/s
 import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
-const TAB_GROUP_COLUMNS = 'id, name, created_at, updated_at, color';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
+const TAB_GROUP_COLUMNS = 'id, name, created_at, updated_at, marker';
 
 /**
  * Row shape returned from request_history queries.
@@ -489,8 +489,8 @@ export class LocalDatabase {
     this.migrateRequestHistoryTable();
     this.migrateTabGroupsTable();
     this.migrateTrashTable();
-    migrateSidebarColorColumn(this.getDb(), 'environments');
-    migrateSidebarColorColumn(this.getDb(), 'tab_groups');
+    migrateSidebarMarkerColumn(this.getDb(), 'environments');
+    migrateSidebarMarkerColumn(this.getDb(), 'tab_groups');
   }
 
   /**
@@ -1267,7 +1267,7 @@ export class LocalDatabase {
     const sortOrder = this.nextEnvironmentSortOrder();
     this.getDb()
       .prepare(
-        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at, color) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at, marker) VALUES (?, ?, ?, ?, ?, ?, ?)'
       )
       .run(
         environment.id,
@@ -1276,7 +1276,7 @@ export class LocalDatabase {
         JSON.stringify(environment.variables),
         sortOrder,
         environment.created_at,
-        serializeSidebarColor(environment.color)
+        serializeSidebarMarker(environment.marker)
       );
 
     const row = this.getDb()
@@ -1309,16 +1309,16 @@ export class LocalDatabase {
   }
 
   /**
-   * Updates an environment's sidebar color.
+   * Updates an environment's sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  setEnvironmentColor(id: number, color: string | null): Environment {
+  setEnvironmentMarker(id: number, marker: string | null): Environment {
     this.getDb()
-      .prepare('UPDATE environments SET color = ? WHERE id = ?')
-      .run(serializeSidebarColor(color), id);
+      .prepare('UPDATE environments SET marker = ? WHERE id = ?')
+      .run(serializeSidebarMarker(marker), id);
 
     const row = this.getDb()
       .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
@@ -2076,7 +2076,7 @@ export class LocalDatabase {
       name: string;
       created_at: number;
       updated_at: number;
-      color: string | null;
+      marker: string | null;
     }>;
 
     const requestRows = this.getDb()
@@ -2109,7 +2109,7 @@ export class LocalDatabase {
       requests: requestsByGroup.get(row.id) ?? [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      color: readSidebarColor(row.color)
+      marker: readSidebarMarker(row.marker)
     }));
   }
 
@@ -2161,9 +2161,9 @@ export class LocalDatabase {
     const transaction = db.transaction(() => {
       const result = db
         .prepare(
-          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at, color) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO tab_groups (name, sort_order, created_at, updated_at, marker) VALUES (?, ?, ?, ?, ?)'
         )
-        .run(trimmedName, sortOrder, now, now, serializeSidebarColor(input.color));
+        .run(trimmedName, sortOrder, now, now, serializeSidebarMarker(input.marker));
       const groupId = Number(result.lastInsertRowid);
       this.insertTabGroupRequests(groupId, input.requests);
     });
@@ -2197,16 +2197,16 @@ export class LocalDatabase {
   }
 
   /**
-   * Updates a tab group's sidebar color and returns the refreshed list.
+   * Updates a tab group's sidebar marker and returns the refreshed list.
    *
    * @param id - Tab group id.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns Updated tab group list.
    */
-  setTabGroupColor(id: number, color: string | null): TabGroup[] {
+  setTabGroupMarker(id: number, marker: string | null): TabGroup[] {
     this.getDb()
-      .prepare('UPDATE tab_groups SET color = ?, updated_at = ? WHERE id = ?')
-      .run(serializeSidebarColor(color), Date.now(), id);
+      .prepare('UPDATE tab_groups SET marker = ?, updated_at = ? WHERE id = ?')
+      .run(serializeSidebarMarker(marker), Date.now(), id);
     return this.listTabGroups();
   }
 

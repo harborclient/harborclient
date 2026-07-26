@@ -35,9 +35,9 @@ export interface Environment {
   deletion_locked?: boolean;
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }
 /**
  * Portable environment export file format.
@@ -69,7 +69,7 @@ export interface EnvironmentExport {
   variables: Variable[];
 
   /**
-   * Optional sidebar color for visual grouping (CSS hex or rgba string).
+   * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
-  color?: string | null;
+  marker?: string | null;
 }

@@ -336,8 +336,8 @@ export function registerCollectionHandlers(db: IStorage): void {
       )
   );
 
-  handle('collections:setColor', ipcArgSchemas.collectionsSetColor, (_event, id, color) =>
-    db.setCollectionColor(id, color)
+  handle('collections:setMarker', ipcArgSchemas.collectionsSetMarker, (_event, id, marker) =>
+    db.setCollectionMarker(id, marker)
   );
 
   handle(

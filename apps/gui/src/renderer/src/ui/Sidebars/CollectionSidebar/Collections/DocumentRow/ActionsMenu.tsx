@@ -60,7 +60,7 @@ interface Props {
 
 /**
  * Builds and renders the document row actions menu, including rename, Copy ID,
- * optional git stage/unstage, delete with confirm, color picker, and developer inspect.
+ * optional git stage/unstage, delete with confirm, marker picker, and developer inspect.
  */
 export function ActionsMenu({
   doc,
@@ -139,11 +139,11 @@ export function ActionsMenu({
     onRenameDocument
   ]);
 
-  const colorTarget = {
+  const markerTarget = {
     kind: 'document' as const,
     collectionId: doc.collection_id,
     id: doc.id,
-    color: doc.color ?? null
+    marker: doc.marker ?? null
   };
 
   return (
@@ -151,7 +151,7 @@ export function ActionsMenu({
       menuId={menuId}
       openMenuId={openMenuId}
       onOpenChange={onOpenChange}
-      colorTarget={colorTarget}
+      markerTarget={markerTarget}
       groups={menuGroups}
     />
   );

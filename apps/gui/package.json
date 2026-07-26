@@ -34,7 +34,7 @@
     "@harborclient/core": "workspace:*",
     "@harborclient/http": "workspace:*",
     "@harborclient/sdk": "workspace:*",
-    "@harborclient/team-hub-api": "0.4.0",
+    "@harborclient/team-hub-api": "link:../../../team-hub-api",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",

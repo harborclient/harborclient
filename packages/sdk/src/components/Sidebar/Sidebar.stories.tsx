@@ -66,7 +66,7 @@ function collectionsSections(): SidebarSectionConfig[] {
             method="GET"
             name="List users"
             selected
-            colorDot={{ color: '#32D2E2', visible: true, label: 'Color for List users' }}
+            markerDot={{ marker: '#32D2E2', visible: true, label: 'Color marker for List users' }}
             sortable={{ id: 'request-1', dragHandleLabel: 'Reorder request "List users"' }}
           />
           <SidebarRequestItem

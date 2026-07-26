@@ -36,7 +36,7 @@ import {
   PROVIDER_SNIPPET_COLUMNS
 } from './providerSnippetSql';
 import { bundleScriptFieldsWithLegacy } from './scriptFields';
-import { serializeSidebarColor } from './sidebarColorMigration';
+import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { trimRequiredName } from './trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type { IStorage } from './IStorage';
@@ -68,8 +68,8 @@ import { parseJson } from '@harborclient/core/parseJson';
 import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =
-  'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
+  'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
 
 export class MySqlStorage implements IStorage {
   #pool: Pool | null = null;
@@ -220,11 +220,10 @@ export class MySqlStorage implements IStorage {
     await this.addColumnIfMissing('requests', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('environments', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('folders', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
-    await this.addColumnIfMissing('collections', 'color', 'TEXT NULL');
-    await this.addColumnIfMissing('folders', 'color', 'TEXT NULL');
-    await this.addColumnIfMissing('requests', 'color', 'TEXT NULL');
-    await this.addColumnIfMissing('documents', 'color', 'TEXT NULL');
-    await this.addColumnIfMissing('environments', 'color', 'TEXT NULL');
+    for (const table of ['collections', 'folders', 'requests', 'documents', 'environments']) {
+      await this.renameColumnIfPresent(table, 'color', 'marker', 'TEXT NULL');
+      await this.addColumnIfMissing(table, 'marker', 'TEXT NULL');
+    }
     await this.addColumnIfMissing(
       'collections',
       'pre_request_scripts',
@@ -303,6 +302,38 @@ export class MySqlStorage implements IStorage {
         row.id
       ]);
     }
+  }
+
+  /**
+   * Renames an existing column, preserving its stored values.
+   *
+   * Used to carry pre-rename sidebar `color` values over to `marker`. Does
+   * nothing when the old column is absent or the new one already exists, so it
+   * stays safe to run on every connect. Uses `CHANGE COLUMN` rather than
+   * `RENAME COLUMN` for MySQL 5.7 compatibility. The table and column names are
+   * internal constants, never user input.
+   *
+   * @param table - Table to alter.
+   * @param from - Legacy column name.
+   * @param to - Replacement column name.
+   * @param definition - SQL column definition for the renamed column.
+   */
+  private async renameColumnIfPresent(
+    table: string,
+    from: string,
+    to: string,
+    definition: string
+  ): Promise<void> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME IN (?, ?)`,
+      [this.#settings.database, table, from, to]
+    );
+
+    const present = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+    if (!present.has(from) || present.has(to)) return;
+
+    await this.getPool().execute(`ALTER TABLE ${table} CHANGE COLUMN ${from} ${to} ${definition}`);
   }
 
   /**
@@ -429,16 +460,16 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's sidebar color.
+   * Updates a collection's sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+  async setCollectionMarker(id: number, marker: string | null): Promise<Collection> {
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE collections SET color = ? WHERE id = ?',
-      [serializeSidebarColor(color), id]
+      'UPDATE collections SET marker = ? WHERE id = ?',
+      [serializeSidebarMarker(marker), id]
     );
     if (result.affectedRows === 0) throw new Error('Collection not found');
 
@@ -526,16 +557,16 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's sidebar color.
+   * Updates an environment's sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+  async setEnvironmentMarker(id: number, marker: string | null): Promise<Environment> {
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE environments SET color = ? WHERE id = ?',
-      [serializeSidebarColor(color), id]
+      'UPDATE environments SET marker = ? WHERE id = ?',
+      [serializeSidebarMarker(marker), id]
     );
     if (result.affectedRows === 0) throw new Error('Environment not found');
 
@@ -599,8 +630,8 @@ export class MySqlStorage implements IStorage {
     const bodyRaw = input.body_raw ?? null;
     const bodyRawOpen = input.body_raw_open === true ? 1 : 0;
     const folderId = input.folder_id ?? null;
-    const serializedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const serializedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -616,7 +647,7 @@ export class MySqlStorage implements IStorage {
 
     if (input.id) {
       const [result] =
-        serializedColor === undefined
+        serializedMarker === undefined
           ? await this.getPool().execute<ResultSetHeader>(
               `UPDATE requests SET
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
@@ -653,7 +684,7 @@ export class MySqlStorage implements IStorage {
           collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
           headers = ?, user_agent = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
-          updated_at = ?, color = ?
+          updated_at = ?, marker = ?
         WHERE id = ?`,
               [
                 input.collection_id,
@@ -676,7 +707,7 @@ export class MySqlStorage implements IStorage {
                 comment,
                 tags,
                 now,
-                serializedColor,
+                serializedMarker,
                 input.id
               ]
             );
@@ -702,7 +733,7 @@ export class MySqlStorage implements IStorage {
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.collection_id,
@@ -728,7 +759,7 @@ export class MySqlStorage implements IStorage {
         requestUuid,
         now,
         now,
-        serializedColor ?? null
+        serializedMarker ?? null
       ]
     );
 
@@ -752,16 +783,16 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates a saved request's sidebar color.
+   * Updates a saved request's sidebar marker.
    *
    * @param id - Request ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated request.
    */
-  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+  async setRequestMarker(id: number, marker: string | null): Promise<SavedRequest> {
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE requests SET color = ? WHERE id = ?',
-      [serializeSidebarColor(color), id]
+      'UPDATE requests SET marker = ? WHERE id = ?',
+      [serializeSidebarMarker(marker), id]
     );
     if (result.affectedRows === 0) throw new Error('Request not found');
 
@@ -901,16 +932,16 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's sidebar color.
+   * Updates a folder's sidebar marker.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+  async setFolderMarker(id: number, marker: string | null): Promise<Folder> {
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE folders SET color = ? WHERE id = ?',
-      [serializeSidebarColor(color), id]
+      'UPDATE folders SET marker = ? WHERE id = ?',
+      [serializeSidebarMarker(marker), id]
     );
     if (result.affectedRows === 0) throw new Error('Folder not found');
 
@@ -1124,8 +1155,8 @@ export class MySqlStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Document name');
     const content = input.content ?? '';
     const folderId = input.folder_id ?? null;
-    const serializedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const serializedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -1141,7 +1172,7 @@ export class MySqlStorage implements IStorage {
 
     if (input.id) {
       const [result] =
-        serializedColor === undefined
+        serializedMarker === undefined
           ? await this.getPool().execute<ResultSetHeader>(
               `UPDATE documents SET
           collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?
@@ -1150,9 +1181,9 @@ export class MySqlStorage implements IStorage {
             )
           : await this.getPool().execute<ResultSetHeader>(
               `UPDATE documents SET
-          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?, color = ?
+          collection_id = ?, folder_id = ?, name = ?, content = ?, updated_at = ?, marker = ?
         WHERE id = ?`,
-              [input.collection_id, folderId, trimmedName, content, now, serializedColor, input.id]
+              [input.collection_id, folderId, trimmedName, content, now, serializedMarker, input.id]
             );
 
       if (result.affectedRows > 0) {
@@ -1175,7 +1206,7 @@ export class MySqlStorage implements IStorage {
 
     const [insertResult] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.collection_id,
@@ -1186,7 +1217,7 @@ export class MySqlStorage implements IStorage {
         documentUuid,
         now,
         now,
-        serializedColor ?? null
+        serializedMarker ?? null
       ]
     );
 
@@ -1209,16 +1240,16 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates a markdown document's sidebar color.
+   * Updates a markdown document's sidebar marker.
    *
    * @param id - Document ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated document.
    */
-  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+  async setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument> {
     const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE documents SET color = ? WHERE id = ?',
-      [serializeSidebarColor(color), id]
+      'UPDATE documents SET marker = ? WHERE id = ?',
+      [serializeSidebarMarker(marker), id]
     );
     if (result.affectedRows === 0) throw new Error('Document not found');
 
@@ -1365,7 +1396,7 @@ export class MySqlStorage implements IStorage {
       post_request_script: collection.post_request_script,
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
-      color: collection.color ?? null,
+      marker: collection.marker ?? null,
       folders,
       requests,
       documents
@@ -1389,7 +1420,7 @@ export class MySqlStorage implements IStorage {
       const collectionUuid = resolveImportedCollectionUuid(exportData);
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       const [collectionResult] = await connection.execute<ResultSetHeader>(
-        `INSERT INTO collections (name, uuid, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color)
+        `INSERT INTO collections (name, uuid, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           exportData.name,
@@ -1403,7 +1434,7 @@ export class MySqlStorage implements IStorage {
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
           now,
-          serializeSidebarColor(exportData.color)
+          serializeSidebarMarker(exportData.marker)
         ]
       );
 
@@ -1420,7 +1451,7 @@ export class MySqlStorage implements IStorage {
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
@@ -1436,7 +1467,7 @@ export class MySqlStorage implements IStorage {
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
             now,
-            folderFields.color
+            folderFields.marker
           ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, folder.name, folderUuid);
@@ -1454,7 +1485,7 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
@@ -1480,7 +1511,7 @@ export class MySqlStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1496,7 +1527,7 @@ export class MySqlStorage implements IStorage {
 
         await connection.execute(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
@@ -1507,7 +1538,7 @@ export class MySqlStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1590,7 +1621,7 @@ export class MySqlStorage implements IStorage {
 
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       await connection.execute(
-        'UPDATE collections SET name = ?, variables = ?, headers = ?, user_agent = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ? WHERE id = ?',
+        'UPDATE collections SET name = ?, variables = ?, headers = ?, user_agent = ?, auth = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, marker = ? WHERE id = ?',
         [
           exportData.name,
           JSON.stringify(exportData.variables),
@@ -1601,7 +1632,7 @@ export class MySqlStorage implements IStorage {
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
-          serializeSidebarColor(exportData.color),
+          serializeSidebarMarker(exportData.marker),
           id
         ]
       );
@@ -1618,7 +1649,7 @@ export class MySqlStorage implements IStorage {
           const folderFields = serializeImportedFolderFields(folder);
           await connection.execute(
             `UPDATE folders SET name = ?, sort_order = ?, variables = ?, headers = ?, user_agent = ?, auth = ?,
-              pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, color = ?
+              pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, marker = ?
              WHERE id = ? AND collection_id = ?`,
             [
               plan.name,
@@ -1631,7 +1662,7 @@ export class MySqlStorage implements IStorage {
               folderFields.post_request_script,
               folderFields.pre_request_scripts_json,
               folderFields.post_request_scripts_json,
-              folderFields.color,
+              folderFields.marker,
               plan.existingId,
               id
             ]
@@ -1644,7 +1675,7 @@ export class MySqlStorage implements IStorage {
         const [folderResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
@@ -1660,7 +1691,7 @@ export class MySqlStorage implements IStorage {
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
             now,
-            folderFields.color
+            folderFields.marker
           ]
         );
         registerImportedFolderInMaps(folderMaps, folderResult.insertId, plan.name, plan.uuid);
@@ -1693,7 +1724,7 @@ export class MySqlStorage implements IStorage {
             `UPDATE requests SET
               folder_id = ?, name = ?, method = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
               body = ?, body_type = ?, body_raw = ?, body_raw_open = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
-              sort_order = ?, updated_at = ?, color = ?
+              sort_order = ?, updated_at = ?, marker = ?
             WHERE id = ? AND collection_id = ?`,
             [
               folderId,
@@ -1716,7 +1747,7 @@ export class MySqlStorage implements IStorage {
               fields.tags,
               fields.sort_order,
               now,
-              fields.color,
+              fields.marker,
               existingRequestId,
               id
             ]
@@ -1727,7 +1758,7 @@ export class MySqlStorage implements IStorage {
         await connection.execute(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
@@ -1753,7 +1784,7 @@ export class MySqlStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1771,7 +1802,7 @@ export class MySqlStorage implements IStorage {
         if (existingDocumentId != null) {
           await connection.execute(
             `UPDATE documents SET
-              folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?, color = ?
+              folder_id = ?, name = ?, content = ?, sort_order = ?, updated_at = ?, marker = ?
             WHERE id = ? AND collection_id = ?`,
             [
               folderId,
@@ -1779,7 +1810,7 @@ export class MySqlStorage implements IStorage {
               fields.content,
               fields.sort_order,
               now,
-              fields.color,
+              fields.marker,
               existingDocumentId,
               id
             ]
@@ -1789,7 +1820,7 @@ export class MySqlStorage implements IStorage {
 
         await connection.execute(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
@@ -1800,7 +1831,7 @@ export class MySqlStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }

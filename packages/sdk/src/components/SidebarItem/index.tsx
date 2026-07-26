@@ -11,12 +11,13 @@ export { SidebarTreeGroup } from './SidebarTreeGroup.js';
 export { handleSidebarOptionKeyDown } from './sidebarListOption.js';
 export { SortableSidebarItem } from './SortableSidebarItem.js';
 export { stopSortableDragPointerDown } from './stopSortableDragPointerDown.js';
-export { SidebarColorDot } from './SidebarColorDot.js';
+export { SidebarMarkerDot } from './SidebarMarkerDot.js';
 export { SidebarBadge, type SidebarBadgeVariant } from './SidebarBadge.js';
 export {
   sourceRow,
   METHOD_CLASSES,
   methodBadgeClass,
+  documentIconClass,
   statusDotVariant,
   statusDotClass,
   SIDEBAR_ITEM_BUTTON_CLASS,

@@ -1,6 +1,6 @@
 import type { JSX, MouseEvent, ReactNode } from 'react';
-import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
+import { SidebarMarkerDot } from './SidebarMarkerDot.js';
 import { SidebarMethodBadge } from './SidebarMethodBadge.js';
 import { SidebarStatusMarker } from './SidebarStatusMarker.js';
 import { SIDEBAR_ITEM_BUTTON_CLASS } from './sidebarItemClasses.js';
@@ -22,10 +22,10 @@ interface Props {
   nameClassName?: string;
 
   /**
-   * Optional color dot configuration for collection sidebar rows.
+   * Optional color marker dot configuration for collection sidebar rows.
    */
-  colorDot?: {
-    color: string | null | undefined;
+  markerDot?: {
+    marker: string | null | undefined;
     visible?: boolean;
     label?: string;
   };
@@ -93,7 +93,7 @@ interface Props {
 }
 
 /**
- * Renders a saved-request sidebar row with method badge, optional color dot or git
+ * Renders a saved-request sidebar row with method badge, optional color marker dot or git
  * status marker, and shared row chrome. Used in both Collections and Git sidebars.
  *
  * The accessible name defaults to visible row content (method, name, markers) but
@@ -105,7 +105,7 @@ export function SidebarRequestItem({
   method,
   name,
   nameClassName,
-  colorDot,
+  markerDot,
   methodColors = true,
   statusMarker,
   selected = false,
@@ -140,13 +140,13 @@ export function SidebarRequestItem({
     >
       <span className={SIDEBAR_ITEM_BUTTON_CLASS}>
         <SidebarMethodBadge method={method} methodColors={methodColors} />
-        {colorDot != null ? (
+        {markerDot != null ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <span className={`min-w-0 truncate ${nameClassName ?? ''}`}>{name}</span>
-            <SidebarColorDot
-              color={colorDot.color}
-              visible={colorDot.visible}
-              label={colorDot.label}
+            <SidebarMarkerDot
+              marker={markerDot.marker}
+              visible={markerDot.visible}
+              label={markerDot.label}
             />
           </span>
         ) : (

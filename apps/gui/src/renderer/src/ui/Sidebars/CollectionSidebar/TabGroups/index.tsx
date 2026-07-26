@@ -39,7 +39,7 @@ import { faLayerGroup } from '#/renderer/src/fontawesome';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
-import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
+import { filterItemsByMarker } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarMarkerFilter';
 import {
   sortSidebarItems,
   toSortTimestamp
@@ -56,30 +56,30 @@ export function TabGroups(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const allGroups = useAppSelector(selectTabGroups);
-  const { showColorDots, sectionSort } = useSidebarExpansion();
-  const { tabGroupsColorFilter } = useSidebarSectionFilter();
+  const { showMarkers, sectionSort } = useSidebarExpansion();
+  const { tabGroupsMarkerFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragGroup, setActiveDragGroup] = useState<TabGroup | null>(null);
   const sortMode = sectionSort.tabGroups;
   const sortActive = sortMode !== 'default';
 
   /**
-   * Tab groups limited to the selected color when a color filter is active,
+   * Tab groups limited to the selected marker when a marker filter is active,
    * then ordered by the Tab Groups section sort mode.
    */
   const groups = useMemo(() => {
-    const filtered = filterItemsByColor(allGroups, tabGroupsColorFilter);
+    const filtered = filterItemsByMarker(allGroups, tabGroupsMarkerFilter);
     return sortSidebarItems(filtered, sortMode, {
       name: (group) => group.name,
       createdAt: (group) => toSortTimestamp(group.createdAt),
-      color: (group) => group.color
+      marker: (group) => group.marker
     });
-  }, [allGroups, sortMode, tabGroupsColorFilter]);
+  }, [allGroups, sortMode, tabGroupsMarkerFilter]);
 
   /**
-   * True when a color filter is active but no tab groups matched.
+   * True when a marker filter is active but no tab groups matched.
    */
-  const noMatches = tabGroupsColorFilter != null && allGroups.length > 0 && groups.length === 0;
+  const noMatches = tabGroupsMarkerFilter != null && allGroups.length > 0 && groups.length === 0;
 
   /**
    * Tab group ids in on-screen list order for shift-click range selection.
@@ -271,15 +271,15 @@ export function TabGroups(): JSX.Element {
                 summary={tabGroupSummaryText(group)}
                 icon={faLayerGroup}
                 selected={selected}
-                colorDot={{
-                  color: group.color,
-                  visible: showColorDots,
-                  label: `Color for ${group.name}`
+                markerDot={{
+                  marker: group.marker,
+                  visible: showMarkers,
+                  label: `Color marker for ${group.name}`
                 }}
                 sortable={{
                   id: tabGroupDragId(group.id),
                   dragHandleLabel: `Reorder tab group "${group.name}"`,
-                  disabled: tabGroupsColorFilter != null || sortActive
+                  disabled: tabGroupsMarkerFilter != null || sortActive
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -317,10 +317,10 @@ export function TabGroups(): JSX.Element {
                       menuId={menuId}
                       openMenuId={openMenuId}
                       onOpenChange={setOpenMenuId}
-                      colorTarget={{
+                      markerTarget={{
                         kind: 'tabGroup',
                         id: group.id,
-                        color: group.color ?? null
+                        marker: group.marker ?? null
                       }}
                       groups={[
                         ...(sortActive

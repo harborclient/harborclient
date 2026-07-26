@@ -76,13 +76,13 @@ export interface IStorage {
   ): Promise<Collection>;
 
   /**
-   * Updates a collection's sidebar color.
+   * Updates a collection's sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  setCollectionColor(id: number, color: string | null): Promise<Collection>;
+  setCollectionMarker(id: number, marker: string | null): Promise<Collection>;
 
   /**
    * Deletes a collection and all of its requests.
@@ -118,13 +118,13 @@ export interface IStorage {
   updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment>;
 
   /**
-   * Updates an environment's sidebar color.
+   * Updates an environment's sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  setEnvironmentColor(id: number, color: string | null): Promise<Environment>;
+  setEnvironmentMarker(id: number, marker: string | null): Promise<Environment>;
 
   /**
    * Deletes an environment.
@@ -150,13 +150,13 @@ export interface IStorage {
   saveRequest(input: SaveRequestInput): Promise<SavedRequest>;
 
   /**
-   * Updates a saved request's sidebar color.
+   * Updates a saved request's sidebar marker.
    *
    * @param id - Request ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated request.
    */
-  setRequestColor(id: number, color: string | null): Promise<SavedRequest>;
+  setRequestMarker(id: number, marker: string | null): Promise<SavedRequest>;
 
   /**
    * Deletes a saved request by ID.
@@ -220,13 +220,13 @@ export interface IStorage {
   ): Promise<Folder>;
 
   /**
-   * Updates a folder's sidebar color.
+   * Updates a folder's sidebar marker.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  setFolderColor(id: number, color: string | null): Promise<Folder>;
+  setFolderMarker(id: number, marker: string | null): Promise<Folder>;
 
   /**
    * Deletes a folder and all requests inside it.
@@ -295,13 +295,13 @@ export interface IStorage {
   saveDocument(input: SaveDocumentInput): Promise<CollectionDocument>;
 
   /**
-   * Updates a markdown document's sidebar color.
+   * Updates a markdown document's sidebar marker.
    *
    * @param id - Document ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated document.
    */
-  setDocumentColor(id: number, color: string | null): Promise<CollectionDocument>;
+  setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument>;
 
   /**
    * Deletes a markdown document by ID.

@@ -23,9 +23,9 @@ const environmentsSlice = createSlice({
       state.environments = action.payload;
     },
     /**
-     * Updates one environment row after a sidebar color change.
+     * Updates one environment row after a sidebar marker change.
      */
-    updateEnvironmentColor(state, action: PayloadAction<Environment>) {
+    updateEnvironmentMarker(state, action: PayloadAction<Environment>) {
       const index = state.environments.findIndex(
         (environment) => environment.id === action.payload.id
       );
@@ -64,7 +64,7 @@ const environmentsSlice = createSlice({
 
 export const {
   setEnvironments,
-  updateEnvironmentColor,
+  updateEnvironmentMarker,
   setActiveEnvironmentId,
   reorderEnvironmentsLocal
 } = environmentsSlice.actions;

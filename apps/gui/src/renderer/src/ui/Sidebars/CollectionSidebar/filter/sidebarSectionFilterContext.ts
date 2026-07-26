@@ -37,34 +37,34 @@ export interface SidebarSectionFilterContextValue {
   setHistoryCollectionFilter: Dispatch<SetStateAction<number | null>>;
 
   /**
-   * CSS color to filter Tab Groups by, or null when showing all tab groups.
+   * CSS marker to filter Tab Groups by, or null when showing all tab groups.
    */
-  tabGroupsColorFilter: string | null;
+  tabGroupsMarkerFilter: string | null;
 
   /**
-   * Updates the Tab Groups color filter.
+   * Updates the Tab Groups marker filter.
    */
-  setTabGroupsColorFilter: Dispatch<SetStateAction<string | null>>;
+  setTabGroupsMarkerFilter: Dispatch<SetStateAction<string | null>>;
 
   /**
-   * CSS color to filter Environments by, or null when showing all environments.
+   * CSS marker to filter Environments by, or null when showing all environments.
    */
-  environmentsColorFilter: string | null;
+  environmentsMarkerFilter: string | null;
 
   /**
-   * Updates the Environments color filter.
+   * Updates the Environments marker filter.
    */
-  setEnvironmentsColorFilter: Dispatch<SetStateAction<string | null>>;
+  setEnvironmentsMarkerFilter: Dispatch<SetStateAction<string | null>>;
 
   /**
-   * CSS color to filter Archive by, or null when showing all archived collections.
+   * CSS marker to filter Archive by, or null when showing all archived collections.
    */
-  archiveColorFilter: string | null;
+  archiveMarkerFilter: string | null;
 
   /**
-   * Updates the Archive color filter.
+   * Updates the Archive marker filter.
    */
-  setArchiveColorFilter: Dispatch<SetStateAction<string | null>>;
+  setArchiveMarkerFilter: Dispatch<SetStateAction<string | null>>;
 
   /**
    * Clears every section filter so lists show unfiltered content.

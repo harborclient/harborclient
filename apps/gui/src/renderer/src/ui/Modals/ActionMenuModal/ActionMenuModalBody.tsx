@@ -286,7 +286,11 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
   const hasSlashArmedCommand = slashMode && resolvedCommand != null;
   const hasSearchResults = !slashMode && !actionMode && hits.length > 0;
   const showNoSearchResults =
-    !slashMode && !actionMode && debouncedQuery.trim().length > 0 && hits.length === 0;
+    !slashMode &&
+    !actionMode &&
+    actionSuggestionCount === 0 &&
+    debouncedQuery.trim().length > 0 &&
+    hits.length === 0;
   const activeDescendantId =
     hasActionSuggestions && activeIndex < actionSuggestionCount
       ? `action-menu-action-${activeIndex}`

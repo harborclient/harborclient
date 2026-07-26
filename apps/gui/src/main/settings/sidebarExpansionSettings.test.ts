@@ -54,7 +54,7 @@ describe('sidebarExpansionSettings', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -91,7 +91,7 @@ describe('sidebarExpansionSettings', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -138,7 +138,7 @@ describe('sidebarExpansionSettings', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -180,7 +180,7 @@ describe('sidebarExpansionSettings', () => {
         trash: 'default'
       },
       showStorageLocationBadges: false,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -218,7 +218,7 @@ describe('sidebarExpansionSettings', () => {
         trash: 'default'
       },
       showStorageLocationBadges: false,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,

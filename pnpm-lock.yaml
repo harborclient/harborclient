@@ -120,8 +120,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/storage-sqlite
       '@harborclient/team-hub-api':
-        specifier: 0.4.0
-        version: 0.4.0
+        specifier: link:../../../team-hub-api
+        version: link:../../../team-hub-api
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
@@ -395,8 +395,8 @@ importers:
         specifier: workspace:^
         version: link:../sdk
       '@harborclient/team-hub-api':
-        specifier: 0.4.0
-        version: 0.4.0
+        specifier: link:../../../team-hub-api
+        version: link:../../../team-hub-api
       '@orama/orama':
         specifier: ^3.1.18
         version: 3.1.18
@@ -1861,10 +1861,6 @@ packages:
     resolution: {integrity: sha512-wtF6h+DY6M3YaDBPAmvuuA6jV8Sif9MjtOI5euKFWRgCDl5PeDpPsHR9u2l6St5ceY8AZgoNDww5+HvEsXFsGg==}
     engines: {node: '>=6'}
     hasBin: true
-
-  '@harborclient/team-hub-api@0.4.0':
-    resolution: {integrity: sha512-w36A3dxtnEedyxGto8l4QKIOoB7Kqix5IlrHFp8Ng49xv4MXr92ZAONs/dz0iqFvJ7AF2L6tTzwXBw0Xah2JGg==}
-    engines: {node: '>=24'}
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -10815,10 +10811,6 @@ snapshots:
       long: 5.3.2
       protobufjs: 7.6.4
       yargs: 17.7.2
-
-  '@harborclient/team-hub-api@0.4.0':
-    dependencies:
-      zod: 4.4.3
 
   '@hono/node-server@1.19.14(hono@4.12.26)':
     dependencies:

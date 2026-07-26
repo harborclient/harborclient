@@ -21,7 +21,7 @@ import {
   type RefObject
 } from 'react';
 
-/** Estimated width of the color filter listbox. */
+/** Estimated width of the marker filter listbox. */
 const LISTBOX_WIDTH_PX = 220;
 
 /** Estimated height before the listbox is measured. */
@@ -34,19 +34,19 @@ interface Props {
   anchorRef: RefObject<HTMLElement | null>;
 
   /**
-   * Distinct CSS colors available in the section tree.
+   * Distinct CSS markers available in the section tree.
    */
-  colors: readonly string[];
+  markers: readonly string[];
 
   /**
-   * Currently selected color filter, or null for all colors.
+   * Currently selected marker filter, or null for all markers.
    */
   filter: string | null;
 
   /**
-   * Applies a color selection (or null for all) and should close the menu.
+   * Applies a marker selection (or null for all) and should close the menu.
    */
-  onSelect: (color: string | null) => void;
+  onSelect: (marker: string | null) => void;
 
   /**
    * Closes the menu without changing the filter.
@@ -55,18 +55,18 @@ interface Props {
 }
 
 /**
- * Portaled listbox of colors found in a sidebar section. Selecting an option
+ * Portaled listbox of markers found in a sidebar section. Selecting an option
  * applies the filter immediately (Runs/History style).
  *
  * @param anchorRef - Filter toolbar button used for positioning.
- * @param colors - Distinct colors from the section items.
- * @param filter - Applied color filter, or null for all.
+ * @param markers - Distinct markers from the section items.
+ * @param filter - Applied marker filter, or null for all.
  * @param onSelect - Called when the user picks an option.
  * @param onClose - Called when the menu should dismiss.
  */
-export function SidebarColorFilterMenu({
+export function SidebarMarkerFilterMenu({
   anchorRef,
-  colors,
+  markers,
   filter,
   onSelect,
   onClose
@@ -77,21 +77,21 @@ export function SidebarColorFilterMenu({
   const [position, setPosition] = useState<MenuPosition | null>(null);
 
   /**
-   * Options for the listbox: “All colors” plus each distinct section color.
+   * Options for the listbox: “All color markers” plus each distinct section marker.
    */
   const options = useMemo(
-    (): Array<{ color: string | null; label: string }> => [
-      { color: null, label: 'All colors' },
-      ...colors.map((color) => ({ color, label: color }))
+    (): Array<{ marker: string | null; label: string }> => [
+      { marker: null, label: 'All color markers' },
+      ...markers.map((marker) => ({ marker, label: marker }))
     ],
-    [colors]
+    [markers]
   );
 
   const [focusedIndex, setFocusedIndex] = useState(() =>
     Math.max(
       0,
-      [null as string | null, ...colors].findIndex((color) =>
-        color == null ? filter == null : colorsMatch(color, filter)
+      [null as string | null, ...markers].findIndex((marker) =>
+        marker == null ? filter == null : colorsMatch(marker, filter)
       )
     )
   );
@@ -119,7 +119,7 @@ export function SidebarColorFilterMenu({
    */
   useLayoutEffect(() => {
     updatePosition();
-  }, [updatePosition, colors.length]);
+  }, [updatePosition, markers.length]);
 
   /**
    * Keeps the listbox aligned when the sidebar or viewport moves.
@@ -192,17 +192,17 @@ export function SidebarColorFilterMenu({
   }, []);
 
   /**
-   * Applies a color selection (toggling off when the same color is re-selected)
+   * Applies a marker selection (toggling off when the same marker is re-selected)
    * and closes the menu.
    *
-   * @param color - Selected color, or null for all colors.
+   * @param marker - Selected marker, or null for all markers.
    */
   const selectOption = useCallback(
-    (color: string | null): void => {
-      if (color != null && colorsMatch(filter, color)) {
+    (marker: string | null): void => {
+      if (marker != null && colorsMatch(filter, marker)) {
         onSelect(null);
       } else {
-        onSelect(color);
+        onSelect(marker);
       }
     },
     [filter, onSelect]
@@ -235,16 +235,17 @@ export function SidebarColorFilterMenu({
       ref={listboxRef}
       id={listboxId}
       role="listbox"
-      aria-label="Color"
-      className="hc-sidebar-color-filter-listbox app-no-drag fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
+      aria-label="Color marker"
+      className="hc-sidebar-marker-filter-listbox app-no-drag fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ top: position.y, left: position.x, width: LISTBOX_WIDTH_PX }}
       onKeyDown={handleListboxKeyDown}
     >
       {options.map((option, index) => {
-        const selected = option.color == null ? filter == null : colorsMatch(option.color, filter);
+        const selected =
+          option.marker == null ? filter == null : colorsMatch(option.marker, filter);
         return (
           <button
-            key={option.color ?? 'all'}
+            key={option.marker ?? 'all'}
             ref={(element) => {
               optionRefs.current[index] = element;
             }}
@@ -255,16 +256,16 @@ export function SidebarColorFilterMenu({
             className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection app-no-drag"
             onClick={(event) => {
               event.stopPropagation();
-              selectOption(option.color);
+              selectOption(option.marker);
             }}
           >
             <span className="inline-flex w-4 shrink-0 justify-center" aria-hidden>
               {selected ? <FaIcon icon={faCheck} className="h-3 w-3" /> : null}
             </span>
-            {option.color != null ? (
+            {option.marker != null ? (
               <span
                 className="h-3.5 w-3.5 shrink-0 rounded-full border border-separator"
-                style={{ backgroundColor: option.color }}
+                style={{ backgroundColor: option.marker }}
                 aria-hidden
               />
             ) : (

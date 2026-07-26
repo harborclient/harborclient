@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Refactor sidebar color handling to markers. (`6f53f3d7`)
 - Add Filters and Sorting Options to Sidebar Menu. (`d17dea07`)
 - Enhance menu functionality and visibility options. (`89cf8584`)
 

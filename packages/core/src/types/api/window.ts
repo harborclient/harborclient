@@ -259,6 +259,10 @@ export interface ApiWindow {
    */
   toggleMaximizeWindow: () => Promise<void>;
   /**
+   * Toggles native fullscreen on the focused application window.
+   */
+  toggleFullscreenWindow: () => Promise<void>;
+  /**
    * Closes the focused application window, honoring the quit prompt when configured.
    */
   closeWindow: () => Promise<void>;

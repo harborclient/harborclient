@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { methodBadgeClass } from './sidebarItemClasses.js';
+import { documentIconClass, methodBadgeClass } from './sidebarItemClasses.js';
 
 describe('methodBadgeClass', () => {
   it('returns per-method color classes when method colors are enabled', () => {
@@ -14,5 +14,16 @@ describe('methodBadgeClass', () => {
 
   it('falls back to neutral text for unknown methods when colors are enabled', () => {
     expect(methodBadgeClass('CUSTOM')).toBe('hc-method-badge text-text');
+  });
+});
+
+describe('documentIconClass', () => {
+  it('returns the doc-markdown accent when method colors are enabled', () => {
+    expect(documentIconClass()).toBe('text-doc-markdown');
+    expect(documentIconClass(true)).toBe('text-doc-markdown');
+  });
+
+  it('returns neutral theme text when method colors are disabled', () => {
+    expect(documentIconClass(false)).toBe('text-text');
   });
 });

@@ -35,7 +35,7 @@ import {
 } from './teamHubRunResultApi';
 import { trimRequiredName } from './trimRequiredName';
 import { resolveImportUuid } from './uuid';
-import { serializeSidebarColor } from './sidebarColorMigration';
+import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
 import type { IStorage } from './IStorage';
@@ -99,13 +99,13 @@ function resolveTeamHubScriptRefs(
 }
 
 /**
- * Normalizes optional color fields returned by Team Hub APIs.
+ * Normalizes optional marker fields returned by Team Hub APIs.
  *
  * @param value - Raw server value.
- * @returns Normalized sidebar color.
+ * @returns Normalized sidebar marker.
  */
-function readTeamHubColor(value: unknown): string | null {
-  return serializeSidebarColor(typeof value === 'string' ? value : null);
+function readTeamHubMarker(value: unknown): string | null {
+  return serializeSidebarMarker(typeof value === 'string' ? value : null);
 }
 
 /**
@@ -147,7 +147,7 @@ function serverToCollection(record: CollectionRecord, localId: number): Collecti
     ),
     created_at: record.createdAt,
     deletion_locked: record.deletionLocked,
-    color: readTeamHubColor(record.color)
+    marker: readTeamHubMarker(record.marker)
   };
 }
 
@@ -165,7 +165,7 @@ function serverToEnvironment(record: EnvironmentRecord, localId: number): Enviro
     variables: record.variables.map(normalizeVariable),
     created_at: record.createdAt,
     deletion_locked: record.deletionLocked,
-    color: readTeamHubColor(record.color)
+    marker: readTeamHubMarker(record.marker)
   };
 }
 
@@ -259,7 +259,7 @@ function serverToFolder(record: FolderRecord, localId: number, localCollectionId
     pre_request_scripts: [],
     post_request_scripts: [],
     created_at: record.createdAt,
-    color: readTeamHubColor(record.color)
+    marker: readTeamHubMarker(record.marker)
   };
 }
 
@@ -287,7 +287,7 @@ function serverToDocument(
     sort_order: record.sortOrder,
     created_at: record.createdAt,
     updated_at: record.updatedAt,
-    color: readTeamHubColor(record.color)
+    marker: readTeamHubMarker(record.marker)
   };
 }
 
@@ -356,7 +356,7 @@ function serverToRequest(
     sort_order: record.sortOrder,
     created_at: record.createdAt,
     updated_at: record.updatedAt,
-    color: readTeamHubColor(record.color)
+    marker: readTeamHubMarker(record.marker)
   };
 }
 
@@ -388,7 +388,7 @@ function toServerRequestBody(
   comment: string;
   tags: string;
   folderId: string | null;
-  color?: string | null;
+  marker?: string | null;
 } {
   const preResolved = resolveScriptRefs(input.pre_request_scripts, input.pre_request_script ?? '');
   const postResolved = resolveScriptRefs(
@@ -418,7 +418,7 @@ function toServerRequestBody(
     comment: string;
     tags: string;
     folderId: string | null;
-    color?: string | null;
+    marker?: string | null;
   } = {
     name: trimRequiredName(input.name, 'Request name'),
     method: input.method,
@@ -439,8 +439,8 @@ function toServerRequestBody(
     tags: input.tags ?? '',
     folderId: folderServerId
   };
-  if (input.color !== undefined) {
-    result.color = serializeSidebarColor(input.color);
+  if (input.marker !== undefined) {
+    result.marker = serializeSidebarMarker(input.marker);
   }
   return result;
 }
@@ -592,29 +592,29 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's sidebar color.
+   * Updates a collection's sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+  async setCollectionMarker(id: number, marker: string | null): Promise<Collection> {
     const serverId = this.requireServerId('collection', id);
-    return this.patchCollectionColor(serverId, id, color);
+    return this.patchCollectionMarker(serverId, id, marker);
   }
 
   /**
-   * Persists only the collection color field on the Team Hub server.
+   * Persists only the collection marker field on the Team Hub server.
    *
    * @param serverId - Team Hub collection id.
    * @param localId - Provider-local collection id.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @param existing - Collection row to reuse for the full update body when already loaded.
    */
-  private async patchCollectionColor(
+  private async patchCollectionMarker(
     serverId: string,
     localId: number,
-    color: string | null | undefined,
+    marker: string | null | undefined,
     existing?: Collection
   ): Promise<Collection> {
     const collection =
@@ -631,7 +631,7 @@ export class TeamHubStorage implements IStorage {
       auth: toTeamHubAuth(collection.auth),
       preRequestScript: collection.pre_request_script,
       postRequestScript: collection.post_request_script,
-      color: serializeSidebarColor(color)
+      marker: serializeSidebarMarker(marker)
     } as Parameters<TeamHubClient['updateCollection']>[1]);
     return serverToCollection(record, localId);
   }
@@ -678,9 +678,9 @@ export class TeamHubStorage implements IStorage {
   /**
    * Environments are stored in the local registry for team hub collections.
    */
-  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+  async setEnvironmentMarker(id: number, marker: string | null): Promise<Environment> {
     void id;
-    void color;
+    void marker;
     throw new Error('Environments are not stored on team hubs.');
   }
 
@@ -872,13 +872,13 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
-   * Updates a saved request's sidebar color.
+   * Updates a saved request's sidebar marker.
    *
    * @param id - Request ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated request.
    */
-  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+  async setRequestMarker(id: number, marker: string | null): Promise<SavedRequest> {
     const { collectionId } = await this.findRequestContainer(id);
     const requests = await this.listRequests(collectionId);
     const existing = requests.find((request) => request.id === id);
@@ -908,7 +908,7 @@ export class TeamHubStorage implements IStorage {
       post_request_scripts: existing.post_request_scripts,
       comment: existing.comment,
       tags: existing.tags,
-      color: serializeSidebarColor(color)
+      marker: serializeSidebarMarker(marker)
     });
   }
 
@@ -954,8 +954,8 @@ export class TeamHubStorage implements IStorage {
         content,
         folderId: folderServerId
       };
-      if (input.color !== undefined) {
-        body.color = serializeSidebarColor(input.color);
+      if (input.marker !== undefined) {
+        body.marker = serializeSidebarMarker(input.marker);
       }
       const record = await this.client.updateDocument(documentServerId, body);
       return this.mapDocumentRecord(record, input.collection_id);
@@ -966,21 +966,21 @@ export class TeamHubStorage implements IStorage {
       content,
       folderId: folderServerId
     };
-    if (input.color !== undefined) {
-      body.color = serializeSidebarColor(input.color);
+    if (input.marker !== undefined) {
+      body.marker = serializeSidebarMarker(input.marker);
     }
     const record = await this.client.createDocument(collectionServerId, body);
     return this.mapDocumentRecord(record, input.collection_id);
   }
 
   /**
-   * Updates a markdown document's sidebar color.
+   * Updates a markdown document's sidebar marker.
    *
    * @param id - Document ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated document.
    */
-  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+  async setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument> {
     const { collectionId } = await this.findDocumentContainer(id);
     const documents = await this.listDocuments(collectionId);
     const existing = documents.find((document) => document.id === id);
@@ -995,7 +995,7 @@ export class TeamHubStorage implements IStorage {
       uuid: existing.uuid,
       name: existing.name,
       content: existing.content,
-      color: serializeSidebarColor(color)
+      marker: serializeSidebarMarker(marker)
     });
   }
 
@@ -1150,11 +1150,11 @@ export class TeamHubStorage implements IStorage {
       settings.preRequestScripts,
       settings.postRequestScripts
     );
-    if (folder.color !== undefined) {
+    if (folder.marker !== undefined) {
       const serverId = this.requireServerId('folder', localFolderId);
       await this.client.renameFolder(serverId, {
         name: folder.name,
-        color: serializeSidebarColor(folder.color)
+        marker: serializeSidebarMarker(folder.marker)
       });
     }
   }
@@ -1247,13 +1247,13 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's sidebar color on the Team Hub server.
+   * Updates a folder's sidebar marker on the Team Hub server.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+  async setFolderMarker(id: number, marker: string | null): Promise<Folder> {
     const serverId = this.requireServerId('folder', id);
     const { collectionId } = await this.findFolderContainer(id);
     const folders = await this.listFolders(collectionId);
@@ -1264,7 +1264,7 @@ export class TeamHubStorage implements IStorage {
 
     const record = await this.client.renameFolder(serverId, {
       name: existing.name,
-      color: serializeSidebarColor(color)
+      marker: serializeSidebarMarker(marker)
     });
     const localCollectionId = this.idMap.toLocalId('collection', record.collectionId);
     return this.mergeFolderSettings(serverToFolder(record, id, localCollectionId), serverId);
@@ -1390,7 +1390,7 @@ export class TeamHubStorage implements IStorage {
       post_request_script: collection.post_request_script,
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
-      color: collection.color ?? null,
+      marker: collection.marker ?? null,
       folders,
       requests,
       documents
@@ -1417,10 +1417,10 @@ export class TeamHubStorage implements IStorage {
       resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
       resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
-    await this.patchCollectionColor(
+    await this.patchCollectionMarker(
       this.requireServerId('collection', updated.id),
       updated.id,
-      exportData.color,
+      exportData.marker,
       updated
     );
 
@@ -1473,7 +1473,7 @@ export class TeamHubStorage implements IStorage {
         post_request_scripts: scripts.post_request_scripts,
         comment: request.comment,
         tags: normalizeRequestTags(request.tags),
-        color: fields.color
+        marker: fields.marker
       });
     }
 
@@ -1491,7 +1491,7 @@ export class TeamHubStorage implements IStorage {
         uuid: fields.uuid,
         name: fields.name,
         content: fields.content,
-        color: fields.color
+        marker: fields.marker
       });
     }
 
@@ -1557,10 +1557,10 @@ export class TeamHubStorage implements IStorage {
       resolveScriptRefs(exportData.pre_request_scripts, exportData.pre_request_script),
       resolveScriptRefs(exportData.post_request_scripts, exportData.post_request_script)
     );
-    await this.patchCollectionColor(
+    await this.patchCollectionMarker(
       this.requireServerId('collection', updated.id),
       updated.id,
-      exportData.color,
+      exportData.marker,
       updated
     );
 
@@ -1623,7 +1623,7 @@ export class TeamHubStorage implements IStorage {
         post_request_scripts: scripts.post_request_scripts,
         comment: fields.comment,
         tags: fields.tags,
-        color: fields.color
+        marker: fields.marker
       });
     }
 
@@ -1647,7 +1647,7 @@ export class TeamHubStorage implements IStorage {
         uuid: fields.uuid,
         name: fields.name,
         content: fields.content,
-        color: fields.color
+        marker: fields.marker
       });
     }
 

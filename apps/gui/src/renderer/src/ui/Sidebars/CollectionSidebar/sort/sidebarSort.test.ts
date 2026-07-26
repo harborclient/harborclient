@@ -10,17 +10,17 @@ import {
 interface Item {
   name: string;
   createdAt: number;
-  color?: string | null;
+  marker?: string | null;
 }
 
 const accessors = {
   name: (item: Item) => item.name,
   createdAt: (item: Item) => item.createdAt,
-  color: (item: Item) => item.color
+  marker: (item: Item) => item.marker
 };
 
 describe('sidebarSortOptions', () => {
-  it('omits Color when hasColor is false', () => {
+  it('omits Marker when hasMarker is false', () => {
     expect(sidebarSortOptions(false).map((option) => option.id)).toEqual([
       'default',
       'name-asc',
@@ -30,8 +30,8 @@ describe('sidebarSortOptions', () => {
     ]);
   });
 
-  it('includes Color when hasColor is true', () => {
-    expect(sidebarSortOptions(true).map((option) => option.id)).toContain('color');
+  it('includes Marker when hasMarker is true', () => {
+    expect(sidebarSortOptions(true).map((option) => option.id)).toContain('marker');
   });
 
   it('uses a custom date label for trash-style deleted timestamps', () => {
@@ -46,10 +46,10 @@ describe('sidebarSortOptions', () => {
 });
 
 describe('sidebarSortIcon', () => {
-  it('uses arrow-up-short-wide for ascending and color modes', () => {
+  it('uses arrow-up-short-wide for ascending and marker modes', () => {
     expect(sidebarSortIcon('name-asc')).toBe(faArrowUpShortWide);
     expect(sidebarSortIcon('created-asc')).toBe(faArrowUpShortWide);
-    expect(sidebarSortIcon('color')).toBe(faArrowUpShortWide);
+    expect(sidebarSortIcon('marker')).toBe(faArrowUpShortWide);
   });
 
   it('uses arrow-down-short-wide for descending and default modes', () => {
@@ -61,9 +61,9 @@ describe('sidebarSortIcon', () => {
 
 describe('sortSidebarItems', () => {
   const items: Item[] = [
-    { name: 'Charlie', createdAt: 300, color: '#ff0000' },
-    { name: 'alpha', createdAt: 100, color: null },
-    { name: 'Bravo', createdAt: 200, color: '#00ff00' }
+    { name: 'Charlie', createdAt: 300, marker: '#ff0000' },
+    { name: 'alpha', createdAt: 100, marker: null },
+    { name: 'Bravo', createdAt: 200, marker: '#00ff00' }
   ];
 
   it('leaves default order unchanged', () => {
@@ -99,8 +99,8 @@ describe('sortSidebarItems', () => {
     ).toEqual([300, 200, 100]);
   });
 
-  it('sorts by color with uncolored items last', () => {
-    expect(sortSidebarItems(items, 'color', accessors).map((item) => item.name)).toEqual([
+  it('sorts by marker with unmarked items last', () => {
+    expect(sortSidebarItems(items, 'marker', accessors).map((item) => item.name)).toEqual([
       'Bravo',
       'Charlie',
       'alpha'

@@ -78,7 +78,7 @@ describe('serializeSidebarExpansion', () => {
       collectionIds: [1, 2],
       folderIds: [9],
       showStorageLocationBadges: false,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: true,

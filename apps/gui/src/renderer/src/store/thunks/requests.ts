@@ -122,7 +122,7 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     post_request_scripts: req.post_request_scripts,
     comment: req.comment ?? '',
     tags: req.tags ?? '',
-    color: req.color ?? null
+    marker: req.marker ?? null
   };
 }
 
@@ -137,14 +137,14 @@ export const exportRequest = createAsyncThunk<CollectionExportResult, SavedReque
 );
 
 /**
- * Persists a request sidebar color and updates the cached collection requests.
+ * Persists a request sidebar marker and updates the cached collection requests.
  */
-export const setRequestSidebarColor = createAsyncThunk<
+export const setRequestSidebarMarker = createAsyncThunk<
   SavedRequest,
-  { collectionId: number; id: number; color: string | null },
+  { collectionId: number; id: number; marker: string | null },
   ThunkApiConfig
->('requests/setSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
-  const request = await window.api.setRequestColor(id, color);
+>('requests/setSidebarMarker', async ({ collectionId, id, marker }, { dispatch }) => {
+  const request = await window.api.setRequestMarker(id, marker);
   dispatch(upsertRequestInCollection({ collectionId, request }));
   return request;
 });

@@ -35,7 +35,7 @@ import {
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
-import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
+import { filterItemsByMarker } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarMarkerFilter';
 import {
   sortSidebarItems,
   toSortTimestamp
@@ -52,7 +52,7 @@ export { EnvironmentsHeaderActions } from './EnvironmentsHeaderActions';
 /**
  * Environment list with active-row highlight, drag reordering, and row actions.
  * Sources environments and the active id from the store, respects the sidebar
- * search and color filters, and dispatches its own environment actions.
+ * search and marker filters, and dispatches its own environment actions.
  */
 export function Environments(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -60,14 +60,14 @@ export function Environments(): JSX.Element {
   const allEnvironments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const { searchFilter, searchActive } = useSidebarSearchContext();
-  const { environmentsColorFilter } = useSidebarSectionFilter();
-  const { showColorDots, sectionSort } = useSidebarExpansion();
-  const colorFilterActive = environmentsColorFilter != null;
+  const { environmentsMarkerFilter } = useSidebarSectionFilter();
+  const { showMarkers, sectionSort } = useSidebarExpansion();
+  const markerFilterActive = environmentsMarkerFilter != null;
   const sortMode = sectionSort.environments;
   const sortActive = sortMode !== 'default';
 
   /**
-   * Environments visible for the current sidebar search and color filters,
+   * Environments visible for the current sidebar search and marker filters,
    * then ordered by the Environments section sort mode.
    */
   const environments = useMemo(() => {
@@ -75,19 +75,19 @@ export function Environments(): JSX.Element {
       searchFilter == null
         ? allEnvironments
         : allEnvironments.filter((environment) => searchFilter.environmentIds.has(environment.id));
-    const filtered = filterItemsByColor(searchMatched, environmentsColorFilter);
+    const filtered = filterItemsByMarker(searchMatched, environmentsMarkerFilter);
     return sortSidebarItems(filtered, sortMode, {
       name: (environment) => environment.name,
       createdAt: (environment) => toSortTimestamp(environment.created_at),
-      color: (environment) => environment.color
+      marker: (environment) => environment.marker
     });
-  }, [allEnvironments, environmentsColorFilter, searchFilter, sortMode]);
+  }, [allEnvironments, environmentsMarkerFilter, searchFilter, sortMode]);
 
   /**
-   * True when search and/or color filter is active but no environments matched.
+   * True when search and/or marker filter is active but no environments matched.
    */
   const noMatches =
-    (searchFilter != null || colorFilterActive) &&
+    (searchFilter != null || markerFilterActive) &&
     allEnvironments.length > 0 &&
     environments.length === 0;
 
@@ -335,15 +335,15 @@ export function Environments(): JSX.Element {
                 ariaSelected={multiSelected}
                 ariaLabel={`${environment.name}, ${variableSummary}`}
                 dataSidebarEnvironmentId={environment.id}
-                colorDot={{
-                  color: environment.color,
-                  visible: showColorDots,
-                  label: `Color for ${environment.name}`
+                markerDot={{
+                  marker: environment.marker,
+                  visible: showMarkers,
+                  label: `Color marker for ${environment.name}`
                 }}
                 sortable={{
                   id: environmentDragId(environment.id),
                   dragHandleLabel: `Reorder environment "${environment.name}"`,
-                  disabled: searchActive || colorFilterActive || sortActive
+                  disabled: searchActive || markerFilterActive || sortActive
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -378,7 +378,7 @@ export function Environments(): JSX.Element {
                     openMenuId={openMenuId}
                     onOpenChange={setOpenMenuId}
                     inspectPoint={inspectPointsByMenuId[menuId]}
-                    reorderEnabled={!searchActive && !colorFilterActive && !sortActive}
+                    reorderEnabled={!searchActive && !markerFilterActive && !sortActive}
                     onMove={(direction) => void moveEnvironment(environment.id, direction)}
                     onConfigure={() => onConfigureEnvironment(environment.id)}
                     onExport={() => void onExportEnvironment(environment.id)}

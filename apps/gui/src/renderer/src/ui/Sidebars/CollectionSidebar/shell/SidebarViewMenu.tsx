@@ -37,9 +37,9 @@ interface Props {
   showStorageLocationBadges: boolean;
 
   /**
-   * Whether color dots are currently shown on sidebar rows.
+   * Whether color marker dots are currently shown on sidebar rows.
    */
-  showColorDots: boolean;
+  showMarkers: boolean;
 
   /**
    * Whether HTTP method badges currently use per-method colors.
@@ -67,9 +67,9 @@ interface Props {
   onToggleStorageLocationBadges: () => void;
 
   /**
-   * Toggles color-dot visibility.
+   * Toggles color marker dot visibility.
    */
-  onToggleColorDots: () => void;
+  onToggleMarkers: () => void;
 
   /**
    * Toggles HTTP method badge colors.
@@ -116,18 +116,18 @@ function getMenuPosition(anchor: HTMLElement | null): MenuPosition | null {
 
 /**
  * Portaled checkbox menu for Collections sidebar display preferences
- * (storage-location badges, colors, method colors, status indicators, filters,
+ * (storage-location badges, color markers, method colors, status indicators, filters,
  * and sorting).
  *
  * @param anchorRef - Toolbar View button used for positioning.
  * @param showStorageLocationBadges - Whether storage badges are visible.
- * @param showColorDots - Whether color dots are visible.
+ * @param showMarkers - Whether color marker dots are visible.
  * @param showMethodColors - Whether method badges use per-method colors.
  * @param showIndicators - Whether status indicators are visible.
  * @param showFilters - Whether section-header filter controls are visible.
  * @param showSorting - Whether section-header sort controls are visible.
  * @param onToggleStorageLocationBadges - Toggles storage badges.
- * @param onToggleColorDots - Toggles color dots.
+ * @param onToggleMarkers - Toggles color marker dots.
  * @param onToggleMethodColors - Toggles method colors.
  * @param onToggleIndicators - Toggles status indicators.
  * @param onToggleFilters - Toggles filter controls.
@@ -137,13 +137,13 @@ function getMenuPosition(anchor: HTMLElement | null): MenuPosition | null {
 export function SidebarViewMenu({
   anchorRef,
   showStorageLocationBadges,
-  showColorDots,
+  showMarkers,
   showMethodColors,
   showIndicators,
   showFilters,
   showSorting,
   onToggleStorageLocationBadges,
-  onToggleColorDots,
+  onToggleMarkers,
   onToggleMethodColors,
   onToggleIndicators,
   onToggleFilters,
@@ -160,19 +160,19 @@ export function SidebarViewMenu({
   const items = [
     {
       id: 'storage-badges',
-      label: 'Storage location badges',
+      label: 'Storage locations',
       checked: showStorageLocationBadges,
       onSelect: onToggleStorageLocationBadges
     },
     {
-      id: 'color-dots',
-      label: 'Colors',
-      checked: showColorDots,
-      onSelect: onToggleColorDots
+      id: 'markers',
+      label: 'Color markers',
+      checked: showMarkers,
+      onSelect: onToggleMarkers
     },
     {
       id: 'method-colors',
-      label: 'Method colors',
+      label: 'Highlights',
       checked: showMethodColors,
       onSelect: onToggleMethodColors
     },

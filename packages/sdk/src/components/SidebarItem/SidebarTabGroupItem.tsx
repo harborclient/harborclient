@@ -1,8 +1,8 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX, MouseEvent, ReactNode } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
-import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
+import { SidebarMarkerDot } from './SidebarMarkerDot.js';
 import { SIDEBAR_ITEM_BUTTON_CLASS } from './sidebarItemClasses.js';
 
 interface Props {
@@ -22,10 +22,10 @@ interface Props {
   icon: IconDefinition;
 
   /**
-   * Optional color dot beside the tab group name.
+   * Optional marker dot beside the tab group name.
    */
-  colorDot?: {
-    color: string | null | undefined;
+  markerDot?: {
+    marker: string | null | undefined;
     visible?: boolean;
     label?: string;
   };
@@ -68,7 +68,7 @@ export function SidebarTabGroupItem({
   name,
   summary,
   icon,
-  colorDot,
+  markerDot,
   selected = false,
   sortable,
   onContextMenu,
@@ -97,11 +97,11 @@ export function SidebarTabGroupItem({
         <FaIcon icon={icon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
           <span className="min-w-0 truncate">{name}</span>
-          {colorDot != null ? (
-            <SidebarColorDot
-              color={colorDot.color}
-              visible={colorDot.visible}
-              label={colorDot.label}
+          {markerDot != null ? (
+            <SidebarMarkerDot
+              marker={markerDot.marker}
+              visible={markerDot.visible}
+              label={markerDot.label}
             />
           ) : null}
         </span>

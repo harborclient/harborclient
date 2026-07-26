@@ -1,11 +1,22 @@
 import { useCallback, useMemo } from 'react';
+import { useStore } from 'react-redux';
 import {
   BUILTIN_ACTIONS,
   pluginActionId,
   type ActionCommandDefinition
 } from '@harborclient/core/search/actions';
+import {
+  DEFAULT_ZOOM_FACTOR,
+  MAX_ZOOM_FACTOR,
+  MIN_ZOOM_FACTOR,
+  roundZoomFactor,
+  ZOOM_STEP
+} from '@harborclient/core/zoomPresets';
 import { usePluginActions } from '#/renderer/src/plugins/pluginHooks';
+import { selectThemeFromMenu } from '#/renderer/src/plugins/selectThemeFromMenu';
+import { openImageView } from '#/renderer/src/plugins/hostImageCommands';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import type { RootState } from '#/renderer/src/store/redux';
 import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
@@ -33,7 +44,6 @@ import {
   runSync,
   saveFromMenu
 } from '#/renderer/src/store/thunks';
-import { openImageView } from '#/renderer/src/plugins/hostImageCommands';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -59,11 +69,24 @@ const GIT_COLLECTION_ACTION_IDS = new Set([
 ]);
 
 /**
+ * Steps the main-window zoom factor up or down by one View-menu step and persists it.
+ *
+ * @param direction - `1` zooms in, `-1` zooms out.
+ */
+async function stepZoom(direction: 1 | -1): Promise<void> {
+  const current = await window.api.getZoomFactor();
+  const next = roundZoomFactor(current + direction * ZOOM_STEP);
+  const clamped = Math.min(MAX_ZOOM_FACTOR, Math.max(MIN_ZOOM_FACTOR, next));
+  await window.api.setZoomFactor(clamped);
+}
+
+/**
  * Merges built-in menu actions with plugin-registered Action menu contributions and
  * dispatches the matching handler when the user selects a row.
  */
 export function useActionCommands(): UseActionCommandsResult {
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const pluginActions = usePluginActions();
   const {
     isActiveCollectionGit,
@@ -78,7 +101,9 @@ export function useActionCommands(): UseActionCommandsResult {
   const {
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible
+    toggleRunResultsSectionVisible,
+    toggleFilters,
+    toggleSorting
   } = useSidebarExpansion();
 
   /**
@@ -195,6 +220,36 @@ export function useActionCommands(): UseActionCommandsResult {
       'builtin:toggle-terminal': () => {
         dispatch(toggleTerminal());
       },
+      'builtin:toggle-filters': () => {
+        toggleFilters();
+      },
+      'builtin:toggle-sorting': () => {
+        toggleSorting();
+      },
+      'builtin:toggle-fullscreen': () => {
+        void window.api.toggleFullscreenWindow();
+      },
+      'builtin:zoom-in': () => {
+        void stepZoom(1);
+      },
+      'builtin:zoom-out': () => {
+        void stepZoom(-1);
+      },
+      'builtin:reset-zoom': () => {
+        void window.api.setZoomFactor(DEFAULT_ZOOM_FACTOR);
+      },
+      'builtin:theme-light': () => {
+        void selectThemeFromMenu(dispatch, store.getState, 'light', 'Light');
+      },
+      'builtin:theme-dark': () => {
+        void selectThemeFromMenu(dispatch, store.getState, 'dark', 'Dark');
+      },
+      'builtin:theme-high-contrast': () => {
+        void selectThemeFromMenu(dispatch, store.getState, 'high-contrast', 'High contrast');
+      },
+      'builtin:theme-system': () => {
+        void selectThemeFromMenu(dispatch, store.getState, 'system', 'System');
+      },
       'builtin:toggle-collections-section': () => {
         toggleCollectionsSectionVisible();
       },
@@ -223,9 +278,12 @@ export function useActionCommands(): UseActionCommandsResult {
       mergeActiveCollection,
       pullActiveCollection,
       pushActiveCollection,
+      store,
       toggleCollectionsSectionVisible,
       toggleEnvironmentsSectionVisible,
-      toggleRunResultsSectionVisible
+      toggleFilters,
+      toggleRunResultsSectionVisible,
+      toggleSorting
     ]
   );
 

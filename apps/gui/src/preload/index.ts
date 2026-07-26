@@ -185,13 +185,13 @@ function updateCollection(
 }
 
 /**
- * Updates a collection sidebar color via IPC.
+ * Updates a collection sidebar marker via IPC.
  *
  * @param id - Collection ID to update.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setCollectionColor(id: number, color: string | null): Promise<Collection> {
-  return ipcRenderer.invoke('collections:setColor', id, color);
+function setCollectionMarker(id: number, marker: string | null): Promise<Collection> {
+  return ipcRenderer.invoke('collections:setMarker', id, marker);
 }
 
 /**
@@ -417,13 +417,13 @@ function reorderTabGroups(orderedTabGroupIds: number[]): Promise<TabGroup[]> {
 }
 
 /**
- * Updates a tab group sidebar color and returns the refreshed list.
+ * Updates a tab group sidebar marker and returns the refreshed list.
  *
  * @param id - Tab group id.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setTabGroupColor(id: number, color: string | null): Promise<TabGroup[]> {
-  return ipcRenderer.invoke('tabGroups:setColor', id, color);
+function setTabGroupMarker(id: number, marker: string | null): Promise<TabGroup[]> {
+  return ipcRenderer.invoke('tabGroups:setMarker', id, marker);
 }
 
 /**
@@ -534,13 +534,13 @@ function updateEnvironment(id: number, name: string, variables: Variable[]): Pro
 }
 
 /**
- * Updates an environment sidebar color via IPC.
+ * Updates an environment sidebar marker via IPC.
  *
  * @param id - Environment ID to update.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
-  return ipcRenderer.invoke('environments:setColor', id, color);
+function setEnvironmentMarker(id: number, marker: string | null): Promise<Environment> {
+  return ipcRenderer.invoke('environments:setMarker', id, marker);
 }
 
 /**
@@ -791,13 +791,13 @@ function saveRequest(req: SaveRequestInput): Promise<SavedRequest> {
 }
 
 /**
- * Updates a saved request sidebar color via IPC.
+ * Updates a saved request sidebar marker via IPC.
  *
  * @param id - Request ID to update.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
-  return ipcRenderer.invoke('requests:setColor', id, color);
+function setRequestMarker(id: number, marker: string | null): Promise<SavedRequest> {
+  return ipcRenderer.invoke('requests:setMarker', id, marker);
 }
 
 /**
@@ -884,13 +884,13 @@ function updateFolder(
 }
 
 /**
- * Updates a folder sidebar color via IPC.
+ * Updates a folder sidebar marker via IPC.
  *
  * @param id - Folder ID to update.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setFolderColor(id: number, color: string | null): Promise<Folder> {
-  return ipcRenderer.invoke('folders:setColor', id, color);
+function setFolderMarker(id: number, marker: string | null): Promise<Folder> {
+  return ipcRenderer.invoke('folders:setMarker', id, marker);
 }
 
 /**
@@ -974,13 +974,13 @@ function saveDocument(input: SaveDocumentInput): Promise<CollectionDocument> {
 }
 
 /**
- * Updates a markdown document sidebar color via IPC.
+ * Updates a markdown document sidebar marker via IPC.
  *
  * @param id - Document ID to update.
- * @param color - CSS color string, or null to clear.
+ * @param marker - CSS marker string, or null to clear.
  */
-function setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
-  return ipcRenderer.invoke('documents:setColor', id, color);
+function setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument> {
+  return ipcRenderer.invoke('documents:setMarker', id, marker);
 }
 
 /**
@@ -1463,6 +1463,13 @@ function minimizeWindow(): Promise<void> {
  */
 function toggleMaximizeWindow(): Promise<void> {
   return ipcRenderer.invoke('window:toggleMaximize');
+}
+
+/**
+ * Toggles native fullscreen on the focused application window.
+ */
+function toggleFullscreenWindow(): Promise<void> {
+  return ipcRenderer.invoke('window:toggleFullscreen');
 }
 
 /**
@@ -3914,7 +3921,7 @@ const api: Api = {
   listCollections,
   createCollection,
   updateCollection,
-  setCollectionColor,
+  setCollectionMarker,
   setCollectionArchived,
   deleteCollection,
   duplicateCollection,
@@ -3939,7 +3946,7 @@ const api: Api = {
   cloneTabGroup,
   deleteTabGroup,
   reorderTabGroups,
-  setTabGroupColor,
+  setTabGroupMarker,
   importTabGroup,
   listTrashItems,
   restoreTrashItem,
@@ -3952,7 +3959,7 @@ const api: Api = {
   reorderEnvironments,
   createEnvironment,
   updateEnvironment,
-  setEnvironmentColor,
+  setEnvironmentMarker,
   deleteEnvironment,
   duplicateEnvironment,
   exportEnvironment,
@@ -3976,13 +3983,13 @@ const api: Api = {
   importEntity,
   listRequests,
   saveRequest,
-  setRequestColor,
+  setRequestMarker,
   deleteRequest,
   listFolders,
   createFolder,
   renameFolder,
   updateFolder,
-  setFolderColor,
+  setFolderMarker,
   deleteFolder,
   reorderFolders,
   reorderRequests,
@@ -3990,7 +3997,7 @@ const api: Api = {
   reorderContainerItems,
   listDocuments,
   saveDocument,
-  setDocumentColor,
+  setDocumentMarker,
   deleteDocument,
   reorderDocuments,
   moveDocument,
@@ -4042,6 +4049,7 @@ const api: Api = {
   inspectElement,
   minimizeWindow,
   toggleMaximizeWindow,
+  toggleFullscreenWindow,
   closeWindow,
   getGeneralSettings,
   setGeneralSettings,

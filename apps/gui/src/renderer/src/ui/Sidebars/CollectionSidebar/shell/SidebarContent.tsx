@@ -81,8 +81,8 @@ export function SidebarContent(): JSX.Element {
     expandedFolderIds,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
-    showColorDots,
-    toggleColorDots,
+    showMarkers,
+    toggleMarkers,
     showMethodColors,
     toggleMethodColors,
     showIndicators,
@@ -218,7 +218,7 @@ export function SidebarContent(): JSX.Element {
   const toolbarToggles = useMemo((): ToolbarAction[] => {
     const viewOptionsActive =
       showStorageLocationBadges ||
-      showColorDots ||
+      showMarkers ||
       showMethodColors ||
       showIndicators ||
       showFilters ||
@@ -239,13 +239,13 @@ export function SidebarContent(): JSX.Element {
           <SidebarViewMenu
             anchorRef={viewMenuButtonRef}
             showStorageLocationBadges={showStorageLocationBadges}
-            showColorDots={showColorDots}
+            showMarkers={showMarkers}
             showMethodColors={showMethodColors}
             showIndicators={showIndicators}
             showFilters={showFilters}
             showSorting={showSorting}
             onToggleStorageLocationBadges={toggleStorageLocationBadges}
-            onToggleColorDots={toggleColorDots}
+            onToggleMarkers={toggleMarkers}
             onToggleMethodColors={toggleMethodColors}
             onToggleIndicators={toggleIndicators}
             onToggleFilters={toggleFilters}
@@ -264,13 +264,13 @@ export function SidebarContent(): JSX.Element {
     ];
   }, [
     handleCollapseAll,
-    showColorDots,
+    showMarkers,
     showFilters,
     showIndicators,
     showMethodColors,
     showSorting,
     showStorageLocationBadges,
-    toggleColorDots,
+    toggleMarkers,
     toggleFilters,
     toggleIndicators,
     toggleMethodColors,

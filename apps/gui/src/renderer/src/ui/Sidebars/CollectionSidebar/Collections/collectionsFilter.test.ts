@@ -7,7 +7,7 @@ import type {
 } from '@harborclient/core/types';
 import {
   buildCollectionsTreeFilter,
-  collectCollectionsTreeColors,
+  collectCollectionsTreeMarkers,
   collectCollectionsTreeStorageLocations,
   EMPTY_COLLECTIONS_FILTER,
   isCollectionsFilterActive,
@@ -120,11 +120,11 @@ function makeInput(): CollectionsFilterInput {
   return {
     primaryConnectionId: 'local-sqlite',
     collections: [
-      makeCollection({ id: 1, connectionId: 'local-sqlite', color: '#b91c1c' }),
+      makeCollection({ id: 1, connectionId: 'local-sqlite', marker: '#b91c1c' }),
       makeCollection({ id: 2, connectionId: 'remote-pg', name: 'Remote' })
     ],
     foldersByCollection: {
-      1: [makeFolder({ id: 10, collection_id: 1, color: '#0d9488' })],
+      1: [makeFolder({ id: 10, collection_id: 1, marker: '#0d9488' })],
       2: [makeFolder({ id: 20, collection_id: 2 })]
     },
     requestsByCollection: {
@@ -135,16 +135,16 @@ function makeInput(): CollectionsFilterInput {
           collection_id: 1,
           method: 'POST',
           folder_id: 10,
-          color: '#3b82f6'
+          marker: '#3b82f6'
         })
       ],
       2: [
-        makeRequest({ id: 200, collection_id: 2, method: 'GET', folder_id: 20, color: '#B91C1C' })
+        makeRequest({ id: 200, collection_id: 2, method: 'GET', folder_id: 20, marker: '#B91C1C' })
       ]
     },
     documentsByCollection: {
       1: [
-        makeDocument({ id: 1000, collection_id: 1, folder_id: null, color: '#9333ea' }),
+        makeDocument({ id: 1000, collection_id: 1, folder_id: null, marker: '#9333ea' }),
         makeDocument({ id: 1001, collection_id: 1, folder_id: 10 })
       ],
       2: [makeDocument({ id: 2000, collection_id: 2, folder_id: null })]
@@ -165,25 +165,25 @@ describe('isCollectionsFilterActive', () => {
     expect(
       isCollectionsFilterActive({ ...EMPTY_COLLECTIONS_FILTER, documentType: 'request' })
     ).toBe(true);
-    expect(isCollectionsFilterActive({ ...EMPTY_COLLECTIONS_FILTER, color: '#fff' })).toBe(true);
+    expect(isCollectionsFilterActive({ ...EMPTY_COLLECTIONS_FILTER, marker: '#fff' })).toBe(true);
   });
 });
 
-describe('collectCollectionsTreeColors', () => {
-  it('deduplicates colors that match case-insensitively and sorts them', () => {
-    const colors = collectCollectionsTreeColors(makeInput());
-    expect(colors).toEqual(['#0d9488', '#3b82f6', '#9333ea', '#b91c1c']);
+describe('collectCollectionsTreeMarkers', () => {
+  it('deduplicates markers that match case-insensitively and sorts them', () => {
+    const markers = collectCollectionsTreeMarkers(makeInput());
+    expect(markers).toEqual(['#0d9488', '#3b82f6', '#9333ea', '#b91c1c']);
   });
 
-  it('returns an empty list when no colors are assigned', () => {
-    const colors = collectCollectionsTreeColors({
+  it('returns an empty list when no markers are assigned', () => {
+    const markers = collectCollectionsTreeMarkers({
       primaryConnectionId: 'local-sqlite',
       collections: [makeCollection({ id: 1 })],
       foldersByCollection: {},
       requestsByCollection: {},
       documentsByCollection: {}
     });
-    expect(colors).toEqual([]);
+    expect(markers).toEqual([]);
   });
 });
 
@@ -306,10 +306,10 @@ describe('buildCollectionsTreeFilter', () => {
     expect([...filter!.collectionIds].sort()).toEqual([1, 2]);
   });
 
-  it('matches color on items and includes ancestor folders and collections', () => {
+  it('matches marker on items and includes ancestor folders and collections', () => {
     const filter = buildCollectionsTreeFilter(makeInput(), {
       ...EMPTY_COLLECTIONS_FILTER,
-      color: '#3b82f6'
+      marker: '#3b82f6'
     });
     expect([...filter!.requestIds]).toEqual([101]);
     expect([...filter!.folderIds]).toEqual([10]);
@@ -317,10 +317,10 @@ describe('buildCollectionsTreeFilter', () => {
     expect([...filter!.documentIds]).toEqual([]);
   });
 
-  it('includes collections and folders that match color directly', () => {
+  it('includes collections and folders that match marker directly', () => {
     const filter = buildCollectionsTreeFilter(makeInput(), {
       ...EMPTY_COLLECTIONS_FILTER,
-      color: '#0d9488'
+      marker: '#0d9488'
     });
     expect([...filter!.folderIds]).toEqual([10]);
     expect([...filter!.collectionIds]).toEqual([1]);
@@ -328,10 +328,10 @@ describe('buildCollectionsTreeFilter', () => {
     expect([...filter!.documentIds]).toEqual([]);
   });
 
-  it('compares colors case-insensitively', () => {
+  it('compares markers case-insensitively', () => {
     const filter = buildCollectionsTreeFilter(makeInput(), {
       ...EMPTY_COLLECTIONS_FILTER,
-      color: '#b91c1c'
+      marker: '#b91c1c'
     });
     expect([...filter!.collectionIds].sort()).toEqual([1, 2]);
     expect([...filter!.requestIds]).toEqual([200]);

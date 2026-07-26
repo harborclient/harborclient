@@ -121,7 +121,7 @@ describe('entityMappers', () => {
         name: 'Production',
         variables: [{ key: 'token', value: 'secret', defaultValue: '', share: false }],
         created_at: '2024-01-02T00:00:00.000Z',
-        color: null
+        marker: null
       });
     });
 
@@ -138,7 +138,7 @@ describe('entityMappers', () => {
       expect(rowToFolder(row)).toEqual({
         ...row,
         ...FOLDER_SETTINGS_DEFAULTS,
-        color: null
+        marker: null
       });
     });
 
@@ -218,7 +218,7 @@ describe('entityMappers', () => {
         pre_request_scripts: [],
         post_request_scripts: [],
         created_at: '2024-02-01T00:00:00.000Z',
-        color: null
+        marker: null
       });
     });
 

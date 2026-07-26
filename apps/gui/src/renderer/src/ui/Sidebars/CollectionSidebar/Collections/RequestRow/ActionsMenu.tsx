@@ -144,7 +144,7 @@ interface Props {
 
 /**
  * Builds and renders the request row actions menu, switching between bulk and
- * single-item menus (including color picker) based on selection size.
+ * single-item menus (including marker picker) based on selection size.
  */
 export function ActionsMenu(props: Props): JSX.Element {
   const confirm = useConfirm();
@@ -319,11 +319,11 @@ export function ActionsMenu(props: Props): JSX.Element {
       openMenuId={props.openMenuId}
       onOpenChange={props.onOpenChange}
       groups={baseMenuGroups}
-      colorTarget={{
+      markerTarget={{
         kind: 'request',
         collectionId: props.req.collection_id,
         id: props.req.id,
-        color: props.req.color ?? null
+        marker: props.req.marker ?? null
       }}
     />
   );

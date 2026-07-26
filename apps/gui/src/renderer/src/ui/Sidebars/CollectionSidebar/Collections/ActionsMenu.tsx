@@ -20,7 +20,7 @@ interface Props {
   /**
    * Collection identity and display fields used by menu actions.
    */
-  collection: Pick<Collection, 'id' | 'name' | 'uuid' | 'color'>;
+  collection: Pick<Collection, 'id' | 'name' | 'uuid' | 'marker'>;
 
   /**
    * Zero-based index of this collection among sortable sidebar collections.
@@ -379,10 +379,10 @@ export function ActionsMenu({
       menuId={menuId}
       openMenuId={openMenuId}
       onOpenChange={onOpenChange}
-      colorTarget={{
+      markerTarget={{
         kind: 'collection',
         id: collection.id,
-        color: collection.color ?? null
+        marker: collection.marker ?? null
       }}
       groups={menuGroups}
     />

@@ -26,7 +26,7 @@ export type SidebarSortMode =
   | 'name-desc'
   | 'created-asc'
   | 'created-desc'
-  | 'color';
+  | 'marker';
 
 /**
  * Persisted sidebar expansion state for sections, collections, and folders.
@@ -133,9 +133,9 @@ export interface SidebarExpansionState {
   showStorageLocationBadges: boolean;
 
   /**
-   * Whether user-assigned color dots appear beside sidebar row names.
+   * Whether user-assigned color marker dots appear beside sidebar row names.
    */
-  showColorDots: boolean;
+  showMarkers: boolean;
 
   /**
    * Whether HTTP method badges use per-method colors in the sidebar.

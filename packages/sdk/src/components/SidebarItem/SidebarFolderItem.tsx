@@ -1,8 +1,8 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
-import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
+import { SidebarMarkerDot } from './SidebarMarkerDot.js';
 import {
   SIDEBAR_CHEVRON_BUTTON_CLASS,
   SIDEBAR_CHEVRON_ICON_CLASS,
@@ -47,10 +47,10 @@ interface Props {
   ariaLabel?: string;
 
   /**
-   * Optional color dot beside the folder name.
+   * Optional marker dot beside the folder name.
    */
-  colorDot?: {
-    color: string | null | undefined;
+  markerDot?: {
+    marker: string | null | undefined;
     visible?: boolean;
     label?: string;
   };
@@ -113,7 +113,7 @@ interface Props {
 }
 
 /**
- * Renders a collection folder row with expand/collapse control, optional color dot,
+ * Renders a collection folder row with expand/collapse control, optional marker dot,
  * and optional drag-drop highlight affordance. Chevron size and label spacing use
  * the shared `SIDEBAR_CHEVRON_*` classes (Cursor-like explorer twisties).
  *
@@ -127,7 +127,7 @@ export function SidebarFolderItem({
   setSize,
   posInSet,
   ariaLabel,
-  colorDot,
+  markerDot,
   dropHighlighted = false,
   selected = false,
   sortable,
@@ -203,11 +203,11 @@ export function SidebarFolderItem({
       >
         <span className="inline-flex min-w-0 items-center gap-1.5">
           {name}
-          {colorDot != null ? (
-            <SidebarColorDot
-              color={colorDot.color}
-              visible={colorDot.visible}
-              label={colorDot.label}
+          {markerDot != null ? (
+            <SidebarMarkerDot
+              marker={markerDot.marker}
+              visible={markerDot.visible}
+              label={markerDot.label}
             />
           ) : null}
         </span>

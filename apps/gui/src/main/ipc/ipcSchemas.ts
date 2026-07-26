@@ -92,9 +92,9 @@ export const publicKeyPem = z.string();
 export const name = z.string().trim().min(1, 'name is required');
 
 /**
- * Optional sidebar item color for IPC setColor handlers.
+ * Optional sidebar item marker for IPC setMarker handlers.
  */
-export const sidebarColor = z.union([z.string().trim().min(1), z.null()]);
+export const sidebarMarker = z.union([z.string().trim().min(1), z.null()]);
 
 export const themeSource = z.union([
   z.enum(['light', 'dark', 'system', 'high-contrast']),
@@ -625,7 +625,7 @@ export const sidebarExpansion = z.object({
       'name-desc',
       'created-asc',
       'created-desc',
-      'color'
+      'marker'
     ]),
     environments: z.enum([
       'default',
@@ -633,7 +633,7 @@ export const sidebarExpansion = z.object({
       'name-desc',
       'created-asc',
       'created-desc',
-      'color'
+      'marker'
     ]),
     runResults: z.enum([
       'default',
@@ -641,17 +641,24 @@ export const sidebarExpansion = z.object({
       'name-desc',
       'created-asc',
       'created-desc',
-      'color'
+      'marker'
     ]),
-    history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
-    tabGroups: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
-    archive: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color']),
-    trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'color'])
+    history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
+    tabGroups: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'marker'
+    ]),
+    archive: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
+    trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker'])
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
   showStorageLocationBadges: z.boolean(),
-  showColorDots: z.boolean(),
+  showMarkers: z.boolean(),
   showMethodColors: z.boolean(),
   showIndicators: z.boolean(),
   showFilters: z.boolean(),
@@ -686,7 +693,7 @@ export const tabGroupRequest = z.object({
 export const createTabGroupInput = z.object({
   name: z.string().trim().min(1),
   requests: z.array(tabGroupRequest),
-  color: sidebarColor.optional()
+  marker: sidebarMarker.optional()
 }) satisfies z.ZodType<CreateTabGroupInput>;
 
 export const panelLayout = z.object({
@@ -1167,13 +1174,13 @@ export const ipcArgSchemas = {
   tabGroupsClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   tabGroupsDelete: z.tuple([z.number().int().positive()]),
   tabGroupsReorder: z.tuple([z.array(dbId)]),
-  tabGroupsSetColor: z.tuple([dbId, sidebarColor]),
-  collectionsSetColor: z.tuple([dbId, sidebarColor]),
+  tabGroupsSetMarker: z.tuple([dbId, sidebarMarker]),
+  collectionsSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetArchived: z.tuple([dbId, z.boolean()]),
-  foldersSetColor: z.tuple([dbId, sidebarColor]),
-  requestsSetColor: z.tuple([dbId, sidebarColor]),
-  documentsSetColor: z.tuple([dbId, sidebarColor]),
-  environmentsSetColor: z.tuple([dbId, sidebarColor]),
+  foldersSetMarker: z.tuple([dbId, sidebarMarker]),
+  requestsSetMarker: z.tuple([dbId, sidebarMarker]),
+  documentsSetMarker: z.tuple([dbId, sidebarMarker]),
+  environmentsSetMarker: z.tuple([dbId, sidebarMarker]),
   terminalCreate: z.tuple([
     z.object({
       id: z.string().min(1),

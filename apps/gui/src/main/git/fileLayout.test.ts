@@ -94,7 +94,7 @@ describe('git file layout', () => {
           content: '# Notes',
           sort_order: 0,
           folder_name: null,
-          color: null
+          marker: null
         }
       ]
     });
@@ -367,7 +367,7 @@ describe('git file layout', () => {
             content: '# A',
             sort_order: 0,
             folder_name: null,
-            color: null
+            marker: null
           }
         ]
       })
@@ -394,7 +394,7 @@ describe('git file layout', () => {
             content: '# A',
             sort_order: 0,
             folder_name: null,
-            color: null
+            marker: null
           }
         ]
       })
@@ -411,7 +411,7 @@ describe('git file layout', () => {
             content: '# B',
             sort_order: 0,
             folder_name: null,
-            color: null
+            marker: null
           }
         ]
       })
@@ -462,7 +462,7 @@ describe('git file layout', () => {
             name: 'README.md',
             folder_uuid: null,
             sort_order: 0,
-            color: null
+            marker: null
           }
         ]
       }),

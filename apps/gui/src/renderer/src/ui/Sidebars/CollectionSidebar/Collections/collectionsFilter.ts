@@ -7,19 +7,19 @@ import type {
 } from '@harborclient/core/types';
 
 /**
- * Normalizes a CSS color string to lowercase for comparison.
+ * Normalizes a CSS marker string to lowercase for comparison.
  *
- * @param value - Raw color string from storage or user input.
+ * @param value - Raw marker string from storage or user input.
  */
 function normalizeCssColor(value: string): string {
   return value.trim().toLowerCase();
 }
 
 /**
- * Returns whether two CSS color strings represent the same color.
+ * Returns whether two CSS marker strings represent the same marker.
  *
- * @param a - First color string.
- * @param b - Second color string.
+ * @param a - First marker string.
+ * @param b - Second marker string.
  */
 function colorsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
   if (a == null || b == null) {
@@ -54,9 +54,9 @@ export interface CollectionsFilterCriteria {
   documentType: CollectionsFilterDocumentType | null;
 
   /**
-   * CSS color string to match against sidebar item colors, or null for all colors.
+   * CSS marker string to match against sidebar item markers, or null for all markers.
    */
-  color: string | null;
+  marker: string | null;
 }
 
 /**
@@ -121,7 +121,7 @@ export const EMPTY_COLLECTIONS_FILTER: CollectionsFilterCriteria = {
   storageLocationId: null,
   method: null,
   documentType: null,
-  color: null
+  marker: null
 };
 
 /**
@@ -134,64 +134,64 @@ export function isCollectionsFilterActive(criteria: CollectionsFilterCriteria): 
     criteria.storageLocationId != null ||
     criteria.method != null ||
     criteria.documentType != null ||
-    criteria.color != null
+    criteria.marker != null
   );
 }
 
 /**
- * Returns whether the filter has leaf-item criteria (method, document type, or color).
+ * Returns whether the filter has leaf-item criteria (method, document type, or marker).
  * When only storage location is set, the entire matching collection trees are shown.
  *
  * @param criteria - Applied or draft filter criteria.
  */
 function hasLeafFilterCriteria(criteria: CollectionsFilterCriteria): boolean {
-  return criteria.method != null || criteria.documentType != null || criteria.color != null;
+  return criteria.method != null || criteria.documentType != null || criteria.marker != null;
 }
 
 /**
- * Collects unique CSS colors assigned to collections-tree items (collections,
+ * Collects unique CSS markers assigned to collections-tree items (collections,
  * folders, requests, and markdown documents), sorted for stable UI order.
  *
  * @param input - Sidebar entity maps currently available in the renderer store.
- * @returns Deduplicated color strings (normalized for comparison, original first-seen form kept).
+ * @returns Deduplicated marker strings (normalized for comparison, original first-seen form kept).
  */
-export function collectCollectionsTreeColors(input: CollectionsFilterInput): string[] {
+export function collectCollectionsTreeMarkers(input: CollectionsFilterInput): string[] {
   const seen = new Map<string, string>();
 
   /**
-   * Records a color if non-empty and not already present under a matching key.
+   * Records a marker if non-empty and not already present under a matching key.
    *
-   * @param color - Optional CSS color from a sidebar entity.
+   * @param marker - Optional CSS marker from a sidebar entity.
    */
-  const addColor = (color: string | null | undefined): void => {
-    if (color == null || color.trim() === '') {
+  const addMarker = (marker: string | null | undefined): void => {
+    if (marker == null || marker.trim() === '') {
       return;
     }
-    const key = normalizeCssColor(color);
+    const key = normalizeCssColor(marker);
     if (!seen.has(key)) {
-      seen.set(key, color.trim());
+      seen.set(key, marker.trim());
     }
   };
 
   for (const collection of input.collections) {
-    addColor(collection.color);
+    addMarker(collection.marker);
   }
 
   for (const folders of Object.values(input.foldersByCollection)) {
     for (const folder of folders) {
-      addColor(folder.color);
+      addMarker(folder.marker);
     }
   }
 
   for (const requests of Object.values(input.requestsByCollection)) {
     for (const request of requests) {
-      addColor(request.color);
+      addMarker(request.marker);
     }
   }
 
   for (const documents of Object.values(input.documentsByCollection)) {
     for (const document of documents) {
-      addColor(document.color);
+      addMarker(document.marker);
     }
   }
 
@@ -271,7 +271,7 @@ function requestMatchesCriteria(
   if (criteria.method != null && request.method !== criteria.method) {
     return false;
   }
-  if (criteria.color != null && !colorsMatch(request.color, criteria.color)) {
+  if (criteria.marker != null && !colorsMatch(request.marker, criteria.marker)) {
     return false;
   }
   return true;
@@ -294,7 +294,7 @@ function documentMatchesCriteria(
   if (criteria.documentType != null && criteria.documentType !== 'document') {
     return false;
   }
-  if (criteria.color != null && !colorsMatch(document.color, criteria.color)) {
+  if (criteria.marker != null && !colorsMatch(document.marker, criteria.marker)) {
     return false;
   }
   return true;
@@ -343,8 +343,8 @@ export function buildCollectionsTreeFilter(
       continue;
     }
 
-    const collectionColorMatch =
-      criteria.color != null && colorsMatch(collection.color, criteria.color);
+    const collectionMarkerMatch =
+      criteria.marker != null && colorsMatch(collection.marker, criteria.marker);
     let hasVisibleDescendant = false;
 
     for (const request of input.requestsByCollection[collection.id] ?? []) {
@@ -370,14 +370,15 @@ export function buildCollectionsTreeFilter(
     }
 
     for (const folder of input.foldersByCollection[collection.id] ?? []) {
-      const folderColorMatch = criteria.color != null && colorsMatch(folder.color, criteria.color);
-      if (folderColorMatch) {
+      const folderMarkerMatch =
+        criteria.marker != null && colorsMatch(folder.marker, criteria.marker);
+      if (folderMarkerMatch) {
         folderIds.add(folder.id);
         hasVisibleDescendant = true;
       }
     }
 
-    if (collectionColorMatch || hasVisibleDescendant) {
+    if (collectionMarkerMatch || hasVisibleDescendant) {
       collectionIds.add(collection.id);
     }
   }

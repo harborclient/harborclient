@@ -28,13 +28,13 @@ export interface ApiEnvironments {
    */
   updateEnvironment: (id: number, name: string, variables: Variable[]) => Promise<Environment>;
   /**
-   * Updates an environment sidebar color.
+   * Updates an environment sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  setEnvironmentColor: (id: number, color: string | null) => Promise<Environment>;
+  setEnvironmentMarker: (id: number, marker: string | null) => Promise<Environment>;
   /**
    * Deletes an environment.
    *

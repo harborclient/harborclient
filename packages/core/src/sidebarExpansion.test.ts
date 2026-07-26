@@ -34,7 +34,7 @@ describe('defaultSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -87,7 +87,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -133,7 +133,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -180,7 +180,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -228,7 +228,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: false,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -236,14 +236,14 @@ describe('normalizeSidebarExpansion', () => {
     });
   });
 
-  it('preserves persisted color dot visibility flag', () => {
+  it('preserves persisted marker dot visibility flag', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
-        showColorDots: false
+        showMarkers: false
       })
     ).toEqual({
       sections: {
@@ -276,7 +276,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: false,
+      showMarkers: false,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,
@@ -284,7 +284,7 @@ describe('normalizeSidebarExpansion', () => {
     });
   });
 
-  it('preserves persisted method color visibility flag', () => {
+  it('preserves persisted method marker visibility flag', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
@@ -324,7 +324,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: false,
       showIndicators: true,
       showFilters: false,
@@ -372,7 +372,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: false,
       showFilters: false,
@@ -421,7 +421,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: true,
@@ -438,7 +438,7 @@ describe('normalizeSidebarExpansion', () => {
         folderIds: [],
         sectionSort: {
           collections: 'name-asc',
-          environments: 'color',
+          environments: 'marker',
           runResults: 'created-desc',
           history: 'not-a-mode',
           tabGroups: 'name-desc',
@@ -469,7 +469,7 @@ describe('normalizeSidebarExpansion', () => {
       folderIds: [],
       sectionSort: {
         collections: 'name-asc',
-        environments: 'color',
+        environments: 'marker',
         runResults: 'created-desc',
         history: 'default',
         tabGroups: 'name-desc',
@@ -477,7 +477,7 @@ describe('normalizeSidebarExpansion', () => {
         trash: 'default'
       },
       showStorageLocationBadges: true,
-      showColorDots: true,
+      showMarkers: true,
       showMethodColors: true,
       showIndicators: true,
       showFilters: false,

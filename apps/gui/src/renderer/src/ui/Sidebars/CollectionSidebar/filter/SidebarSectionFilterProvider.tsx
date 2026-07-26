@@ -26,9 +26,9 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
     useState<CollectionsFilterCriteria>(EMPTY_COLLECTIONS_FILTER);
   const [runsCollectionFilter, setRunsCollectionFilter] = useState<string | null>(null);
   const [historyCollectionFilter, setHistoryCollectionFilter] = useState<number | null>(null);
-  const [tabGroupsColorFilter, setTabGroupsColorFilter] = useState<string | null>(null);
-  const [environmentsColorFilter, setEnvironmentsColorFilter] = useState<string | null>(null);
-  const [archiveColorFilter, setArchiveColorFilter] = useState<string | null>(null);
+  const [tabGroupsMarkerFilter, setTabGroupsMarkerFilter] = useState<string | null>(null);
+  const [environmentsMarkerFilter, setEnvironmentsMarkerFilter] = useState<string | null>(null);
+  const [archiveMarkerFilter, setArchiveMarkerFilter] = useState<string | null>(null);
 
   /**
    * Clears every section filter so lists show unfiltered content (used when the
@@ -38,9 +38,9 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
     setCollectionsFilter(EMPTY_COLLECTIONS_FILTER);
     setRunsCollectionFilter(null);
     setHistoryCollectionFilter(null);
-    setTabGroupsColorFilter(null);
-    setEnvironmentsColorFilter(null);
-    setArchiveColorFilter(null);
+    setTabGroupsMarkerFilter(null);
+    setEnvironmentsMarkerFilter(null);
+    setArchiveMarkerFilter(null);
   }, []);
 
   /**
@@ -62,22 +62,22 @@ export function SidebarSectionFilterProvider({ children }: Props): JSX.Element {
       setRunsCollectionFilter,
       historyCollectionFilter,
       setHistoryCollectionFilter,
-      tabGroupsColorFilter,
-      setTabGroupsColorFilter,
-      environmentsColorFilter,
-      setEnvironmentsColorFilter,
-      archiveColorFilter,
-      setArchiveColorFilter,
+      tabGroupsMarkerFilter,
+      setTabGroupsMarkerFilter,
+      environmentsMarkerFilter,
+      setEnvironmentsMarkerFilter,
+      archiveMarkerFilter,
+      setArchiveMarkerFilter,
       clearAllSectionFilters
     }),
     [
-      archiveColorFilter,
+      archiveMarkerFilter,
       clearAllSectionFilters,
       collectionsFilter,
-      environmentsColorFilter,
+      environmentsMarkerFilter,
       historyCollectionFilter,
       runsCollectionFilter,
-      tabGroupsColorFilter
+      tabGroupsMarkerFilter
     ]
   );
 

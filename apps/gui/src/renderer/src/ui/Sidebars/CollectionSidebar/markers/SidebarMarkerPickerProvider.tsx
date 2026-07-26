@@ -6,9 +6,9 @@ import {
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useRef, useState, type JSX, type ReactNode } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
-import { dispatchSidebarColor } from './sidebarColorDispatch';
-import { SidebarColorPickerContext } from './sidebarColorPickerContext';
-import type { SidebarColorTarget } from './sidebarColorTypes';
+import { dispatchSidebarMarker } from './sidebarMarkerDispatch';
+import { SidebarMarkerPickerContext } from './sidebarMarkerPickerContext';
+import type { SidebarMarkerTarget } from './sidebarMarkerTypes';
 
 /** Estimated picker dimensions before first layout measurement. */
 const PICKER_ESTIMATED_WIDTH_PX = 220;
@@ -16,19 +16,19 @@ const PICKER_ESTIMATED_HEIGHT_PX = 180;
 
 interface ProviderProps {
   /**
-   * Sidebar subtree that can open the shared color picker.
+   * Sidebar subtree that can open the shared marker picker.
    */
   children: ReactNode;
 }
 
 /**
- * Provides a single portaled color picker for all collection sidebar rows.
+ * Provides a single portaled marker picker for all collection sidebar rows.
  */
-export function SidebarColorPickerProvider({ children }: ProviderProps): JSX.Element {
+export function SidebarMarkerPickerProvider({ children }: ProviderProps): JSX.Element {
   const dispatch = useAppDispatch();
   const popoverId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  const [target, setTarget] = useState<SidebarColorTarget | null>(null);
+  const [target, setTarget] = useState<SidebarMarkerTarget | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
   /**
@@ -40,10 +40,10 @@ export function SidebarColorPickerProvider({ children }: ProviderProps): JSX.Ele
   }, []);
 
   /**
-   * Opens the picker anchored to the menu trigger that launched Set color.
+   * Opens the picker anchored to the menu trigger that launched Set color marker.
    */
-  const openColorPicker = useCallback(
-    (nextTarget: SidebarColorTarget, anchorRect: DOMRect): void => {
+  const openMarkerPicker = useCallback(
+    (nextTarget: SidebarMarkerTarget, anchorRect: DOMRect): void => {
       const anchored = getTriggerAnchoredMenuPosition(
         anchorRect,
         { width: PICKER_ESTIMATED_WIDTH_PX, height: PICKER_ESTIMATED_HEIGHT_PX },
@@ -99,33 +99,33 @@ export function SidebarColorPickerProvider({ children }: ProviderProps): JSX.Ele
   }, [closePicker, target]);
 
   /**
-   * Persists the chosen color for the active sidebar target.
+   * Persists the chosen marker for the active sidebar target.
    *
-   * @param color - Selected CSS color string.
+   * @param marker - Selected CSS marker string.
    */
-  const persistColor = useCallback(
-    (color: string): void => {
+  const persistMarker = useCallback(
+    (marker: string): void => {
       if (target == null) {
         return;
       }
-      dispatchSidebarColor(dispatch, target, color);
+      dispatchSidebarMarker(dispatch, target, marker);
       closePicker();
     },
     [closePicker, dispatch, target]
   );
 
   /**
-   * Clears the color for the active sidebar target.
+   * Clears the marker for the active sidebar target.
    */
-  const clearColor = useCallback((): void => {
+  const clearMarker = useCallback((): void => {
     if (target == null) {
       return;
     }
-    dispatchSidebarColor(dispatch, target, null);
+    dispatchSidebarMarker(dispatch, target, null);
     closePicker();
   }, [closePicker, dispatch, target]);
 
-  const contextValue = { openColorPicker };
+  const contextValue = { openMarkerPicker };
 
   const pickerPanel =
     target != null && position != null
@@ -134,26 +134,29 @@ export function SidebarColorPickerProvider({ children }: ProviderProps): JSX.Ele
             ref={panelRef}
             id={popoverId}
             role="dialog"
-            aria-label="Choose sidebar item color"
+            aria-label="Choose sidebar item color marker"
             className="fixed z-[120] rounded-md border border-separator bg-surface p-3 shadow-lg"
             style={{ left: position.x, top: position.y }}
           >
             <ColorPicker
-              value={target.color}
-              onChange={persistColor}
-              onClear={target.color != null && target.color.trim() !== '' ? clearColor : undefined}
-              aria-label="Choose sidebar item color"
+              value={target.marker}
+              onChange={persistMarker}
+              onClear={
+                target.marker != null && target.marker.trim() !== '' ? clearMarker : undefined
+              }
+              clearLabel="Clear color marker"
+              aria-label="Choose sidebar item color marker"
             />
           </div>
         )
       : null;
 
   return (
-    <SidebarColorPickerContext.Provider value={contextValue}>
+    <SidebarMarkerPickerContext.Provider value={contextValue}>
       {children}
       {pickerPanel}
-    </SidebarColorPickerContext.Provider>
+    </SidebarMarkerPickerContext.Provider>
   );
 }
 
-export type { SidebarColorTarget } from './sidebarColorTypes';
+export type { SidebarMarkerTarget } from './sidebarMarkerTypes';

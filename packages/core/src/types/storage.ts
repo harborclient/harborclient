@@ -499,9 +499,9 @@ export interface GitCommitRequestChange {
   method: string;
 
   /**
-   * Optional sidebar color at commit time.
+   * Optional sidebar marker at commit time.
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**
@@ -544,9 +544,9 @@ export interface GitCommitDocumentChange {
   name: string;
 
   /**
-   * Optional sidebar color at commit time.
+   * Optional sidebar marker at commit time.
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**

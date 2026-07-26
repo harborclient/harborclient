@@ -42,7 +42,7 @@ export const RequestItem: Story = {
           method="GET"
           name="List users"
           selected
-          colorDot={{ color: '#32D2E2', visible: true, label: 'Color for List users' }}
+          markerDot={{ marker: '#32D2E2', visible: true, label: 'Color marker for List users' }}
           sortable={{ id: 'request-1', dragHandleLabel: 'Reorder request "List users"' }}
           actions={
             <RowActionsMenu
@@ -111,7 +111,7 @@ export const DocumentItem: Story = {
         <SidebarDocumentItem
           name="README"
           selected
-          colorDot={{ color: '#0f2e56', visible: true, label: 'Color for README' }}
+          markerDot={{ marker: '#0f2e56', visible: true, label: 'Color marker for README' }}
           actions={
             <RowActionsMenu
               menuId="document-1"
@@ -145,7 +145,7 @@ export const FolderItem: Story = {
           onToggleExpand={fn()}
           onNameClick={fn()}
           sortable={{ id: 'folder-1', dragHandleLabel: 'Reorder folder "Auth"' }}
-          colorDot={{ color: '#92a8b8', visible: true, label: 'Color for Auth' }}
+          markerDot={{ marker: '#92a8b8', visible: true, label: 'Color marker for Auth' }}
           actions={
             <RowActionsMenu
               menuId="folder-1"
@@ -247,7 +247,7 @@ export const EnvironmentItem: Story = {
           name="Production"
           variableSummary="12 variables"
           selected
-          colorDot={{ color: '#e74c3c', visible: true, label: 'Color for Production' }}
+          markerDot={{ marker: '#e74c3c', visible: true, label: 'Color marker for Production' }}
           sortable={{ id: 'env-1', dragHandleLabel: 'Reorder environment "Production"' }}
           actions={
             <RowActionsMenu
@@ -271,7 +271,7 @@ export const TabGroupItem: Story = {
           name="API review"
           summary="4 tabs"
           icon={faLayerGroup}
-          colorDot={{ color: '#32D2E2', visible: true, label: 'Color for API review' }}
+          markerDot={{ marker: '#32D2E2', visible: true, label: 'Color marker for API review' }}
           sortable={{ id: 'tab-group-1', dragHandleLabel: 'Reorder tab group "API review"' }}
           actions={
             <RowActionsMenu

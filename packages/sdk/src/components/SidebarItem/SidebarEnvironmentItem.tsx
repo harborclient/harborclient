@@ -1,6 +1,6 @@
 import type { JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
+import { SidebarMarkerDot } from './SidebarMarkerDot.js';
 import { SIDEBAR_ITEM_BUTTON_CLASS } from './sidebarItemClasses.js';
 
 interface Props {
@@ -15,10 +15,10 @@ interface Props {
   variableSummary: string;
 
   /**
-   * Optional color dot beside the environment name.
+   * Optional marker dot beside the environment name.
    */
-  colorDot?: {
-    color: string | null | undefined;
+  markerDot?: {
+    marker: string | null | undefined;
     visible?: boolean;
     label?: string;
   };
@@ -94,7 +94,7 @@ interface Props {
 export function SidebarEnvironmentItem({
   name,
   variableSummary,
-  colorDot,
+  markerDot,
   selected = false,
   sortable,
   ariaLabel,
@@ -151,11 +151,11 @@ export function SidebarEnvironmentItem({
       >
         <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
           <span className="min-w-0 truncate">{name}</span>
-          {colorDot != null ? (
-            <SidebarColorDot
-              color={colorDot.color}
-              visible={colorDot.visible}
-              label={colorDot.label}
+          {markerDot != null ? (
+            <SidebarMarkerDot
+              marker={markerDot.marker}
+              visible={markerDot.visible}
+              label={markerDot.label}
             />
           ) : null}
         </span>

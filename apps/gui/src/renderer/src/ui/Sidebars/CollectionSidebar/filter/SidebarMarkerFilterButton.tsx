@@ -1,23 +1,23 @@
 import { FilterButton } from '@harborclient/sdk/components';
 import { useCallback, useRef, useState, type JSX } from 'react';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
-import { SidebarColorFilterMenu } from './SidebarColorFilterMenu';
+import { SidebarMarkerFilterMenu } from './SidebarMarkerFilterMenu';
 
 interface Props {
   /**
-   * Distinct CSS colors present in the section items.
+   * Distinct CSS markers present in the section items.
    */
-  colors: readonly string[];
+  markers: readonly string[];
 
   /**
-   * Currently applied color filter, or null when showing all colors.
+   * Currently applied marker filter, or null when showing all markers.
    */
   filter: string | null;
 
   /**
-   * Updates the applied color filter.
+   * Updates the applied marker filter.
    */
-  onFilterChange: (color: string | null) => void;
+  onFilterChange: (marker: string | null) => void;
 
   /**
    * Accessible name for the icon-only filter trigger.
@@ -31,35 +31,35 @@ interface Props {
 }
 
 /**
- * Toolbar color-filter control for flat sidebar sections (Tab Groups,
- * Environments). Visible only when filters and color dots are enabled and the
+ * Toolbar marker-filter control for flat sidebar sections (Tab Groups,
+ * Environments). Visible only when filters and marker dots are enabled and the
  * section has at least one colored item. Opens an immediate-apply swatch menu.
  *
- * @param colors - Distinct colors from the section items.
- * @param filter - Applied color filter, or null for all.
- * @param onFilterChange - Called when the user picks or clears a color.
+ * @param markers - Distinct markers from the section items.
+ * @param filter - Applied marker filter, or null for all.
+ * @param onFilterChange - Called when the user picks or clears a marker.
  * @param ariaLabel - Accessible name for the trigger.
  * @param title - Tooltip for the trigger.
  */
-export function SidebarColorFilterButton({
-  colors,
+export function SidebarMarkerFilterButton({
+  markers,
   filter,
   onFilterChange,
   ariaLabel,
   title
 }: Props): JSX.Element | null {
-  const { showColorDots, showFilters } = useSidebarExpansion();
+  const { showMarkers, showFilters } = useSidebarExpansion();
   const [menuOpen, setMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   /**
-   * Applies a color selection from the menu and closes the popover.
+   * Applies a marker selection from the menu and closes the popover.
    *
-   * @param color - Selected color, or null for all colors.
+   * @param marker - Selected marker, or null for all markers.
    */
   const handleSelect = useCallback(
-    (color: string | null): void => {
-      onFilterChange(color);
+    (marker: string | null): void => {
+      onFilterChange(marker);
       setMenuOpen(false);
       requestAnimationFrame(() => {
         triggerRef.current?.focus();
@@ -78,7 +78,7 @@ export function SidebarColorFilterButton({
     });
   }, []);
 
-  if (!showFilters || !showColorDots || colors.length === 0) {
+  if (!showFilters || !showMarkers || markers.length === 0) {
     return null;
   }
 
@@ -94,9 +94,9 @@ export function SidebarColorFilterButton({
         onClick={() => setMenuOpen((open) => !open)}
       />
       {menuOpen ? (
-        <SidebarColorFilterMenu
+        <SidebarMarkerFilterMenu
           anchorRef={triggerRef}
-          colors={colors}
+          markers={markers}
           filter={filter}
           onSelect={handleSelect}
           onClose={handleClose}

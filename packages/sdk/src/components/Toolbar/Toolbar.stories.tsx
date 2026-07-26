@@ -61,7 +61,7 @@ export const ToggleAction: Story = {
       {
         id: 'toggle-storage-badges',
         icon: faDatabase,
-        label: 'Storage location badges',
+        label: 'Storage locations',
         title: 'Hide storage location badges',
         ariaPressed: true,
         onClick: fn()
@@ -77,7 +77,7 @@ export const PressedState: Story = {
       {
         id: 'toggle-storage-badges',
         icon: faDatabase,
-        label: 'Storage location badges',
+        label: 'Storage locations',
         title: 'Hide storage location badges',
         ariaPressed: true,
         onClick: fn()

@@ -30,7 +30,7 @@ import {
   setFoldersForCollection,
   setRequestsForCollection,
   setSelectedCollectionId,
-  updateCollectionColor,
+  updateCollectionMarker,
   upsertDocumentInCollection,
   upsertFolderInCollection
 } from '#/renderer/src/store/slices/collectionsSlice';
@@ -888,40 +888,40 @@ export function focusSidebarItem(payload: {
 }
 
 /**
- * Persists a collection sidebar color and updates the cached list row.
+ * Persists a collection sidebar marker and updates the cached list row.
  */
-export const setSidebarItemColor = createAsyncThunk<
+export const setSidebarItemMarker = createAsyncThunk<
   Collection,
-  { kind: 'collection'; id: number; color: string | null },
+  { kind: 'collection'; id: number; marker: string | null },
   ThunkApiConfig
->('collections/setSidebarColor', async ({ id, color }, { dispatch }) => {
-  const collection = await window.api.setCollectionColor(id, color);
-  dispatch(updateCollectionColor(collection));
+>('collections/setSidebarMarker', async ({ id, marker }, { dispatch }) => {
+  const collection = await window.api.setCollectionMarker(id, marker);
+  dispatch(updateCollectionMarker(collection));
   return collection;
 });
 
 /**
- * Persists a folder sidebar color and updates the cached collection folders.
+ * Persists a folder sidebar marker and updates the cached collection folders.
  */
-export const setFolderSidebarColor = createAsyncThunk<
+export const setFolderSidebarMarker = createAsyncThunk<
   Folder,
-  { collectionId: number; id: number; color: string | null },
+  { collectionId: number; id: number; marker: string | null },
   ThunkApiConfig
->('collections/setFolderSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
-  const folder = await window.api.setFolderColor(id, color);
+>('collections/setFolderSidebarMarker', async ({ collectionId, id, marker }, { dispatch }) => {
+  const folder = await window.api.setFolderMarker(id, marker);
   dispatch(upsertFolderInCollection({ collectionId, folder }));
   return folder;
 });
 
 /**
- * Persists a document sidebar color and updates the cached collection documents.
+ * Persists a document sidebar marker and updates the cached collection documents.
  */
-export const setDocumentSidebarColor = createAsyncThunk<
+export const setDocumentSidebarMarker = createAsyncThunk<
   CollectionDocument,
-  { collectionId: number; id: number; color: string | null },
+  { collectionId: number; id: number; marker: string | null },
   ThunkApiConfig
->('collections/setDocumentSidebarColor', async ({ collectionId, id, color }, { dispatch }) => {
-  const document = await window.api.setDocumentColor(id, color);
+>('collections/setDocumentSidebarMarker', async ({ collectionId, id, marker }, { dispatch }) => {
+  const document = await window.api.setDocumentMarker(id, marker);
   dispatch(upsertDocumentInCollection({ collectionId, document }));
   return document;
 });

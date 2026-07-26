@@ -349,9 +349,9 @@ export interface StoredDocumentRef {
   sort_order: number;
 
   /**
-   * Optional sidebar color.
+   * Optional sidebar marker.
    */
-  color: string | null;
+  marker: string | null;
 }
 
 /**
@@ -1137,8 +1137,12 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
             : typeof row.folder_uuid === 'string'
               ? row.folder_uuid
               : null,
-        color:
-          row.color == null ? null : typeof row.color === 'string' ? row.color.trim() || null : null
+        marker:
+          row.marker == null
+            ? null
+            : typeof row.marker === 'string'
+              ? row.marker.trim() || null
+              : null
       };
     })
     .filter((row) => row.name.length > 0);
@@ -1173,11 +1177,11 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
               : undefined,
             String(folder.post_request_script ?? '')
           ),
-      color:
-        folder.color == null
+      marker:
+        folder.marker == null
           ? null
-          : typeof folder.color === 'string'
-            ? folder.color.trim() || null
+          : typeof folder.marker === 'string'
+            ? folder.marker.trim() || null
             : null
     }))
     .filter((row) => row.name.length > 0);
@@ -1187,11 +1191,11 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
     harborclientExport: 'collection',
     uuid: typeof parsed.uuid === 'string' ? resolveImportUuid(parsed.uuid) : undefined,
     name: String(parsed.name ?? ''),
-    color:
-      parsed.color == null
+    marker:
+      parsed.marker == null
         ? null
-        : typeof parsed.color === 'string'
-          ? parsed.color.trim() || null
+        : typeof parsed.marker === 'string'
+          ? parsed.marker.trim() || null
           : null,
     variables: (parsed.variables as CollectionExport['variables']) ?? [],
     headers: (parsed.headers as CollectionExport['headers']) ?? [],
@@ -1282,7 +1286,7 @@ export function writeCollectionToFolder(
       post_request_scripts: request.post_request_scripts,
       comment: request.comment,
       tags: request.tags,
-      color: request.color ?? null
+      marker: request.marker ?? null
     });
 
     writeFileSync(
@@ -1313,7 +1317,7 @@ export function writeCollectionToFolder(
         typeof document.sort_order === 'number' && Number.isFinite(document.sort_order)
           ? document.sort_order
           : index,
-      color: document.color ?? null
+      marker: document.marker ?? null
     };
   });
 
@@ -1322,7 +1326,7 @@ export function writeCollectionToFolder(
     harborclientExport: 'collection',
     uuid,
     name: validated.name,
-    color: validated.color ?? null,
+    marker: validated.marker ?? null,
     variables: maskVariablesForExport(validated.variables),
     headers: validated.headers,
     userAgent: typeof validated.userAgent === 'string' ? validated.userAgent : '',
@@ -1821,9 +1825,9 @@ export interface StoredFolderRow {
   post_request_scripts?: ScriptRef[];
 
   /**
-   * Optional sidebar color for visual grouping.
+   * Optional sidebar marker for visual grouping.
    */
-  color?: string | null;
+  marker?: string | null;
 }
 
 /**

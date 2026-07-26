@@ -65,8 +65,8 @@ describe('matchActionSuggestions', () => {
     expect(matchActionSuggestions('#terminal', BUILTIN_ACTIONS)).toEqual([
       {
         id: 'builtin:toggle-terminal',
-        group: 'Appearance',
-        label: 'Toggle Terminal',
+        group: 'View',
+        label: 'Terminal',
         description: 'Open the terminal panel'
       }
     ]);
@@ -81,6 +81,46 @@ describe('matchActionSuggestions', () => {
   it('filters Image: Logo action without a hash prefix', () => {
     expect(matchInlineActionSuggestions('Image:', BUILTIN_ACTIONS)).toEqual([
       { id: 'builtin:image-logo', group: 'Image', label: 'Logo' }
+    ]);
+  });
+
+  it('returns View menu appearance, zoom, and theme actions for View:', () => {
+    const matches = matchInlineActionSuggestions('View:', BUILTIN_ACTIONS);
+    const ids = matches.map((action) => action.id);
+
+    expect(ids).toContain('builtin:toggle-sidebar');
+    expect(ids).toContain('builtin:toggle-filters');
+    expect(ids).toContain('builtin:zoom-in');
+    expect(ids).toContain('builtin:toggle-fullscreen');
+    expect(ids).toContain('builtin:theme-dark');
+    expect(ids).not.toContain('builtin:toggle-collections-section');
+    expect(matches.every((action) => action.group === 'View')).toBe(true);
+  });
+
+  it('returns View menu actions for #view', () => {
+    const matches = matchActionSuggestions('#view', BUILTIN_ACTIONS);
+    expect(matches.some((action) => action.id === 'builtin:zoom-out')).toBe(true);
+    expect(matches.some((action) => action.id === 'builtin:theme-light')).toBe(true);
+    expect(matches.every((action) => action.group === 'View')).toBe(true);
+  });
+
+  it('returns sidebar section toggles for Sidebar:', () => {
+    expect(matchInlineActionSuggestions('Sidebar:', BUILTIN_ACTIONS)).toEqual([
+      {
+        id: 'builtin:toggle-collections-section',
+        group: 'Sidebar',
+        label: 'Toggle Collections'
+      },
+      {
+        id: 'builtin:toggle-environments-section',
+        group: 'Sidebar',
+        label: 'Toggle Environments'
+      },
+      {
+        id: 'builtin:toggle-run-results-section',
+        group: 'Sidebar',
+        label: 'Toggle Run Results'
+      }
     ]);
   });
 });

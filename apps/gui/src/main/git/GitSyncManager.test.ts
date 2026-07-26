@@ -328,7 +328,7 @@ describe('GitSyncManager', () => {
               name: 'README.md',
               folder_uuid: null,
               sort_order: 0,
-              color: null,
+              marker: null,
               content: '# Harbor notes'
             }
           ],

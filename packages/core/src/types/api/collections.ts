@@ -63,13 +63,13 @@ export interface ApiCollections {
     postRequestScripts?: ScriptRef[]
   ) => Promise<Collection>;
   /**
-   * Updates a collection sidebar color.
+   * Updates a collection sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  setCollectionColor: (id: number, color: string | null) => Promise<Collection>;
+  setCollectionMarker: (id: number, marker: string | null) => Promise<Collection>;
   /**
    * Marks or unmarks a collection as archived in the local registry.
    *
@@ -247,13 +247,13 @@ export interface ApiCollections {
     postRequestScripts?: ScriptRef[]
   ) => Promise<Folder>;
   /**
-   * Updates a folder sidebar color.
+   * Updates a folder sidebar marker.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  setFolderColor: (id: number, color: string | null) => Promise<Folder>;
+  setFolderMarker: (id: number, marker: string | null) => Promise<Folder>;
   /**
    * Deletes a folder and all requests inside it.
    *

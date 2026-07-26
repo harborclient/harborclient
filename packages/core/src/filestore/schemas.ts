@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalSidebarColor } from '../sidebarColor';
+import { optionalSidebarMarker } from '../sidebarMarker';
 import type {
   CollectionExport,
   EnvironmentExport,
@@ -49,7 +49,7 @@ const exportedFolderRow = z
     post_request_script: z.string().optional(),
     pre_request_scripts: exportScriptRefArray,
     post_request_scripts: exportScriptRefArray,
-    color: optionalSidebarColor
+    marker: optionalSidebarMarker
   })
   .superRefine((folder, ctx) => {
     if (!folder.name.trim()) {
@@ -72,7 +72,7 @@ const exportedFolderRow = z
     post_request_script: folder.post_request_script,
     pre_request_scripts: folder.pre_request_scripts,
     post_request_scripts: folder.post_request_scripts,
-    color: folder.color ?? null
+    marker: folder.marker ?? null
   }));
 
 /**
@@ -139,7 +139,7 @@ export const exportedFolders = z
         post_request_script: folder.post_request_script,
         pre_request_scripts: folder.pre_request_scripts,
         post_request_scripts: folder.post_request_scripts,
-        color: folder.color ?? null
+        marker: folder.marker ?? null
       })
     )
   )
@@ -186,7 +186,7 @@ const exportedRequestRow = z
     sort_order: z.number().optional(),
     folder_name: z.union([z.string(), z.null()]).optional(),
     folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
-    color: optionalSidebarColor
+    marker: optionalSidebarMarker
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -229,7 +229,7 @@ const exportedRequestRow = z
         : req.folder_uuid === null
           ? null
           : undefined,
-    color: req.color ?? null
+    marker: req.marker ?? null
   }));
 
 /**
@@ -252,7 +252,7 @@ const exportedDocumentRow = z
     sort_order: z.number().optional(),
     folder_name: z.union([z.string(), z.null()]).optional(),
     folder_uuid: z.union([z.string().uuid(), z.null()]).optional(),
-    color: optionalSidebarColor
+    marker: optionalSidebarMarker
   })
   .superRefine((doc, ctx) => {
     if (!doc.name.trim()) {
@@ -310,7 +310,7 @@ const collectionExportFields = {
   pre_request_scripts: exportScriptRefArray,
   post_request_scripts: exportScriptRefArray,
   requests: exportedRequests,
-  color: optionalSidebarColor
+  marker: optionalSidebarMarker
 };
 
 /**
@@ -439,7 +439,7 @@ const requestExportRow = z
     post_request_scripts: exportScriptRefArray,
     comment: z.string().default(''),
     tags: z.string().default(''),
-    color: optionalSidebarColor
+    marker: optionalSidebarMarker
   })
   .superRefine((req, ctx) => {
     if (!req.name.trim()) {
@@ -471,7 +471,7 @@ const requestExportRow = z
     post_request_scripts: req.post_request_scripts,
     comment: req.comment,
     tags: req.tags,
-    color: req.color ?? null
+    marker: req.marker ?? null
   }));
 
 /**
@@ -534,7 +534,7 @@ export const environmentExportSchema = z.object({
   uuid: optionalDocumentUuid,
   name: z.string().trim().min(1, 'environment name is required'),
   variables: importVariables,
-  color: optionalSidebarColor
+  marker: optionalSidebarMarker
 }) satisfies z.ZodType<EnvironmentExport>;
 
 /**

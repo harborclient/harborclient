@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { SidebarProvidersProvider } from './providers/SidebarProvidersProvider';
 import { SidebarSearchProvider } from './search/SidebarSearchProvider';
-import { SidebarColorPickerProvider } from './colors/SidebarColorPickerProvider';
+import { SidebarMarkerPickerProvider } from './markers/SidebarMarkerPickerProvider';
 import { SidebarSectionFilterProvider } from './filter/SidebarSectionFilterProvider';
 import { SidebarSelectionProvider } from './selection/SidebarSelectionProvider';
 import { SidebarSelectionMenuHost } from './selection/SidebarSelectionMenuHost';
@@ -18,14 +18,14 @@ export function CollectionSidebar(): JSX.Element {
   return (
     <SidebarProvidersProvider>
       <SidebarSearchProvider>
-        <SidebarColorPickerProvider>
+        <SidebarMarkerPickerProvider>
           <SidebarSelectionProvider>
             <SidebarSectionFilterProvider>
               <SidebarSelectionMenuHost />
               <SidebarContent />
             </SidebarSectionFilterProvider>
           </SidebarSelectionProvider>
-        </SidebarColorPickerProvider>
+        </SidebarMarkerPickerProvider>
       </SidebarSearchProvider>
     </SidebarProvidersProvider>
   );

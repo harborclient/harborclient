@@ -17,7 +17,7 @@ interface Props {
   /**
    * Environment identity, display fields, and variables used by menu actions.
    */
-  environment: Pick<Environment, 'id' | 'uuid' | 'name' | 'color' | 'variables'>;
+  environment: Pick<Environment, 'id' | 'uuid' | 'name' | 'marker' | 'variables'>;
 
   /**
    * Zero-based index of this environment among sidebar environments.
@@ -257,10 +257,10 @@ export function ActionsMenu(props: Props): JSX.Element {
       menuId={menuId}
       openMenuId={props.openMenuId}
       onOpenChange={props.onOpenChange}
-      colorTarget={{
+      markerTarget={{
         kind: 'environment',
         id: props.environment.id,
-        color: props.environment.color ?? null
+        marker: props.environment.marker ?? null
       }}
       groups={singleMenuGroups}
     />

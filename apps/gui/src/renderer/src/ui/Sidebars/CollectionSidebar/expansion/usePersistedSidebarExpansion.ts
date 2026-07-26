@@ -263,19 +263,19 @@ interface Result {
   setShowStorageLocationBadges: Dispatch<SetStateAction<boolean>>;
 
   /**
-   * Whether user-assigned color dots appear beside sidebar row names.
+   * Whether user-assigned color marker dots appear beside sidebar row names.
    */
-  showColorDots: boolean;
+  showMarkers: boolean;
 
   /**
-   * Toggles color dot visibility in the sidebar.
+   * Toggles color marker dot visibility in the sidebar.
    */
-  toggleColorDots: () => void;
+  toggleMarkers: () => void;
 
   /**
-   * Sets color dot visibility explicitly.
+   * Sets color marker dot visibility explicitly.
    */
-  setShowColorDots: Dispatch<SetStateAction<boolean>>;
+  setShowMarkers: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether HTTP method badges use per-method colors in the sidebar.
@@ -397,7 +397,7 @@ interface Result {
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
  * @param showStorageLocationBadges - Whether storage location badges are shown.
- * @param showColorDots - Whether user-assigned color dots are shown.
+ * @param showMarkers - Whether user-assigned color marker dots are shown.
  * @param showMethodColors - Whether HTTP method badges use per-method colors.
  * @param showIndicators - Whether HTTP/run status indicator dots are shown.
  * @param showFilters - Whether section-header filter controls are shown.
@@ -410,7 +410,7 @@ export function serializeSidebarExpansion(
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>,
   showStorageLocationBadges: boolean,
-  showColorDots: boolean,
+  showMarkers: boolean,
   showMethodColors: boolean,
   showIndicators: boolean,
   showFilters: boolean,
@@ -423,7 +423,7 @@ export function serializeSidebarExpansion(
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds],
     showStorageLocationBadges,
-    showColorDots,
+    showMarkers,
     showMethodColors,
     showIndicators,
     showFilters,
@@ -508,7 +508,7 @@ export function usePersistedSidebarExpansion({
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
   );
-  const [showColorDots, setShowColorDots] = useState(defaults.showColorDots);
+  const [showMarkers, setShowMarkers] = useState(defaults.showMarkers);
   const [showMethodColors, setShowMethodColors] = useState(defaults.showMethodColors);
   const [showIndicators, setShowIndicators] = useState(defaults.showIndicators);
   const [showFilters, setShowFilters] = useState(defaults.showFilters);
@@ -559,7 +559,7 @@ export function usePersistedSidebarExpansion({
       setTrashSectionVisible(stored.sectionVisibility.trash);
       setArchiveSectionVisible(stored.sectionVisibility.archive);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
-      setShowColorDots(stored.showColorDots);
+      setShowMarkers(stored.showMarkers);
       setShowMethodColors(stored.showMethodColors);
       setShowIndicators(stored.showIndicators);
       setShowFilters(stored.showFilters);
@@ -610,7 +610,7 @@ export function usePersistedSidebarExpansion({
       expandedCollectionIds,
       expandedFolderIds,
       showStorageLocationBadges,
-      showColorDots,
+      showMarkers,
       showMethodColors,
       showIndicators,
       showFilters,
@@ -638,7 +638,7 @@ export function usePersistedSidebarExpansion({
     expandedCollectionIds,
     expandedFolderIds,
     showStorageLocationBadges,
-    showColorDots,
+    showMarkers,
     showMethodColors,
     showIndicators,
     showFilters,
@@ -817,10 +817,10 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
-   * Toggles color dot visibility in the sidebar.
+   * Toggles color marker dot visibility in the sidebar.
    */
-  const toggleColorDots = useCallback(() => {
-    setShowColorDots((visible) => !visible);
+  const toggleMarkers = useCallback(() => {
+    setShowMarkers((visible) => !visible);
   }, []);
 
   /**
@@ -924,9 +924,9 @@ export function usePersistedSidebarExpansion({
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,
-    showColorDots,
-    toggleColorDots,
-    setShowColorDots,
+    showMarkers,
+    toggleMarkers,
+    setShowMarkers,
     showMethodColors,
     toggleMethodColors,
     setShowMethodColors,

@@ -1,7 +1,7 @@
 import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { SidebarColorMenuSlot } from '../colors/SidebarColorMenuSlot';
-import type { SidebarColorTarget } from '../colors/sidebarColorTypes';
+import { SidebarMarkerMenuSlot } from '../markers/SidebarMarkerMenuSlot';
+import type { SidebarMarkerTarget } from '../markers/sidebarMarkerTypes';
 
 interface Props {
   /**
@@ -20,38 +20,38 @@ interface Props {
   onOpenChange: (id: string | null) => void;
 
   /**
-   * Base menu groups before color actions are appended.
+   * Base menu groups before marker actions are appended.
    */
   groups: MenuItem[][];
 
   /**
-   * Sidebar entity that receives color assignments.
+   * Sidebar entity that receives marker assignments.
    */
-  colorTarget: SidebarColorTarget;
+  markerTarget: SidebarMarkerTarget;
 }
 
 /**
- * Row actions menu with Set color / Clear color groups appended for sidebar entities.
+ * Row actions menu with Set color marker / Clear color marker groups appended for sidebar entities.
  */
 export function SidebarRowActionsMenu({
   menuId,
   openMenuId,
   onOpenChange,
   groups,
-  colorTarget
+  markerTarget
 }: Props): JSX.Element {
   return (
     <div className="shrink-0" data-sidebar-actions={menuId}>
-      <SidebarColorMenuSlot target={colorTarget} menuId={menuId}>
-        {(colorMenuGroups) => (
+      <SidebarMarkerMenuSlot target={markerTarget} menuId={menuId}>
+        {(markerMenuGroups) => (
           <RowActionsMenu
             menuId={menuId}
             openMenuId={openMenuId}
             onOpenChange={onOpenChange}
-            groups={[...groups, ...colorMenuGroups]}
+            groups={[...groups, ...markerMenuGroups]}
           />
         )}
-      </SidebarColorMenuSlot>
+      </SidebarMarkerMenuSlot>
     </div>
   );
 }

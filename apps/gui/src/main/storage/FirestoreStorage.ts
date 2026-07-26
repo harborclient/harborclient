@@ -80,7 +80,7 @@ import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import { generateDocumentUuid } from './uuid';
-import { serializeSidebarColor } from './sidebarColorMigration';
+import { serializeSidebarMarker } from './sidebarMarkerMigration';
 
 /**
  * Maximum writes per Firestore batch commit.
@@ -319,7 +319,7 @@ export class FirestoreStorage implements IStorage {
       pre_request_scripts: '[]',
       post_request_scripts: '[]',
       created_at: createdAt,
-      color: null
+      marker: null
     };
 
     await setDoc(doc(this.getFirestore(), 'collections', String(id)), data);
@@ -390,21 +390,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's sidebar color.
+   * Updates a collection's sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
+  async setCollectionMarker(id: number, marker: string | null): Promise<Collection> {
     const ref = doc(this.getFirestore(), 'collections', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Collection not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedColor = serializeSidebarColor(color);
-    await updateDoc(ref, { color: normalizedColor });
-    return docToCollection(id, { ...existing, color: normalizedColor });
+    const normalizedMarker = serializeSidebarMarker(marker);
+    await updateDoc(ref, { marker: normalizedMarker });
+    return docToCollection(id, { ...existing, marker: normalizedMarker });
   }
 
   /**
@@ -466,7 +466,7 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables: [] as Variable[],
       created_at: createdAt,
-      color: null
+      marker: null
     };
 
     await setDoc(doc(this.getFirestore(), 'environments', String(id)), data);
@@ -501,21 +501,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's sidebar color.
+   * Updates an environment's sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
+  async setEnvironmentMarker(id: number, marker: string | null): Promise<Environment> {
     const ref = doc(this.getFirestore(), 'environments', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Environment not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedColor = serializeSidebarColor(color);
-    await updateDoc(ref, { color: normalizedColor });
-    return docToEnvironment(id, { ...existing, color: normalizedColor });
+    const normalizedMarker = serializeSidebarMarker(marker);
+    await updateDoc(ref, { marker: normalizedMarker });
+    return docToEnvironment(id, { ...existing, marker: normalizedMarker });
   }
 
   /**
@@ -694,8 +694,8 @@ export class FirestoreStorage implements IStorage {
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
     const folderId = input.folder_id ?? null;
-    const normalizedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const normalizedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
 
     if (folderId != null) {
       const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
@@ -732,8 +732,8 @@ export class FirestoreStorage implements IStorage {
           tags,
           updated_at: now
         };
-        if (normalizedColor !== undefined) {
-          data.color = normalizedColor;
+        if (normalizedMarker !== undefined) {
+          data.marker = normalizedMarker;
         }
 
         await updateDoc(ref, data);
@@ -775,7 +775,7 @@ export class FirestoreStorage implements IStorage {
       sort_order: maxOrder + 1,
       created_at: createdAt,
       updated_at: now,
-      color: normalizedColor ?? null
+      marker: normalizedMarker ?? null
     };
 
     await setDoc(doc(firestore, 'requests', String(id)), data);
@@ -792,21 +792,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a saved request's sidebar color.
+   * Updates a saved request's sidebar marker.
    *
    * @param id - Request ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated request.
    */
-  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
+  async setRequestMarker(id: number, marker: string | null): Promise<SavedRequest> {
     const ref = doc(this.getFirestore(), 'requests', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Request not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedColor = serializeSidebarColor(color);
-    await updateDoc(ref, { color: normalizedColor });
-    return docToRequest(id, { ...existing, color: normalizedColor });
+    const normalizedMarker = serializeSidebarMarker(marker);
+    await updateDoc(ref, { marker: normalizedMarker });
+    return docToRequest(id, { ...existing, marker: normalizedMarker });
   }
 
   /**
@@ -859,7 +859,7 @@ export class FirestoreStorage implements IStorage {
       pre_request_scripts: '[]',
       post_request_scripts: '[]',
       created_at: createdAt,
-      color: null
+      marker: null
     };
 
     await setDoc(doc(this.getFirestore(), 'folders', String(id)), data);
@@ -934,21 +934,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's sidebar color.
+   * Updates a folder's sidebar marker.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  async setFolderColor(id: number, color: string | null): Promise<Folder> {
+  async setFolderMarker(id: number, marker: string | null): Promise<Folder> {
     const ref = doc(this.getFirestore(), 'folders', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Folder not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedColor = serializeSidebarColor(color);
-    await updateDoc(ref, { color: normalizedColor });
-    return docToFolder(id, { ...existing, color: normalizedColor });
+    const normalizedMarker = serializeSidebarMarker(marker);
+    await updateDoc(ref, { marker: normalizedMarker });
+    return docToFolder(id, { ...existing, marker: normalizedMarker });
   }
 
   /**
@@ -1007,8 +1007,8 @@ export class FirestoreStorage implements IStorage {
     const folderId = input.folder_id ?? null;
     const now = new Date().toISOString();
     const firestore = this.getFirestore();
-    const normalizedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const normalizedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
 
     if (folderId != null) {
       const folderSnap = await getDoc(doc(firestore, 'folders', String(folderId)));
@@ -1030,8 +1030,8 @@ export class FirestoreStorage implements IStorage {
           content,
           updated_at: now
         };
-        if (normalizedColor !== undefined) {
-          data.color = normalizedColor;
+        if (normalizedMarker !== undefined) {
+          data.marker = normalizedMarker;
         }
 
         await updateDoc(ref, data);
@@ -1058,7 +1058,7 @@ export class FirestoreStorage implements IStorage {
       sort_order: maxOrder + 1,
       created_at: createdAt,
       updated_at: now,
-      color: normalizedColor ?? null
+      marker: normalizedMarker ?? null
     };
 
     await setDoc(doc(firestore, 'documents', String(id)), data);
@@ -1075,21 +1075,21 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates a markdown document's sidebar color.
+   * Updates a markdown document's sidebar marker.
    *
    * @param id - Document ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated document.
    */
-  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
+  async setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument> {
     const ref = doc(this.getFirestore(), 'documents', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Document not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedColor = serializeSidebarColor(color);
-    await updateDoc(ref, { color: normalizedColor });
-    return docToDocument(id, { ...existing, color: normalizedColor });
+    const normalizedMarker = serializeSidebarMarker(marker);
+    await updateDoc(ref, { marker: normalizedMarker });
+    return docToDocument(id, { ...existing, marker: normalizedMarker });
   }
 
   /**
@@ -1347,7 +1347,7 @@ export class FirestoreStorage implements IStorage {
       post_request_script: collectionRecord.post_request_script,
       pre_request_scripts: collectionRecord.pre_request_scripts,
       post_request_scripts: collectionRecord.post_request_scripts,
-      color: collectionRecord.color ?? null,
+      marker: collectionRecord.marker ?? null,
       folders,
       requests,
       documents
@@ -1381,7 +1381,7 @@ export class FirestoreStorage implements IStorage {
       pre_request_scripts: collectionScripts.pre_request_scripts_json,
       post_request_scripts: collectionScripts.post_request_scripts_json,
       created_at: now,
-      color: serializeSidebarColor(exportData.color)
+      marker: serializeSidebarMarker(exportData.marker)
     };
 
     const folderIds = await this.allocateIds('folders', folders.length);
@@ -1419,7 +1419,7 @@ export class FirestoreStorage implements IStorage {
           pre_request_scripts: folderFields.pre_request_scripts_json,
           post_request_scripts: folderFields.post_request_scripts_json,
           created_at: now,
-          color: folderFields.color
+          marker: folderFields.marker
         }
       });
     });
@@ -1461,7 +1461,7 @@ export class FirestoreStorage implements IStorage {
           sort_order: fields.sort_order,
           created_at: now,
           updated_at: now,
-          color: fields.color
+          marker: fields.marker
         }
       });
     });
@@ -1488,7 +1488,7 @@ export class FirestoreStorage implements IStorage {
           sort_order: fields.sort_order,
           created_at: now,
           updated_at: now,
-          color: fields.color
+          marker: fields.marker
         }
       });
     });
@@ -1585,7 +1585,7 @@ export class FirestoreStorage implements IStorage {
       post_request_script: collectionScripts.post_request_script,
       pre_request_scripts: collectionScripts.pre_request_scripts_json,
       post_request_scripts: collectionScripts.post_request_scripts_json,
-      color: serializeSidebarColor(exportData.color)
+      marker: serializeSidebarMarker(exportData.marker)
     });
 
     const existingFolders = await this.listFolders(id);
@@ -1606,7 +1606,7 @@ export class FirestoreStorage implements IStorage {
           post_request_script: folderFields.post_request_script,
           pre_request_scripts: folderFields.pre_request_scripts_json,
           post_request_scripts: folderFields.post_request_scripts_json,
-          color: folderFields.color
+          marker: folderFields.marker
         });
         registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
         continue;
@@ -1629,7 +1629,7 @@ export class FirestoreStorage implements IStorage {
         pre_request_scripts: folderFields.pre_request_scripts_json,
         post_request_scripts: folderFields.post_request_scripts_json,
         created_at: now,
-        color: folderFields.color
+        marker: folderFields.marker
       });
       registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid);
     }
@@ -1671,7 +1671,7 @@ export class FirestoreStorage implements IStorage {
           tags: fields.tags,
           sort_order: fields.sort_order,
           updated_at: now,
-          color: fields.color
+          marker: fields.marker
         });
         continue;
       }
@@ -1702,7 +1702,7 @@ export class FirestoreStorage implements IStorage {
         sort_order: fields.sort_order,
         created_at: now,
         updated_at: now,
-        color: fields.color
+        marker: fields.marker
       });
     }
 
@@ -1723,7 +1723,7 @@ export class FirestoreStorage implements IStorage {
           content: fields.content,
           sort_order: fields.sort_order,
           updated_at: now,
-          color: fields.color
+          marker: fields.marker
         });
         continue;
       }
@@ -1739,7 +1739,7 @@ export class FirestoreStorage implements IStorage {
         sort_order: fields.sort_order,
         created_at: now,
         updated_at: now,
-        color: fields.color
+        marker: fields.marker
       });
     }
 
@@ -1760,7 +1760,7 @@ export class FirestoreStorage implements IStorage {
       post_request_script: collectionScripts.post_request_script,
       pre_request_scripts: collectionScripts.pre_request_scripts_json,
       post_request_scripts: collectionScripts.post_request_scripts_json,
-      color: serializeSidebarColor(exportData.color)
+      marker: serializeSidebarMarker(exportData.marker)
     });
   }
 

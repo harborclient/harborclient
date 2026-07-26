@@ -36,7 +36,7 @@ import {
   PROVIDER_SNIPPET_COLUMNS
 } from './providerSnippetSql';
 import { bundleScriptFieldsWithLegacy, migratePostgresScriptArrayColumns } from './scriptFields';
-import { serializeSidebarColor } from './sidebarColorMigration';
+import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { trimRequiredName } from './trimRequiredName';
 import { DEFAULT_AUTH_JSON, defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type { IStorage } from './IStorage';
@@ -68,8 +68,8 @@ import { parseJson } from '@harborclient/core/parseJson';
 import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =
-  'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, color';
+  'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
 
 export class PostgresStorage implements IStorage {
   #pool: Pool | null = null;
@@ -247,21 +247,12 @@ export class PostgresStorage implements IStorage {
     await this.#pool.query(`
       ALTER TABLE folders ADD COLUMN IF NOT EXISTS uuid TEXT NOT NULL DEFAULT ''
     `);
-    await this.#pool.query(`
-      ALTER TABLE collections ADD COLUMN IF NOT EXISTS color TEXT
-    `);
-    await this.#pool.query(`
-      ALTER TABLE folders ADD COLUMN IF NOT EXISTS color TEXT
-    `);
-    await this.#pool.query(`
-      ALTER TABLE requests ADD COLUMN IF NOT EXISTS color TEXT
-    `);
-    await this.#pool.query(`
-      ALTER TABLE documents ADD COLUMN IF NOT EXISTS color TEXT
-    `);
-    await this.#pool.query(`
-      ALTER TABLE environments ADD COLUMN IF NOT EXISTS color TEXT
-    `);
+    for (const table of ['collections', 'folders', 'requests', 'documents', 'environments']) {
+      await this.renameLegacyColorColumn(table);
+      await this.#pool.query(`
+        ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS marker TEXT
+      `);
+    }
 
     await this.backfillDocumentUuids('collections');
     await this.backfillDocumentUuids('requests');
@@ -294,6 +285,35 @@ export class PostgresStorage implements IStorage {
     await this.getPool().query(
       "ALTER TABLE folders ADD COLUMN IF NOT EXISTS user_agent TEXT NOT NULL DEFAULT ''"
     );
+  }
+
+  /**
+   * Renames a pre-rename `color` column to `marker`, preserving assignments.
+   *
+   * Skips the rename when the table already carries `marker`, so the migration
+   * stays safe to run on every connect.
+   *
+   * @param table - Table that may still hold the legacy column.
+   */
+  private async renameLegacyColorColumn(table: string): Promise<void> {
+    await this.getPool().query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = '${table}'
+            AND column_name = 'color'
+        ) AND NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = current_schema()
+            AND table_name = '${table}'
+            AND column_name = 'marker'
+        ) THEN
+          ALTER TABLE ${table} RENAME COLUMN color TO marker;
+        END IF;
+      END $$;
+    `);
   }
 
   /**
@@ -412,15 +432,15 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates a collection's sidebar color.
+   * Updates a collection's sidebar marker.
    *
    * @param id - Collection ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated collection.
    */
-  async setCollectionColor(id: number, color: string | null): Promise<Collection> {
-    const result = await this.getPool().query('UPDATE collections SET color = $1 WHERE id = $2', [
-      serializeSidebarColor(color),
+  async setCollectionMarker(id: number, marker: string | null): Promise<Collection> {
+    const result = await this.getPool().query('UPDATE collections SET marker = $1 WHERE id = $2', [
+      serializeSidebarMarker(marker),
       id
     ]);
     if (result.rowCount === 0) throw new Error('Collection not found');
@@ -504,15 +524,15 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's sidebar color.
+   * Updates an environment's sidebar marker.
    *
    * @param id - Environment ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated environment.
    */
-  async setEnvironmentColor(id: number, color: string | null): Promise<Environment> {
-    const result = await this.getPool().query('UPDATE environments SET color = $1 WHERE id = $2', [
-      serializeSidebarColor(color),
+  async setEnvironmentMarker(id: number, marker: string | null): Promise<Environment> {
+    const result = await this.getPool().query('UPDATE environments SET marker = $1 WHERE id = $2', [
+      serializeSidebarMarker(marker),
       id
     ]);
     if (result.rowCount === 0) throw new Error('Environment not found');
@@ -577,8 +597,8 @@ export class PostgresStorage implements IStorage {
     const bodyRaw = input.body_raw ?? null;
     const bodyRawOpen = input.body_raw_open === true;
     const folderId = input.folder_id ?? null;
-    const serializedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const serializedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -594,7 +614,7 @@ export class PostgresStorage implements IStorage {
 
     if (input.id) {
       const result =
-        serializedColor === undefined
+        serializedMarker === undefined
           ? await this.getPool().query(
               `UPDATE requests SET
           collection_id = $1, folder_id = $2, name = $3, method = $4, url = $5,
@@ -631,7 +651,7 @@ export class PostgresStorage implements IStorage {
           collection_id = $1, folder_id = $2, name = $3, method = $4, url = $5,
           headers = $6, user_agent = $7, params = $8, auth = $9, body = $10, body_type = $11, body_raw = $12, body_raw_open = $13,
           pre_request_script = $14, post_request_script = $15, pre_request_scripts = $16, post_request_scripts = $17, comment = $18, tags = $19,
-          updated_at = $20, color = $21
+          updated_at = $20, marker = $21
         WHERE id = $22`,
               [
                 input.collection_id,
@@ -654,7 +674,7 @@ export class PostgresStorage implements IStorage {
                 comment,
                 tags,
                 now,
-                serializedColor,
+                serializedMarker,
                 input.id
               ]
             );
@@ -679,7 +699,7 @@ export class PostgresStorage implements IStorage {
     const result = await this.getPool().query(
       `INSERT INTO requests (
         collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+        pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *`,
       [
@@ -706,7 +726,7 @@ export class PostgresStorage implements IStorage {
         requestUuid,
         now,
         now,
-        serializedColor ?? null
+        serializedMarker ?? null
       ]
     );
 
@@ -725,15 +745,15 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates a saved request's sidebar color.
+   * Updates a saved request's sidebar marker.
    *
    * @param id - Request ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated request.
    */
-  async setRequestColor(id: number, color: string | null): Promise<SavedRequest> {
-    const result = await this.getPool().query('UPDATE requests SET color = $1 WHERE id = $2', [
-      serializeSidebarColor(color),
+  async setRequestMarker(id: number, marker: string | null): Promise<SavedRequest> {
+    const result = await this.getPool().query('UPDATE requests SET marker = $1 WHERE id = $2', [
+      serializeSidebarMarker(marker),
       id
     ]);
     if (result.rowCount === 0) throw new Error('Request not found');
@@ -857,15 +877,15 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates a folder's sidebar color.
+   * Updates a folder's sidebar marker.
    *
    * @param id - Folder ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated folder.
    */
-  async setFolderColor(id: number, color: string | null): Promise<Folder> {
-    const result = await this.getPool().query('UPDATE folders SET color = $1 WHERE id = $2', [
-      serializeSidebarColor(color),
+  async setFolderMarker(id: number, marker: string | null): Promise<Folder> {
+    const result = await this.getPool().query('UPDATE folders SET marker = $1 WHERE id = $2', [
+      serializeSidebarMarker(marker),
       id
     ]);
     if (result.rowCount === 0) throw new Error('Folder not found');
@@ -1090,8 +1110,8 @@ export class PostgresStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Document name');
     const content = input.content ?? '';
     const folderId = input.folder_id ?? null;
-    const serializedColor =
-      input.color !== undefined ? serializeSidebarColor(input.color) : undefined;
+    const serializedMarker =
+      input.marker !== undefined ? serializeSidebarMarker(input.marker) : undefined;
     const now = new Date().toISOString();
 
     if (folderId != null) {
@@ -1107,7 +1127,7 @@ export class PostgresStorage implements IStorage {
 
     if (input.id) {
       const updateResult =
-        serializedColor === undefined
+        serializedMarker === undefined
           ? await this.getPool().query(
               `UPDATE documents SET
           collection_id = $1, folder_id = $2, name = $3, content = $4, updated_at = $5
@@ -1116,9 +1136,9 @@ export class PostgresStorage implements IStorage {
             )
           : await this.getPool().query(
               `UPDATE documents SET
-          collection_id = $1, folder_id = $2, name = $3, content = $4, updated_at = $5, color = $6
+          collection_id = $1, folder_id = $2, name = $3, content = $4, updated_at = $5, marker = $6
         WHERE id = $7`,
-              [input.collection_id, folderId, trimmedName, content, now, serializedColor, input.id]
+              [input.collection_id, folderId, trimmedName, content, now, serializedMarker, input.id]
             );
 
       if (updateResult.rowCount && updateResult.rowCount > 0) {
@@ -1140,7 +1160,7 @@ export class PostgresStorage implements IStorage {
 
     const insertResult = await this.getPool().query(
       `INSERT INTO documents (
-        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+        collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *`,
       [
@@ -1152,7 +1172,7 @@ export class PostgresStorage implements IStorage {
         documentUuid,
         now,
         now,
-        serializedColor ?? null
+        serializedMarker ?? null
       ]
     );
 
@@ -1171,15 +1191,15 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates a markdown document's sidebar color.
+   * Updates a markdown document's sidebar marker.
    *
    * @param id - Document ID to update.
-   * @param color - CSS color string, or null to clear.
+   * @param marker - CSS marker string, or null to clear.
    * @returns The updated document.
    */
-  async setDocumentColor(id: number, color: string | null): Promise<CollectionDocument> {
-    const result = await this.getPool().query('UPDATE documents SET color = $1 WHERE id = $2', [
-      serializeSidebarColor(color),
+  async setDocumentMarker(id: number, marker: string | null): Promise<CollectionDocument> {
+    const result = await this.getPool().query('UPDATE documents SET marker = $1 WHERE id = $2', [
+      serializeSidebarMarker(marker),
       id
     ]);
     if (result.rowCount === 0) throw new Error('Document not found');
@@ -1323,7 +1343,7 @@ export class PostgresStorage implements IStorage {
       post_request_script: collection.post_request_script,
       pre_request_scripts: collection.pre_request_scripts,
       post_request_scripts: collection.post_request_scripts,
-      color: collection.color ?? null,
+      marker: collection.marker ?? null,
       folders,
       requests,
       documents
@@ -1347,7 +1367,7 @@ export class PostgresStorage implements IStorage {
       const collectionUuid = resolveImportedCollectionUuid(exportData);
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       const collectionResult = await client.query(
-        `INSERT INTO collections (name, uuid, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color)
+        `INSERT INTO collections (name, uuid, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING ${COLLECTION_COLUMNS}`,
         [
@@ -1362,7 +1382,7 @@ export class PostgresStorage implements IStorage {
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
           now,
-          serializeSidebarColor(exportData.color)
+          serializeSidebarMarker(exportData.marker)
         ]
       );
 
@@ -1379,7 +1399,7 @@ export class PostgresStorage implements IStorage {
         const folderResult = await client.query(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
           )
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING id`,
@@ -1397,7 +1417,7 @@ export class PostgresStorage implements IStorage {
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
             now,
-            folderFields.color
+            folderFields.marker
           ]
         );
         registerImportedFolderInMaps(
@@ -1420,7 +1440,7 @@ export class PostgresStorage implements IStorage {
         await client.query(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
           [
             collectionId,
@@ -1446,7 +1466,7 @@ export class PostgresStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1462,7 +1482,7 @@ export class PostgresStorage implements IStorage {
 
         await client.query(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             collectionId,
@@ -1473,7 +1493,7 @@ export class PostgresStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1551,7 +1571,7 @@ export class PostgresStorage implements IStorage {
 
       const collectionScripts = serializeImportedCollectionScriptFields(exportData);
       await client.query(
-        'UPDATE collections SET name = $1, variables = $2, headers = $3, user_agent = $4, auth = $5, pre_request_script = $6, post_request_script = $7, pre_request_scripts = $8, post_request_scripts = $9, color = $10 WHERE id = $11',
+        'UPDATE collections SET name = $1, variables = $2, headers = $3, user_agent = $4, auth = $5, pre_request_script = $6, post_request_script = $7, pre_request_scripts = $8, post_request_scripts = $9, marker = $10 WHERE id = $11',
         [
           exportData.name,
           JSON.stringify(exportData.variables),
@@ -1562,7 +1582,7 @@ export class PostgresStorage implements IStorage {
           collectionScripts.post_request_script,
           collectionScripts.pre_request_scripts_json,
           collectionScripts.post_request_scripts_json,
-          serializeSidebarColor(exportData.color),
+          serializeSidebarMarker(exportData.marker),
           id
         ]
       );
@@ -1579,7 +1599,7 @@ export class PostgresStorage implements IStorage {
           const folderFields = serializeImportedFolderFields(folder);
           await client.query(
             `UPDATE folders SET name = $1, sort_order = $2, variables = $3, headers = $4, user_agent = $5, auth = $6,
-              pre_request_script = $7, post_request_script = $8, pre_request_scripts = $9, post_request_scripts = $10, color = $11
+              pre_request_script = $7, post_request_script = $8, pre_request_scripts = $9, post_request_scripts = $10, marker = $11
              WHERE id = $12 AND collection_id = $13`,
             [
               plan.name,
@@ -1592,7 +1612,7 @@ export class PostgresStorage implements IStorage {
               folderFields.post_request_script,
               folderFields.pre_request_scripts_json,
               folderFields.post_request_scripts_json,
-              folderFields.color,
+              folderFields.marker,
               plan.existingId,
               id
             ]
@@ -1605,7 +1625,7 @@ export class PostgresStorage implements IStorage {
         const folderResult = await client.query(
           `INSERT INTO folders (
             collection_id, name, sort_order, uuid, variables, headers, user_agent, auth,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker
           )
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING id`,
@@ -1623,7 +1643,7 @@ export class PostgresStorage implements IStorage {
             folderFields.pre_request_scripts_json,
             folderFields.post_request_scripts_json,
             now,
-            folderFields.color
+            folderFields.marker
           ]
         );
         registerImportedFolderInMaps(
@@ -1663,7 +1683,7 @@ export class PostgresStorage implements IStorage {
             `UPDATE requests SET
               folder_id = $1, name = $2, method = $3, url = $4, headers = $5, user_agent = $6, params = $7, auth = $8,
               body = $9, body_type = $10, body_raw = $11, body_raw_open = $12, pre_request_script = $13, post_request_script = $14, pre_request_scripts = $15, post_request_scripts = $16, comment = $17, tags = $18,
-              sort_order = $19, updated_at = $20, color = $21
+              sort_order = $19, updated_at = $20, marker = $21
             WHERE id = $22 AND collection_id = $23`,
             [
               folderId,
@@ -1686,7 +1706,7 @@ export class PostgresStorage implements IStorage {
               fields.tags,
               fields.sort_order,
               now,
-              fields.color,
+              fields.marker,
               existingRequestId,
               id
             ]
@@ -1697,7 +1717,7 @@ export class PostgresStorage implements IStorage {
         await client.query(
           `INSERT INTO requests (
             collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
-            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, color
+            pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
           [
             id,
@@ -1723,7 +1743,7 @@ export class PostgresStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }
@@ -1741,7 +1761,7 @@ export class PostgresStorage implements IStorage {
         if (existingDocumentId != null) {
           await client.query(
             `UPDATE documents SET
-              folder_id = $1, name = $2, content = $3, sort_order = $4, updated_at = $5, color = $6
+              folder_id = $1, name = $2, content = $3, sort_order = $4, updated_at = $5, marker = $6
             WHERE id = $7 AND collection_id = $8`,
             [
               folderId,
@@ -1749,7 +1769,7 @@ export class PostgresStorage implements IStorage {
               fields.content,
               fields.sort_order,
               now,
-              fields.color,
+              fields.marker,
               existingDocumentId,
               id
             ]
@@ -1759,7 +1779,7 @@ export class PostgresStorage implements IStorage {
 
         await client.query(
           `INSERT INTO documents (
-            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, color
+            collection_id, folder_id, name, content, sort_order, uuid, created_at, updated_at, marker
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             id,
@@ -1770,7 +1790,7 @@ export class PostgresStorage implements IStorage {
             fields.uuid,
             now,
             now,
-            fields.color
+            fields.marker
           ]
         );
       }

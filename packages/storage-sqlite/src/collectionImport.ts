@@ -16,7 +16,7 @@ import { bundleScriptFieldsWithLegacy } from './scriptFields';
 import { maskVariablesForExport } from './collectionData';
 import { resolveImportUuid } from './uuid';
 import { normalizeRequestTags } from '@harborclient/core/requestTags';
-import { serializeSidebarColor } from './sidebarColorMigration';
+import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 
 /**
@@ -164,14 +164,14 @@ export type ImportedFolderUpsertPlan =
       name: string;
       sort_order: number;
       uuid: string;
-      color: string | null;
+      marker: string | null;
     }
   | {
       action: 'insert';
       name: string;
       sort_order: number;
       uuid: string;
-      color: string | null;
+      marker: string | null;
     };
 
 /**
@@ -199,7 +199,7 @@ export function planImportedFolderUpsert(
         name: folder.name,
         sort_order: folder.sort_order,
         uuid: resolvedUuid,
-        color: serializeSidebarColor(folder.color)
+        marker: serializeSidebarMarker(folder.marker)
       };
     }
 
@@ -208,7 +208,7 @@ export function planImportedFolderUpsert(
       name: folder.name,
       sort_order: folder.sort_order,
       uuid: resolvedUuid,
-      color: serializeSidebarColor(folder.color)
+      marker: serializeSidebarMarker(folder.marker)
     };
   }
 
@@ -220,7 +220,7 @@ export function planImportedFolderUpsert(
       name: folder.name,
       sort_order: folder.sort_order,
       uuid: maps.folderUuidById.get(existingByName) ?? resolvedUuid,
-      color: serializeSidebarColor(folder.color)
+      marker: serializeSidebarMarker(folder.marker)
     };
   }
 
@@ -229,7 +229,7 @@ export function planImportedFolderUpsert(
     name: folder.name,
     sort_order: folder.sort_order,
     uuid: resolvedUuid,
-    color: serializeSidebarColor(folder.color)
+    marker: serializeSidebarMarker(folder.marker)
   };
 }
 
@@ -302,7 +302,7 @@ export function savedDocumentToExportedDocument(
     sort_order: document.sort_order,
     folder_name: folderName,
     folder_uuid: folderUuid,
-    color: document.color ?? null
+    marker: document.marker ?? null
   };
 }
 
@@ -317,14 +317,14 @@ export function serializeImportedDocumentFields(document: ExportedDocument): {
   content: string;
   sort_order: number;
   uuid: string;
-  color: string | null;
+  marker: string | null;
 } {
   return {
     name: document.name,
     content: document.content,
     sort_order: document.sort_order,
     uuid: resolveImportedDocumentUuid(document),
-    color: serializeSidebarColor(document.color)
+    marker: serializeSidebarMarker(document.marker)
   };
 }
 
@@ -363,7 +363,7 @@ export function savedRequestToExportedRequest(
     sort_order: request.sort_order,
     folder_name: folderName,
     folder_uuid: folderUuid,
-    color: request.color ?? null
+    marker: request.marker ?? null
   };
 }
 
@@ -414,7 +414,7 @@ export function exportedFolderFromFolder(folder: Folder): ExportedFolder {
     post_request_script: folder.post_request_script,
     pre_request_scripts: folder.pre_request_scripts,
     post_request_scripts: folder.post_request_scripts,
-    color: folder.color ?? null
+    marker: folder.marker ?? null
   };
 }
 
@@ -433,7 +433,7 @@ export function serializeImportedFolderFields(folder: ExportedFolder): {
   post_request_script: string;
   pre_request_scripts_json: string;
   post_request_scripts_json: string;
-  color: string | null;
+  marker: string | null;
 } {
   const preScripts = bundleScriptFieldsWithLegacy(
     folder.pre_request_scripts,
@@ -452,7 +452,7 @@ export function serializeImportedFolderFields(folder: ExportedFolder): {
     post_request_script: postScripts.legacy,
     pre_request_scripts_json: preScripts.json,
     post_request_scripts_json: postScripts.json,
-    color: serializeSidebarColor(folder.color)
+    marker: serializeSidebarMarker(folder.marker)
   };
 }
 
@@ -508,7 +508,7 @@ export function importedFolderToStoredRow(
   post_request_script: string;
   pre_request_scripts: ScriptRef[];
   post_request_scripts: ScriptRef[];
-  color: string | null;
+  marker: string | null;
 } {
   const preScripts = bundleScriptFieldsWithLegacy(
     folder.pre_request_scripts,
@@ -532,7 +532,7 @@ export function importedFolderToStoredRow(
     post_request_script: postScripts.legacy,
     pre_request_scripts: preRefs,
     post_request_scripts: postRefs,
-    color: serializeSidebarColor(folder.color)
+    marker: serializeSidebarMarker(folder.marker)
   };
 }
 
@@ -562,7 +562,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   tags: string;
   sort_order: number;
   uuid: string;
-  color: string | null;
+  marker: string | null;
 } {
   const preScripts = bundleScriptFieldsWithLegacy(
     request.pre_request_scripts,
@@ -593,7 +593,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
     tags: normalizeRequestTags(request.tags),
     sort_order: request.sort_order,
     uuid: resolveImportedRequestUuid(request),
-    color: serializeSidebarColor(request.color)
+    marker: serializeSidebarMarker(request.marker)
   };
 }
 

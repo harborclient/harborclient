@@ -29,13 +29,13 @@ import {
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarProviders } from '../providers/sidebarProvidersContext';
 import {
-  collectCollectionsTreeColors,
+  collectCollectionsTreeMarkers,
   collectCollectionsTreeStorageLocations,
   EMPTY_COLLECTIONS_FILTER,
   type CollectionsFilterCriteria,
   type CollectionsFilterDocumentType
 } from './collectionsFilter';
-import { FilterColorSelect } from './FilterColorSelect';
+import { FilterMarkerSelect } from './FilterMarkerSelect';
 
 /** Width of the collections filter form popover. */
 const MENU_WIDTH_PX = 280;
@@ -75,7 +75,7 @@ interface Props {
 
 /**
  * Portaled form popover for filtering the Collections sidebar section by
- * storage location, HTTP method, document type, and color.
+ * storage location, HTTP method, document type, and marker.
  *
  * @param anchorRef - Filter toolbar button used for positioning.
  * @param appliedFilter - Currently applied criteria (seeds the draft on open).
@@ -95,7 +95,7 @@ export function CollectionsFilterMenu({
   const storageId = `collections-filter-storage-${reactId}`;
   const methodId = `collections-filter-method-${reactId}`;
   const documentTypeId = `collections-filter-doctype-${reactId}`;
-  const colorId = `collections-filter-color-${reactId}`;
+  const colorId = `collections-filter-marker-${reactId}`;
   const panelRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLSelectElement>(null);
   const [position, setPosition] = useState<MenuPosition | null>(null);
@@ -106,7 +106,7 @@ export function CollectionsFilterMenu({
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const documentsByCollection = useAppSelector(selectDocumentsByCollection);
   const { primaryConnectionId, connectionNamesById } = useSidebarProviders();
-  const { showColorDots } = useSidebarExpansion();
+  const { showMarkers } = useSidebarExpansion();
 
   /**
    * Distinct storage locations used by collections currently in the sidebar tree.
@@ -118,11 +118,11 @@ export function CollectionsFilterMenu({
   );
 
   /**
-   * Distinct colors currently assigned in the collections tree.
+   * Distinct markers currently assigned in the collections tree.
    */
-  const colors = useMemo(
+  const markers = useMemo(
     () =>
-      collectCollectionsTreeColors({
+      collectCollectionsTreeMarkers({
         collections,
         foldersByCollection,
         requestsByCollection,
@@ -161,7 +161,7 @@ export function CollectionsFilterMenu({
    */
   useLayoutEffect(() => {
     updatePosition();
-  }, [updatePosition, colors.length]);
+  }, [updatePosition, markers.length]);
 
   /**
    * Keeps fixed coordinates aligned when the sidebar or viewport moves.
@@ -213,8 +213,8 @@ export function CollectionsFilterMenu({
         return;
       }
 
-      // Color listbox is portaled beside the dialog; ignore clicks inside it.
-      if (target instanceof Element && target.closest('.hc-collections-filter-color-listbox')) {
+      // Marker listbox is portaled beside the dialog; ignore clicks inside it.
+      if (target instanceof Element && target.closest('.hc-collections-filter-marker-listbox')) {
         return;
       }
 
@@ -344,14 +344,14 @@ export function CollectionsFilterMenu({
           </Select>
         </FormGroup>
 
-        {showColorDots && colors.length > 0 ? (
-          <FormGroup label="Color" htmlFor={colorId} bordered={false} labelTone="muted">
-            <FilterColorSelect
+        {showMarkers && markers.length > 0 ? (
+          <FormGroup label="Color marker" htmlFor={colorId} bordered={false} labelTone="muted">
+            <FilterMarkerSelect
               id={colorId}
-              value={draft.color}
-              colors={colors}
-              onChange={(color) => {
-                setDraft((current) => ({ ...current, color }));
+              value={draft.marker}
+              markers={markers}
+              onChange={(marker) => {
+                setDraft((current) => ({ ...current, marker }));
               }}
             />
           </FormGroup>

@@ -25,6 +25,14 @@ export function registerWindowHandlers(): void {
     window.maximize();
   });
 
+  // Toggles native fullscreen on the focused application window.
+  handle('window:toggleFullscreen', ipcArgSchemas.none, () => {
+    const window = BrowserWindow.getFocusedWindow();
+    if (!window) return;
+
+    window.setFullScreen(!window.isFullScreen());
+  });
+
   // Closes the focused application window.
   handle('window:close', ipcArgSchemas.none, () => {
     BrowserWindow.getFocusedWindow()?.close();

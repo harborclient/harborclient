@@ -3,8 +3,8 @@ import { faFileLines } from '@fortawesome/free-solid-svg-icons';
 import type { JSX, MouseEvent, ReactNode } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
 import { cn } from '../utils.js';
-import { SidebarColorDot } from './SidebarColorDot.js';
 import { SidebarItem } from './SidebarItem.js';
+import { SidebarMarkerDot } from './SidebarMarkerDot.js';
 import { SidebarStatusMarker } from './SidebarStatusMarker.js';
 import { SIDEBAR_ITEM_BUTTON_CLASS } from './sidebarItemClasses.js';
 
@@ -27,15 +27,15 @@ interface Props {
   name: string;
 
   /**
-   * Optional Tailwind classes applied to the name text (e.g. git status colors).
+   * Optional Tailwind classes applied to the name text (e.g. git status markers).
    */
   nameClassName?: string;
 
   /**
-   * Optional color dot configuration for collection sidebar rows.
+   * Optional marker dot configuration for collection sidebar rows.
    */
-  colorDot?: {
-    color: string | null | undefined;
+  markerDot?: {
+    marker: string | null | undefined;
     visible?: boolean;
     label?: string;
   };
@@ -97,7 +97,7 @@ interface Props {
 }
 
 /**
- * Renders a markdown document sidebar row with file icon, optional color dot or git
+ * Renders a markdown document sidebar row with file icon, optional marker dot or git
  * status marker, and shared row chrome. Used in both Collections and Git sidebars.
  *
  * The accessible name defaults to visible row content (name, markers) but can be
@@ -108,7 +108,7 @@ export function SidebarDocumentItem({
   iconClassName,
   name,
   nameClassName,
-  colorDot,
+  markerDot,
   statusMarker,
   selected = false,
   ariaLabel,
@@ -146,13 +146,13 @@ export function SidebarDocumentItem({
           className={cn('h-3.5 w-3.5 shrink-0 pl-1 text-muted', iconClassName)}
           aria-hidden
         />
-        {colorDot != null ? (
+        {markerDot != null ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <span className={`min-w-0 truncate ${nameClassName ?? ''}`}>{name}</span>
-            <SidebarColorDot
-              color={colorDot.color}
-              visible={colorDot.visible}
-              label={colorDot.label}
+            <SidebarMarkerDot
+              marker={markerDot.marker}
+              visible={markerDot.visible}
+              label={markerDot.label}
             />
           </span>
         ) : (

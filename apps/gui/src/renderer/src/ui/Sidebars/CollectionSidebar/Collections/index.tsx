@@ -53,7 +53,7 @@ import {
   SidebarBadge,
   SidebarFolderItem
 } from '@harborclient/sdk/components';
-import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/colors/SidebarColorDot';
+import { SidebarMarkerDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/markers/SidebarMarkerDot';
 import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
 import { buildReorderMenuGroup } from '@harborclient/sdk/components';
@@ -138,7 +138,7 @@ export function Collections(): JSX.Element {
     setExpandedCollectionIds,
     setExpandedFolderIds,
     showStorageLocationBadges,
-    showColorDots,
+    showMarkers,
     showMethodColors,
     sectionSort
   } = useSidebarExpansion();
@@ -357,7 +357,7 @@ export function Collections(): JSX.Element {
           const request = requests.find((entry) => entry.id === item.id);
           return toSortTimestamp(request?.created_at);
         },
-        color: (item) => requests.find((entry) => entry.id === item.id)?.color
+        marker: (item) => requests.find((entry) => entry.id === item.id)?.marker
       });
     },
     [requestsByCollection, searchFilter, sortMode, treeFilter]
@@ -389,7 +389,7 @@ export function Collections(): JSX.Element {
       return sortSidebarItems(inContainer, sortMode, {
         name: (document) => document.name,
         createdAt: (document) => toSortTimestamp(document.created_at),
-        color: (document) => document.color
+        marker: (document) => document.marker
       });
     },
     [documentsByCollection, sortMode, treeFilter]
@@ -553,7 +553,7 @@ export function Collections(): JSX.Element {
           {
             name: (folder) => folder.name,
             createdAt: (folder) => toSortTimestamp(folder.created_at),
-            color: (folder) => folder.color
+            marker: (folder) => folder.marker
           }
         ),
         rootItems: sortSidebarItems(rootItems, sortMode, {
@@ -562,7 +562,7 @@ export function Collections(): JSX.Element {
             const request = requests.find((entry) => entry.id === item.id);
             return toSortTimestamp(request?.created_at);
           },
-          color: (item) => requests.find((entry) => entry.id === item.id)?.color
+          marker: (item) => requests.find((entry) => entry.id === item.id)?.marker
         }),
         rootDocuments:
           sortMode === 'default'
@@ -570,7 +570,7 @@ export function Collections(): JSX.Element {
             : sortSidebarItems(rootDocuments, sortMode, {
                 name: (document) => document.name,
                 createdAt: (document) => toSortTimestamp(document.created_at),
-                color: (document) => document.color
+                marker: (document) => document.marker
               })
       };
     });
@@ -588,7 +588,7 @@ export function Collections(): JSX.Element {
     return sortSidebarItems(filtered, sortMode, {
       name: ({ collection }) => collection.name,
       createdAt: ({ collection }) => toSortTimestamp(collection.created_at),
-      color: ({ collection }) => collection.color
+      marker: ({ collection }) => collection.marker
     });
   }, [
     collections,
@@ -1043,9 +1043,9 @@ export function Collections(): JSX.Element {
                     >
                       <span className="inline-flex min-w-0 items-center gap-1.5">
                         <span className="truncate">{collection.name}</span>
-                        <SidebarColorDot
-                          color={collection.color}
-                          label={`Color for ${collection.name}`}
+                        <SidebarMarkerDot
+                          marker={collection.marker}
+                          label={`Color marker for ${collection.name}`}
                         />
                         {(() => {
                           const badgeLabel =
@@ -1328,10 +1328,10 @@ export function Collections(): JSX.Element {
                                         dropHighlighted={folderHighlighted}
                                         expandIcon={faChevronRight}
                                         collapseIcon={faChevronDown}
-                                        colorDot={{
-                                          color: folder.color,
-                                          visible: showColorDots,
-                                          label: `Color for ${folder.name}`
+                                        markerDot={{
+                                          marker: folder.marker,
+                                          visible: showMarkers,
+                                          label: `Color marker for ${folder.name}`
                                         }}
                                         sortable={{
                                           id: folderDragId(folder.id),
@@ -1368,11 +1368,11 @@ export function Collections(): JSX.Element {
                                             menuId={`folder-${folder.id}`}
                                             openMenuId={openMenuId}
                                             onOpenChange={setOpenMenuId}
-                                            colorTarget={{
+                                            markerTarget={{
                                               kind: 'folder',
                                               collectionId: collection.id,
                                               id: folder.id,
-                                              color: folder.color ?? null
+                                              marker: folder.marker ?? null
                                             }}
                                             groups={[
                                               [

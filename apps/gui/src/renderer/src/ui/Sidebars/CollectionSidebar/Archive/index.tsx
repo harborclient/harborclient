@@ -6,9 +6,9 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectArchivedCollections } from '#/renderer/src/store/selectors';
 import { deleteCollection, setCollectionArchived } from '#/renderer/src/store/thunks/collections';
-import { SidebarColorDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/colors/SidebarColorDot';
+import { SidebarMarkerDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/markers/SidebarMarkerDot';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
-import { filterItemsByColor } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarColorFilter';
+import { filterItemsByMarker } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarMarkerFilter';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import {
   sortSidebarItems,
@@ -39,13 +39,13 @@ function archivedCollectionAriaLabel(
 
 /**
  * Sidebar section listing archived collections that can be restored or deleted.
- * Respects sidebar text search and the Archive color filter when active.
+ * Respects sidebar text search and the Archive marker filter when active.
  */
 export function Archive(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const allCollections = useAppSelector(selectArchivedCollections);
-  const { archiveColorFilter } = useSidebarSectionFilter();
+  const { archiveMarkerFilter } = useSidebarSectionFilter();
   const { sectionSort } = useSidebarExpansion();
   const { searchActive, archivedSearchFilter } = useSidebarSearchContext();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function Archive(): JSX.Element {
   const sortMode = sectionSort.archive;
 
   /**
-   * Archived collections limited by sidebar search and optional color filter,
+   * Archived collections limited by sidebar search and optional marker filter,
    * then ordered by the Archive section sort mode.
    */
   const collections = useMemo(() => {
@@ -65,18 +65,18 @@ export function Archive(): JSX.Element {
         : allCollections.filter((collection) =>
             archivedSearchFilter.collectionIds.has(collection.id)
           );
-    const filtered = filterItemsByColor(searchMatched, archiveColorFilter);
+    const filtered = filterItemsByMarker(searchMatched, archiveMarkerFilter);
     return sortSidebarItems(filtered, sortMode, {
       name: (collection) => collection.name,
       createdAt: (collection) => toSortTimestamp(collection.created_at),
-      color: (collection) => collection.color
+      marker: (collection) => collection.marker
     });
-  }, [allCollections, archiveColorFilter, archivedSearchFilter, sortMode]);
+  }, [allCollections, archiveMarkerFilter, archivedSearchFilter, sortMode]);
 
   /**
-   * True when a search or color filter is active but no archived collections matched.
+   * True when a search or marker filter is active but no archived collections matched.
    */
-  const filterActive = searchActive || archiveColorFilter != null;
+  const filterActive = searchActive || archiveMarkerFilter != null;
   const noMatches = filterActive && allCollections.length > 0 && collections.length === 0;
 
   /**
@@ -162,7 +162,7 @@ export function Archive(): JSX.Element {
             >
               <span className="inline-flex min-w-0 flex-1 items-center gap-1.5">
                 <span className="min-w-0 truncate text-text">{displayName}</span>
-                <SidebarColorDot color={collection.color} />
+                <SidebarMarkerDot marker={collection.marker} />
               </span>
             </button>
             <ActionsMenu

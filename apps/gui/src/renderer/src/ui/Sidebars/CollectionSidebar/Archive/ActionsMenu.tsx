@@ -13,7 +13,7 @@ interface Props {
   /**
    * Archived collection this menu acts on.
    */
-  collection: Pick<Collection, 'id' | 'name' | 'color'>;
+  collection: Pick<Collection, 'id' | 'name' | 'marker'>;
 
   /**
    * Id of the currently open row actions menu, if any.
@@ -43,7 +43,7 @@ interface Props {
 
 /**
  * Builds and renders the Archive row actions menu with Restore, Delete, and
- * Set color / Clear color (appended by {@link SidebarRowActionsMenu}).
+ * Set color marker / Clear color marker (appended by {@link SidebarRowActionsMenu}).
  */
 export function ActionsMenu({
   collection,
@@ -93,10 +93,10 @@ export function ActionsMenu({
       menuId={menuId}
       openMenuId={openMenuId}
       onOpenChange={onOpenChange}
-      colorTarget={{
+      markerTarget={{
         kind: 'collection',
         id: collection.id,
-        color: collection.color ?? null
+        marker: collection.marker ?? null
       }}
       groups={menuGroups}
     />

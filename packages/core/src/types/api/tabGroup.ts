@@ -40,9 +40,9 @@ export interface ApiTabGroups {
   reorderTabGroups: (orderedTabGroupIds: number[]) => Promise<TabGroup[]>;
 
   /**
-   * Updates a tab group sidebar color and returns the refreshed list.
+   * Updates a tab group sidebar marker and returns the refreshed list.
    */
-  setTabGroupColor: (id: number, color: string | null) => Promise<TabGroup[]>;
+  setTabGroupMarker: (id: number, marker: string | null) => Promise<TabGroup[]>;
 
   /**
    * Imports a tab group from a JSON file via a native open dialog.

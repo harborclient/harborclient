@@ -8,7 +8,7 @@ import {
   reorderEnvironmentsLocal,
   setActiveEnvironmentId,
   setEnvironments,
-  updateEnvironmentColor
+  updateEnvironmentMarker
 } from '#/renderer/src/store/slices/environmentsSlice';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from './trash';
@@ -219,14 +219,14 @@ export const importEnvironment = createAsyncThunk<Environment | null, void, Thun
 );
 
 /**
- * Persists an environment sidebar color and updates the cached list row.
+ * Persists an environment sidebar marker and updates the cached list row.
  */
-export const setEnvironmentSidebarColor = createAsyncThunk<
+export const setEnvironmentSidebarMarker = createAsyncThunk<
   Environment,
-  { id: number; color: string | null },
+  { id: number; marker: string | null },
   ThunkApiConfig
->('environments/setSidebarColor', async ({ id, color }, { dispatch }) => {
-  const environment = await window.api.setEnvironmentColor(id, color);
-  dispatch(updateEnvironmentColor(environment));
+>('environments/setSidebarMarker', async ({ id, marker }, { dispatch }) => {
+  const environment = await window.api.setEnvironmentMarker(id, marker);
+  dispatch(updateEnvironmentMarker(environment));
   return environment;
 });

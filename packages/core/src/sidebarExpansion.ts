@@ -46,11 +46,11 @@ const SIDEBAR_SORT_MODES: readonly SidebarSortMode[] = [
   'name-desc',
   'created-asc',
   'created-desc',
-  'color'
+  'marker'
 ];
 
 const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
-const DEFAULT_SHOW_COLOR_DOTS = true;
+const DEFAULT_SHOW_MARKERS = true;
 const DEFAULT_SHOW_METHOD_COLORS = true;
 const DEFAULT_SHOW_INDICATORS = true;
 const DEFAULT_SHOW_FILTERS = false;
@@ -67,7 +67,7 @@ export function defaultSidebarExpansion(): SidebarExpansionState {
     collectionIds: [],
     folderIds: [],
     showStorageLocationBadges: DEFAULT_SHOW_STORAGE_LOCATION_BADGES,
-    showColorDots: DEFAULT_SHOW_COLOR_DOTS,
+    showMarkers: DEFAULT_SHOW_MARKERS,
     showMethodColors: DEFAULT_SHOW_METHOD_COLORS,
     showIndicators: DEFAULT_SHOW_INDICATORS,
     showFilters: DEFAULT_SHOW_FILTERS,
@@ -216,8 +216,7 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
       typeof raw.showStorageLocationBadges === 'boolean'
         ? raw.showStorageLocationBadges
         : DEFAULT_SHOW_STORAGE_LOCATION_BADGES,
-    showColorDots:
-      typeof raw.showColorDots === 'boolean' ? raw.showColorDots : DEFAULT_SHOW_COLOR_DOTS,
+    showMarkers: typeof raw.showMarkers === 'boolean' ? raw.showMarkers : DEFAULT_SHOW_MARKERS,
     showMethodColors:
       typeof raw.showMethodColors === 'boolean' ? raw.showMethodColors : DEFAULT_SHOW_METHOD_COLORS,
     showIndicators:

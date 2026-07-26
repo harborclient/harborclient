@@ -286,14 +286,14 @@ export const reorderTabGroups = createAsyncThunk<void, number[], ThunkApiConfig>
 );
 
 /**
- * Persists a tab group sidebar color and refreshes the cached list.
+ * Persists a tab group sidebar marker and refreshes the cached list.
  */
-export const setTabGroupSidebarColor = createAsyncThunk<
+export const setTabGroupSidebarMarker = createAsyncThunk<
   TabGroup[],
-  { id: number; color: string | null },
+  { id: number; marker: string | null },
   ThunkApiConfig
->('tabGroups/setSidebarColor', async ({ id, color }, { dispatch }) => {
-  const items = await window.api.setTabGroupColor(id, color);
+>('tabGroups/setSidebarMarker', async ({ id, marker }, { dispatch }) => {
+  const items = await window.api.setTabGroupMarker(id, marker);
   dispatch(setTabGroups(items));
   return items;
 });
@@ -316,7 +316,7 @@ export function buildTabGroupExport(groupId: number, groups: TabGroup[]): TabGro
     harborclientExport: 'tab_group',
     name: group.name,
     requestUuids: group.requests.map((request) => request.requestUuid),
-    color: group.color ?? null
+    marker: group.marker ?? null
   };
 }
 

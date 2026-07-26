@@ -43,7 +43,6 @@ import {
 import {
   dispatchNewRequest,
   importFromMenu,
-  patchGeneralSettings,
   requestCreateTabGroupFromOpenTabs,
   runSync,
   saveFromMenu,
@@ -58,8 +57,8 @@ import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
 import { focusResponseEditor } from '#/renderer/src/ui/Main/ResponseEditor/focusResponseEditor';
-import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { selectThemeFromMenu } from '#/renderer/src/plugins/selectThemeFromMenu';
 
 /**
  * Maps set-method menu actions to HTTP methods for keyboard shortcuts.
@@ -336,36 +335,7 @@ export function useMenuActions(): void {
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuSelectTheme(({ theme, label }) => {
-      void (async () => {
-        const activeTheme = await window.api.getTheme();
-        if (theme === activeTheme) {
-          return;
-        }
-
-        const warnWhenSwitchingThemes = store.getState().settings.general.warnWhenSwitchingThemes;
-
-        if (warnWhenSwitchingThemes) {
-          const result = await showConfirm(dispatch, {
-            title: 'Switch theme?',
-            message: `Switch appearance to ${label}?`,
-            confirmLabel: 'Switch theme',
-            checkboxLabel: 'Do not ask again'
-          });
-          if (!result.confirmed) {
-            return;
-          }
-          if (result.checkboxChecked) {
-            await dispatch(patchGeneralSettings({ warnWhenSwitchingThemes: false }));
-          }
-        }
-
-        try {
-          await applyThemePreference(theme);
-          await window.api.setTheme(theme);
-        } catch (err: unknown) {
-          showAlert(dispatch, formatErrorMessage(err, 'Failed to switch theme'));
-        }
-      })();
+      void selectThemeFromMenu(dispatch, store.getState, theme, label);
     });
     return unsubscribe;
   }, [dispatch, store]);

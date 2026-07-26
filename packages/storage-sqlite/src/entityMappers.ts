@@ -3,7 +3,7 @@ import { normalizeSnippetScope } from '@harborclient/core/snippetScope';
 import { normalizeScriptStage } from '@harborclient/core/scriptStage';
 import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import { readScriptRefsFromJson } from '@harborclient/core/scriptRefs';
-import { readSidebarColor } from '@harborclient/core/sidebarColor';
+import { readSidebarMarker } from '@harborclient/core/sidebarMarker';
 import {
   firstRunResultMethod,
   type ProviderRunResult,
@@ -203,6 +203,21 @@ function readAuth(value: unknown): ReturnType<typeof defaultAuth> {
 }
 
 /**
+ * Reads the sidebar marker from a row, falling back to the pre-rename `color`
+ * field.
+ *
+ * SQL backends rename the column during migration, but document stores such as
+ * Firestore keep whatever key was written last, so records saved before the
+ * rename still arrive as `color`.
+ *
+ * @param row - Row or document fields.
+ * @returns Normalized marker string, or null when unset.
+ */
+function readRowMarker(row: Record<string, unknown>): string | null {
+  return readSidebarMarker(row.marker ?? row.color);
+}
+
+/**
  * Maps a raw database row or document record to a Collection object.
  *
  * @param row - Row or document fields including numeric `id`.
@@ -223,7 +238,7 @@ export function rowToCollection(row: Record<string, unknown>): Collection {
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
     post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
     created_at: readTimestamp(row.created_at),
-    color: readSidebarColor(row.color)
+    marker: readRowMarker(row)
   };
 }
 
@@ -239,7 +254,7 @@ export function rowToEnvironment(row: Record<string, unknown>): Environment {
     name: readString(row.name),
     variables: readVariables(row.variables),
     created_at: readTimestamp(row.created_at),
-    color: readSidebarColor(row.color)
+    marker: readRowMarker(row)
   };
 }
 
@@ -427,7 +442,7 @@ export function rowToFolder(row: Record<string, unknown>): Folder {
     pre_request_scripts: readScriptRefsFromJson(row.pre_request_scripts, preRequestScript),
     post_request_scripts: readScriptRefsFromJson(row.post_request_scripts, postRequestScript),
     created_at: readTimestamp(row.created_at),
-    color: readSidebarColor(row.color)
+    marker: readRowMarker(row)
   };
 }
 
@@ -464,7 +479,7 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     sort_order: readNumber(row.sort_order),
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at),
-    color: readSidebarColor(row.color)
+    marker: readRowMarker(row)
   };
 }
 
@@ -484,7 +499,7 @@ export function rowToDocument(row: Record<string, unknown>): CollectionDocument 
     sort_order: readNumber(row.sort_order),
     created_at: readTimestamp(row.created_at),
     updated_at: readTimestamp(row.updated_at),
-    color: readSidebarColor(row.color)
+    marker: readRowMarker(row)
   };
 }
 

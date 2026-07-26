@@ -31,6 +31,11 @@ export interface Props extends Omit<
   onClear?: () => void;
 
   /**
+   * Label for the clear button, so hosts can name what is being cleared.
+   */
+  clearLabel?: string;
+
+  /**
    * Fixed preset swatches (defaults to two rows of five HarborClient colors).
    */
   presets?: readonly string[];
@@ -61,6 +66,7 @@ export function ColorPicker({
   value,
   onChange,
   onClear,
+  clearLabel = 'Clear color',
   presets = DEFAULT_COLOR_PICKER_PRESETS,
   customSwatchesStorageKey = DEFAULT_CUSTOM_SWATCHES_STORAGE_KEY,
   'aria-label': ariaLabel = 'Choose a color',
@@ -229,7 +235,7 @@ export function ColorPicker({
           className="self-start text-[14px] text-muted hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           onClick={onClear}
         >
-          Clear color
+          {clearLabel}
         </button>
       ) : null}
       <input
