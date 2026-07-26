@@ -11,6 +11,7 @@ export * from './collectionRunner';
 export * from './runResults';
 export * from './requestHistory';
 export * from './workspaces';
+export * from './workspaceLayout';
 export * from './sidebarDeselect';
 export * from './trash';
 export * from './settings';

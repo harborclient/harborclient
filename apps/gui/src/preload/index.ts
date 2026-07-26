@@ -105,6 +105,7 @@ import type {
   Workspace,
   TrashEntityType,
   TrashItem,
+  WorkspaceLayout,
   WorkspaceRequest
 } from '@harborclient/core/types';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
@@ -369,13 +370,18 @@ function createWorkspace(input: CreateWorkspaceInput): Promise<Workspace[]> {
 }
 
 /**
- * Replaces workspace members and returns the refreshed list.
+ * Replaces workspace members and optional layout and returns the refreshed list.
  *
  * @param id - Workspace id.
  * @param requests - Ordered saved request members.
+ * @param layout - Optional UI layout snapshot to persist.
  */
-function updateWorkspace(id: number, requests: WorkspaceRequest[]): Promise<Workspace[]> {
-  return ipcRenderer.invoke('workspaces:update', id, requests);
+function updateWorkspace(
+  id: number,
+  requests: WorkspaceRequest[],
+  layout?: WorkspaceLayout | null
+): Promise<Workspace[]> {
+  return ipcRenderer.invoke('workspaces:update', id, requests, layout);
 }
 
 /**

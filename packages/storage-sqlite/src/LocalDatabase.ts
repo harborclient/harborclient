@@ -23,9 +23,14 @@ import type {
   RequestHistoryEntry,
   Snippet,
   Workspace,
+  WorkspaceLayout,
   WorkspaceRequest,
   Variable
 } from '@harborclient/core/types';
+import {
+  normalizeWorkspaceLayout,
+  serializeWorkspaceLayout
+} from '@harborclient/core/types/workspace';
 import type { InsertTrashItemInput, TrashItem } from '@harborclient/core/types/trash';
 import { REQUEST_HISTORY_CAP } from '@harborclient/core/types/requestHistory';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
@@ -34,7 +39,7 @@ import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
-const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker';
+const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
 
 /**
  * Row shape returned from request_history queries.
@@ -496,6 +501,21 @@ export class LocalDatabase {
     this.migrateLegacyTabGroupTrashItems();
     migrateSidebarMarkerColumn(this.getDb(), 'environments');
     migrateSidebarMarkerColumn(this.getDb(), 'workspaces');
+    this.migrateWorkspaceLayoutColumn();
+  }
+
+  /**
+   * Ensures the workspaces table has a nullable layout TEXT column for UI snapshots.
+   */
+  private migrateWorkspaceLayoutColumn(): void {
+    const database = this.getDb();
+    const columns = database.prepare(`PRAGMA table_info(workspaces)`).all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((column) => column.name === 'layout')) {
+      return;
+    }
+    database.exec(`ALTER TABLE workspaces ADD COLUMN layout TEXT`);
   }
 
   /**
@@ -2180,6 +2200,7 @@ export class LocalDatabase {
       created_at: number;
       updated_at: number;
       marker: string | null;
+      layout: string | null;
     }>;
 
     const requestRows = this.getDb()
@@ -2212,7 +2233,8 @@ export class LocalDatabase {
       requests: requestsByWorkspace.get(row.id) ?? [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      marker: readSidebarMarker(row.marker)
+      marker: readSidebarMarker(row.marker),
+      layout: normalizeWorkspaceLayout(row.layout)
     }));
   }
 
@@ -2260,13 +2282,14 @@ export class LocalDatabase {
     const now = Date.now();
     const sortOrder = this.nextWorkspaceSortOrder();
     const db = this.getDb();
+    const layoutJson = serializeWorkspaceLayout(input.layout);
 
     const transaction = db.transaction(() => {
       const result = db
         .prepare(
-          'INSERT INTO workspaces (name, sort_order, created_at, updated_at, marker) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO workspaces (name, sort_order, created_at, updated_at, marker, layout) VALUES (?, ?, ?, ?, ?, ?)'
         )
-        .run(trimmedName, sortOrder, now, now, serializeSidebarMarker(input.marker));
+        .run(trimmedName, sortOrder, now, now, serializeSidebarMarker(input.marker), layoutJson);
       const workspaceId = Number(result.lastInsertRowid);
       this.insertWorkspaceRequests(workspaceId, input.requests);
     });
@@ -2276,13 +2299,18 @@ export class LocalDatabase {
   }
 
   /**
-   * Replaces the saved requests in a workspace and returns the refreshed list.
+   * Replaces the saved requests and optional layout in a workspace and returns the refreshed list.
    *
    * @param id - Workspace id.
    * @param requests - Ordered saved request members.
+   * @param layout - Optional UI layout snapshot to persist; omit to leave the stored layout unchanged.
    * @returns Updated workspace list.
    */
-  updateWorkspace(id: number, requests: WorkspaceRequest[]): Workspace[] {
+  updateWorkspace(
+    id: number,
+    requests: WorkspaceRequest[],
+    layout?: WorkspaceLayout | null
+  ): Workspace[] {
     const source = this.listWorkspaces().find((workspace) => workspace.id === id);
     if (!source) {
       throw new Error(`Workspace ${id} not found`);
@@ -2292,7 +2320,15 @@ export class LocalDatabase {
     const transaction = db.transaction(() => {
       db.prepare('DELETE FROM workspace_requests WHERE workspace_id = ?').run(id);
       this.insertWorkspaceRequests(id, requests);
-      db.prepare('UPDATE workspaces SET updated_at = ? WHERE id = ?').run(Date.now(), id);
+      if (layout !== undefined) {
+        db.prepare('UPDATE workspaces SET updated_at = ?, layout = ? WHERE id = ?').run(
+          Date.now(),
+          serializeWorkspaceLayout(layout),
+          id
+        );
+      } else {
+        db.prepare('UPDATE workspaces SET updated_at = ? WHERE id = ?').run(Date.now(), id);
+      }
     });
 
     transaction();
@@ -2343,7 +2379,9 @@ export class LocalDatabase {
 
     return this.createWorkspace({
       name,
-      requests: source.requests.map((request) => ({ ...request }))
+      requests: source.requests.map((request) => ({ ...request })),
+      marker: source.marker ?? null,
+      layout: source.layout ?? null
     });
   }
 

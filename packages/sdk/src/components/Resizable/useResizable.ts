@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from '@harborclient/sdk/react';
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from 'react';
+import { RESIZABLE_SYNC_EVENT } from './applyResizableSizes.js';
+
+export { applyResizableSizes, RESIZABLE_SYNC_EVENT } from './applyResizableSizes.js';
 
 type Axis = 'x' | 'y';
 
@@ -99,6 +102,9 @@ export interface UseResizableResult {
 
 /**
  * Loads a persisted size from localStorage.
+ *
+ * @param storageKey - localStorage key for the panel size.
+ * @param defaultSize - Fallback when the key is unset or invalid.
  */
 function loadStoredSize(storageKey: string, defaultSize: number): number {
   try {
@@ -113,6 +119,9 @@ function loadStoredSize(storageKey: string, defaultSize: number): number {
 
 /**
  * Persists a size to localStorage.
+ *
+ * @param storageKey - localStorage key for the panel size.
+ * @param size - Size in pixels to store.
  */
 function persistSize(storageKey: string, size: number): void {
   try {
@@ -177,6 +186,29 @@ export function useResizable({
   useEffect(() => {
     sizeRef.current = size;
   }, [size]);
+
+  /**
+   * Re-reads this panel's localStorage size when a workspace (or other caller)
+   * applies sizes externally via {@link applyResizableSizes}.
+   */
+  useEffect(() => {
+    if (!storageKey) {
+      return;
+    }
+
+    /**
+     * Loads the stored size for this panel and clamps it to current bounds.
+     */
+    const handleSync = (): void => {
+      const nextSize = clampSize(loadStoredSize(storageKey, defaultSize), minSize, getMaxSize);
+      setSizeState(nextSize);
+    };
+
+    window.addEventListener(RESIZABLE_SYNC_EVENT, handleSync);
+    return () => {
+      window.removeEventListener(RESIZABLE_SYNC_EVENT, handleSync);
+    };
+  }, [defaultSize, getMaxSize, minSize, storageKey]);
 
   /**
    * Refreshes the computed max size when layout changes or the panel is resized.

@@ -8,6 +8,9 @@ import {
 /** localStorage key for Git sidebar section expansion and visibility. */
 const STORAGE_KEY = 'hc.gitSidebarExpansion';
 
+/** Window event used when a workspace restores Git sidebar expansion externally. */
+export const GIT_SIDEBAR_EXPANSION_SYNC_EVENT = 'hc:git-sidebar-expansion-sync';
+
 /**
  * Reads persisted Git sidebar expansion state from localStorage.
  *
@@ -49,6 +52,18 @@ function writeGitSidebarExpansion(state: GitSidebarExpansionState): void {
 }
 
 /**
+ * Writes Git sidebar expansion and notifies mounted hooks to re-read.
+ *
+ * @param state - Expansion snapshot from a workspace layout.
+ */
+export function applyGitSidebarExpansion(state: GitSidebarExpansionState): void {
+  writeGitSidebarExpansion(state);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(GIT_SIDEBAR_EXPANSION_SYNC_EVENT));
+  }
+}
+
+/**
  * Manages persisted Git sidebar section expansion and toolbar visibility toggles.
  */
 export function useGitSidebarExpansion(): {
@@ -65,6 +80,23 @@ export function useGitSidebarExpansion(): {
   useEffect(() => {
     writeGitSidebarExpansion(state);
   }, [state]);
+
+  /**
+   * Re-reads localStorage when a workspace restores Git sidebar expansion.
+   */
+  useEffect(() => {
+    /**
+     * Reloads expansion state written by {@link applyGitSidebarExpansion}.
+     */
+    const handleSync = (): void => {
+      setState(readGitSidebarExpansion());
+    };
+
+    window.addEventListener(GIT_SIDEBAR_EXPANSION_SYNC_EVENT, handleSync);
+    return () => {
+      window.removeEventListener(GIT_SIDEBAR_EXPANSION_SYNC_EVENT, handleSync);
+    };
+  }, []);
 
   /**
    * Updates whether one accordion section body is expanded.

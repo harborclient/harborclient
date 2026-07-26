@@ -115,7 +115,7 @@ describe('resolveWorkspaceMembersFromRequests', () => {
 });
 
 describe('buildWorkspaceExport', () => {
-  it('builds a portable export envelope with request uuids only', () => {
+  it('builds a version 2 export envelope with request uuids and layout', () => {
     const groups: Workspace[] = [
       {
         id: 1,
@@ -125,18 +125,20 @@ describe('buildWorkspaceExport', () => {
           { requestUuid: 'uuid-2', collectionId: 1, requestName: 'Refresh' }
         ],
         createdAt: 1,
-        updatedAt: 1
+        updatedAt: 1,
+        layout: null
       }
     ];
 
     const envelope = buildWorkspaceExport(1, groups);
 
     expect(envelope).toEqual({
-      harborclientVersion: 1,
+      harborclientVersion: 2,
       harborclientExport: 'workspace',
       name: 'Auth flows',
       requestUuids: ['uuid-1', 'uuid-2'],
-      marker: null
+      marker: null,
+      layout: null
     });
     expect(validateWorkspaceExport(envelope)).toEqual(envelope);
   });

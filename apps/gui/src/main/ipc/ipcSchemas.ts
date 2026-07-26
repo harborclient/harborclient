@@ -18,6 +18,7 @@ import {
 } from '#/main/schemas/common';
 import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '@harborclient/core/codeEditorSettings';
+import { workspaceLayoutSchema } from '@harborclient/core/types/workspace';
 import { MAX_ZOOM_FACTOR, MIN_ZOOM_FACTOR } from '@harborclient/core/zoomPresets';
 import {
   requestExportSchema,
@@ -693,7 +694,8 @@ export const workspaceRequest = z.object({
 export const createWorkspaceInput = z.object({
   name: z.string().trim().min(1),
   requests: z.array(workspaceRequest),
-  marker: sidebarMarker.optional()
+  marker: sidebarMarker.optional(),
+  layout: workspaceLayoutSchema.nullish()
 }) satisfies z.ZodType<CreateWorkspaceInput>;
 
 export const panelLayout = z.object({
@@ -1173,7 +1175,11 @@ export const ipcArgSchemas = {
   requestHistoryAdd: z.tuple([requestHistoryEntry]),
   requestHistoryDelete: z.tuple([z.number().int()]),
   workspacesCreate: z.tuple([createWorkspaceInput]),
-  workspacesUpdate: z.tuple([z.number().int().positive(), z.array(workspaceRequest)]),
+  workspacesUpdate: z.tuple([
+    z.number().int().positive(),
+    z.array(workspaceRequest),
+    workspaceLayoutSchema.nullish()
+  ]),
   workspacesRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   workspacesClone: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   workspacesDelete: z.tuple([z.number().int().positive()]),

@@ -349,7 +349,8 @@ export function CollectionModal(): JSX.Element | null {
           <SegmentedTabPanel value="import">
             <p className="mb-4 text-muted">
               Choose a HarborClient or Postman collection export (.json), a Bruno collection
-              manifest (bruno.json), or a browser HAR capture (.har) to import all saved requests.
+              manifest (bruno.json), a bundled OpenCollection file (.json or .yaml), or a browser
+              HAR capture (.har) to import all saved requests.
             </p>
             <ModalFooter>
               <Button onClick={() => void handleImport()}>Import file</Button>

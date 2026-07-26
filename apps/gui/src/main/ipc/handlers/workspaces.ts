@@ -22,7 +22,8 @@ export async function importWorkspaceData(
   return getLocalDatabase().createWorkspace({
     name: exportData.name,
     requests: exportData.requestUuids.map((requestUuid) => ({ requestUuid })),
-    marker: exportData.marker ?? null
+    marker: exportData.marker ?? null,
+    layout: exportData.layout ?? null
   });
 }
 
@@ -36,8 +37,8 @@ export function registerWorkspaceHandlers(): void {
     getLocalDatabase().createWorkspace(input)
   );
 
-  handle('workspaces:update', ipcArgSchemas.workspacesUpdate, (_event, id, requests) =>
-    getLocalDatabase().updateWorkspace(id, requests)
+  handle('workspaces:update', ipcArgSchemas.workspacesUpdate, (_event, id, requests, layout) =>
+    getLocalDatabase().updateWorkspace(id, requests, layout)
   );
 
   handle('workspaces:rename', ipcArgSchemas.workspacesRename, (_event, id, name) =>

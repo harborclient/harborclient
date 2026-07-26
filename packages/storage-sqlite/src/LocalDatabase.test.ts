@@ -3,6 +3,10 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import Database from 'better-sqlite3';
 import { afterEach, expect, it } from 'vitest';
+import { DEFAULT_GIT_SIDEBAR_EXPANSION } from '@harborclient/core/gitSidebarExpansion';
+import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
+import type { WorkspaceLayout } from '@harborclient/core/types/workspace';
 import { LocalDatabase } from './LocalDatabase';
 import { describeSqlite } from '#/test/nativeModules';
 
@@ -621,6 +625,74 @@ describeSqlite('LocalDatabase workspaces', () => {
     const reordered = database.reorderWorkspaces([ids[2]!, ids[0]!, ids[1]!]);
 
     expect(reordered.map((group) => group.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
+  });
+
+  it('persists, updates, and clones workspace layout snapshots', async () => {
+    const { database } = await createRegistry();
+
+    const layout: WorkspaceLayout = {
+      panels: {
+        showSidebar: true,
+        showAiSidebar: false,
+        showGitSidebar: false,
+        showRequestEditor: true,
+        showResponseEditor: true,
+        requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+        showConsole: false,
+        showVariables: true,
+        showMcp: false,
+        showTerminal: false,
+        activePluginFooterPanelId: null
+      },
+      panelSizes: { 'hc.sidebarWidth': 480 },
+      sidebarExpansion: defaultSidebarExpansion(),
+      gitSidebar: {
+        sections: { ...DEFAULT_GIT_SIDEBAR_EXPANSION.sections },
+        sectionVisibility: { ...DEFAULT_GIT_SIDEBAR_EXPANSION.sectionVisibility }
+      },
+      activeEnvironmentUuid: 'env-uuid',
+      theme: 'dark'
+    };
+
+    const created = database.createWorkspace({
+      name: 'Layouted',
+      requests: [{ requestUuid: 'uuid-1' }],
+      layout
+    });
+
+    expect(created[0]?.layout).toMatchObject({
+      theme: 'dark',
+      activeEnvironmentUuid: 'env-uuid',
+      panelSizes: { 'hc.sidebarWidth': 480 },
+      panels: expect.objectContaining({ showVariables: true })
+    });
+
+    const withoutLayout = database.createWorkspace({
+      name: 'Legacy shape',
+      requests: [{ requestUuid: 'uuid-2' }]
+    });
+    expect(withoutLayout.find((group) => group.name === 'Legacy shape')?.layout).toBeNull();
+
+    const nextLayout = {
+      ...layout,
+      theme: 'light' as const,
+      panelSizes: { 'hc.sidebarWidth': 320, 'hc.consoleHeight': 200 }
+    };
+    const updated = database.updateWorkspace(
+      created[0]!.id,
+      [{ requestUuid: 'uuid-1' }],
+      nextLayout
+    );
+    expect(updated[0]?.layout?.theme).toBe('light');
+    expect(updated[0]?.layout?.panelSizes).toEqual({
+      'hc.sidebarWidth': 320,
+      'hc.consoleHeight': 200
+    });
+
+    const cloned = database.cloneWorkspace(created[0]!.id, 'Layouted copy');
+    const copy = cloned.find((group) => group.name === 'Layouted copy');
+    expect(copy?.layout?.theme).toBe('light');
+    expect(copy?.layout?.panelSizes['hc.sidebarWidth']).toBe(320);
   });
 });
 

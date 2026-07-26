@@ -116,7 +116,13 @@ export { SidebarLayout } from './SidebarLayout/index.js';
 export { PanelCloseButton } from './PanelCloseButton/index.js';
 export { ProgressBar } from './ProgressBar/index.js';
 export type { Props as ProgressBarProps } from './ProgressBar/index.js';
-export { Resizable, ResizeHandle, useResizable } from './Resizable/index.js';
+export {
+  applyResizableSizes,
+  Resizable,
+  RESIZABLE_SYNC_EVENT,
+  ResizeHandle,
+  useResizable
+} from './Resizable/index.js';
 export type { UseResizableOptions, UseResizableResult } from './Resizable/useResizable.js';
 export { Scrollbars, type ScrollbarsAxis } from './Scrollbars/index.js';
 export { SelectionActionToolbar } from './SelectionActionToolbar/index.js';

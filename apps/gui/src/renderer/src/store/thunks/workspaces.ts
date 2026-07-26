@@ -23,6 +23,7 @@ import { patchGeneralSettings } from './settings';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from './trash';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { applyWorkspaceLayout, captureWorkspaceLayout } from './workspaceLayout';
 
 /**
  * Finds a saved request by uuid, preferring the stored collection id when present.
@@ -145,7 +146,8 @@ export const requestCreateWorkspaceFromOpenTabs = createAsyncThunk<void, void, T
     if (warnWhenCreatingWorkspace) {
       const result = await showConfirm(dispatch as AppDispatch, {
         title: 'Create workspace?',
-        message: 'The workspace will be created from the currently opened request tabs.',
+        message:
+          'The workspace will be created from the currently opened request tabs, along with the current layout, theme, and environment.',
         confirmLabel: 'Create workspace',
         checkboxLabel: "Don't show this again"
       });
@@ -220,7 +222,8 @@ export const createWorkspaceFromOpenTabs = createAsyncThunk<void, string, ThunkA
       throw new Error('No open requests to add');
     }
 
-    const items = await window.api.createWorkspace({ name, requests: members });
+    const layout = await captureWorkspaceLayout(getState());
+    const items = await window.api.createWorkspace({ name, requests: members, layout });
     dispatch(setWorkspaces(items));
   }
 );
@@ -232,14 +235,15 @@ export const createWorkspaceFromRequests = createAsyncThunk<
   void,
   { name: string; requests: SavedRequest[] },
   ThunkApiConfig
->('workspaces/createFromRequests', async ({ name, requests }, { dispatch }) => {
+>('workspaces/createFromRequests', async ({ name, requests }, { dispatch, getState }) => {
   const members = resolveWorkspaceMembersFromRequests(requests);
 
   if (members.length === 0) {
     throw new Error('No requests to add');
   }
 
-  const items = await window.api.createWorkspace({ name, requests: members });
+  const layout = await captureWorkspaceLayout(getState());
+  const items = await window.api.createWorkspace({ name, requests: members, layout });
   dispatch(setWorkspaces(items));
 });
 
@@ -316,11 +320,12 @@ export function buildWorkspaceExport(groupId: number, groups: Workspace[]): Work
   }
 
   return {
-    harborclientVersion: 1,
+    harborclientVersion: 2,
     harborclientExport: 'workspace',
     name: group.name,
     requestUuids: group.requests.map((request) => request.requestUuid),
-    marker: group.marker ?? null
+    marker: group.marker ?? null,
+    layout: group.layout ?? null
   };
 }
 
@@ -351,8 +356,9 @@ export const requestOpenWorkspace = createAsyncThunk<void, number, ThunkApiConfi
 
     if (warnWhenOpeningWorkspace) {
       const result = await showConfirm(dispatch as AppDispatch, {
-        title: 'Open all tabs in the request editor?',
-        message: 'All saved requests in this workspace will be opened.',
+        title: 'Open workspace?',
+        message:
+          'All saved requests in this workspace will be opened, and the saved layout, theme, and environment will be restored.',
         confirmLabel: 'Open',
         checkboxLabel: "Don't show again"
       });
@@ -415,6 +421,10 @@ export const openWorkspace = createAsyncThunk<void, number, ThunkApiConfig>(
           ? '1 request in this workspace could not be opened'
           : `${missingCount} requests in this workspace could not be opened`
       );
+    }
+
+    if (group.layout) {
+      await applyWorkspaceLayout(group.layout, dispatch as AppDispatch, getState);
     }
   }
 );
@@ -497,7 +507,8 @@ export const saveWorkspaceEdit = createAsyncThunk<void, void, ThunkApiConfig>(
       throw new Error('No open requests to add');
     }
 
-    const items = await window.api.updateWorkspace(editingWorkspaceId, members);
+    const layout = await captureWorkspaceLayout(getState());
+    const items = await window.api.updateWorkspace(editingWorkspaceId, members, layout);
     dispatch(setWorkspaces(items));
     dispatch(stopEditingWorkspace());
     toast.success('Workspace saved');

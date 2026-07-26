@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add OpenCollection Import Functionality. (`ac4dc71a`)
 - Add Appearance Options for Storage Locations, Color Markers, Highlights, and Indicators. (`ee9e54d5`)
 - Rename `SidebarTabGroupItem` to `SidebarWorkspaceItem`. Breaking export rename; requires a major release.
 - Refactor sidebar color handling to markers. (`6f53f3d7`)

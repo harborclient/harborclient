@@ -12,6 +12,12 @@ import {
 import { convertPostmanCollection, isPostmanCollection } from '#/main/import/postman';
 import { convertBrunoCollection, isBrunoCollectionManifest } from '#/main/import/bruno';
 import { convertHarToCollection, isHarArchive } from '#/main/import/har';
+import {
+  canImportOpenCollection,
+  convertOpenCollection,
+  isOpenCollection,
+  parseOpenCollectionDocument
+} from '#/main/import/opencollection';
 import { defaultAuth } from '@harborclient/core/auth';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -168,6 +174,8 @@ async function importCollectionFromParsed(
     exportData = validateCollectionExport(
       convertHarToCollection(parsed, { name: context?.fileName })
     );
+  } else if (isOpenCollection(parsed)) {
+    exportData = validateCollectionExport(convertOpenCollection(parsed));
   } else {
     exportData = validateCollectionExport(parsed);
   }
@@ -421,7 +429,12 @@ export function registerCollectionHandlers(db: IStorage): void {
       return null;
     }
 
-    const result = await importCollectionFromParsed(db, win, file.parsed, {
+    let parsed = file.parsed;
+    if (parsed == null && canImportOpenCollection(file.raw)) {
+      parsed = parseOpenCollectionDocument(file.raw);
+    }
+
+    const result = await importCollectionFromParsed(db, win, parsed, {
       collectionDir: file.collectionDir,
       fileName: file.fileName
     });
@@ -476,7 +489,11 @@ export function registerCollectionHandlers(db: IStorage): void {
         return null;
       }
 
-      const { parsed } = file;
+      let { parsed } = file;
+
+      if (parsed == null && canImportOpenCollection(file.raw)) {
+        parsed = parseOpenCollectionDocument(file.raw);
+      }
 
       if (parsed != null) {
         if (isPostmanCollection(parsed)) {
@@ -513,6 +530,22 @@ export function registerCollectionHandlers(db: IStorage): void {
 
         if (isHarArchive(parsed)) {
           logImportVerbose('imports:auto classified', { kind: 'har-archive' });
+          const result = await importCollectionFromParsed(db, win, parsed, {
+            collectionDir: file.collectionDir,
+            fileName: file.fileName
+          });
+          if (!result) {
+            return null;
+          }
+          return {
+            kind: 'collection',
+            collection: result.collection,
+            action: result.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (isOpenCollection(parsed)) {
+          logImportVerbose('imports:auto classified', { kind: 'opencollection' });
           const result = await importCollectionFromParsed(db, win, parsed, {
             collectionDir: file.collectionDir,
             fileName: file.fileName

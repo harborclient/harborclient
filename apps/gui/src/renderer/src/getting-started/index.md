@@ -24,6 +24,7 @@ Bring existing API work into HarborClient. Use **File → Import** or click **+*
 
 - [ ] **Import Postman collections** — Choose a Postman v2.1 collection export (`.json`). Some Postman-specific settings may need adjustment after import. See [Collections](https://harborclient.com/collections#postman-collections).
 - [ ] **Import Bruno collections** — Select a Bruno collection folder or `bruno.json`. See [Collections](https://harborclient.com/collections#postman-collections).
+- [ ] **Import OpenCollection files** — Choose a bundled OpenCollection v1.x export (`.json` or `.yaml`) via **File → Import** or the Add collection **Import** tab.
 - [ ] **Import HAR files** — Select a browser HAR capture (`.har`) to turn recorded traffic into requests.
 - [ ] **Import OpenAPI specs** — Choose an OpenAPI 3.x JSON or YAML file via **File → Import**, preview operations grouped by tag, then create a collection.
 

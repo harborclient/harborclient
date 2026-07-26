@@ -2,6 +2,7 @@ import { BrowserWindow, dialog } from 'electron';
 import { stat } from 'fs/promises';
 import { readFile } from 'fs/promises';
 import { join, dirname, basename, extname } from 'path';
+import { load as parseYaml } from 'js-yaml';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { isBrunoCollectionManifest } from '#/main/import/bruno';
 import {
@@ -98,11 +99,14 @@ function mergeImportDialogExtensions(pluginExtensions: string[] = []): string[] 
  *
  * @param raw - UTF-8 file contents.
  * @param extension - Normalized dot-prefixed extension.
- * @returns Parsed JSON value for JSON/HAR files, otherwise null.
+ * @returns Parsed value for JSON/HAR/YAML files, otherwise null.
  */
 function parseImportFileContents(raw: string, extension: string): unknown | null {
   if (extension === '.json' || extension === '.har') {
     return JSON.parse(raw) as unknown;
+  }
+  if (extension === '.yaml' || extension === '.yml') {
+    return parseYaml(raw) as unknown;
   }
   return null;
 }

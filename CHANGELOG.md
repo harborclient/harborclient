@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add OpenCollection Import Functionality. (`ac4dc71a`)
 - Add Appearance Options for Storage Locations, Color Markers, Highlights, and Indicators. (`ee9e54d5`)
 - Rename Tab Groups to Workspaces across the UI, IPC, local registry SQLite tables, settings keys, and portable export format (`harborclientExport: "workspace"`). Existing local databases and settings migrate automatically; `@harborclient/core` and `@harborclient/sdk` type/component renames are breaking and require major releases.
 - Refactor sidebar color handling to markers. (`6f53f3d7`)

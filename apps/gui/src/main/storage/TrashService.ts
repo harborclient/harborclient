@@ -597,7 +597,9 @@ export class TrashService {
     const payload = item.payload as { workspace: Workspace };
     const input: CreateWorkspaceInput = {
       name: payload.workspace.name,
-      requests: payload.workspace.requests.map((request) => ({ ...request }))
+      requests: payload.workspace.requests.map((request) => ({ ...request })),
+      marker: payload.workspace.marker ?? null,
+      layout: payload.workspace.layout ?? null
     };
     this.database.createWorkspace(input);
   }

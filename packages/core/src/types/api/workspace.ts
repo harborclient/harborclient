@@ -1,4 +1,9 @@
-import type { CreateWorkspaceInput, Workspace, WorkspaceRequest } from '../workspace';
+import type {
+  CreateWorkspaceInput,
+  Workspace,
+  WorkspaceLayout,
+  WorkspaceRequest
+} from '../workspace';
 
 /**
  * IPC surface for local workspace persistence.
@@ -15,9 +20,13 @@ export interface ApiWorkspaces {
   createWorkspace: (input: CreateWorkspaceInput) => Promise<Workspace[]>;
 
   /**
-   * Replaces workspace members and returns the refreshed list.
+   * Replaces workspace members and optional layout and returns the refreshed list.
    */
-  updateWorkspace: (id: number, requests: WorkspaceRequest[]) => Promise<Workspace[]>;
+  updateWorkspace: (
+    id: number,
+    requests: WorkspaceRequest[],
+    layout?: WorkspaceLayout | null
+  ) => Promise<Workspace[]>;
 
   /**
    * Renames a workspace and returns the refreshed list.

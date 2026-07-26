@@ -13,6 +13,7 @@ import type {
   SidebarSortMode
 } from '@harborclient/core/types';
 import { clearRegisteredSectionFilters } from '../filter/clearRegisteredSectionFilters';
+import { registerSidebarExpansionApplier } from './sidebarExpansionBridge';
 
 interface Options {
   /**
@@ -531,18 +532,15 @@ export function usePersistedSidebarExpansion({
   }, [showFilters]);
 
   /**
-   * Restores persisted expansion after collections are listed so stale collection
-   * ids are filtered before contents are loaded.
+   * Applies a full sidebar expansion snapshot into local React state.
+   *
+   * Filters collection ids against the current registry and loads expanded
+   * collection contents. Used for first hydration and workspace layout restore.
+   *
+   * @param stored - Expansion snapshot to apply.
    */
-  useEffect(() => {
-    if (!collectionsListed || restoredRef.current) return;
-    restoredRef.current = true;
-
-    let cancelled = false;
-
-    void window.api.getSidebarExpansion().then((stored) => {
-      if (cancelled) return;
-
+  const applyExpansionSnapshot = useCallback(
+    (stored: SidebarExpansionState): void => {
       const validExpanded = stored.collectionIds.filter((id) => validCollectionIds.has(id));
       setCollectionsSectionExpanded(stored.sections.collections);
       setEnvironmentsSectionExpanded(stored.sections.environments);
@@ -567,17 +565,44 @@ export function usePersistedSidebarExpansion({
       setSectionSortState(stored.sectionSort);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
-      setLoaded(true);
 
       for (const id of validExpanded) {
         onExpandCollection(id);
       }
+    },
+    [onExpandCollection, validCollectionIds]
+  );
+
+  /**
+   * Restores persisted expansion after collections are listed so stale collection
+   * ids are filtered before contents are loaded.
+   */
+  useEffect(() => {
+    if (!collectionsListed || restoredRef.current) return;
+    restoredRef.current = true;
+
+    let cancelled = false;
+
+    void window.api.getSidebarExpansion().then((stored) => {
+      if (cancelled) return;
+
+      applyExpansionSnapshot(stored);
+      setLoaded(true);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [collectionsListed, validCollectionIds, onExpandCollection]);
+  }, [applyExpansionSnapshot, collectionsListed]);
+
+  /**
+   * Registers a workspace-restore applier that pushes layout into this hook's state.
+   */
+  useEffect(() => {
+    return registerSidebarExpansionApplier((stored) => {
+      applyExpansionSnapshot(stored);
+    });
+  }, [applyExpansionSnapshot]);
 
   /**
    * Persists expansion changes after the initial load completes.
