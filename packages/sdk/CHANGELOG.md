@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.3.0 - 2026-07-26
+
 - Enhance release workflows with concurrency and rebase logic. (`e26c79de`)
 - Enhance testing and plugin management functionality. (`48799cc9`)
 - Enhance AI chat settings and UI components. (`ad9d10c9`)
