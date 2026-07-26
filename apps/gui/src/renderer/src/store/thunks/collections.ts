@@ -47,6 +47,7 @@ import {
   syncRequestFolderInTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 import { importCollectionRunnerResults } from '#/renderer/src/store/slices/modalsSlice';
+import { setOpenApiImportSession } from '#/renderer/src/store/slices/openApiImportSlice';
 import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   beginRefreshGeneration,
@@ -604,6 +605,16 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         extension: result.file.extension
       });
       return null;
+    }
+
+    if (result.kind === 'openapi-spec') {
+      dispatch(setOpenApiImportSession(result.file));
+      dispatch(openPageTab({ type: 'openapi-import' }));
+      logImportVerbose('menu thunk openapi preview opened', {
+        fileName: result.file.name,
+        extension: result.file.extension
+      });
+      return result;
     }
 
     switch (result.kind) {

@@ -37,6 +37,10 @@ export type ShortcutId =
   | 'toggle-console'
   | 'toggle-mcp'
   | 'toggle-terminal'
+  | 'toggle-storage-locations'
+  | 'toggle-color-markers'
+  | 'toggle-highlights'
+  | 'toggle-indicators'
   | 'toggle-filters'
   | 'toggle-sorting'
   | 'toggle-ai-sidebar'
@@ -377,6 +381,34 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+`',
     kind: 'action',
     actionId: 'toggle-terminal'
+  },
+  {
+    id: 'toggle-storage-locations',
+    label: 'Toggle storage locations',
+    defaultAccelerator: 'Alt+Shift+U',
+    kind: 'action',
+    actionId: 'toggle-storage-locations'
+  },
+  {
+    id: 'toggle-color-markers',
+    label: 'Toggle color markers',
+    defaultAccelerator: 'Alt+Shift+D',
+    kind: 'action',
+    actionId: 'toggle-color-markers'
+  },
+  {
+    id: 'toggle-highlights',
+    label: 'Toggle highlights',
+    defaultAccelerator: 'Alt+Shift+H',
+    kind: 'action',
+    actionId: 'toggle-highlights'
+  },
+  {
+    id: 'toggle-indicators',
+    label: 'Toggle indicators',
+    defaultAccelerator: 'Alt+Shift+I',
+    kind: 'action',
+    actionId: 'toggle-indicators'
   },
   {
     id: 'toggle-filters',

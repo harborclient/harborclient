@@ -83,7 +83,7 @@ function importFileExtension(filePath: string): string {
  * @returns Deduplicated lowercase extensions for Electron dialog filters.
  */
 function mergeImportDialogExtensions(pluginExtensions: string[] = []): string[] {
-  const merged = new Set(['json', 'har']);
+  const merged = new Set(['json', 'har', 'yaml', 'yml']);
   for (const extension of pluginExtensions) {
     const normalized = extension.trim().toLowerCase().replace(/^\./, '');
     if (normalized) {

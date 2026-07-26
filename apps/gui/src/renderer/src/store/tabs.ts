@@ -233,6 +233,7 @@ export type PageRef =
   | { type: 'plugins' }
   | { type: 'themes' }
   | { type: 'snippets' }
+  | { type: 'openapi-import' }
   | { type: 'cookies' }
   | { type: 'team-hubs' }
   | { type: 'team-hub-admin'; hubId: string; label?: string }

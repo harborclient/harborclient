@@ -1193,6 +1193,42 @@ function setMenuTerminalVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Syncs storage-location badge visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether storage-location badges are shown on sidebar rows.
+ */
+function setMenuStorageLocationsVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setStorageLocationsVisible', visible);
+}
+
+/**
+ * Syncs color marker visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether color marker dots are shown on sidebar rows.
+ */
+function setMenuColorMarkersVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setColorMarkersVisible', visible);
+}
+
+/**
+ * Syncs method-color highlight visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether HTTP method badges use per-method colors.
+ */
+function setMenuHighlightsVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setHighlightsVisible', visible);
+}
+
+/**
+ * Syncs status indicator visibility to the View > Appearance submenu checkbox.
+ *
+ * @param visible - Whether HTTP/run status indicators are shown on sidebar rows.
+ */
+function setMenuIndicatorsVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setIndicatorsVisible', visible);
+}
+
+/**
  * Syncs sidebar filter-control visibility to the View > Appearance submenu checkbox.
  *
  * @param visible - Whether section-header filter controls are shown.
@@ -4019,6 +4055,10 @@ const api: Api = {
   setMenuVariablesVisible,
   setMenuMcpVisible,
   setMenuTerminalVisible,
+  setMenuStorageLocationsVisible,
+  setMenuColorMarkersVisible,
+  setMenuHighlightsVisible,
+  setMenuIndicatorsVisible,
   setMenuFiltersVisible,
   setMenuSortingVisible,
   setMenuThemeMenuState,

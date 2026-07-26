@@ -11,6 +11,10 @@ import {
   setMenuVariablesVisible,
   setMenuMcpVisible,
   setMenuTerminalVisible,
+  setMenuStorageLocationsVisible,
+  setMenuColorMarkersVisible,
+  setMenuHighlightsVisible,
+  setMenuIndicatorsVisible,
   setMenuFiltersVisible,
   setMenuSortingVisible,
   setMenuDesignerUndoRedo,
@@ -88,6 +92,34 @@ export function registerMenuHandlers(): void {
   // Updates the View > Appearance submenu checkmark for terminal panel visibility.
   handle('menu:setTerminalVisible', ipcArgSchemas.menuTerminalVisible, (_event, visible) => {
     setMenuTerminalVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for storage-location badges.
+  handle(
+    'menu:setStorageLocationsVisible',
+    ipcArgSchemas.menuStorageLocationsVisible,
+    (_event, visible) => {
+      setMenuStorageLocationsVisible(visible);
+    }
+  );
+
+  // Updates the View > Appearance submenu checkmark for color marker dots.
+  handle(
+    'menu:setColorMarkersVisible',
+    ipcArgSchemas.menuColorMarkersVisible,
+    (_event, visible) => {
+      setMenuColorMarkersVisible(visible);
+    }
+  );
+
+  // Updates the View > Appearance submenu checkmark for method-color highlights.
+  handle('menu:setHighlightsVisible', ipcArgSchemas.menuHighlightsVisible, (_event, visible) => {
+    setMenuHighlightsVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for status indicators.
+  handle('menu:setIndicatorsVisible', ipcArgSchemas.menuIndicatorsVisible, (_event, visible) => {
+    setMenuIndicatorsVisible(visible);
   });
 
   // Updates the View > Appearance submenu checkmark for sidebar filter controls.

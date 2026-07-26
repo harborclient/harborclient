@@ -8,7 +8,7 @@ import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSideba
 
 /**
  * Handles sidebar section toggle shortcuts and focus-first-collection/environment actions.
- * Also syncs Filters/Sorting Appearance checkboxes and handles their menu actions.
+ * Also syncs sidebar display Appearance checkboxes and handles their menu actions.
  */
 export function useSidebarSectionMenuSync(): void {
   const dispatch = useAppDispatch();
@@ -21,11 +21,47 @@ export function useSidebarSectionMenuSync(): void {
     setCollectionsSectionExpanded,
     setEnvironmentsSectionVisible,
     setEnvironmentsSectionExpanded,
+    showStorageLocationBadges,
+    showMarkers,
+    showMethodColors,
+    showIndicators,
     showFilters,
     showSorting,
+    toggleStorageLocationBadges,
+    toggleMarkers,
+    toggleMethodColors,
+    toggleIndicators,
     toggleFilters,
     toggleSorting
   } = useSidebarExpansion();
+
+  /**
+   * Keeps the View > Appearance submenu Storage locations checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuStorageLocationsVisible(showStorageLocationBadges);
+  }, [showStorageLocationBadges]);
+
+  /**
+   * Keeps the View > Appearance submenu Color markers checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuColorMarkersVisible(showMarkers);
+  }, [showMarkers]);
+
+  /**
+   * Keeps the View > Appearance submenu Highlights checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuHighlightsVisible(showMethodColors);
+  }, [showMethodColors]);
+
+  /**
+   * Keeps the View > Appearance submenu Indicators checkbox aligned with preference state.
+   */
+  useEffect(() => {
+    void window.api.setMenuIndicatorsVisible(showIndicators);
+  }, [showIndicators]);
 
   /**
    * Keeps the View > Appearance submenu Filters checkbox aligned with preference state.
@@ -42,7 +78,7 @@ export function useSidebarSectionMenuSync(): void {
   }, [showSorting]);
 
   /**
-   * Handles section toggle shortcuts, filter/sort toggles, and sidebar list focus shortcuts.
+   * Handles section toggle shortcuts, display toggles, and sidebar list focus shortcuts.
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
@@ -55,6 +91,18 @@ export function useSidebarSectionMenuSync(): void {
           break;
         case 'toggle-run-results-section':
           toggleRunResultsSectionVisible();
+          break;
+        case 'toggle-storage-locations':
+          toggleStorageLocationBadges();
+          break;
+        case 'toggle-color-markers':
+          toggleMarkers();
+          break;
+        case 'toggle-highlights':
+          toggleMethodColors();
+          break;
+        case 'toggle-indicators':
+          toggleIndicators();
           break;
         case 'toggle-filters':
           toggleFilters();
@@ -83,6 +131,10 @@ export function useSidebarSectionMenuSync(): void {
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
+    toggleStorageLocationBadges,
+    toggleMarkers,
+    toggleMethodColors,
+    toggleIndicators,
     toggleFilters,
     toggleSorting,
     setCollectionsSectionVisible,

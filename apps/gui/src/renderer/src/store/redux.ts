@@ -21,6 +21,7 @@ import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelec
 import requestBodySelectionsReducer from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import scriptSelectionsReducer from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
+import openApiImportReducer from '#/renderer/src/store/slices/openApiImportSlice';
 import { persistActiveEnvironmentId, persistTabs, persistTerminalLayout } from './persistence';
 export const store = configureStore({
   reducer: {
@@ -44,7 +45,8 @@ export const store = configureStore({
     markdownSelections: markdownSelectionsReducer,
     requestBodySelections: requestBodySelectionsReducer,
     scriptSelections: scriptSelectionsReducer,
-    themeDesigner: themeDesignerReducer
+    themeDesigner: themeDesignerReducer,
+    openApiImport: openApiImportReducer
   },
   /**
    * Registers default RTK middleware plus busy tracking.

@@ -1,6 +1,6 @@
 /**
  * Optional clear handler registered by {@link SidebarSectionFilterProvider} so
- * expansion toggles (eye menu and Appearance menu) can reset session filters
+ * expansion toggles (Appearance menu) can reset session filters
  * without living inside the filter provider tree.
  */
 let clearSectionFiltersHandler: (() => void) | null = null;

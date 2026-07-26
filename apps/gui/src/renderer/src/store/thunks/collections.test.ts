@@ -54,6 +54,7 @@ const listEnvironmentsMock = vi.fn<() => Promise<unknown[]>>();
 const listSnippetsMock = vi.fn<() => Promise<unknown[]>>();
 const moveRequestMock =
   vi.fn<(requestId: number, folderId: number | null, index: number) => Promise<void>>();
+const importEntityMock = vi.fn();
 
 /**
  * Builds a minimal collection row for listCollections mocks.
@@ -124,7 +125,8 @@ beforeEach(() => {
       listDocuments: listDocumentsMock,
       listEnvironments: listEnvironmentsMock,
       listSnippets: listSnippetsMock,
-      moveRequest: moveRequestMock
+      moveRequest: moveRequestMock,
+      importEntity: importEntityMock
     }
   });
   deleteCollectionMock.mockReset();
@@ -150,6 +152,7 @@ beforeEach(() => {
   listSnippetsMock.mockResolvedValue([]);
   moveRequestMock.mockReset();
   moveRequestMock.mockResolvedValue(undefined);
+  importEntityMock.mockReset();
 });
 
 afterEach(() => {
@@ -418,5 +421,28 @@ describe('moveRequestToFolder', () => {
       expect(tab.draft.folder_id).toBe(20);
       expect(tab.savedDraft.folder_id).toBe(20);
     }
+  });
+});
+
+describe('importFromMenu', () => {
+  it('stages an OpenAPI spec and opens the Import OpenAPI page tab', async () => {
+    const file = {
+      name: 'petstore.yaml',
+      path: '/tmp/petstore.yaml',
+      extension: '.yaml',
+      contents: 'openapi: 3.0.3\ninfo:\n  title: Petstore\npaths: {}'
+    };
+    importEntityMock.mockResolvedValue({ kind: 'openapi-spec', file });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { importFromMenu } = await import('#/renderer/src/store/thunks/collections');
+    const { isPageTab } = await import('#/renderer/src/store/tabs');
+
+    await store.dispatch(importFromMenu());
+
+    expect(store.getState().openApiImport.session).toEqual(file);
+    expect(
+      store.getState().tabs.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'openapi-import')
+    ).toBe(true);
   });
 });

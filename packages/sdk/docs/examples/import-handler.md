@@ -2,7 +2,7 @@
 
 This example is a **renderer plugin** that registers a **File → Import** handler for a custom `.json` request-bundle format. Users choose **File → Import** in HarborClient, pick a bundle file, preview the requests in a main view, and create a collection with `hc.host.createCollection`.
 
-Use import handlers when your plugin adds a new import format. Do **not** add a separate **File** menu item — register with `hc.imports.registerHandler` or the `registerImportHandler` helper instead. Built-in formats (Postman, Bruno, HAR, and HarborClient exports) are detected first; your handler runs only when the file is unrecognized and its extension matches.
+Use import handlers when your plugin adds a new import format. Do **not** add a separate **File** menu item — register with `hc.imports.registerHandler` or the `registerImportHandler` helper instead. Built-in formats (Postman, Bruno, HAR, OpenAPI 3.x, and HarborClient exports) are detected first; your handler runs only when the file is unrecognized and its extension matches.
 
 ```mermaid
 sequenceDiagram
@@ -18,7 +18,7 @@ sequenceDiagram
   Plugin->>Host: openMainView or createCollection
 ```
 
-For a production OpenAPI importer with YAML support and operation selection, see [harborclient/plugin-openapi](https://github.com/harborclient/plugin-openapi).
+OpenAPI 3.x JSON/YAML import with operation selection is built into HarborClient (**File → Import**). Use this example when your plugin adds a different custom format.
 
 ## Bundle format
 

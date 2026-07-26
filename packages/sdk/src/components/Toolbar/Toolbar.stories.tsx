@@ -2,7 +2,6 @@ import {
   faAnglesUp,
   faClockRotateLeft,
   faDatabase,
-  faEye,
   faFolder,
   faGlobe,
   faLayerGroup,
@@ -146,15 +145,6 @@ export const RightAlignedToggles: Story = {
     ],
     toggles: [
       {
-        id: 'view-options',
-        icon: faEye,
-        label: 'View options',
-        title: 'View options',
-        ariaHaspopup: 'menu',
-        ariaPressed: true,
-        onClick: fn()
-      },
-      {
         id: 'collapse-all',
         icon: faAnglesUp,
         label: 'Collapse all',
@@ -187,14 +177,6 @@ export const WrapsWhenNarrow: Story = {
       { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() }
     ],
     toggles: [
-      {
-        id: 'view-options',
-        icon: faEye,
-        label: 'View options',
-        title: 'View options',
-        ariaHaspopup: 'menu',
-        onClick: fn()
-      },
       {
         id: 'collapse-all',
         icon: faSquareMinus,

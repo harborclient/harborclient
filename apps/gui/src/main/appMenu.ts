@@ -14,6 +14,10 @@ let consoleVisible = false;
 let variablesVisible = false;
 let mcpVisible = false;
 let terminalVisible = false;
+let storageLocationsVisible = false;
+let colorMarkersVisible = false;
+let highlightsVisible = false;
+let indicatorsVisible = false;
 let filtersVisible = false;
 let sortingVisible = false;
 let activeTheme: ThemeSource = 'system';
@@ -205,6 +209,58 @@ export function setMenuTerminalVisible(visible: boolean): void {
 }
 
 /**
+ * Updates the View > Appearance submenu Storage locations checkbox and rebuilds when it changes.
+ *
+ * @param visible - Whether storage-location badges are shown on sidebar rows.
+ */
+export function setMenuStorageLocationsVisible(visible: boolean): void {
+  if (storageLocationsVisible === visible) {
+    return;
+  }
+  storageLocationsVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Color markers checkbox and rebuilds when it changes.
+ *
+ * @param visible - Whether color marker dots are shown on sidebar rows.
+ */
+export function setMenuColorMarkersVisible(visible: boolean): void {
+  if (colorMarkersVisible === visible) {
+    return;
+  }
+  colorMarkersVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Highlights checkbox and rebuilds when it changes.
+ *
+ * @param visible - Whether HTTP method badges use per-method colors.
+ */
+export function setMenuHighlightsVisible(visible: boolean): void {
+  if (highlightsVisible === visible) {
+    return;
+  }
+  highlightsVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Indicators checkbox and rebuilds when it changes.
+ *
+ * @param visible - Whether HTTP/run status indicators are shown on sidebar rows.
+ */
+export function setMenuIndicatorsVisible(visible: boolean): void {
+  if (indicatorsVisible === visible) {
+    return;
+  }
+  indicatorsVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
  * Updates the View > Appearance submenu Filters checkbox and rebuilds the menu when the value changes.
  *
  * @param visible - Whether sidebar section filter controls are shown.
@@ -375,6 +431,10 @@ export function rebuildAppMenu(): void {
       variablesVisible,
       mcpVisible,
       terminalVisible,
+      storageLocationsVisible,
+      colorMarkersVisible,
+      highlightsVisible,
+      indicatorsVisible,
       filtersVisible,
       sortingVisible,
       activeTheme,

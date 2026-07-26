@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useMemo, type JSX } from 'react';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
   usePluginSidebarPanels,
@@ -8,7 +8,6 @@ import {
   faSquareMinus,
   faBoxArchive,
   faClockRotateLeft,
-  faEye,
   faFolder,
   faGlobe,
   faLayerGroup,
@@ -39,7 +38,6 @@ import { Archive, ArchiveHeaderActions } from '../Archive';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
-import { SidebarViewMenu } from './SidebarViewMenu';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
 import { hasExpandedSidebarTrees } from '../expansion/hasExpandedSidebarTrees';
@@ -49,8 +47,8 @@ import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
- * the panel switcher, search field, section toolbar (visibility toggles, View
- * menu, collapse-all), and the collapsible Collections/Runs/History/Environments/
+ * the panel switcher, search field, section toolbar (visibility toggles and
+ * collapse-all), and the collapsible Collections/Runs/History/Environments/
  * Workspaces sections. Sections source their own data and actions, so this shell
  * only wires layout and shared UI state.
  */
@@ -79,18 +77,6 @@ export function SidebarContent(): JSX.Element {
     trashSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
-    showStorageLocationBadges,
-    toggleStorageLocationBadges,
-    showMarkers,
-    toggleMarkers,
-    showMethodColors,
-    toggleMethodColors,
-    showIndicators,
-    toggleIndicators,
-    showFilters,
-    toggleFilters,
-    showSorting,
-    toggleSorting,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
@@ -106,9 +92,6 @@ export function SidebarContent(): JSX.Element {
   const { expanded, onToggle, pluginSectionExpanded, collapseAllSections } = useSidebarAccordion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
-
-  const viewMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
 
   /**
    * Collapses collection/folder trees first; when none remain expanded, collapses
@@ -213,47 +196,10 @@ export function SidebarContent(): JSX.Element {
   ]);
 
   /**
-   * Right-aligned toolbar controls: display preferences (View) and collapse-all.
+   * Right-aligned toolbar controls: collapse-all.
    */
   const toolbarToggles = useMemo((): ToolbarAction[] => {
-    const viewOptionsActive =
-      showStorageLocationBadges ||
-      showMarkers ||
-      showMethodColors ||
-      showIndicators ||
-      showFilters ||
-      showSorting;
-
     return [
-      {
-        id: 'view-options',
-        icon: faEye,
-        label: 'View options',
-        title: 'View options',
-        ariaHaspopup: 'menu',
-        ariaExpanded: viewMenuOpen,
-        ariaPressed: viewOptionsActive,
-        buttonRef: viewMenuButtonRef,
-        onClick: () => setViewMenuOpen((open) => !open),
-        popover: viewMenuOpen ? (
-          <SidebarViewMenu
-            anchorRef={viewMenuButtonRef}
-            showStorageLocationBadges={showStorageLocationBadges}
-            showMarkers={showMarkers}
-            showMethodColors={showMethodColors}
-            showIndicators={showIndicators}
-            showFilters={showFilters}
-            showSorting={showSorting}
-            onToggleStorageLocationBadges={toggleStorageLocationBadges}
-            onToggleMarkers={toggleMarkers}
-            onToggleMethodColors={toggleMethodColors}
-            onToggleIndicators={toggleIndicators}
-            onToggleFilters={toggleFilters}
-            onToggleSorting={toggleSorting}
-            onClose={() => setViewMenuOpen(false)}
-          />
-        ) : undefined
-      },
       {
         id: 'collapse-all',
         icon: faSquareMinus,
@@ -262,22 +208,7 @@ export function SidebarContent(): JSX.Element {
         onClick: handleCollapseAll
       }
     ];
-  }, [
-    handleCollapseAll,
-    showMarkers,
-    showFilters,
-    showIndicators,
-    showMethodColors,
-    showSorting,
-    showStorageLocationBadges,
-    toggleMarkers,
-    toggleFilters,
-    toggleIndicators,
-    toggleMethodColors,
-    toggleSorting,
-    toggleStorageLocationBadges,
-    viewMenuOpen
-  ]);
+  }, [handleCollapseAll]);
 
   /**
    * Collapsible section config for the collections sidebar body.

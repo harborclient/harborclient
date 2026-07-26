@@ -13,6 +13,7 @@ import {
   faPuzzlePiece,
   faCode,
   faCodeBranch,
+  faFileImport,
   faUsers,
   faImage
 } from '#/renderer/src/fontawesome';
@@ -94,6 +95,16 @@ export const pageRoutes = {
       'SnippetsPageRoute'
     ),
     normalize: () => ({ type: 'snippets' })
+  }),
+  'openapi-import': defineRoute({
+    key: () => 'openapi-import',
+    meta: () => ({ title: 'Import OpenAPI', icon: faFileImport }),
+    closeName: () => 'Import OpenAPI',
+    Component: lazyNamed(
+      () => import('#/renderer/src/routing/pages/OpenApiImportPageRoute'),
+      'OpenApiImportPageRoute'
+    ),
+    normalize: () => ({ type: 'openapi-import' })
   }),
   'cookies': defineRoute({
     key: () => 'cookies',

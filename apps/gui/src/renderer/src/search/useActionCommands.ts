@@ -102,6 +102,10 @@ export function useActionCommands(): UseActionCommandsResult {
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
+    toggleStorageLocationBadges,
+    toggleMarkers,
+    toggleMethodColors,
+    toggleIndicators,
     toggleFilters,
     toggleSorting
   } = useSidebarExpansion();
@@ -220,6 +224,18 @@ export function useActionCommands(): UseActionCommandsResult {
       'builtin:toggle-terminal': () => {
         dispatch(toggleTerminal());
       },
+      'builtin:toggle-storage-locations': () => {
+        toggleStorageLocationBadges();
+      },
+      'builtin:toggle-color-markers': () => {
+        toggleMarkers();
+      },
+      'builtin:toggle-highlights': () => {
+        toggleMethodColors();
+      },
+      'builtin:toggle-indicators': () => {
+        toggleIndicators();
+      },
       'builtin:toggle-filters': () => {
         toggleFilters();
       },
@@ -282,8 +298,12 @@ export function useActionCommands(): UseActionCommandsResult {
       toggleCollectionsSectionVisible,
       toggleEnvironmentsSectionVisible,
       toggleFilters,
+      toggleIndicators,
+      toggleMarkers,
+      toggleMethodColors,
       toggleRunResultsSectionVisible,
-      toggleSorting
+      toggleSorting,
+      toggleStorageLocationBadges
     ]
   );
 

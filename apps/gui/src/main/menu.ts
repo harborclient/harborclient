@@ -105,6 +105,10 @@ export function buildThemeMenuItems(
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
  * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
+ * @param storageLocationsVisible - Whether the Storage locations checkbox should appear checked.
+ * @param colorMarkersVisible - Whether the Color markers checkbox should appear checked.
+ * @param highlightsVisible - Whether the Highlights checkbox should appear checked.
+ * @param indicatorsVisible - Whether the Indicators checkbox should appear checked.
  * @param filtersVisible - Whether the sidebar Filters checkbox should appear checked.
  * @param sortingVisible - Whether the sidebar Sorting checkbox should appear checked.
  * @param accelerators - Resolved shortcut accelerators for menu items.
@@ -122,6 +126,10 @@ export function buildAppearanceMenuItems(
   variablesVisible: boolean,
   mcpVisible: boolean,
   terminalVisible: boolean,
+  storageLocationsVisible: boolean,
+  colorMarkersVisible: boolean,
+  highlightsVisible: boolean,
+  indicatorsVisible: boolean,
   filtersVisible: boolean,
   sortingVisible: boolean,
   accelerators: Map<ShortcutId, string>
@@ -202,6 +210,34 @@ export function buildAppearanceMenuItems(
       },
       { type: 'separator' },
       {
+        label: 'Storage locations',
+        type: 'checkbox',
+        checked: storageLocationsVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-storage-locations'),
+        click: () => sendMenuAction(window, 'toggle-storage-locations')
+      },
+      {
+        label: 'Color markers',
+        type: 'checkbox',
+        checked: colorMarkersVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-color-markers'),
+        click: () => sendMenuAction(window, 'toggle-color-markers')
+      },
+      {
+        label: 'Highlights',
+        type: 'checkbox',
+        checked: highlightsVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-highlights'),
+        click: () => sendMenuAction(window, 'toggle-highlights')
+      },
+      {
+        label: 'Indicators',
+        type: 'checkbox',
+        checked: indicatorsVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-indicators'),
+        click: () => sendMenuAction(window, 'toggle-indicators')
+      },
+      {
         label: 'Filters',
         type: 'checkbox',
         checked: filtersVisible,
@@ -243,6 +279,10 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
  * @param terminalVisible - Whether the terminal panel checkbox should appear checked.
+ * @param storageLocationsVisible - Whether the Storage locations checkbox should appear checked.
+ * @param colorMarkersVisible - Whether the Color markers checkbox should appear checked.
+ * @param highlightsVisible - Whether the Highlights checkbox should appear checked.
+ * @param indicatorsVisible - Whether the Indicators checkbox should appear checked.
  * @param filtersVisible - Whether the sidebar Filters checkbox should appear checked.
  * @param sortingVisible - Whether the sidebar Sorting checkbox should appear checked.
  * @param activeTheme - Appearance theme used to mark the active View menu checkmark.
@@ -268,6 +308,10 @@ export function buildMenu(
   variablesVisible = false,
   mcpVisible = false,
   terminalVisible = false,
+  storageLocationsVisible = false,
+  colorMarkersVisible = false,
+  highlightsVisible = false,
+  indicatorsVisible = false,
   filtersVisible = false,
   sortingVisible = false,
   activeTheme: ThemeSource = 'system',
@@ -404,6 +448,10 @@ export function buildMenu(
           variablesVisible,
           mcpVisible,
           terminalVisible,
+          storageLocationsVisible,
+          colorMarkersVisible,
+          highlightsVisible,
+          indicatorsVisible,
           filtersVisible,
           sortingVisible,
           accelerators

@@ -23,6 +23,10 @@ describe('buildAppearanceMenuItems', () => {
       true,
       false,
       true,
+      true,
+      false,
+      true,
+      false,
       false,
       true,
       accelerators
@@ -30,7 +34,7 @@ describe('buildAppearanceMenuItems', () => {
 
     expect(item.label).toBe('Appearance');
     const submenu = item.submenu as MenuItemConstructorOptions[];
-    expect(submenu).toHaveLength(14);
+    expect(submenu).toHaveLength(18);
     expect(submenu[5]).toEqual({ type: 'separator' });
     expect(submenu[11]).toEqual({ type: 'separator' });
 
@@ -53,6 +57,18 @@ describe('buildAppearanceMenuItems', () => {
     const terminalItem = submenu.find(
       (entry) => entry.label === 'Terminal'
     ) as MenuItemConstructorOptions;
+    const storageLocationsItem = submenu.find(
+      (entry) => entry.label === 'Storage locations'
+    ) as MenuItemConstructorOptions;
+    const colorMarkersItem = submenu.find(
+      (entry) => entry.label === 'Color markers'
+    ) as MenuItemConstructorOptions;
+    const highlightsItem = submenu.find(
+      (entry) => entry.label === 'Highlights'
+    ) as MenuItemConstructorOptions;
+    const indicatorsItem = submenu.find(
+      (entry) => entry.label === 'Indicators'
+    ) as MenuItemConstructorOptions;
     const filtersItem = submenu.find(
       (entry) => entry.label === 'Filters'
     ) as MenuItemConstructorOptions;
@@ -73,6 +89,14 @@ describe('buildAppearanceMenuItems', () => {
     expect(mcpItem.accelerator).toBe(accelerators.get('toggle-mcp'));
     expect(terminalItem.checked).toBe(true);
     expect(terminalItem.accelerator).toBe(accelerators.get('toggle-terminal'));
+    expect(storageLocationsItem.checked).toBe(true);
+    expect(storageLocationsItem.accelerator).toBe(accelerators.get('toggle-storage-locations'));
+    expect(colorMarkersItem.checked).toBe(false);
+    expect(colorMarkersItem.accelerator).toBe(accelerators.get('toggle-color-markers'));
+    expect(highlightsItem.checked).toBe(true);
+    expect(highlightsItem.accelerator).toBe(accelerators.get('toggle-highlights'));
+    expect(indicatorsItem.checked).toBe(false);
+    expect(indicatorsItem.accelerator).toBe(accelerators.get('toggle-indicators'));
     expect(filtersItem.checked).toBe(false);
     expect(filtersItem.accelerator).toBe(accelerators.get('toggle-filters'));
     expect(sortingItem.checked).toBe(true);

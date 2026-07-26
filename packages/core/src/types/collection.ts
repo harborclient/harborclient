@@ -654,4 +654,5 @@ export type ImportEntityResult =
   | { kind: 'snippet'; snippet: Snippet; action: ImportAction }
   | { kind: 'theme'; theme: CustomTheme; action: ImportAction }
   | { kind: 'run-results'; data: RunResultsExport }
+  | { kind: 'openapi-spec'; file: ImportFilePayload }
   | { kind: 'plugin-file'; file: ImportFilePayload };

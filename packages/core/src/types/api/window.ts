@@ -88,6 +88,30 @@ export interface ApiWindow {
    */
   setMenuTerminalVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs storage-location badge visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether storage-location badges are shown on sidebar rows.
+   */
+  setMenuStorageLocationsVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs color marker visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether color marker dots are shown on sidebar rows.
+   */
+  setMenuColorMarkersVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs method-color highlight visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether HTTP method badges use per-method colors.
+   */
+  setMenuHighlightsVisible: (visible: boolean) => Promise<void>;
+  /**
+   * Syncs status indicator visibility to the View > Appearance submenu checkbox.
+   *
+   * @param visible - Whether HTTP/run status indicators are shown on sidebar rows.
+   */
+  setMenuIndicatorsVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs sidebar filter-control visibility to the View > Appearance submenu checkbox.
    *
    * @param visible - Whether section-header filter controls are shown.

@@ -177,6 +177,18 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'toggle-terminal')?.accelerator).toBe(
       'CmdOrCtrl+`'
     );
+    expect(bindings.find((binding) => binding.id === 'toggle-storage-locations')?.accelerator).toBe(
+      'Alt+Shift+U'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-color-markers')?.accelerator).toBe(
+      'Alt+Shift+D'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-highlights')?.accelerator).toBe(
+      'Alt+Shift+H'
+    );
+    expect(bindings.find((binding) => binding.id === 'toggle-indicators')?.accelerator).toBe(
+      'Alt+Shift+I'
+    );
     expect(bindings.find((binding) => binding.id === 'toggle-filters')?.accelerator).toBe(
       'Alt+Shift+F'
     );

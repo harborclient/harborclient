@@ -34,6 +34,7 @@ import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import { logImportVerbose } from '#/main/import/importVerboseLog';
 import { readHarborclientExport } from '@harborclient/core/harborclientExport';
+import { canImportOpenApiSpec } from '@harborclient/core/openapi';
 import type {
   Collection,
   CollectionExport,
@@ -623,6 +624,19 @@ export function registerCollectionHandlers(db: IStorage): void {
             action: 'created'
           } satisfies ImportEntityResult;
         }
+      }
+
+      if (canImportOpenApiSpec(file.raw)) {
+        logImportVerbose('imports:auto classified', { kind: 'openapi-spec' });
+        return {
+          kind: 'openapi-spec',
+          file: {
+            name: basename(file.filePath),
+            path: file.filePath,
+            extension: file.extension,
+            contents: file.raw
+          }
+        } satisfies ImportEntityResult;
       }
 
       logImportVerbose('imports:auto classified', {

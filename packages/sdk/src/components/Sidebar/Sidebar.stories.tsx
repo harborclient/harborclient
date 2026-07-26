@@ -2,7 +2,6 @@ import {
   faClockRotateLeft,
   faCodeBranch,
   faDownload,
-  faEye,
   faFolder,
   faGlobe,
   faLayerGroup,
@@ -188,14 +187,6 @@ export const CollectionsLeft: Story = {
     ];
 
     const toolbarToggles: ToolbarAction[] = [
-      {
-        id: 'view-options',
-        icon: faEye,
-        label: 'View options',
-        title: 'View options',
-        ariaHaspopup: 'menu',
-        onClick: fn()
-      },
       {
         id: 'collapse-all',
         icon: faSquareMinus,

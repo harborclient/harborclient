@@ -41,6 +41,10 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
     label: 'Terminal',
     description: 'Open the terminal panel'
   },
+  { id: 'builtin:toggle-storage-locations', group: 'View', label: 'Storage locations' },
+  { id: 'builtin:toggle-color-markers', group: 'View', label: 'Color markers' },
+  { id: 'builtin:toggle-highlights', group: 'View', label: 'Highlights' },
+  { id: 'builtin:toggle-indicators', group: 'View', label: 'Indicators' },
   { id: 'builtin:toggle-filters', group: 'View', label: 'Filters' },
   { id: 'builtin:toggle-sorting', group: 'View', label: 'Sorting' },
   { id: 'builtin:toggle-fullscreen', group: 'View', label: 'Toggle Fullscreen' },

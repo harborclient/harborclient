@@ -609,7 +609,7 @@ Handlers run in registration order. The first handler whose `canImport` returns 
 
 **Preview UI** — stash the selected `ImportFile` in plugin state, then open a registered main view with `hc.commands.execute('harborclient:openMainView', hc.pluginId, viewId)`. The preview component reads the stashed file, lets the user confirm selections, and calls host APIs when ready.
 
-See the [Import handler example](/examples/import-handler) for a complete walkthrough. For a production OpenAPI importer, see [harborclient/plugin-openapi](https://github.com/harborclient/plugin-openapi).
+See the [Import handler example](/examples/import-handler) for a complete walkthrough. OpenAPI 3.x import is built into HarborClient (**File → Import**); use import handlers for additional custom formats.
 
 ### registerImportHandler(hc, extensions, handler)
 
