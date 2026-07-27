@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor BodyEditor selection logic and improve utility functions. (`9541bf1a`)
 - Refactor BodyEditor selection handling and improve utility functions. (`f7d035aa`)
 - Refactor BodyEditor and enhance selection handling. (`d28dd6b7`)
 - Enhance response body handling and UI interactions. (`af009245`)
