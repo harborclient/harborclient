@@ -204,7 +204,8 @@ describe('buildResponseBodySelectionReference', () => {
 
     expect(snapshot.startOffset).toBe(0);
     expect(snapshot.endOffset).toBeGreaterThan(0);
-    expect(snapshot.selectedText.length).toBeGreaterThan(0);
+    expect(snapshot.selectedText).toBeDefined();
+    expect(snapshot.selectedText!.length).toBeGreaterThan(0);
     expect(snapshot.startLine).toBe(1);
   });
 });

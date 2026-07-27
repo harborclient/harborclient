@@ -10,6 +10,17 @@ type Axis = 'x' | 'y';
 const RESIZING_STYLE_ID = 'hc-resizable-drag-styles';
 
 /**
+ * Fraction of the remaining target gap closed per animation frame during drag.
+ * Lower values feel heavier; higher values track the pointer more closely.
+ */
+const RESIZE_DRAG_LERP = 0.22;
+
+/**
+ * Stop the drag lerp loop when within this many pixels of the pointer target.
+ */
+const RESIZE_DRAG_SNAP_EPSILON = 0.5;
+
+/**
  * Injects shared CSS that neutralizes webviews/iframes and shows the resize cursor during drags.
  * Electron webviews paint above normal DOM, so pointer-events must be disabled on the webview itself.
  */
@@ -52,6 +63,18 @@ function setResizingState(axis: Axis): void {
  */
 function clearResizingState(): void {
   delete document.body.dataset.hcResizing;
+}
+
+/**
+ * Returns whether the user prefers reduced motion.
+ *
+ * @returns True when the OS requests minimized animation.
+ */
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export interface UseResizableOptions {
@@ -133,6 +156,11 @@ function persistSize(storageKey: string, size: number): void {
 
 /**
  * Clamps a size between min and optional max bounds.
+ *
+ * @param size - Candidate size in pixels.
+ * @param minSize - Minimum allowed size.
+ * @param getMaxSize - Optional dynamic max getter.
+ * @returns Size clamped to [minSize, max].
  */
 function clampSize(size: number, minSize: number, getMaxSize?: () => number): number {
   const rawMax = getMaxSize?.() ?? Number.POSITIVE_INFINITY;
@@ -140,9 +168,6 @@ function clampSize(size: number, minSize: number, getMaxSize?: () => number): nu
   return Math.min(maxSize, Math.max(minSize, size));
 }
 
-/**
- * Tracks resizable panel size with pointer drag and optional persistence.
- */
 /**
  * Persists a committed resize size via localStorage and/or a caller callback.
  *
@@ -161,6 +186,12 @@ function commitSize(
   onPersist?.(size);
 }
 
+/**
+ * Tracks resizable panel size with pointer drag and optional persistence.
+ *
+ * During drag, pointer movement sets a target size; the displayed size eases
+ * toward that target each frame unless the user prefers reduced motion.
+ */
 export function useResizable({
   axis,
   direction,
@@ -179,6 +210,10 @@ export function useResizable({
   const startPosRef = useRef(0);
   const startSizeRef = useRef(defaultSize);
   const sizeRef = useRef(size);
+  const targetSizeRef = useRef(size);
+  const rafIdRef = useRef<number | null>(null);
+  const minSizeRef = useRef(minSize);
+  const getMaxSizeRef = useRef(getMaxSize);
 
   /**
    * Keeps a ref in sync with state so drag handlers read the latest size.
@@ -186,6 +221,61 @@ export function useResizable({
   useEffect(() => {
     sizeRef.current = size;
   }, [size]);
+
+  /**
+   * Keeps bound refs current so the lerp loop does not close over stale values.
+   */
+  useEffect(() => {
+    minSizeRef.current = minSize;
+    getMaxSizeRef.current = getMaxSize;
+  }, [getMaxSize, minSize]);
+
+  /**
+   * Cancels any in-flight drag lerp animation frame.
+   */
+  const stopResizeLerp = useCallback((): void => {
+    if (rafIdRef.current != null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Eases displayed size toward the pointer target while a drag is active.
+   */
+  const runResizeLerpStep = useCallback((): void => {
+    rafIdRef.current = null;
+    if (!resizingRef.current) {
+      return;
+    }
+
+    const current = sizeRef.current;
+    const target = targetSizeRef.current;
+    const gap = target - current;
+
+    if (Math.abs(gap) <= RESIZE_DRAG_SNAP_EPSILON) {
+      setSizeState(target);
+      return;
+    }
+
+    const nextSize = clampSize(
+      current + gap * RESIZE_DRAG_LERP,
+      minSizeRef.current,
+      getMaxSizeRef.current
+    );
+    setSizeState(nextSize);
+    rafIdRef.current = requestAnimationFrame(runResizeLerpStep);
+  }, []);
+
+  /**
+   * Starts the drag lerp loop when it is not already scheduled.
+   */
+  const startResizeLerp = useCallback((): void => {
+    if (rafIdRef.current != null) {
+      return;
+    }
+    rafIdRef.current = requestAnimationFrame(runResizeLerpStep);
+  }, [runResizeLerpStep]);
 
   /**
    * Re-reads this panel's localStorage size when a workspace (or other caller)
@@ -228,6 +318,8 @@ export function useResizable({
 
   /**
    * Updates panel size with min/max clamping applied.
+   *
+   * @param nextSize - Desired size in pixels before clamping.
    */
   const setSize = useCallback(
     (nextSize: number): void => {
@@ -238,20 +330,26 @@ export function useResizable({
 
   /**
    * Captures pointer position and current size when a resize drag begins.
+   *
+   * @param event - React mouse event from the resize handle.
    */
   const onResizeStart = useCallback(
     (event: ReactMouseEvent): void => {
       event.preventDefault();
+      stopResizeLerp();
       resizingRef.current = true;
       startPosRef.current = axis === 'x' ? event.clientX : event.clientY;
       startSizeRef.current = sizeRef.current;
+      targetSizeRef.current = sizeRef.current;
       setResizingState(axis);
     },
-    [axis]
+    [axis, stopResizeLerp]
   );
 
   /**
    * Nudges panel size from arrow keys using the same axis/direction math as drag.
+   *
+   * @param event - React keyboard event from the focused resize handle.
    */
   const onKeyboardResize = useCallback(
     (event: ReactKeyboardEvent): void => {
@@ -287,7 +385,7 @@ export function useResizable({
    */
   useEffect(() => {
     /**
-     * Updates size from pointer movement while a resize drag is active.
+     * Updates the pointer target (and eases toward it) while a resize drag is active.
      *
      * @param event - Window mousemove event.
      */
@@ -296,17 +394,27 @@ export function useResizable({
       const currentPos = axis === 'x' ? event.clientX : event.clientY;
       const delta = (currentPos - startPosRef.current) * direction;
       const nextSize = clampSize(startSizeRef.current + delta, minSize, getMaxSize);
-      setSizeState(nextSize);
+      targetSizeRef.current = nextSize;
+
+      if (prefersReducedMotion()) {
+        setSizeState(nextSize);
+        return;
+      }
+
+      startResizeLerp();
     };
 
     /**
-     * Ends the resize drag and commits the final size when configured.
+     * Ends the resize drag, snaps to the pointer target, and commits the size.
      */
     const handleMouseUp = (): void => {
       if (!resizingRef.current) return;
       resizingRef.current = false;
+      stopResizeLerp();
       clearResizingState();
-      commitSize(storageKey, onPersist, sizeRef.current);
+      const snapped = clampSize(targetSizeRef.current, minSize, getMaxSize);
+      setSizeState(snapped);
+      commitSize(storageKey, onPersist, snapped);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -321,19 +429,29 @@ export function useResizable({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [axis, direction, getMaxSize, minSize, onPersist, storageKey]);
+  }, [
+    axis,
+    direction,
+    getMaxSize,
+    minSize,
+    onPersist,
+    startResizeLerp,
+    stopResizeLerp,
+    storageKey
+  ]);
 
   /**
-   * Clears the document resize marker when the hook unmounts mid-drag.
+   * Clears the document resize marker and any lerp loop when the hook unmounts mid-drag.
    */
   useEffect(() => {
     return () => {
+      stopResizeLerp();
       if (resizingRef.current) {
         resizingRef.current = false;
         clearResizingState();
       }
     };
-  }, []);
+  }, [stopResizeLerp]);
 
   return { size, minSize, maxSize, setSize, onResizeStart, onKeyboardResize };
 }

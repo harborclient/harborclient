@@ -33,6 +33,11 @@ import { setRequestBodySelection } from '#/renderer/src/store/slices/requestBody
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { lineNumberAtOffset } from './markdownSelection';
+import {
+  buildRequestBodyReferenceToken,
+  requestBodySelectionLabel,
+  requestBodySelectionSourceText
+} from './bodySelection';
 
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { emptyKeyValue } from '#/renderer/src/store/tabs';
@@ -46,32 +51,6 @@ const BODY_TYPE_OPTIONS: { value: BodyType; label: string }[] = [
   { value: 'multipart', label: 'Multipart Form' },
   { value: 'urlencoded', label: 'Form URL Encoded' }
 ];
-
-/**
- * Builds the `@body` reference token for a raw-body selection.
- *
- * @param startOffset - Start character offset in the raw body text.
- * @param endOffset - End character offset in the raw body text.
- * @returns Compact `@body` reference token for the chat composer.
- */
-function buildRequestBodyReferenceToken(startOffset: number, endOffset: number): string {
-  return `@body#${startOffset}.${endOffset}`;
-}
-
-/**
- * Returns a display label for the raw body editor based on body type.
- *
- * @param bodyType - Active request body type.
- */
-function rawBodySelectionLabel(bodyType: BodyType): string {
-  if (bodyType === 'multipart') {
-    return 'Raw multipart body';
-  }
-  if (bodyType === 'urlencoded') {
-    return 'Raw urlencoded body';
-  }
-  return 'Raw body';
-}
 
 interface Props {
   /**
@@ -274,9 +253,9 @@ export function BodyEditor({
   );
 
   /**
-   * Opens the AI sidebar and inserts an `@body` reference for the selected raw text.
+   * Opens the AI sidebar and inserts an `@body` reference for the selected body text.
    *
-   * @param selection - Selected text and character offsets from the Raw CodeEditor.
+   * @param selection - Selected text and character offsets from the body CodeEditor.
    */
   const handleCopySelectionToChat = useCallback(
     async (selection: CodeEditorTextSelection): Promise<void> => {
@@ -285,7 +264,8 @@ export function BodyEditor({
       }
 
       const token = buildRequestBodyReferenceToken(selection.from, selection.to);
-      const label = rawBodySelectionLabel(bodyType);
+      const label = requestBodySelectionLabel(bodyType);
+      const sourceText = requestBodySelectionSourceText(bodyType, body, projectedRaw);
 
       dispatch(
         setRequestBodySelection({
@@ -295,8 +275,8 @@ export function BodyEditor({
             selectedText: selection.text,
             startOffset: selection.from,
             endOffset: selection.to,
-            startLine: lineNumberAtOffset(projectedRaw, selection.from),
-            endLine: lineNumberAtOffset(projectedRaw, Math.max(selection.from, selection.to - 1))
+            startLine: lineNumberAtOffset(sourceText, selection.from),
+            endLine: lineNumberAtOffset(sourceText, Math.max(selection.from, selection.to - 1))
           }
         })
       );
@@ -306,11 +286,11 @@ export function BodyEditor({
       }
       dispatch(setPendingComposerText(token));
     },
-    [activeChatId, aiSettings, bodyType, dispatch, projectedRaw]
+    [activeChatId, aiSettings, body, bodyType, dispatch, projectedRaw]
   );
 
   /**
-   * Selection toolbar actions for the Raw body CodeEditor when AI chat is available.
+   * Selection toolbar actions for body CodeEditors when AI chat is available.
    */
   const copyToChatSelectionActions = useMemo(
     () =>
@@ -319,7 +299,7 @@ export function BodyEditor({
             {
               id: 'copy-to-chat',
               label: 'Copy to chat',
-              ariaLabel: `Copy selection from ${rawBodySelectionLabel(bodyType)} to chat`,
+              ariaLabel: `Copy selection from ${requestBodySelectionLabel(bodyType)} to chat`,
               icon: COPY_TO_CHAT_ICON,
               shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
@@ -426,6 +406,7 @@ export function BodyEditor({
             minHeight="0"
             className="request-body-editor"
             aria-label={bodyType === 'json' ? 'JSON body' : 'Text body'}
+            selectionActions={copyToChatSelectionActions}
           />
         </div>
       )}
