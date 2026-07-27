@@ -1,7 +1,7 @@
 import { FormGroup, SettingFieldActions, SettingIdLabel } from '@harborclient/sdk/components';
 import type { ComponentProps, JSX, ReactNode } from 'react';
 
-import { entryById, type FieldSettingId } from '../catalog/catalog';
+import { entryById, type GroupSettingId } from '../catalog/catalog';
 import { useSettingFieldState } from '../hooks/useSettingFieldState';
 import { settingAnchorId } from '../settingAnchorId';
 
@@ -9,11 +9,11 @@ type FormGroupProps = ComponentProps<typeof FormGroup>;
 
 interface Props {
   /**
-   * Catalog setting id used for labels, descriptions, and tooltips.
+   * Catalog group setting id (e.g. `git.autoTrack`).
    */
-  settingId: FieldSettingId;
+  settingId: GroupSettingId;
   /**
-   * Form control rendered inside the field wrapper.
+   * Form control or table rendered inside the group wrapper.
    */
   children: ReactNode;
   /**
@@ -43,28 +43,13 @@ interface Props {
 }
 
 /**
- * Builds a stable DOM id for a catalog setting control.
+ * Catalog-backed settings group wrapper that injects group metadata, id tooltips,
+ * a modified accent border, and a per-setting cog menu (reset / copy).
  *
- * @param settingId - Catalog field id.
+ * Used for group catalog entries (`kind: 'group'`) that are not part of
+ * `SETTINGS_FIELD_REGISTRY`, such as git draft groups and backup confirmations.
  */
-function settingControlId(settingId: FieldSettingId): string {
-  return settingAnchorId(settingId);
-}
-
-/**
- * Builds a stable DOM id for a catalog setting description element.
- *
- * @param settingId - Catalog field id.
- */
-function settingDescriptionId(settingId: FieldSettingId): string {
-  return `${settingControlId(settingId)}-description`;
-}
-
-/**
- * Catalog-backed form field wrapper that injects setting metadata, id tooltips,
- * a modified accent border, and a per-setting cog menu (reset / copy id).
- */
-export function SettingField({
+export function SettingGroupField({
   settingId,
   children,
   htmlFor,
@@ -75,14 +60,14 @@ export function SettingField({
   className
 }: Props): JSX.Element {
   const entry = entryById(settingId);
-  if (entry.kind !== 'field') {
-    throw new Error(`SettingField requires a field entry: ${settingId}`);
+  if (entry.kind !== 'group') {
+    throw new Error(`SettingGroupField requires a group entry: ${settingId}`);
   }
 
   const { isModified, resetToDefault, copySettingId, copySettingAsJson, copyDeepLink } =
     useSettingFieldState(settingId);
-  const controlId = htmlFor ?? settingControlId(settingId);
-  const descriptionId = settingDescriptionId(settingId);
+  const controlId = htmlFor ?? settingAnchorId(settingId);
+  const descriptionId = `${controlId}-description`;
   const description = entry.description;
 
   /**

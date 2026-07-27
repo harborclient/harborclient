@@ -22,8 +22,8 @@ import {
   type GitAuthAuthorizedResult
 } from '#/renderer/src/ui/Shared/Git/GitAuthForm';
 import { GitAuthorForm } from '#/renderer/src/ui/Shared/Git/GitAuthorForm';
-import { entryById } from '#/renderer/src/ui/Tabs/Settings/catalog/catalog';
 import type { SettingsSectionComponentProps } from '#/renderer/src/ui/Tabs/Settings/catalog/registry';
+import { SettingGroupField } from '#/renderer/src/ui/Tabs/Settings/components/SettingGroupField';
 import { SettingsSaveAction } from '#/renderer/src/ui/Tabs/Settings/components/SettingsSaveAction';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -50,9 +50,6 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorHost, setEditorHost] = useState('');
   const [editorUrl, setEditorUrl] = useState('');
-
-  const autoTrackCatalog = entryById('git.autoTrack');
-  const commitAuthorCatalog = entryById('git.commitAuthor');
 
   /**
    * Reloads saved git identities from the main process.
@@ -242,11 +239,8 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
       }
     >
       <div className="mb-6 flex flex-col gap-6">
-        <FormGroup
-          label={
-            <SettingIdLabel settingId="git.autoTrack">{autoTrackCatalog.label}</SettingIdLabel>
-          }
-          description={autoTrackCatalog.description}
+        <SettingGroupField
+          settingId="git.autoTrack"
           htmlFor={GIT_AUTO_TRACK_INPUT_ID}
           layout="checkbox"
         >
@@ -256,8 +250,9 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
             disabled={disabled}
             onChange={handleAutoAddChange}
           />
-        </FormGroup>
+        </SettingGroupField>
 
+        {/* TODO(settings-modified): git.externalMergeEditorPath — no catalog FieldSettingId yet */}
         <FormGroup
           label={
             <SettingIdLabel settingId="git.externalMergeEditorPath">
@@ -288,13 +283,7 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
           </div>
         </FormGroup>
 
-        <FormGroup
-          label={
-            <SettingIdLabel settingId="git.commitAuthor">
-              {commitAuthorCatalog.label}
-            </SettingIdLabel>
-          }
-        >
+        <SettingGroupField settingId="git.commitAuthor">
           <GitAuthorForm
             name={general.gitCommitAuthorName}
             email={general.gitCommitAuthorEmail}
@@ -302,9 +291,10 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
             onNameChange={handleCommitAuthorNameChange}
             onEmailChange={handleCommitAuthorEmailChange}
           />
-        </FormGroup>
+        </SettingGroupField>
       </div>
 
+      {/* TODO(settings-modified): git.identities — IPC-backed identity list, not a scalar setting */}
       <SettingSectionHeading settingId="git.identities" title="Git Identities" className="mb-2" />
       {loading ? (
         <p className="m-0 text-muted" role="status">

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance settings management and UI components. (`31e7f975`)
 - Refactor settings draft management and enhance default handling. (`5650b3e6`)
 - Refactor BodyEditor and enhance selection handling. (`d28dd6b7`)
 - Refactor shortcuts handling and update UI components. (`a85cf446`)

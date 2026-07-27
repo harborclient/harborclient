@@ -10,7 +10,8 @@ import toast from 'react-hot-toast';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { entryById, sectionEntryBySection } from '../catalog/catalog';
+import { sectionEntryBySection } from '../catalog/catalog';
+import { SettingGroupField } from '../components/SettingGroupField';
 import { settingsSectionMeta } from '../constants';
 import { settingAnchorId } from '../settingAnchorId';
 import type { SettingsSectionComponentProps } from '../catalog/registry';
@@ -128,7 +129,6 @@ export function BackupRestoreSection({
 
   const { label, icon } = settingsSectionMeta('backup-restore');
   const backupCatalog = sectionEntryBySection('backup-restore');
-  const confirmationsCatalog = entryById(CONFIRMATIONS_GROUP_ID);
 
   return (
     <Page
@@ -137,18 +137,10 @@ export function BackupRestoreSection({
       icon={icon}
       description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file."
     >
-      <div
-        id={settingAnchorId(CONFIRMATIONS_GROUP_ID)}
-        className="mb-6 flex flex-col gap-3 scroll-mt-4"
-      >
-        <SettingSectionHeading
-          settingId={CONFIRMATIONS_GROUP_ID}
-          title={confirmationsCatalog.label}
-          description={confirmationsCatalog.description}
-          className="flex flex-col gap-1"
-          descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
-        />
-        <ConfirmationsTable />
+      <div id={settingAnchorId(CONFIRMATIONS_GROUP_ID)} className="mb-6 scroll-mt-4">
+        <SettingGroupField settingId={CONFIRMATIONS_GROUP_ID}>
+          <ConfirmationsTable />
+        </SettingGroupField>
       </div>
 
       <FormGroup

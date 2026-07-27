@@ -35,6 +35,9 @@ interface Props {
 
 /**
  * Editable globals form keyed by saved variables so state resets when persistence changes.
+ *
+ * TODO(settings-modified): globals.variables — local form state + immediate
+ * `saveGlobalVariables`; needs a custom hook for modified/reset (skip v1).
  */
 export function GlobalsSectionForm({
   savedVariables,

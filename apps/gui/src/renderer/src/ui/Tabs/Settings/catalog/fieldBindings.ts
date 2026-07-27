@@ -1,3 +1,29 @@
+/**
+ * Settings field and group bindings for modified detection and reset-to-default.
+ *
+ * ## Supported draft field ids (`SETTING_FIELD_BINDINGS`)
+ *
+ * All 32 ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, AI API keys):
+ * `general.*`, `proxy.*`, `syntax.*`, `ai.openaiApiKey`, `ai.claudeApiKey`,
+ * `ai.geminiApiKey`. Values read/write `settingsDraft`.
+ *
+ * ## Supported group ids (`SETTING_GROUP_BINDINGS`)
+ *
+ * - `backup-restore.confirmations` — live `state.settings.general` via
+ *   `patchGeneralSettings` (immediate persist; not draft).
+ * - `git.autoTrack` — draft `general.gitAutoAdd`.
+ * - `git.commitAuthor` — draft composite name + email.
+ *
+ * ## Deferred (no binding; see TODO(settings-modified) at call sites)
+ *
+ * - `ai.enterToSend` — `aiChatSlice` + immediate persist.
+ * - `globals.variables` — local form state in `GlobalsSectionForm`.
+ * - `plugins.addCatalogEndpointUrl` / `plugins.addTrustedEndpointUrl` — hosted
+ *   plugin surfaces; needs plugin API for modified/reset.
+ * - `git.identities` — IPC-backed identity CRUD, not a scalar setting.
+ * - `git.externalMergeEditorPath` — draft field without a catalog FieldSettingId.
+ */
+
 import {
   DEFAULT_CODE_EDITOR_SETUP,
   normalizeCodeEditorFontSize,
@@ -12,6 +38,7 @@ import type {
   ProxySettings,
   TrustedExternalDomain
 } from '@harborclient/core/types';
+import { DEFAULT_USER_AGENT, isGeneratedHarborClientUserAgent } from '@harborclient/core/userAgent';
 
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import {
@@ -21,9 +48,14 @@ import {
   setDraftGeneralField,
   setDraftProxyField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import {
+  CONFIRMATION_ROWS,
+  confirmationSettingsPatch
+} from '#/renderer/src/ui/Tabs/Settings/BackupRestoreSection/confirmations';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
-import type { FieldSettingId } from './catalog';
+import type { FieldSettingId, GroupSettingId, SettingId } from './catalog';
 
 /**
  * Composite draft value for the trusted-domains setting (master toggle + registry).
@@ -34,7 +66,20 @@ type TrustedDomainsValue = {
 };
 
 /**
- * Maps a catalog field id to draft read, factory default, and reset dispatch.
+ * Composite draft value for the git commit-author group.
+ */
+type CommitAuthorValue = {
+  gitCommitAuthorName: string;
+  gitCommitAuthorEmail: string;
+};
+
+/**
+ * Snapshot of confirmation-related general settings keys.
+ */
+type ConfirmationsSnapshot = Partial<GeneralSettings>;
+
+/**
+ * Maps a catalog field or group id to draft/live read, factory default, and reset.
  */
 export type SettingFieldBinding = {
   /**
@@ -46,7 +91,8 @@ export type SettingFieldBinding = {
    */
   getDefault: () => unknown;
   /**
-   * Writes the factory default into the draft via existing slice actions.
+   * Writes the factory default into the draft via existing slice actions
+   * (or persists immediately for live bindings).
    */
   reset: (dispatch: AppDispatch) => void;
   /**
@@ -248,6 +294,109 @@ const trustedDomainsBinding: SettingFieldBinding = {
 };
 
 /**
+ * Returns true when a User-Agent string matches the factory placeholder or a
+ * machine-generated HarborClient User-Agent (treated as the effective default).
+ *
+ * @param value - Candidate User-Agent string.
+ * @returns True when the value should not count as modified.
+ */
+function isDefaultUserAgentValue(value: unknown): boolean {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  if (value === DEFAULT_USER_AGENT) {
+    return true;
+  }
+  return isGeneratedHarborClientUserAgent(value);
+}
+
+/**
+ * Binding for `general.userAgent`.
+ *
+ * Machine-generated HarborClient User-Agents are treated as unmodified so real
+ * installs are not flagged after first-run UA capture. Reset still writes
+ * {@link DEFAULT_USER_AGENT}; startup migration may replace it again later.
+ */
+const userAgentBinding: SettingFieldBinding = {
+  getValue: (state) => state.settingsDraft.general.userAgent,
+  getDefault: () => DEFAULT_USER_AGENT,
+  reset: (dispatch) => {
+    dispatch(setDraftGeneralField({ key: 'userAgent', value: DEFAULT_USER_AGENT }));
+  },
+  equals: (a, b) => {
+    // Any generated HarborClient UA counts as equal to the factory placeholder.
+    if (isDefaultUserAgentValue(a) && isDefaultUserAgentValue(b)) {
+      return true;
+    }
+    return valuesEqual(a, b);
+  }
+};
+
+/**
+ * Reads confirmation prompt keys from live general settings.
+ *
+ * @param state - Redux root state.
+ * @returns Snapshot of warnWhen* flags and dismissed request-editor notices.
+ */
+function getConfirmationsValue(state: RootState): ConfirmationsSnapshot {
+  const general = state.settings.general;
+  const snapshot: ConfirmationsSnapshot = {};
+  for (const row of CONFIRMATION_ROWS) {
+    snapshot[row.key] = general[row.key];
+  }
+  snapshot.dismissedRequestEditorNotices = [...general.dismissedRequestEditorNotices];
+  return snapshot;
+}
+
+/**
+ * Returns the factory default for the confirmations group (all prompts enabled).
+ *
+ * @returns Patch that enables every confirmation row.
+ */
+function getConfirmationsDefault(): ConfirmationsSnapshot {
+  return confirmationSettingsPatch(true);
+}
+
+/**
+ * Binding for `backup-restore.confirmations` (live store, immediate persist).
+ */
+const confirmationsBinding: SettingFieldBinding = {
+  getValue: getConfirmationsValue,
+  getDefault: getConfirmationsDefault,
+  reset: (dispatch) => {
+    void dispatch(patchGeneralSettings(confirmationSettingsPatch(true)));
+  }
+};
+
+/**
+ * Binding for the composite `git.commitAuthor` group.
+ */
+const commitAuthorBinding: SettingFieldBinding = {
+  getValue: (state): CommitAuthorValue => ({
+    gitCommitAuthorName: state.settingsDraft.general.gitCommitAuthorName,
+    gitCommitAuthorEmail: state.settingsDraft.general.gitCommitAuthorEmail
+  }),
+  getDefault: (): CommitAuthorValue => ({
+    gitCommitAuthorName: DEFAULT_GENERAL_SETTINGS.gitCommitAuthorName,
+    gitCommitAuthorEmail: DEFAULT_GENERAL_SETTINGS.gitCommitAuthorEmail
+  }),
+  reset: (dispatch) => {
+    dispatch(
+      setDraftGeneralField({
+        key: 'gitCommitAuthorName',
+        value: DEFAULT_GENERAL_SETTINGS.gitCommitAuthorName
+      })
+    );
+    dispatch(
+      setDraftGeneralField({
+        key: 'gitCommitAuthorEmail',
+        value: DEFAULT_GENERAL_SETTINGS.gitCommitAuthorEmail
+      })
+    );
+  }
+};
+
+/**
  * Maps every id in `SETTINGS_FIELD_REGISTRY` to draft get/default/reset handlers.
  */
 export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingFieldBinding>> = {
@@ -260,7 +409,7 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
   'general.maxResponseSizeMb': createGeneralBinding('maxResponseSizeMb'),
   'general.verifySsl': createGeneralBinding('verifySsl'),
   'general.followRedirects': createGeneralBinding('followRedirects'),
-  'general.userAgent': createGeneralBinding('userAgent'),
+  'general.userAgent': userAgentBinding,
   'general.scrollbarAutoHide': createGeneralBinding('scrollbarAutoHide'),
   'general.wrapTabs': createGeneralBinding('wrapTabs'),
   'general.closeToTray': createGeneralBinding('closeToTray'),
@@ -286,7 +435,16 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
 };
 
 /**
- * Looks up the field binding for a catalog id.
+ * Maps catalog group ids to get/default/reset handlers (draft or live).
+ */
+export const SETTING_GROUP_BINDINGS: Partial<Record<GroupSettingId, SettingFieldBinding>> = {
+  'backup-restore.confirmations': confirmationsBinding,
+  'git.autoTrack': createGeneralBinding('gitAutoAdd'),
+  'git.commitAuthor': commitAuthorBinding
+};
+
+/**
+ * Looks up the field binding for a catalog field id.
  *
  * @param id - Catalog field id.
  * @returns Binding when registered; otherwise undefined.
@@ -296,18 +454,35 @@ export function getFieldBinding(id: FieldSettingId): SettingFieldBinding | undef
 }
 
 /**
- * Returns true when the draft value for a field differs from its factory default.
+ * Looks up the binding for a catalog field or group id.
+ *
+ * @param id - Catalog setting id (field or group).
+ * @returns Binding when registered; otherwise undefined.
+ */
+export function getSettingBinding(id: SettingId): SettingFieldBinding | undefined {
+  if (id in SETTING_FIELD_BINDINGS) {
+    return SETTING_FIELD_BINDINGS[id as FieldSettingId];
+  }
+  if (id in SETTING_GROUP_BINDINGS) {
+    return SETTING_GROUP_BINDINGS[id as GroupSettingId];
+  }
+  return undefined;
+}
+
+/**
+ * Returns true when the draft (or live) value for a setting differs from its
+ * factory default.
  *
  * Unbound ids are treated as not modified. This is independent of
  * `selectSettingsDraftDirty`, which compares the full draft against the last
  * saved baseline.
  *
  * @param state - Redux root state.
- * @param id - Catalog field id.
- * @returns True when the field is modified relative to factory defaults.
+ * @param id - Catalog field or group id.
+ * @returns True when the setting is modified relative to factory defaults.
  */
-export function isFieldModified(state: RootState, id: FieldSettingId): boolean {
-  const binding = getFieldBinding(id);
+export function isFieldModified(state: RootState, id: SettingId): boolean {
+  const binding = getSettingBinding(id);
   if (binding == null) {
     return false;
   }
@@ -316,24 +491,38 @@ export function isFieldModified(state: RootState, id: FieldSettingId): boolean {
 }
 
 /**
- * Resets a settings field to its factory default in the draft only.
+ * Resets a settings field or group to its factory default.
  *
- * Does not call IPC or `saveSettingsDraft`. Nested object/array defaults are
- * cloned so factory constants are never mutated in place.
+ * Draft bindings write the draft only — they do not call IPC or
+ * `saveSettingsDraft`. Live bindings (confirmations) persist immediately via
+ * `patchGeneralSettings`. Nested object/array defaults are cloned so factory
+ * constants are never mutated in place.
  *
- * After reset, `isFieldModified` is false (draft matches factory default), but
- * `selectSettingsDraftDirty` may become true when the saved baseline differs
- * from the factory default — the user must Save to persist the reset.
+ * After a draft reset, `isFieldModified` is false (draft matches factory
+ * default), but `selectSettingsDraftDirty` may become true when the saved
+ * baseline differs from the factory default — the user must Save to persist.
  *
  * Unbound ids are a no-op.
  *
  * @param dispatch - Redux dispatch.
- * @param id - Catalog field id.
+ * @param id - Catalog field or group id.
  */
-export function resetFieldToDefault(dispatch: AppDispatch, id: FieldSettingId): void {
-  const binding = getFieldBinding(id);
+export function resetFieldToDefault(dispatch: AppDispatch, id: SettingId): void {
+  const binding = getSettingBinding(id);
   if (binding == null) {
     return;
   }
   binding.reset(dispatch);
+}
+
+/**
+ * Formats a setting id and current value as a JSON property snippet for the
+ * clipboard (e.g. `"general.verifySsl": false`).
+ *
+ * @param id - Catalog setting id.
+ * @param value - Current bound value.
+ * @returns JSON property string.
+ */
+export function formatSettingAsJson(id: SettingId, value: unknown): string {
+  return `${JSON.stringify(id)}: ${JSON.stringify(value)}`;
 }

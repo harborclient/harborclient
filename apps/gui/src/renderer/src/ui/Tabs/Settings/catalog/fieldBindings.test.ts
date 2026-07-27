@@ -11,14 +11,18 @@ import settingsDraftReducer, {
   setDraftProxyField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { BUILTIN_USER_AGENT_PRESETS, DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 import type { FieldSettingId } from './catalog';
 import {
+  formatSettingAsJson,
   getFieldBinding,
+  getSettingBinding,
   isFieldModified,
   resetFieldToDefault,
-  SETTING_FIELD_BINDINGS
+  SETTING_FIELD_BINDINGS,
+  SETTING_GROUP_BINDINGS
 } from './fieldBindings';
 
 /**
@@ -61,14 +65,20 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
 ];
 
 /**
- * Builds a minimal root state containing only the settings draft slice.
+ * Builds a minimal root state containing the settings draft (and optional live
+ * settings) slices.
  *
  * @param draft - Settings draft slice state.
+ * @param general - Optional live general settings for group bindings.
  * @returns Partial root state suitable for binding helpers.
  */
-function buildState(draft: ReturnType<typeof settingsDraftReducer>): RootState {
+function buildState(
+  draft: ReturnType<typeof settingsDraftReducer>,
+  general: typeof DEFAULT_GENERAL_SETTINGS = DEFAULT_GENERAL_SETTINGS
+): RootState {
   return {
-    settingsDraft: draft
+    settingsDraft: draft,
+    settings: { general }
   } as RootState;
 }
 
@@ -122,6 +132,19 @@ describe('SETTING_FIELD_BINDINGS', () => {
   });
 });
 
+describe('SETTING_GROUP_BINDINGS', () => {
+  it('registers bindings for git and backup confirmation groups', () => {
+    expect(getSettingBinding('git.autoTrack')).toBeDefined();
+    expect(getSettingBinding('git.commitAuthor')).toBeDefined();
+    expect(getSettingBinding('backup-restore.confirmations')).toBeDefined();
+    expect(Object.keys(SETTING_GROUP_BINDINGS).sort()).toEqual([
+      'backup-restore.confirmations',
+      'git.autoTrack',
+      'git.commitAuthor'
+    ]);
+  });
+});
+
 describe('isFieldModified / resetFieldToDefault', () => {
   it('detects and resets general.verifySsl', () => {
     let draft = initDefaultDraft();
@@ -150,6 +173,19 @@ describe('isFieldModified / resetFieldToDefault', () => {
     resetFieldToDefault(createDraftDispatch(holder) as never, 'proxy.host');
     expect(holder.current.general.proxy.host).toBe('');
     expect(isFieldModified(buildState(holder.current), 'proxy.host')).toBe(false);
+  });
+
+  it('detects and resets proxy.password to an empty string', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'proxy.password')).toBe(false);
+
+    draft = settingsDraftReducer(draft, setDraftProxyField({ key: 'password', value: 's3cret' }));
+    expect(isFieldModified(buildState(draft), 'proxy.password')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'proxy.password');
+    expect(holder.current.general.proxy.password).toBe('');
+    expect(isFieldModified(buildState(holder.current), 'proxy.password')).toBe(false);
   });
 
   it('detects and resets syntax.lineNumbers', () => {
@@ -192,6 +228,97 @@ describe('isFieldModified / resetFieldToDefault', () => {
     expect(holder.current.general.allowAllExternalDomains).toBe(false);
     expect(holder.current.general.trustedExternalDomains).toEqual([]);
     expect(isFieldModified(buildState(holder.current), 'general.trustedDomains')).toBe(false);
+  });
+
+  it('treats factory and generated HarborClient user agents as unmodified', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'general.userAgent')).toBe(false);
+
+    draft = settingsDraftReducer(
+      draft,
+      setDraftGeneralField({
+        key: 'userAgent',
+        value: 'HarborClient/1.2.3 (X11; Linux x86_64) Electron/39.0.0 Chrome/140.0.0.0'
+      })
+    );
+    expect(isFieldModified(buildState(draft), 'general.userAgent')).toBe(false);
+  });
+
+  it('marks browser preset user agents as modified and resets to DEFAULT_USER_AGENT', () => {
+    let draft = initDefaultDraft();
+    const chromePreset = BUILTIN_USER_AGENT_PRESETS[0];
+
+    draft = settingsDraftReducer(
+      draft,
+      setDraftGeneralField({ key: 'userAgent', value: chromePreset })
+    );
+    expect(isFieldModified(buildState(draft), 'general.userAgent')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'general.userAgent');
+    expect(holder.current.general.userAgent).toBe(DEFAULT_USER_AGENT);
+    expect(isFieldModified(buildState(holder.current), 'general.userAgent')).toBe(false);
+  });
+
+  it('detects and resets git.autoTrack via the group binding', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'git.autoTrack')).toBe(false);
+
+    draft = settingsDraftReducer(draft, setDraftGeneralField({ key: 'gitAutoAdd', value: false }));
+    expect(isFieldModified(buildState(draft), 'git.autoTrack')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'git.autoTrack');
+    expect(holder.current.general.gitAutoAdd).toBe(true);
+    expect(isFieldModified(buildState(holder.current), 'git.autoTrack')).toBe(false);
+  });
+
+  it('detects and resets git.commitAuthor as a composite', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'git.commitAuthor')).toBe(false);
+
+    draft = settingsDraftReducer(
+      draft,
+      setDraftGeneralField({ key: 'gitCommitAuthorName', value: 'Ada' })
+    );
+    expect(isFieldModified(buildState(draft), 'git.commitAuthor')).toBe(true);
+
+    draft = settingsDraftReducer(
+      draft,
+      setDraftGeneralField({ key: 'gitCommitAuthorEmail', value: 'ada@example.com' })
+    );
+    expect(isFieldModified(buildState(draft), 'git.commitAuthor')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'git.commitAuthor');
+    expect(holder.current.general.gitCommitAuthorName).toBe('');
+    expect(holder.current.general.gitCommitAuthorEmail).toBe('');
+    expect(isFieldModified(buildState(holder.current), 'git.commitAuthor')).toBe(false);
+  });
+
+  it('detects modified backup confirmations from the live store and resets via patch', () => {
+    const draft = initDefaultDraft();
+    const modifiedGeneral = {
+      ...DEFAULT_GENERAL_SETTINGS,
+      warnWhenSwitchingThemes: false
+    };
+    expect(
+      isFieldModified(buildState(draft, modifiedGeneral), 'backup-restore.confirmations')
+    ).toBe(true);
+    expect(
+      isFieldModified(buildState(draft, DEFAULT_GENERAL_SETTINGS), 'backup-restore.confirmations')
+    ).toBe(false);
+
+    const dispatched: unknown[] = [];
+    const dispatch = ((action: unknown) => {
+      dispatched.push(action);
+      return action;
+    }) as never;
+
+    resetFieldToDefault(dispatch, 'backup-restore.confirmations');
+    // Live confirmations reset dispatches the patchGeneralSettings async thunk.
+    expect(dispatched).toHaveLength(1);
+    expect(typeof dispatched[0]).toBe('function');
   });
 
   it('treats unknown ids as not modified and no-op on reset', () => {
@@ -284,5 +411,9 @@ describe('isFieldModified / resetFieldToDefault', () => {
     resetFieldToDefault(createDraftDispatch(holder) as never, 'general.requestTimeoutMs');
     expect(holder.current.general.requestTimeoutMs).toBe(DEFAULT_GENERAL_SETTINGS.requestTimeoutMs);
     expect(isFieldModified(buildState(holder.current), 'general.requestTimeoutMs')).toBe(false);
+  });
+
+  it('formats a setting as a JSON property snippet', () => {
+    expect(formatSettingAsJson('general.verifySsl', false)).toBe('"general.verifySsl": false');
   });
 });

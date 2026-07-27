@@ -10,6 +10,9 @@ import { SettingField } from '../components/SettingField';
  * Enter-to-send toggle for the AI chat composer.
  *
  * Persists immediately via the AI chat session store (not the settings draft).
+ *
+ * TODO(settings-modified): ai.enterToSend — backed by `aiChatSlice` +
+ * `updateEnterToSend`; needs a separate live binding (deferred).
  */
 export function AiEnterToSendField(): JSX.Element {
   const dispatch = useAppDispatch();

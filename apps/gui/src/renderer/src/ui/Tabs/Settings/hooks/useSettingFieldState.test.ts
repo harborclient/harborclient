@@ -13,8 +13,8 @@ import settingsDraftReducer, {
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
-import type { FieldSettingId } from '../catalog/catalog';
-import { useSettingFieldState, type SettingFieldState } from './useSettingFieldState';
+import type { BoundSettingId, SettingFieldState } from './useSettingFieldState';
+import { useSettingFieldState } from './useSettingFieldState';
 
 const toastSuccessMock = vi.hoisted(() => vi.fn());
 
@@ -61,7 +61,7 @@ describe('useSettingFieldState', () => {
    *
    * @param props - Catalog id to bind.
    */
-  function HookFixture({ settingId }: { settingId: FieldSettingId }): null {
+  function HookFixture({ settingId }: { settingId: BoundSettingId }): null {
     const state = useSettingFieldState(settingId);
 
     /**
@@ -77,9 +77,9 @@ describe('useSettingFieldState', () => {
   /**
    * Renders the hook fixture under a Redux Provider.
    *
-   * @param settingId - Catalog field id to pass to the hook.
+   * @param settingId - Catalog field or group id to pass to the hook.
    */
-  function renderHookFixture(settingId: FieldSettingId): void {
+  function renderHookFixture(settingId: BoundSettingId): void {
     act(() => {
       // React 19's ProviderProps requires `children` in props, but eslint forbids
       // passing children as a prop to createElement. The third argument is equivalent.
@@ -122,6 +122,24 @@ describe('useSettingFieldState', () => {
 
     expect(latestState?.isModified).toBe(true);
     expect(latestState?.settingId).toBe('general.verifySsl');
+  });
+
+  it('tracks modified state for git.autoTrack group binding', () => {
+    renderHookFixture('git.autoTrack');
+    expect(latestState?.isModified).toBe(false);
+
+    act(() => {
+      store.dispatch(setDraftGeneralField({ key: 'gitAutoAdd', value: false }));
+    });
+
+    expect(latestState?.isModified).toBe(true);
+
+    act(() => {
+      latestState?.resetToDefault();
+    });
+
+    expect((store.getState() as RootState).settingsDraft.general.gitAutoAdd).toBe(true);
+    expect(latestState?.isModified).toBe(false);
   });
 
   it('resetToDefault restores the factory default for general.verifySsl', () => {
@@ -180,6 +198,28 @@ describe('useSettingFieldState', () => {
     expect(toastSuccessMock).toHaveBeenCalledWith('Copied to clipboard');
   });
 
+  it('copySettingAsJson and copyDeepLink write JSON and hash snippets', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', {
+      clipboard: { writeText }
+    });
+
+    act(() => {
+      store.dispatch(setDraftGeneralField({ key: 'verifySsl', value: false }));
+    });
+    renderHookFixture('general.verifySsl');
+
+    await act(async () => {
+      await latestState?.copySettingAsJson();
+    });
+    expect(writeText).toHaveBeenCalledWith('"general.verifySsl": false');
+
+    await act(async () => {
+      await latestState?.copyDeepLink();
+    });
+    expect(writeText).toHaveBeenCalledWith('#setting-general-verifySsl');
+  });
+
   it('treats unbound ids as not modified and no-ops reset/copy', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', {
@@ -198,6 +238,8 @@ describe('useSettingFieldState', () => {
 
     await act(async () => {
       await latestState?.copySettingId();
+      await latestState?.copySettingAsJson();
+      await latestState?.copyDeepLink();
     });
     expect(writeText).not.toHaveBeenCalled();
     expect(toastSuccessMock).not.toHaveBeenCalled();

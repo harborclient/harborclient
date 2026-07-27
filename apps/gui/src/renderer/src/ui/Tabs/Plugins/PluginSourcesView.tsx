@@ -61,6 +61,10 @@ interface Props {
 
 /**
  * Plugin marketplace catalog and trusted publisher endpoint configuration.
+ *
+ * TODO(settings-modified): plugins.addCatalogEndpointUrl /
+ * plugins.addTrustedEndpointUrl — hosted plugin surfaces; needs plugin API for
+ * per-field modified/reset (deferred).
  */
 export function PluginSourcesView({
   settings,
