@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update Folder Management and Enhance Sidebar Navigation. (`57d066d8`)
 - Implement Nested Folder Support and Public Collection Features. (`27db1399`)
 - Enhance Folder Management with Parent-Child Relationships. (`6c0cc7e9`)
 - Add OpenCollection Import Functionality. (`ac4dc71a`)

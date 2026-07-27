@@ -15,6 +15,7 @@ import { selectFoldersByCollection } from '#/renderer/src/store/selectors';
 import {
   createEnvironment,
   createFolder,
+  focusSidebarItem,
   importEnvironment,
   newDocumentInCollection,
   newDocumentInFolder,
@@ -23,6 +24,7 @@ import {
   requestLoadDocument
 } from '#/renderer/src/store/thunks';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import {
   DEFAULT_DOCUMENT_NAME,
   SidebarModalsContext,
@@ -111,6 +113,7 @@ interface ProviderProps {
 export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element {
   const dispatch = useAppDispatch();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
+  const { revealFolder } = useSidebarExpansion();
 
   const [folderModal, setFolderModal] = useState<FolderModalState | null>(null);
   const [documentModal, setDocumentModal] = useState<DocumentModalState | null>(null);
@@ -226,7 +229,11 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
     setFolderModal({ ...folderModal, error: null });
     try {
       if (mode === 'create') {
-        await dispatch(createFolder({ collectionId, name, parentFolderId })).unwrap();
+        const folder = await dispatch(
+          createFolder({ collectionId, name, parentFolderId })
+        ).unwrap();
+        dispatch(focusSidebarItem({ collectionId, folderId: folder.id }));
+        revealFolder(collectionId, folder.id);
         toast.success('Folder created');
       } else if (folderId != null) {
         await dispatch(renameFolder({ id: folderId, collectionId, name })).unwrap();

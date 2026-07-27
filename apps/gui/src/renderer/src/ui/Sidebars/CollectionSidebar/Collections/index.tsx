@@ -1542,7 +1542,7 @@ export function Collections(): JSX.Element {
                                                                 )
                                                             },
                                                             {
-                                                              label: 'New Subfolder',
+                                                              label: 'New Folder',
                                                               onSelect: () =>
                                                                 onNewFolder(
                                                                   collection.id,

@@ -13,6 +13,7 @@ import type {
   SidebarSortMode
 } from '@harborclient/core/types';
 import { clearRegisteredSectionFilters } from '../filter/clearRegisteredSectionFilters';
+import { scrollSidebarFolderRowIntoView } from '../navigation/sidebarListNavigation';
 import { registerSidebarExpansionApplier } from './sidebarExpansionBridge';
 
 interface Options {
@@ -728,10 +729,7 @@ export function usePersistedSidebarExpansion({
         return next;
       });
       onExpandCollection(collectionId);
-      requestAnimationFrame(() => {
-        const element = document.querySelector(`[data-sidebar-folder-id="${folderId}"]`);
-        element?.scrollIntoView({ block: 'nearest' });
-      });
+      scrollSidebarFolderRowIntoView(folderId);
     },
     [onExpandCollection]
   );

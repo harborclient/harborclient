@@ -224,9 +224,6 @@ export class SqliteStorage implements IStorage {
       FOREIGN KEY (parent_folder_id) REFERENCES folders(id) ON DELETE CASCADE
     );
 
-    CREATE INDEX IF NOT EXISTS idx_folders_collection_parent_sort
-      ON folders (collection_id, parent_folder_id, sort_order);
-
     CREATE TABLE IF NOT EXISTS documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       collection_id INTEGER NOT NULL,
@@ -373,18 +370,31 @@ export class SqliteStorage implements IStorage {
     if (!folderColumns.some((col) => col.name === 'user_agent')) {
       this.#db.exec("ALTER TABLE folders ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
     }
+
+    this.ensureParentFolderIdColumn();
+    this.normalizeContainerOrders();
+  }
+
+  /**
+   * Adds `parent_folder_id` to legacy `folders` tables, then creates the sibling-order index.
+   *
+   * The index must never be created before the column exists — `CREATE TABLE IF NOT EXISTS`
+   * leaves pre-nested-folder databases without `parent_folder_id`.
+   */
+  private ensureParentFolderIdColumn(): void {
+    const database = this.getDb();
+    const folderColumns = database.prepare('PRAGMA table_info(folders)').all() as Array<{
+      name: string;
+    }>;
     if (!folderColumns.some((col) => col.name === 'parent_folder_id')) {
-      this.#db.exec(
-        'ALTER TABLE folders ADD COLUMN parent_folder_id INTEGER NULL REFERENCES folders(id) ON DELETE CASCADE'
-      );
+      // Plain INTEGER: SQLite ADD COLUMN cannot reliably attach self-referential FKs.
+      database.exec('ALTER TABLE folders ADD COLUMN parent_folder_id INTEGER NULL');
     }
 
-    this.#db.exec(`
+    database.exec(`
       CREATE INDEX IF NOT EXISTS idx_folders_collection_parent_sort
         ON folders (collection_id, parent_folder_id, sort_order)
     `);
-
-    this.normalizeContainerOrders();
   }
 
   /**

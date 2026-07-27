@@ -2500,7 +2500,11 @@ export class RoutingStorage implements IStorage {
     return {
       ...folder,
       id: encodeGlobalId(backend.slot, folder.id),
-      collection_id: globalCollectionId
+      collection_id: globalCollectionId,
+      parent_folder_id:
+        folder.parent_folder_id != null
+          ? encodeGlobalId(backend.slot, folder.parent_folder_id)
+          : null
     };
   }
 

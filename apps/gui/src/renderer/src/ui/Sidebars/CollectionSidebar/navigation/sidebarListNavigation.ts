@@ -20,6 +20,9 @@ export const SIDEBAR_REQUEST_ID_ATTR = 'data-sidebar-request-id';
 /** Data attribute on markdown document rows in the collections sidebar. */
 export const SIDEBAR_DOCUMENT_ID_ATTR = 'data-sidebar-document-id';
 
+/** Data attribute on folder rows in the collections sidebar. */
+export const SIDEBAR_FOLDER_ID_ATTR = 'data-sidebar-folder-id';
+
 const SIDEBAR_ROW_SCROLL_MAX_ATTEMPTS = 12;
 
 /**
@@ -281,6 +284,15 @@ export function sidebarDocumentRowSelector(documentId: number): string {
 }
 
 /**
+ * Returns a CSS selector for a folder row in the collections sidebar.
+ *
+ * @param folderId - Folder database id.
+ */
+export function sidebarFolderRowSelector(folderId: number): string {
+  return `[${SIDEBAR_FOLDER_ID_ATTR}="${folderId}"]`;
+}
+
+/**
  * Scrolls a saved request row into view, retrying until the row mounts.
  *
  * @param requestId - Saved request database id.
@@ -322,6 +334,35 @@ export function scrollSidebarDocumentRowIntoView(documentId: number): void {
    */
   const scrollRow = (): void => {
     const row = document.querySelector(sidebarDocumentRowSelector(documentId));
+    if (row != null && 'scrollIntoView' in row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    attempts += 1;
+    if (attempts < SIDEBAR_ROW_SCROLL_MAX_ATTEMPTS) {
+      requestAnimationFrame(scrollRow);
+    }
+  };
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(scrollRow);
+  });
+}
+
+/**
+ * Scrolls a folder row into view, retrying until the row mounts.
+ *
+ * @param folderId - Folder database id.
+ */
+export function scrollSidebarFolderRowIntoView(folderId: number): void {
+  let attempts = 0;
+
+  /**
+   * Queries the DOM and scrolls the matching folder row into view.
+   */
+  const scrollRow = (): void => {
+    const row = document.querySelector(sidebarFolderRowSelector(folderId));
     if (row != null && 'scrollIntoView' in row && typeof row.scrollIntoView === 'function') {
       row.scrollIntoView({ block: 'nearest' });
       return;

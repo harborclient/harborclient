@@ -597,6 +597,50 @@ describeSqlite('SqliteStorage legacy migration', () => {
     const saved = await db.saveRequest(baseRequestInput(collection.id, { tags: 'api, staging' }));
     expect(saved.tags).toBe('api, staging');
   });
+
+  it('adds parent_folder_id to a legacy folders table and keeps existing folders', async () => {
+    const userDataDir = mkdtempSync(join(tmpdir(), 'harborclient-db-'));
+    const dbPath = join(userDataDir, 'harborclient.db');
+
+    const legacyDb = new Database(dbPath);
+    legacyDb.exec(`
+      CREATE TABLE collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        variables TEXT NOT NULL DEFAULT '[]',
+        headers TEXT NOT NULL DEFAULT '[]',
+        pre_request_script TEXT NOT NULL DEFAULT '',
+        post_request_script TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE TABLE folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        collection_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
+      );
+      INSERT INTO collections (id, name) VALUES (1, 'Legacy');
+      INSERT INTO folders (collection_id, name, sort_order) VALUES (1, 'Existing', 0);
+    `);
+    legacyDb.close();
+
+    const db = new SqliteStorage(userDataDir, DEFAULT_TEST_SETTINGS);
+    cleanups.push(async () => {
+      await db.close();
+      rmSync(userDataDir, { recursive: true, force: true });
+    });
+
+    await db.init();
+
+    const folders = await db.listFolders(1);
+    expect(folders.map((folder) => folder.name)).toEqual(['Existing']);
+    expect(folders[0]?.parent_folder_id).toBeNull();
+
+    const child = await db.createFolder(1, 'Child', folders[0]?.id ?? null);
+    expect(child.parent_folder_id).toBe(folders[0]?.id);
+  });
 });
 
 describeSqlite('SqliteStorage container sort order', () => {

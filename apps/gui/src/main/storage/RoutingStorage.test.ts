@@ -4,7 +4,8 @@ import { join } from 'path';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { StorageConnection, SqliteSettings } from '@harborclient/core/types';
 import { defaultAuth } from '@harborclient/core/auth';
-import { decodeGlobalId, ID_OFFSET } from './idNamespace';
+import { buildFolderTree } from '@harborclient/core/folderTree';
+import { decodeGlobalId, encodeGlobalId, ID_OFFSET } from './idNamespace';
 import { LocalDatabase } from './LocalDatabase';
 import { RoutingStorage } from './RoutingStorage';
 import { GitStorage } from './GitStorage';
@@ -447,6 +448,59 @@ describeSqlite('RoutingStorage global ids', () => {
     await expect(
       router.reorderRequests(collectionA.id, remoteFolder.id, [request.id])
     ).rejects.toThrow(/does not belong to backend slot 0/);
+  });
+
+  it('encodes nested folder parent_folder_id for team hub slot', async () => {
+    const parentServerId = '880e8400-e29b-41d4-a716-446655440041';
+    const childServerId = '880e8400-e29b-41d4-a716-446655440042';
+    const parentRecord = {
+      id: parentServerId,
+      collectionId: SERVER_COLLECTION_RECORD.id,
+      parentFolderId: null,
+      name: 'Campaigns',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const childRecord = {
+      id: childServerId,
+      collectionId: SERVER_COLLECTION_RECORD.id,
+      parentFolderId: parentServerId,
+      name: 'Test',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const createFolder = vi.fn().mockResolvedValue(childRecord);
+    const listFolders = vi.fn().mockResolvedValue([parentRecord, childRecord]);
+    const { router, database, hubDb } = await createRoutingFixtureWithHub({
+      listCollections: vi.fn().mockResolvedValue([SERVER_COLLECTION_RECORD]),
+      listFolders,
+      createFolder
+    });
+
+    const idMap = (hubDb as unknown as { idMap: TeamHubIdMap }).idMap;
+    const localCollectionId = idMap.toLocalId('collection', SERVER_COLLECTION_RECORD.id);
+    const localParentId = idMap.toLocalId('folder', parentServerId);
+    const globalCollectionId = database.addRegistryEntry({
+      name: 'Team API',
+      connectionId: HUB_A.id,
+      providerCollectionId: localCollectionId
+    }).id;
+    const parentGlobalId = encodeGlobalId(1, localParentId);
+
+    const created = await router.createFolder(globalCollectionId, 'Test', parentGlobalId);
+    expect(created.parent_folder_id).toBe(parentGlobalId);
+    expect(createFolder).toHaveBeenCalledWith(SERVER_COLLECTION_RECORD.id, {
+      name: 'Test',
+      parentFolderId: parentServerId
+    });
+
+    const folders = await router.listFolders(globalCollectionId);
+    const listedChild = folders.find((folder) => folder.name === 'Test');
+    expect(listedChild?.parent_folder_id).toBe(parentGlobalId);
+
+    const tree = buildFolderTree(folders);
+    expect(tree.map((node) => node.folder.name)).toEqual(['Campaigns']);
+    expect(tree[0]?.children.map((node) => node.folder.name)).toEqual(['Test']);
   });
 });
 
