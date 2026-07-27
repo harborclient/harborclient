@@ -56,9 +56,14 @@ interface Props {
   scriptErrors?: ScriptRunError[];
 
   /**
-   * Request tab that owns this response; preferred for jump-to-editor.
+   * Request tab that owns this response; preferred for jump-to-editor and Copy to chat.
    */
   requestTabId?: string;
+
+  /**
+   * Display name of the request at capture time for response-body Copy to chat.
+   */
+  requestName?: string;
 
   /**
    * When true, Body stretches its CodeEditor to fill remaining height
@@ -80,11 +85,19 @@ export function ResponseViewerPanel({
   scriptError,
   scriptErrors,
   requestTabId,
+  requestName,
   fillHeight = false
 }: Props): JSX.Element {
   switch (viewerTab) {
     case 'body':
-      return <Body response={response} fillHeight={fillHeight} />;
+      return (
+        <Body
+          response={response}
+          fillHeight={fillHeight}
+          requestTabId={requestTabId}
+          requestName={requestName}
+        />
+      );
     case 'preview':
       return <Preview response={response} requestUrl={requestUrl} />;
     case 'headers':

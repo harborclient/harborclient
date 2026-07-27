@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance response body handling and UI interactions. (`af009245`)
 - Refactor shortcuts handling and update UI components. (`a85cf446`)
 - Enhance response handling and UI features. (`b076b194`)
 - Add response viewer functionality and enhance UI elements. (`5da28a40`)

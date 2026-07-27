@@ -36,8 +36,9 @@ export const AI_RESPONSE_SECTION_LABELS: Record<AiResponseSection, string> = {
  * - Response viewer sections: `@res.<request-tab-uuid>.<body|headers|timing|console|tests>`
  * - Active request raw body: `@body`
  *
- * Request scripts, snippets, markdown, and raw body accept an optional
- * `#<selection-start>.<selection-end>` suffix (character offsets). Terminal references use the
+ * Request scripts, snippets, markdown, raw body, and response body selections accept an optional
+ * `#<selection-start>.<selection-end>` suffix (character offsets). For `@res…body#start.end`,
+ * offsets are into the pretty-printed response body viewer text. Terminal references use the
  * same suffix for 1-based line numbers.
  */
 export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
@@ -57,6 +58,25 @@ export function buildResponseSectionReferenceToken(
   section: AiResponseSection
 ): string {
   return `@res.${requestTabId}.${section}`;
+}
+
+/**
+ * Builds an `@res…body` token with a character-range selection suffix.
+ *
+ * Offsets are into the pretty-printed body viewer text (the same string shown in the
+ * response Body CodeEditor), not the raw wire body.
+ *
+ * @param requestTabId - UUID of the owning request tab.
+ * @param startOffset - Inclusive character offset of the selection.
+ * @param endOffset - Exclusive character offset of the selection.
+ * @returns Token such as `@res.<uuid>.body#12.48`.
+ */
+export function buildResponseBodySelectionReferenceToken(
+  requestTabId: string,
+  startOffset: number,
+  endOffset: number
+): string {
+  return `${buildResponseSectionReferenceToken(requestTabId, 'body')}#${startOffset}.${endOffset}`;
 }
 
 /**
@@ -285,6 +305,31 @@ export interface ResponseSectionSnapshot {
    * Original content length before truncation, when truncated.
    */
   originalLength?: number;
+
+  /**
+   * Selected substring when the user copied a body range via `#start.end`.
+   */
+  selectedText?: string;
+
+  /**
+   * Inclusive character offset into the pretty-printed body viewer text.
+   */
+  startOffset?: number;
+
+  /**
+   * Exclusive character offset into the pretty-printed body viewer text.
+   */
+  endOffset?: number;
+
+  /**
+   * 1-based start line of the selection in the pretty-printed body viewer text.
+   */
+  startLine?: number;
+
+  /**
+   * 1-based end line of the selection in the pretty-printed body viewer text.
+   */
+  endLine?: number;
 }
 
 /**
@@ -719,7 +764,8 @@ export function parseAiScriptReferenceMatch(
       section: responseSectionRaw as AiResponseSection,
       start,
       end: start + text.length,
-      text
+      text,
+      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
     };
   }
 
@@ -1210,6 +1256,20 @@ export function resolveAiScriptReferenceLabel(
     return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
   }
 
+  if (reference.kind === 'response-section') {
+    const snapshot = context.responseSelections?.[reference.text];
+    if (
+      snapshot != null &&
+      snapshot.startLine != null &&
+      snapshot.endLine != null &&
+      reference.selection != null
+    ) {
+      return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+    }
+
+    return name;
+  }
+
   if (reference.kind === 'request-script' && reference.selection != null) {
     const snapshot = context.scriptSelections?.[reference.text];
     if (snapshot != null) {
@@ -1364,6 +1424,38 @@ function formatResponseSectionContextBlock(
       ? `Content truncated from ${snapshot.originalLength} characters.`
       : null;
 
+  const hasBodySelection =
+    reference.selection != null &&
+    snapshot.selectedText != null &&
+    snapshot.startOffset != null &&
+    snapshot.endOffset != null &&
+    snapshot.startLine != null &&
+    snapshot.endLine != null;
+
+  if (hasBodySelection) {
+    const lineSpan =
+      snapshot.startLine === snapshot.endLine
+        ? `line ${snapshot.startLine}`
+        : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+    return [
+      `Reference ${reference.text} — ${snapshot.label} for request "${snapshot.requestName}".`,
+      statusLine,
+      `Selected response body text (characters ${snapshot.startOffset}–${snapshot.endOffset}, ${lineSpan}; offsets are into the pretty-printed body viewer text):`,
+      '```text',
+      snapshot.selectedText,
+      '```',
+      truncationNote,
+      'Surrounding section content (may be truncated):',
+      '```text',
+      snapshot.content,
+      '```',
+      'Focus on the selected region. Call get_active_request and get_active_request_details for the full request; call get_active_response_summary, get_active_response, or query_response_body when you need more of the live response or non-binary body than this snapshot provides. Response-section references cannot be edited via tools.'
+    ]
+      .filter((line): line is string => line != null && line.length > 0)
+      .join('\n');
+  }
+
   return [
     `Reference ${reference.text} — ${snapshot.label} for request "${snapshot.requestName}".`,
     statusLine,
@@ -1372,7 +1464,7 @@ function formatResponseSectionContextBlock(
     '```text',
     snapshot.content,
     '```',
-    'Answer from this captured response-section context first. Call get_active_response_summary, get_active_response, or query_response_body only when you need more detail than the snapshot provides (for example a longer body).'
+    'Answer from this captured response-section context first. Call get_active_request and get_active_request_details for the full request; call get_active_response_summary, get_active_response, or query_response_body only when you need more detail than the snapshot provides (for example a longer body).'
   ]
     .filter((line): line is string => line != null && line.length > 0)
     .join('\n');
@@ -1747,6 +1839,12 @@ export function buildAiScriptSelectionContextMessage(
   const hasBodySelection = resolved.some(
     (entry) => entry.reference.kind === 'body' && entry.reference.selection != null
   );
+  const hasResponseBodySelection = resolved.some(
+    (entry) =>
+      entry.reference.kind === 'response-section' &&
+      entry.reference.section === 'body' &&
+      entry.reference.selection != null
+  );
   const hasScriptSelection = resolved.some(
     (entry) =>
       (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
@@ -1758,6 +1856,9 @@ export function buildAiScriptSelectionContextMessage(
       entry.reference.selection == null
   );
   const hasResponseSection = resolved.some((entry) => entry.reference.kind === 'response-section');
+  const hasWholeResponseSection = resolved.some(
+    (entry) => entry.reference.kind === 'response-section' && entry.reference.selection == null
+  );
 
   const headerParts: string[] = [];
   if (hasTerminalSelection) {
@@ -1775,6 +1876,11 @@ export function buildAiScriptSelectionContextMessage(
       'The user selected raw request body text and is asking specifically about the SELECTED TEXT below.'
     );
   }
+  if (hasResponseBodySelection) {
+    headerParts.push(
+      'The user selected part of an HTTP response body and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
   if (hasScriptSelection) {
     headerParts.push(
       'The user selected part of a script and is asking specifically about the SELECTED TEXT below.'
@@ -1785,7 +1891,7 @@ export function buildAiScriptSelectionContextMessage(
       'The user referenced one or more scripts via @ mentions. Use the script sources below to answer their question.'
     );
   }
-  if (hasResponseSection) {
+  if (hasWholeResponseSection) {
     headerParts.push(
       'The user referenced one or more HTTP response sections via @res mentions. Use the captured section content below to answer their question.'
     );
@@ -1794,6 +1900,10 @@ export function buildAiScriptSelectionContextMessage(
   const footerParts: string[] = [];
   if (hasScriptSelection) {
     footerParts.push('Focus your answer on the selected region.');
+  } else if (hasResponseBodySelection) {
+    footerParts.push(
+      'Focus your answer on the selected response body region. Call get_active_request and get_active_request_details for the full request; call get_active_response_summary, get_active_response, or query_response_body when you need more of the live response or non-binary body.'
+    );
   } else if (hasBodySelection) {
     footerParts.push(
       'Focus your answer on the selected raw body region. Call get_active_request_details when you need the full body, and use update_active_request with body_raw to edit it.'
@@ -1840,7 +1950,9 @@ export function buildAiScriptSelectionContextMessage(
 
   if (hasResponseSection) {
     footerParts.push(
-      'Response-section references (@res.<tab-uuid>.<section>) cannot be edited via tools. Answer from the captured content; call get_active_response_summary, get_active_response, or query_response_body only when you need more detail than the snapshot provides.'
+      hasResponseBodySelection
+        ? 'Response body selections referenced with @res.<tab-uuid>.body#start.end cannot be edited via tools. Offsets are into the pretty-printed body viewer text. Prefer the selected text in context; call get_active_request / get_active_request_details and get_active_response_summary / get_active_response / query_response_body when you need the full live request or response.'
+        : 'Response-section references (@res.<tab-uuid>.<section>) cannot be edited via tools. Answer from the captured content; call get_active_request / get_active_request_details and get_active_response_summary / get_active_response / query_response_body only when you need more detail than the snapshot provides.'
     );
   }
 

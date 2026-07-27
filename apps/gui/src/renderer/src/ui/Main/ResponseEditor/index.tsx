@@ -114,6 +114,7 @@ interface ViewerPanelProps {
   scriptError?: string;
   scriptErrors?: ScriptRunError[];
   requestTabId?: string;
+  requestName?: string;
 }
 
 /**
@@ -460,7 +461,8 @@ export function ResponseEditor({
     executionEvents,
     scriptError,
     scriptErrors,
-    requestTabId
+    requestTabId,
+    requestName
   };
 
   /**

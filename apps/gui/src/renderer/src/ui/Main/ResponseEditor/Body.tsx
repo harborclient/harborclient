@@ -1,7 +1,21 @@
-import type { JSX } from 'react';
-import { CodeEditor } from '@harborclient/sdk/components';
+import { useCallback, useMemo, type JSX } from 'react';
+import { CodeEditor, type CodeEditorTextSelection } from '@harborclient/sdk/components';
 import type { SendResult } from '@harborclient/core/types';
-import { bodyLanguage, formatBody } from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import {
+  COPY_TO_CHAT_ICON,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  COPY_TO_CHAT_SHORTCUT_HINT,
+  useCopyToChat
+} from '#/renderer/src/hooks/useCopyToChat';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { setResponseSelection } from '#/renderer/src/store/slices/responseSelectionsSlice';
+import {
+  bodyLanguage,
+  formatBody,
+  isImageResponse
+} from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { buildResponseBodySelectionReference } from './responseSectionReference';
 
 interface Props {
   /**
@@ -14,22 +28,94 @@ interface Props {
    * (full-page response viewer). Leave false in the embedded response pane.
    */
   fillHeight?: boolean;
+
+  /**
+   * UUID of the owning request tab; required for Copy to chat `@res` tokens.
+   */
+  requestTabId?: string;
+
+  /**
+   * Display name of the request at capture time for the chat badge/context.
+   */
+  requestName?: string;
 }
 
 /**
  * Read-only pretty-printed response body for the Body viewer tab.
+ *
+ * Non-image responses expose a Copy to chat selection toolbar when AI is available
+ * and a request tab id is known.
  */
-export function Body({ response, fillHeight = false }: Props): JSX.Element {
+export function Body({
+  response,
+  fillHeight = false,
+  requestTabId,
+  requestName = 'Request'
+}: Props): JSX.Element {
+  const dispatch = useAppDispatch();
+  const { aiAvailable } = useAiAvailability();
+  const { copyToChat } = useCopyToChat();
   const formatted = formatBody(response.body);
+  const displayValue = formatted || '(empty body)';
   const language = bodyLanguage(response.body, response.headers);
+  const allowCopyToChat = aiAvailable && requestTabId != null && !isImageResponse(response.headers);
+
+  /**
+   * Captures the body selection snapshot, opens AI chat, and inserts the `@res` token.
+   *
+   * @param selection - Selected text and character offsets from the Body CodeEditor.
+   */
+  const handleCopySelectionToChat = useCallback(
+    (selection: CodeEditorTextSelection): void => {
+      if (requestTabId == null || selection.from >= selection.to || selection.text.length === 0) {
+        return;
+      }
+
+      const { token, snapshot } = buildResponseBodySelectionReference({
+        requestTabId,
+        requestName,
+        response,
+        selectedText: selection.text,
+        startOffset: selection.from,
+        endOffset: selection.to
+      });
+      dispatch(setResponseSelection({ token, snapshot }));
+      void copyToChat(token);
+    },
+    [copyToChat, dispatch, requestName, requestTabId, response]
+  );
+
+  /**
+   * Selection toolbar actions for the response body CodeEditor when Copy to chat is available.
+   */
+  const copyToChatSelectionActions = useMemo(
+    () =>
+      allowCopyToChat
+        ? [
+            {
+              id: 'copy-to-chat',
+              label: 'Copy to chat',
+              ariaLabel: 'Copy selection from response body to chat',
+              icon: COPY_TO_CHAT_ICON,
+              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
+              key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+              onSelect: (selection: CodeEditorTextSelection): void => {
+                handleCopySelectionToChat(selection);
+              }
+            }
+          ]
+        : undefined,
+    [allowCopyToChat, handleCopySelectionToChat]
+  );
 
   return (
     <CodeEditor
       readOnly
-      value={formatted || '(empty body)'}
+      value={displayValue}
       language={language}
       minHeight={fillHeight ? '0' : undefined}
       className={fillHeight ? 'response-body-editor' : undefined}
+      selectionActions={copyToChatSelectionActions}
     />
   );
 }

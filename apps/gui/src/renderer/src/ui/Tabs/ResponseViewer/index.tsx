@@ -194,6 +194,7 @@ export function ResponseViewerPage({ page, tabId }: Props): JSX.Element {
       scriptError={linkedRequestTab.scriptError}
       scriptErrors={linkedRequestTab.scriptErrors}
       requestTabId={page.requestTabId}
+      requestName={requestName}
       fillHeight={page.viewerTab === 'body'}
     />
   );

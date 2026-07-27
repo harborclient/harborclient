@@ -1,5 +1,6 @@
 import {
   AI_RESPONSE_SECTION_LABELS,
+  buildResponseBodySelectionReferenceToken,
   buildResponseSectionReferenceToken,
   type AiResponseSection,
   type ResponseSectionSnapshot
@@ -13,6 +14,7 @@ import type {
 import type { SendResult } from '@harborclient/http';
 import { formatResponseHeadersForDiff } from '#/renderer/src/ui/Main/ResponseEditor/responseHistoryDiff';
 import { buildTimingRows } from '#/renderer/src/ui/Main/ResponseEditor/timingDisplay';
+import { lineNumberAtOffset } from '#/renderer/src/ui/Main/RequestEditor/Editor/markdownSelection';
 import {
   formatBody,
   formatBytes,
@@ -287,6 +289,41 @@ function buildTestsContent(testResults: ScriptTestResult[]): string {
 }
 
 /**
+ * Inputs needed to build an `@res…body#start.end` selection reference.
+ */
+export interface BuildResponseBodySelectionReferenceInput {
+  /**
+   * UUID of the owning request tab.
+   */
+  requestTabId: string;
+
+  /**
+   * Display name of the request at capture time.
+   */
+  requestName: string;
+
+  /**
+   * Latest HTTP send result on the request tab.
+   */
+  response: SendResult;
+
+  /**
+   * Selected substring from the pretty-printed body viewer.
+   */
+  selectedText: string;
+
+  /**
+   * Inclusive character offset into the pretty-printed body viewer text.
+   */
+  startOffset: number;
+
+  /**
+   * Exclusive character offset into the pretty-printed body viewer text.
+   */
+  endOffset: number;
+}
+
+/**
  * Builds an `@res` token and snapshot for one response-viewer section.
  *
  * Captures section content at click time so send-time context expansion still
@@ -337,6 +374,49 @@ export function buildResponseSectionReference(
       ...(input.response.statusText ? { statusText: input.response.statusText } : {}),
       content,
       ...(truncated ? { truncated: true, originalLength } : {})
+    }
+  };
+}
+
+/**
+ * Builds an `@res…body#start.end` token and snapshot for a body text selection.
+ *
+ * Offsets and line numbers are relative to the pretty-printed body viewer text
+ * (the same string shown in the response Body CodeEditor).
+ *
+ * @param input - Selection and live response data from the owning request tab.
+ * @returns Token and snapshot ready to store and insert into the composer.
+ */
+export function buildResponseBodySelectionReference(
+  input: BuildResponseBodySelectionReferenceInput
+): ResponseSectionReference {
+  const formatted = formatBody(input.response.body) || '(empty body)';
+  const startOffset = Math.min(Math.max(0, input.startOffset), formatted.length);
+  const endOffset = Math.min(Math.max(startOffset, input.endOffset), formatted.length);
+  const selectedText =
+    input.selectedText.length > 0 ? input.selectedText : formatted.slice(startOffset, endOffset);
+  const body = buildBodyContent(input.response);
+  const token = buildResponseBodySelectionReferenceToken(
+    input.requestTabId,
+    startOffset,
+    endOffset
+  );
+
+  return {
+    token,
+    snapshot: {
+      label: AI_RESPONSE_SECTION_LABELS.body,
+      requestName: input.requestName,
+      section: 'body',
+      ...(input.response.status > 0 ? { status: input.response.status } : {}),
+      ...(input.response.statusText ? { statusText: input.response.statusText } : {}),
+      content: body.content,
+      ...(body.truncated ? { truncated: true, originalLength: body.originalLength } : {}),
+      selectedText,
+      startOffset,
+      endOffset,
+      startLine: lineNumberAtOffset(formatted, startOffset),
+      endLine: lineNumberAtOffset(formatted, Math.max(startOffset, endOffset - 1))
     }
   };
 }

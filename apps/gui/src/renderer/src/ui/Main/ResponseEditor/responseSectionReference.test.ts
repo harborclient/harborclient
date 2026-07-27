@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { SendResult } from '@harborclient/http';
-import { buildResponseSectionReference, isAiResponseSection } from './responseSectionReference';
+import {
+  buildResponseBodySelectionReference,
+  buildResponseSectionReference,
+  isAiResponseSection
+} from './responseSectionReference';
 
 /**
  * Builds a minimal send result for snapshot tests.
@@ -154,5 +158,53 @@ describe('buildResponseSectionReference', () => {
 
     expect(snapshot.content).toContain('Image response');
     expect(snapshot.content).toContain('Binary body omitted');
+  });
+});
+
+describe('buildResponseBodySelectionReference', () => {
+  const requestTabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
+  it('builds a body selection token with line metadata against pretty-printed text', () => {
+    const response = sampleResponse({ body: '{"cookies":{},"data":"x"}' });
+    const formatted = '{\n  "cookies": {},\n  "data": "x"\n}';
+    const startOffset = formatted.indexOf('"cookies"');
+    const endOffset = formatted.indexOf(',\n  "data"') + 1;
+    const selectedText = formatted.slice(startOffset, endOffset);
+
+    const { token, snapshot } = buildResponseBodySelectionReference({
+      requestTabId,
+      requestName: 'Echo',
+      response,
+      selectedText,
+      startOffset,
+      endOffset
+    });
+
+    expect(token).toBe(`@res.${requestTabId}.body#${startOffset}.${endOffset}`);
+    expect(snapshot.section).toBe('body');
+    expect(snapshot.label).toBe('Response body');
+    expect(snapshot.selectedText).toBe(selectedText);
+    expect(snapshot.startOffset).toBe(startOffset);
+    expect(snapshot.endOffset).toBe(endOffset);
+    expect(snapshot.startLine).toBe(2);
+    expect(snapshot.endLine).toBe(2);
+    expect(snapshot.content).toContain('"cookies"');
+    expect(snapshot.status).toBe(200);
+  });
+
+  it('clamps offsets to the pretty-printed body bounds', () => {
+    const { snapshot } = buildResponseBodySelectionReference({
+      requestTabId,
+      requestName: 'Echo',
+      response: sampleResponse({ body: '{"a":1}' }),
+      selectedText: '',
+      startOffset: -5,
+      endOffset: 9999
+    });
+
+    expect(snapshot.startOffset).toBe(0);
+    expect(snapshot.endOffset).toBeGreaterThan(0);
+    expect(snapshot.selectedText.length).toBeGreaterThan(0);
+    expect(snapshot.startLine).toBe(1);
   });
 });

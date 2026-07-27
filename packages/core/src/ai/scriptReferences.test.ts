@@ -315,6 +315,21 @@ describe('findAiScriptReferenceCandidates', () => {
     ]);
   });
 
+  it('finds response body selection references with character offsets', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body#10.40`;
+
+    expect(findAiScriptReferenceCandidates(token)).toEqual([
+      expect.objectContaining({
+        kind: 'response-section',
+        requestTabId: tabId,
+        section: 'body',
+        text: token,
+        selection: { start: 10, end: 40 }
+      })
+    ]);
+  });
+
   it('rejects malformed response-section references', () => {
     expect(findAiScriptReferenceCandidates('@res.not-a-uuid.body')).toEqual([]);
     expect(
@@ -814,6 +829,34 @@ describe('resolveAiScriptReferenceLabel', () => {
     ).toBe('Document: README.md (lines 2-4)');
   });
 
+  it('returns the response body label with a line span for body selection references', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body#10.40`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          responseSelections: {
+            [token]: {
+              label: 'Response body',
+              requestName: 'Echo',
+              section: 'body',
+              content: '{\n  "cookies": {},\n  "data": "x"\n}',
+              selectedText: '"cookies": {},\n  "data": "x"',
+              startOffset: 10,
+              endOffset: 40,
+              startLine: 2,
+              endLine: 3
+            }
+          }
+        })
+      )
+    ).toBe('Response body (lines 2-3)');
+  });
+
   it('returns prefixed labels for collection, folder, and request references', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -1201,6 +1244,43 @@ hc.test("Status code is 2xx", () => {
     expect(message).toContain('cannot be edited via tools');
   });
 
+  it('includes selected response body text and tool guidance for body selections', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body#14.48`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Explain ${token}`,
+      context({
+        responseSelections: {
+          [token]: {
+            label: 'Response body',
+            requestName: 'Echo',
+            section: 'body',
+            status: 200,
+            statusText: 'OK',
+            content: '{\n  "cookies": {},\n  "data": "[...]"\n}',
+            selectedText: '"cookies": {},\n  "data": "[...]"',
+            startOffset: 14,
+            endOffset: 48,
+            startLine: 2,
+            endLine: 3
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(
+      'The user selected part of an HTTP response body and is asking specifically about the SELECTED TEXT below.'
+    );
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('Selected response body text');
+    expect(message).toContain('pretty-printed body viewer text');
+    expect(message).toContain('"cookies": {},');
+    expect(message).toContain('get_active_request');
+    expect(message).toContain('get_active_response');
+    expect(message).toContain('query_response_body');
+    expect(message).toContain('@res.<tab-uuid>.body#start.end');
+  });
+
   it('returns null for collection, folder, and request references', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -1266,6 +1346,34 @@ describe('collectChatReferenceSnapshots', () => {
       section: 'body' as const,
       status: 200,
       content: '{"ok":true}'
+    };
+
+    expect(
+      collectChatReferenceSnapshots(
+        `Explain ${token}`,
+        context({
+          responseSelections: { [token]: snapshot }
+        })
+      )
+    ).toEqual({
+      [token]: { kind: 'response-section', snapshot }
+    });
+  });
+
+  it('collects response body selection snapshots keyed by the full token including offsets', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body#10.40`;
+    const snapshot = {
+      label: 'Response body',
+      requestName: 'Echo',
+      section: 'body' as const,
+      status: 200,
+      content: '{\n  "ok": true\n}',
+      selectedText: '"ok": true',
+      startOffset: 10,
+      endOffset: 40,
+      startLine: 2,
+      endLine: 2
     };
 
     expect(
