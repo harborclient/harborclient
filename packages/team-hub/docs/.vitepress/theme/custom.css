@@ -1,0 +1,182 @@
+/**
+ * Dark theme uses VitePress defaults (appearance: force-dark in config).
+ * Brand palette matches the HarborClient nautical logo (#0e2e55).
+ */
+:root {
+  --vp-c-brand-1: #7eb8e0;
+  --vp-c-brand-2: #5a9fd4;
+  --vp-c-brand-3: #3d7ab8;
+  --vp-c-brand-soft: rgba(126, 184, 224, 0.16);
+  --docs-download-cta-gradient: linear-gradient(135deg, #f6daa6 0%, #f2ca80 100%);
+  --docs-download-cta-gradient-hover: linear-gradient(135deg, #f7d596 0%, #fbcb71 100%);
+}
+
+.home-page-root .VPDoc .container,
+.home-page-root .VPDoc .content {
+  max-width: none;
+  padding: 0;
+}
+
+.home-page-root .VPDoc .content-container {
+  max-width: none;
+}
+
+.home-page-root .vp-doc {
+  padding: 0;
+}
+
+.home-page-root .VPDoc.has-aside .aside {
+  display: none;
+}
+
+.home-page-root .VPLocalNav {
+  display: none;
+}
+
+/* GitHub-flavored alerts (`> [!NOTE]`, etc.) — gfmAlerts in .vitepress/config.ts */
+.vp-doc .custom-block.github-alert {
+  margin: 16px 0;
+}
+
+.vp-doc .vp-doc-image-link {
+  display: inline-block;
+}
+
+.vp-doc img[alt='Team Hub'] {
+  display: block;
+  max-width: min(210px, 100%);
+  height: auto;
+  margin: 0 auto 1.5rem;
+}
+
+/* Brand mark: footer at bottom of sidebar nav (see SidebarBrand.vue) */
+.docs-sidebar-brand {
+  display: block;
+  margin: 20px -32px 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--vp-c-divider);
+  box-sizing: border-box;
+  width: calc(100% + 64px);
+}
+
+.docs-sidebar-brand img {
+  display: block;
+  width: calc(95% / 3);
+  height: auto;
+  margin-inline: auto;
+}
+
+/* Hide default sidebar-column title; logo lives in content-body instead. */
+.VPNavBarTitle {
+  display: none;
+}
+
+/*
+ * Desktop: flush sidebar nav at top; move search into sidebar.
+ */
+@media (min-width: 960px) {
+  .VPSidebar {
+    padding-top: 0 !important;
+  }
+
+  .VPNavBar .VPNavBarSearch {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* Small logo in the main nav content header (see NavBarLogo.vue) */
+.docs-nav-bar-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: auto;
+  margin-left: 10px;
+}
+
+/*
+ * Mobile: symmetric header padding; logo inset matches hamburger/search side.
+ */
+@media (max-width: 959px) {
+  .VPNavBar .wrapper {
+    padding-left: 8px;
+  }
+
+  .docs-nav-bar-logo {
+    padding-left: 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .docs-nav-bar-logo {
+    padding-left: 20px;
+  }
+}
+
+.docs-nav-bar-logo img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Local search at top of sidebar nav (see SidebarSearch.vue) */
+.docs-sidebar-search {
+  display: block;
+  margin: 0 -32px;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  box-sizing: border-box;
+  width: calc(100% + 64px);
+}
+
+.docs-sidebar-search .DocSearch-Button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 40px;
+}
+
+/*
+ * Mobile: sidebar is a drawer; show compact themeConfig.logo in nav bar instead.
+ */
+@media (max-width: 959px) {
+  .docs-sidebar-brand {
+    display: none;
+  }
+
+  .docs-sidebar-search {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .VPNavBarSearch {
+    flex: 1 1 auto;
+    min-width: 16rem;
+  }
+
+  .VPNavBarSearch #local-search,
+  .VPNavBarSearch #docsearch {
+    width: 100%;
+  }
+
+  .VPNavBarSearch .DocSearch-Button {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 768px) {
+  .VPLocalSearchBox .shell {
+    width: min(100vw - 60px, 1100px) !important;
+    max-height: min(100vh - 128px, 1100px) !important;
+  }
+}

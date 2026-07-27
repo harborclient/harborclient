@@ -1,5 +1,8 @@
 name: Notify team-hub docs index update
 
+# Triggers the monorepo Team Hub deploy when the in-app docs search index
+# changes so the Team Hub Docker image can refresh its Orama docs payload.
+
 on:
   push:
     branches:
@@ -9,18 +12,17 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger team-hub deploy
+      - name: Trigger Team Hub deploy
         env:
-          HUB_DEPLOY_PAT: ${{ secrets.HUB_DEPLOY_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          curl -fsSL -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${HUB_DEPLOY_PAT}" \
-            https://api.github.com/repos/harborclient/team-hub/dispatches \
-            -d '{"event_type":"docs-index-updated","client_payload":{"sha":"'"${{ github.sha }}"'","ref":"'"${{ github.ref }}"'"}}'
+          gh workflow run team-hub-deploy.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref main

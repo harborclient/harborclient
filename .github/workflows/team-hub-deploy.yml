@@ -1,0 +1,43 @@
+name: Team Hub deploy
+
+# Builds the Team Hub Docker image when packages/team-hub changes on main.
+# Deploy remains a placeholder until VPS steps are configured.
+#
+# Also triggered by repository_dispatch type docs-index-updated (from
+# notify-team-hub-docs-index.yml when resources/docsSearchIndex.json changes).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - packages/team-hub/**
+      - .github/workflows/team-hub-deploy.yml
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - docs-index-updated
+
+concurrency:
+  group: team-hub-deploy
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: |
+          set -euo pipefail
+          docker build --no-cache -f packages/team-hub/Dockerfile -t team-hub:ci .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Deploy placeholder
+        run: |
+          echo "Team Hub deploy workflow verified image build."
+          echo "Configure your VPS deploy step here (SSH pull/restart) when ready."

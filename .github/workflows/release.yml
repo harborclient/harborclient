@@ -96,16 +96,20 @@ jobs:
 
           dispatch_workflow http-release.yml
           dispatch_workflow sdk-release.yml
+          dispatch_workflow team-hub-api-release.yml
+          dispatch_workflow team-hub-release.yml
 
           dependency_status=0
           wait_for_workflow http-release.yml || dependency_status=1
           wait_for_workflow sdk-release.yml || dependency_status=1
+          wait_for_workflow team-hub-api-release.yml || dependency_status=1
+          wait_for_workflow team-hub-release.yml || dependency_status=1
           if [ "${dependency_status}" -ne 0 ]; then
-            echo "::error::Core release was not dispatched because a dependency release failed."
+            echo "::error::Core release was not dispatched because a dependency package release failed."
             exit "${dependency_status}"
           fi
 
-          # Core depends on HTTP and SDK, so publish it from their updated manifests.
+          # Core depends on HTTP, SDK, and team-hub-api, so publish it from their updated manifests.
           dispatch_workflow core-release.yml
           wait_for_workflow core-release.yml
 

@@ -81,14 +81,21 @@ function copyPluginStaticAssets(): Plugin {
 const harborWorkspaceAliases = {
   '@harborclient/core': resolve(__dirname, '../../packages/core/src'),
   '@harborclient/http': resolve(__dirname, '../../packages/http/src'),
-  '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src')
+  '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src'),
+  '@harborclient/team-hub-api': resolve(__dirname, '../../packages/team-hub-api/src')
 };
 
 export default defineConfig({
   main: {
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['ses', '@harborclient/core', '@harborclient/http', '@harborclient/storage-sqlite']
+        exclude: [
+          'ses',
+          '@harborclient/core',
+          '@harborclient/http',
+          '@harborclient/storage-sqlite',
+          '@harborclient/team-hub-api'
+        ]
       }),
       copyPluginStaticAssets()
     ],
@@ -114,7 +121,12 @@ export default defineConfig({
   preload: {
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['@harborclient/core', '@harborclient/http', '@harborclient/storage-sqlite']
+        exclude: [
+          '@harborclient/core',
+          '@harborclient/http',
+          '@harborclient/storage-sqlite',
+          '@harborclient/team-hub-api'
+        ]
       })
     ],
     resolve: {

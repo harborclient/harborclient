@@ -1,0 +1,91 @@
+{
+  "name": "@harborclient/team-hub-api",
+  "version": "0.4.1",
+  "description": "TypeScript client for the HarborClient Team Hub API.",
+  "keywords": [
+    "harborclient",
+    "team-hub",
+    "api",
+    "client",
+    "typescript"
+  ],
+  "homepage": "https://harborclient.com/team-hub-api/",
+  "bugs": {
+    "url": "https://github.com/harborclient/harborclient/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harborclient/harborclient.git",
+    "directory": "packages/team-hub-api"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HarborClient",
+    "email": "contact@harborclient.com"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint --cache .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:changed": "vitest run --changed",
+    "test:watch": "vitest",
+    "docs:build": "pnpm docs:build:nav && vitepress build docs",
+    "docs:build:nav": "node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
+    "docs:preview": "pnpm docs:build && vitepress preview docs",
+    "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
+    "release": "gh workflow run team-hub-api-release.yml --ref main -f branch=main -f bump=patch",
+    "release:patch": "gh workflow run team-hub-api-release.yml --ref main -f branch=main -f bump=patch",
+    "release:minor": "gh workflow run team-hub-api-release.yml --ref main -f branch=main -f bump=minor",
+    "release:major": "gh workflow run team-hub-api-release.yml --ref main -f branch=main -f bump=major"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.10.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.5",
+    "prettier": "^3.8.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitepress": "^1.6.4",
+    "vitest": "^4.1.9"
+  }
+}

@@ -92,6 +92,12 @@ jobs:
       - name: Test http
         run: pnpm --filter @harborclient/http test
 
+      - name: Test team-hub-api
+        run: pnpm --filter @harborclient/team-hub-api test
+
+      - name: Test team-hub
+        run: pnpm --filter @harborclient/team-hub test
+
       - name: Test
         env:
           HARBOR_TEST_MYSQL_HOST: 127.0.0.1

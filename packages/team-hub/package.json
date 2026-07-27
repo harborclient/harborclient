@@ -1,0 +1,91 @@
+{
+  "name": "@harborclient/team-hub",
+  "version": "0.4.5",
+  "description": "Team Hub - central server for HarborClient",
+  "homepage": "https://harborclient.com/team-hub/",
+  "bugs": {
+    "url": "https://github.com/harborclient/harborclient/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harborclient/harborclient.git",
+    "directory": "packages/team-hub"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "HarborClient",
+    "email": "contact@harborclient.com"
+  },
+  "type": "module",
+  "bin": {
+    "team-hub": "./dist/cli.js"
+  },
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "node scripts/build-join-logo.mjs && tsup",
+    "prepublishOnly": "pnpm build",
+    "start": "node dist/cli.js start",
+    "test": "vitest run",
+    "test:changed": "vitest run --changed",
+    "test:watch": "vitest",
+    "lint": "eslint --cache .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docs:build": "pnpm docs:build:nav && vitepress build docs",
+    "docs:build:nav": "node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
+    "docs:preview": "pnpm docs:build && vitepress preview docs",
+    "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
+    "release": "gh workflow run team-hub-release.yml --ref main -f branch=main -f bump=patch",
+    "release:patch": "gh workflow run team-hub-release.yml --ref main -f branch=main -f bump=patch",
+    "release:minor": "gh workflow run team-hub-release.yml --ref main -f branch=main -f bump=minor",
+    "release:major": "gh workflow run team-hub-release.yml --ref main -f branch=main -f bump=major"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.6.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@orama/orama": "^3.1.18",
+    "commander": "^15.0.0",
+    "fastify": "^5.5.0",
+    "fastify-type-provider-zod": "^6.1.0",
+    "ioredis": "^5.11.1",
+    "mysql2": "^3.22.5",
+    "openai": "^6.45.0",
+    "pg": "^8.22.0",
+    "winston": "^3.19.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.20.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.5",
+    "mermaid": "^11.15.0",
+    "prettier": "^3.8.4",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitest": "^4.1.9"
+  }
+}

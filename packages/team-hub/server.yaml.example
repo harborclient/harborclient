@@ -1,0 +1,121 @@
+# Team Hub server configuration.
+# Copy to server.yaml and adjust for your environment.
+#
+# Required sections: server, db, redis
+# Optional sections: logging, llm, plugins, docs
+#
+# While team-hub start is running, db/redis/llm/plugins/docs reload live via SIGHUP or
+# POST /admin/config/reload. Changes to server.host or server.port require a restart.
+
+# HTTP listen address for the Team Hub API.
+server:
+  port: 8787
+  host: 127.0.0.1
+
+# Optional logging. Defaults: level info, console true, no file.
+# Applied at process startup; restart team-hub start after changes.
+#
+# logging:
+#   level: debug
+#   file: /var/log/team-hub.log
+#   console: true
+
+# Database backend. Set driver to postgres, mysql, or firestore.
+#
+# Postgres (default for local development with docker compose):
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: harbor
+  database: harbor
+
+# MySQL alternative:
+# db:
+#   driver: mysql
+#   host: 127.0.0.1
+#   port: 3306
+#   user: harbor
+#   password: harbor
+#   database: harbor
+
+# Firestore alternative:
+# db:
+#   driver: firestore
+#   projectId: my-gcp-project
+#   keyFilename: /path/to/service-account.json
+
+# Redis is required for authentication throttling.
+# Optional throttle policy fields default to 10 failures / 900s window / 900s block.
+redis:
+  host: 127.0.0.1
+  port: 6380
+  # password: redis-secret
+  # db: 0
+  # keyPrefix: team-hub:
+  # maxFailures: 10
+  # windowSeconds: 900
+  # blockSeconds: 900
+
+# Optional hub-proxied LLM access. Omit this section to disable LLM routes.
+# At least one provider apiKey is required when llm is present.
+# User access and monthly token limits are configured via the CLI (see docs/llm.md).
+#
+# When models is omitted, every catalog model whose provider has a configured key
+# is offered. Supported model ids:
+#   openai:  gpt-4o, gpt-4o-mini
+#   claude:  claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022
+#   gemini:  gemini-1.5-pro, gemini-1.5-flash
+#
+# Optional llm.mcp connects Team Hub to remote MCP servers during POST /llm/chat/step.
+# Hub MCP tools are merged into the provider request and executed on the server;
+# HarborClient only receives passthrough (client-side) tool calls. Reload via SIGHUP
+# or POST /admin/config/reload after changes.
+#
+# llm:
+#   providers:
+#     openai:
+#       apiKey: sk-...
+#     claude:
+#       apiKey: sk-ant-...
+#     gemini:
+#       apiKey: ...
+#   models:
+#     - gpt-4o
+#     - gpt-4o-mini
+#     - claude-3-5-sonnet-20241022
+#     - claude-3-5-haiku-20241022
+#     - gemini-1.5-pro
+#     - gemini-1.5-flash
+#   mcp:
+#     # Exa web search (https://exa.ai) — nested-array header form from Cursor-style configs:
+#     - name: Exa
+#       url: https://mcp.exa.ai/mcp
+#       headers:
+#         - [ { "x-api-key": "your-exa-api-key" } ]
+#     # Same headers in other accepted shapes:
+#     # - name: Example MCP
+#     #   url: https://mcp.example.com/mcp
+#     #   headers: { "Authorization": "Bearer your-token" }
+#     # - name: Another MCP
+#     #   url: https://mcp.example.org/sse
+#     #   headers:
+#     #     - { "x-api-key": "your-key" }
+
+# Optional plugin source URLs for HarborClient. Omit this section to return empty lists.
+# Authenticated HarborClient instances merge these read-only endpoints into Settings → Plugins.
+#
+# plugins:
+#   catalogs:
+#     - https://harborclient.com/plugin_catalog.json
+#     - https://example.com/custom-catalog.json
+#   trusted:
+#     - https://harborclient.com/plugins/trusted.json
+
+# Optional documentation vector search index for hub-native search_docs.
+# When omitted, Team Hub looks for /app/data/docsSearchIndex.json (Docker default)
+# and other fallback paths. Rebuild the index with `pnpm index-docs` in harborclient.
+#
+# docs:
+#   searchIndexPath: /app/data/docsSearchIndex.json

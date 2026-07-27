@@ -8,6 +8,8 @@
 #   - packages/core/CHANGELOG.md — commits that touch packages/core/**
 #   - packages/sdk/CHANGELOG.md — commits that touch packages/sdk/**
 #   - packages/http/CHANGELOG.md — commits that touch packages/http/**
+#   - packages/team-hub/CHANGELOG.md — commits that touch packages/team-hub/**
+#   - packages/team-hub-api/CHANGELOG.md — commits that touch packages/team-hub-api/**
 #
 # The env-var name (CHANGELOG_HOOK_SKIP) can be renamed to a project-specific
 # prefix; just keep the two references in this file in sync.
@@ -135,6 +137,20 @@ if printf '%s\n' "$changed_files" | grep -q '^packages/http/'; then
   append_changelog_bullet \
     "$repo_root/packages/http/CHANGELOG.md" \
     "packages/http/CHANGELOG.md"
+fi
+
+# @harborclient/team-hub npm package changelog — only when the commit touches team-hub.
+if printf '%s\n' "$changed_files" | grep -q '^packages/team-hub/'; then
+  append_changelog_bullet \
+    "$repo_root/packages/team-hub/CHANGELOG.md" \
+    "packages/team-hub/CHANGELOG.md"
+fi
+
+# @harborclient/team-hub-api npm package changelog — only when the commit touches team-hub-api.
+if printf '%s\n' "$changed_files" | grep -q '^packages/team-hub-api/'; then
+  append_changelog_bullet \
+    "$repo_root/packages/team-hub-api/CHANGELOG.md" \
+    "packages/team-hub-api/CHANGELOG.md"
 fi
 
 if [[ ${#files_to_amend[@]} -eq 0 ]]; then

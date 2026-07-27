@@ -1,7 +1,7 @@
 name: Notify site docs update
 
 # Triggers a harborclient-site deploy when package documentation changes on main
-# so harborclient.com/{core,sdk,http}/ stays in sync with the monorepo.
+# so harborclient.com/{core,sdk,http,team-hub,team-hub-api}/ stays in sync with the monorepo.
 
 on:
   push:
@@ -11,6 +11,8 @@ on:
       - packages/core/docs/**
       - packages/sdk/docs/**
       - packages/http/docs/**
+      - packages/team-hub/docs/**
+      - packages/team-hub-api/docs/**
 
 permissions:
   contents: read

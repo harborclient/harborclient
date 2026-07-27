@@ -1,0 +1,197 @@
+name: Team Hub API release
+
+run-name: >-
+  Team Hub API release (${{ inputs.bump }})${{ inputs.orchestration_id != '' && format(' [{0}]', inputs.orchestration_id) || '' }}
+
+# Release workflow for @harborclient/team-hub-api (npm).
+#
+# Runs only when manually dispatched, either directly or by the desktop Release
+# workflow. Always releases from the chosen branch with the selected bump type
+# (major, minor, or patch), regardless of Unreleased content. Orchestrated runs
+# include a correlation ID so the parent workflow can wait for the exact run.
+#
+#   gh workflow run team-hub-api-release.yml \
+#     -f branch=main \
+#     -f bump=minor
+#
+# Release commits use `[skip ci]` and do not re-trigger.
+#
+# Tags use the `team-hub-api-v*` prefix so they do not collide with desktop app `v*` tags.
+#
+# Required setup BEFORE the first run:
+#
+#   1. Repository secret `NPM_TOKEN`: an npm automation token (or a granular
+#      token configured to bypass 2FA prompts) with publish rights to
+#      @harborclient/team-hub-api.
+#
+#   2. Branch protection on release branches must allow github-actions[bot] to push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release from and push the release commit to'
+        required: true
+        default: main
+        type: string
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      orchestration_id:
+        description: 'Optional parent release run correlation ID'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: team-hub-api-release-${{ inputs.branch }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_REF: ${{ inputs.branch }}
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.branch }}
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ''
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @harborclient/team-hub-api build
+
+      - name: Resolve release version
+        working-directory: packages/team-hub-api
+        run: |
+          set -euo pipefail
+          VERSION=$(pnpm version ${{ inputs.bump }} --no-git-tag-version | tail -n1 | sed 's/^v//')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Bumped to $VERSION (${{ inputs.bump }})"
+
+      - name: Verify tag does not exist
+        if: env.VERSION != ''
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/team-hub-api-v${VERSION}" >/dev/null; then
+            echo "::error::Tag team-hub-api-v${VERSION} already exists; aborting release."
+            exit 1
+          fi
+
+      - name: Update CHANGELOG.md for release
+        if: env.VERSION != ''
+        working-directory: packages/team-hub-api
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" "$(date -u +%Y-%m-%d)" <<'PY'
+          import re
+          import sys
+          import pathlib
+
+          version, date_iso = sys.argv[1], sys.argv[2]
+          path = pathlib.Path("CHANGELOG.md")
+          if not path.exists():
+              print("::warning::CHANGELOG.md not found; skipping changelog rename.")
+              sys.exit(0)
+
+          text = path.read_text()
+          match = re.search(r"^## Unreleased\s*\n(.*?)(?=^## |\Z)", text, flags=re.S | re.M)
+          if not match or not match.group(1).strip():
+              print("::warning::No Unreleased content; skipping changelog rename.")
+              sys.exit(0)
+
+          body = match.group(1).strip("\n")
+          replacement = f"## Unreleased\n\n## {version} - {date_iso}\n\n{body}\n"
+          new_text = re.sub(
+              r"^## Unreleased\s*\n.*?(?=^## |\Z)",
+              replacement + "\n",
+              text,
+              count=1,
+              flags=re.S | re.M,
+          )
+          path.write_text(new_text)
+          PY
+
+      - name: Commit, tag, and push
+        if: env.VERSION != ''
+        run: |
+          set -euo pipefail
+          RELEASE_REF="${{ env.RELEASE_REF }}"
+          TAG="team-hub-api-v${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/team-hub-api/package.json packages/team-hub-api/CHANGELOG.md
+          git commit -m "chore(changelog): release @harborclient/team-hub-api v${VERSION} [skip ci]"
+
+          git fetch origin "${RELEASE_REF}"
+          max_attempts=5
+          for attempt in $(seq 1 "${max_attempts}"); do
+            if ! git rebase "origin/${RELEASE_REF}"; then
+              git rebase --abort
+              echo "::error::Rebase onto origin/${RELEASE_REF} failed."
+              exit 1
+            fi
+            if git push origin "HEAD:${RELEASE_REF}"; then
+              break
+            fi
+            if [ "${attempt}" -eq "${max_attempts}" ]; then
+              echo "::error::Failed to push release commit after ${max_attempts} attempts."
+              exit 1
+            fi
+            echo "Push rejected (attempt ${attempt}/${max_attempts}); fetching and rebasing..."
+            git fetch origin "${RELEASE_REF}"
+          done
+
+          git tag -a "${TAG}" -m "Release @harborclient/team-hub-api v${VERSION}"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Publish to npm
+        if: env.VERSION != ''
+        working-directory: packages/team-hub-api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --no-git-checks
+
+      - name: Create GitHub release
+        if: env.VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh release create "team-hub-api-v${VERSION}"
+          --generate-notes
+          --title "@harborclient/team-hub-api v${VERSION}"

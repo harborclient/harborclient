@@ -16,6 +16,10 @@ packages/sdk/docs/.vitepress/cache
 packages/sdk/docs/.vitepress/static/storybook
 packages/http/docs/.vitepress/dist
 packages/http/docs/.vitepress/cache
+packages/team-hub/docs/.vitepress/dist
+packages/team-hub/docs/.vitepress/cache
+packages/team-hub-api/docs/.vitepress/dist
+packages/team-hub-api/docs/.vitepress/cache
 _site
 # Accidental tsc emit next to sources (build output belongs in packages/core/dist)
 packages/core/src/**/*.js
