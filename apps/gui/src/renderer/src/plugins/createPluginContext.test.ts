@@ -3,6 +3,14 @@ import '@harborclient/core/plugin/databaseTypes';
 import type { PluginManifest } from '@harborclient/core/plugin/types';
 import { createPluginContext } from './createPluginContext';
 import { clearPluginAfterSendSubscribers, emitPluginAfterSend } from './pluginAfterSendBus';
+import {
+  clearPluginLibraryChangedSubscribers,
+  emitPluginLibraryChanged
+} from './pluginLibraryChangedBus';
+import {
+  clearPluginSidebarSelectionSubscribers,
+  emitPluginSidebarSelectionChanged
+} from './pluginSidebarSelectionBus';
 
 const invokePluginMainMock =
   vi.fn<(pluginId: string, channel: string, args: unknown[]) => Promise<unknown>>();
@@ -28,18 +36,28 @@ beforeEach(() => {
   invokePluginMainMock.mockReset();
   activatePluginMainMock.mockReset();
   clearPluginAfterSendSubscribers();
+  clearPluginLibraryChangedSubscribers();
+  clearPluginSidebarSelectionSubscribers();
 
   vi.stubGlobal('window', {
     api: {
       invokePluginMain: invokePluginMainMock,
       activatePluginMain: activatePluginMainMock,
-      pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined)
+      pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
+      pushPluginLibraryChanged: vi.fn().mockResolvedValue(undefined),
+      pushPluginSidebarSelectionChanged: vi.fn().mockResolvedValue(undefined),
+      listCollections: vi.fn().mockResolvedValue({ collections: [], warnings: [] }),
+      listFolders: vi.fn().mockResolvedValue([]),
+      listRequests: vi.fn().mockResolvedValue([]),
+      listDocuments: vi.fn().mockResolvedValue([])
     }
   });
 });
 
 afterEach(() => {
   clearPluginAfterSendSubscribers();
+  clearPluginLibraryChangedSubscribers();
+  clearPluginSidebarSelectionSubscribers();
   vi.unstubAllGlobals();
 });
 
@@ -109,11 +127,54 @@ describe('createPluginContext runtime surfaces', () => {
       /lacks permission: ui/
     );
     await expect(hc.host.loadRequest(1)).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.loadDocument(1)).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.openCollectionSettings(1)).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.getSidebarSelection()).rejects.toThrow(/lacks permission: ui/);
+    expect(() => hc.host.onSidebarSelectionChanged(() => {})).toThrow(/lacks permission: ui/);
     await expect(hc.host.sendRequest()).rejects.toThrow(/lacks permission: ui/);
     await expect(hc.host.createEnvironmentWithVariables('Dev', [])).rejects.toThrow(
       /lacks permission: ui/
     );
     await expect(hc.host.updateEnvironmentVariables(1, [])).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.listCollections()).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.listLibraryTree()).rejects.toThrow(/lacks permission: ui/);
+    expect(() => hc.host.onLibraryChanged(() => {})).toThrow(/lacks permission: ui/);
+  });
+
+  it('tracks and disposes hc.host.onLibraryChanged subscriptions', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    const listener = vi.fn();
+    const disposable = hc.host.onLibraryChanged(listener);
+
+    expect(hc.subscriptions).toContain(disposable);
+    emitPluginLibraryChanged({ reason: 'collections' });
+    expect(listener).toHaveBeenCalledWith({ reason: 'collections' });
+
+    disposable.dispose();
+    expect(hc.subscriptions).not.toContain(disposable);
+    emitPluginLibraryChanged({ reason: 'folders', collectionId: 1 });
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks and disposes hc.host.onSidebarSelectionChanged subscriptions', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    const listener = vi.fn();
+    const disposable = hc.host.onSidebarSelectionChanged(listener);
+
+    expect(hc.subscriptions).toContain(disposable);
+    emitPluginSidebarSelectionChanged({ kind: 'collection', collectionId: 2 });
+    expect(listener).toHaveBeenCalledWith({ kind: 'collection', collectionId: 2 });
+
+    disposable.dispose();
+    expect(hc.subscriptions).not.toContain(disposable);
+    emitPluginSidebarSelectionChanged({ kind: 'folder', collectionId: 2, folderId: 1 });
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists an empty library through hc.host.listCollections', async () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    await expect(hc.host.listCollections()).resolves.toEqual([]);
+    await expect(hc.host.listLibraryTree()).resolves.toEqual({ collections: [], warnings: [] });
   });
 
   it('rejects hc.host.sendHttpRequest without the network permission', async () => {

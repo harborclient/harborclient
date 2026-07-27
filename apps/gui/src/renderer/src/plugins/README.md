@@ -324,6 +324,11 @@ snapshots to host components.
 Each registration returns a `Disposable` that removes the entry. IDs are namespaced
 as `plugin:{pluginId}:{contributionId}`.
 
+`sidebarPanels` may carry optional `replaces: "collections"` from the manifest
+(copied at registration). The host picks one winner when multiple panels claim it
+(`order`, then `pluginId`, then contribution id) and mounts that panel as the
+primary collections surface when `activeSidebarPanelId` is `null`.
+
 | Registry bucket          | Host component                                                                               | Hook                                  |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------- |
 | `settingsSections`       | [`Settings/index.tsx`](../ui/Tabs/Settings/index.tsx)                                        | `usePluginSettingsSections`           |
@@ -404,24 +409,28 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 
 **Broker operations (`plugins:uiBridge`):**
 
-| Operation                                                                | Permission                             | Target                                                         |
-| ------------------------------------------------------------------------ | -------------------------------------- | -------------------------------------------------------------- |
-| `storage.get/set`                                                        | `storage`                              | PluginManager                                                  |
-| `database.*`                                                             | `database`                             | PluginDatabaseManager                                          |
-| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`                         | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)     |
-| `fs.readFile`, `fs.writeFile`, `fs.watchFile`                            | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                            |
-| `ipc.invoke`                                                             | `ipc`                                  | SES runner (lazy-activates main if inactive)                   |
-| `registerContribution/unregisterContribution`                            | `ui`                                   | Host renderer via `plugins:contributions`                      |
-| `themes.register`, `themes.unregister`                                   | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)   |
-| `ui.showToast`, `commands.execute`                                       | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
-| `commands.executeRemote`                                                 | `ui`                                   | Another plugin's agent webview                                 |
-| `host.openRequestDraft`, `host.applyRequestDraft`, `host.loadRequest`, … | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
-| `host.sendHttpRequest`, `host.createCollection`, …                       | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
-| `imports.registerHandler`, `imports.unregisterHandler`                   | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)     |
-| `imports.invokeComplete`                                                 | `ui`                                   | Resolves pending import handler invocations from host renderer |
-| `themes.getActive`                                                       | `ui`                                   | Main process theme getter                                      |
-| `view.getContext`                                                        | `ui`                                   | Cached context snapshot for a view contribution                |
-| `view.reportSize`                                                        | `ui`                                   | Host renderer via `plugins:surfaceResize`                      |
+| Operation                                                                                                                    | Permission                             | Target                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------- |
+| `storage.get/set`                                                                                                            | `storage`                              | PluginManager                                                  |
+| `database.*`                                                                                                                 | `database`                             | PluginDatabaseManager                                          |
+| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`                                                                             | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)     |
+| `fs.readFile`, `fs.writeFile`, `fs.watchFile`                                                                                | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                            |
+| `ipc.invoke`                                                                                                                 | `ipc`                                  | SES runner (lazy-activates main if inactive)                   |
+| `registerContribution/unregisterContribution`                                                                                | `ui`                                   | Host renderer via `plugins:contributions`                      |
+| `themes.register`, `themes.unregister`                                                                                       | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)   |
+| `ui.showToast`, `commands.execute`                                                                                           | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
+| `commands.executeRemote`                                                                                                     | `ui`                                   | Another plugin's agent webview                                 |
+| `host.openRequestDraft`, `host.applyRequestDraft`, `host.loadRequest`, `host.loadDocument`, `host.openCollectionSettings`, … | `ui`                                   | Host renderer via `plugins:hostBridge` / `hostBridgeInvoke`    |
+| `host.showEntityContextMenu`                                                                                                 | `ui`                                   | Host renderer via `plugins:hostBridge` (void; opens host menu) |
+| `host.getSidebarSelection`, `host.setSidebarSelection`, `host.onSidebarSelectionChanged`                                     | `ui`                                   | Host renderer + `sidebar.selection.changed` push event         |
+| `host.listCollections`, `host.listLibraryTree`, `host.listFolders`, …                                                        | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
+| `host.reorderContainerItems`, `host.moveRequest`, `host.reorderRequests`, …                                                  | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
+| `host.sendHttpRequest`, `host.createCollection`, …                                                                           | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
+| `imports.registerHandler`, `imports.unregisterHandler`                                                                       | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)     |
+| `imports.invokeComplete`                                                                                                     | `ui`                                   | Resolves pending import handler invocations from host renderer |
+| `themes.getActive`                                                                                                           | `ui`                                   | Main process theme getter                                      |
+| `view.getContext`                                                                                                            | `ui`                                   | Cached context snapshot for a view contribution                |
+| `view.reportSize`                                                                                                            | `ui`                                   | Host renderer via `plugins:surfaceResize`                      |
 
 **Push events to webviews (`plugin-ui:event`):**
 
@@ -636,7 +645,11 @@ src/renderer/src/plugins/
   themeRuntime.ts           Inject plugin theme CSS into host document
   hostCommands.ts           Built-in harborclient:* commands
   hostRequestCommands.ts    host.* request integration
+  hostLibraryCommands.ts    host.* library list / tree APIs
+  hostLibraryMutations.ts   host.* library create / rename / delete / reorder / move
   hostEnvironmentCommands.ts host.* environment integration
+  pluginLibraryChangedBus.ts Library change fan-out for plugins
+  pluginAfterSendBus.ts     HTTP after-send fan-out for plugins
 
 src/shared/plugin/
   types.ts                  PluginManifest, PluginInfo, registry types

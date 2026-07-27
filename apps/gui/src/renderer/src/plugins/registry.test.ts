@@ -4,8 +4,10 @@ import {
   getRegisteredPluginThemes,
   getRegisteredRequestTabs,
   getRegisteredSettingsSections,
+  getRegisteredSidebarPanels,
   registerRequestTabContribution,
   registerSettingsSectionContribution,
+  registerSidebarPanelContribution,
   registerThemeContribution,
   unregisterContribution
 } from './registry';
@@ -97,5 +99,29 @@ describe('plugin registry', () => {
     expect(getRegisteredPluginThemes()).toHaveLength(0);
 
     clearPluginContributions('com.example.theme');
+  });
+
+  it('stores replaces on registered sidebar panels', () => {
+    const disposable = registerSidebarPanelContribution('com.example.replace', {
+      id: 'plugin:com.example.replace:collections',
+      title: 'My Collections',
+      contributionId: 'collections',
+      replaces: 'collections',
+      order: 10
+    });
+
+    expect(getRegisteredSidebarPanels()).toEqual([
+      {
+        pluginId: 'com.example.replace',
+        id: 'plugin:com.example.replace:collections',
+        title: 'My Collections',
+        contributionId: 'collections',
+        replaces: 'collections',
+        order: 10
+      }
+    ]);
+
+    disposable.dispose();
+    expect(getRegisteredSidebarPanels()).toHaveLength(0);
   });
 });

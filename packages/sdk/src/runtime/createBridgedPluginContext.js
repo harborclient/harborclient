@@ -359,6 +359,17 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   };
 
   /**
+   * Reads `replaces` from a sidebar panel manifest entry (manifest-authoritative).
+   *
+   * @param {string} contributionId - Raw contribution id.
+   * @returns {'collections'|undefined}
+   */
+  const getSidebarPanelReplaces = (contributionId) => {
+    const entry = manifest.contributes?.sidebarPanels?.find((panel) => panel.id === contributionId);
+    return entry?.replaces === 'collections' ? 'collections' : undefined;
+  };
+
+  /**
    * Asserts that a menu command is declared in manifest.contributes.menus.
    *
    * @param {string} command - Command id referenced by the menu item.
@@ -583,6 +594,7 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         if (!canRegisterUi()) {
           return noopDisposable();
         }
+        const replaces = getSidebarPanelReplaces(panel.id);
         return registerUiContribution(
           'sidebarPanels',
           panel.id,
@@ -591,7 +603,8 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
             title: panel.title,
             icon: panel.icon,
             order: panel.order,
-            contributionId: panel.id
+            contributionId: panel.id,
+            ...(replaces ? { replaces } : {})
           },
           panel.Component
         );
@@ -865,6 +878,43 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         assertUi();
         await bridgeInvoke('host.loadRequest', { requestId });
       },
+      loadDocument: async (documentId) => {
+        assertUi();
+        await bridgeInvoke('host.loadDocument', { documentId });
+      },
+      openCollectionSettings: async (collectionId) => {
+        assertUi();
+        await bridgeInvoke('host.openCollectionSettings', { collectionId });
+      },
+      openCollectionRunner: async (collectionId) => {
+        assertUi();
+        await bridgeInvoke('host.openCollectionRunner', { collectionId });
+      },
+      openShareModal: async (collectionId) => {
+        assertUi();
+        await bridgeInvoke('host.openShareModal', { collectionId });
+      },
+      showEntityContextMenu: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.showEntityContextMenu', input);
+      },
+      getSidebarSelection: async () => {
+        assertUi();
+        return bridgeInvoke('host.getSidebarSelection');
+      },
+      setSidebarSelection: async (selection) => {
+        assertUi();
+        await bridgeInvoke('host.setSidebarSelection', { selection });
+      },
+      onSidebarSelectionChanged: (listener) => {
+        assertUi();
+        const unsubscribe = bridgeOn('sidebar.selection.changed', listener);
+        return track({
+          dispose: () => {
+            unsubscribe();
+          }
+        });
+      },
       sendRequest: async () => {
         assertUi();
         await bridgeInvoke('host.sendRequest');
@@ -880,6 +930,119 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
       createCollection: async (payload) => {
         assertUi();
         return bridgeInvoke('host.createCollection', { payload });
+      },
+      updateCollection: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.updateCollection', input);
+      },
+      deleteCollection: async (collectionId) => {
+        assertUi();
+        await bridgeInvoke('host.deleteCollection', { collectionId });
+      },
+      reorderCollections: async (orderedIds) => {
+        assertUi();
+        await bridgeInvoke('host.reorderCollections', { orderedIds });
+      },
+      setCollectionArchived: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.setCollectionArchived', input);
+      },
+      duplicateCollection: async (collectionId) => {
+        assertUi();
+        return bridgeInvoke('host.duplicateCollection', { collectionId });
+      },
+      createFolder: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.createFolder', input);
+      },
+      renameFolder: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.renameFolder', input);
+      },
+      deleteFolder: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.deleteFolder', input);
+      },
+      moveFolder: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.moveFolder', input);
+      },
+      reorderFolders: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.reorderFolders', input);
+      },
+      createRequest: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.createRequest', input);
+      },
+      deleteRequest: async (requestId) => {
+        assertUi();
+        await bridgeInvoke('host.deleteRequest', { requestId });
+      },
+      duplicateRequest: async (requestId) => {
+        assertUi();
+        return bridgeInvoke('host.duplicateRequest', { requestId });
+      },
+      moveRequest: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.moveRequest', input);
+      },
+      reorderRequests: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.reorderRequests', input);
+      },
+      createDocument: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.createDocument', input);
+      },
+      renameDocument: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.renameDocument', input);
+      },
+      deleteDocument: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.deleteDocument', input);
+      },
+      moveDocument: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.moveDocument', input);
+      },
+      reorderDocuments: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.reorderDocuments', input);
+      },
+      reorderContainerItems: async (input) => {
+        assertUi();
+        await bridgeInvoke('host.reorderContainerItems', input);
+      },
+      listCollections: async (options) => {
+        assertUi();
+        return bridgeInvoke('host.listCollections', { options });
+      },
+      listFolders: async (collectionId) => {
+        assertUi();
+        return bridgeInvoke('host.listFolders', { collectionId });
+      },
+      listRequests: async (collectionId) => {
+        assertUi();
+        return bridgeInvoke('host.listRequests', { collectionId });
+      },
+      listDocuments: async (collectionId) => {
+        assertUi();
+        return bridgeInvoke('host.listDocuments', { collectionId });
+      },
+      listLibraryTree: async (options) => {
+        assertUi();
+        return bridgeInvoke('host.listLibraryTree', { options });
+      },
+      onLibraryChanged: (listener) => {
+        assertUi();
+        const unsubscribe = bridgeOn('library.changed', listener);
+        return track({
+          dispose: () => {
+            unsubscribe();
+          }
+        });
       },
       listCollectionRequests: async (collectionId, folderId) => {
         assertUi();

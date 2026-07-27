@@ -1,12 +1,21 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { setActiveSidebarPanel, setShowSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  clearPluginContributions,
+  registerSidebarPanelContribution
+} from '#/renderer/src/plugins/registry';
 import {
   focusEnvironmentSidebarById,
   focusFirstEnvironmentSidebar
 } from './focusFirstEnvironmentSidebar';
 
 describe('focusEnvironmentSidebarById', () => {
+  afterEach(() => {
+    clearPluginContributions('com.example.replace');
+    vi.unstubAllGlobals();
+  });
+
   it('reveals the sidebar and selects the given environment', () => {
     const dispatch = vi.fn();
     const expansion = {
@@ -29,12 +38,35 @@ describe('focusEnvironmentSidebarById', () => {
     expect(expansion.setEnvironmentsSectionVisible).toHaveBeenCalledWith(true);
     expect(expansion.setEnvironmentsSectionExpanded).toHaveBeenCalledWith(true);
     expect(dispatch).toHaveBeenCalledWith(setActiveEnvironmentId(42));
+  });
 
-    vi.unstubAllGlobals();
+  it('no-ops when a collections replacement panel is active', () => {
+    registerSidebarPanelContribution('com.example.replace', {
+      id: 'plugin:com.example.replace:collections',
+      title: 'My Collections',
+      contributionId: 'collections',
+      replaces: 'collections'
+    });
+
+    const dispatch = vi.fn();
+    const expansion = {
+      setEnvironmentsSectionVisible: vi.fn(),
+      setEnvironmentsSectionExpanded: vi.fn()
+    };
+
+    focusEnvironmentSidebarById(dispatch, 42, expansion);
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(expansion.setEnvironmentsSectionVisible).not.toHaveBeenCalled();
   });
 });
 
 describe('focusFirstEnvironmentSidebar', () => {
+  afterEach(() => {
+    clearPluginContributions('com.example.replace');
+    vi.unstubAllGlobals();
+  });
+
   it('reveals the sidebar and selects the first environment when one exists', () => {
     const dispatch = vi.fn();
     const getState = vi.fn(() => ({
@@ -63,7 +95,31 @@ describe('focusFirstEnvironmentSidebar', () => {
     expect(expansion.setEnvironmentsSectionVisible).toHaveBeenCalledWith(true);
     expect(expansion.setEnvironmentsSectionExpanded).toHaveBeenCalledWith(true);
     expect(dispatch).toHaveBeenCalledWith(setActiveEnvironmentId(7));
+  });
 
-    vi.unstubAllGlobals();
+  it('no-ops when a collections replacement panel is active', () => {
+    registerSidebarPanelContribution('com.example.replace', {
+      id: 'plugin:com.example.replace:collections',
+      title: 'My Collections',
+      contributionId: 'collections',
+      replaces: 'collections'
+    });
+
+    const dispatch = vi.fn();
+    const getState = vi.fn(() => ({
+      environments: {
+        environments: [{ id: 7, name: 'Local', variables: [] }],
+        activeEnvironmentId: null
+      }
+    }));
+    const expansion = {
+      setEnvironmentsSectionVisible: vi.fn(),
+      setEnvironmentsSectionExpanded: vi.fn()
+    };
+
+    focusFirstEnvironmentSidebar(dispatch, getState as never, expansion);
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(expansion.setEnvironmentsSectionVisible).not.toHaveBeenCalled();
   });
 });

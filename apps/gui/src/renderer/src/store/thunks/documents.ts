@@ -30,6 +30,7 @@ import {
   collectionRefreshKey,
   isLatestRefreshGeneration
 } from '#/renderer/src/store/refreshGeneration';
+import { emitPluginLibraryChanged } from '#/renderer/src/plugins/pluginLibraryChangedBus';
 
 /**
  * Reloads markdown documents for a single collection.
@@ -50,6 +51,7 @@ export const refreshDocuments = createAsyncThunk<
   }
   dispatch(setDocumentsForCollection({ collectionId, documents: data }));
   dispatch(reconcileMarkdownTabsFromDocuments({ collectionId, documents: data }));
+  emitPluginLibraryChanged({ reason: 'documents', collectionId });
   return data;
 });
 

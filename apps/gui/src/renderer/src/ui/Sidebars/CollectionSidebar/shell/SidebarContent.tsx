@@ -1,9 +1,11 @@
 import { useCallback, useMemo, type JSX } from 'react';
+import type { SidebarPanelViewContext } from '@harborclient/sdk';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
-  usePluginSidebarPanels,
-  usePluginSidebarSections
-} from '#/renderer/src/plugins/pluginHooks';
+  selectionFromState,
+  selectionsEqual
+} from '#/renderer/src/plugins/sidebarSelectionMapping';
+import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
 import {
   faSquareMinus,
   faBoxArchive,
@@ -26,7 +28,6 @@ import {
   selectActiveEnvironmentId,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { selectActiveSidebarPanelId } from '#/renderer/src/store/slices/navigationSlice';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
 import { Collections, CollectionsHeaderActions } from '../Collections';
@@ -38,6 +39,7 @@ import { Archive, ArchiveHeaderActions } from '../Archive';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
+import { useResolvedSidebarPanels } from './useResolvedSidebarPanels';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
 import { hasExpandedSidebarTrees } from '../expansion/hasExpandedSidebarTrees';
@@ -51,14 +53,26 @@ import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
  * collapse-all), and the collapsible Collections/Runs/History/Environments/
  * Workspaces sections. Sections source their own data and actions, so this shell
  * only wires layout and shared UI state.
+ *
+ * When a registered panel declares `replaces: "collections"`, that panel becomes
+ * the default body (primary collections surface) and the built-in tree is hidden.
  */
 export function SidebarContent(): JSX.Element {
   const dispatch = useAppDispatch();
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
-  const activeSidebarPanelId = useAppSelector(selectActiveSidebarPanelId);
-  const pluginSidebarPanels = usePluginSidebarPanels();
+  const sidebarSelection = useAppSelector(selectionFromState, selectionsEqual);
+  /**
+   * Stable view context for sidebar panel HostedSurface mounts.
+   * Recreates only when the derived selection identity changes.
+   */
+  const sidebarPanelContext = useMemo(
+    (): SidebarPanelViewContext => ({ sidebarSelection }),
+    [sidebarSelection]
+  );
   const pluginSidebarSections = usePluginSidebarSections();
+  const { activePanelId, collectionsReplacement, displayedPanel, switcherPanels, showSwitcher } =
+    useResolvedSidebarPanels();
 
   const {
     collectionsSectionExpanded,
@@ -105,14 +119,6 @@ export function SidebarContent(): JSX.Element {
 
     collapseAllSections();
   }, [collapseAllSections, collapseAllSidebarTrees, expandedCollectionIds, expandedFolderIds]);
-
-  /**
-   * Resolves the active switchable sidebar panel contribution, if any.
-   */
-  const activeSidebarPanel = useMemo(
-    () => pluginSidebarPanels.find((panel) => panel.id === activeSidebarPanelId) ?? null,
-    [pluginSidebarPanels, activeSidebarPanelId]
-  );
 
   /**
    * Left toolbar actions that show or hide sidebar sections.
@@ -359,8 +365,13 @@ export function SidebarContent(): JSX.Element {
       resizeAriaLabel="Resize sidebar"
       header={
         <>
-          <SidebarPanelSwitcher panels={pluginSidebarPanels} activePanelId={activeSidebarPanelId} />
-          {!activeSidebarPanel ? (
+          <SidebarPanelSwitcher
+            panels={switcherPanels}
+            activePanelId={activePanelId}
+            collectionsReplacement={collectionsReplacement}
+            showSwitcher={showSwitcher}
+          />
+          {!displayedPanel ? (
             <>
               <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
               <Toolbar
@@ -372,14 +383,15 @@ export function SidebarContent(): JSX.Element {
           ) : null}
         </>
       }
-      bodyClassName={activeSidebarPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
+      bodyClassName={displayedPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
     >
-      {activeSidebarPanel ? (
+      {displayedPanel ? (
         <HostedSurface
-          pluginId={activeSidebarPanel.pluginId}
-          contributionId={activeSidebarPanel.contributionId}
+          pluginId={displayedPanel.pluginId}
+          contributionId={displayedPanel.contributionId}
           kind="sidebarPanels"
           minHeight={240}
+          context={sidebarPanelContext}
         />
       ) : (
         <>

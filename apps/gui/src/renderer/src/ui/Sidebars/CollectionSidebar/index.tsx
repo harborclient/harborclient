@@ -5,6 +5,7 @@ import { SidebarMarkerPickerProvider } from './markers/SidebarMarkerPickerProvid
 import { SidebarSectionFilterProvider } from './filter/SidebarSectionFilterProvider';
 import { SidebarSelectionProvider } from './selection/SidebarSelectionProvider';
 import { SidebarSelectionMenuHost } from './selection/SidebarSelectionMenuHost';
+import { HostEntityContextMenuLayer } from '#/renderer/src/plugins/HostEntityContextMenuLayer';
 import { SidebarContent } from './shell/SidebarContent';
 
 /**
@@ -22,6 +23,7 @@ export function CollectionSidebar(): JSX.Element {
           <SidebarSelectionProvider>
             <SidebarSectionFilterProvider>
               <SidebarSelectionMenuHost />
+              <HostEntityContextMenuLayer />
               <SidebarContent />
             </SidebarSectionFilterProvider>
           </SidebarSelectionProvider>

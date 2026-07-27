@@ -60,6 +60,7 @@ import { refreshDocuments } from './documents';
 import { refreshSnippets } from './snippets';
 import { setWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import { syncTrash } from './trash';
+import { emitPluginLibraryChanged } from '#/renderer/src/plugins/pluginLibraryChangedBus';
 import { syncThemeMenuNow } from '#/renderer/src/plugins/themeMenuSync';
 import {
   getRegisteredImportExtensions,
@@ -121,6 +122,7 @@ export const refreshCollections = createAsyncThunk<Collection[], void, ThunkApiC
     if (collections.length > 0 && (selectedId == null || !selectedStillExists)) {
       dispatch(setSelectedCollectionId(collections[0].id));
     }
+    emitPluginLibraryChanged({ reason: 'collections' });
     return collections;
   }
 );
@@ -140,6 +142,7 @@ export const refreshFolders = createAsyncThunk<
     return getState().collections.foldersByCollection[collectionId] ?? [];
   }
   dispatch(setFoldersForCollection({ collectionId, folders: data }));
+  emitPluginLibraryChanged({ reason: 'folders', collectionId });
   return data;
 });
 
@@ -220,6 +223,7 @@ export const refreshRequests = createAsyncThunk<
   }
   dispatch(setRequestsForCollection({ collectionId, requests: data }));
   dispatch(reconcileRequestTabsFromRequests({ collectionId, requests: data }));
+  emitPluginLibraryChanged({ reason: 'requests', collectionId });
   return data;
 });
 

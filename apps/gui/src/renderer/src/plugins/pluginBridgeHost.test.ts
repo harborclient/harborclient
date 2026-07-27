@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { applyContributionMessage, handlePluginHostBridgeInvoke } from './pluginBridgeHost';
+import {
+  applyContributionMessage,
+  handlePluginHostBridge,
+  handlePluginHostBridgeInvoke
+} from './pluginBridgeHost';
 import * as hostCommands from './hostCommands';
 import * as hostRequestCommands from './hostRequestCommands';
+import * as hostLibraryCommands from './hostLibraryCommands';
+import * as hostLibraryMutations from './hostLibraryMutations';
+import * as hostEntityContextMenu from './hostEntityContextMenu';
 import { clearPluginContributions, getRegisteredPluginThemes } from './registry';
 
 describe('handlePluginHostBridgeInvoke', () => {
@@ -33,6 +40,128 @@ describe('handlePluginHostBridgeInvoke', () => {
     });
 
     expect(result).toEqual(sendResult);
+  });
+
+  it('routes host.listCollections and host.listLibraryTree to library helpers', async () => {
+    const collections = [
+      { id: 1, uuid: 'c1', name: 'API', created_at: '2026-01-01T00:00:00.000Z' }
+    ];
+    const tree = {
+      collections: [{ ...collections[0], folders: [], requests: [], documents: [] }],
+      warnings: []
+    };
+    vi.spyOn(hostLibraryCommands, 'listCollectionsForPlugin').mockResolvedValue(collections);
+    vi.spyOn(hostLibraryCommands, 'listLibraryTreeForPlugin').mockResolvedValue(tree);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 5,
+        pluginId: 'com.test.sidebar',
+        op: 'host.listCollections',
+        payload: { options: { includeArchived: true } }
+      })
+    ).resolves.toEqual(collections);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 6,
+        pluginId: 'com.test.sidebar',
+        op: 'host.listLibraryTree',
+        payload: { options: {} }
+      })
+    ).resolves.toEqual(tree);
+
+    expect(hostLibraryCommands.listCollectionsForPlugin).toHaveBeenCalledWith({
+      includeArchived: true
+    });
+    expect(hostLibraryCommands.listLibraryTreeForPlugin).toHaveBeenCalledWith({});
+  });
+
+  it('routes granular library list ops', async () => {
+    vi.spyOn(hostLibraryCommands, 'listFoldersForPlugin').mockResolvedValue([]);
+    vi.spyOn(hostLibraryCommands, 'listRequestsForPlugin').mockResolvedValue([]);
+    vi.spyOn(hostLibraryCommands, 'listDocumentsForPlugin').mockResolvedValue([]);
+
+    await handlePluginHostBridgeInvoke({
+      requestId: 7,
+      pluginId: 'com.test.sidebar',
+      op: 'host.listFolders',
+      payload: { collectionId: 3 }
+    });
+    await handlePluginHostBridgeInvoke({
+      requestId: 8,
+      pluginId: 'com.test.sidebar',
+      op: 'host.listRequests',
+      payload: { collectionId: 3 }
+    });
+    await handlePluginHostBridgeInvoke({
+      requestId: 9,
+      pluginId: 'com.test.sidebar',
+      op: 'host.listDocuments',
+      payload: { collectionId: 3 }
+    });
+
+    expect(hostLibraryCommands.listFoldersForPlugin).toHaveBeenCalledWith(3);
+    expect(hostLibraryCommands.listRequestsForPlugin).toHaveBeenCalledWith(3);
+    expect(hostLibraryCommands.listDocumentsForPlugin).toHaveBeenCalledWith(3);
+  });
+
+  it('routes host.createFolder to library mutation helpers', async () => {
+    const folder = {
+      id: 10,
+      uuid: 'folder-10',
+      collection_id: 1,
+      parent_folder_id: null,
+      name: 'Auth',
+      sort_order: 0,
+      created_at: '2026-01-01T00:00:00.000Z'
+    };
+    vi.spyOn(hostLibraryMutations, 'createFolderForPlugin').mockResolvedValue(folder);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 10,
+        pluginId: 'com.test.sidebar',
+        op: 'host.createFolder',
+        payload: { collectionId: 1, name: 'Auth' }
+      })
+    ).resolves.toEqual(folder);
+
+    expect(hostLibraryMutations.createFolderForPlugin).toHaveBeenCalledWith({
+      collectionId: 1,
+      name: 'Auth'
+    });
+  });
+
+  it('routes host.reorderContainerItems to library mutation helpers', async () => {
+    const reorderSpy = vi
+      .spyOn(hostLibraryMutations, 'reorderContainerItemsForPlugin')
+      .mockResolvedValue(undefined);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 11,
+        pluginId: 'com.test.sidebar',
+        op: 'host.reorderContainerItems',
+        payload: {
+          collectionId: 1,
+          folderId: null,
+          items: [
+            { kind: 'request', id: 1 },
+            { kind: 'document', id: 2 }
+          ]
+        }
+      })
+    ).resolves.toBeUndefined();
+
+    expect(reorderSpy).toHaveBeenCalledWith({
+      collectionId: 1,
+      folderId: null,
+      items: [
+        { kind: 'request', id: 1 },
+        { kind: 'document', id: 2 }
+      ]
+    });
   });
 
   it('executes harborclient commands through handlePluginHostBridgeInvoke', async () => {
@@ -89,6 +218,30 @@ describe('handlePluginHostBridgeInvoke', () => {
         }
       })
     ).rejects.toThrow(/Unsupported commands.execute target/);
+  });
+});
+
+describe('handlePluginHostBridge', () => {
+  it('routes host.showEntityContextMenu to the host menu helper', async () => {
+    const showSpy = vi
+      .spyOn(hostEntityContextMenu, 'showEntityContextMenuForPlugin')
+      .mockImplementation(() => undefined);
+
+    const input = {
+      target: { type: 'collection' as const, collectionId: 1 },
+      x: 10,
+      y: 20,
+      pluginId: 'com.test.sidebar',
+      contributionId: 'collections'
+    };
+
+    await handlePluginHostBridge({
+      pluginId: 'com.test.sidebar',
+      op: 'host.showEntityContextMenu',
+      payload: input
+    });
+
+    expect(showSpy).toHaveBeenCalledWith(input);
   });
 });
 

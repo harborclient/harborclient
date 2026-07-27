@@ -53,10 +53,43 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.openRequestDraft': 'ui',
   'host.applyRequestDraft': 'ui',
   'host.loadRequest': 'ui',
+  'host.loadDocument': 'ui',
+  'host.openCollectionSettings': 'ui',
+  'host.openCollectionRunner': 'ui',
+  'host.openShareModal': 'ui',
+  'host.showEntityContextMenu': 'ui',
+  'host.getSidebarSelection': 'ui',
+  'host.setSidebarSelection': 'ui',
   'host.sendRequest': 'ui',
   'host.createEnvironmentWithVariables': 'ui',
   'host.updateEnvironmentVariables': 'ui',
   'host.createCollection': 'ui',
+  'host.updateCollection': 'ui',
+  'host.deleteCollection': 'ui',
+  'host.reorderCollections': 'ui',
+  'host.setCollectionArchived': 'ui',
+  'host.duplicateCollection': 'ui',
+  'host.createFolder': 'ui',
+  'host.renameFolder': 'ui',
+  'host.deleteFolder': 'ui',
+  'host.moveFolder': 'ui',
+  'host.reorderFolders': 'ui',
+  'host.createRequest': 'ui',
+  'host.deleteRequest': 'ui',
+  'host.duplicateRequest': 'ui',
+  'host.moveRequest': 'ui',
+  'host.reorderRequests': 'ui',
+  'host.createDocument': 'ui',
+  'host.renameDocument': 'ui',
+  'host.deleteDocument': 'ui',
+  'host.moveDocument': 'ui',
+  'host.reorderDocuments': 'ui',
+  'host.reorderContainerItems': 'ui',
+  'host.listCollections': 'ui',
+  'host.listFolders': 'ui',
+  'host.listRequests': 'ui',
+  'host.listDocuments': 'ui',
+  'host.listLibraryTree': 'ui',
   'host.listCollectionRequests': 'ui',
   'host.getCollectionMetadata': 'ui',
   'host.logRequestToConsole': 'ui',
@@ -79,8 +112,37 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'host.sendHttpRequest',
   'host.createEnvironmentWithVariables',
   'host.createCollection',
+  'host.updateCollection',
+  'host.deleteCollection',
+  'host.reorderCollections',
+  'host.setCollectionArchived',
+  'host.duplicateCollection',
+  'host.createFolder',
+  'host.renameFolder',
+  'host.deleteFolder',
+  'host.moveFolder',
+  'host.reorderFolders',
+  'host.createRequest',
+  'host.deleteRequest',
+  'host.duplicateRequest',
+  'host.moveRequest',
+  'host.reorderRequests',
+  'host.createDocument',
+  'host.renameDocument',
+  'host.deleteDocument',
+  'host.moveDocument',
+  'host.reorderDocuments',
+  'host.reorderContainerItems',
+  'host.listCollections',
+  'host.listFolders',
+  'host.listRequests',
+  'host.listDocuments',
+  'host.listLibraryTree',
   'host.listCollectionRequests',
   'host.getCollectionMetadata',
+  'host.loadDocument',
+  'host.getSidebarSelection',
+  'host.setSidebarSelection',
   'commands.execute'
 ]);
 
@@ -320,6 +382,45 @@ export class PluginUiBroker {
       this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
         channel: 'http.afterSend',
         payload: { request, response }
+      });
+    }
+  }
+
+  /**
+   * Pushes a coarse library invalidation to every plugin webview that declares
+   * the `ui` permission so `hc.host.onLibraryChanged` handlers can refetch.
+   *
+   * @param event - Coarse reason and optional collection scope.
+   */
+  pushLibraryChanged(event: {
+    reason: 'collections' | 'folders' | 'requests' | 'documents';
+    collectionId?: number;
+  }): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasUiPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'library.changed',
+        payload: event
+      });
+    }
+  }
+
+  /**
+   * Pushes host sidebar selection changes to every plugin webview that declares
+   * the `ui` permission so `hc.host.onSidebarSelectionChanged` can stay in sync.
+   *
+   * @param selection - Current selection, or null when cleared.
+   */
+  pushSidebarSelectionChanged(selection: unknown): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasUiPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'sidebar.selection.changed',
+        payload: selection
       });
     }
   }
@@ -680,6 +781,10 @@ export class PluginUiBroker {
       case 'host.openRequestDraft':
       case 'host.applyRequestDraft':
       case 'host.loadRequest':
+      case 'host.openCollectionSettings':
+      case 'host.openCollectionRunner':
+      case 'host.openShareModal':
+      case 'host.showEntityContextMenu':
       case 'host.sendRequest':
       case 'host.updateEnvironmentVariables':
       case 'host.logRequestToConsole':
@@ -853,6 +958,21 @@ export class PluginUiBroker {
       return false;
     }
     return this.#pluginManager.getPluginPermissions(session.pluginId).includes('http');
+  }
+
+  /**
+   * Returns whether a session belongs to a loaded plugin with the `ui` permission.
+   *
+   * Stale sessions for disabled or removed plugins are pruned instead of throwing.
+   *
+   * @param webContentsId - Registered webContents id.
+   * @param session - Session metadata for the webview.
+   */
+  #sessionHasUiPermission(webContentsId: number, session: PluginWebviewSession): boolean {
+    if (!this.#isKnownPluginSession(webContentsId, session)) {
+      return false;
+    }
+    return this.#pluginManager.getPluginPermissions(session.pluginId).includes('ui');
   }
 }
 

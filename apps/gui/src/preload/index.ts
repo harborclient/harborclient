@@ -3847,6 +3847,31 @@ function pushPluginHttpAfterSend(payload: {
 }
 
 /**
+ * Pushes a coarse library invalidation to plugin webviews with the `ui` permission.
+ */
+function pushPluginLibraryChanged(payload: {
+  reason: 'collections' | 'folders' | 'requests' | 'documents';
+  collectionId?: number;
+}): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushLibraryChanged', payload);
+}
+
+/**
+ * Pushes host sidebar selection changes to plugin webviews with the `ui` permission.
+ */
+function pushPluginSidebarSelectionChanged(
+  selection: {
+    kind: 'collection' | 'folder' | 'request' | 'document';
+    collectionId: number;
+    folderId?: number | null;
+    requestId?: number;
+    documentId?: number;
+  } | null
+): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushSidebarSelectionChanged', selection);
+}
+
+/**
  * Executes a plugin command in the plugin agent webview.
  */
 function executePluginAgentCommand(
@@ -4378,6 +4403,8 @@ const api: Api = {
   pluginFsWatchFile,
   pushPluginViewContext,
   pushPluginHttpAfterSend,
+  pushPluginLibraryChanged,
+  pushPluginSidebarSelectionChanged,
   executePluginAgentCommand,
   invokePluginImportHandler,
   onPluginsContributions,

@@ -1,5 +1,9 @@
 import type { Collection, CollectionProviderKind } from '@harborclient/core/types';
-import { buildReorderMenuGroup, type MenuItem } from '@harborclient/sdk/components';
+import {
+  buildReorderMenuGroup,
+  type MenuItem,
+  type MenuPosition
+} from '@harborclient/sdk/components';
 import { type JSX, useMemo } from 'react';
 
 import { useConfirm, type ConfirmFn } from '#/renderer/src/hooks/useConfirm';
@@ -35,12 +39,12 @@ interface Props {
   /**
    * Id of the currently open row actions menu, if any.
    */
-  openMenuId: string | null;
+  openMenuId?: string | null;
 
   /**
    * Called when this menu opens or closes.
    */
-  onOpenChange: (menuId: string | null) => void;
+  onOpenChange?: (menuId: string | null) => void;
 
   /**
    * Cursor position captured when the row context menu opened, for DevTools inspect.
@@ -92,6 +96,21 @@ interface Props {
    * enable or disable the Git "Add all" menu action.
    */
   untrackedItemCount: number;
+
+  /**
+   * How the menu is presented. Defaults to `row`.
+   */
+  presentation?: 'row' | 'anchor';
+
+  /**
+   * Host viewport coordinates when {@link presentation} is `anchor`.
+   */
+  anchorPosition?: MenuPosition;
+
+  /**
+   * Called when an anchored menu dismisses.
+   */
+  onDismiss?: () => void;
 }
 
 /**
@@ -137,7 +156,7 @@ export function ActionsMenu({
   collection,
   collectionIndex,
   collectionsCount,
-  openMenuId,
+  openMenuId = null,
   onOpenChange,
   inspectPoint,
   connectionType,
@@ -148,7 +167,10 @@ export function ActionsMenu({
   onMove,
   hasDeselectableSelection,
   onDeselectAll,
-  untrackedItemCount
+  untrackedItemCount,
+  presentation = 'row',
+  anchorPosition,
+  onDismiss
 }: Props): JSX.Element {
   const confirm = useConfirm();
   const { aiAvailable, copyToChat } = useCopyToChat();
@@ -385,6 +407,9 @@ export function ActionsMenu({
         marker: collection.marker ?? null
       }}
       groups={menuGroups}
+      presentation={presentation}
+      anchorPosition={anchorPosition}
+      onDismiss={onDismiss}
     />
   );
 }

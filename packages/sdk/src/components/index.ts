@@ -156,6 +156,7 @@ export {
 export { RoundButton } from './RoundButton/index.js';
 export { RowActionsMenu } from './RowActionsMenu/index.js';
 export type { MenuItem } from './RowActionsMenu/index.js';
+export { AnchorMenuPanel } from './AnchorMenuPanel/index.js';
 export { buildReorderMenuGroup } from './rowActionsMenuHelpers.js';
 export { SettingIdLabel } from './SettingIdLabel/index.js';
 export type { Props as SettingIdLabelProps } from './SettingIdLabel/index.js';

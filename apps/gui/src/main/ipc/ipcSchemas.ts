@@ -1164,6 +1164,23 @@ export const ipcArgSchemas = {
       })
     })
   ]),
+  pluginPushLibraryChanged: z.tuple([
+    z.object({
+      reason: z.enum(['collections', 'folders', 'requests', 'documents']),
+      collectionId: z.number().optional()
+    })
+  ]),
+  pluginPushSidebarSelectionChanged: z.tuple([
+    z
+      .object({
+        kind: z.enum(['collection', 'folder', 'request', 'document']),
+        collectionId: z.number(),
+        folderId: z.number().nullable().optional(),
+        requestId: z.number().optional(),
+        documentId: z.number().optional()
+      })
+      .nullable()
+  ]),
   pluginExecuteAgentCommand: z.tuple([pluginId, z.string().min(1), z.array(z.unknown())]),
   pluginInvokeImportHandler: z.tuple([
     pluginId,

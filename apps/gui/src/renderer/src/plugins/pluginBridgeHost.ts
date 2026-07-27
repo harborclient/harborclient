@@ -51,11 +51,73 @@ import {
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
+import {
+  listCollectionsForPlugin,
+  listDocumentsForPlugin,
+  listFoldersForPlugin,
+  listLibraryTreeForPlugin,
+  listRequestsForPlugin
+} from './hostLibraryCommands';
+import {
+  createDocumentForPlugin,
+  createFolderForPlugin,
+  createRequestForPlugin,
+  deleteCollectionForPlugin,
+  deleteDocumentForPlugin,
+  deleteFolderForPlugin,
+  deleteRequestForPlugin,
+  duplicateCollectionForPlugin,
+  duplicateRequestForPlugin,
+  moveDocumentForPlugin,
+  moveFolderForPlugin,
+  moveRequestForPlugin,
+  renameDocumentForPlugin,
+  renameFolderForPlugin,
+  reorderCollectionsForPlugin,
+  reorderContainerItemsForPlugin,
+  reorderDocumentsForPlugin,
+  reorderFoldersForPlugin,
+  reorderRequestsForPlugin,
+  setCollectionArchivedForPlugin,
+  updateCollectionForPlugin
+} from './hostLibraryMutations';
 import { openImageView } from './hostImageCommands';
 import {
   createEnvironmentWithVariables,
   updateEnvironmentVariables
 } from './hostEnvironmentCommands';
+import {
+  loadDocumentForPlugin,
+  openCollectionRunnerForPlugin,
+  openCollectionSettingsForPlugin,
+  openShareModalForPlugin
+} from './hostNavigationCommands';
+import { showEntityContextMenuForPlugin } from './hostEntityContextMenu';
+import {
+  getSidebarSelection,
+  setSidebarSelection,
+  startSidebarSelectionStoreSubscription
+} from './pluginSidebarSelectionBus';
+import type {
+  CreateDocumentInput,
+  CreateFolderInput,
+  CreateRequestInput,
+  DeleteDocumentInput,
+  DeleteFolderInput,
+  LibraryListOptions,
+  MoveDocumentInput,
+  MoveFolderInput,
+  MoveRequestInput,
+  RenameDocumentInput,
+  RenameFolderInput,
+  ReorderContainerItemsInput,
+  ReorderDocumentsInput,
+  ReorderFoldersInput,
+  ReorderRequestsInput,
+  SetCollectionArchivedInput,
+  ShowEntityContextMenuInput,
+  UpdateCollectionInput
+} from '@harborclient/sdk';
 import toast from 'react-hot-toast';
 import { store } from '#/renderer/src/store/redux';
 import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
@@ -312,6 +374,18 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     case 'host.loadRequest':
       loadSavedRequest((payload as { requestId: number }).requestId);
       return;
+    case 'host.openCollectionSettings':
+      openCollectionSettingsForPlugin((payload as { collectionId: number }).collectionId);
+      return;
+    case 'host.openCollectionRunner':
+      openCollectionRunnerForPlugin((payload as { collectionId: number }).collectionId);
+      return;
+    case 'host.openShareModal':
+      openShareModalForPlugin((payload as { collectionId: number }).collectionId);
+      return;
+    case 'host.showEntityContextMenu':
+      showEntityContextMenuForPlugin(payload as ShowEntityContextMenuInput);
+      return;
     case 'host.sendRequest':
       triggerSendRequest();
       return;
@@ -357,8 +431,103 @@ export async function handlePluginHostBridgeInvoke(
       };
       return createEnvironmentWithVariables(name, variables);
     }
+    case 'host.loadDocument': {
+      const { documentId } = payload as { documentId: number };
+      await loadDocumentForPlugin(documentId);
+      return undefined;
+    }
+    case 'host.getSidebarSelection':
+      return getSidebarSelection();
+    case 'host.setSidebarSelection': {
+      setSidebarSelection((payload as { selection: unknown }).selection);
+      return undefined;
+    }
     case 'host.createCollection':
       return createCollectionFromPlugin((payload as { payload: never }).payload);
+    case 'host.updateCollection':
+      return updateCollectionForPlugin(payload as UpdateCollectionInput);
+    case 'host.deleteCollection': {
+      const { collectionId } = payload as { collectionId: number };
+      await deleteCollectionForPlugin(collectionId);
+      return undefined;
+    }
+    case 'host.reorderCollections': {
+      const { orderedIds } = payload as { orderedIds: number[] };
+      await reorderCollectionsForPlugin(orderedIds);
+      return undefined;
+    }
+    case 'host.setCollectionArchived':
+      await setCollectionArchivedForPlugin(payload as SetCollectionArchivedInput);
+      return undefined;
+    case 'host.duplicateCollection': {
+      const { collectionId } = payload as { collectionId: number };
+      return duplicateCollectionForPlugin(collectionId);
+    }
+    case 'host.createFolder':
+      return createFolderForPlugin(payload as CreateFolderInput);
+    case 'host.renameFolder':
+      return renameFolderForPlugin(payload as RenameFolderInput);
+    case 'host.deleteFolder':
+      await deleteFolderForPlugin(payload as DeleteFolderInput);
+      return undefined;
+    case 'host.moveFolder':
+      return moveFolderForPlugin(payload as MoveFolderInput);
+    case 'host.reorderFolders':
+      await reorderFoldersForPlugin(payload as ReorderFoldersInput);
+      return undefined;
+    case 'host.createRequest':
+      return createRequestForPlugin(payload as CreateRequestInput);
+    case 'host.deleteRequest': {
+      const { requestId } = payload as { requestId: number };
+      await deleteRequestForPlugin(requestId);
+      return undefined;
+    }
+    case 'host.duplicateRequest': {
+      const { requestId } = payload as { requestId: number };
+      return duplicateRequestForPlugin(requestId);
+    }
+    case 'host.moveRequest':
+      await moveRequestForPlugin(payload as MoveRequestInput);
+      return undefined;
+    case 'host.reorderRequests':
+      await reorderRequestsForPlugin(payload as ReorderRequestsInput);
+      return undefined;
+    case 'host.createDocument':
+      return createDocumentForPlugin(payload as CreateDocumentInput);
+    case 'host.renameDocument':
+      return renameDocumentForPlugin(payload as RenameDocumentInput);
+    case 'host.deleteDocument':
+      await deleteDocumentForPlugin(payload as DeleteDocumentInput);
+      return undefined;
+    case 'host.moveDocument':
+      await moveDocumentForPlugin(payload as MoveDocumentInput);
+      return undefined;
+    case 'host.reorderDocuments':
+      await reorderDocumentsForPlugin(payload as ReorderDocumentsInput);
+      return undefined;
+    case 'host.reorderContainerItems':
+      await reorderContainerItemsForPlugin(payload as ReorderContainerItemsInput);
+      return undefined;
+    case 'host.listCollections':
+      return listCollectionsForPlugin(
+        (payload as { options?: LibraryListOptions } | undefined)?.options
+      );
+    case 'host.listFolders': {
+      const { collectionId } = payload as { collectionId: number };
+      return listFoldersForPlugin(collectionId);
+    }
+    case 'host.listRequests': {
+      const { collectionId } = payload as { collectionId: number };
+      return listRequestsForPlugin(collectionId);
+    }
+    case 'host.listDocuments': {
+      const { collectionId } = payload as { collectionId: number };
+      return listDocumentsForPlugin(collectionId);
+    }
+    case 'host.listLibraryTree':
+      return listLibraryTreeForPlugin(
+        (payload as { options?: LibraryListOptions } | undefined)?.options
+      );
     case 'host.listCollectionRequests': {
       const { collectionId, folderId } = payload as {
         collectionId: number;
@@ -444,10 +613,12 @@ export function startPluginBridgeHost(): () => void {
       }
     })();
   });
+  const unsubSidebarSelection = startSidebarSelectionStoreSubscription();
   return () => {
     unsubContributions();
     unsubImportHandlers();
     unsubHostBridge();
     unsubHostBridgeInvoke();
+    unsubSidebarSelection();
   };
 }

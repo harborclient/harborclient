@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance plugin library and sidebar selection handling. (`5a919ac6`)
 - Enhance settings management and UI components. (`31e7f975`)
 - Refactor settings draft management and enhance default handling. (`5650b3e6`)
 - Refactor BodyEditor selection logic and improve utility functions. (`9541bf1a`)

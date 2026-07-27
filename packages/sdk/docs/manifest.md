@@ -37,7 +37,14 @@ Every plugin requires a manifest at the root of the `.hcp` archive. The example 
 
   "contributes": {
     "settingsSections": [{ "id": "myPlugin.settings", "title": "My Plugin" }],
-    "sidebarPanels": [{ "id": "myPlugin.panel", "title": "My Plugin" }],
+    "sidebarPanels": [
+      { "id": "myPlugin.panel", "title": "My Plugin" },
+      {
+        "id": "myPlugin.collections",
+        "title": "My Collections",
+        "replaces": "collections"
+      }
+    ],
     "sidebarSections": [{ "id": "myPlugin.section", "title": "My Plugin" }],
     "mainViews": [{ "id": "myPlugin.view", "title": "My Plugin" }],
     "requestTabs": [{ "id": "myPlugin.requestTab", "title": "Audit" }],
@@ -187,25 +194,37 @@ For a complete walkthrough, see [Solarized theme](/examples/solarized-theme).
 
 The `contributes` block declares where your plugin can appear. Each entry's `id` must match the `id` passed to the corresponding `hc.ui.register*` (or `hc.themes.register`) call at activation time — **except** theme entries with an `import` field, which HarborClient auto-registers from the JSON file without JavaScript.
 
-| Manifest key             | `hc.ui` registrar                | UI surface                                                                   |
-| ------------------------ | -------------------------------- | ---------------------------------------------------------------------------- |
-| `settingsSections`       | `registerSettingsSection`        | Settings sidebar and panel                                                   |
-| `sidebarPanels`          | `registerSidebarPanel`           | Switchable left sidebar destination                                          |
-| `sidebarSections`        | `registerSidebarSection`         | Collapsible block inside the scrollable sidebar                              |
-| `mainViews`              | `registerMainView`               | Full main-area overlay (Team Hubs pattern)                                   |
-| `modals`                 | `registerModal`                  | Application-root modal overlay                                               |
-| `requestTabs`            | `registerRequestTab`             | Request editor segmented tabs                                                |
-| `responseTabs`           | `registerResponseTab`            | Response viewer tabs                                                         |
-| `collectionSettingsTabs` | `registerCollectionSettingsTab`  | Collection settings segmented tabs                                           |
-| `footerPanels`           | `registerFooterPanel`            | Slide-up footer panel                                                        |
-| `requestToolbarActions`  | `registerRequestToolbarAction`   | Button near Send in the URL bar                                              |
-| `scriptEditorActions`    | `registerScriptEditorAction`     | Icon button on each pre/post script editor row                               |
-| `contextMenus`           | `registerContextMenuItem`        | Row actions on sidebar collections, folders, requests                        |
-| `statusBarItems`         | `registerStatusBarItem`          | Footer status area (beside sidebar / AI toggles)                             |
-| `themes`                 | `hc.themes.register` or `import` | Appearance theme in **View → Theme** and **Settings → General → Appearance** |
-| `commands`               | `hc.commands.register`           | Command handlers (menus, toolbar, context menus)                             |
-| `menus`                  | `registerMenuItem`               | File, Edit, View, or Help application menu                                   |
+| Manifest key             | `hc.ui` registrar                | UI surface                                                                                             |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `settingsSections`       | `registerSettingsSection`        | Settings sidebar and panel                                                                             |
+| `sidebarPanels`          | `registerSidebarPanel`           | Switchable left sidebar destination, or primary Collections replacement when `replaces: "collections"` |
+| `sidebarSections`        | `registerSidebarSection`         | Collapsible block inside the scrollable sidebar                                                        |
+| `mainViews`              | `registerMainView`               | Full main-area overlay (Team Hubs pattern)                                                             |
+| `modals`                 | `registerModal`                  | Application-root modal overlay                                                                         |
+| `requestTabs`            | `registerRequestTab`             | Request editor segmented tabs                                                                          |
+| `responseTabs`           | `registerResponseTab`            | Response viewer tabs                                                                                   |
+| `collectionSettingsTabs` | `registerCollectionSettingsTab`  | Collection settings segmented tabs                                                                     |
+| `footerPanels`           | `registerFooterPanel`            | Slide-up footer panel                                                                                  |
+| `requestToolbarActions`  | `registerRequestToolbarAction`   | Button near Send in the URL bar                                                                        |
+| `scriptEditorActions`    | `registerScriptEditorAction`     | Icon button on each pre/post script editor row                                                         |
+| `contextMenus`           | `registerContextMenuItem`        | Row actions on sidebar collections, folders, requests                                                  |
+| `statusBarItems`         | `registerStatusBarItem`          | Footer status area (beside sidebar / AI toggles)                                                       |
+| `themes`                 | `hc.themes.register` or `import` | Appearance theme in **View → Theme** and **Settings → General → Appearance**                           |
+| `commands`               | `hc.commands.register`           | Command handlers (menus, toolbar, context menus)                                                       |
+| `menus`                  | `registerMenuItem`               | File, Edit, View, or Help application menu                                                             |
 
 Settings sections ship in the initial plugin release. Other contribution types are part of the target API documented in the [Renderer API](/renderer-overview) and will roll out in subsequent HarborClient versions. Declare them in the manifest now so install dialogs and future host versions can discover slots before your code loads.
+
+### Replacing the Collections sidebar
+
+A `sidebarPanels` entry may include optional `replaces: "collections"`. That field is **manifest-only** — do not pass it to `hc.ui.registerSidebarPanel`. When the panel is registered and enabled:
+
+- The host treats it as the **primary collections surface** (Redux `activeSidebarPanelId === null` mounts this panel instead of the built-in Collections tree).
+- The panel switcher hides the built-in "Collections" tab and uses the replacement panel's `title` as the primary tab when other non-replacing panels exist.
+- If only the replacement panel is registered, the switcher is hidden entirely.
+
+**Conflict rule:** If more than one registered panel declares `replaces: "collections"`, the host picks a single winner: lowest `order` (default `100`), then lowest `pluginId`, then lowest contribution `id`. A warning is logged for the ignored candidates.
+
+See [hc.ui.registerSidebarPanel](/renderer-ui#hcuiregistersidebarpanelpanel) for runtime registration.
 
 See [UI contributions](/renderer-ui) for registration method reference.

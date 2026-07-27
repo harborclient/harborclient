@@ -52,14 +52,59 @@ import {
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
+import {
+  listCollectionsForPlugin,
+  listDocumentsForPlugin,
+  listFoldersForPlugin,
+  listLibraryTreeForPlugin,
+  listRequestsForPlugin
+} from './hostLibraryCommands';
+import {
+  createDocumentForPlugin,
+  createFolderForPlugin,
+  createRequestForPlugin,
+  deleteCollectionForPlugin,
+  deleteDocumentForPlugin,
+  deleteFolderForPlugin,
+  deleteRequestForPlugin,
+  duplicateCollectionForPlugin,
+  duplicateRequestForPlugin,
+  moveDocumentForPlugin,
+  moveFolderForPlugin,
+  moveRequestForPlugin,
+  renameDocumentForPlugin,
+  renameFolderForPlugin,
+  reorderCollectionsForPlugin,
+  reorderContainerItemsForPlugin,
+  reorderDocumentsForPlugin,
+  reorderFoldersForPlugin,
+  reorderRequestsForPlugin,
+  setCollectionArchivedForPlugin,
+  updateCollectionForPlugin
+} from './hostLibraryMutations';
 import { openImageView } from './hostImageCommands';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
+import { subscribePluginLibraryChanged } from './pluginLibraryChangedBus';
+import {
+  getSidebarSelection,
+  setSidebarSelection,
+  subscribePluginSidebarSelectionChanged
+} from './pluginSidebarSelectionBus';
+import {
+  loadDocumentForPlugin,
+  openCollectionRunnerForPlugin,
+  openCollectionSettingsForPlugin,
+  openShareModalForPlugin
+} from './hostNavigationCommands';
+import { showEntityContextMenuForPlugin } from './hostEntityContextMenu';
 import { createPluginDatabaseApi } from '@harborclient/core/plugin/pluginDatabaseApi';
 import type { ImportHandler } from '@harborclient/core/plugin/importHandlers';
 import {
   normalizeImportExtensions,
   registerImportHandlerContribution
 } from './pluginImportHandlers';
+import { getSidebarPanelReplaces } from './sidebarPanelManifest';
+import type { HostCollection } from '@harborclient/sdk';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
 
@@ -383,13 +428,15 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       registerSidebarPanel: (panel) => {
         assertUi();
         assertManifestContribution(manifest, 'sidebarPanels', panel.id);
+        const replaces = getSidebarPanelReplaces(manifest, panel.id);
         return track(
           registerSidebarPanelContribution(pluginId, {
             id: pluginContributionId(pluginId, panel.id),
             title: panel.title,
             icon: panel.icon,
             order: panel.order,
-            contributionId: panel.id
+            contributionId: panel.id,
+            ...(replaces ? { replaces } : {})
           })
         );
       },
@@ -568,6 +615,38 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         loadSavedRequest(requestId);
       },
+      loadDocument: async (documentId) => {
+        assertUi();
+        await loadDocumentForPlugin(documentId);
+      },
+      openCollectionSettings: async (collectionId) => {
+        assertUi();
+        openCollectionSettingsForPlugin(collectionId);
+      },
+      openCollectionRunner: async (collectionId) => {
+        assertUi();
+        openCollectionRunnerForPlugin(collectionId);
+      },
+      openShareModal: async (collectionId) => {
+        assertUi();
+        openShareModalForPlugin(collectionId);
+      },
+      showEntityContextMenu: async (input) => {
+        assertUi();
+        showEntityContextMenuForPlugin(input);
+      },
+      getSidebarSelection: async () => {
+        assertUi();
+        return getSidebarSelection();
+      },
+      setSidebarSelection: async (selection) => {
+        assertUi();
+        setSidebarSelection(selection);
+      },
+      onSidebarSelectionChanged: (listener) => {
+        assertUi();
+        return track(subscribePluginSidebarSelectionChanged(listener));
+      },
       sendRequest: async () => {
         assertUi();
         triggerSendRequest();
@@ -584,6 +663,114 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         return createCollectionFromPlugin(payload);
       },
+      updateCollection: async (input) => {
+        assertUi();
+        return updateCollectionForPlugin(input);
+      },
+      deleteCollection: async (collectionId) => {
+        assertUi();
+        await deleteCollectionForPlugin(collectionId);
+      },
+      reorderCollections: async (orderedIds) => {
+        assertUi();
+        await reorderCollectionsForPlugin(orderedIds);
+      },
+      setCollectionArchived: async (input) => {
+        assertUi();
+        await setCollectionArchivedForPlugin(input);
+      },
+      duplicateCollection: async (collectionId) => {
+        assertUi();
+        return duplicateCollectionForPlugin(collectionId);
+      },
+      createFolder: async (input) => {
+        assertUi();
+        return createFolderForPlugin(input);
+      },
+      renameFolder: async (input) => {
+        assertUi();
+        return renameFolderForPlugin(input);
+      },
+      deleteFolder: async (input) => {
+        assertUi();
+        await deleteFolderForPlugin(input);
+      },
+      moveFolder: async (input) => {
+        assertUi();
+        return moveFolderForPlugin(input);
+      },
+      reorderFolders: async (input) => {
+        assertUi();
+        await reorderFoldersForPlugin(input);
+      },
+      createRequest: async (input) => {
+        assertUi();
+        return createRequestForPlugin(input);
+      },
+      deleteRequest: async (requestId) => {
+        assertUi();
+        await deleteRequestForPlugin(requestId);
+      },
+      duplicateRequest: async (requestId) => {
+        assertUi();
+        return duplicateRequestForPlugin(requestId);
+      },
+      moveRequest: async (input) => {
+        assertUi();
+        await moveRequestForPlugin(input);
+      },
+      reorderRequests: async (input) => {
+        assertUi();
+        await reorderRequestsForPlugin(input);
+      },
+      createDocument: async (input) => {
+        assertUi();
+        return createDocumentForPlugin(input);
+      },
+      renameDocument: async (input) => {
+        assertUi();
+        return renameDocumentForPlugin(input);
+      },
+      deleteDocument: async (input) => {
+        assertUi();
+        await deleteDocumentForPlugin(input);
+      },
+      moveDocument: async (input) => {
+        assertUi();
+        await moveDocumentForPlugin(input);
+      },
+      reorderDocuments: async (input) => {
+        assertUi();
+        await reorderDocumentsForPlugin(input);
+      },
+      reorderContainerItems: async (input) => {
+        assertUi();
+        await reorderContainerItemsForPlugin(input);
+      },
+      listCollections: async (options) => {
+        assertUi();
+        return listCollectionsForPlugin(options);
+      },
+      listFolders: async (collectionId) => {
+        assertUi();
+        return listFoldersForPlugin(collectionId);
+      },
+      listRequests: async (collectionId) => {
+        assertUi();
+        return listRequestsForPlugin(collectionId);
+      },
+      listDocuments: async (collectionId) => {
+        assertUi();
+        return listDocumentsForPlugin(collectionId);
+      },
+      listLibraryTree: async (options) => {
+        assertUi();
+        return listLibraryTreeForPlugin(options);
+      },
+      onLibraryChanged: (listener) => {
+        assertUi();
+        return track(subscribePluginLibraryChanged(listener));
+      },
       listCollectionRequests: async (collectionId, folderId) => {
         assertUi();
         if (typeof collectionId !== 'number') {
@@ -596,7 +783,8 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         if (typeof collectionId !== 'number') {
           throw new Error('harborclient.getCollectionMetadata requires a numeric collection id.');
         }
-        return getCollectionMetadataForPlugin(collectionId);
+        // Core Collection.auth includes oauth2; SDK HostCollection AuthType does not yet.
+        return (await getCollectionMetadataForPlugin(collectionId)) as unknown as HostCollection;
       },
       logRequestToConsole: async (payload) => {
         assertUi();

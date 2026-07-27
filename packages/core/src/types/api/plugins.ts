@@ -1,5 +1,10 @@
 import type { PluginCatalog, PluginSourcesSettings, ThemeCatalog } from '../../plugin/catalog';
-import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
+import type {
+  LibraryChangedEvent,
+  PluginHttpRequest,
+  PluginHttpResponse,
+  SidebarSelection
+} from '@harborclient/sdk';
 import type {
   PluginAssetResult,
   PluginEntryKind,
@@ -290,6 +295,14 @@ export interface ApiPlugins {
     request: PluginHttpRequest;
     response: PluginHttpResponse;
   }) => Promise<void>;
+  /**
+   * Pushes a coarse library invalidation event to plugin webviews with the `ui` permission.
+   */
+  pushPluginLibraryChanged: (event: LibraryChangedEvent) => Promise<void>;
+  /**
+   * Pushes host sidebar selection changes to plugin webviews with the `ui` permission.
+   */
+  pushPluginSidebarSelectionChanged: (selection: SidebarSelection | null) => Promise<void>;
   /**
    * Executes a plugin command in the plugin agent webview.
    */

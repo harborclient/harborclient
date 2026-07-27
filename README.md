@@ -1,6 +1,6 @@
 ![HarborClient](images/logo.png)
 
-The free API client that keeps your work private: no accounts, no subscriptions, no lock-in. Your work in a safe harbor that you control.
+HarborClient is a native desktop API workbench for building, sending, and inspecting HTTP requests. Debug what actually went over the wire, keep collections close to your development workflow, and share them through Git, Postgres, MySQL, Firestore, and more.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/v/release/harborclient/harborclient)](https://github.com/harborclient/harborclient/releases/latest)

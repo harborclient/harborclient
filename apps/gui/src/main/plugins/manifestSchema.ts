@@ -8,6 +8,14 @@ const contributionEntry = z.object({
   title: z.string().min(1)
 });
 
+const sidebarPanelContributionEntry = contributionEntry.extend({
+  /**
+   * When `"collections"`, this panel replaces the built-in Collections sidebar
+   * once registered. Manifest-only; not accepted by runtime registration.
+   */
+  replaces: z.literal('collections').optional()
+});
+
 const themeContributionEntry = contributionEntry.extend({
   type: z.enum(['light', 'dark', 'high-contrast']),
   /** Optional path to a `harborclientExport: "theme"` JSON file relative to the plugin root. */
@@ -63,7 +71,7 @@ export const pluginManifestSchema = z.object({
   contributes: z
     .object({
       settingsSections: z.array(contributionEntry).optional(),
-      sidebarPanels: z.array(contributionEntry).optional(),
+      sidebarPanels: z.array(sidebarPanelContributionEntry).optional(),
       sidebarSections: z.array(contributionEntry).optional(),
       mainViews: z.array(contributionEntry).optional(),
       modals: z.array(contributionEntry).optional(),

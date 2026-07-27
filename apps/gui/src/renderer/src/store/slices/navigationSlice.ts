@@ -66,7 +66,8 @@ export interface SidebarFooterLayoutSnapshot {
   showShortcutsSidebar: boolean;
 
   /**
-   * Active plugin sidebar panel id within the Collections sidebar, if any.
+   * Active plugin sidebar panel id within the Collections sidebar when recorded,
+   * or null for the primary collections surface (replacement panel or built-in).
    */
   activeSidebarPanelId: string | null;
 
@@ -112,6 +113,12 @@ export interface NavigationState {
   showMcp: boolean;
   showTerminal: boolean;
   activePluginFooterPanelId: string | null;
+  /**
+   * Active plugin sidebar panel id (`plugin:<pluginId>:<contributionId>`), or
+   * `null` for the primary collections surface. The primary surface resolves to
+   * a registered panel with `replaces: "collections"` when one exists; otherwise
+   * it is the built-in Collections tree.
+   */
   activeSidebarPanelId: string | null;
   /**
    * Last sidebar/footer layout captured by Hide sidebars; null until the first hide.

@@ -42,35 +42,15 @@ import {
   setCollectionArchived
 } from '#/renderer/src/store/thunks';
 import { formatErrorMessage, showAlert, showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
+import {
+  sidebarFocusPayloadForDocument,
+  sidebarFocusPayloadForRequest
+} from '#/renderer/src/plugins/sidebarSelectionMapping';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
 import { useSidebarProviders } from '../providers/sidebarProvidersContext';
 
-/**
- * Builds the sidebar focus payload when opening a saved request so git-backed
- * collections and folder highlights follow the opened item.
- *
- * @param req - Saved request whose parent collection and folder should be selected.
- * @returns Payload for {@link focusSidebarItem}.
- */
-export function sidebarFocusPayloadForRequest(
-  req: Pick<SavedRequest, 'collection_id' | 'folder_id'>
-): { collectionId: number; folderId: number | null } {
-  return { collectionId: req.collection_id, folderId: req.folder_id ?? null };
-}
-
-/**
- * Builds the sidebar focus payload when opening a markdown document so git-backed
- * collections and folder highlights follow the opened item.
- *
- * @param doc - Document whose parent collection and folder should be selected.
- * @returns Payload for {@link focusSidebarItem}.
- */
-export function sidebarFocusPayloadForDocument(
-  doc: Pick<CollectionDocument, 'collection_id' | 'folder_id'>
-): { collectionId: number; folderId: number | null } {
-  return { collectionId: doc.collection_id, folderId: doc.folder_id ?? null };
-}
+export { sidebarFocusPayloadForDocument, sidebarFocusPayloadForRequest };
 
 /**
  * Callback bundle for the collections tree. Every action dispatches the

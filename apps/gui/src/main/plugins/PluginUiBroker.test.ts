@@ -529,6 +529,119 @@ describe('PluginUiBroker filesystem operations', () => {
   });
 });
 
+describe('PluginUiBroker pushLibraryChanged', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delivers library.changed to loaded ui plugins and skips stale sessions', () => {
+    const staleSend = vi.fn();
+    const uiSend = vi.fn();
+    const getPluginPermissions = vi.fn((pluginId: string) => {
+      if (pluginId === 'com.harborclient.plugins.sidebar') {
+        return ['ui', 'storage'];
+      }
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    });
+    const manager = {
+      get: vi.fn((pluginId: string) =>
+        pluginId === 'com.harborclient.plugins.sidebar' ? { id: pluginId } : undefined
+      ),
+      getPluginPermissions
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const staleSender = { id: 1 } as WebContents;
+    const uiSender = { id: 2 } as WebContents;
+    registerSession(staleSender, {
+      pluginId: 'com.harborclient.plugins.missing',
+      role: 'agent'
+    });
+    registerSession(uiSender, {
+      pluginId: 'com.harborclient.plugins.sidebar',
+      role: 'agent'
+    });
+
+    vi.mocked(webContents.fromId).mockImplementation((id: number) => {
+      if (id === 1) {
+        return { send: staleSend } as never;
+      }
+      if (id === 2) {
+        return { send: uiSend } as never;
+      }
+      return undefined;
+    });
+
+    const event = { reason: 'collections' as const };
+
+    expect(() => broker.pushLibraryChanged(event)).not.toThrow();
+
+    expect(staleSend).not.toHaveBeenCalled();
+    expect(uiSend).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'library.changed',
+      payload: event
+    });
+    expect(getPluginPermissions).toHaveBeenCalledWith('com.harborclient.plugins.sidebar');
+  });
+});
+
+describe('PluginUiBroker pushSidebarSelectionChanged', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delivers sidebar.selection.changed to loaded ui plugins and skips stale sessions', () => {
+    const staleSend = vi.fn();
+    const uiSend = vi.fn();
+    const getPluginPermissions = vi.fn((pluginId: string) => {
+      if (pluginId === 'com.harborclient.plugins.sidebar') {
+        return ['ui', 'storage'];
+      }
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    });
+    const manager = {
+      get: vi.fn((pluginId: string) =>
+        pluginId === 'com.harborclient.plugins.sidebar' ? { id: pluginId } : undefined
+      ),
+      getPluginPermissions
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const staleSender = { id: 1 } as WebContents;
+    const uiSender = { id: 2 } as WebContents;
+    registerSession(staleSender, {
+      pluginId: 'com.harborclient.plugins.missing',
+      role: 'agent'
+    });
+    registerSession(uiSender, {
+      pluginId: 'com.harborclient.plugins.sidebar',
+      role: 'view'
+    });
+
+    vi.mocked(webContents.fromId).mockImplementation((id: number) => {
+      if (id === 1) {
+        return { send: staleSend } as never;
+      }
+      if (id === 2) {
+        return { send: uiSend } as never;
+      }
+      return undefined as never;
+    });
+
+    const selection = { kind: 'collection' as const, collectionId: 9 };
+    expect(() => broker.pushSidebarSelectionChanged(selection)).not.toThrow();
+
+    expect(staleSend).not.toHaveBeenCalled();
+    expect(uiSend).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'sidebar.selection.changed',
+      payload: selection
+    });
+    expect(getPluginPermissions).toHaveBeenCalledWith('com.harborclient.plugins.sidebar');
+  });
+});
+
 describe('PluginUiBroker pushHttpAfterSend', () => {
   beforeEach(() => {
     vi.clearAllMocks();

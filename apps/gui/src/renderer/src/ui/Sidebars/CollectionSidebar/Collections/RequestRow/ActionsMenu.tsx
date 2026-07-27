@@ -1,4 +1,9 @@
-import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
+import {
+  AnchorMenuPanel,
+  RowActionsMenu,
+  type MenuItem,
+  type MenuPosition
+} from '@harborclient/sdk/components';
 import type { GitRequestFileStatus, SavedRequest } from '@harborclient/core/types';
 
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -44,12 +49,12 @@ interface Props {
   /**
    * Id of the open row actions menu, if any.
    */
-  openMenuId: string | null;
+  openMenuId?: string | null;
 
   /**
    * Called when a row actions menu opens or closes.
    */
-  onOpenChange: (menuId: string | null) => void;
+  onOpenChange?: (menuId: string | null) => void;
 
   /**
    * Cursor position from the last context-menu open, used for developer inspect.
@@ -140,6 +145,21 @@ interface Props {
    * Unstages this request in a git-backed collection.
    */
   onGitUnstageItem?: () => void;
+
+  /**
+   * How the menu is presented. Defaults to `row`.
+   */
+  presentation?: 'row' | 'anchor';
+
+  /**
+   * Host viewport coordinates when {@link presentation} is `anchor`.
+   */
+  anchorPosition?: MenuPosition;
+
+  /**
+   * Called when an anchored menu dismisses.
+   */
+  onDismiss?: () => void;
 }
 
 /**
@@ -303,11 +323,23 @@ export function ActionsMenu(props: Props): JSX.Element {
   ]);
 
   if (showBulkMenu) {
+    if (props.presentation === 'anchor' && props.anchorPosition != null) {
+      return (
+        <AnchorMenuPanel
+          menuId={menuId}
+          groups={baseMenuGroups}
+          anchor={props.anchorPosition}
+          onDismiss={() => {
+            props.onDismiss?.();
+          }}
+        />
+      );
+    }
     return (
       <RowActionsMenu
         menuId={menuId}
-        openMenuId={props.openMenuId}
-        onOpenChange={props.onOpenChange}
+        openMenuId={props.openMenuId ?? null}
+        onOpenChange={props.onOpenChange ?? (() => undefined)}
         groups={baseMenuGroups}
       />
     );
@@ -325,6 +357,9 @@ export function ActionsMenu(props: Props): JSX.Element {
         id: props.req.id,
         marker: props.req.marker ?? null
       }}
+      presentation={props.presentation}
+      anchorPosition={props.anchorPosition}
+      onDismiss={props.onDismiss}
     />
   );
 }

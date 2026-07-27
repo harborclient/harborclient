@@ -360,7 +360,17 @@ function HostedSurfaceInstance({
             ...style
           };
 
-  return <div ref={containerRef} className={className} style={containerStyle} />;
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={containerStyle}
+      data-hc-plugin-surface={kind}
+      data-hc-plugin-id={pluginId}
+      data-hc-contribution-id={contributionId}
+      tabIndex={-1}
+    />
+  );
 }
 
 /**

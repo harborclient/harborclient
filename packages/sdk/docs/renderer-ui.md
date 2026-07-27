@@ -48,6 +48,14 @@ hc.ui.registerSettingsSection({
 
 Registers a switchable left sidebar destination — a full-height panel the user selects instead of the default collections view.
 
+**Replacing Collections:** To make this panel the default left-sidebar body (hiding the built-in Collections tree and "Collections" switcher tab), set `replaces: "collections"` on the matching **manifest** entry. That field is not part of the runtime `SidebarPanelContribution` object; the host copies it from the manifest at registration time.
+
+Semantics:
+
+- `activeSidebarPanelId === null` means the **primary collections surface** — the replacement panel when one is registered, otherwise the built-in Collections tree.
+- Non-replacing plugin panels remain switchable destinations alongside the primary surface.
+- When multiple panels claim `replaces: "collections"`, the host picks one winner (lowest `order`, then `pluginId`, then contribution `id`) and logs a warning.
+
 ```typescript
 hc.ui.registerSidebarPanel({
   id: 'myPlugin.panel',
@@ -55,6 +63,20 @@ hc.ui.registerSidebarPanel({
   icon: 'wrench',
   Component: MySidebarPanel
 });
+```
+
+```json
+{
+  "contributes": {
+    "sidebarPanels": [
+      {
+        "id": "myPlugin.collections",
+        "title": "My Collections",
+        "replaces": "collections"
+      }
+    ]
+  }
+}
 ```
 
 ## hc.ui.registerSidebarSection(section)
@@ -430,7 +452,19 @@ hc.ui.registerScriptEditorAction({
 | `group`   | `string`                                         | Menu group                                          |
 | `order`   | `number`                                         | Sort order within the group                         |
 
-Adds an action to row context menus in the sidebar.
+Adds an action to row context menus in the sidebar for **collection**,
+**folder**, and **request** targets.
+
+When a plugin replaces the Collections sidebar (`replaces: "collections"`),
+those contributions still appear in menus opened via
+[`hc.host.showEntityContextMenu`](/renderer-data#hchostshowentitycontextmenuinput)
+— the host builds the same menu model the built-in tree uses. They do **not**
+appear automatically inside a plugin’s own custom `RowActionsMenu` unless the
+plugin calls `showEntityContextMenu` (or builds an equivalent menu and invokes
+the same host commands).
+
+Document targets are not supported. See [renderer-data](/renderer-data) for
+coordinate mapping and focus-return limitations.
 
 ```typescript
 hc.commands.register('myPlugin.requestMenu', (target) => {

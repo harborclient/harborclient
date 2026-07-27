@@ -201,6 +201,10 @@ export interface SettingsSectionContribution extends UiContributionBase {
  * selects instead of the default collections view.
  *
  * Manifest: `contributes.sidebarPanels`. Requires the `ui` permission.
+ *
+ * To replace the built-in Collections sidebar, set `replaces: "collections"` on
+ * the matching manifest entry (not on this runtime object). The host copies that
+ * field into the registry when the panel is registered.
  */
 export interface SidebarPanelContribution extends UiContributionBase {
   /**
@@ -215,6 +219,7 @@ export interface SidebarPanelContribution extends UiContributionBase {
 
   /**
    * Sort order among plugin sidebar panels. Lower values appear first.
+   * Also used as a tie-breaker when choosing among multiple `replaces: "collections"` panels.
    */
   order?: number;
 }
@@ -1958,9 +1963,539 @@ export interface CreatedEnvironmentResult {
 }
 
 /**
+ * Options for library list APIs that can include archived collections.
+ */
+export interface LibraryListOptions {
+  /**
+   * When true, include archived collections. Defaults to false (active only).
+   */
+  includeArchived?: boolean;
+}
+
+/**
+ * Lightweight collection row for sidebar trees and discovery.
+ */
+export interface CollectionSummary {
+  /** Database id. */
+  id: number;
+  /** Stable portable identifier. */
+  uuid: string;
+  /** Display name. */
+  name: string;
+  /** Optional sidebar marker color. */
+  marker?: string | null;
+  /** ISO 8601 creation timestamp. */
+  created_at: string;
+  /** Storage connection id when the collection is remote-backed. */
+  connectionId?: string;
+  /** When true, the collection is archived. */
+  archived?: boolean;
+  /** When true on a team hub collection, non-admins cannot delete it. */
+  deletion_locked?: boolean;
+}
+
+/**
+ * Lightweight folder row for sidebar trees.
+ */
+export interface FolderSummary {
+  /** Database id. */
+  id: number;
+  /** Stable portable identifier. */
+  uuid: string;
+  /** Parent collection id. */
+  collection_id: number;
+  /** Parent folder id, or null at collection root. */
+  parent_folder_id: number | null;
+  /** Display name. */
+  name: string;
+  /** Sibling sort order. */
+  sort_order: number;
+  /** Optional sidebar marker color. */
+  marker?: string | null;
+  /** ISO 8601 creation timestamp. */
+  created_at: string;
+}
+
+/**
+ * Lightweight saved-request row for sidebar trees (no body/auth).
+ */
+export interface SavedRequestSummary {
+  /** Database id. */
+  id: number;
+  /** Stable portable identifier. */
+  uuid: string;
+  /** Parent collection id. */
+  collection_id: number;
+  /** Parent folder id, or null at collection root. */
+  folder_id: number | null;
+  /** Display name. */
+  name: string;
+  /** HTTP method. */
+  method: HttpMethod;
+  /** Sibling sort order. */
+  sort_order: number;
+  /** Optional sidebar marker color. */
+  marker?: string | null;
+  /** ISO 8601 creation timestamp. */
+  created_at: string;
+}
+
+/**
+ * Lightweight markdown document row for sidebar trees (no content body).
+ */
+export interface DocumentSummary {
+  /** Database id. */
+  id: number;
+  /** Stable portable identifier. */
+  uuid: string;
+  /** Parent collection id. */
+  collection_id: number;
+  /** Parent folder id, or null at collection root. */
+  folder_id: number | null;
+  /** Display file name. */
+  name: string;
+  /** Sibling sort order. */
+  sort_order: number;
+  /** Optional sidebar marker color. */
+  marker?: string | null;
+  /** ISO 8601 creation timestamp. */
+  created_at: string;
+  /** ISO 8601 last-updated timestamp. */
+  updated_at: string;
+}
+
+/**
+ * One collection node in a {@link LibraryTreeSnapshot}, including nested contents.
+ */
+export interface LibraryTreeCollectionNode extends CollectionSummary {
+  /** Folders in this collection (flat list; nest via parent_folder_id). */
+  folders: FolderSummary[];
+  /** Saved requests in this collection (flat list; nest via folder_id). */
+  requests: SavedRequestSummary[];
+  /** Markdown documents in this collection (flat list; nest via folder_id). */
+  documents: DocumentSummary[];
+}
+
+/**
+ * Full library snapshot suitable for building a custom collections sidebar tree.
+ */
+export interface LibraryTreeSnapshot {
+  /** Collections with nested folder/request/document summaries. */
+  collections: LibraryTreeCollectionNode[];
+  /**
+   * Warnings when one or more storage backends failed while listing collections.
+   * The snapshot may be incomplete when non-empty.
+   */
+  warnings: string[];
+}
+
+/**
+ * Coarse reason for a {@link LibraryChangedEvent}.
+ */
+export type LibraryChangedReason = 'collections' | 'folders' | 'requests' | 'documents';
+
+/**
+ * Coarse invalidation signal so plugins can refetch library data without polling.
+ */
+export interface LibraryChangedEvent {
+  /** Which library slice changed. */
+  reason: LibraryChangedReason;
+  /** Collection id for per-collection reasons; omitted for `collections`. */
+  collectionId?: number;
+}
+
+/**
+ * Serializable sidebar focus/selection for replacement panels and host sync.
+ *
+ * Matches the host's "reveal in sidebar" navigation state: collection/folder
+ * highlight plus the active request or document tab when one is open.
+ */
+export type SidebarSelection =
+  | { kind: 'collection'; collectionId: number }
+  | { kind: 'folder'; collectionId: number; folderId: number }
+  | {
+      kind: 'request';
+      collectionId: number;
+      folderId: number | null;
+      requestId: number;
+    }
+  | {
+      kind: 'document';
+      collectionId: number;
+      folderId: number | null;
+      documentId: number;
+    };
+
+/**
+ * View context pushed to `sidebarPanels` HostedSurface mounts.
+ *
+ * Read via `hc.view.getContext()` on panel mount; updates arrive through
+ * {@link PluginHost.onSidebarSelectionChanged}.
+ */
+export interface SidebarPanelViewContext {
+  /** Current host sidebar selection, or null when nothing is focused. */
+  sidebarSelection: SidebarSelection | null;
+}
+
+/**
+ * Payload for {@link PluginHost.updateCollection} — renames a collection.
+ *
+ * Other collection settings are preserved. Destructive host methods are silent;
+ * plugins must confirm before calling delete/archive APIs.
+ */
+export interface UpdateCollectionInput {
+  /** Collection database id. */
+  id: number;
+  /** New display name. */
+  name: string;
+}
+
+/**
+ * Payload for {@link PluginHost.setCollectionArchived}.
+ */
+export interface SetCollectionArchivedInput {
+  /** Collection database id. */
+  collectionId: number;
+  /** When true, archive; when false, restore from archive. */
+  archived: boolean;
+}
+
+/**
+ * Payload for {@link PluginHost.createFolder}.
+ */
+export interface CreateFolderInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Display name for the new folder. */
+  name: string;
+  /** Parent folder id, or null/omitted for collection root. */
+  parentFolderId?: number | null;
+}
+
+/**
+ * Payload for {@link PluginHost.renameFolder}.
+ */
+export interface RenameFolderInput {
+  /** Folder database id. */
+  folderId: number;
+  /** Parent collection database id. */
+  collectionId: number;
+  /** New display name. */
+  name: string;
+}
+
+/**
+ * Payload for {@link PluginHost.deleteFolder}.
+ *
+ * Deletes the folder subtree (descendant folders, requests, and documents).
+ * Silent — plugins must confirm before calling.
+ */
+export interface DeleteFolderInput {
+  /** Folder database id. */
+  folderId: number;
+  /** Parent collection database id. */
+  collectionId: number;
+}
+
+/**
+ * Payload for {@link PluginHost.moveFolder}.
+ */
+export interface MoveFolderInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Folder database id to move. */
+  folderId: number;
+  /** New parent folder id, or null for collection root. */
+  parentFolderId: number | null;
+  /** Optional zero-based index among new siblings. */
+  sortOrder?: number;
+}
+
+/**
+ * Payload for {@link PluginHost.reorderFolders}.
+ */
+export interface ReorderFoldersInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Parent folder id, or null for collection-root siblings. */
+  parentFolderId: number | null;
+  /** Sibling folder ids in desired order. */
+  orderedFolderIds: number[];
+}
+
+/**
+ * Payload for {@link PluginHost.createRequest}.
+ *
+ * Opens the new request in an editor tab (same as the built-in sidebar).
+ */
+export interface CreateRequestInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Parent folder id, or null/omitted for collection root. */
+  folderId?: number | null;
+  /** Display name; defaults to `Untitled Request`. */
+  name?: string;
+  /** HTTP method; defaults to `GET`. */
+  method?: HttpMethod;
+  /** Request URL; defaults to empty. */
+  url?: string;
+}
+
+/**
+ * Payload for {@link PluginHost.moveRequest}.
+ */
+export interface MoveRequestInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Saved request database id. */
+  requestId: number;
+  /** Target folder id, or null for collection root. */
+  folderId: number | null;
+  /**
+   * Zero-based index among siblings in the target container.
+   * When omitted, appends to the end.
+   */
+  index?: number;
+}
+
+/**
+ * Payload for {@link PluginHost.reorderRequests}.
+ */
+export interface ReorderRequestsInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Folder id, or null for collection-root requests. */
+  folderId: number | null;
+  /** Request ids in desired order. */
+  orderedRequestIds: number[];
+}
+
+/**
+ * Payload for {@link PluginHost.createDocument}.
+ *
+ * Does not open the document in a tab — use a later host open API for that.
+ */
+export interface CreateDocumentInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Parent folder id, or null/omitted for collection root. */
+  folderId?: number | null;
+  /** Display file name. */
+  name: string;
+  /** Optional markdown body; defaults to empty. */
+  content?: string;
+}
+
+/**
+ * Payload for {@link PluginHost.renameDocument}.
+ */
+export interface RenameDocumentInput {
+  /** Document database id. */
+  id: number;
+  /** Parent collection database id. */
+  collectionId: number;
+  /** New display file name. */
+  name: string;
+}
+
+/**
+ * Payload for {@link PluginHost.deleteDocument}.
+ *
+ * Silent — plugins must confirm before calling.
+ */
+export interface DeleteDocumentInput {
+  /** Document database id. */
+  id: number;
+  /** Parent collection database id. */
+  collectionId: number;
+}
+
+/**
+ * Payload for {@link PluginHost.moveDocument}.
+ */
+export interface MoveDocumentInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Document database id. */
+  documentId: number;
+  /** Target folder id, or null for collection root. */
+  folderId: number | null;
+  /**
+   * Zero-based index among siblings in the target container.
+   * When omitted, appends to the end.
+   */
+  index?: number;
+}
+
+/**
+ * Payload for {@link PluginHost.reorderDocuments}.
+ */
+export interface ReorderDocumentsInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Folder id, or null for collection-root documents. */
+  folderId: number | null;
+  /** Document ids in desired order. */
+  orderedDocumentIds: number[];
+}
+
+/**
+ * Kind of sidebar row that shares a collection root or folder container order.
+ */
+export type ContainerItemKind = 'request' | 'document';
+
+/**
+ * Stable reference to a request or markdown document in a shared container.
+ */
+export interface ContainerItemRef {
+  /** Whether this entry is a saved request or a markdown document. */
+  kind: ContainerItemKind;
+  /** Database id of the request or document. */
+  id: number;
+}
+
+/**
+ * Payload for {@link PluginHost.reorderContainerItems}.
+ *
+ * Use this when a folder or collection root interleaves requests and documents
+ * in one list. Prefer {@link ReorderRequestsInput} / {@link ReorderDocumentsInput}
+ * when reordering a single entity kind.
+ */
+export interface ReorderContainerItemsInput {
+  /** Parent collection database id. */
+  collectionId: number;
+  /** Folder id, or null for collection-root items. */
+  folderId: number | null;
+  /** Request and document refs in desired interleaved order. */
+  items: ContainerItemRef[];
+}
+
+/**
+ * Target for {@link PluginHost.showEntityContextMenu}.
+ *
+ * Matches built-in sidebar context menu targets (`collection` | `folder` | `request`).
+ * Documents are not supported in v1.
+ */
+export type EntityContextMenuTarget =
+  | { type: 'collection'; collectionId: number }
+  | { type: 'folder'; collectionId: number; folderId: number }
+  | { type: 'request'; requestId: number };
+
+/**
+ * Payload for {@link PluginHost.showEntityContextMenu}.
+ *
+ * Coordinates are local to the plugin webview viewport; the host offsets them
+ * using the HostedSurface bounds. When the surface cannot be found, `x`/`y`
+ * are treated as host viewport coordinates.
+ */
+export interface ShowEntityContextMenuInput {
+  /** Entity the menu should act on. */
+  target: EntityContextMenuTarget;
+  /** X coordinate in the plugin webview viewport. */
+  x: number;
+  /** Y coordinate in the plugin webview viewport. */
+  y: number;
+  /** Plugin manifest id that owns the requesting surface. */
+  pluginId: string;
+  /** Sidebar panel contribution id mounted in the surface. */
+  contributionId: string;
+}
+
+/**
+ * Collection metadata returned by {@link PluginHost.getCollectionMetadata}.
+ *
+ * Includes settings fields plugins may read; prefer {@link CollectionSummary} for trees.
+ */
+export interface HostCollection extends CollectionSummary {
+  /** Collection-scoped variables. */
+  variables: Variable[];
+  /** Collection-level headers. */
+  headers: KeyValue[];
+  /** User-Agent override; empty inherits the global default. */
+  userAgent: string;
+  /** Default Authorization settings. */
+  auth: AuthConfig;
+  /** Legacy single pre-request script string. */
+  pre_request_script: string;
+  /** Legacy single post-request script string. */
+  post_request_script: string;
+}
+
+/**
+ * Full saved request returned by {@link PluginHost.listCollectionRequests}.
+ *
+ * Prefer {@link SavedRequestSummary} when only sidebar fields are needed.
+ */
+export interface HostSavedRequest extends SavedRequestSummary {
+  /** Request URL without query parameters. */
+  url: string;
+  /** Request headers. */
+  headers: KeyValue[];
+  /** Query parameters. */
+  params: KeyValue[];
+  /** Raw request body content. */
+  body: string;
+  /** Content type of the request body. */
+  body_type: BodyType;
+  /** Free-form notes. */
+  comment: string;
+  /** Comma-separated labels. */
+  tags: string;
+  /** ISO 8601 last-saved timestamp. */
+  updated_at: string;
+}
+
+/**
+ * Input for {@link PluginHost.sendHttpRequest}.
+ */
+export interface PluginSendRequestInput {
+  /** HTTP method to use. */
+  method: HttpMethod;
+  /** Request URL without query parameters. */
+  url: string;
+  /** Request headers. */
+  headers: KeyValue[];
+  /** Query parameters. */
+  params: KeyValue[];
+  /** Raw request body content. */
+  body: string;
+  /** Content type of the request body. */
+  bodyType: BodyType;
+  /** Optional verbatim Raw body override. */
+  bodyRaw?: string;
+  /** Saved request id when the send originated from a saved tab. */
+  sourceRequestId?: number;
+  /** Display name when {@link sourceRequestId} is set. */
+  sourceRequestName?: string;
+}
+
+/**
+ * Result of {@link PluginHost.sendHttpRequest}.
+ */
+export interface PluginSendResult {
+  /** HTTP status code, or 0 when the request failed before a response. */
+  status: number;
+  /** HTTP status text. */
+  statusText: string;
+  /** Response headers. */
+  headers: Record<string, string>;
+  /** Response body as text. */
+  body: string;
+  /** Base64-encoded body for image responses. */
+  bodyBase64?: string;
+  /** Round-trip time in milliseconds. */
+  timeMs: number;
+  /** Response body size in bytes. */
+  sizeBytes: number;
+  /** Error message when the request failed. */
+  error?: string;
+}
+
+/**
  * Typed wrappers for built-in HarborClient request editor commands.
  *
- * Requires the `ui` permission. Prefer these over stringly-typed
+ * Requires the `ui` permission (except {@link PluginHost.sendHttpRequest}, which
+ * requires `network`). Prefer these over stringly-typed
  * {@link PluginCommands.execute} for opening request tabs.
  */
 export interface PluginHost {
@@ -1987,9 +2522,95 @@ export interface PluginHost {
   /**
    * Opens a saved collection request or focuses an existing tab for it.
    *
+   * Also updates host sidebar selection (collection/folder highlight) to match
+   * the built-in tree click path.
+   *
    * @param requestId - Saved request database id.
    */
   loadRequest(requestId: number): Promise<void>;
+
+  /**
+   * Opens a saved markdown document or focuses an existing tab for it.
+   *
+   * Requires the `ui` permission. Also updates host sidebar selection.
+   *
+   * @param documentId - Collection document database id.
+   */
+  loadDocument(documentId: number): Promise<void>;
+
+  /**
+   * Opens collection settings in a page tab.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  openCollectionSettings(collectionId: number): Promise<void>;
+
+  /**
+   * Opens the collection runner for an entire collection.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  openCollectionRunner(collectionId: number): Promise<void>;
+
+  /**
+   * Opens the share-collection modal for a collection.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  openShareModal(collectionId: number): Promise<void>;
+
+  /**
+   * Opens the host's built-in entity context menu for a collection, folder, or request.
+   *
+   * Builds the same menu groups the built-in Collections tree would show
+   * (including {@link PluginUi.registerContextMenuItem} contributions) and
+   * positions the panel in the host window. Coordinates are webview-local;
+   * the host maps them using the HostedSurface bounds.
+   *
+   * Requires the `ui` permission. Fire-and-forget — does not wait for the
+   * user to dismiss the menu.
+   *
+   * Limitations: submenu positioning and focus return to the webview may be
+   * imperfect; document targets are not supported.
+   *
+   * @param input - Target, coordinates, and requesting surface identity.
+   */
+  showEntityContextMenu(input: ShowEntityContextMenuInput): Promise<void>;
+
+  /**
+   * Returns the current host sidebar selection (collection/folder/request/document).
+   *
+   * Requires the `ui` permission.
+   */
+  getSidebarSelection(): Promise<SidebarSelection | null>;
+
+  /**
+   * Updates host sidebar selection the same way the built-in tree does.
+   *
+   * Selecting a request or document also opens/focuses its editor tab.
+   * Passing `null` clears the collection/folder highlight.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param selection - Target selection, or null to clear.
+   */
+  setSidebarSelection(selection: SidebarSelection | null): Promise<void>;
+
+  /**
+   * Subscribes to host sidebar selection changes (reveal-in-sidebar, tab focus, plugin sets).
+   *
+   * Requires the `ui` permission.
+   *
+   * @param listener - Called when selection changes.
+   * @returns A {@link Disposable} that removes the listener when disposed.
+   */
+  onSidebarSelectionChanged(listener: (selection: SidebarSelection | null) => void): Disposable;
 
   /**
    * Sends the active request editor tab using the same pipeline as the Send button
@@ -2031,6 +2652,310 @@ export interface PluginHost {
    * @returns The database id of the created collection.
    */
   createCollection(payload: CreateCollectionPayload): Promise<CreateCollectionResult>;
+
+  /**
+   * Renames a collection while preserving its other settings.
+   *
+   * Requires the `ui` permission. Silent — no host confirmation dialog.
+   *
+   * @param input - Collection id and new name.
+   */
+  updateCollection(input: UpdateCollectionInput): Promise<CollectionSummary>;
+
+  /**
+   * Deletes a collection (moves it to trash when supported).
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm first.
+   *
+   * @param collectionId - Collection database id.
+   */
+  deleteCollection(collectionId: number): Promise<void>;
+
+  /**
+   * Persists a new top-level collection order in the sidebar.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param orderedIds - Collection ids in desired order.
+   */
+  reorderCollections(orderedIds: number[]): Promise<void>;
+
+  /**
+   * Archives or un-archives a collection.
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm before archiving.
+   *
+   * @param input - Collection id and archived flag.
+   */
+  setCollectionArchived(input: SetCollectionArchivedInput): Promise<void>;
+
+  /**
+   * Deep-copies a collection and places the duplicate below the original.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id to duplicate.
+   */
+  duplicateCollection(collectionId: number): Promise<CollectionSummary>;
+
+  /**
+   * Creates a folder inside a collection (optionally nested under a parent folder).
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, name, and optional parent folder.
+   */
+  createFolder(input: CreateFolderInput): Promise<FolderSummary>;
+
+  /**
+   * Renames a folder.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Folder id, collection id, and new name.
+   */
+  renameFolder(input: RenameFolderInput): Promise<FolderSummary>;
+
+  /**
+   * Deletes a folder and its subtree (descendant folders, requests, documents).
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm first.
+   *
+   * @param input - Folder id and parent collection id.
+   */
+  deleteFolder(input: DeleteFolderInput): Promise<void>;
+
+  /**
+   * Reparents a folder and optionally inserts it at a sibling position.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Move target and optional sort order.
+   */
+  moveFolder(input: MoveFolderInput): Promise<FolderSummary>;
+
+  /**
+   * Persists a new folder order within a collection container.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, parent folder, and ordered sibling ids.
+   */
+  reorderFolders(input: ReorderFoldersInput): Promise<void>;
+
+  /**
+   * Creates a saved request and opens it in an editor tab.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, optional folder, and optional draft fields.
+   */
+  createRequest(input: CreateRequestInput): Promise<SavedRequestSummary>;
+
+  /**
+   * Deletes a saved request.
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm first.
+   *
+   * @param requestId - Saved request database id.
+   */
+  deleteRequest(requestId: number): Promise<void>;
+
+  /**
+   * Duplicates a saved request in the same collection/folder and opens the copy.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param requestId - Saved request database id to duplicate.
+   */
+  duplicateRequest(requestId: number): Promise<SavedRequestSummary>;
+
+  /**
+   * Moves a saved request to another folder or the collection root.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Request id, target folder, and optional index.
+   */
+  moveRequest(input: MoveRequestInput): Promise<void>;
+
+  /**
+   * Persists a new request order within a folder or collection root.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, folder id, and ordered request ids.
+   */
+  reorderRequests(input: ReorderRequestsInput): Promise<void>;
+
+  /**
+   * Creates a markdown document in a collection (optionally inside a folder).
+   *
+   * Does not open the document in a tab.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, name, and optional folder/content.
+   */
+  createDocument(input: CreateDocumentInput): Promise<DocumentSummary>;
+
+  /**
+   * Renames a markdown document without changing its body.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Document id, collection id, and new name.
+   */
+  renameDocument(input: RenameDocumentInput): Promise<DocumentSummary>;
+
+  /**
+   * Deletes a markdown document.
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm first.
+   *
+   * @param input - Document id and parent collection id.
+   */
+  deleteDocument(input: DeleteDocumentInput): Promise<void>;
+
+  /**
+   * Moves a markdown document to another folder or the collection root.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Document id, target folder, and optional index.
+   */
+  moveDocument(input: MoveDocumentInput): Promise<void>;
+
+  /**
+   * Persists a new document order within a folder or collection root.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Collection id, folder id, and ordered document ids.
+   */
+  reorderDocuments(input: ReorderDocumentsInput): Promise<void>;
+
+  /**
+   * Persists interleaved request + document order in one folder or collection root.
+   *
+   * Requires the `ui` permission. Prefer this over separate request/document
+   * reorder APIs when the UI shows a mixed container list.
+   *
+   * @param input - Collection id, folder id, and ordered item refs.
+   */
+  reorderContainerItems(input: ReorderContainerItemsInput): Promise<void>;
+
+  /**
+   * Lists collection summaries for building a sidebar tree.
+   *
+   * Archived collections are omitted unless {@link LibraryListOptions.includeArchived} is true.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param options - Optional archive filter.
+   */
+  listCollections(options?: LibraryListOptions): Promise<CollectionSummary[]>;
+
+  /**
+   * Lists folder summaries for one collection.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  listFolders(collectionId: number): Promise<FolderSummary[]>;
+
+  /**
+   * Lists lightweight saved-request summaries for one collection (no body/auth).
+   *
+   * Distinct from {@link listCollectionRequests}, which returns full rows in run order.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  listRequests(collectionId: number): Promise<SavedRequestSummary[]>;
+
+  /**
+   * Lists markdown document summaries for one collection (no content body).
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  listDocuments(collectionId: number): Promise<DocumentSummary[]>;
+
+  /**
+   * Returns a full library snapshot (collections + nested folders/requests/documents).
+   *
+   * Requires the `ui` permission.
+   *
+   * @param options - Optional archive filter.
+   */
+  listLibraryTree(options?: LibraryListOptions): Promise<LibraryTreeSnapshot>;
+
+  /**
+   * Subscribes to coarse library invalidation events so plugins can refetch without polling.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param listener - Called when collections, folders, requests, or documents refresh.
+   * @returns A {@link Disposable} that removes the listener when disposed.
+   */
+  onLibraryChanged(listener: (event: LibraryChangedEvent) => void): Disposable;
+
+  /**
+   * Returns saved requests for a collection or folder in sidebar run order.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   * @param folderId - Optional folder id; omit or null for collection-root run order.
+   */
+  listCollectionRequests(
+    collectionId: number,
+    folderId?: number | null
+  ): Promise<HostSavedRequest[]>;
+
+  /**
+   * Returns collection metadata needed to resolve saved requests in plugins.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param collectionId - Collection database id.
+   */
+  getCollectionMetadata(collectionId: number): Promise<HostCollection>;
+
+  /**
+   * Appends one HTTP result to the footer session console from a renderer plugin.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param payload - Request label and send result metadata.
+   */
+  logRequestToConsole(payload: {
+    requestName: string;
+    collectionName?: string;
+    result: PluginSendResult;
+  }): Promise<void>;
+
+  /**
+   * Sends one HTTP request through the main-process pipeline, bypassing the
+   * renderer's CORS restrictions. Failures resolve to an error result.
+   *
+   * Requires the `network` permission.
+   *
+   * @param input - Request configuration to execute.
+   */
+  sendHttpRequest(input: PluginSendRequestInput): Promise<PluginSendResult>;
+
+  /**
+   * Clears the active request tab's last HTTP response so plugin-only response
+   * views can take over the panel.
+   *
+   * Requires the `ui` permission.
+   */
+  clearResponse(): Promise<void>;
 
   /**
    * Opens (or focuses) an image viewer page tab for a local path, URL, or inline image.

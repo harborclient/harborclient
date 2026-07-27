@@ -3,7 +3,7 @@
   "productName": "HarborClient",
   "version": "2.8.4",
   "private": true,
-  "description": "The free API client that keeps your work private: no accounts, no subscriptions, no lock-in. Your work in a safe harbor that you control.",
+  "description": "HarborClient is a native desktop API workbench for building, sending, and inspecting HTTP requests. Debug what actually went over the wire, keep collections close to your development workflow, and share them through Git, Postgres, MySQL, Firestore, and more.",
   "main": "../gui/out/main/index.js",
   "desktopName": "harborclient",
   "homepage": "https://harborclient.com/",

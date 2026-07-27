@@ -178,4 +178,27 @@ describe('manifestSchema', () => {
       }
     ]);
   });
+
+  it('parses sidebarPanels with replaces: collections', () => {
+    const manifest = parsePluginManifest({
+      ...validManifest,
+      contributes: {
+        sidebarPanels: [{ id: 'my.collections', title: 'My Collections', replaces: 'collections' }]
+      }
+    });
+    expect(manifest.contributes?.sidebarPanels).toEqual([
+      { id: 'my.collections', title: 'My Collections', replaces: 'collections' }
+    ]);
+  });
+
+  it('rejects unknown sidebarPanels replaces values', () => {
+    expect(() =>
+      parsePluginManifest({
+        ...validManifest,
+        contributes: {
+          sidebarPanels: [{ id: 'my.panel', title: 'Panel', replaces: 'environments' }]
+        }
+      })
+    ).toThrow();
+  });
 });

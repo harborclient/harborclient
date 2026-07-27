@@ -489,6 +489,22 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   });
 
   handle(
+    'plugins:pushLibraryChanged',
+    ipcArgSchemas.pluginPushLibraryChanged,
+    (_event, eventPayload) => {
+      getPluginUiBroker().pushLibraryChanged(eventPayload);
+    }
+  );
+
+  handle(
+    'plugins:pushSidebarSelectionChanged',
+    ipcArgSchemas.pluginPushSidebarSelectionChanged,
+    (_event, selection) => {
+      getPluginUiBroker().pushSidebarSelectionChanged(selection);
+    }
+  );
+
+  handle(
     'plugins:executeAgentCommand',
     ipcArgSchemas.pluginExecuteAgentCommand,
     (_event, pluginId, commandId, args) => {

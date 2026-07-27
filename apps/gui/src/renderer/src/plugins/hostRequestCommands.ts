@@ -33,6 +33,7 @@ import { requestLoadRequest, sendRequest } from '#/renderer/src/store/thunks/req
 import {
   createCollection,
   createFolder,
+  focusSidebarItem,
   refreshCollectionContents
 } from '#/renderer/src/store/thunks/collections';
 import { registerCommand } from './createPluginContext';
@@ -254,12 +255,23 @@ export function draftFromOpenPayload(payload: OpenRequestDraftPayload): RequestD
 /**
  * Opens a saved collection request or focuses an existing tab for it.
  *
+ * Also focuses the parent collection/folder in the sidebar so replacement
+ * panels and the built-in tree stay in sync with the opened request.
+ *
  * @param requestId - Saved request database id.
  */
 export function loadSavedRequest(requestId: number): void {
   const state = store.getState();
   const openTab = state.tabs.tabs.find((tab) => isRequestTab(tab) && tab.draft.id === requestId);
-  if (openTab) {
+  if (openTab && isRequestTab(openTab)) {
+    if (openTab.draft.collection_id != null) {
+      store.dispatch(
+        focusSidebarItem({
+          collectionId: openTab.draft.collection_id,
+          folderId: openTab.draft.folder_id ?? null
+        })
+      );
+    }
     store.dispatch(setActiveTab(openTab.tabId));
     return;
   }
@@ -269,6 +281,12 @@ export function loadSavedRequest(requestId: number): void {
     throw new Error(`Request ${requestId} is not available. Open its collection first.`);
   }
 
+  store.dispatch(
+    focusSidebarItem({
+      collectionId: saved.collection_id,
+      folderId: saved.folder_id ?? null
+    })
+  );
   void store.dispatch(requestLoadRequest({ req: saved }));
 }
 

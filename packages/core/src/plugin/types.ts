@@ -41,6 +41,20 @@ export interface ManifestContributionEntry {
 }
 
 /**
+ * Manifest entry for a switchable left sidebar panel.
+ *
+ * When `replaces` is `"collections"`, the panel becomes the host's primary
+ * collections surface (hiding the built-in Collections tree) once registered.
+ * `replaces` is manifest-only — runtime `registerSidebarPanel` does not accept it.
+ */
+export type SidebarPanelManifestEntry = ManifestContributionEntry & {
+  /**
+   * Built-in sidebar surface this panel replaces when registered and enabled.
+   */
+  replaces?: 'collections';
+};
+
+/**
  * Screenshot entry in the plugin manifest.
  */
 export type PluginScreenshot =
@@ -73,7 +87,7 @@ export interface PluginManifest {
   permissions: PluginPermission[];
   contributes?: {
     settingsSections?: ManifestContributionEntry[];
-    sidebarPanels?: ManifestContributionEntry[];
+    sidebarPanels?: SidebarPanelManifestEntry[];
     sidebarSections?: ManifestContributionEntry[];
     mainViews?: ManifestContributionEntry[];
     modals?: ManifestContributionEntry[];
@@ -250,6 +264,12 @@ export interface RegisteredSidebarPanel {
   icon?: string;
   order?: number;
   contributionId: string;
+  /**
+   * Built-in surface this panel replaces, copied from the manifest entry.
+   * When `"collections"`, the host treats this panel as the primary collections
+   * surface (see `selectCollectionsReplacementPanel`).
+   */
+  replaces?: 'collections';
 }
 
 /**
