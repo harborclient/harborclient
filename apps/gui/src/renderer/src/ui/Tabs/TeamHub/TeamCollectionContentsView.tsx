@@ -93,7 +93,33 @@ function sortRequests(requests: TeamHubAdminRequestSummary[]): TeamHubAdminReque
 }
 
 /**
+ * Builds a display path from collection root to the given admin folder.
+ *
+ * @param folderId - Folder uuid to resolve.
+ * @param folders - All folder summaries in the collection.
+ * @returns Path string using `" / "` separators.
+ */
+function adminFolderPath(folderId: string, folders: TeamHubAdminFolderSummary[]): string {
+  const byId = new Map(folders.map((folder) => [folder.id, folder]));
+  const segments: string[] = [];
+  let current = byId.get(folderId);
+  const seen = new Set<string>();
+
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id);
+    segments.unshift(current.name);
+    current =
+      current.parentFolderId != null ? (byId.get(current.parentFolderId) ?? undefined) : undefined;
+  }
+
+  return segments.join(' / ');
+}
+
+/**
  * Groups saved requests under folder headings plus an unfiled root section.
+ *
+ * Nested folders use a root-to-leaf path as the section title so operators can
+ * tell which branch a request belongs to.
  *
  * @param folders - Folder summaries in the collection.
  * @param requests - Request summaries in the collection.
@@ -116,7 +142,7 @@ function buildRequestSections(
     );
 
     if (folderRequests.length > 0) {
-      sections.push({ title: folder.name, requests: folderRequests });
+      sections.push({ title: adminFolderPath(folder.id, folders), requests: folderRequests });
     }
   }
 

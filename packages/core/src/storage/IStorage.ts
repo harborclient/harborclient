@@ -181,11 +181,7 @@ export interface IStorage {
    * @param parentFolderId - Parent folder id, or null/omitted for collection root.
    * @returns The newly created folder.
    */
-  createFolder(
-    collectionId: number,
-    name: string,
-    parentFolderId?: number | null
-  ): Promise<Folder>;
+  createFolder(collectionId: number, name: string, parentFolderId?: number | null): Promise<Folder>;
 
   /**
    * Moves a folder to a new parent and optional sibling index.
@@ -195,11 +191,7 @@ export interface IStorage {
    * @param sortOrder - Optional zero-based index among new siblings.
    * @returns The updated folder.
    */
-  moveFolder(
-    folderId: number,
-    parentFolderId: number | null,
-    sortOrder?: number
-  ): Promise<Folder>;
+  moveFolder(folderId: number, parentFolderId: number | null, sortOrder?: number): Promise<Folder>;
 
   /**
    * Renames a folder.

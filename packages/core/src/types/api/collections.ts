@@ -18,6 +18,46 @@ import type { KeyValue, Variable } from '../common';
 import type { ScriptRef } from '../script';
 import type { SavedRequest } from '../request';
 import type { ContainerItemRef } from '../../collectionContainerOrder';
+import type {
+  ApisIoCollection,
+  ApisIoCollectionFormat,
+  ApisIoCollectionList
+} from '../../apisio/catalog';
+
+/**
+ * Preview summary for a public apis.io collection before import.
+ */
+export interface PublicCollectionPreview {
+  /**
+   * Original catalog listing.
+   */
+  item: ApisIoCollection;
+
+  /**
+   * Detected import format.
+   */
+  format: ApisIoCollectionFormat;
+
+  /**
+   * Absolute URL the artifact was fetched from.
+   */
+  sourceUrl: string;
+
+  /**
+   * Total number of HTTP requests in the document.
+   */
+  requestCount: number;
+
+  /**
+   * Total number of folders in the document.
+   */
+  folderCount: number;
+
+  /**
+   * Top-level folder and request names.
+   */
+  outline: string[];
+}
 
 /**
  * IPC methods for collections.
@@ -103,6 +143,28 @@ export interface ApiCollections {
    * @returns The imported collection, or null when the dialog was canceled.
    */
   importCollection: () => Promise<Collection | null>;
+  /**
+   * Searches the apis.io public catalog for Open Collection and Postman Collection artifacts.
+   *
+   * @param query - Free-text query over name and description.
+   * @param page - Optional 1-based page number (defaults to 1).
+   * @returns Paginated catalog results.
+   */
+  searchPublicCollections: (query: string, page?: number) => Promise<ApisIoCollectionList>;
+  /**
+   * Downloads a public apis.io collection and returns a preview summary.
+   *
+   * @param item - Catalog listing selected from search results.
+   * @returns Preview with format, source URL, counts, and outline.
+   */
+  previewPublicCollection: (item: ApisIoCollection) => Promise<PublicCollectionPreview>;
+  /**
+   * Downloads a public apis.io collection and imports it into the default data provider.
+   *
+   * @param item - Catalog listing to import.
+   * @returns The imported collection, or null when the user canceled a warning dialog.
+   */
+  importPublicCollection: (item: ApisIoCollection) => Promise<Collection | null>;
   /**
    * Exports a request to a JSON file via a native save dialog.
    *

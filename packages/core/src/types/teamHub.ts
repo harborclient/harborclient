@@ -258,7 +258,12 @@ export interface TeamHubAdminFolderSummary {
   name: string;
 
   /**
-   * Zero-based sort order within the collection.
+   * Parent folder UUID, or null when the folder is at the collection root.
+   */
+  parentFolderId: string | null;
+
+  /**
+   * Zero-based sort order among siblings that share the same parent.
    */
   sortOrder: number;
 }

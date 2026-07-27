@@ -108,6 +108,8 @@ import type {
   WorkspaceLayout,
   WorkspaceRequest
 } from '@harborclient/core/types';
+import type { ApisIoCollection, ApisIoCollectionList } from '@harborclient/core/apisio/catalog';
+import type { PublicCollectionPreview } from '@harborclient/core/types/api/collections';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
 import type {
   CreateTerminalInput,
@@ -241,6 +243,37 @@ function exportCollection(id: number): Promise<CollectionExportResult> {
  */
 function importCollection(): Promise<Collection | null> {
   return ipcRenderer.invoke('collections:import');
+}
+
+/**
+ * Searches the apis.io public catalog for importable collections via IPC.
+ *
+ * @param query - Free-text query over name and description.
+ * @param page - Optional 1-based page number (defaults to 1).
+ * @returns Paginated catalog results.
+ */
+function searchPublicCollections(query: string, page?: number): Promise<ApisIoCollectionList> {
+  return ipcRenderer.invoke('collections:searchPublic', query, page);
+}
+
+/**
+ * Downloads a public apis.io collection and returns a preview summary via IPC.
+ *
+ * @param item - Catalog listing selected from search results.
+ * @returns Preview with format, source URL, counts, and outline.
+ */
+function previewPublicCollection(item: ApisIoCollection): Promise<PublicCollectionPreview> {
+  return ipcRenderer.invoke('collections:previewPublic', item);
+}
+
+/**
+ * Downloads a public apis.io collection and imports it via IPC.
+ *
+ * @param item - Catalog listing to import.
+ * @returns The imported collection, or null when the user canceled a warning dialog.
+ */
+function importPublicCollection(item: ApisIoCollection): Promise<Collection | null> {
+  return ipcRenderer.invoke('collections:importPublic', item);
 }
 
 /**
@@ -3995,6 +4028,9 @@ const api: Api = {
   duplicateCollection,
   exportCollection,
   importCollection,
+  searchPublicCollections,
+  previewPublicCollection,
+  importPublicCollection,
   exportRequest,
   importRequest,
   exportRunResults,

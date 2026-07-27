@@ -24,6 +24,7 @@ import {
   focusSidebarItem,
   importRequest,
   loadTrustedKeys,
+  moveFolder,
   moveRequestToFolder,
   moveDocumentToFolder,
   newRequestInCollection,
@@ -163,9 +164,9 @@ export interface CollectionActions {
   onSaveAllInFolder: (collectionId: number, folderId: number) => Promise<void>;
 
   /**
-   * Opens the create-folder modal.
+   * Opens the create-folder modal at the collection root or inside a folder.
    */
-  onNewFolder: (collectionId: number) => void;
+  onNewFolder: (collectionId: number, parentFolderId?: number | null) => void;
 
   /**
    * Creates a new request at the collection root.
@@ -198,9 +199,14 @@ export interface CollectionActions {
   onRenameFolder: (id: number, collectionId: number) => void;
 
   /**
-   * Deletes a folder and any requests it contains, confirming first.
+   * Deletes a folder subtree and its requests, confirming first.
    */
-  onDeleteFolder: (id: number, collectionId: number, requestIds: number[]) => Promise<void>;
+  onDeleteFolder: (
+    id: number,
+    collectionId: number,
+    requestIds: number[],
+    subfolderCount: number
+  ) => Promise<void>;
 
   /**
    * Persists a new top-level collection order.
@@ -214,6 +220,16 @@ export interface CollectionActions {
     collectionId: number,
     parentFolderId: number | null,
     orderedFolderIds: number[]
+  ) => Promise<void>;
+
+  /**
+   * Reparents a folder and optionally inserts it at a sibling position.
+   */
+  onMoveFolder: (
+    collectionId: number,
+    folderId: number,
+    parentFolderId: number | null,
+    sortOrder?: number
   ) => Promise<void>;
 
   /**
@@ -470,8 +486,8 @@ export function useCollectionActions(): CollectionActions {
         showAlert(dispatch, formatErrorMessage(err, 'Failed to save requests'));
       }
     },
-    onNewFolder: (collectionId) => {
-      openNewFolder(collectionId);
+    onNewFolder: (collectionId, parentFolderId) => {
+      openNewFolder(collectionId, parentFolderId);
     },
     onNewRequestInCollection: async (id) => {
       try {
@@ -506,12 +522,18 @@ export function useCollectionActions(): CollectionActions {
     onRenameFolder: (id, collectionId) => {
       openRenameFolder(id, collectionId);
     },
-    onDeleteFolder: async (id, collectionId, requestIds) => {
+    onDeleteFolder: async (id, collectionId, requestIds, subfolderCount) => {
       const count = requestIds.length;
       const message =
-        count > 0
-          ? `Delete this folder and ${count} request${count === 1 ? '' : 's'} inside it?`
-          : 'Delete this folder?';
+        subfolderCount > 0
+          ? `Delete this folder? ${subfolderCount} subfolder${
+              subfolderCount === 1 ? '' : 's'
+            } and ${count} request${
+              count === 1 ? '' : 's'
+            } inside this folder tree will also be deleted.`
+          : count > 0
+            ? `Delete this folder and ${count} request${count === 1 ? '' : 's'} inside it?`
+            : 'Delete this empty folder?';
       const confirmed = await showConfirm(dispatch, {
         title: 'Delete folder',
         message,
@@ -530,6 +552,9 @@ export function useCollectionActions(): CollectionActions {
     },
     onReorderFolders: async (collectionId, parentFolderId, orderedFolderIds) => {
       await dispatch(reorderFolders({ collectionId, parentFolderId, orderedFolderIds }));
+    },
+    onMoveFolder: async (collectionId, folderId, parentFolderId, sortOrder) => {
+      await dispatch(moveFolder({ collectionId, folderId, parentFolderId, sortOrder })).unwrap();
     },
     onReorderRequests: async (collectionId, folderId, orderedRequestIds) => {
       await dispatch(reorderRequests({ collectionId, folderId, orderedRequestIds }));

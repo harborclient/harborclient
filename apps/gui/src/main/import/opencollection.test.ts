@@ -190,10 +190,14 @@ describe('convertOpenCollection', () => {
     const converted = convertOpenCollection(bundledFixture);
 
     expect(converted.requests).toHaveLength(5);
-    expect((converted.folders ?? []).map((folder) => folder.name)).toEqual([
-      'Users',
-      'Users / Nested'
-    ]);
+    const users = converted.folders?.find((folder) => folder.name === 'Users');
+    const nestedFolder = converted.folders?.find((folder) => folder.name === 'Nested');
+    expect(users).toMatchObject({ parent_folder_uuid: null, sort_order: 0 });
+    expect(nestedFolder).toMatchObject({
+      parent_folder_uuid: users?.uuid,
+      sort_order: 0
+    });
+    expect(new Set(converted.folders?.map((folder) => folder.uuid)).size).toBe(2);
 
     const health = converted.requests.find((request) => request.name === 'Health');
     expect(health).toMatchObject({
@@ -214,13 +218,17 @@ describe('convertOpenCollection', () => {
       body: '{\n  "name": "Ada"\n}',
       comment: 'Creates a user',
       folder_name: 'Users',
+      folder_uuid: users?.uuid,
       pre_request_script: 'console.log("create");'
     });
     expect(createUser?.auth?.type).toBe('basic');
     expect(createUser?.auth?.basic).toEqual({ username: 'admin', password: 'secret' });
 
     const nested = converted.requests.find((request) => request.name === 'List pets');
-    expect(nested?.folder_name).toBe('Users / Nested');
+    expect(nested).toMatchObject({
+      folder_name: 'Nested',
+      folder_uuid: nestedFolder?.uuid
+    });
 
     const login = converted.requests.find((request) => request.name === 'Login form');
     expect(login?.body_type).toBe('urlencoded');

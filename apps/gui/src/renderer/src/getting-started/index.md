@@ -48,7 +48,11 @@ Open the **Auth** tab on a request or collection and choose **Basic Auth**, **Be
 
 ### Can I import Postman or Bruno collections?
 
-Yes. HarborClient imports Postman v2.1 collection exports and Bruno on-disk collections. Use **File → Import** or click **+** in the **Collections** sidebar and choose **Import from file**, then select your export or Bruno folder. Some Postman-specific settings may need adjustment after import. See [Collections](https://harborclient.com/collections#postman-collections).
+Yes. HarborClient imports Postman v2.1 collection exports and Bruno on-disk collections. Use **File → Import** or click **+** in the **Collections** sidebar and choose **Import from file**, then select your export or Bruno folder. Nested folders from those formats are preserved as a multi-level tree in the sidebar. Some Postman-specific settings may need adjustment after import. See [Collections](https://harborclient.com/collections#postman-collections).
+
+### Can I nest folders inside folders?
+
+Yes. Create a subfolder from a folder’s actions menu, or drag a folder onto another folder. Collection exports include optional `parent_folder_uuid` on each folder so nested structure round-trips. Folders created before nested-folder support may still use a single flat name such as `Auth / Users` from older imports; new imports create real nesting instead.
 
 ### How do I write and run tests?
 

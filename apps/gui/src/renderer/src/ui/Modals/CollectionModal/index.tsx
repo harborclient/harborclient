@@ -34,9 +34,11 @@ import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 
 import { GitTabPanel } from './GitTabPanel';
+import { PublicCollectionsTabPanel } from './PublicCollections';
 
 /**
- * Modal for creating a collection, importing from file, joining a shared collection, or linking Git.
+ * Modal for creating a collection, importing from file, joining a shared collection,
+ * browsing public apis.io collections, or linking Git.
  */
 export function CollectionModal(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -273,7 +275,8 @@ export function CollectionModal(): JSX.Element | null {
                 { value: 'create', label: 'Storage' },
                 { value: 'git', label: 'Git' },
                 { value: 'import', label: 'Import' },
-                { value: 'join', label: 'Join collection' }
+                { value: 'join', label: 'Join collection' },
+                { value: 'public', label: 'Public collections' }
               ]}
             />
           </div>
@@ -355,6 +358,10 @@ export function CollectionModal(): JSX.Element | null {
             <ModalFooter>
               <Button onClick={() => void handleImport()}>Import file</Button>
             </ModalFooter>
+          </SegmentedTabPanel>
+
+          <SegmentedTabPanel value="public">
+            <PublicCollectionsTabPanel />
           </SegmentedTabPanel>
         </SegmentedTabsGroup>
       ) : (

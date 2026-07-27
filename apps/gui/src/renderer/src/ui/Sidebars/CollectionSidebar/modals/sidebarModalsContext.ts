@@ -30,9 +30,9 @@ export function ensureMarkdownFilename(name: string): string {
  */
 export interface SidebarModalsContextValue {
   /**
-   * Opens the create-folder modal for a collection.
+   * Opens the create-folder modal at the collection root or inside a folder.
    */
-  openNewFolder: (collectionId: number) => void;
+  openNewFolder: (collectionId: number, parentFolderId?: number | null) => void;
 
   /**
    * Opens the rename-folder modal for a folder.

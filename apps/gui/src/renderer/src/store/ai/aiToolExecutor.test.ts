@@ -52,7 +52,8 @@ const listCollectionsMock =
   vi.fn<() => Promise<{ collections: Collection[]; warnings: string[] }>>();
 const listDocumentsMock = vi.fn<(collectionId: number) => Promise<unknown[]>>();
 const createCollectionMock = vi.fn<(name: string, providerId?: string) => Promise<Collection>>();
-const createFolderMock = vi.fn<(collectionId: number, name: string) => Promise<Folder>>();
+const createFolderMock =
+  vi.fn<(collectionId: number, name: string, parentFolderId?: number | null) => Promise<Folder>>();
 const saveRequestMock = vi.fn<(input: SaveRequestInput) => Promise<SavedRequest>>();
 const sendRequestMock = vi.fn<(req: unknown, requestId?: string) => Promise<SendResult>>();
 const getCookiesMock = vi.fn<(domain: string) => Promise<KeyValue[]>>();
@@ -2730,6 +2731,31 @@ hc.test("Status code is 2xx", () => {
       folder: { id: 22, uuid: 'folder-22', name: 'Users', collectionId: 5 }
     });
     expect(createFolderMock).toHaveBeenCalledWith(5, 'Users');
+  });
+
+  it('creates a nested folder beneath a parent uuid', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const collection = collectionFixture(5, 'API');
+    const parent = folderFixture(21, 5, 'Auth');
+    const child = {
+      ...folderFixture(22, 5, 'Users'),
+      parent_folder_id: parent.id
+    };
+    store.dispatch(setCollections([collection]));
+    store.dispatch(setFoldersForCollection({ collectionId: 5, folders: [parent] }));
+    createFolderMock.mockResolvedValue(child);
+    listFoldersMock.mockResolvedValue([parent, child]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'create_folder',
+        { collectionId: 5, name: 'Users', parentFolderUuid: parent.uuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.ok).toBe(true);
+    expect(createFolderMock).toHaveBeenCalledWith(5, 'Users', parent.id);
   });
 
   it('returns an error when create_folder targets a missing collection', async () => {

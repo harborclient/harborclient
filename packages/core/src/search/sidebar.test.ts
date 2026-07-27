@@ -199,6 +199,37 @@ describe('searchSidebar', () => {
     expect(filter?.requestIds.has(101)).toBe(false);
   });
 
+  it('reveals every folder ancestor for nested request and folder matches', () => {
+    const nestedFolder: Folder = {
+      ...folderUsers,
+      id: 11,
+      uuid: 'folder-admins',
+      name: 'Admins',
+      parent_folder_id: folderUsers.id
+    };
+    const nestedRequest: SavedRequest = {
+      ...requestListUsers,
+      id: 103,
+      uuid: 'req-admin-report',
+      name: 'Nested admin report',
+      folder_id: nestedFolder.id
+    };
+    const nestedInput = {
+      ...sampleInput,
+      foldersByCollection: { 1: [folderUsers, nestedFolder] },
+      requestsByCollection: {
+        1: [requestListUsers, requestCreateUser, requestHealth, nestedRequest]
+      }
+    };
+    const nestedIndex = buildSidebarSearchIndex(nestedInput);
+
+    const requestFilter = searchSidebar(nestedInput, nestedIndex, 'Nested admin report');
+    expect([...requestFilter!.folderIds]).toEqual([11, 10]);
+
+    const folderFilter = searchSidebar(nestedInput, nestedIndex, 'Admins');
+    expect([...folderFilter!.folderIds]).toEqual([11, 10]);
+  });
+
   it('matches requests by url', () => {
     const hits = searchTextIndex<SidebarSearchDocument>(index, 'health.delta.local/status', {
       properties: ['name', 'url', 'method', 'comment', 'tags'],
@@ -332,6 +363,32 @@ describe('sidebarRequestBreadcrumb', () => {
       collectionName: 'Public API',
       folderName: 'Users'
     });
+  });
+
+  it('returns the full folder path for deeply nested requests', () => {
+    const nestedFolder: Folder = {
+      ...folderUsers,
+      id: 11,
+      uuid: 'folder-admins',
+      name: 'Admins',
+      parent_folder_id: folderUsers.id
+    };
+    const nestedInput = {
+      ...sampleInput,
+      foldersByCollection: { 1: [folderUsers, nestedFolder] }
+    };
+
+    expect(sidebarRequestBreadcrumb(nestedInput, 1, 11)).toEqual({
+      collectionName: 'Public API',
+      folderName: 'Users / Admins'
+    });
+    expect(
+      sidebarEntitySubtitle(nestedInput, {
+        kind: 'folder',
+        collectionId: 1,
+        folderId: 11
+      })
+    ).toBe('Public API / Users');
   });
 
   it('returns empty names when collection id is missing or unknown', () => {

@@ -42,6 +42,11 @@ interface FolderModalState {
   collectionId: number;
 
   /**
+   * Parent folder for creates, or null for the collection root.
+   */
+  parentFolderId?: number | null;
+
+  /**
    * Folder id being renamed, when in rename mode.
    */
   folderId?: number;
@@ -115,11 +120,20 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
   const [environmentModalError, setEnvironmentModalError] = useState<string | null>(null);
 
   /**
-   * Opens the create-folder modal for a collection.
+   * Opens the create-folder modal at the collection root or inside a folder.
    */
-  const openNewFolder = useCallback((collectionId: number): void => {
-    setFolderModal({ mode: 'create', collectionId, name: '', error: null });
-  }, []);
+  const openNewFolder = useCallback(
+    (collectionId: number, parentFolderId?: number | null): void => {
+      setFolderModal({
+        mode: 'create',
+        collectionId,
+        parentFolderId: parentFolderId ?? null,
+        name: '',
+        error: null
+      });
+    },
+    []
+  );
 
   /**
    * Opens the rename-folder modal, seeding the current folder name.
@@ -208,11 +222,11 @@ export function SidebarModalsProvider({ children }: ProviderProps): JSX.Element 
     const name = folderModal.name.trim();
     if (!name) return;
 
-    const { mode, collectionId, folderId } = folderModal;
+    const { mode, collectionId, folderId, parentFolderId } = folderModal;
     setFolderModal({ ...folderModal, error: null });
     try {
       if (mode === 'create') {
-        await dispatch(createFolder({ collectionId, name })).unwrap();
+        await dispatch(createFolder({ collectionId, name, parentFolderId })).unwrap();
         toast.success('Folder created');
       } else if (folderId != null) {
         await dispatch(renameFolder({ id: folderId, collectionId, name })).unwrap();

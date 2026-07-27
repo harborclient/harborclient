@@ -1,4 +1,5 @@
 import type { Folder, SavedRequest } from '@harborclient/core/types';
+import { getFolderPath } from '@harborclient/core/folderTree';
 
 /**
  * Inputs for resolving a human-readable collection runner target label.
@@ -37,9 +38,7 @@ export function resolveRunnerTargetNames(
   const collectionName =
     collections.find((collection) => collection.id === target.collectionId)?.name ?? 'Collection';
   const folderName =
-    target.folderId == null
-      ? null
-      : (folders.find((folder) => folder.id === target.folderId)?.name ?? 'Folder');
+    target.folderId == null ? null : getFolderPath(target.folderId, folders) || 'Folder';
   const requestName =
     target.requestId == null
       ? null

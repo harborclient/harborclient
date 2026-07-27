@@ -1,4 +1,5 @@
 import { CookieJar } from '@harborclient/core/cookies/CookieJar';
+import { getRequestsInRunOrder } from '@harborclient/core/collectionRunner';
 import { executeHttpSend } from '@harborclient/core/network/executeHttpSend';
 import { runRequest } from '@harborclient/core/requestRunner';
 import type {
@@ -100,9 +101,7 @@ export async function runCollection(options: RunCollectionOptions): Promise<numb
   const folders = await storage.listFolders(collection.id);
   const folderById = new Map<number, Folder>(folders.map((f) => [f.id, f]));
 
-  const ordered = [...requests].sort(
-    (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)
-  );
+  const ordered = getRequestsInRunOrder(collection.id, null, requests, folders);
 
   const cookieJar = new CookieJar(database);
   const scriptRunner = new NodeScriptRunner(settings.scriptTimeoutMs, true);

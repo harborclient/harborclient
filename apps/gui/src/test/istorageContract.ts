@@ -710,9 +710,9 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
 
       expect(moved.parent_folder_id).toBe(destination.id);
       expect(moved.sort_order).toBe(0);
-      expect((await db.listFolders(collection.id)).find((folder) => folder.id === child.id)).toEqual(
-        expect.objectContaining({ parent_folder_id: destination.id, sort_order: 0 })
-      );
+      expect(
+        (await db.listFolders(collection.id)).find((folder) => folder.id === child.id)
+      ).toEqual(expect.objectContaining({ parent_folder_id: destination.id, sort_order: 0 }));
     });
 
     it('moveFolder rejects moving a folder under itself or a descendant', async () => {
@@ -734,9 +734,15 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       const collection = await db.createCollection('Recursive Delete');
       const parent = await db.createFolder(collection.id, 'Parent');
       const child = await db.createFolder(collection.id, 'Child', parent.id);
-      await db.saveRequest(baseRequestInput(collection.id, { name: 'Parent Req', folder_id: parent.id }));
-      await db.saveRequest(baseRequestInput(collection.id, { name: 'Child Req', folder_id: child.id }));
-      await db.saveDocument(baseDocumentInput(collection.id, { name: 'child.md', folder_id: child.id }));
+      await db.saveRequest(
+        baseRequestInput(collection.id, { name: 'Parent Req', folder_id: parent.id })
+      );
+      await db.saveRequest(
+        baseRequestInput(collection.id, { name: 'Child Req', folder_id: child.id })
+      );
+      await db.saveDocument(
+        baseDocumentInput(collection.id, { name: 'child.md', folder_id: child.id })
+      );
 
       await db.deleteFolder(parent.id);
 

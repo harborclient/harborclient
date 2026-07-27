@@ -1,4 +1,5 @@
 import { load as parseYaml } from 'js-yaml';
+import { randomUUID } from 'crypto';
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
 import { serializeFormParts } from '@harborclient/core/formData';
 import { serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
@@ -474,13 +475,13 @@ function isHttpItem(item: OpenCollectionItem): boolean {
  * Converts a single OpenCollection HTTP item into a HarborClient exported request.
  *
  * @param item - OpenCollection item with an http block.
- * @param folderPath - Flattened folder path for the request, or null at collection root.
+ * @param folder - Immediate parent folder metadata, or null at collection root.
  * @param sortOrder - Position within the collection for sidebar ordering.
  * @returns Exported request row, or null when the method is unsupported.
  */
 function convertHttpItem(
   item: OpenCollectionItem,
-  folderPath: string | null,
+  folder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   sortOrder: number
 ): ExportedRequest | null {
   const http = item.http;
@@ -526,24 +527,24 @@ function convertHttpItem(
     comment,
     tags: tags.join(', '),
     sort_order: sortOrder,
-    folder_name: folderPath
+    folder_name: folder?.name ?? null,
+    folder_uuid: folder?.uuid ?? null
   };
 }
 
 /**
- * Recursively walks OpenCollection items, flattening nested folders and collecting HTTP requests.
+ * Recursively walks OpenCollection items while preserving folder ancestry.
  *
- * HarborClient supports only one folder level, so nested paths are joined with " / ".
  * Non-HTTP protocols (gRPC, GraphQL, WebSocket, etc.) are skipped.
  *
  * @param items - OpenCollection item array at the current depth.
- * @param folderPath - Accumulated folder path from ancestor folders.
- * @param folders - Mutable list of unique flattened folder names in encounter order.
+ * @param parentFolder - Immediate parent folder metadata, or null at collection root.
+ * @param folders - Mutable list of nested folder rows in encounter order.
  * @param requests - Mutable list of converted exported requests.
  */
 function walkItems(
   items: OpenCollectionItem[] | undefined,
-  folderPath: string | null,
+  parentFolder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   folders: ExportedFolder[],
   requests: ExportedRequest[]
 ): void {
@@ -551,12 +552,24 @@ function walkItems(
     return;
   }
 
+  let folderSortOrder = 0;
   for (const item of items) {
     if (isFolderItem(item)) {
       const segment = typeof item.info?.name === 'string' ? item.info.name.trim() : '';
-      const nextPath =
-        segment.length > 0 ? (folderPath ? `${folderPath} / ${segment}` : segment) : folderPath;
-      walkItems(item.items, nextPath, folders, requests);
+      if (!segment) {
+        walkItems(item.items, parentFolder, folders, requests);
+        continue;
+      }
+
+      const folder: ExportedFolder = {
+        uuid: randomUUID(),
+        name: segment,
+        parent_folder_uuid: parentFolder?.uuid ?? null,
+        sort_order: folderSortOrder
+      };
+      folderSortOrder += 1;
+      folders.push(folder);
+      walkItems(item.items, folder, folders, requests);
       continue;
     }
 
@@ -564,11 +577,7 @@ function walkItems(
       continue;
     }
 
-    if (folderPath && !folders.some((folder) => folder.name === folderPath)) {
-      folders.push({ name: folderPath, sort_order: folders.length });
-    }
-
-    const converted = convertHttpItem(item, folderPath, requests.length);
+    const converted = convertHttpItem(item, parentFolder, requests.length);
     if (converted) {
       requests.push(converted);
     }
@@ -579,7 +588,7 @@ function walkItems(
  * Converts a bundled OpenCollection document into HarborClient's portable CollectionExport format.
  *
  * Unsupported features (gRPC/GraphQL/WebSocket requests, unsupported auth types, environments,
- * etc.) are omitted. Nested folders are flattened to a single level.
+ * etc.) are omitted. Nested folders retain their parent relationships.
  *
  * @param data - Parsed OpenCollection JSON or YAML document.
  * @returns HarborClient collection export ready for validateCollectionExport.

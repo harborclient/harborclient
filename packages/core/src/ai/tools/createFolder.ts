@@ -14,6 +14,11 @@ export interface CreateFolderToolArgs {
    * Display name for the new folder.
    */
   name: string;
+
+  /**
+   * Portable uuid of the parent folder; omit to create at the collection root.
+   */
+  parentFolderUuid?: string;
 }
 
 /**
@@ -21,6 +26,7 @@ export interface CreateFolderToolArgs {
  *
  * @param {number} collectionId - Collection id that will own the new folder.
  * @param {string} name - Display name for the new folder.
+ * @param {string} [parentFolderUuid] - Portable uuid of the parent folder.
  */
 export const createFolderTool = {
   name: 'create_folder',
@@ -37,7 +43,12 @@ export const createFolderTool = {
             type: 'number',
             description: 'Collection id that will own the new folder.'
           },
-          name: { type: 'string', description: 'Display name for the new folder.' }
+          name: { type: 'string', description: 'Display name for the new folder.' },
+          parentFolderUuid: {
+            type: 'string',
+            description:
+              'Portable uuid of the parent folder. Omit to create the folder at the collection root.'
+          }
         },
         required: ['collectionId', 'name'],
         additionalProperties: false
@@ -46,6 +57,7 @@ export const createFolderTool = {
   },
   inputShape: {
     collectionId: z.number(),
-    name: z.string()
+    name: z.string(),
+    parentFolderUuid: z.string().optional()
   }
 } as const satisfies ITool<'create_folder'>;

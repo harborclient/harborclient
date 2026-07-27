@@ -113,6 +113,7 @@ function mapTeamHubAdminCollectionContents(
     folders: folders.map((folder) => ({
       id: folder.id,
       name: folder.name,
+      parentFolderId: folder.parentFolderId ?? null,
       sortOrder: folder.sortOrder
     })),
     requests: requests.map((request) => ({

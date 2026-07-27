@@ -242,13 +242,19 @@ function serverToRunResult(record: TeamHubRunResultDetail, localId: number): Pro
  * @param record - Folder payload from HarborClient Server.
  * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
  * @param localCollectionId - Mapped parent collection id.
+ * @param localParentFolderId - Mapped parent folder id, or null at collection root.
  */
-function serverToFolder(record: FolderRecord, localId: number, localCollectionId: number): Folder {
+function serverToFolder(
+  record: FolderRecord,
+  localId: number,
+  localCollectionId: number,
+  localParentFolderId: number | null
+): Folder {
   return {
     id: localId,
     uuid: record.id,
     collection_id: localCollectionId,
-    parent_folder_id: null,
+    parent_folder_id: localParentFolderId,
     name: record.name,
     sort_order: record.sortOrder,
     variables: [],
@@ -1168,12 +1174,21 @@ export class TeamHubStorage implements IStorage {
   async listFolders(collectionId: number): Promise<Folder[]> {
     const collectionServerId = this.requireServerId('collection', collectionId);
     const records = await this.client.listFolders(collectionServerId);
-    return records.map((record) =>
-      this.mergeFolderSettings(
-        serverToFolder(record, this.idMap.toLocalId('folder', record.id), collectionId),
+    return records.map((record) => {
+      const localParentFolderId =
+        record.parentFolderId != null
+          ? this.idMap.toLocalId('folder', record.parentFolderId)
+          : null;
+      return this.mergeFolderSettings(
+        serverToFolder(
+          record,
+          this.idMap.toLocalId('folder', record.id),
+          collectionId,
+          localParentFolderId
+        ),
         record.id
-      )
-    );
+      );
+    });
   }
 
   /**
@@ -1181,70 +1196,55 @@ export class TeamHubStorage implements IStorage {
    *
    * @param collectionId - Provider-local collection id.
    * @param name - Display name for the folder.
-   * @param parentFolderId - Parent folder id; ignored until Team Hub supports nesting.
+   * @param parentFolderId - Parent folder id, or null for collection root.
    */
   async createFolder(
     collectionId: number,
     name: string,
     parentFolderId?: number | null
   ): Promise<Folder> {
-    if (parentFolderId != null) {
-      throw new Error('Nested folders are not supported for Team Hub collections yet');
-    }
     const collectionServerId = this.requireServerId('collection', collectionId);
+    const parentFolderServerId =
+      parentFolderId != null ? this.requireServerId('folder', parentFolderId) : null;
     const record = await this.client.createFolder(collectionServerId, {
-      name: trimRequiredName(name, 'Folder name')
+      name: trimRequiredName(name, 'Folder name'),
+      parentFolderId: parentFolderServerId
     });
-    return serverToFolder(record, this.idMap.toLocalId('folder', record.id), collectionId);
+    return serverToFolder(
+      record,
+      this.idMap.toLocalId('folder', record.id),
+      collectionId,
+      parentFolderId ?? null
+    );
   }
 
   /**
    * Moves a folder to a new parent and optional sibling index.
    *
-   * Team Hub collections currently support only flat folder trees on the server.
-   *
    * @param folderId - Provider-local folder id.
    * @param parentFolderId - New parent folder id, or null for collection root.
    * @param sortOrder - Optional zero-based index among new siblings.
-   * @returns The updated folder when only reordering at collection root.
+   * @returns The updated folder.
    */
   async moveFolder(
     folderId: number,
     parentFolderId: number | null,
     sortOrder?: number
   ): Promise<Folder> {
-    const { collectionId } = await this.findFolderContainer(folderId);
-    const folders = await this.listFolders(collectionId);
-    const folder = folders.find((entry) => entry.id === folderId);
-    if (!folder) {
-      throw new Error('Folder not found');
-    }
-
-    if (
-      parentFolderId !== (folder.parent_folder_id ?? null) &&
-      (parentFolderId != null || folder.parent_folder_id != null)
-    ) {
-      throw new Error('Nested folders are not supported for Team Hub collections yet');
-    }
-
-    if (sortOrder == null) {
-      return folder;
-    }
-
-    const rootSiblings = folders
-      .filter((entry) => (entry.parent_folder_id ?? null) === null)
-      .sort(
-        (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name)
-      );
-    const orderedIds = rootSiblings.map((entry) => entry.id);
-    const currentIndex = orderedIds.indexOf(folderId);
-    if (currentIndex < 0) {
-      throw new Error('Folder not found');
-    }
-    orderedIds.splice(currentIndex, 1);
-    orderedIds.splice(Math.max(0, Math.min(sortOrder, orderedIds.length)), 0, folderId);
-    await this.reorderFolders(collectionId, null, orderedIds);
-    return (await this.listFolders(collectionId)).find((entry) => entry.id === folderId) ?? folder;
+    const serverId = this.requireServerId('folder', folderId);
+    const parentFolderServerId =
+      parentFolderId != null ? this.requireServerId('folder', parentFolderId) : null;
+    const record = await this.client.moveFolder(serverId, {
+      parentFolderId: parentFolderServerId,
+      ...(sortOrder != null ? { sortOrder } : {})
+    });
+    const localCollectionId = this.idMap.toLocalId('collection', record.collectionId);
+    const localParentFolderId =
+      record.parentFolderId != null ? this.idMap.toLocalId('folder', record.parentFolderId) : null;
+    return this.mergeFolderSettings(
+      serverToFolder(record, folderId, localCollectionId, localParentFolderId),
+      serverId
+    );
   }
 
   /**
@@ -1259,7 +1259,9 @@ export class TeamHubStorage implements IStorage {
       name: trimRequiredName(name, 'Folder name')
     });
     const localCollectionId = this.idMap.toLocalId('collection', record.collectionId);
-    return serverToFolder(record, id, localCollectionId);
+    const localParentFolderId =
+      record.parentFolderId != null ? this.idMap.toLocalId('folder', record.parentFolderId) : null;
+    return serverToFolder(record, id, localCollectionId, localParentFolderId);
   }
 
   /**
@@ -1325,7 +1327,12 @@ export class TeamHubStorage implements IStorage {
       marker: serializeSidebarMarker(marker)
     });
     const localCollectionId = this.idMap.toLocalId('collection', record.collectionId);
-    return this.mergeFolderSettings(serverToFolder(record, id, localCollectionId), serverId);
+    const localParentFolderId =
+      record.parentFolderId != null ? this.idMap.toLocalId('folder', record.parentFolderId) : null;
+    return this.mergeFolderSettings(
+      serverToFolder(record, id, localCollectionId, localParentFolderId),
+      serverId
+    );
   }
 
   /**
@@ -1335,16 +1342,58 @@ export class TeamHubStorage implements IStorage {
    */
   async deleteFolder(id: number): Promise<void> {
     const serverId = this.requireServerId('folder', id);
+    const { collectionId } = await this.findFolderContainer(id);
+    const folders = await this.listFolders(collectionId);
+    const deletedIds = new Set<number>([id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const folder of folders) {
+        if (
+          folder.parent_folder_id != null &&
+          deletedIds.has(folder.parent_folder_id) &&
+          !deletedIds.has(folder.id)
+        ) {
+          deletedIds.add(folder.id);
+          changed = true;
+        }
+      }
+    }
+    const [requests, documents] = await Promise.all([
+      this.listRequests(collectionId),
+      this.listDocuments(collectionId)
+    ]);
     await this.client.deleteFolder(serverId);
-    this.folderSettings.delete(serverId);
-    this.idMap.forget('folder', serverId);
+    for (const request of requests) {
+      if (request.folder_id != null && deletedIds.has(request.folder_id)) {
+        const requestServerId = this.idMap.toServerId('request', request.id);
+        if (requestServerId) {
+          this.idMap.forget('request', requestServerId);
+        }
+      }
+    }
+    for (const document of documents) {
+      if (document.folder_id != null && deletedIds.has(document.folder_id)) {
+        const documentServerId = this.idMap.toServerId('document', document.id);
+        if (documentServerId) {
+          this.idMap.forget('document', documentServerId);
+        }
+      }
+    }
+    for (const deletedId of deletedIds) {
+      const deletedServerId = this.idMap.toServerId('folder', deletedId);
+      if (deletedServerId) {
+        this.folderSettings.delete(deletedServerId);
+        this.idMap.forget('folder', deletedServerId);
+      }
+    }
   }
 
   /**
    * Reorders folders within a collection on the server.
    *
    * @param collectionId - Provider-local collection id.
-   * @param parentFolderId - Parent folder id; only collection root is supported today.
+   * @param parentFolderId - Parent folder id, or null for collection root.
    * @param orderedFolderIds - Sibling folder ids in desired order.
    */
   async reorderFolders(
@@ -1352,14 +1401,14 @@ export class TeamHubStorage implements IStorage {
     parentFolderId: number | null,
     orderedFolderIds: number[]
   ): Promise<void> {
-    if (parentFolderId != null) {
-      throw new Error('Nested folders are not supported for Team Hub collections yet');
-    }
     const collectionServerId = this.requireServerId('collection', collectionId);
+    const parentFolderServerId =
+      parentFolderId != null ? this.requireServerId('folder', parentFolderId) : null;
     const orderedFolderServerIds = orderedFolderIds.map((folderId) =>
       this.requireServerId('folder', folderId)
     );
     await this.client.reorderFolders(collectionServerId, {
+      parentFolderId: parentFolderServerId,
       orderedFolderIds: orderedFolderServerIds
     });
   }

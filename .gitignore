@@ -7,6 +7,7 @@ release
 apps/*/release
 dist
 apps/*/dist
+.cursor
 packages/*/dist
 packages/core/docs/.vitepress/dist
 packages/core/docs/.vitepress/cache

@@ -1,4 +1,5 @@
 import { parseCollection, parseRequest } from '@usebruno/filestore';
+import { randomUUID } from 'crypto';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { basename, extname, join } from 'path';
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
@@ -423,13 +424,13 @@ function readCollectionBru(collectionDir: string): BrunoParsedCollection | null 
  * Parses a Bruno request file and returns a converted exported request when supported.
  *
  * @param filePath - Absolute path to a .bru or .yml request file.
- * @param folderPath - Flattened folder path for the request, or null at collection root.
+ * @param folder - Immediate parent folder metadata, or null at collection root.
  * @param sortOrder - Position within the collection for sidebar ordering.
  * @returns Exported request row, or null when the file is not a supported HTTP request.
  */
 function convertRequestFile(
   filePath: string,
-  folderPath: string | null,
+  folder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   sortOrder: number
 ): ExportedRequest | null {
   const ext = extname(filePath).toLowerCase();
@@ -493,24 +494,23 @@ function convertRequestFile(
     comment,
     tags: '',
     sort_order: sortOrder,
-    folder_name: folderPath
+    folder_name: folder?.name ?? null,
+    folder_uuid: folder?.uuid ?? null
   };
 }
 
 /**
- * Recursively walks a Bruno collection directory and collects converted requests.
- *
- * HarborClient supports only one folder level, so nested paths are joined with " / ".
+ * Recursively walks a Bruno collection directory while preserving folder ancestry.
  *
  * @param currentDir - Absolute path to the directory being walked.
- * @param folderPath - Accumulated folder path from ancestor directories.
+ * @param parentFolder - Immediate parent folder metadata, or null at collection root.
  * @param ignorePatterns - Directory names to skip during traversal.
- * @param folders - Mutable list of unique flattened folder names in encounter order.
+ * @param folders - Mutable list of nested folder rows in encounter order.
  * @param requests - Mutable list of converted exported requests.
  */
 function walkCollectionDir(
   currentDir: string,
-  folderPath: string | null,
+  parentFolder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   ignorePatterns: Set<string>,
   folders: ExportedFolder[],
   requests: ExportedRequest[]
@@ -524,6 +524,7 @@ function walkCollectionDir(
 
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
+  let folderSortOrder = 0;
   for (const entry of entries) {
     if (shouldIgnoreEntry(entry.name, ignorePatterns)) {
       continue;
@@ -532,13 +533,21 @@ function walkCollectionDir(
     const entryPath = join(currentDir, entry.name);
 
     if (entry.isDirectory()) {
-      const nextPath =
-        entry.name.trim().length > 0
-          ? folderPath
-            ? `${folderPath} / ${entry.name}`
-            : entry.name
-          : folderPath;
-      walkCollectionDir(entryPath, nextPath, ignorePatterns, folders, requests);
+      const name = entry.name.trim();
+      if (!name) {
+        walkCollectionDir(entryPath, parentFolder, ignorePatterns, folders, requests);
+        continue;
+      }
+
+      const folder: ExportedFolder = {
+        uuid: randomUUID(),
+        name,
+        parent_folder_uuid: parentFolder?.uuid ?? null,
+        sort_order: folderSortOrder
+      };
+      folderSortOrder += 1;
+      folders.push(folder);
+      walkCollectionDir(entryPath, folder, ignorePatterns, folders, requests);
       continue;
     }
 
@@ -555,13 +564,9 @@ function walkCollectionDir(
       continue;
     }
 
-    const converted = convertRequestFile(entryPath, folderPath, requests.length);
+    const converted = convertRequestFile(entryPath, parentFolder, requests.length);
     if (!converted) {
       continue;
-    }
-
-    if (folderPath && !folders.some((folder) => folder.name === folderPath)) {
-      folders.push({ name: folderPath, sort_order: folders.length });
     }
 
     requests.push(converted);
@@ -572,7 +577,7 @@ function walkCollectionDir(
  * Converts a Bruno on-disk collection into HarborClient's portable CollectionExport format.
  *
  * Unsupported Bruno features (GraphQL/gRPC/WebSocket requests, unsupported auth types,
- * file bodies, environments, etc.) are omitted. Nested folders are flattened to a single level.
+ * file bodies, environments, etc.) are omitted. Nested folders retain their parent relationships.
  *
  * @param collectionDir - Absolute path to the Bruno collection root directory.
  * @param manifest - Parsed bruno.json manifest object.

@@ -35,8 +35,6 @@ settings and scripts may need adjustment after migration.
 
 Features we intend to build in HarborClient itself (not only via plugins):
 
-- **Nested folders** -- Native multi-level folders in the sidebar and
-  export format.
 - **Git over SSH** -- today, Git remotes require HTTPS with a token or OAuth; SSH
   key support is a planned addition.
 - **Echo server LAN access** -- optional opt-in to expose the built-in echo

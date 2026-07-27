@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { getFolderAncestors } from '@harborclient/core/folderTree';
+import type { Folder } from '@harborclient/core/types';
 import { resolveEffectiveUserAgent } from '@harborclient/core/userAgent';
 
 import { useAppSelector } from '#/renderer/src/store/hooks';
@@ -19,10 +21,40 @@ interface Options {
 }
 
 /**
+ * Finds the nearest configured User-Agent from a folder through its ancestor chain.
+ *
+ * @param folderId - Current folder whose inheritance chain should be inspected.
+ * @param folders - Folders loaded for the owning collection.
+ * @returns Nearest non-empty folder User-Agent, or undefined when none is configured.
+ */
+export function resolveInheritedFolderUserAgent(
+  folderId: number | null | undefined,
+  folders: readonly Folder[]
+): string | undefined {
+  if (folderId == null) {
+    return undefined;
+  }
+
+  const folder = folders.find((entry) => entry.id === folderId);
+  if (folder == null) {
+    return undefined;
+  }
+
+  for (const candidate of [folder, ...getFolderAncestors(folderId, folders)]) {
+    const value = resolveEffectiveUserAgent({ folder: candidate.userAgent });
+    if (value != null) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Resolves the User-Agent inherited from parent scopes for an empty override.
  *
- * Chain is folder → collection → general settings, depending on which ids are
- * provided. Collection settings omit both ids so only the global default applies.
+ * Chain is current folder → ancestor folders → collection → general settings,
+ * depending on which ids are provided. Collection settings omit both ids so only
+ * the global default applies.
  *
  * @param options - Optional collection/folder ids that sit above the current scope.
  * @returns Effective parent User-Agent, or empty when none is configured.
@@ -38,14 +70,14 @@ export function useInheritedUserAgent({ collectionId, folderId }: Options = {}):
   return useMemo(() => {
     const collection =
       collectionId != null ? collections.find((entry) => entry.id === collectionId) : undefined;
-    const folder =
-      folderId != null && collectionId != null
-        ? (foldersByCollection[collectionId] ?? []).find((entry) => entry.id === folderId)
+    const folderUserAgent =
+      collectionId != null
+        ? resolveInheritedFolderUserAgent(folderId, foldersByCollection[collectionId] ?? [])
         : undefined;
 
     return (
       resolveEffectiveUserAgent({
-        folder: folder?.userAgent,
+        folder: folderUserAgent,
         collection: collection?.userAgent,
         general: generalUserAgent
       }) ?? ''

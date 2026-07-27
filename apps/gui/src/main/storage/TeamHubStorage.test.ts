@@ -29,12 +29,14 @@ describeSqlite('TeamHubStorage', () => {
       rmSync(dir, { recursive: true, force: true });
     });
     const documentDefaults: Partial<TeamHubClient> = {
+      listRequests: vi.fn().mockResolvedValue([]),
       listDocuments: vi.fn().mockResolvedValue([]),
       createDocument: vi.fn(),
       updateDocument: vi.fn(),
       deleteDocument: vi.fn(),
       reorderDocuments: vi.fn(),
-      moveDocument: vi.fn()
+      moveDocument: vi.fn(),
+      moveFolder: vi.fn()
     };
     return new TeamHubStorage(
       { ...documentDefaults, ...client } as TeamHubClient,
@@ -466,18 +468,106 @@ describeSqlite('TeamHubStorage', () => {
     expect(folders[0]?.pre_request_scripts).toHaveLength(1);
   });
 
+  it('maps and mutates nested folders through Team Hub UUIDs', async () => {
+    const collectionServerId = '770e8400-e29b-41d4-a716-446655440040';
+    const parentServerId = '880e8400-e29b-41d4-a716-446655440041';
+    const childServerId = '880e8400-e29b-41d4-a716-446655440042';
+    const parentRecord = {
+      id: parentServerId,
+      collectionId: collectionServerId,
+      parentFolderId: null,
+      name: 'Parent',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const childRecord = {
+      id: childServerId,
+      collectionId: collectionServerId,
+      parentFolderId: parentServerId,
+      name: 'Child',
+      sortOrder: 0,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    };
+    const createFolder = vi.fn().mockResolvedValue(childRecord);
+    const moveFolder = vi.fn().mockResolvedValue(childRecord);
+    const reorderFolders = vi.fn().mockResolvedValue(undefined);
+    const deleteFolder = vi.fn().mockResolvedValue(undefined);
+    const db = createStorage({
+      listCollections: vi.fn().mockResolvedValue([
+        {
+          id: collectionServerId,
+          name: 'Team API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          preRequestScript: '',
+          postRequestScript: '',
+          createdAt: '2026-01-01T00:00:00.000Z'
+        }
+      ]),
+      listFolders: vi.fn().mockResolvedValue([parentRecord, childRecord]),
+      createFolder,
+      moveFolder,
+      reorderFolders,
+      deleteFolder
+    });
+    const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
+    const collectionId = idMap.toLocalId('collection', collectionServerId);
+    const parentId = idMap.toLocalId('folder', parentServerId);
+    const childId = idMap.toLocalId('folder', childServerId);
+
+    const folders = await db.listFolders(collectionId);
+    expect(folders.find((folder) => folder.id === childId)?.parent_folder_id).toBe(parentId);
+
+    await db.createFolder(collectionId, 'Child', parentId);
+    expect(createFolder).toHaveBeenCalledWith(collectionServerId, {
+      name: 'Child',
+      parentFolderId: parentServerId
+    });
+
+    await db.moveFolder(childId, parentId, 1);
+    expect(moveFolder).toHaveBeenCalledWith(childServerId, {
+      parentFolderId: parentServerId,
+      sortOrder: 1
+    });
+
+    await db.reorderFolders(collectionId, parentId, [childId]);
+    expect(reorderFolders).toHaveBeenCalledWith(collectionServerId, {
+      parentFolderId: parentServerId,
+      orderedFolderIds: [childServerId]
+    });
+
+    await db.deleteFolder(parentId);
+    expect(deleteFolder).toHaveBeenCalledWith(parentServerId);
+    expect(idMap.toServerId('folder', parentId)).toBeUndefined();
+    expect(idMap.toServerId('folder', childId)).toBeUndefined();
+  });
+
   it('removes local folder settings when deleteFolder runs', async () => {
     const collectionServerId = '770e8400-e29b-41d4-a716-446655440012';
     const folderServerId = '880e8400-e29b-41d4-a716-446655440013';
     const folderRecord = {
       id: folderServerId,
       collectionId: collectionServerId,
+      parentFolderId: null,
       name: 'Auth',
       sortOrder: 0,
       createdAt: '2026-01-01T00:00:00.000Z'
     };
 
     const db = createStorage({
+      listCollections: vi.fn().mockResolvedValue([
+        {
+          id: collectionServerId,
+          name: 'Team API',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          preRequestScript: '',
+          postRequestScript: '',
+          createdAt: '2026-01-01T00:00:00.000Z'
+        }
+      ]),
       renameFolder: vi.fn().mockResolvedValue(folderRecord),
       listFolders: vi.fn().mockResolvedValue([folderRecord]),
       deleteFolder: vi.fn().mockResolvedValue(undefined)

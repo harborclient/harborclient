@@ -1467,6 +1467,40 @@ function requireCollection(state: RootState, collectionId: number): Collection {
 }
 
 /**
+ * Resolves an optional portable parent uuid within the target collection.
+ *
+ * @param state - Current Redux root state.
+ * @param collectionId - Collection that must own the parent folder.
+ * @param parentFolderUuid - Portable parent uuid, or undefined for collection root.
+ * @returns Parent database id, or undefined when no parent was requested.
+ */
+async function resolveParentFolderId(
+  state: RootState,
+  collectionId: number,
+  parentFolderUuid: unknown
+): Promise<number | undefined> {
+  if (parentFolderUuid === undefined) {
+    return undefined;
+  }
+
+  const uuid = typeof parentFolderUuid === 'string' ? parentFolderUuid.trim() : '';
+  if (!uuid) {
+    throw new Error('parentFolderUuid must not be empty.');
+  }
+
+  const cachedFolders = selectFoldersByCollection(state)[collectionId];
+  const folders = cachedFolders ?? (await window.api.listFolders(collectionId));
+  const parent = folders.find((folder) => folder.uuid === uuid);
+  if (parent == null) {
+    throw new Error(
+      `Parent folder with uuid "${uuid}" was not found in collection ${collectionId}.`
+    );
+  }
+
+  return parent.id;
+}
+
+/**
  * Resolves a folder id for create_request from explicit id or folder name.
  *
  * @param state - Current Redux root state.
@@ -1605,8 +1639,19 @@ async function createFolderTool(
   }
 
   requireCollection(ctx.getState(), parsed.collectionId);
+  const parentFolderId = await resolveParentFolderId(
+    ctx.getState(),
+    parsed.collectionId,
+    parsed.parentFolderUuid
+  );
   const folder = await ctx
-    .dispatch(createFolder({ collectionId: parsed.collectionId, name: trimmedName }))
+    .dispatch(
+      createFolder({
+        collectionId: parsed.collectionId,
+        name: trimmedName,
+        ...(parentFolderId !== undefined ? { parentFolderId } : {})
+      })
+    )
     .unwrap();
 
   return {

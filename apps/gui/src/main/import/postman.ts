@@ -1,4 +1,5 @@
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
+import { randomUUID } from 'crypto';
 import { serializeFormParts } from '@harborclient/core/formData';
 import { serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
 import type {
@@ -399,13 +400,13 @@ function normalizeMethod(method: string | undefined): HttpMethod | null {
  * Converts a single Postman request item into a HarborClient exported request.
  *
  * @param item - Postman item node containing a request block.
- * @param folderPath - Flattened folder path for the request, or null at collection root.
+ * @param folder - Immediate parent folder metadata, or null at collection root.
  * @param sortOrder - Position within the collection for sidebar ordering.
  * @returns Exported request row, or null when the method is unsupported.
  */
 function convertRequestItem(
   item: PostmanItem,
-  folderPath: string | null,
+  folder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   sortOrder: number
 ): ExportedRequest | null {
   const request = item.request;
@@ -442,23 +443,22 @@ function convertRequestItem(
     comment: typeof request.description === 'string' ? request.description : '',
     tags: '',
     sort_order: sortOrder,
-    folder_name: folderPath
+    folder_name: folder?.name ?? null,
+    folder_uuid: folder?.uuid ?? null
   };
 }
 
 /**
- * Recursively walks Postman items, flattening nested folders and collecting requests.
- *
- * HarborClient supports only one folder level, so nested paths are joined with " / ".
+ * Recursively walks Postman items while preserving folder ancestry.
  *
  * @param items - Postman item array at the current depth.
- * @param folderPath - Accumulated folder path from ancestor folders.
- * @param folders - Mutable list of unique flattened folder names in encounter order.
+ * @param parentFolder - Immediate parent folder metadata, or null at collection root.
+ * @param folders - Mutable list of nested folder rows in encounter order.
  * @param requests - Mutable list of converted exported requests.
  */
 function walkItems(
   items: PostmanItem[] | undefined,
-  folderPath: string | null,
+  parentFolder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
   folders: ExportedFolder[],
   requests: ExportedRequest[]
 ): void {
@@ -466,22 +466,29 @@ function walkItems(
     return;
   }
 
+  let folderSortOrder = 0;
   for (const item of items) {
     if (Array.isArray(item.item)) {
       const segment = typeof item.name === 'string' ? item.name.trim() : '';
-      const nextPath =
-        segment.length > 0 ? (folderPath ? `${folderPath} / ${segment}` : segment) : folderPath;
+      if (!segment) {
+        walkItems(item.item, parentFolder, folders, requests);
+        continue;
+      }
 
-      walkItems(item.item, nextPath, folders, requests);
+      const folder: ExportedFolder = {
+        uuid: randomUUID(),
+        name: segment,
+        parent_folder_uuid: parentFolder?.uuid ?? null,
+        sort_order: folderSortOrder
+      };
+      folderSortOrder += 1;
+      folders.push(folder);
+      walkItems(item.item, folder, folders, requests);
       continue;
     }
 
     if (item.request) {
-      if (folderPath && !folders.some((folder) => folder.name === folderPath)) {
-        folders.push({ name: folderPath, sort_order: folders.length });
-      }
-
-      const converted = convertRequestItem(item, folderPath, requests.length);
+      const converted = convertRequestItem(item, parentFolder, requests.length);
       if (converted) {
         requests.push(converted);
       }
@@ -493,7 +500,7 @@ function walkItems(
  * Converts a Postman collection export into HarborClient's portable CollectionExport format.
  *
  * Unsupported Postman features (unsupported auth types, GraphQL/file bodies, path variables,
- * saved responses, etc.) are omitted. Nested folders are flattened to a single level.
+ * saved responses, etc.) are omitted. Nested folders retain their parent relationships.
  *
  * @param data - Parsed Postman collection JSON.
  * @returns HarborClient collection export ready for validateCollectionExport.

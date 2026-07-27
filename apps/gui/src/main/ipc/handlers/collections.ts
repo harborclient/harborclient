@@ -18,6 +18,11 @@ import {
   isOpenCollection,
   parseOpenCollectionDocument
 } from '#/main/import/opencollection';
+import {
+  fetchApisIoCollectionDocument,
+  previewApisIoCollection,
+  searchApisIoCollections
+} from '#/main/import/apisIo';
 import { defaultAuth } from '@harborclient/core/auth';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -437,6 +442,30 @@ export function registerCollectionHandlers(db: IStorage): void {
     const result = await importCollectionFromParsed(db, win, parsed, {
       collectionDir: file.collectionDir,
       fileName: file.fileName
+    });
+    return result?.collection ?? null;
+  });
+
+  // Searches the apis.io public catalog for Open Collection and Postman Collection artifacts.
+  handle(
+    'collections:searchPublic',
+    ipcArgSchemas.publicCollectionSearch,
+    async (_event, query, page) => {
+      return searchApisIoCollections(query, page ?? 1);
+    }
+  );
+
+  // Downloads a public collection and returns a preview summary for the detail modal.
+  handle('collections:previewPublic', ipcArgSchemas.publicCollectionRef, async (_event, item) => {
+    return previewApisIoCollection(item);
+  });
+
+  // Downloads a public collection from apis.io and imports it through the standard pipeline.
+  handle('collections:importPublic', ipcArgSchemas.publicCollectionRef, async (_event, item) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const document = await fetchApisIoCollectionDocument(item);
+    const result = await importCollectionFromParsed(db, win, document.parsed, {
+      fileName: item.name
     });
     return result?.collection ?? null;
   });

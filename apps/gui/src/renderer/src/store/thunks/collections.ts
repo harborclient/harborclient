@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
+import type { ApisIoCollection } from '@harborclient/core/apisio/catalog';
 import type {
   AuthConfig,
   Collection,
@@ -577,6 +578,23 @@ export const importCollection = createAsyncThunk<Collection | null, void, ThunkA
 );
 
 /**
+ * Imports a public apis.io collection and refreshes sidebar state.
+ */
+export const importPublicCollection = createAsyncThunk<
+  Collection | null,
+  ApisIoCollection,
+  ThunkApiConfig
+>('collections/importPublic', async (item, { dispatch }) => {
+  const collection = await window.api.importPublicCollection(item);
+  if (!collection) return null;
+
+  await dispatch(refreshCollections());
+  dispatch(setSelectedCollectionId(collection.id));
+  await dispatch(refreshCollectionContents(collection.id));
+  return collection;
+});
+
+/**
  * Imports a collection, request, or environment from File -> Import.
  */
 export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, ThunkApiConfig>(
@@ -703,13 +721,37 @@ export const reorderCollections = createAsyncThunk<
  */
 export const createFolder = createAsyncThunk<
   Folder,
-  { collectionId: number; name: string },
+  { collectionId: number; name: string; parentFolderId?: number | null },
   ThunkApiConfig
->('collections/createFolder', async ({ collectionId, name }, { dispatch }) => {
-  const folder = await window.api.createFolder(collectionId, name);
+>('collections/createFolder', async ({ collectionId, name, parentFolderId }, { dispatch }) => {
+  const folder =
+    parentFolderId === undefined
+      ? await window.api.createFolder(collectionId, name)
+      : await window.api.createFolder(collectionId, name, parentFolderId);
   await dispatch(refreshFolders(collectionId));
   return folder;
 });
+
+/**
+ * Moves a folder beneath a new parent and refreshes the collection tree.
+ */
+export const moveFolder = createAsyncThunk<
+  Folder,
+  {
+    collectionId: number;
+    folderId: number;
+    parentFolderId: number | null;
+    sortOrder?: number;
+  },
+  ThunkApiConfig
+>(
+  'collections/moveFolder',
+  async ({ collectionId, folderId, parentFolderId, sortOrder }, { dispatch }) => {
+    const folder = await window.api.moveFolder(folderId, parentFolderId, sortOrder);
+    await dispatch(refreshCollectionContents(collectionId));
+    return folder;
+  }
+);
 
 /**
  * Renames an existing folder.

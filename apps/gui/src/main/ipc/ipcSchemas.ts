@@ -54,6 +54,7 @@ import type {
 } from '@harborclient/core/types';
 import type { CollectionRunnerConfig } from '@harborclient/core/collectionRunner';
 import { pluginSourcesSchema } from '@harborclient/core/plugin/catalog';
+import { apisIoCollectionSchema } from '@harborclient/core/apisio/catalog';
 import { AI_TOOL_NAMES } from '@harborclient/core/ai/tools';
 
 export {
@@ -1059,6 +1060,8 @@ export const ipcArgSchemas = {
   pluginPreviewFromGit: z.tuple([z.string().min(1), z.string().min(1).optional()]),
   pluginLoadUnpackedFromPath: z.tuple([z.string().min(1)]),
   pluginSources: z.tuple([pluginSourcesSchema]),
+  publicCollectionSearch: z.tuple([z.string().min(1), z.number().int().min(1).optional()]),
+  publicCollectionRef: z.tuple([apisIoCollectionSchema]),
   pluginReadEntry: z.tuple([pluginId, pluginEntryKind]),
   pluginReadAsset: z.tuple([pluginId, z.string().min(1)]),
   pluginResolveThemeImport: z.tuple([pluginId, z.string().min(1)]),

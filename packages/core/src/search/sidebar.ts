@@ -1,4 +1,4 @@
-import { getFolderPath } from '../folderTree';
+import { getFolderAncestors, getFolderPath } from '../folderTree';
 import type { Collection, Environment, Folder, SavedRequest } from '../types';
 import { createTextSearchIndex, searchTextIndex, type HarborSearchIndex } from './oramaIndex';
 import { normalizeRequestTags } from '../requestTags';
@@ -226,7 +226,7 @@ export function buildSidebarSearchIndex(input: SidebarSearchInput): HarborSearch
       comment: '',
       tags: '',
       collectionId: folder.collection_id,
-      folderId: NO_FOLDER_ID
+      folderId: folder.id
     });
   }
 
@@ -281,6 +281,18 @@ function buildSidebarSearchFilter(
     }
   }
 
+  /**
+   * Reveals a folder and every ancestor needed to render its nested path.
+   *
+   * @param folderId - Folder at the bottom of the visible path.
+   */
+  const addFolderPath = (folderId: number): void => {
+    folderIds.add(folderId);
+    for (const ancestor of getFolderAncestors(folderId, [...folderById.values()])) {
+      folderIds.add(ancestor.id);
+    }
+  };
+
   for (const requestId of hits.requests) {
     const request = requestById.get(requestId);
     if (request == null) {
@@ -289,7 +301,7 @@ function buildSidebarSearchFilter(
     requestIds.add(request.id);
     collectionIds.add(request.collection_id);
     if (request.folder_id != null) {
-      folderIds.add(request.folder_id);
+      addFolderPath(request.folder_id);
     }
   }
 
@@ -298,7 +310,7 @@ function buildSidebarSearchFilter(
     if (folder == null) {
       continue;
     }
-    folderIds.add(folder.id);
+    addFolderPath(folder.id);
     collectionIds.add(folder.collection_id);
     for (const request of input.requestsByCollection[folder.collection_id] ?? []) {
       if (request.folder_id === folder.id) {
@@ -616,7 +628,18 @@ export function sidebarEntitySubtitle(
     if (collection == null) {
       return undefined;
     }
-    return collection.archived ? formatArchivedCollectionLabel(collection.name) : collection.name;
+    const collectionName = collection.archived
+      ? formatArchivedCollectionLabel(collection.name)
+      : collection.name;
+    const folders = input.foldersByCollection[hit.collectionId] ?? [];
+    const ancestorPath =
+      hit.folderId != null
+        ? getFolderAncestors(hit.folderId, folders)
+            .reverse()
+            .map((folder) => folder.name)
+            .join(' / ')
+        : '';
+    return ancestorPath ? `${collectionName} / ${ancestorPath}` : collectionName;
   }
   if (hit.kind === 'request' && hit.collectionId != null) {
     const { collectionName, folderName } = sidebarRequestBreadcrumb(

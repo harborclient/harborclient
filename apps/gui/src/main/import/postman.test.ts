@@ -198,25 +198,36 @@ describe('convertPostmanCollection', () => {
     expect(result.requests[1].url).toBe('https://pixel.pintail.io/v1/tic6QBYHSJDdd55ao?fast=true');
   });
 
-  it('flattens nested folders into single-level folder names', () => {
+  it('preserves nested folders and links requests to their immediate parents', () => {
     const result = convertPostmanCollection(nestedFolderFixture);
 
-    expect(result.folders).toEqual([
-      { name: 'Authentication', sort_order: 0 },
-      { name: 'Organization / Pass Types', sort_order: 1 }
-    ]);
+    const authentication = result.folders?.find((folder) => folder.name === 'Authentication');
+    const organization = result.folders?.find((folder) => folder.name === 'Organization');
+    const passTypes = result.folders?.find((folder) => folder.name === 'Pass Types');
+
+    expect(authentication).toMatchObject({ parent_folder_uuid: null, sort_order: 0 });
+    expect(organization).toMatchObject({ parent_folder_uuid: null, sort_order: 1 });
+    expect(passTypes).toMatchObject({
+      parent_folder_uuid: organization?.uuid,
+      sort_order: 0
+    });
+    expect(authentication?.uuid).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    );
     expect(result.requests).toHaveLength(3);
     expect(result.requests[0]).toMatchObject({
       name: 'API Grant',
       method: 'POST',
       folder_name: 'Authentication',
+      folder_uuid: authentication?.uuid,
       body_type: 'json',
       comment: 'Authenticate using an API key.',
       tags: ''
     });
     expect(result.requests[1]).toMatchObject({
       name: 'List Pass Types',
-      folder_name: 'Organization / Pass Types'
+      folder_name: 'Pass Types',
+      folder_uuid: passTypes?.uuid
     });
     expect(result.requests[2]).toMatchObject({
       name: 'Root Request',

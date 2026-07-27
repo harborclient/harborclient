@@ -22,7 +22,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 import type { StorageConnection } from '@harborclient/core/types';
 
 export type CollectionModalMode = 'create' | 'create-and-save';
-export type CollectionModalTab = 'create' | 'git' | 'import' | 'join';
+export type CollectionModalTab = 'create' | 'git' | 'import' | 'join' | 'public';
 
 /**
  * Blank git connection draft used when creating a git-backed collection.

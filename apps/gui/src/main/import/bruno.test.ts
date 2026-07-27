@@ -93,13 +93,17 @@ describe('convertBrunoCollection', () => {
     expect(converted.post_request_script).toContain('collection post');
   });
 
-  it('flattens nested folders and imports HTTP requests', () => {
+  it('preserves nested folders and imports HTTP requests into their immediate parents', () => {
     const converted = convertBrunoCollection(fixtureDir, manifest);
 
-    expect((converted.folders ?? []).map((folder) => folder.name).sort()).toEqual([
-      'nested / child',
-      'users'
-    ]);
+    const nested = converted.folders?.find((folder) => folder.name === 'nested');
+    const child = converted.folders?.find((folder) => folder.name === 'child');
+    const users = converted.folders?.find((folder) => folder.name === 'users');
+
+    expect(nested).toMatchObject({ parent_folder_uuid: null, sort_order: 0 });
+    expect(child).toMatchObject({ parent_folder_uuid: nested?.uuid, sort_order: 0 });
+    expect(users).toMatchObject({ parent_folder_uuid: null, sort_order: 1 });
+    expect(new Set(converted.folders?.map((folder) => folder.uuid)).size).toBe(3);
     expect(converted.requests).toHaveLength(2);
 
     const listUsers = converted.requests.find((request) => request.name === 'List Users');
@@ -107,6 +111,7 @@ describe('convertBrunoCollection', () => {
       method: 'GET',
       url: '{{baseUrl}}/users',
       folder_name: 'users',
+      folder_uuid: users?.uuid,
       body_type: 'none',
       pre_request_script: expect.stringContaining('req.setHeader')
     });
@@ -117,7 +122,8 @@ describe('convertBrunoCollection', () => {
     expect(ping).toMatchObject({
       method: 'GET',
       url: 'https://api.example.com/ping',
-      folder_name: 'nested / child',
+      folder_name: 'child',
+      folder_uuid: child?.uuid,
       body_type: 'json',
       auth: {
         type: 'bearer',
