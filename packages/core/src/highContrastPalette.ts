@@ -19,11 +19,20 @@ export const HC_MUTED = '#d0d0d0';
 /** Solid field fill (~8% white on black). */
 export const HC_FIELD = '#141414';
 
-/** Selection background; white text on this color is >=7:1. */
-export const HC_SELECTION = '#14487a';
+/**
+ * High-contrast yellow for borders, resize grips, and chrome accents.
+ * ~14:1 on {@link HC_SURFACE}.
+ */
+export const HC_RESIZE_HANDLE = '#ffd60a';
 
-/** ~8.6:1 on {@link HC_SURFACE}. */
-export const HC_ACCENT = '#4dabff';
+/**
+ * Selection, accent, and interactive chrome fill.
+ * Black text on this color is >=7:1.
+ */
+export const HC_SELECTION = HC_RESIZE_HANDLE;
+
+/** Interactive accent; same yellow as {@link HC_RESIZE_HANDLE}. */
+export const HC_ACCENT = HC_RESIZE_HANDLE;
 
 /** ~8.6:1 on {@link HC_SURFACE}. */
 export const HC_DANGER = '#ff8a80';
@@ -41,12 +50,6 @@ export const HC_SUCCESS = '#5ce06a';
 export const HC_INFO = '#ffffff';
 
 /**
- * High-contrast yellow for borders, resize grips, and chrome accents.
- * ~14:1 on {@link HC_SURFACE}.
- */
-export const HC_RESIZE_HANDLE = '#ffd60a';
-
-/**
  * Borders and separators; same yellow as {@link HC_RESIZE_HANDLE}
  * (~14:1 on surface, well above the UI/border minimum of 3:1).
  */
@@ -55,11 +58,14 @@ export const HC_SEPARATOR = HC_RESIZE_HANDLE;
 /** Sidebar toolbar strip fill (~8% white on black). */
 export const HC_SIDEBAR_TOOLBAR = '#141414';
 
+/** Sidebar section header fill; matches {@link HC_SURFACE}. */
+export const HC_SIDEBAR_SECTION = HC_SURFACE;
+
 /**
- * Sidebar section header text on yellow {@link HC_SEPARATOR} backgrounds.
- * Same as {@link HC_PRIMARY_BUTTON_TEXT} (black).
+ * Sidebar section header text on black {@link HC_SIDEBAR_SECTION} backgrounds.
+ * Same as {@link HC_TEXT} (white).
  */
-export const HC_SIDEBAR_SECTION_TEXT = '#000000';
+export const HC_SIDEBAR_SECTION_TEXT = HC_TEXT;
 
 /** Active request tab underline; same yellow as {@link HC_RESIZE_HANDLE}. */
 export const HC_TAB_UNDERLINE = HC_RESIZE_HANDLE;
@@ -67,28 +73,31 @@ export const HC_TAB_UNDERLINE = HC_RESIZE_HANDLE;
 /** Active footer icon toggle color; same yellow as {@link HC_RESIZE_HANDLE}. */
 export const HC_FOOTER_ICON_ACTIVE = HC_RESIZE_HANDLE;
 
+/** Footer label text; same yellow as {@link HC_RESIZE_HANDLE}. */
+export const HC_FOOTER_TEXT = HC_RESIZE_HANDLE;
+
 /** Pressed toolbar action icon color; same yellow as {@link HC_RESIZE_HANDLE}. */
 export const HC_TOOLBAR_ACTION_ACTIVE = HC_RESIZE_HANDLE;
 
 /**
- * Distinct AAA method colors for high contrast on black.
- * GET ~11:1, POST ~8.6:1, PUT ~14:1.
+ * HTTP method label colors in high contrast: unified yellow chrome.
+ * ~14:1 on {@link HC_SURFACE}.
  */
-export const HC_METHOD_GET = HC_SUCCESS;
-export const HC_METHOD_POST = HC_ACCENT;
+export const HC_METHOD_GET = HC_RESIZE_HANDLE;
+export const HC_METHOD_POST = HC_RESIZE_HANDLE;
 export const HC_METHOD_PUT = HC_RESIZE_HANDLE;
 
-/** ~8.7:1 on {@link HC_SURFACE}. */
-export const HC_METHOD_PATCH = '#bf9bff';
+/** ~14:1 on {@link HC_SURFACE}. */
+export const HC_METHOD_PATCH = HC_RESIZE_HANDLE;
 
-/** ~8.6:1 on {@link HC_SURFACE}. */
-export const HC_METHOD_DELETE = HC_DANGER;
+/** ~14:1 on {@link HC_SURFACE}. */
+export const HC_METHOD_DELETE = HC_RESIZE_HANDLE;
 
-/** 21:1 on {@link HC_SURFACE}. */
-export const HC_METHOD_HEAD = HC_TEXT;
+/** ~14:1 on {@link HC_SURFACE}. */
+export const HC_METHOD_HEAD = HC_RESIZE_HANDLE;
 
-/** 21:1 on {@link HC_SURFACE}. */
-export const HC_METHOD_OPTIONS = HC_TEXT;
+/** ~14:1 on {@link HC_SURFACE}. */
+export const HC_METHOD_OPTIONS = HC_RESIZE_HANDLE;
 
 /**
  * All high-contrast HTTP method label colors validated against the black surface.
@@ -105,6 +114,12 @@ export const HC_METHOD_COLORS = [
 
 /** Variable token highlight; >=7:1 on {@link HC_SURFACE}. */
 export const HC_VARIABLE_TOKEN = '#5fe3f0';
+
+/**
+ * Unsaved document tab marker; cyan so it contrasts with yellow chrome.
+ * Same as {@link HC_VARIABLE_TOKEN}.
+ */
+export const HC_TAB_UNSAVED = HC_VARIABLE_TOKEN;
 
 /** Scrollbar track; ~7:1 on {@link HC_SURFACE}. */
 export const HC_SCROLLBAR_TRACK = 'transparent';
@@ -145,5 +160,7 @@ export const HC_TEXT_ON_SURFACE = [
   HC_METHOD_HEAD,
   HC_METHOD_OPTIONS,
   HC_RESIZE_HANDLE,
-  HC_VARIABLE_TOKEN
+  HC_VARIABLE_TOKEN,
+  HC_TAB_UNSAVED,
+  HC_FOOTER_TEXT
 ] as const;

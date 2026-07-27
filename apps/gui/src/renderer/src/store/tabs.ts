@@ -266,6 +266,21 @@ export type PageRef =
       label: string;
     }
   | {
+      type: 'response-viewer';
+      /**
+       * Request tab that owns the live response data shown in this page.
+       */
+      requestTabId: string;
+      /**
+       * Built-in response viewer sub-tab to render full-page.
+       */
+      viewerTab: 'body' | 'preview' | 'headers' | 'timing' | 'console' | 'redirects' | 'tests';
+      /**
+       * Tab bar title (request name plus viewer tab label).
+       */
+      label: string;
+    }
+  | {
       type: 'script-editor';
       requestTabId: string;
       phase: 'pre' | 'post';

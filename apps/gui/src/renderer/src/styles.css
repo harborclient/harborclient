@@ -335,14 +335,14 @@
     --mac-surface: #000000;
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
-    --mac-sidebar-section: #ffd60a;
-    --mac-sidebar-section-text: #000000;
+    --mac-sidebar-section: #000000;
+    --mac-sidebar-section-text: #ffffff;
     --mac-footer: #000000;
-    --mac-footer-text: #ffffff;
-    --mac-footer-muted: #d0d0d0;
+    --mac-footer-text: #ffd60a;
+    --mac-footer-muted: #ffd60a;
     --mac-footer-icon-active: #ffd60a;
     --mac-toolbar-action-active: #ffd60a;
-    --mac-breadcrumb-background: #000000;
+    --mac-breadcrumb-background: #ffd60a;
     --mac-breadcrumb-segment: #141414;
     --mac-breadcrumb-current: #1f1f1f;
     --mac-git-staged: #5ce06a;
@@ -355,23 +355,23 @@
     --mac-text: #ffffff;
     --mac-text-secondary: #ffffff;
     --mac-muted: #d0d0d0;
-    --mac-accent: #4dabff;
+    --mac-accent: #ffd60a;
     --mac-tab-underline: #ffd60a;
-    --mac-selection: #14487a;
-    --mac-doc-markdown: #4dabff;
-    --mac-tab-unsaved: #ffd60a;
+    --mac-selection: #ffd60a;
+    --mac-doc-markdown: #ffd60a;
+    --mac-tab-unsaved: #5fe3f0;
     --mac-danger: #ff8a80;
     --mac-danger-light: #ffb4af;
     --mac-warning: #ffb340;
     --mac-success: #5ce06a;
     --mac-info: #ffffff;
-    --mac-method-get: #5ce06a;
-    --mac-method-post: #4dabff;
+    --mac-method-get: #ffd60a;
+    --mac-method-post: #ffd60a;
     --mac-method-put: #ffd60a;
-    --mac-method-patch: #bf9bff;
-    --mac-method-delete: #ff8a80;
-    --mac-method-head: #ffffff;
-    --mac-method-options: #ffffff;
+    --mac-method-patch: #ffd60a;
+    --mac-method-delete: #ffd60a;
+    --mac-method-head: #ffd60a;
+    --mac-method-options: #ffd60a;
     --mac-resize-handle: #ffd60a;
     --mac-variable-token: #5fe3f0;
     --mac-scrollbar-track: transparent;
@@ -682,10 +682,18 @@
 
   /**
    * Panel resize separators (sidebar, editor split, footer panels) use yellow
-   * borders and grips in high contrast for visibility on black backgrounds.
+   * borders and larger grips in high contrast for visibility on black backgrounds.
    */
   :root[data-theme='high-contrast'] [role='separator'] {
     border-color: var(--mac-resize-handle) !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-resize-handle.cursor-row-resize {
+    height: 10px !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-resize-handle.cursor-col-resize {
+    width: 10px !important;
   }
 
   :root[data-theme='high-contrast'] [role='separator']:hover,
@@ -693,13 +701,24 @@
     background-color: #332b00 !important;
   }
 
-  :root[data-theme='high-contrast'] [role='separator'] > div[aria-hidden='true'] {
+  :root[data-theme='high-contrast'] [role='separator'] > div[aria-hidden='true'],
+  :root[data-theme='high-contrast'] .hc-resize-handle-grip {
     background-color: var(--mac-resize-handle) !important;
     opacity: 1 !important;
   }
 
+  :root[data-theme='high-contrast'] .hc-resize-handle.cursor-row-resize .hc-resize-handle-grip {
+    height: 6px !important;
+    width: 56px !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-resize-handle.cursor-col-resize .hc-resize-handle-grip {
+    width: 6px !important;
+    height: 56px !important;
+  }
+
   /**
-   * Collections and Git sidebar section headers: yellow chrome with black
+   * Collections and Git sidebar section headers: black fill with white
    * foreground so titles and header actions stay readable.
    */
   :root[data-theme='high-contrast'] .hc-sidebar-section-header {
@@ -718,10 +737,60 @@
     color: var(--mac-sidebar-section-text) !important;
   }
 
+  /**
+   * Yellow selection fills need black glyphs/labels for contrast (checkmarks,
+   * radio dots, segmented tabs, first breadcrumb crumb).
+   */
+  :root[data-theme='high-contrast'] .hc-checkbox-box {
+    color: #000000 !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-radio-dot {
+    background-color: #000000 !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-segmented-tabs-tab.bg-selection {
+    color: #000000 !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-breadcrumb-segment.bg-selection,
+  :root[data-theme='high-contrast'] .hc-breadcrumb-segment:has(.bg-selection) {
+    color: #000000 !important;
+  }
+
+  /**
+   * Inset the breadcrumb track so the yellow chrome shows as a 1px top edge
+   * above the interlocking segments (left/right/bottom already peek through).
+   */
+  :root[data-theme='high-contrast'] .hc-breadcrumb {
+    padding-top: 1px;
+  }
+
+  /**
+   * Selected collection sidebar rows: black labels/icons on yellow selection.
+   */
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection .text-muted,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection .text-text,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection .text-secondary,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection .hc-method-badge,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection button,
+  :root[data-theme='high-contrast'] .hc-sidebar-item.bg-selection svg {
+    color: #000000 !important;
+  }
+
+  /**
+   * Primary actions stay black-on-yellow; other buttons use yellow labels/icons.
+   * Danger variants keep their danger foreground.
+   */
   :root[data-theme='high-contrast'] .hc-button.bg-accent {
     background-color: var(--mac-resize-handle) !important;
     border-color: var(--mac-resize-handle) !important;
     color: #000000 !important;
+  }
+
+  :root[data-theme='high-contrast'] .hc-button:not(.bg-accent):not(.bg-danger):not(.text-danger) {
+    color: var(--mac-resize-handle) !important;
   }
 
   /**

@@ -73,6 +73,17 @@ describe('pageTabMeta', () => {
     expect(meta.title).toBe('Auth helper');
   });
 
+  it('uses the stored label for response viewer tabs', () => {
+    const meta = pageTabMeta({
+      type: 'response-viewer',
+      requestTabId: 'tab-1',
+      viewerTab: 'body',
+      label: 'Get Users — Body'
+    });
+
+    expect(meta.title).toBe('Get Users — Body');
+  });
+
   it('uses the shortened label for image view tabs', () => {
     const meta = pageTabMeta({
       type: 'image-view',

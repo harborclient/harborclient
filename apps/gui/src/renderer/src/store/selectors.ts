@@ -165,8 +165,9 @@ export const selectActiveTab = (
 /**
  * Returns the request tab that AI tools and `@` script references should treat as active.
  *
- * When the focused tab is a popped-out script editor page, follows `page.requestTabId` back to
- * the linked request tab so badges and agent tools still resolve the correct draft.
+ * When the focused tab is a popped-out script editor or response viewer page, follows
+ * `page.requestTabId` back to the linked request tab so badges and agent tools still
+ * resolve the correct draft.
  *
  * @param state - Current Redux root state.
  */
@@ -178,7 +179,7 @@ export const selectEffectiveActiveRequestTab = (state: RootState): RequestTab | 
 
   if (activeTab && isPageTab(activeTab)) {
     const page = activeTab.page;
-    if (page.type === 'script-editor') {
+    if (page.type === 'script-editor' || page.type === 'response-viewer') {
       const linkedTab = state.tabs.tabs.find((tab) => tab.tabId === page.requestTabId);
       if (linkedTab && isRequestTab(linkedTab)) {
         return linkedTab;

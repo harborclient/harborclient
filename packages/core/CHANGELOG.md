@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add response viewer functionality and enhance UI elements. (`5da28a40`)
+
 ## 0.2.4 - 2026-07-27
 
 - Add @harborclient/team-hub and @harborclient/team-hub-api packages with initial setup. (`83f69f5d`)

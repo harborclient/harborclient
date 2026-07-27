@@ -114,6 +114,29 @@ describe('selectEffectiveActiveRequestTab', () => {
     expect(effectiveTab?.draft.post_request_scripts[0]?.name).toBe('SendSuccess');
   });
 
+  it('follows a response-viewer page tab link to the linked request tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    store.dispatch(openTabWithDraft(sampleDraft(5000000694, 'Echo Response')));
+
+    const requestTabId = store.getState().tabs.activeTabId;
+
+    store.dispatch(
+      openPageTab({
+        type: 'response-viewer',
+        requestTabId,
+        viewerTab: 'headers',
+        label: 'Echo Response — Headers'
+      })
+    );
+
+    const effectiveTab = selectEffectiveActiveRequestTab(store.getState());
+
+    expect(effectiveTab?.tabId).toBe(requestTabId);
+    expect(effectiveTab?.draft.id).toBe(5000000694);
+    expect(effectiveTab?.draft.name).toBe('Echo Response');
+  });
+
   it('returns undefined when the active tab is unrelated to any request', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     store.dispatch(openTabWithDraft(sampleDraft(1, 'Request')));

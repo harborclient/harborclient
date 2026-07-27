@@ -15,6 +15,7 @@ import {
   faCodeBranch,
   faFileImport,
   faUsers,
+  faExpand,
   faImage
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Tabs/Settings/constants';
@@ -298,6 +299,17 @@ export const pageRoutes = {
     Component: lazyNamed(
       () => import('#/renderer/src/ui/Tabs/Snippets/SnippetEditPage'),
       'SnippetEditPage'
+    ),
+    normalize: () => null
+  }),
+  'response-viewer': defineRoute({
+    key: (page) => `response-viewer:${page.requestTabId}:${page.viewerTab}`,
+    meta: (page) => ({ title: page.label, icon: faExpand }),
+    closeName: (page) => page.label,
+    replaceOnReopen: true,
+    Component: lazyNamed(
+      () => import('#/renderer/src/routing/pages/ResponseViewerPageRoute'),
+      'ResponseViewerPageRoute'
     ),
     normalize: () => null
   }),

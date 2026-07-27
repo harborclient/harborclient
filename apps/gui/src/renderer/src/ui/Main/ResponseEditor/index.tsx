@@ -4,7 +4,6 @@ import {
   SegmentedTabs,
   SegmentedTabPanel,
   SegmentedTabsGroup,
-  CodeEditor,
   FaIcon
 } from '@harborclient/sdk/components';
 import { focusableReadonlyClass } from '#/renderer/src/ui/Shared/classes';
@@ -23,25 +22,21 @@ import { faGlobe } from '#/renderer/src/fontawesome';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { setResponseViewerTab } from '#/renderer/src/store/slices/tabsSlice';
+import { openPageTab, setResponseViewerTab } from '#/renderer/src/store/slices/tabsSlice';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 import {
-  bodyLanguage,
   buildResponseExport,
-  formatBody,
   isHtmlResponse,
   isImageResponse,
-  resolveInitialResponseViewerTab,
-  responseContentType
+  resolveInitialResponseViewerTab
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
-import { ConsoleDetails } from '#/renderer/src/ui/Shared/ConsoleDetails';
 import { ResponseSummary } from './ResponseSummary';
-import { Headers } from './Headers';
-import { HtmlPreview } from './HtmlPreview';
-import { ImagePreview } from './ImagePreview';
-import { Redirects } from './Redirects';
-import { Tests } from './Tests';
-import { Timing } from './Timing';
+import { ResponseViewerPanel } from './ResponseViewerPanel';
+import {
+  isResponseViewerTab,
+  RESPONSE_VIEWER_TAB_LABELS,
+  type ResponseViewerTab
+} from './responseViewerTabs';
 
 interface Props {
   /**
@@ -108,6 +103,20 @@ interface Props {
 }
 
 /**
+ * Shared props passed into each built-in {@link ResponseViewerPanel}.
+ */
+interface ViewerPanelProps {
+  response: SendResult;
+  requestUrl: string;
+  testResults: ScriptTestResult[];
+  scriptLogs: string[];
+  executionEvents: ScriptExecutionEvent[];
+  scriptError?: string;
+  scriptErrors?: ScriptRunError[];
+  requestTabId?: string;
+}
+
+/**
  * Displays HTTP response status, timing, body, headers, script tests, and console output.
  */
 export function ResponseEditor({
@@ -135,6 +144,14 @@ export function ResponseEditor({
     const tab = state.tabs.tabs.find((entry) => entry.tabId === requestTabId);
     return tab && isRequestTab(tab) ? tab.responseViewerTab : undefined;
   });
+  /**
+   * Owning request tab draft name for expand page titles.
+   */
+  const requestName = useAppSelector((state) => {
+    if (requestTabId == null) return 'Request';
+    const tab = state.tabs.tabs.find((entry) => entry.tabId === requestTabId);
+    return tab && isRequestTab(tab) ? tab.draft.name || 'Request' : 'Request';
+  });
   const [tabState, setTabState] = useState<{ response: SendResult | null; tab: string }>(() => ({
     response,
     tab: resolveInitialResponseViewerTab(storedViewerTab, response)
@@ -148,19 +165,6 @@ export function ResponseEditor({
     if (requestTabId == null) return;
     dispatch(setResponseViewerTab({ tabId: requestTabId, tab: tabState.tab }));
   }, [dispatch, requestTabId, tabState.tab]);
-
-  /**
-   * Pretty-prints the response body for display in the read-only editor.
-   */
-  const formattedBody = useMemo(() => (response ? formatBody(response.body) : ''), [response]);
-
-  /**
-   * Chooses JSON or plain-text highlighting based on response content and headers.
-   */
-  const responseBodyLanguage = useMemo(
-    () => (response ? bodyLanguage(response.body, response.headers) : 'text'),
-    [response]
-  );
 
   /**
    * Whether the current response should expose the HTML preview tab and button.
@@ -228,6 +232,10 @@ export function ResponseEditor({
             : tab;
   const canCopyOrExport = response != null;
   const canClear = response != null && onClear != null;
+  const canExpand = response != null && requestTabId != null && isResponseViewerTab(effectiveTab);
+  const expandTabLabel = canExpand
+    ? RESPONSE_VIEWER_TAB_LABELS[effectiveTab as ResponseViewerTab]
+    : undefined;
 
   /**
    * Preview and plugin response tabs render iframe or fill-mode plugin surfaces
@@ -295,6 +303,24 @@ export function ResponseEditor({
     } catch {
       toast.error('Failed to export response');
     }
+  };
+
+  /**
+   * Opens the active built-in response viewer sub-tab in a full page tab.
+   */
+  const handleExpand = (): void => {
+    if (!canExpand || requestTabId == null || !isResponseViewerTab(effectiveTab)) {
+      return;
+    }
+    const viewerLabel = RESPONSE_VIEWER_TAB_LABELS[effectiveTab];
+    dispatch(
+      openPageTab({
+        type: 'response-viewer',
+        requestTabId,
+        viewerTab: effectiveTab,
+        label: `${requestName} — ${viewerLabel}`
+      })
+    );
   };
 
   /**
@@ -426,6 +452,17 @@ export function ResponseEditor({
     );
   }
 
+  const panelProps: ViewerPanelProps = {
+    response,
+    requestUrl,
+    testResults,
+    scriptLogs,
+    executionEvents,
+    scriptError,
+    scriptErrors,
+    requestTabId
+  };
+
   /**
    * Tab panel bodies rendered inside either a fill-height container or Scrollbars
    * depending on whether the active tab needs to stretch (preview, plugin tabs).
@@ -433,50 +470,30 @@ export function ResponseEditor({
   const tabPanels = (
     <>
       <SegmentedTabPanel value="body">
-        <CodeEditor
-          readOnly
-          value={formattedBody || '(empty body)'}
-          language={responseBodyLanguage}
-        />
+        <ResponseViewerPanel viewerTab="body" {...panelProps} />
       </SegmentedTabPanel>
       {showPreviewTab && (
         <SegmentedTabPanel value="preview" className="flex min-h-0 flex-1 flex-col">
-          {showHtmlPreview ? (
-            <HtmlPreview body={response.body} requestUrl={requestUrl} />
-          ) : (
-            <ImagePreview
-              bodyBase64={response.bodyBase64}
-              contentType={responseContentType(response.headers)}
-            />
-          )}
+          <ResponseViewerPanel viewerTab="preview" {...panelProps} />
         </SegmentedTabPanel>
       )}
       <SegmentedTabPanel value="headers">
-        <Headers headers={response.headers} />
+        <ResponseViewerPanel viewerTab="headers" {...panelProps} />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="timing">
-        <Timing response={response} />
+        <ResponseViewerPanel viewerTab="timing" {...panelProps} />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="console">
-        <ConsoleDetails
-          flush
-          result={response}
-          logs={scriptLogs}
-          tests={testResults}
-          executionEvents={executionEvents}
-          scriptError={scriptError}
-          scriptErrors={scriptErrors}
-          requestTabId={requestTabId}
-        />
+        <ResponseViewerPanel viewerTab="console" {...panelProps} />
       </SegmentedTabPanel>
       {hasRedirects && (
         <SegmentedTabPanel value="redirects">
-          <Redirects redirects={response.redirects ?? []} />
+          <ResponseViewerPanel viewerTab="redirects" {...panelProps} />
         </SegmentedTabPanel>
       )}
       {hasTests && (
         <SegmentedTabPanel value="tests">
-          <Tests testResults={testResults} requestTabId={requestTabId} />
+          <ResponseViewerPanel viewerTab="tests" {...panelProps} />
         </SegmentedTabPanel>
       )}
       {pluginTabs
@@ -509,6 +526,8 @@ export function ResponseEditor({
           onCopy={() => void handleCopy()}
           onExport={() => void handleExport()}
           onClear={onClear != null ? handleClear : undefined}
+          onExpand={canExpand ? handleExpand : undefined}
+          expandTabLabel={expandTabLabel}
           canCopyOrExport={canCopyOrExport}
           canClear={canClear}
         />

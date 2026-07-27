@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type { SendResult } from '@harborclient/core/types';
-import { Button, StatusDot } from '@harborclient/sdk/components';
+import { Button, FaIcon, StatusDot } from '@harborclient/sdk/components';
+import { faExpand } from '#/renderer/src/fontawesome';
 import { focusableReadonlyClass, statusDotVariant } from '#/renderer/src/ui/Shared/classes';
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
@@ -29,6 +30,16 @@ interface Props {
    * Clears the last send result on the active request tab.
    */
   onClear?: () => void;
+
+  /**
+   * Opens the active response viewer sub-tab in a full page tab.
+   */
+  onExpand?: () => void;
+
+  /**
+   * Human-readable name of the active viewer tab for the expand button label.
+   */
+  expandTabLabel?: string;
 
   /**
    * Whether copy and export actions are enabled.
@@ -83,10 +94,14 @@ export function ResponseSummary({
   onCopy,
   onExport,
   onClear,
+  onExpand,
+  expandTabLabel,
   canCopyOrExport = true,
   canClear = true
 }: Props): JSX.Element {
   const showActions = onCopy != null && onExport != null;
+  const expandLabel =
+    expandTabLabel != null ? `Open ${expandTabLabel} in full page` : 'Open in full page';
 
   return (
     <div
@@ -119,6 +134,17 @@ export function ResponseSummary({
 
       {showActions && (
         <div className="flex shrink-0 items-center gap-2">
+          {onExpand != null && (
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label={expandLabel}
+              className="px-2"
+              onClick={onExpand}
+            >
+              <FaIcon icon={faExpand} className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
