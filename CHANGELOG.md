@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance @harborclient/team-hub and @harborclient/team-hub-api integration. (`3cb8d442`)
 - Add @harborclient/team-hub and @harborclient/team-hub-api packages with initial setup. (`83f69f5d`)
 - Update @harborclient/team-hub-api dependency to version 0.4.1 and enhance documentation for import handlers. (`516c9dae`)
 - Update Folder Management and Enhance Sidebar Navigation. (`57d066d8`)

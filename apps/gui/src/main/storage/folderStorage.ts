@@ -20,6 +20,10 @@ export function exportFoldersWithParents(folders: Folder[]): ExportedFolder[] {
 /**
  * Sorts exported folders so parents appear before children during import.
  *
+ * Legacy export rows may omit `uuid`; those folders are kept in input order and
+ * cannot participate in parent-uuid ordering (same behavior as sqlite's
+ * `orderExportedFoldersForImport`).
+ *
  * @param folders - Exported folder rows from a collection file.
  * @returns The same folders in dependency-safe insert order.
  */
@@ -35,7 +39,8 @@ export function sortExportedFoldersParentFirst(
   }
 
   const sorted: ExportedFolder[] = [];
-  const visited = new Set<string>();
+  const visited = new Set<ExportedFolder>();
+  const visiting = new Set<ExportedFolder>();
 
   /**
    * Visits a folder after its exported parent row when one is present.
@@ -43,15 +48,26 @@ export function sortExportedFoldersParentFirst(
    * @param folder - Exported folder row to append once ancestors are visited.
    */
   function visit(folder: ExportedFolder): void {
-    const uuid = folder.uuid?.trim();
-    if (!uuid || visited.has(uuid)) {
+    if (visited.has(folder)) {
       return;
     }
-    const parentUuid = folder.parent_folder_uuid?.trim();
-    if (parentUuid && byUuid.has(parentUuid)) {
-      visit(byUuid.get(parentUuid)!);
+    if (visiting.has(folder)) {
+      // Break cycles by importing the looping folder at collection root order.
+      sorted.push(folder);
+      visited.add(folder);
+      return;
     }
-    visited.add(uuid);
+
+    visiting.add(folder);
+    const parentUuid = folder.parent_folder_uuid?.trim();
+    if (parentUuid) {
+      const parent = byUuid.get(parentUuid);
+      if (parent) {
+        visit(parent);
+      }
+    }
+    visiting.delete(folder);
+    visited.add(folder);
     sorted.push(folder);
   }
 
