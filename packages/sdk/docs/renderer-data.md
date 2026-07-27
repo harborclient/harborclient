@@ -599,7 +599,7 @@ Register handlers for **File → Import** so plugins can participate in the unif
 
 Requires the `ui` permission. Call `registerImportHandler(hc, extensions, handler)` or `hc.imports.registerHandler(extensions, handler)` — registration disposables are tracked automatically.
 
-Built-in HarborClient formats (Postman, Bruno, HAR, and native exports) are detected first. Plugin handlers run only when the selected file is not recognized as a built-in format and its extension matches a registered handler.
+Built-in HarborClient formats (HarborClient exports, Postman, Bruno, HAR, OpenCollection, and OpenAPI) are detected first. Plugin handlers run only when the selected file is not recognized as a built-in format and its extension matches a registered handler.
 
 Handlers run in registration order. The first handler whose `canImport` returns true receives the file. Throw an `Error` from `import` to surface a blocking failure in the host.
 
@@ -609,7 +609,7 @@ Handlers run in registration order. The first handler whose `canImport` returns 
 
 **Preview UI** — stash the selected `ImportFile` in plugin state, then open a registered main view with `hc.commands.execute('harborclient:openMainView', hc.pluginId, viewId)`. The preview component reads the stashed file, lets the user confirm selections, and calls host APIs when ready.
 
-See the [Import handler example](/examples/import-handler) for a complete walkthrough. OpenAPI 3.x import is built into HarborClient (**File → Import**); use import handlers for additional custom formats.
+See the [Import handler example](/examples/import-handler) for a complete walkthrough. OpenAPI 3.x and OpenCollection import are built into HarborClient (**File → Import**); use import handlers for additional custom formats.
 
 ### registerImportHandler(hc, extensions, handler)
 
