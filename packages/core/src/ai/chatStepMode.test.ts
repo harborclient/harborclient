@@ -53,4 +53,18 @@ describe('resolveChatStepMode', () => {
     expect(config.excludeMcpTools).toBe(true);
     expect(config.systemPrompt).toContain('git_diff');
   });
+
+  it('uses a tool-free prompt for hc.ask script completions', () => {
+    const config = resolveChatStepMode({
+      model: 'gpt-4o',
+      agentVariant: 'hcAsk',
+      messages: [{ role: 'user', content: 'Summarize this JSON' }]
+    });
+
+    expect(config.tools).toEqual([]);
+    expect(config.excludeMcpTools).toBe(true);
+    expect(config.systemPrompt).toContain('HarborClient send context');
+    expect(config.systemPrompt).toContain('sizeBytes');
+    expect(config.messages).toEqual([{ role: 'user', content: 'Summarize this JSON' }]);
+  });
 });

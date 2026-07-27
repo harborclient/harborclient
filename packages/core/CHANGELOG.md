@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Implement hc.ask API for one-shot AI completions. (`aed2809f`)
 - Enhance plugin library and sidebar selection handling. (`5a919ac6`)
 - Refactor settings draft management and enhance default handling. (`5650b3e6`)
 - Enhance response body handling and UI interactions. (`af009245`)

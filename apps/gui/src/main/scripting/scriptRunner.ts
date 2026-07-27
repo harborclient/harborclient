@@ -6,6 +6,7 @@ import type {
   SendResult
 } from '@harborclient/core/types';
 import { evaluateScript } from './scriptEvaluator';
+import type { ScriptAskRequest } from './scriptApi';
 import type { ScriptFileRequest } from './scriptFileOperations';
 
 // errorTaming 'unsafe' keeps Error.prototype.stack intact. The default 'safe'
@@ -62,7 +63,29 @@ interface FileErrorReply {
   error: string;
 }
 
-type ParentReply = NetSuccessReply | NetErrorReply | FileSuccessReply | FileErrorReply;
+interface AskSuccessReply {
+  kind: 'ask-reply';
+  runId: number;
+  askId: number;
+  ok: true;
+  result: string | null;
+}
+
+interface AskErrorReply {
+  kind: 'ask-reply';
+  runId: number;
+  askId: number;
+  ok: false;
+  error: string;
+}
+
+type ParentReply =
+  | NetSuccessReply
+  | NetErrorReply
+  | FileSuccessReply
+  | FileErrorReply
+  | AskSuccessReply
+  | AskErrorReply;
 
 interface PendingNetworkCall {
   resolve: (result: SendResult) => void;
@@ -74,11 +97,19 @@ interface PendingFileCall {
   reject: (error: Error) => void;
 }
 
+interface PendingAskCall {
+  resolve: (result: string | null) => void;
+  reject: (error: Error) => void;
+}
+
 let nextNetId = 1;
 const pendingNetworkCalls = new Map<number, PendingNetworkCall>();
 
 let nextFileId = 1;
 const pendingFileCalls = new Map<number, PendingFileCall>();
+
+let nextAskId = 1;
+const pendingAskCalls = new Map<number, PendingAskCall>();
 
 /**
  * Rejects every pending hc.sendRequest promise when the runner shuts down.
@@ -102,6 +133,18 @@ function rejectAllPendingFileCalls(message: string): void {
     pending.reject(new Error(message));
   }
   pendingFileCalls.clear();
+}
+
+/**
+ * Rejects every pending hc.ask promise when the runner shuts down.
+ *
+ * @param message - Error message applied to each pending ask call.
+ */
+function rejectAllPendingAskCalls(message: string): void {
+  for (const pending of pendingAskCalls.values()) {
+    pending.reject(new Error(message));
+  }
+  pendingAskCalls.clear();
 }
 
 /**
@@ -147,6 +190,27 @@ function createFileTransport(runId: number): (req: ScriptFileRequest) => Promise
 }
 
 /**
+ * Builds the hc.ask transport that bridges to the main process runner host.
+ *
+ * @param runId - Correlation id for the active script run message.
+ * @returns Async ask function injected into the script sandbox.
+ */
+function createAskTransport(runId: number): (req: ScriptAskRequest) => Promise<string | null> {
+  return (req) =>
+    new Promise<string | null>((resolve, reject) => {
+      const port = process.parentPort;
+      if (!port) {
+        reject(new Error('Script ask bridge is unavailable'));
+        return;
+      }
+
+      const askId = nextAskId++;
+      pendingAskCalls.set(askId, { resolve, reject });
+      port.postMessage({ kind: 'ask', runId, askId, req });
+    });
+}
+
+/**
  * Handles a single script run request from the main process.
  *
  * @param message - Correlation id and script input payload.
@@ -160,7 +224,8 @@ async function handleRunMessage(message: RunMessage): Promise<void> {
   try {
     const result = await evaluateScript(message.input, {
       sendRequest: createNetworkTransport(message.id),
-      fileBridge: createFileTransport(message.id)
+      fileBridge: createFileTransport(message.id),
+      ask: createAskTransport(message.id)
     });
     const reply: SuccessReply = { id: message.id, ok: true, result };
     port.postMessage(reply);
@@ -207,6 +272,20 @@ if (port) {
       return;
     }
 
+    if ('kind' in message && message.kind === 'ask-reply') {
+      const pending = pendingAskCalls.get(message.askId);
+      if (!pending) {
+        return;
+      }
+      pendingAskCalls.delete(message.askId);
+      if (message.ok) {
+        pending.resolve(message.result);
+      } else {
+        pending.reject(new Error(message.error));
+      }
+      return;
+    }
+
     void handleRunMessage(message as RunMessage);
   });
 }
@@ -214,4 +293,5 @@ if (port) {
 process.on('exit', () => {
   rejectAllPendingNetworkCalls('Script runner exited');
   rejectAllPendingFileCalls('Script runner exited');
+  rejectAllPendingAskCalls('Script runner exited');
 });

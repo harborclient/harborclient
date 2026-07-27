@@ -318,6 +318,17 @@ interface HcResponseApi {
 }
 
 /**
+ * Optional configuration for hc.ask.
+ */
+interface HcAskOptions {
+  /**
+   * Model selection as `"name"` or `"name: source"`.
+   * Omit to use the first available model.
+   */
+  model?: string;
+}
+
+/**
  * HarborClient script sandbox API exposed as the global hc object.
  */
 interface HcScriptApi {
@@ -357,6 +368,17 @@ interface HcScriptApi {
    * @throws When the setting is disabled or sendRequest is unavailable in this context.
    */
   sendRequest(req: HcSendRequestInput): Promise<HcSendRequestResponse>;
+  /**
+   * Sends a one-shot prompt to a configured AI model.
+   * Includes the current send's request (and response in post-request scripts)
+   * in the model context. Returns null when AI is not configured or the
+   * model selection cannot be resolved.
+   *
+   * @param prompt - Text sent to the model.
+   * @param options - Optional `{ model }` where model is `"name"` or `"name: source"`.
+   *   Omit model (or options) to use the first available model.
+   */
+  ask(prompt: string, options?: HcAskOptions): Promise<string | null>;
   test(name: string, fn: () => void): void;
   /** Chai BDD expect; see https://www.chaijs.com/api/bdd/ */
   expect: HcExpectStatic;

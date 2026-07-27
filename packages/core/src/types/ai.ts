@@ -286,9 +286,10 @@ export interface ChatStepInput {
   chatTitlePrompt?: string;
 
   /**
-   * Dedicated agent mode for isolated tool sets (for example commit-message generation).
+   * Dedicated agent mode for isolated tool sets (for example commit-message generation
+   * or one-shot script `hc.ask` completions without tools).
    */
-  agentVariant?: 'commitMessage';
+  agentVariant?: 'commitMessage' | 'hcAsk';
 }
 
 /**

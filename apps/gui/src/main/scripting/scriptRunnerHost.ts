@@ -1,6 +1,7 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
 import { resolveFromMainOut } from '#/main/paths';
 import type {
+  GitSettings,
   ScriptRunInput,
   ScriptRunResult,
   SendRequestInput,
@@ -19,13 +20,20 @@ import {
   isScriptFileWriteAllowed
 } from '#/main/settings/generalSettings';
 import { listStorageConnections } from '#/main/settings/storageSettings';
+import { getAiSettings } from '#/main/settings/aiSettings';
+import { listHubLlmModels } from '#/main/ai/hubChatStep';
+import { getGithubModelsStatus } from '#/main/ai/githubModelsAuth';
+import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
+import { hasAvailableAiModels } from '@harborclient/core/ai/models';
+import { resolveScriptAskModel } from '@harborclient/core/ai/resolveScriptAskModel';
+import { buildHcAskContextMessage } from '@harborclient/core/ai/hcAskContext';
 import { homedir } from 'os';
-import type { GitSettings } from '@harborclient/core/types';
 import {
   executeScriptFileRequest,
   scriptFileAccessForOp,
   type ScriptFileRequest
 } from '@harborclient/core/scripting/scriptFileOperations';
+import type { ScriptAskRequest } from './scriptApi';
 
 /**
  * Resolves the script execution timeout from persisted general settings.
@@ -101,7 +109,30 @@ interface FileErrorReply {
   error: string;
 }
 
-type ChildMessage = RunnerReply | NetRequestMessage | FileRequestMessage;
+interface AskRequestMessage {
+  kind: 'ask';
+  runId: number;
+  askId: number;
+  req: ScriptAskRequest;
+}
+
+interface AskSuccessReply {
+  kind: 'ask-reply';
+  runId: number;
+  askId: number;
+  ok: true;
+  result: string | null;
+}
+
+interface AskErrorReply {
+  kind: 'ask-reply';
+  runId: number;
+  askId: number;
+  ok: false;
+  error: string;
+}
+
+type ChildMessage = RunnerReply | NetRequestMessage | FileRequestMessage | AskRequestMessage;
 
 interface PendingRun {
   input: ScriptRunInput;
@@ -326,6 +357,95 @@ function handleScriptFileRequest(child: UtilityProcess, message: FileRequestMess
 }
 
 /**
+ * Resolves and runs a one-shot `hc.ask` completion in the main process.
+ *
+ * Returns null when AI is not configured or the model/source pair cannot be matched.
+ * LLM failures throw so the script bridge can reject the sandbox promise.
+ *
+ * When `runInput` is provided, injects a request/response snapshot so the model can
+ * answer questions about the current send (for example response sizeBytes).
+ *
+ * @param req - Prompt, model label/id, and source group label from the sandbox.
+ * @param runInput - Pending script run context for the active send.
+ * @returns Model text, or null when unavailable / unresolved.
+ */
+export async function executeScriptAsk(
+  req: ScriptAskRequest,
+  runInput?: ScriptRunInput
+): Promise<string | null> {
+  const settings = getAiSettings();
+  const hubGroups = await listHubLlmModels();
+  const githubConnected = getGithubModelsStatus().connected;
+
+  if (!hasAvailableAiModels(settings, hubGroups, githubConnected)) {
+    return null;
+  }
+
+  const option = resolveScriptAskModel(req.model, settings, hubGroups, githubConnected);
+  if (!option) {
+    return null;
+  }
+
+  const contextMessage = buildHcAskContextMessage(runInput);
+  const messages = [
+    ...(contextMessage ? [{ role: 'user' as const, content: contextMessage }] : []),
+    { role: 'user' as const, content: req.prompt }
+  ];
+
+  const step = await runChatCompletionStep({
+    model: option.id,
+    messages,
+    ...(option.source === 'hub' && option.hubId ? { hubId: option.hubId } : {}),
+    agentVariant: 'hcAsk'
+  });
+
+  return step.content;
+}
+
+/**
+ * Handles an hc.ask bridge call from the utility process runner.
+ *
+ * Resolves to null when AI is not configured or the model/source pair cannot be
+ * matched; otherwise runs a one-shot completion with agentVariant `hcAsk`,
+ * including the pending run's request/response snapshot.
+ *
+ * @param child - Utility process that initiated the ask call.
+ * @param message - Ask request payload from the script sandbox.
+ */
+async function handleScriptAskRequest(
+  child: UtilityProcess,
+  message: AskRequestMessage
+): Promise<void> {
+  const reply = (payload: AskSuccessReply | AskErrorReply): void => {
+    child.postMessage(payload);
+  };
+
+  try {
+    const runInput = pendingRuns.get(message.runId)?.input;
+    const result = await executeScriptAsk(message.req, runInput);
+    reply({
+      kind: 'ask-reply',
+      runId: message.runId,
+      askId: message.askId,
+      ok: true,
+      result
+    });
+  } catch (err) {
+    const rawMessage =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
+    reply({
+      kind: 'ask-reply',
+      runId: message.runId,
+      askId: message.askId,
+      ok: false,
+      error: sanitizeScriptErrorMessage(rawMessage)
+    });
+  }
+}
+
+/**
  * Attaches lifecycle and message handlers to a newly spawned runner process.
  *
  * @param child - Utility process forked from the script runner entry.
@@ -339,6 +459,11 @@ function attachRunnerHandlers(child: UtilityProcess): void {
 
     if ('kind' in message && message.kind === 'file') {
       handleScriptFileRequest(child, message);
+      return;
+    }
+
+    if ('kind' in message && message.kind === 'ask') {
+      void handleScriptAskRequest(child, message);
       return;
     }
 

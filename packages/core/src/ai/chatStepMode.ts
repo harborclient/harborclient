@@ -1,5 +1,6 @@
 import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from './chatTitle';
 import { buildGitCommitMessageSystemPrompt } from './gitCommitMessage';
+import { HC_ASK_SYSTEM_PROMPT } from './hcAskContext';
 import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from './scriptAsk';
 import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from './tools';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
@@ -102,9 +103,21 @@ export function resolveChatStepMode(
     };
   }
 
+  if (input.agentVariant === 'hcAsk') {
+    return {
+      systemPrompt: HC_ASK_SYSTEM_PROMPT,
+      tools: [],
+      messages: input.messages,
+      excludeMcpTools: true
+    };
+  }
+
   return {
     systemPrompt: AI_SYSTEM_PROMPT,
     tools: filterToolsForChatStep(AI_TOOL_DEFINITIONS, input, options?.hubHasOpenAi),
     messages: input.messages
   };
 }
+
+/** Re-export for callers that previously imported the prompt from this module. */
+export { HC_ASK_SYSTEM_PROMPT };

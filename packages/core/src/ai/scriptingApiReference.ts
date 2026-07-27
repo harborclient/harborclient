@@ -110,6 +110,33 @@ Response matchers require \`hc.response\` as the subject. Using them on
 
 Never emit Postman \`pm.*\` syntax in HarborClient scripts.
 
+## hc.ask(prompt, options?)
+
+One-shot AI completion from a pre/post script. Returns a Promise that resolves to
+the model text, or \`null\` when AI is not configured or the model selection
+cannot be resolved.
+
+HarborClient injects the current send's request (and response in post-request
+scripts) into the completion context automatically — including \`sizeBytes\` for
+binary/image bodies. Do not paste \`hc.response\` into the prompt unless you need
+extra text beyond that snapshot.
+
+\`\`\`js
+const sizeAnswer = await hc.ask("What is the file size of the image?", {
+  model: "gpt-4o: personal"
+});
+if (sizeAnswer == null) {
+  console.log("AI not configured");
+}
+\`\`\`
+
+- \`prompt\` — text sent to the model
+- \`options.model\` — optional \`"name"\` or \`"name: source"\` (source is \`Personal\`,
+  \`GitHub Models\`, or a Team Hub display name). Omit for the first available model;
+  omit source to take the first matching model from any source.
+
+Do not invent tool-calling loops or Postman AI APIs; use \`await hc.ask(...)\`.
+
 ## AI script edits (update_request_script)
 
 The \`replace_range\` mode performs a literal splice:

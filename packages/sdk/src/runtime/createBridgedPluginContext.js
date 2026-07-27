@@ -1192,7 +1192,8 @@ export function mountContributionView({
     'responseTabs',
     'collectionSettingsTabs',
     'modals',
-    'mainViews'
+    'mainViews',
+    'sidebarPanels'
   ]);
 
   if (FILL_SURFACE_KINDS.has(kind) && slot === 'content') {

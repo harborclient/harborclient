@@ -11,6 +11,7 @@ describe('scriptingApiReference', () => {
     expect(text).toContain('Do **not** tell users that missing parentheses is the problem');
     expect(text).toContain('pm.test');
     expect(text).toContain('hc.response');
+    expect(text).toContain('hc.ask');
   });
 
   it('documents replace_range edits that preserve surrounding script code', () => {

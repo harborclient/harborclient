@@ -363,6 +363,8 @@ export function SidebarContent(): JSX.Element {
       minSize={240}
       getMaxSize={() => 640}
       resizeAriaLabel="Resize sidebar"
+      scroll={!displayedPanel}
+      asideClassName={displayedPanel ? 'h-full min-h-0' : undefined}
       header={
         <>
           <SidebarPanelSwitcher
@@ -390,7 +392,8 @@ export function SidebarContent(): JSX.Element {
           pluginId={displayedPanel.pluginId}
           contributionId={displayedPanel.contributionId}
           kind="sidebarPanels"
-          minHeight={240}
+          resizeMode="fill"
+          className="h-full"
           context={sidebarPanelContext}
         />
       ) : (

@@ -304,14 +304,17 @@ styling. `headerActions` uses compact inline sizing: the guest reports
 width/height via `view.reportSize`, and the host webview stays inline with
 `overflow: hidden`.
 
-**Sizing:** Request and collection settings plugin tabs use `resizeMode="fill"`: the
-webview fills the host tab area and the guest scrolls internally (`plugin-surface-fill`
-in [`pluginShell.html`](../../../main/plugins/pluginShell.html) applies to the `content`
-slot only). Other surfaces use `resizeMode="content"` (default): the guest reports
-height via `view.reportSize`, the broker forwards `plugins:surfaceResize`, and
-`HostedSurface` sets an explicit pixel height. Footer panel **content** and status bar
-items use fill mode on the host webview. Footer panel **status dots** are host-rendered
-via `hc.ui.setFooterPanelIndicator` (no indicator webview).
+**Sizing:** Request and collection settings plugin tabs, footer panel **content**,
+status bar items, and `sidebarPanels` use `resizeMode="fill"`: the webview fills the
+host allocation and the guest scrolls internally (`plugin-surface-fill` in
+[`pluginShell.html`](../../../main/plugins/pluginShell.html) applies to the `content`
+slot only). When a `sidebarPanels` contribution is displayed, the host disables the
+outer `Sidebar` scroll region — guests should scroll list bodies with SDK
+`Scrollbars` (not native `overflow-y-auto`) so chrome matches the built-in
+Collections sidebar. Other surfaces use `resizeMode="content"` (default): the guest
+reports height via `view.reportSize`, the broker forwards `plugins:surfaceResize`,
+and `HostedSurface` sets an explicit pixel height. Footer panel **status dots** are
+host-rendered via `hc.ui.setFooterPanelIndicator` (no indicator webview).
 
 ---
 

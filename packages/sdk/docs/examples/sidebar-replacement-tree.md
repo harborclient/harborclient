@@ -191,6 +191,49 @@ await hc.host.moveRequest({
 });
 ```
 
+## Scrolling
+
+The host mounts `sidebarPanels` with `resizeMode="fill"` and disables the outer
+`Sidebar` scroll region, so the plugin owns scrolling. Use
+`Scrollbars` from `@harborclient/sdk/components` — the same OverlayScrollbars
+wrapper as the built-in Collections sidebar (`os-theme-harbor`, themed via host
+`styles.css`).
+
+Do **not** use `overflow-y-auto` / `overflow-auto` for the main sidebar list;
+native OS scrollbars will not match HarborClient chrome.
+
+Keep a fixed header (search/filter) outside the scroll region:
+
+```tsx
+import { FormGroup, Input, Scrollbars } from '@harborclient/sdk/components';
+
+export function SidebarTreePanel({ hc }: { hc: PluginContext }) {
+  // …load tree state…
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-separator px-2 py-3">
+        <FormGroup bordered={false} label="Search collections" htmlFor="sidebar-filter" srOnly>
+          <Input
+            id="sidebar-filter"
+            type="search"
+            placeholder="Search"
+            className="w-full"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          />
+        </FormGroup>
+      </div>
+      <Scrollbars autoHide className="min-h-0 flex-1">
+        <div className="flex min-h-full min-w-0 flex-col">
+          {/* SidebarFolderItem / SidebarRequestItem tree */}
+        </div>
+      </Scrollbars>
+    </div>
+  );
+}
+```
+
 ## Selection and open
 
 Keep the host selection bridge and open APIs in sync:

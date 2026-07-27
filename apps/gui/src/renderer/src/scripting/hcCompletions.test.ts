@@ -124,6 +124,7 @@ describe('createHcCompletionSource', () => {
 
     expect(result).not.toBeNull();
     expect(labels(result!.options).sort()).toEqual([
+      'ask',
       'collection',
       'cookies',
       'data',
@@ -146,6 +147,7 @@ describe('createHcCompletionSource', () => {
     const result = await complete(source, mockContext('hc.'));
 
     expect(labels(result!.options).sort()).toEqual([
+      'ask',
       'collection',
       'cookies',
       'data',

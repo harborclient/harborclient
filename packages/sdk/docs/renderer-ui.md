@@ -46,7 +46,7 @@ hc.ui.registerSettingsSection({
 | `Component` | `React.ComponentType` | Full sidebar content              |
 | `order`     | `number`              | Sort order among plugin panels    |
 
-Registers a switchable left sidebar destination — a full-height panel the user selects instead of the default collections view.
+Registers a switchable left sidebar destination — a full-height panel the user selects instead of the default collections view. The host mounts the panel with `resizeMode="fill"` so the plugin surface fills the sidebar body and scrolls inside the webview (`plugin-surface-fill`). Panel bodies should scroll via `Scrollbars` from `@harborclient/sdk/components` (OverlayScrollbars is bundled with the SDK; theme CSS comes from the host stylesheet) so they match the built-in Collections sidebar — do not use native `overflow-y-auto` for the main list.
 
 **Replacing Collections:** To make this panel the default left-sidebar body (hiding the built-in Collections tree and "Collections" switcher tab), set `replaces: "collections"` on the matching **manifest** entry. That field is not part of the runtime `SidebarPanelContribution` object; the host copies it from the manifest at registration time.
 

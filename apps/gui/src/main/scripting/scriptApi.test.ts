@@ -524,6 +524,65 @@ describe('createScriptApi sendRequest', () => {
   });
 });
 
+describe('createScriptApi hc.ask', () => {
+  it('returns null when no ask transport is available', async () => {
+    const api = createScriptApi(baseInput);
+    const ask = api.hc.ask as (
+      prompt: string,
+      options?: { model?: string }
+    ) => Promise<string | null>;
+
+    await expect(ask('Summarize this', { model: 'GPT-4o Mini: Personal' })).resolves.toBeNull();
+  });
+
+  it('forwards normalized args through the ask transport', async () => {
+    const calls: Array<{ prompt: string; model?: string }> = [];
+    const api = createScriptApi(baseInput, {
+      ask: async (req) => {
+        calls.push(req);
+        return 'hello from model';
+      }
+    });
+    const ask = api.hc.ask as (
+      prompt: string,
+      options?: { model?: string }
+    ) => Promise<string | null>;
+
+    await expect(ask('  Summarize this  ', { model: ' GPT-4o Mini: Personal ' })).resolves.toBe(
+      'hello from model'
+    );
+    expect(calls).toEqual([{ prompt: 'Summarize this', model: 'GPT-4o Mini: Personal' }]);
+  });
+
+  it('allows omitting options and model', async () => {
+    const calls: Array<{ prompt: string; model?: string }> = [];
+    const api = createScriptApi(baseInput, {
+      ask: async (req) => {
+        calls.push(req);
+        return 'default model';
+      }
+    });
+    const ask = api.hc.ask as (
+      prompt: string,
+      options?: { model?: string }
+    ) => Promise<string | null>;
+
+    await expect(ask('Hello')).resolves.toBe('default model');
+    await expect(ask('Hello', {})).resolves.toBe('default model');
+    expect(calls).toEqual([{ prompt: 'Hello' }, { prompt: 'Hello' }]);
+  });
+
+  it('throws when prompt is empty or options is not an object', async () => {
+    const api = createScriptApi(baseInput, {
+      ask: async () => 'unused'
+    });
+    const ask = api.hc.ask as (prompt: string, options?: unknown) => Promise<string | null>;
+
+    await expect(ask('', { model: 'gpt-4o' })).rejects.toThrow('hc.ask requires a prompt');
+    await expect(ask('Hi', 'gpt-4o')).rejects.toThrow('hc.ask options must be an object');
+  });
+});
+
 describe('createScriptApi hc.fs', () => {
   it('bridges fs and parse calls through fileBridge', async () => {
     const ops: string[] = [];

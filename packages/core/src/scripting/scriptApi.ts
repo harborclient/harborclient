@@ -41,6 +41,22 @@ import { resolveStackToOriginalLocation, type ScriptCompileMap } from './scriptS
 export type ScriptRunContextInput = Omit<ScriptRunInput, 'script'>;
 
 /**
+ * Payload for {@link ScriptApiOptions.ask} / `hc.ask` bridge calls.
+ */
+export interface ScriptAskRequest {
+  /**
+   * Text sent to the selected AI model.
+   */
+  prompt: string;
+
+  /**
+   * Optional model selection: `"model"`, `"model: source"`, or omitted for the
+   * first available model. Source is a group label such as `Personal` or a Team Hub name.
+   */
+  model?: string;
+}
+
+/**
  * Optional runtime hooks injected when building the hc API.
  */
 export interface ScriptApiOptions {
@@ -53,6 +69,12 @@ export interface ScriptApiOptions {
    * When provided, enables hc.fs / hc.parse / hc.stringify via the main-process bridge.
    */
   fileBridge?: (req: ScriptFileRequest) => Promise<unknown>;
+
+  /**
+   * When provided, enables hc.ask for one-shot AI completions from the script sandbox.
+   * When omitted, hc.ask resolves to null (AI not available in this context).
+   */
+  ask?: (req: ScriptAskRequest) => Promise<string | null>;
 
   /**
    * Compile sourcemap chain from {@link evaluateScript} used to remap assertion stacks
@@ -458,6 +480,37 @@ function formatConsoleArgs(args: unknown[]): string {
 }
 
 /**
+ * Normalizes hc.ask arguments into a bridged ask request.
+ *
+ * @param prompt - User prompt text.
+ * @param options - Optional config object with a `model` selection string.
+ * @returns Normalized ask payload for the host bridge.
+ * @throws When prompt is empty, or options is provided but not a plain object.
+ */
+function normalizeScriptAskRequest(prompt: unknown, options?: unknown): ScriptAskRequest {
+  const promptText = prompt == null ? '' : String(prompt).trim();
+  if (!promptText) {
+    throw new Error('hc.ask requires a prompt');
+  }
+
+  if (options == null) {
+    return { prompt: promptText };
+  }
+
+  if (typeof options !== 'object' || Array.isArray(options)) {
+    throw new Error('hc.ask options must be an object');
+  }
+
+  const rawModel = (options as Record<string, unknown>).model;
+  if (rawModel == null) {
+    return { prompt: promptText };
+  }
+
+  const modelText = String(rawModel).trim();
+  return modelText ? { prompt: promptText, model: modelText } : { prompt: promptText };
+}
+
+/**
  * Normalizes a script sendRequest input from the hc API into a SendRequestInput.
  *
  * @param req - User-provided request object from hc.sendRequest.
@@ -530,7 +583,7 @@ function normalizeScriptSendRequest(req: unknown): SendRequestInput {
  * the hc surface never drifts between runners.
  *
  * @param input - Phase, request, response, variables, and optional collection/environment context.
- * @param options - Optional runtime hooks such as hc.sendRequest transport.
+ * @param options - Optional runtime hooks such as hc.sendRequest, hc.fs, and hc.ask transports.
  * @returns hc object, console, and a reader for accumulated sandbox mutations.
  */
 export function createScriptApi(
@@ -821,6 +874,28 @@ export function createScriptApi(
     hc.sendRequest = () => {
       throw new Error('hc.sendRequest is not available in this script context');
     };
+  }
+
+  if (options?.ask) {
+    const transport = options.ask;
+    /**
+     * Sends a one-shot prompt to a configured AI model.
+     *
+     * @param prompt - Text sent to the model.
+     * @param askOptions - Optional `{ model }` where model is `"name"` or `"name: source"`.
+     * @returns Model text, or null when AI is not configured / selection cannot be resolved.
+     */
+    hc.ask = async (prompt: unknown, askOptions?: unknown): Promise<string | null> => {
+      const normalized = normalizeScriptAskRequest(prompt, askOptions);
+      return transport(normalized);
+    };
+  } else {
+    /**
+     * Resolves to null when no ask transport is available in this script context.
+     *
+     * @returns Always null.
+     */
+    hc.ask = async (): Promise<string | null> => null;
   }
 
   const fileBridge = options?.fileBridge;

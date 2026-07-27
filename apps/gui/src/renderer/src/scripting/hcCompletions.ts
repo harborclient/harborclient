@@ -41,6 +41,11 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(req) => Promise<Response> — requires Settings → General'
   },
   {
+    label: 'ask',
+    type: 'function',
+    detail: '(prompt, options?) => Promise<string | null> — AI one-shot ask'
+  },
+  {
     label: 'fs',
     type: 'property',
     detail: 'Read/write files under the script root — requires Settings → General'
