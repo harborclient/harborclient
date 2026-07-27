@@ -22,13 +22,13 @@
     "better-sqlite3": "^12.11.1",
     "chai": "^4.5.0",
     "cheerio": "^1.2.0",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.28.1",
     "ses": "^2.2.0",
     "undici": "^6.27.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "esbuild": "^0.25.12",
+    "esbuild": "^0.28.1",
     "typescript": "^5.8.3"
   }
 }
