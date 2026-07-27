@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.6 - 2026-07-27
+
 - Add sidebar marker support across collections, environments, folders, requests, and documents. (`872135d`)
 - Add document management functionality to the API. (`e03b05c`)
 
