@@ -1,3 +1,5 @@
+import type { PersistedChatReferenceSnapshots } from '../ai/scriptReferences';
+
 /**
  * Supported LLM providers for the OpenAI SDK compatibility layer.
  */
@@ -71,6 +73,12 @@ export interface ChatMessage {
    * Model id used when the message was sent, if any.
    */
   model?: string;
+
+  /**
+   * Snapshot payloads for `@` references in {@link content}, persisted so badges
+   * can rehydrate after restart without ephemeral Redux selection state.
+   */
+  referenceSnapshots?: PersistedChatReferenceSnapshots;
 
   /**
    * ISO timestamp when the message was created.
@@ -161,6 +169,11 @@ export interface AddChatMessageInput {
    * Model id used for this message, if any.
    */
   model?: string;
+
+  /**
+   * Snapshot payloads for `@` references in {@link content}, stored for badge rehydration.
+   */
+  referenceSnapshots?: PersistedChatReferenceSnapshots;
 }
 
 /**

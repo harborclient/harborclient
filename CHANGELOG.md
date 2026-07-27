@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance response handling and UI features. (`b076b194`)
 - Add response viewer functionality and enhance UI elements. (`5da28a40`)
 - Refactor LinuxAppSubmenuItem to improve nested flyout padding. (`f4d9ceb8`)
 

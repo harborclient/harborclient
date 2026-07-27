@@ -456,6 +456,17 @@ export function buildMenu(
           sortingVisible,
           accelerators
         ),
+        buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick),
+        {
+          label: 'Hide sidebars',
+          accelerator: acceleratorFor(accelerators, 'hide-sidebars'),
+          click: () => sendMenuAction(window, 'hide-sidebars')
+        },
+        {
+          label: 'Show sidebars',
+          accelerator: acceleratorFor(accelerators, 'show-sidebars'),
+          click: () => sendMenuAction(window, 'show-sidebars')
+        },
         { type: 'separator' },
         {
           role: 'togglefullscreen',
@@ -476,8 +487,6 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'reset-zoom'),
           click: () => resetZoom(window.webContents)
         },
-        { type: 'separator' },
-        buildThemeMenuItems(window, activeTheme, pluginThemeOptions, onThemeMenuClick),
         ...(isDeveloperToolsEnabled()
           ? [
               { type: 'separator' as const },

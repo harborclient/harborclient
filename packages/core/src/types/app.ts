@@ -18,6 +18,8 @@ export type MenuActionId =
   | 'join-shared-collection'
   | 'sync'
   | 'toggle-sidebar'
+  | 'hide-sidebars'
+  | 'show-sidebars'
   | 'focus-sidebar-search'
   | 'focus-request-url'
   | 'focus-first-collection'

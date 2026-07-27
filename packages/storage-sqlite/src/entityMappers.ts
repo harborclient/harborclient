@@ -27,6 +27,7 @@ import type {
   Snippet,
   Variable
 } from '@harborclient/core/types';
+import type { PersistedChatReferenceSnapshots } from '@harborclient/core/ai/scriptReferences';
 
 /**
  * Parses a JSON string, returning a fallback value on failure.
@@ -391,12 +392,21 @@ export function rowToChatSummary(row: Record<string, unknown>): ChatSummary {
  */
 export function rowToChatMessage(row: Record<string, unknown>): ChatMessage {
   const model = readString(row.model);
+  const referenceSnapshotsRaw = row.reference_snapshots;
+  const referenceSnapshots =
+    typeof referenceSnapshotsRaw === 'string' && referenceSnapshotsRaw.length > 0
+      ? parseJson<PersistedChatReferenceSnapshots | null>(referenceSnapshotsRaw, null)
+      : null;
+
   return {
     id: readNumber(row.id),
     chatId: readNumber(row.chat_id),
     role: readString(row.role, 'user') as ChatRole,
     content: readString(row.content),
     ...(model ? { model } : {}),
+    ...(referenceSnapshots != null && Object.keys(referenceSnapshots).length > 0
+      ? { referenceSnapshots }
+      : {}),
     created_at: readTimestamp(row.created_at)
   };
 }

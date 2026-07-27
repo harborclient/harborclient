@@ -42,11 +42,13 @@ import {
 } from '#/renderer/src/store/slices/tabsSlice';
 import {
   dispatchNewRequest,
+  hideSidebarsAndFooterPanels,
   importFromMenu,
   requestCreateWorkspaceFromOpenTabs,
   runSync,
   saveFromMenu,
-  sendRequest
+  sendRequest,
+  showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
@@ -251,6 +253,12 @@ export function useMenuActions(): void {
           break;
         case 'toggle-sidebar':
           dispatch(toggleSidebar());
+          break;
+        case 'hide-sidebars':
+          void dispatch(hideSidebarsAndFooterPanels());
+          break;
+        case 'show-sidebars':
+          void dispatch(showSidebarsAndFooterPanels());
           break;
         case 'focus-sidebar-search':
           focusSidebarSearch(dispatch);

@@ -81,6 +81,11 @@ interface Props {
    * HTML element for the row container. Use `li` inside {@link SidebarListbox}.
    */
   as?: 'div' | 'li';
+
+  /**
+   * Additional class names merged onto the row container.
+   */
+  className?: string;
 }
 
 /**
@@ -101,7 +106,8 @@ export function SidebarHistoryItem({
   onContextMenu,
   onClick,
   actions,
-  as = 'li'
+  as = 'li',
+  className
 }: Props): JSX.Element {
   const useListboxOption = as === 'li';
   const optionAriaLabel =
@@ -115,6 +121,7 @@ export function SidebarHistoryItem({
       onContextMenu={onContextMenu}
       actions={actions}
       as={as}
+      className={className}
       listboxOption={
         useListboxOption
           ? {

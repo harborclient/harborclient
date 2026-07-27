@@ -4,6 +4,27 @@ const AI_SCRIPT_REFERENCE_UUID =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
 
 /**
+ * Response-viewer section ids that can be referenced with `@res.<tab-uuid>.<section>`.
+ */
+export const AI_RESPONSE_SECTIONS = ['body', 'headers', 'timing', 'console', 'tests'] as const;
+
+/**
+ * One response-viewer section that can be copied to chat.
+ */
+export type AiResponseSection = (typeof AI_RESPONSE_SECTIONS)[number];
+
+/**
+ * Badge labels for `@res` response-section references.
+ */
+export const AI_RESPONSE_SECTION_LABELS: Record<AiResponseSection, string> = {
+  body: 'Response body',
+  headers: 'Response headers',
+  timing: 'Response timing',
+  console: 'Response console',
+  tests: 'Response tests'
+};
+
+/**
  * Regex matching `@` script references in chat text:
  * - Request scripts: `@<request-id>.<pre|post>.<script-index>`
  * - Standalone snippets: `@snippet.<uuid>`
@@ -12,6 +33,7 @@ const AI_SCRIPT_REFERENCE_UUID =
  * - Folders: `@folder.<uuid>`
  * - Saved requests: `@request.<uuid>`
  * - Markdown documents and request comments: `@markdown.<uuid>`
+ * - Response viewer sections: `@res.<request-tab-uuid>.<body|headers|timing|console|tests>`
  * - Active request raw body: `@body`
  *
  * Request scripts, snippets, markdown, and raw body accept an optional
@@ -19,9 +41,23 @@ const AI_SCRIPT_REFERENCE_UUID =
  * same suffix for 1-based line numbers.
  */
 export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
-  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID})|(body))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
+  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID})|res\\.(${AI_SCRIPT_REFERENCE_UUID})\\.(body|headers|timing|console|tests)|(body))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
   'g'
 );
+
+/**
+ * Builds the compact `@res` token for a response-viewer section on a request tab.
+ *
+ * @param requestTabId - UUID of the owning request tab.
+ * @param section - Response section to reference.
+ * @returns Token such as `@res.<uuid>.body`.
+ */
+export function buildResponseSectionReferenceToken(
+  requestTabId: string,
+  section: AiResponseSection
+): string {
+  return `@res.${requestTabId}.${section}`;
+}
 
 /**
  * Shared fields for every parsed `@` script reference.
@@ -181,6 +217,74 @@ export interface ParsedRequestBodyReference extends ParsedAiScriptReferenceBase 
    * Discriminator for raw-body selection references.
    */
   kind: 'body';
+}
+
+/**
+ * A parsed `@` reference to a response-viewer section for a request tab.
+ */
+export interface ParsedResponseSectionReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for response-section references.
+   */
+  kind: 'response-section';
+
+  /**
+   * UUID of the request tab that owns the response.
+   */
+  requestTabId: string;
+
+  /**
+   * Which response viewer section was referenced.
+   */
+  section: AiResponseSection;
+}
+
+/**
+ * Snapshot of a response-viewer section captured when the user copies it to chat.
+ *
+ * Stored so send-time context expansion does not depend on the response still being
+ * present on the request tab.
+ */
+export interface ResponseSectionSnapshot {
+  /**
+   * Display label for the badge (for example "Response body").
+   */
+  label: string;
+
+  /**
+   * Request name at capture time.
+   */
+  requestName: string;
+
+  /**
+   * Which response section was captured.
+   */
+  section: AiResponseSection;
+
+  /**
+   * HTTP status code when available.
+   */
+  status?: number;
+
+  /**
+   * HTTP status text when available.
+   */
+  statusText?: string;
+
+  /**
+   * Plain-text (or JSON-ish) content of the section for agent context.
+   */
+  content: string;
+
+  /**
+   * Whether {@link content} was shortened for the LLM payload.
+   */
+  truncated?: boolean;
+
+  /**
+   * Original content length before truncation, when truncated.
+   */
+  originalLength?: number;
 }
 
 /**
@@ -350,6 +454,24 @@ export interface ScriptSelectionSnapshot {
 }
 
 /**
+ * One persisted `@` reference snapshot entry keyed by its full token string.
+ *
+ * Stored on chat messages so badge rendering can rehydrate after restart without
+ * depending on ephemeral Redux selection slices.
+ */
+export type PersistedChatReferenceSnapshotEntry =
+  | { kind: 'response-section'; snapshot: ResponseSectionSnapshot }
+  | { kind: 'script-selection'; snapshot: ScriptSelectionSnapshot }
+  | { kind: 'terminal'; snapshot: TerminalSelectionSnapshot }
+  | { kind: 'markdown'; snapshot: MarkdownSelectionSnapshot }
+  | { kind: 'body'; snapshot: RequestBodySelectionSnapshot };
+
+/**
+ * Snapshot map keyed by full `@` reference token (for example `@res.<uuid>.body`).
+ */
+export type PersistedChatReferenceSnapshots = Record<string, PersistedChatReferenceSnapshotEntry>;
+
+/**
  * Last-run script failure attached to a Copy-to-chat script selection snapshot.
  */
 export interface ScriptSelectionLastRunFailure {
@@ -405,7 +527,8 @@ export type ParsedAiScriptReference =
   | ParsedFolderReference
   | ParsedRequestReference
   | ParsedMarkdownReference
-  | ParsedRequestBodyReference;
+  | ParsedRequestBodyReference
+  | ParsedResponseSectionReference;
 
 /**
  * Active request tab state used to decide whether an `@` reference is highlightable.
@@ -460,6 +583,11 @@ export interface AiScriptReferenceValidationContext {
    * Raw-body selection snapshots keyed by the full `@body` reference token.
    */
   requestBodySelections?: Record<string, RequestBodySelectionSnapshot>;
+
+  /**
+   * Response-section snapshots keyed by the full `@res` reference token.
+   */
+  responseSelections?: Record<string, ResponseSectionSnapshot>;
 
   /**
    * Request-script selection snapshots keyed by the full `@` script reference token.
@@ -574,9 +702,26 @@ export function parseAiScriptReferenceMatch(
   const folderUuid = match[7];
   const requestUuid = match[8];
   const markdownUuid = match[9];
-  const bodyToken = match[10];
-  const selectionStartRaw = match[11];
-  const selectionEndRaw = match[12];
+  const responseTabId = match[10];
+  const responseSectionRaw = match[11];
+  const bodyToken = match[12];
+  const selectionStartRaw = match[13];
+  const selectionEndRaw = match[14];
+
+  if (responseTabId != null && responseSectionRaw != null) {
+    if (!(AI_RESPONSE_SECTIONS as readonly string[]).includes(responseSectionRaw)) {
+      return null;
+    }
+
+    return {
+      kind: 'response-section',
+      requestTabId: responseTabId,
+      section: responseSectionRaw as AiResponseSection,
+      start,
+      end: start + text.length,
+      text
+    };
+  }
 
   if (bodyToken != null) {
     return {
@@ -766,6 +911,10 @@ export function isValidAiScriptReference(
     return context.requestBodySelections?.[reference.text] != null;
   }
 
+  if (reference.kind === 'response-section') {
+    return context.responseSelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'terminal') {
     if (reference.selection == null) {
       return false;
@@ -790,8 +939,8 @@ export function isValidAiScriptReference(
     return context.requestNamesByUuid?.[reference.requestUuid] != null;
   }
 
-  // request-script kind below
-  if (reference.selection != null && context.scriptSelections?.[reference.text] != null) {
+  // request-script kind below — snapshots satisfy both selection and whole-script refs
+  if (context.scriptSelections?.[reference.text] != null) {
     return true;
   }
 
@@ -852,6 +1001,10 @@ export function resolveAiScriptReferenceName(
 
   if (reference.kind === 'body') {
     return context.requestBodySelections?.[reference.text]?.label ?? null;
+  }
+
+  if (reference.kind === 'response-section') {
+    return context.responseSelections?.[reference.text]?.label ?? null;
   }
 
   if (reference.kind === 'snippet') {
@@ -931,6 +1084,7 @@ function resolveReferenceSourceCode(
     reference.kind === 'terminal' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
+    reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -941,6 +1095,11 @@ function resolveReferenceSourceCode(
   if (reference.kind === 'snippet') {
     const snippet = (context.snippets ?? []).find((entry) => entry.uuid === reference.snippetUuid);
     return snippet?.code ?? null;
+  }
+
+  const snapshot = context.scriptSelections?.[reference.text];
+  if (snapshot != null) {
+    return snapshot.source;
   }
 
   const scripts = reference.phase === 'pre' ? context.preScripts : context.postScripts;
@@ -1177,6 +1336,49 @@ function formatMarkdownSelectionContextBlock(
 }
 
 /**
+ * Formats one resolved response-section reference for the agent context block.
+ *
+ * @param reference - Parsed `@res` reference.
+ * @param context - Response-section snapshots keyed by reference token.
+ * @returns Context block for one response section, or null when not resolvable.
+ */
+function formatResponseSectionContextBlock(
+  reference: ParsedResponseSectionReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.responseSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const statusLine =
+    snapshot.status != null
+      ? `Status: ${snapshot.status}${snapshot.statusText ? ` ${snapshot.statusText}` : ''}`
+      : null;
+  const truncationNote =
+    snapshot.truncated && snapshot.originalLength != null
+      ? `Content truncated from ${snapshot.originalLength} characters.`
+      : null;
+
+  return [
+    `Reference ${reference.text} — ${snapshot.label} for request "${snapshot.requestName}".`,
+    statusLine,
+    truncationNote,
+    'Section content:',
+    '```text',
+    snapshot.content,
+    '```',
+    'Answer from this captured response-section context first. Call get_active_response_summary, get_active_response, or query_response_body only when you need more detail than the snapshot provides (for example a longer body).'
+  ]
+    .filter((line): line is string => line != null && line.length > 0)
+    .join('\n');
+}
+
+/**
  * Formats one resolved raw-body selection reference for the agent context block.
  *
  * @param reference - Parsed `@body` reference with a character-range suffix.
@@ -1349,6 +1551,10 @@ function formatScriptSelectionContextBlock(
     return formatRequestBodySelectionContextBlock(reference, context);
   }
 
+  if (reference.kind === 'response-section') {
+    return formatResponseSectionContextBlock(reference, context);
+  }
+
   if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
     return null;
   }
@@ -1430,6 +1636,7 @@ function formatWholeScriptReferenceContextBlock(
     reference.kind === 'terminal' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
+    reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request'
@@ -1487,6 +1694,10 @@ function formatScriptReferenceContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): string | null {
+  if (reference.kind === 'response-section') {
+    return formatResponseSectionContextBlock(reference, context);
+  }
+
   if (reference.selection != null) {
     return formatScriptSelectionContextBlock(reference, context);
   }
@@ -1546,6 +1757,7 @@ export function buildAiScriptSelectionContextMessage(
       (entry.reference.kind === 'request-script' || entry.reference.kind === 'snippet') &&
       entry.reference.selection == null
   );
+  const hasResponseSection = resolved.some((entry) => entry.reference.kind === 'response-section');
 
   const headerParts: string[] = [];
   if (hasTerminalSelection) {
@@ -1571,6 +1783,11 @@ export function buildAiScriptSelectionContextMessage(
   if (hasWholeScriptReference) {
     headerParts.push(
       'The user referenced one or more scripts via @ mentions. Use the script sources below to answer their question.'
+    );
+  }
+  if (hasResponseSection) {
+    headerParts.push(
+      'The user referenced one or more HTTP response sections via @res mentions. Use the captured section content below to answer their question.'
     );
   }
 
@@ -1621,7 +1838,138 @@ export function buildAiScriptSelectionContextMessage(
     );
   }
 
+  if (hasResponseSection) {
+    footerParts.push(
+      'Response-section references (@res.<tab-uuid>.<section>) cannot be edited via tools. Answer from the captured content; call get_active_response_summary, get_active_response, or query_response_body only when you need more detail than the snapshot provides.'
+    );
+  }
+
   return [headerParts.join(' '), '', ...blocks, '', footerParts.join(' ')].join('\n');
+}
+
+/**
+ * Builds a script-selection snapshot for a valid request-script reference from live context.
+ *
+ * Whole-script references store the full source as the "selection" so badges and later
+ * rehydration do not depend on the active request tab still matching the token.
+ *
+ * @param reference - Valid request-script reference.
+ * @param context - Active tab script rows and existing selection snapshots.
+ * @returns Snapshot ready to persist, or null when source/label cannot be resolved.
+ */
+function buildRequestScriptSnapshotForPersistence(
+  reference: ParsedRequestScriptReference,
+  context: AiScriptReferenceValidationContext
+): ScriptSelectionSnapshot | null {
+  const existing = context.scriptSelections?.[reference.text];
+  if (existing != null) {
+    return existing;
+  }
+
+  const source = resolveReferenceSourceCode(reference, context);
+  if (source == null) {
+    return null;
+  }
+
+  const scriptLabel = resolveAiScriptReferenceName(reference, context);
+  if (scriptLabel == null) {
+    return null;
+  }
+
+  if (reference.selection != null) {
+    const clamped = clampScriptSelection(source, reference.selection);
+    return {
+      scriptLabel,
+      phase: reference.phase,
+      scriptIndex: reference.scriptIndex,
+      requestId: reference.requestId,
+      source,
+      selectedText: clamped.text,
+      startOffset: clamped.start,
+      endOffset: clamped.end,
+      startLine: lineNumberAtOffset(source, clamped.start),
+      endLine: lineNumberAtOffset(source, Math.max(clamped.start, clamped.end - 1))
+    };
+  }
+
+  return {
+    scriptLabel,
+    phase: reference.phase,
+    scriptIndex: reference.scriptIndex,
+    requestId: reference.requestId,
+    source,
+    selectedText: source,
+    startOffset: 0,
+    endOffset: source.length,
+    startLine: 1,
+    endLine: lineNumberAtOffset(source, Math.max(0, source.length - 1))
+  };
+}
+
+/**
+ * Collects snapshot payloads for valid `@` references in chat text so badges can be
+ * rehydrated after restart without relying on ephemeral Redux selection slices.
+ *
+ * Snapshot-backed kinds (`@res`, `@term`, `@markdown`, `@body`, request-script) are included.
+ * Snippet, collection, folder, and request references resolve from library/sidebar state and
+ * are omitted.
+ *
+ * @param text - User message that may contain `@` references.
+ * @param context - Validation context with live tab state and ephemeral snapshots.
+ * @returns Token-keyed snapshot map, or undefined when nothing needs persisting.
+ */
+export function collectChatReferenceSnapshots(
+  text: string,
+  context: AiScriptReferenceValidationContext
+): PersistedChatReferenceSnapshots | undefined {
+  const snapshots: PersistedChatReferenceSnapshots = {};
+
+  for (const reference of findAiScriptReferenceCandidates(text)) {
+    if (!isValidAiScriptReference(reference, context)) {
+      continue;
+    }
+
+    if (reference.kind === 'response-section') {
+      const snapshot = context.responseSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'response-section', snapshot };
+      }
+      continue;
+    }
+
+    if (reference.kind === 'terminal') {
+      const snapshot = context.terminalSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'terminal', snapshot };
+      }
+      continue;
+    }
+
+    if (reference.kind === 'markdown') {
+      const snapshot = context.markdownSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'markdown', snapshot };
+      }
+      continue;
+    }
+
+    if (reference.kind === 'body') {
+      const snapshot = context.requestBodySelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'body', snapshot };
+      }
+      continue;
+    }
+
+    if (reference.kind === 'request-script') {
+      const snapshot = buildRequestScriptSnapshotForPersistence(reference, context);
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'script-selection', snapshot };
+      }
+    }
+  }
+
+  return Object.keys(snapshots).length > 0 ? snapshots : undefined;
 }
 
 /**

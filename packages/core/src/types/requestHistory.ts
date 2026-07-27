@@ -85,6 +85,18 @@ export interface RequestHistoryEntry {
   bodyType?: BodyType;
 
   /**
+   * Response headers captured at send time for Diff against later responses.
+   * Absent on entries recorded before response capture was added.
+   */
+  responseHeaders?: Record<string, string>;
+
+  /**
+   * Response body text captured at send time for Diff against later responses.
+   * Omitted for image/binary responses and for older history rows.
+   */
+  responseBody?: string;
+
+  /**
    * Entry kind. Absent or `'request'` is a single HTTP send; `'run'` is a collection runner run.
    */
   kind?: 'request' | 'run';

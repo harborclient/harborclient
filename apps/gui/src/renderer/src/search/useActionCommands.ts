@@ -40,9 +40,11 @@ import {
 import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   dispatchNewRequest,
+  hideSidebarsAndFooterPanels,
   importFromMenu,
   runSync,
-  saveFromMenu
+  saveFromMenu,
+  showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
@@ -199,6 +201,12 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-sidebar': () => {
         dispatch(toggleSidebar());
+      },
+      'builtin:hide-sidebars': () => {
+        void dispatch(hideSidebarsAndFooterPanels());
+      },
+      'builtin:show-sidebars': () => {
+        void dispatch(showSidebarsAndFooterPanels());
       },
       'builtin:toggle-ai-sidebar': () => {
         dispatch(toggleAiSidebar());

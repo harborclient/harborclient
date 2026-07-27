@@ -1197,6 +1197,7 @@
  * CodeMirror layout for editors that fill remaining vertical space in a flex column.
  */
 .request-body-editor,
+.response-body-editor,
 .snippet-code-editor,
 .theme-stylesheet-editor {
   display: flex;
@@ -1208,6 +1209,7 @@
 }
 
 .request-body-editor .cm-editor,
+.response-body-editor .cm-editor,
 .snippet-code-editor .cm-editor,
 .theme-stylesheet-editor .cm-editor {
   flex: 1 1 0%;
@@ -1711,5 +1713,63 @@
 
   .git-diff-merge-view .cm-mergeViewEditors {
     min-height: 12rem;
+  }
+
+  .git-diff-merge-view--fill {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .git-diff-merge-view--fill .cm-mergeView {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .git-diff-merge-view--fill .cm-mergeViewEditors {
+    min-height: 0;
+    height: 100%;
+  }
+
+  /**
+   * Inline response Diff panel — fill remaining page height.
+   */
+  .response-text-diff-panel {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /**
+   * Resizable side-by-side Diff editors inside the response viewer page.
+   */
+  .text-diff-split-view {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .text-diff-split-view-editor .cm-editor {
+    height: 100%;
+  }
+
+  .text-diff-split-view-editor .cm-scroller {
+    overflow: auto;
+  }
+
+  .text-diff-split-view .cm-textDiff-deletedLine {
+    background-color: rgba(160, 128, 100, 0.12);
+  }
+
+  .text-diff-split-view .cm-textDiff-insertedLine {
+    background-color: rgba(100, 160, 128, 0.12);
+  }
+
+  .text-diff-split-view .cm-textDiff-deletedText {
+    background: linear-gradient(#ffaa9966, #ffaa9966) bottom / 100% 2px no-repeat;
+  }
+
+  .text-diff-split-view .cm-textDiff-insertedText {
+    background: linear-gradient(#88ff88aa, #88ff88aa) bottom / 100% 2px no-repeat;
   }
 }

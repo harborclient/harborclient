@@ -57,6 +57,8 @@ interface RequestHistoryRow {
   params: string;
   body: string | null;
   body_type: string | null;
+  response_headers: string | null;
+  response_body: string | null;
   kind: string | null;
   run_collection_id: number | null;
   run_folder_id: number | null;
@@ -145,6 +147,8 @@ function parseRequestHistoryParams(raw: string): RequestHistoryEntry['params'] {
  */
 function rowToRequestHistoryEntry(row: RequestHistoryRow): RequestHistoryEntry {
   const kind = row.kind === 'run' ? 'run' : row.kind === 'request' ? 'request' : undefined;
+  const responseHeaders =
+    row.response_headers != null ? parseRequestHistoryHeaders(row.response_headers) : undefined;
 
   return {
     id: row.id,
@@ -159,6 +163,8 @@ function rowToRequestHistoryEntry(row: RequestHistoryRow): RequestHistoryEntry {
     params: parseRequestHistoryParams(row.params),
     body: row.body ?? undefined,
     bodyType: (row.body_type as RequestHistoryEntry['bodyType'] | null) ?? undefined,
+    responseHeaders,
+    responseBody: row.response_body ?? undefined,
     kind,
     runCollectionId: row.run_collection_id ?? undefined,
     runFolderId: row.run_folder_id,
@@ -395,6 +401,7 @@ export class LocalDatabase {
         role TEXT NOT NULL,
         content TEXT NOT NULL,
         model TEXT,
+        reference_snapshots TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
@@ -448,6 +455,8 @@ export class LocalDatabase {
         params           TEXT    NOT NULL DEFAULT '[]',
         body             TEXT,
         body_type        TEXT,
+        response_headers TEXT,
+        response_body    TEXT,
         kind             TEXT,
         run_collection_id INTEGER,
         run_folder_id    INTEGER,
@@ -493,6 +502,7 @@ export class LocalDatabase {
     this.migrateSnippetScope();
     this.migrateSnippetStage();
     this.migrateChatMessageRole();
+    this.migrateChatMessageReferenceSnapshots();
     this.migrateSnippetMarketplaceFields();
     this.migrateSnippetRegistryTable();
     this.migrateRequestHistoryTable();
@@ -674,6 +684,8 @@ export class LocalDatabase {
         params           TEXT    NOT NULL DEFAULT '[]',
         body             TEXT,
         body_type        TEXT,
+        response_headers TEXT,
+        response_body    TEXT,
         kind             TEXT,
         run_collection_id INTEGER,
         run_folder_id    INTEGER,
@@ -699,6 +711,12 @@ export class LocalDatabase {
     }
     if (!columns.some((col) => col.name === 'run_request_id')) {
       this.getDb().exec('ALTER TABLE request_history ADD COLUMN run_request_id INTEGER');
+    }
+    if (!columns.some((col) => col.name === 'response_headers')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN response_headers TEXT');
+    }
+    if (!columns.some((col) => col.name === 'response_body')) {
+      this.getDb().exec('ALTER TABLE request_history ADD COLUMN response_body TEXT');
     }
   }
 
@@ -864,6 +882,22 @@ export class LocalDatabase {
     if (columns.some((col) => col.name === 'stage')) {
       this.getDb().exec('ALTER TABLE chat_messages RENAME COLUMN stage TO role');
     }
+  }
+
+  /**
+   * Adds a nullable JSON column for persisted `@` reference snapshots on chat messages.
+   */
+  private migrateChatMessageReferenceSnapshots(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(chat_messages)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0) {
+      return;
+    }
+    if (columns.some((col) => col.name === 'reference_snapshots')) {
+      return;
+    }
+    this.getDb().exec('ALTER TABLE chat_messages ADD COLUMN reference_snapshots TEXT');
   }
 
   /**
@@ -1810,7 +1844,7 @@ export class LocalDatabase {
 
     const messageRows = this.getDb()
       .prepare(
-        'SELECT id, chat_id, role, content, model, created_at FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC, id ASC'
+        'SELECT id, chat_id, role, content, model, reference_snapshots, created_at FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC, id ASC'
       )
       .all(id) as Record<string, unknown>[];
 
@@ -1820,7 +1854,7 @@ export class LocalDatabase {
   /**
    * Appends a message to a chat and updates the chat timestamp.
    *
-   * @param input - Chat id, role, content, and optional model.
+   * @param input - Chat id, role, content, optional model, and optional reference snapshots.
    * @returns The persisted message.
    */
   addChatMessage(input: {
@@ -1828,6 +1862,7 @@ export class LocalDatabase {
     role: ChatRole;
     content: string;
     model?: string;
+    referenceSnapshots?: ChatMessage['referenceSnapshots'];
   }): ChatMessage {
     const content = input.content.trim();
     if (!content) {
@@ -1842,9 +1877,16 @@ export class LocalDatabase {
       throw new Error('Chat not found');
     }
 
+    const referenceSnapshotsJson =
+      input.referenceSnapshots != null && Object.keys(input.referenceSnapshots).length > 0
+        ? JSON.stringify(input.referenceSnapshots)
+        : null;
+
     const result = this.getDb()
-      .prepare('INSERT INTO chat_messages (chat_id, role, content, model) VALUES (?, ?, ?, ?)')
-      .run(input.chatId, input.role, content, input.model ?? null);
+      .prepare(
+        'INSERT INTO chat_messages (chat_id, role, content, model, reference_snapshots) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run(input.chatId, input.role, content, input.model ?? null, referenceSnapshotsJson);
 
     this.getDb()
       .prepare("UPDATE chats SET updated_at = datetime('now') WHERE id = ?")
@@ -1852,7 +1894,7 @@ export class LocalDatabase {
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, chat_id, role, content, model, created_at FROM chat_messages WHERE id = ?'
+        'SELECT id, chat_id, role, content, model, reference_snapshots, created_at FROM chat_messages WHERE id = ?'
       )
       .get(result.lastInsertRowid) as Record<string, unknown>;
 
@@ -1878,7 +1920,7 @@ export class LocalDatabase {
     const rows = this.getDb()
       .prepare(
         `SELECT id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
-                kind, run_collection_id, run_folder_id, run_request_id
+                response_headers, response_body, kind, run_collection_id, run_folder_id, run_request_id
          FROM request_history
          ORDER BY ts DESC
          LIMIT ?`
@@ -1900,8 +1942,8 @@ export class LocalDatabase {
     const insert = db.prepare(
       `INSERT OR REPLACE INTO request_history
         (id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
-         kind, run_collection_id, run_folder_id, run_request_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         response_headers, response_body, kind, run_collection_id, run_folder_id, run_request_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
     const prune = db.prepare(
       `DELETE FROM request_history
@@ -1924,6 +1966,8 @@ export class LocalDatabase {
         JSON.stringify(entry.params ?? []),
         entry.body ?? null,
         entry.bodyType ?? null,
+        entry.responseHeaders != null ? JSON.stringify(entry.responseHeaders) : null,
+        entry.responseBody ?? null,
         entry.kind ?? null,
         entry.runCollectionId ?? null,
         entry.runFolderId ?? null,
@@ -1965,7 +2009,7 @@ export class LocalDatabase {
     const row = this.getDb()
       .prepare(
         `SELECT id, method, url, status, status_text, ts, saved_request_id, name, headers, params, body, body_type,
-                kind, run_collection_id, run_folder_id, run_request_id
+                response_headers, response_body, kind, run_collection_id, run_folder_id, run_request_id
          FROM request_history
          WHERE id = ?`
       )

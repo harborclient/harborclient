@@ -560,8 +560,9 @@ export const chatAddMessageInput = z.object({
   chatId: dbId,
   role: chatRole,
   content: z.string(),
-  model: z.string().optional()
-}) satisfies z.ZodType<AddChatMessageInput>;
+  model: z.string().optional(),
+  referenceSnapshots: z.record(z.string(), z.unknown()).optional()
+}) as z.ZodType<AddChatMessageInput>;
 
 export const chatGenerateTitleInput = z.object({
   chatId: dbId,
@@ -680,6 +681,8 @@ export const requestHistoryEntry = z.object({
   params: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
   body: z.string().optional(),
   bodyType: bodyType.optional(),
+  responseHeaders: z.record(z.string(), z.string()).optional(),
+  responseBody: z.string().optional(),
   kind: z.enum(['request', 'run']).optional(),
   runCollectionId: z.number().int().positive().optional(),
   runFolderId: z.number().int().positive().nullable().optional(),

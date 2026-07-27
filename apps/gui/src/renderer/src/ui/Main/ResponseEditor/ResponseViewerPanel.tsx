@@ -59,6 +59,12 @@ interface Props {
    * Request tab that owns this response; preferred for jump-to-editor.
    */
   requestTabId?: string;
+
+  /**
+   * When true, Body stretches its CodeEditor to fill remaining height
+   * (full-page response viewer). Ignored for non-body tabs.
+   */
+  fillHeight?: boolean;
 }
 
 /**
@@ -73,11 +79,12 @@ export function ResponseViewerPanel({
   executionEvents,
   scriptError,
   scriptErrors,
-  requestTabId
+  requestTabId,
+  fillHeight = false
 }: Props): JSX.Element {
   switch (viewerTab) {
     case 'body':
-      return <Body response={response} />;
+      return <Body response={response} fillHeight={fillHeight} />;
     case 'preview':
       return <Preview response={response} requestUrl={requestUrl} />;
     case 'headers':

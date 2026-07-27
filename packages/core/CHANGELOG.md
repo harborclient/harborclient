@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance response handling and UI features. (`b076b194`)
 - Add response viewer functionality and enhance UI elements. (`5da28a40`)
 
 ## 0.2.4 - 2026-07-27

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAiScriptSelectionContextMessage,
+  collectChatReferenceSnapshots,
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
   resolveAiScriptReferenceLabel,
@@ -288,6 +289,41 @@ describe('findAiScriptReferenceCandidates', () => {
     expect(findAiScriptReferenceCandidates('@folder.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@request.not-a-uuid')).toEqual([]);
   });
+
+  it('finds response-section references by request tab uuid and section', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+
+    expect(findAiScriptReferenceCandidates(`@res.${tabId}.body`)).toEqual([
+      expect.objectContaining({
+        kind: 'response-section',
+        requestTabId: tabId,
+        section: 'body',
+        text: `@res.${tabId}.body`
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@res.${tabId}.headers`)).toEqual([
+      expect.objectContaining({ kind: 'response-section', section: 'headers' })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@res.${tabId}.timing`)).toEqual([
+      expect.objectContaining({ kind: 'response-section', section: 'timing' })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@res.${tabId}.console`)).toEqual([
+      expect.objectContaining({ kind: 'response-section', section: 'console' })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@res.${tabId}.tests`)).toEqual([
+      expect.objectContaining({ kind: 'response-section', section: 'tests' })
+    ]);
+  });
+
+  it('rejects malformed response-section references', () => {
+    expect(findAiScriptReferenceCandidates('@res.not-a-uuid.body')).toEqual([]);
+    expect(
+      findAiScriptReferenceCandidates('@res.aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.preview')
+    ).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@res.aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toEqual(
+      []
+    );
+  });
 });
 
 describe('isValidAiScriptReference', () => {
@@ -466,6 +502,38 @@ describe('isValidAiScriptReference', () => {
     expect(isValidAiScriptReference(candidate!, context())).toBe(false);
   });
 
+  it('accepts response-section references when a matching snapshot exists', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          responseSelections: {
+            [token]: {
+              label: 'Response body',
+              requestName: 'Echo',
+              section: 'body',
+              status: 200,
+              statusText: 'OK',
+              content: '{"ok":true}'
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects response-section references without a stored snapshot', () => {
+    const [candidate] = findAiScriptReferenceCandidates(
+      '@res.aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.body'
+    );
+    expect(candidate).toBeDefined();
+    expect(isValidAiScriptReference(candidate!, context())).toBe(false);
+  });
+
   it('accepts collection, folder, and request references when names are known', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -567,6 +635,29 @@ describe('resolveAiScriptReferenceName', () => {
         })
       )
     ).toBe('Auth helper');
+  });
+
+  it('returns the response-section label from the snapshot', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.tests`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+
+    expect(
+      resolveAiScriptReferenceName(
+        candidate!,
+        context({
+          responseSelections: {
+            [token]: {
+              label: 'Response tests',
+              requestName: 'Echo',
+              section: 'tests',
+              content: '1/1 passed'
+            }
+          }
+        })
+      )
+    ).toBe('Response tests');
   });
 });
 
@@ -1080,6 +1171,36 @@ hc.test("Status code is 2xx", () => {
     expect(message).toContain('body_raw');
   });
 
+  it('includes response-section content and tool fallback guidance', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.headers`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Explain ${token}`,
+      context({
+        responseSelections: {
+          [token]: {
+            label: 'Response headers',
+            requestName: 'Echo',
+            section: 'headers',
+            status: 200,
+            statusText: 'OK',
+            content: 'content-type: application/json'
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(
+      'The user referenced one or more HTTP response sections via @res mentions.'
+    );
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('Response headers for request "Echo"');
+    expect(message).toContain('Status: 200 OK');
+    expect(message).toContain('content-type: application/json');
+    expect(message).toContain('get_active_response');
+    expect(message).toContain('cannot be edited via tools');
+  });
+
   it('returns null for collection, folder, and request references', () => {
     const collectionUuid = '11111111-1111-1111-1111-111111111111';
     const folderUuid = '22222222-2222-2222-2222-222222222222';
@@ -1132,5 +1253,143 @@ describe('stripAiScriptReferences', () => {
 
   it('removes only the parsed reference prefix when extra text follows', () => {
     expect(stripAiScriptReferences('@active.pre.1extra')).toBe('extra');
+  });
+});
+
+describe('collectChatReferenceSnapshots', () => {
+  it('collects response-section snapshots keyed by token', () => {
+    const tabId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const token = `@res.${tabId}.body`;
+    const snapshot = {
+      label: 'Response body',
+      requestName: 'Echo',
+      section: 'body' as const,
+      status: 200,
+      content: '{"ok":true}'
+    };
+
+    expect(
+      collectChatReferenceSnapshots(
+        `Explain ${token}`,
+        context({
+          responseSelections: { [token]: snapshot }
+        })
+      )
+    ).toEqual({
+      [token]: { kind: 'response-section', snapshot }
+    });
+  });
+
+  it('collects existing script-selection snapshots for selection refs', () => {
+    const token = '@99.post.1#0.25';
+    const snapshot = {
+      scriptLabel: 'Assert ok',
+      phase: 'post' as const,
+      scriptIndex: 1,
+      requestId: 99 as const,
+      source: 'hc.expect(true).to.be.ok();',
+      selectedText: 'hc.expect(true).to.be.ok();',
+      startOffset: 0,
+      endOffset: 25,
+      startLine: 1,
+      endLine: 1
+    };
+
+    expect(
+      collectChatReferenceSnapshots(
+        token,
+        context({
+          hasActiveRequestTab: false,
+          scriptSelections: { [token]: snapshot }
+        })
+      )
+    ).toEqual({
+      [token]: { kind: 'script-selection', snapshot }
+    });
+  });
+
+  it('builds a whole-script snapshot from the live tab when no selection snapshot exists', () => {
+    const source = 'hc.test("ok", () => true);';
+    const collected = collectChatReferenceSnapshots(
+      '@active.post.1',
+      context({
+        postScriptCount: 1,
+        postScripts: [inlineScript({ code: source, name: 'SendSuccess' })]
+      })
+    );
+
+    expect(collected).toEqual({
+      '@active.post.1': {
+        kind: 'script-selection',
+        snapshot: {
+          scriptLabel: 'SendSuccess',
+          phase: 'post',
+          scriptIndex: 1,
+          requestId: 'active',
+          source,
+          selectedText: source,
+          startOffset: 0,
+          endOffset: source.length,
+          startLine: 1,
+          endLine: 1
+        }
+      }
+    });
+  });
+
+  it('returns undefined when the message has no snapshot-backed references', () => {
+    expect(collectChatReferenceSnapshots('hello', context())).toBeUndefined();
+  });
+});
+
+describe('whole-script scriptSelections validation', () => {
+  it('accepts whole-script references when a matching snapshot exists without an active tab', () => {
+    const token = '@active.post.1';
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          scriptSelections: {
+            [token]: {
+              scriptLabel: 'SendSuccess',
+              phase: 'post',
+              scriptIndex: 1,
+              requestId: 'active',
+              source: 'hc.test("ok", () => true);',
+              selectedText: 'hc.test("ok", () => true);',
+              startOffset: 0,
+              endOffset: 26,
+              startLine: 1,
+              endLine: 1
+            }
+          }
+        })
+      )
+    ).toBe(true);
+    expect(
+      resolveAiScriptReferenceLabel(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          scriptSelections: {
+            [token]: {
+              scriptLabel: 'SendSuccess',
+              phase: 'post',
+              scriptIndex: 1,
+              requestId: 'active',
+              source: 'hc.test("ok", () => true);',
+              selectedText: 'hc.test("ok", () => true);',
+              startOffset: 0,
+              endOffset: 26,
+              startLine: 1,
+              endLine: 1
+            }
+          }
+        })
+      )
+    ).toBe('SendSuccess');
   });
 });

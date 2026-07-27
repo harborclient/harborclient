@@ -89,6 +89,8 @@ describe('matchActionSuggestions', () => {
     const ids = matches.map((action) => action.id);
 
     expect(ids).toContain('builtin:toggle-sidebar');
+    expect(ids).toContain('builtin:hide-sidebars');
+    expect(ids).toContain('builtin:show-sidebars');
     expect(ids).toContain('builtin:toggle-filters');
     expect(ids).toContain('builtin:zoom-in');
     expect(ids).toContain('builtin:toggle-fullscreen');

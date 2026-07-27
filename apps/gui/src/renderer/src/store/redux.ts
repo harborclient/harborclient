@@ -19,6 +19,7 @@ import aiChatReducer from '#/renderer/src/store/slices/aiChatSlice';
 import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
 import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import requestBodySelectionsReducer from '#/renderer/src/store/slices/requestBodySelectionsSlice';
+import responseSelectionsReducer from '#/renderer/src/store/slices/responseSelectionsSlice';
 import scriptSelectionsReducer from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
 import openApiImportReducer from '#/renderer/src/store/slices/openApiImportSlice';
@@ -44,6 +45,7 @@ export const store = configureStore({
     terminals: terminalsReducer,
     markdownSelections: markdownSelectionsReducer,
     requestBodySelections: requestBodySelectionsReducer,
+    responseSelections: responseSelectionsReducer,
     scriptSelections: scriptSelectionsReducer,
     themeDesigner: themeDesignerReducer,
     openApiImport: openApiImportReducer

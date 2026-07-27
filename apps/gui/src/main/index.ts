@@ -540,6 +540,13 @@ async function loadSplashPage(window: BrowserWindow): Promise<void> {
   if (isDev && devRendererUrl) {
     const splashUrl = `${devRendererUrl}/splash.html`;
     logVerbose('createSplashWindow: loading splash URL', splashUrl);
+    // Match createWindow dev startup: clear a stale or corrupted default-session
+    // cache before the first localhost navigation. On Linux this avoids
+    // ERR_FAILED when Chromium rejects an invalid disk-cache entry during splash
+    // load even though the Vite dev server is already responding.
+    await window.webContents.session.clearCache().catch(() => {
+      // Best-effort; loadURL may still succeed without a cache reset.
+    });
     await window.loadURL(splashUrl);
     return;
   }

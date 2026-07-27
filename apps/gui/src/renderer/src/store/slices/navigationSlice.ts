@@ -41,6 +41,56 @@ export interface TeamHubJoinPayload {
   accessSummary?: string;
 }
 
+/**
+ * Session-only recording of sidebar and footer panel visibility for Hide/Show sidebars.
+ */
+export interface SidebarFooterLayoutSnapshot {
+  /**
+   * Whether the collections sidebar was open when recorded.
+   */
+  showSidebar: boolean;
+
+  /**
+   * Whether the AI sidebar was open when recorded.
+   */
+  showAiSidebar: boolean;
+
+  /**
+   * Whether the Git sidebar was open when recorded.
+   */
+  showGitSidebar: boolean;
+
+  /**
+   * Active plugin sidebar panel id within the Collections sidebar, if any.
+   */
+  activeSidebarPanelId: string | null;
+
+  /**
+   * Whether the footer console panel was open when recorded.
+   */
+  showConsole: boolean;
+
+  /**
+   * Whether the footer variables panel was open when recorded.
+   */
+  showVariables: boolean;
+
+  /**
+   * Whether the footer MCP panel was open when recorded.
+   */
+  showMcp: boolean;
+
+  /**
+   * Whether the footer terminal panel was open when recorded.
+   */
+  showTerminal: boolean;
+
+  /**
+   * Active plugin footer panel id when recorded, if any.
+   */
+  activePluginFooterPanelId: string | null;
+}
+
 export interface NavigationState {
   collectionSettingsDirty: boolean;
   environmentSettingsDirty: boolean;
@@ -57,6 +107,10 @@ export interface NavigationState {
   showTerminal: boolean;
   activePluginFooterPanelId: string | null;
   activeSidebarPanelId: string | null;
+  /**
+   * Last sidebar/footer layout captured by Hide sidebars; null until the first hide.
+   */
+  sidebarFooterLayoutSnapshot: SidebarFooterLayoutSnapshot | null;
   pendingPluginInstallId: string | null;
   pendingMarketplaceSearch: string | null;
   pendingInstalledSearch: string | null;
@@ -82,6 +136,7 @@ const initialState: NavigationState = {
   showTerminal: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
+  sidebarFooterLayoutSnapshot: null,
   pendingPluginInstallId: null,
   pendingMarketplaceSearch: null,
   pendingInstalledSearch: null,
@@ -100,6 +155,15 @@ const navigationSlice = createSlice({
      */
     setActiveSidebarPanel(state, action: PayloadAction<string | null>) {
       state.activeSidebarPanelId = action.payload;
+    },
+    /**
+     * Stores or clears the session-only Hide sidebars layout snapshot.
+     */
+    setSidebarFooterLayoutSnapshot(
+      state,
+      action: PayloadAction<SidebarFooterLayoutSnapshot | null>
+    ) {
+      state.sidebarFooterLayoutSnapshot = action.payload;
     },
     /**
      * Tracks unsaved edits in collection settings.
@@ -386,6 +450,7 @@ const navigationSlice = createSlice({
 
 export const {
   setActiveSidebarPanel,
+  setSidebarFooterLayoutSnapshot,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
   setFolderSettingsDirty,
@@ -507,6 +572,12 @@ export const selectActivePluginFooterPanelId = (state: RootState): string | null
  */
 export const selectActiveSidebarPanelId = (state: RootState): string | null =>
   state.navigation.activeSidebarPanelId;
+/**
+ * Returns the session-only Hide sidebars layout snapshot, if one was recorded.
+ */
+export const selectSidebarFooterLayoutSnapshot = (
+  state: RootState
+): SidebarFooterLayoutSnapshot | null => state.navigation.sidebarFooterLayoutSnapshot;
 /**
  * Returns the plugin id queued by a harborclient:// install deep link, if any.
  */

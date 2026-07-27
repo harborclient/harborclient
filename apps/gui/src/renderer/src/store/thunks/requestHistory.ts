@@ -18,6 +18,7 @@ import {
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
 import { resolveRunnerTargetNames } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
+import { isImageResponse } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
 /** Sequence counter disambiguating ids captured within the same millisecond. */
 let entrySequence = 0;
@@ -62,6 +63,7 @@ export function buildRequestHistoryEntry(
   result: SendResult
 ): RequestHistoryEntry {
   const pluginRequest = toPluginHttpRequest(sendInput);
+  const binaryResponse = isImageResponse(result.headers);
 
   return normalizeRequestHistoryEntry({
     id: nextRequestHistoryEntryId(),
@@ -75,7 +77,9 @@ export function buildRequestHistoryEntry(
     headers: pluginRequest.headers,
     params: pluginRequest.params,
     body: pluginRequest.body,
-    bodyType: pluginRequest.bodyType as BodyType | undefined
+    bodyType: pluginRequest.bodyType as BodyType | undefined,
+    responseHeaders: result.headers,
+    responseBody: binaryResponse ? undefined : result.body
   });
 }
 

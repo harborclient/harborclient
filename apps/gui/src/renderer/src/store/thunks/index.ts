@@ -13,6 +13,7 @@ export * from './requestHistory';
 export * from './workspaces';
 export * from './workspaceLayout';
 export * from './sidebarDeselect';
+export * from './sidebarFooterVisibility';
 export * from './trash';
 export * from './settings';
 export * from './theme';

@@ -219,6 +219,37 @@ describeSqlite('LocalDatabase chats', () => {
     database.updateChatModel(chat.id, 'gpt-4o');
     expect(database.getChat(chat.id)?.model).toBe('gpt-4o');
   });
+
+  it('persists and reloads reference snapshots on chat messages', async () => {
+    const { database } = await createRegistry();
+    const chat = database.createChat({});
+    const token = '@res.aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.body';
+    const referenceSnapshots = {
+      [token]: {
+        kind: 'response-section' as const,
+        snapshot: {
+          label: 'Response body',
+          requestName: 'Echo',
+          section: 'body' as const,
+          status: 200,
+          statusText: 'OK',
+          content: '{"ok":true}'
+        }
+      }
+    };
+
+    const saved = database.addChatMessage({
+      chatId: chat.id,
+      role: 'user',
+      content: `Explain ${token}`,
+      referenceSnapshots
+    });
+
+    expect(saved.referenceSnapshots).toEqual(referenceSnapshots);
+
+    const loaded = database.getChat(chat.id);
+    expect(loaded?.messages[0]?.referenceSnapshots).toEqual(referenceSnapshots);
+  });
 });
 
 describeSqlite('LocalDatabase snippets', () => {
@@ -435,9 +466,31 @@ describeSqlite('LocalDatabase request history', () => {
         params: [],
         body: undefined,
         bodyType: undefined,
-        savedRequestId: undefined
+        savedRequestId: undefined,
+        responseHeaders: undefined,
+        responseBody: undefined
       }
     ]);
+  });
+
+  it('persists response headers and body for Diff', async () => {
+    const { database } = await createRegistry();
+
+    database.addRequestHistory({
+      id: 7,
+      method: 'GET',
+      url: 'https://example.com/items',
+      status: 200,
+      statusText: 'OK',
+      ts: 3_000,
+      name: 'List items',
+      responseHeaders: { 'content-type': 'application/json' },
+      responseBody: '{"ok":true}'
+    });
+
+    const [entry] = database.listRequestHistory();
+    expect(entry?.responseHeaders).toEqual({ 'content-type': 'application/json' });
+    expect(entry?.responseBody).toBe('{"ok":true}');
   });
 
   it('deletes one persisted request history entry by id', async () => {

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance response handling and UI features. (`b076b194`)
+
 ## 1.3.3 - 2026-07-27
 
 - Update @harborclient/team-hub-api dependency to version 0.4.1 and enhance documentation for import handlers. (`516c9dae`)

@@ -1,7 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { DEFAULT_CHAT_TITLE } from '@harborclient/core/ai/chatTitle';
 import { getAvailableModels, resolveAiModelOption } from '@harborclient/core/ai/models';
-import { buildAiScriptSelectionContextMessage } from '@harborclient/core/ai/scriptReferences';
+import {
+  buildAiScriptSelectionContextMessage,
+  collectChatReferenceSnapshots
+} from '@harborclient/core/ai/scriptReferences';
 import type {
   AiSettings,
   ChatMessage,
@@ -20,7 +23,9 @@ import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
+import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
+import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 import {
   appendMessage,
   clearChatCancelState,
@@ -158,13 +163,14 @@ export const generateChatTitle = createAsyncThunk<
  */
 export const loadChat = createAsyncThunk<number, number, ThunkApiConfig>(
   'aiChat/loadChat',
-  async (chatId, { dispatch }) => {
+  async (chatId, { dispatch, getState }) => {
     const chat = await window.api.getChat(chatId);
     if (!chat) {
       throw new Error('Chat not found');
     }
 
     dispatch(setMessages({ chatId, messages: chat.messages }));
+    rehydrateChatReferenceSnapshots(chat.messages, dispatch, getState);
     dispatch(clearSendError(chatId));
     if (chat.model) {
       dispatch(setSelectedModel({ chatId, modelId: chat.model }));
@@ -250,6 +256,7 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
           const chat = await window.api.getChat(chatId);
           if (!chat) return;
           dispatch(setMessages({ chatId, messages: chat.messages }));
+          rehydrateChatReferenceSnapshots(chat.messages, dispatch, getState);
           dispatch(clearSendError(chatId));
           if (chat.model) {
             dispatch(setSelectedModel({ chatId, modelId: chat.model }));
@@ -395,13 +402,29 @@ export const sendChatMessage = createAsyncThunk<
 
   dispatch(clearSendError(chatId));
 
+  const validationContext = buildAiScriptReferenceValidationContext(
+    selectEffectiveActiveRequestTab(getState()),
+    selectSnippets(getState()),
+    selectTerminalSelections(getState()),
+    selectMarkdownSelections(getState()),
+    buildSidebarItemNameMapsFromState(getState()),
+    selectRequestBodySelections(getState()),
+    selectScriptSelections(getState()),
+    selectResponseSelections(getState())
+  );
+  const referenceSnapshots = collectChatReferenceSnapshots(trimmed, validationContext);
+
   const userMessage = await window.api.addChatMessage({
     chatId,
     role: 'user',
     content: trimmed,
-    model: modelId
+    model: modelId,
+    ...(referenceSnapshots != null ? { referenceSnapshots } : {})
   });
   dispatch(appendMessage(userMessage));
+  if (referenceSnapshots != null) {
+    rehydrateChatReferenceSnapshots([userMessage], dispatch, getState);
+  }
 
   const chatSummary = getState().aiChat.chats.find((chat) => chat.id === chatId);
   const userMessages = (getState().aiChat.messagesByChat[chatId] ?? []).filter(
@@ -423,18 +446,7 @@ export const sendChatMessage = createAsyncThunk<
   try {
     dispatch(clearChatCancelState(chatId));
     const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
-    const selectionContext = buildAiScriptSelectionContextMessage(
-      trimmed,
-      buildAiScriptReferenceValidationContext(
-        selectEffectiveActiveRequestTab(getState()),
-        selectSnippets(getState()),
-        selectTerminalSelections(getState()),
-        selectMarkdownSelections(getState()),
-        buildSidebarItemNameMapsFromState(getState()),
-        selectRequestBodySelections(getState()),
-        selectScriptSelections(getState())
-      )
-    );
+    const selectionContext = buildAiScriptSelectionContextMessage(trimmed, validationContext);
     if (selectionContext != null) {
       messages.push({ role: 'system', content: selectionContext });
     }

@@ -24,6 +24,8 @@ export type ShortcutId =
   | 'paste'
   | 'select-all'
   | 'toggle-sidebar'
+  | 'hide-sidebars'
+  | 'show-sidebars'
   | 'focus-sidebar-search'
   | 'focus-request-url'
   | 'focus-first-collection'
@@ -290,6 +292,20 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+B',
     kind: 'action',
     actionId: 'toggle-sidebar'
+  },
+  {
+    id: 'hide-sidebars',
+    label: 'Hide sidebars',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Shift+H',
+    kind: 'action',
+    actionId: 'hide-sidebars'
+  },
+  {
+    id: 'show-sidebars',
+    label: 'Show sidebars',
+    defaultAccelerator: 'CmdOrCtrl+Alt+H',
+    kind: 'action',
+    actionId: 'show-sidebars'
   },
   {
     id: 'focus-sidebar-search',

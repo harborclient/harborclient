@@ -208,6 +208,12 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'toggle-sidebar')?.accelerator).toBe(
       'CmdOrCtrl+B'
     );
+    expect(bindings.find((binding) => binding.id === 'hide-sidebars')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+Shift+H'
+    );
+    expect(bindings.find((binding) => binding.id === 'show-sidebars')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+H'
+    );
     expect(bindings.find((binding) => binding.id === 'toggle-ai-sidebar')?.accelerator).toBe(
       'CmdOrCtrl+Shift+B'
     );

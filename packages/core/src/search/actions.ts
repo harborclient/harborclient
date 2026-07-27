@@ -29,6 +29,8 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:toggle-sidebar', group: 'View', label: 'Collections Sidebar' },
   { id: 'builtin:toggle-ai-sidebar', group: 'View', label: 'Agent Chat' },
   { id: 'builtin:toggle-git-sidebar', group: 'View', label: 'Git Sidebar' },
+  { id: 'builtin:hide-sidebars', group: 'View', label: 'Hide sidebars' },
+  { id: 'builtin:show-sidebars', group: 'View', label: 'Show sidebars' },
   { id: 'builtin:toggle-request-editor', group: 'View', label: 'Request' },
   { id: 'builtin:toggle-response-editor', group: 'View', label: 'Response' },
   { id: 'builtin:shortcuts-reference', group: 'View', label: 'Shortcuts' },

@@ -138,6 +138,7 @@ export function ResponseSummary({
             <Button
               type="button"
               variant="secondary"
+              title={expandLabel}
               aria-label={expandLabel}
               className="px-2"
               onClick={onExpand}
@@ -148,6 +149,8 @@ export function ResponseSummary({
           <Button
             type="button"
             variant="secondary"
+            title="Copy response to clipboard"
+            aria-label="Copy response to clipboard"
             className="disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCopyOrExport}
             onClick={onCopy}
@@ -157,6 +160,8 @@ export function ResponseSummary({
           <Button
             type="button"
             variant="secondary"
+            title="Export response to a file"
+            aria-label="Export response to a file"
             className="disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canCopyOrExport}
             onClick={onExport}
@@ -167,6 +172,8 @@ export function ResponseSummary({
             <Button
               type="button"
               variant="secondary"
+              title="Clear response"
+              aria-label="Clear response"
               className="disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canClear}
               onClick={onClear}
