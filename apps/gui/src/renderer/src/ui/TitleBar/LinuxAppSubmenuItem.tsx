@@ -28,6 +28,11 @@ interface Props {
  * View > Theme) render a parent row that opens a flyout of child rows on hover,
  * click, or keyboard, positioned to stay within the viewport.
  *
+ * Nested flyouts use a padding wrapper (`pl-1` / `pr-1`) instead of margin so
+ * the 4px visual gap between the parent row and the panel stays inside the
+ * hover tree — an invisible bridge that keeps `:hover` / mouseenter from
+ * dropping while the pointer crosses the gap.
+ *
  * @param props - Item snapshot and activation handler.
  * @returns The rendered entry.
  */
@@ -115,21 +120,21 @@ export function LinuxAppSubmenuItem({ item, onActivate }: Props): JSX.Element {
         </span>
       </button>
       {open ? (
-        <div
-          ref={flyoutRef}
-          role="menu"
-          aria-label={item.label}
-          className={`absolute top-0 z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag ${
-            openLeft ? 'right-full mr-1' : 'left-full ml-1'
-          }`}
-        >
-          {item.submenu.map((child) => (
-            <LinuxAppSubmenuLeaf
-              key={`${child.kind}-${child.index}`}
-              item={child as Exclude<AppSubmenuItemSnapshot, { kind: 'submenu' }>}
-              onActivate={() => onActivate(item.index, child.index)}
-            />
-          ))}
+        <div className={`absolute top-0 z-50 ${openLeft ? 'right-full pr-1' : 'left-full pl-1'}`}>
+          <div
+            ref={flyoutRef}
+            role="menu"
+            aria-label={item.label}
+            className="min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
+          >
+            {item.submenu.map((child) => (
+              <LinuxAppSubmenuLeaf
+                key={`${child.kind}-${child.index}`}
+                item={child as Exclude<AppSubmenuItemSnapshot, { kind: 'submenu' }>}
+                onActivate={() => onActivate(item.index, child.index)}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
     </div>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refactor LinuxAppSubmenuItem to improve nested flyout padding. (`f4d9ceb8`)
+
 ## 2.8.4 - 2026-07-27
 
 - Enhance @harborclient/team-hub and @harborclient/team-hub-api integration. (`3cb8d442`)
