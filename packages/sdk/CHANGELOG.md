@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Refactor shortcuts handling and update UI components. (`a85cf446`)
 - Enhance response handling and UI features. (`b076b194`)
 
 ## 1.3.3 - 2026-07-27

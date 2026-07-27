@@ -11,7 +11,7 @@ import {
   type SettingId
 } from './catalog';
 
-const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'shortcuts', 'backup-restore'] as const;
+const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'backup-restore'] as const;
 
 const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'plugins'] as const;
 
@@ -31,6 +31,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.closeToTray',
   'general.spellCheckEnabled',
   'general.logFilePath',
+  'general.trustedDomains',
   'proxy.enabled',
   'proxy.protocol',
   'proxy.host',

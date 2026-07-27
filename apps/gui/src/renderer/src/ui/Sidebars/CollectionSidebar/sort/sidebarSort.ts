@@ -1,7 +1,8 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faArrowDownShortWide, faArrowUpShortWide } from '@fortawesome/free-solid-svg-icons';
-import type { SortOption } from '@harborclient/sdk/components';
+import { compareHttpMethods } from '@harborclient/core/httpMethod';
 import type { SidebarSortMode } from '@harborclient/core/types';
+import type { SortOption } from '@harborclient/sdk/components';
 
 /**
  * Field accessors used to compare sidebar items for a given sort mode.
@@ -21,6 +22,12 @@ export interface SortAccessors<T> {
    * Optional marker accessor; used only for the `marker` sort mode.
    */
   marker?: (item: T) => string | null | undefined;
+
+  /**
+   * Optional HTTP method accessor; used only for `method-asc` / `method-desc`.
+   * Items without a method (folders, documents, collections) sort after requests.
+   */
+  method?: (item: T) => string | null | undefined;
 }
 
 /**
@@ -53,16 +60,30 @@ function compareNames(a: string, b: string): number {
  * @param hasMarker - When true, includes the Marker option (markers are visible and
  *   the section's items carry a marker field).
  * @param dateLabel - Prefix for date options; defaults to "Date created".
+ * @param hasMethod - When true, includes Method ascending/descending before date options
+ *   (Collections section, where rows are HTTP requests).
  * @returns Ordered sort options for the listbox.
  */
-export function sidebarSortOptions(hasMarker: boolean, dateLabel = 'Date created'): SortOption[] {
+export function sidebarSortOptions(
+  hasMarker: boolean,
+  dateLabel = 'Date created',
+  hasMethod = false
+): SortOption[] {
   const options: SortOption[] = [
     { id: 'default', label: 'Default' },
     { id: 'name-asc', label: 'A-Z ascending' },
-    { id: 'name-desc', label: 'A-Z descending' },
+    { id: 'name-desc', label: 'A-Z descending' }
+  ];
+  if (hasMethod) {
+    options.push(
+      { id: 'method-asc', label: 'Method ascending' },
+      { id: 'method-desc', label: 'Method descending' }
+    );
+  }
+  options.push(
     { id: 'created-asc', label: `${dateLabel} ascending` },
     { id: 'created-desc', label: `${dateLabel} descending` }
-  ];
+  );
   if (hasMarker) {
     options.push({ id: 'marker', label: 'Color marker' });
   }
@@ -79,6 +100,7 @@ export function sidebarSortOptions(hasMarker: boolean, dateLabel = 'Date created
 export function sidebarSortIcon(mode: SidebarSortMode): IconDefinition {
   switch (mode) {
     case 'name-asc':
+    case 'method-asc':
     case 'created-asc':
     case 'marker':
       return faArrowUpShortWide;
@@ -93,7 +115,7 @@ export function sidebarSortIcon(mode: SidebarSortMode): IconDefinition {
  *
  * @param items - Items to sort.
  * @param mode - Active sort mode.
- * @param accessors - Name/createdAt/marker accessors for the item type.
+ * @param accessors - Name/createdAt/marker/method accessors for the item type.
  * @returns Sorted array (or a copy of the input when mode is `default`).
  */
 export function sortSidebarItems<T>(
@@ -112,6 +134,19 @@ export function sortSidebarItems<T>(
         return compareNames(accessors.name(left), accessors.name(right));
       case 'name-desc':
         return compareNames(accessors.name(right), accessors.name(left));
+      case 'method-asc':
+      case 'method-desc': {
+        const direction = mode === 'method-asc' ? 'asc' : 'desc';
+        const methodCmp = compareHttpMethods(
+          accessors.method?.(left),
+          accessors.method?.(right),
+          direction
+        );
+        if (methodCmp !== 0) {
+          return methodCmp;
+        }
+        return compareNames(accessors.name(left), accessors.name(right));
+      }
       case 'created-asc':
         return accessors.createdAt(left) - accessors.createdAt(right);
       case 'created-desc':

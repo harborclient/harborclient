@@ -298,6 +298,13 @@ export const generalSettings = z.object({
   warnWhenCreatingWorkspace: z.boolean(),
   warnWhenOpeningWorkspace: z.boolean(),
   warnWhenAgentUsesTerminal: z.boolean(),
+  trustedExternalDomains: z.array(
+    z.object({
+      domain: z.string(),
+      enabled: z.boolean()
+    })
+  ),
+  allowAllExternalDomains: z.boolean(),
   dismissedRequestEditorNotices: z.array(editorTab),
   gitAutoAdd: z.boolean(),
   externalMergeEditorPath: z.string(),
@@ -706,6 +713,7 @@ export const panelLayout = z.object({
   showSidebar: z.boolean(),
   showAiSidebar: z.boolean(),
   showGitSidebar: z.boolean(),
+  showShortcutsSidebar: z.boolean(),
   showRequestEditor: z.boolean(),
   showResponseEditor: z.boolean(),
   requestEditorSplitHeight: z.number().int().min(160),
@@ -762,7 +770,7 @@ export const ipcArgSchemas = {
   menuGitSidebarVisible: z.tuple([z.boolean()]),
   menuRequestEditorVisible: z.tuple([z.boolean()]),
   menuResponseEditorVisible: z.tuple([z.boolean()]),
-  menuShortcutsReferenceOpen: z.tuple([z.boolean()]),
+  menuShortcutsSidebarOpen: z.tuple([z.boolean()]),
   menuConsoleVisible: z.tuple([z.boolean()]),
   menuVariablesVisible: z.tuple([z.boolean()]),
   menuMcpVisible: z.tuple([z.boolean()]),

@@ -946,7 +946,7 @@ describe('saveFromMenu', () => {
     const { openPageTab } = await import('#/renderer/src/store/slices/tabsSlice');
     const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
 
-    store.dispatch(openPageTab({ type: 'settings', section: 'shortcuts' }));
+    store.dispatch(openPageTab({ type: 'settings', section: 'storage' }));
 
     await expect(store.dispatch(saveFromMenu()).unwrap()).resolves.toBeUndefined();
     expect(saveRequestMock).not.toHaveBeenCalled();

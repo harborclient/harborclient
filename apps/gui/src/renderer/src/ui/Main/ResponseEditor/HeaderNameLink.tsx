@@ -6,8 +6,10 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type JSX
+  type JSX,
+  type MouseEvent
 } from 'react';
+import { useAppDispatch, useAppStore } from '#/renderer/src/store/hooks';
 import { CODE_PREVIEW_TOOLTIP_SETTLE_MS } from '#/renderer/src/ui/Shared/CodePreview/codePreview';
 import {
   buildFixedTooltipPosition,
@@ -15,6 +17,7 @@ import {
   getTooltipContainerBounds,
   resolveTooltipPlacement
 } from '#/renderer/src/ui/Shared/tooltipPlacement';
+import { openExternalLinkWithConfirm } from '#/renderer/src/ui/Modals/OpenExternalLinkModal/openExternalLinkWithConfirm';
 
 import { headerMdnDocsUrl } from './headerMdnDocs';
 import { getHttpHeaderDescription, UNKNOWN_HEADER_DESCRIPTION } from './httpHeaderDescriptions';
@@ -40,6 +43,9 @@ export function HeaderNameLink({ headerName }: Props): JSX.Element {
   const tooltipOpen = hoverOpen || focusOpen;
   const description = getHttpHeaderDescription(headerName);
   const isFallback = description === UNKNOWN_HEADER_DESCRIPTION;
+  const mdnUrl = headerMdnDocsUrl(headerName);
+  const dispatch = useAppDispatch();
+  const store = useAppStore();
 
   /**
    * Clears any pending hover-settle timer.
@@ -90,6 +96,16 @@ export function HeaderNameLink({ headerName }: Props): JSX.Element {
   }, []);
 
   /**
+   * Confirms before opening the MDN docs URL when the domain is not already trusted.
+   *
+   * @param event - Anchor click; default navigation is always prevented.
+   */
+  const handleClick = async (event: MouseEvent<HTMLAnchorElement>): Promise<void> => {
+    event.preventDefault();
+    await openExternalLinkWithConfirm(dispatch, store.getState, mdnUrl);
+  };
+
+  /**
    * Clears pending hover timers when the link unmounts.
    */
   useEffect(() => {
@@ -127,12 +143,15 @@ export function HeaderNameLink({ headerName }: Props): JSX.Element {
     <div className="min-w-0">
       <a
         ref={linkRef}
-        href={headerMdnDocsUrl(headerName)}
+        href={mdnUrl}
         target="_blank"
         rel="noreferrer"
         className="break-words text-[14px] font-medium text-accent hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         aria-label={`${headerName} header documentation on MDN`}
         aria-describedby={tooltipOpen ? tooltipId : undefined}
+        onClick={(event) => {
+          void handleClick(event);
+        }}
         onMouseEnter={scheduleHoverOpen}
         onMouseMove={() => {
           if (!hoverOpen) {

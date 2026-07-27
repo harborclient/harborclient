@@ -6,6 +6,7 @@ import {
   GIT_SIDEBAR_SECTION_ID,
   REQUEST_EDITOR_SECTION_ID,
   RESPONSE_EDITOR_SECTION_ID,
+  SHORTCUTS_SIDEBAR_SECTION_ID,
   resolveSkipNavigationLinks,
   type SkipNavigationVisibility
 } from './skipNavigationTargets';
@@ -22,6 +23,7 @@ function allVisibleRequestTab(
     responseEditorVisible: true,
     aiSidebarVisible: true,
     gitSidebarVisible: true,
+    shortcutsSidebarVisible: true,
     isRequestTab: true,
     ...overrides
   };
@@ -56,6 +58,11 @@ describe('resolveSkipNavigationLinks', () => {
         targetId: GIT_SIDEBAR_SECTION_ID
       },
       {
+        id: 'shortcuts-sidebar',
+        label: 'Skip to Shortcuts sidebar',
+        targetId: SHORTCUTS_SIDEBAR_SECTION_ID
+      },
+      {
         id: 'app-footer',
         label: 'Skip to Footer',
         targetId: APP_FOOTER_SECTION_ID
@@ -68,7 +75,8 @@ describe('resolveSkipNavigationLinks', () => {
       allVisibleRequestTab({
         sidebarVisible: false,
         aiSidebarVisible: false,
-        gitSidebarVisible: false
+        gitSidebarVisible: false,
+        shortcutsSidebarVisible: false
       })
     );
 
@@ -90,6 +98,7 @@ describe('resolveSkipNavigationLinks', () => {
       'collections-sidebar',
       'ai-sidebar',
       'git-sidebar',
+      'shortcuts-sidebar',
       'app-footer'
     ]);
   });
@@ -106,6 +115,7 @@ describe('resolveSkipNavigationLinks', () => {
       'collections-sidebar',
       'ai-sidebar',
       'git-sidebar',
+      'shortcuts-sidebar',
       'app-footer'
     ]);
   });
@@ -117,7 +127,8 @@ describe('resolveSkipNavigationLinks', () => {
         requestEditorVisible: false,
         responseEditorVisible: false,
         aiSidebarVisible: false,
-        gitSidebarVisible: false
+        gitSidebarVisible: false,
+        shortcutsSidebarVisible: false
       })
     );
 

@@ -1,6 +1,5 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { FormGroup, Input } from '@harborclient/sdk/components';
-import { FaIcon } from '@harborclient/sdk/components';
+import { FaIcon, FormGroup, Input, sourceRow } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 
 interface SidebarItem<T extends string = string> {
@@ -58,25 +57,8 @@ interface Props<T extends string> {
 }
 
 /**
- * Tailwind classes for a sidebar navigation row.
- *
- * @param active - Whether this row is the current selection.
- * @param disabled - Whether navigation is temporarily disabled during search.
- */
-function sidebarRow(active: boolean, disabled: boolean): string {
-  const base = active
-    ? 'group flex cursor-pointer items-center gap-1 rounded-md bg-selection px-1.5 py-0.5 app-no-drag'
-    : 'group flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-selection/60 app-no-drag';
-
-  if (disabled) {
-    return `${base} opacity-50 cursor-not-allowed`;
-  }
-
-  return base;
-}
-
-/**
  * Settings sidebar with an integrated search field and section navigation rows.
+ * Row chrome matches collections sidebar items via {@link sourceRow}.
  */
 export function SettingsSidebar<T extends string>({
   items,
@@ -103,15 +85,15 @@ export function SettingsSidebar<T extends string>({
       </div>
 
       <nav
-        className="flex flex-col gap-0.5 px-2 py-3"
+        className="flex flex-col gap-0 px-2 py-3"
         aria-label={ariaLabel}
         aria-disabled={disabled || undefined}
       >
         {items.map((item) => {
           const active = selected === item.value;
-          const rowClass = item.icon
-            ? `${sidebarRow(active, disabled)} w-full gap-2 border-none text-left text-[15px] app-no-drag`
-            : `${sidebarRow(active, disabled)} w-full border-none text-left text-[15px] app-no-drag`;
+          const cursorClass = disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer';
+          const iconGap = item.icon ? '!gap-2 ' : '';
+          const rowClass = `hc-sidebar-item ${sourceRow(active, true)} min-h-[30px] w-full border-none text-left text-inherit ${iconGap}${cursorClass}`;
 
           return (
             <button
@@ -129,11 +111,7 @@ export function SettingsSidebar<T extends string>({
               }}
             >
               {item.icon ? (
-                <FaIcon
-                  icon={item.icon}
-                  className={`h-3.5 w-3.5 shrink-0 ${active ? 'text-text' : 'text-muted'}`}
-                  aria-hidden
-                />
+                <FaIcon icon={item.icon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
               ) : null}
               <span className="min-w-0 truncate">{item.label}</span>
             </button>

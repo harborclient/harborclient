@@ -250,6 +250,8 @@ describe('generalSettings', () => {
     warnWhenCreatingWorkspace: true,
     warnWhenOpeningWorkspace: true,
     warnWhenAgentUsesTerminal: true,
+    trustedExternalDomains: [],
+    allowAllExternalDomains: false,
     dismissedRequestEditorNotices: [],
     gitAutoAdd: true,
     externalMergeEditorPath: '',

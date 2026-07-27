@@ -120,6 +120,16 @@ export interface ConfirmModalState {
   checkboxLabel?: string;
   /** When true, the confirm button requires a second "Are you sure?" click. */
   reconfirm?: boolean;
+  /** When set, shows this URL in a read-only input below the message. */
+  url?: string;
+}
+
+/**
+ * State for the open-external-link confirmation dialog.
+ */
+export interface OpenExternalLinkModalState {
+  /** Absolute URL shown in the dialog and opened when confirmed. */
+  url: string;
 }
 
 /**
@@ -301,10 +311,10 @@ export interface ModalsState {
   collectionRunner: CollectionRunnerState | null;
   alertModal: AlertModalState | null;
   confirmModal: ConfirmModalState | null;
+  openExternalLinkModal: OpenExternalLinkModalState | null;
   pluginThemePrompt: PluginThemePromptState | null;
   hostedModal: HostedModalState | null;
   themePicker: { open: boolean } | null;
-  shortcutsReference: { open: boolean } | null;
   acceptTeamHubInvite: { open: boolean } | null;
   actionMenu: { open: boolean } | null;
 }
@@ -322,10 +332,10 @@ const initialState: ModalsState = {
   collectionRunner: null,
   alertModal: null,
   confirmModal: null,
+  openExternalLinkModal: null,
   pluginThemePrompt: null,
   hostedModal: null,
   themePicker: null,
-  shortcutsReference: null,
   acceptTeamHubInvite: null,
   actionMenu: null
 };
@@ -923,6 +933,12 @@ const modalsSlice = createSlice({
       state.confirmModal = action.payload;
     },
     /**
+     * Opens or closes the open-external-link confirmation dialog.
+     */
+    setOpenExternalLinkModal(state, action: PayloadAction<OpenExternalLinkModalState | null>) {
+      state.openExternalLinkModal = action.payload;
+    },
+    /**
      * Opens the plugin theme switch prompt after user-enabled activation.
      */
     openPluginThemePrompt(state, action: PayloadAction<PluginThemePromptState>) {
@@ -945,18 +961,6 @@ const modalsSlice = createSlice({
      */
     closeThemePicker(state) {
       state.themePicker = null;
-    },
-    /**
-     * Opens the read-only keyboard shortcuts reference modal.
-     */
-    openShortcutsReferenceModal(state) {
-      state.shortcutsReference = { open: true };
-    },
-    /**
-     * Closes the read-only keyboard shortcuts reference modal.
-     */
-    closeShortcutsReferenceModal(state) {
-      state.shortcutsReference = null;
     },
     /**
      * Opens the modal where users paste a Team Hub invitation deep link.
@@ -1040,12 +1044,11 @@ export const {
   markCollectionRunnerSaved,
   setAlertModal,
   setConfirmModal,
+  setOpenExternalLinkModal,
   openPluginThemePrompt,
   closePluginThemePrompt,
   openThemePicker,
   closeThemePicker,
-  openShortcutsReferenceModal,
-  closeShortcutsReferenceModal,
   openAcceptTeamHubInviteModal,
   closeAcceptTeamHubInviteModal,
   openActionMenuModal,
@@ -1116,6 +1119,11 @@ export const selectAlertModal = (state: RootState): AlertModalState | null =>
 export const selectConfirmModal = (state: RootState): ConfirmModalState | null =>
   state.modals.confirmModal;
 /**
+ * Returns open-external-link dialog state when open.
+ */
+export const selectOpenExternalLinkModal = (state: RootState): OpenExternalLinkModalState | null =>
+  state.modals.openExternalLinkModal;
+/**
  * Returns plugin theme prompt state when open.
  */
 export const selectPluginThemePrompt = (state: RootState): PluginThemePromptState | null =>
@@ -1131,12 +1139,6 @@ export const selectHostedModal = (state: RootState): HostedModalState | null =>
  */
 export const selectThemePicker = (state: RootState): { open: boolean } | null =>
   state.modals.themePicker;
-
-/**
- * Returns read-only keyboard shortcuts reference modal state when open.
- */
-export const selectShortcutsReferenceModal = (state: RootState): { open: boolean } | null =>
-  state.modals.shortcutsReference;
 
 /**
  * Returns Team Hub invitation paste modal state when open.
@@ -1166,7 +1168,6 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.confirmModal != null ||
     modals.pluginThemePrompt != null ||
     modals.themePicker != null ||
-    modals.shortcutsReference != null ||
     modals.acceptTeamHubInvite != null ||
     modals.actionMenu != null ||
     modals.hostedModal != null ||

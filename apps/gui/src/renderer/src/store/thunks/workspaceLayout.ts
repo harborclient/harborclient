@@ -17,6 +17,7 @@ import {
   setShowMcp,
   setShowRequestEditor,
   setShowResponseEditor,
+  setShowShortcutsSidebar,
   setShowSidebar,
   setShowTerminal,
   setShowVariables
@@ -174,6 +175,7 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
       showSidebar: navigation.showSidebar,
       showAiSidebar: navigation.showAiSidebar,
       showGitSidebar: navigation.showGitSidebar,
+      showShortcutsSidebar: navigation.showShortcutsSidebar,
       showRequestEditor: navigation.showRequestEditor,
       showResponseEditor: navigation.showResponseEditor,
       requestEditorSplitHeight: navigation.requestEditorSplitHeight,
@@ -206,8 +208,17 @@ export async function applyWorkspaceLayout(
   const { panels } = layout;
 
   dispatch(setShowSidebar(panels.showSidebar));
-  dispatch(setShowAiSidebar(panels.showAiSidebar));
-  dispatch(setShowGitSidebar(panels.showGitSidebar));
+  if (panels.showGitSidebar) {
+    dispatch(setShowGitSidebar(true));
+  } else if (panels.showAiSidebar) {
+    dispatch(setShowAiSidebar(true));
+  } else if (panels.showShortcutsSidebar) {
+    dispatch(setShowShortcutsSidebar(true));
+  } else {
+    dispatch(setShowAiSidebar(false));
+    dispatch(setShowGitSidebar(false));
+    dispatch(setShowShortcutsSidebar(false));
+  }
   dispatch(setShowRequestEditor(panels.showRequestEditor));
   dispatch(setShowResponseEditor(panels.showResponseEditor));
   dispatch(setRequestEditorSplitHeight(panels.requestEditorSplitHeight));

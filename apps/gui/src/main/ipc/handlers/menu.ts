@@ -6,7 +6,7 @@ import {
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
   setMenuSidebarVisible,
-  setMenuShortcutsReferenceOpen,
+  setMenuShortcutsSidebarOpen,
   setMenuConsoleVisible,
   setMenuVariablesVisible,
   setMenuMcpVisible,
@@ -65,14 +65,10 @@ export function registerMenuHandlers(): void {
     }
   );
 
-  // Updates the View > Appearance submenu checkmark for the shortcuts reference modal.
-  handle(
-    'menu:setShortcutsReferenceOpen',
-    ipcArgSchemas.menuShortcutsReferenceOpen,
-    (_event, open) => {
-      setMenuShortcutsReferenceOpen(open);
-    }
-  );
+  // Updates the View > Appearance submenu checkmark for Shortcuts sidebar visibility.
+  handle('menu:setShortcutsSidebarOpen', ipcArgSchemas.menuShortcutsSidebarOpen, (_event, open) => {
+    setMenuShortcutsSidebarOpen(open);
+  });
 
   // Updates the View > Appearance submenu checkmark for console panel visibility.
   handle('menu:setConsoleVisible', ipcArgSchemas.menuConsoleVisible, (_event, visible) => {

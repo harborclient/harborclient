@@ -176,7 +176,8 @@ describe('dialogHelpers', () => {
         cancelLabel: 'Cancel',
         variant: 'danger',
         checkboxLabel: undefined,
-        reconfirm: undefined
+        reconfirm: undefined,
+        url: undefined
       }
     });
 
@@ -207,7 +208,8 @@ describe('dialogHelpers', () => {
         cancelLabel: 'Cancel',
         variant: 'default',
         checkboxLabel: 'Do not ask again',
-        reconfirm: undefined
+        reconfirm: undefined,
+        url: undefined
       }
     });
 
@@ -242,7 +244,35 @@ describe('dialogHelpers', () => {
         cancelLabel: 'Cancel',
         variant: 'danger',
         checkboxLabel: undefined,
-        reconfirm: true
+        reconfirm: true,
+        url: undefined
+      }
+    });
+
+    resolveConfirm(dispatch, true);
+    await expect(pending).resolves.toBe(true);
+  });
+
+  it('showConfirm passes url into confirm modal state', async () => {
+    const dispatch = vi.fn();
+    const pending = showConfirm(dispatch, {
+      title: 'Open external link?',
+      message: 'Open this link?',
+      confirmLabel: 'Open link',
+      url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/content-type'
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: setConfirmModal.type,
+      payload: {
+        title: 'Open external link?',
+        message: 'Open this link?',
+        confirmLabel: 'Open link',
+        cancelLabel: 'Cancel',
+        variant: 'default',
+        checkboxLabel: undefined,
+        reconfirm: undefined,
+        url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/content-type'
       }
     });
 

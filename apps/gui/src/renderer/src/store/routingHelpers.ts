@@ -10,7 +10,6 @@ const SETTINGS_SECTIONS = new Set<string>([
   'general',
   'syntax',
   'storage',
-  'shortcuts',
   'proxy',
   'globals',
   'ai',
@@ -54,6 +53,10 @@ export function lazyNamed<T extends PageRef['type'], M>(
 export function normalizeSettingsSection(value: unknown): SettingsSection | null {
   if (typeof value !== 'string') {
     return null;
+  }
+  // Former Settings → Shortcuts section now lives in the Shortcuts sidebar.
+  if (value === 'shortcuts') {
+    return 'general';
   }
   if (SETTINGS_SECTIONS.has(value)) {
     return value as SettingsSection;

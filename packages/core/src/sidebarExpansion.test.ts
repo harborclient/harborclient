@@ -437,11 +437,11 @@ describe('normalizeSidebarExpansion', () => {
         collectionIds: [],
         folderIds: [],
         sectionSort: {
-          collections: 'name-asc',
+          collections: 'method-asc',
           environments: 'marker',
           runResults: 'created-desc',
           history: 'not-a-mode',
-          workspaces: 'name-desc',
+          workspaces: 'method-desc',
           archive: 'created-asc',
           trash: 42
         }
@@ -468,11 +468,11 @@ describe('normalizeSidebarExpansion', () => {
       collectionIds: [],
       folderIds: [],
       sectionSort: {
-        collections: 'name-asc',
+        collections: 'method-asc',
         environments: 'marker',
         runResults: 'created-desc',
         history: 'default',
-        workspaces: 'name-desc',
+        workspaces: 'method-desc',
         archive: 'created-asc',
         trash: 'default'
       },

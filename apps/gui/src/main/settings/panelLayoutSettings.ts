@@ -16,6 +16,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
   showAiSidebar: false,
   showGitSidebar: false,
+  showShortcutsSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
@@ -147,10 +148,16 @@ function normalizeFooterPanels(
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
   const footerPanels = normalizeFooterPanels(input);
 
+  const showGitSidebar = input.showGitSidebar === true;
+  const showAiSidebar = !showGitSidebar && input.showAiSidebar === true;
+  const showShortcutsSidebar =
+    !showGitSidebar && !showAiSidebar && input.showShortcutsSidebar === true;
+
   return {
     showSidebar: input.showSidebar !== false,
-    showAiSidebar: input.showAiSidebar === true,
-    showGitSidebar: input.showGitSidebar === true,
+    showAiSidebar,
+    showGitSidebar,
+    showShortcutsSidebar,
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight),

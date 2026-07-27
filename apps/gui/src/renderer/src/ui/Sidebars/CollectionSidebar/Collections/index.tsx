@@ -389,7 +389,8 @@ export function Collections(): JSX.Element {
           const request = requests.find((entry) => entry.id === item.id);
           return toSortTimestamp(request?.created_at);
         },
-        marker: (item) => requests.find((entry) => entry.id === item.id)?.marker
+        marker: (item) => requests.find((entry) => entry.id === item.id)?.marker,
+        method: (item) => requests.find((entry) => entry.id === item.id)?.method
       });
     },
     [requestsByCollection, searchFilter, sortMode, treeFilter]
@@ -605,7 +606,8 @@ export function Collections(): JSX.Element {
             const request = requests.find((entry) => entry.id === item.id);
             return toSortTimestamp(request?.created_at);
           },
-          marker: (item) => requests.find((entry) => entry.id === item.id)?.marker
+          marker: (item) => requests.find((entry) => entry.id === item.id)?.marker,
+          method: (item) => requests.find((entry) => entry.id === item.id)?.method
         }),
         rootDocuments:
           sortMode === 'default'

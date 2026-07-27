@@ -7,7 +7,14 @@ import {
   normalizeCodeEditorTheme
 } from './codeEditorSettings';
 import { normalizeEditorTab } from './requestEditorTab';
-import type { EditorTab, GeneralSettings, ProxyProtocol, ProxySettings, Variable } from './types';
+import type {
+  EditorTab,
+  GeneralSettings,
+  ProxyProtocol,
+  ProxySettings,
+  TrustedExternalDomain,
+  Variable
+} from './types';
 import { DEFAULT_USER_AGENT, normalizeCustomUserAgents, normalizeUserAgent } from './userAgent';
 
 export { HARD_MAX_RESPONSE_SIZE_MB, DEFAULT_PROXY_SETTINGS };
@@ -41,6 +48,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenCreatingWorkspace: true,
   warnWhenOpeningWorkspace: true,
   warnWhenAgentUsesTerminal: true,
+  trustedExternalDomains: [],
+  allowAllExternalDomains: false,
   dismissedRequestEditorNotices: [],
   gitAutoAdd: true,
   externalMergeEditorPath: '',
@@ -54,6 +63,40 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   globalVariables: [],
   logFilePath: ''
 };
+
+/**
+ * Returns whether a value looks like a trusted-domain registry row.
+ *
+ * @param value - Unknown entry from persisted settings.
+ */
+function isTrustedExternalDomain(value: unknown): value is { domain: unknown; enabled: unknown } {
+  return typeof value === 'object' && value !== null && 'domain' in value;
+}
+
+/**
+ * Normalizes the trusted external-domain registry, dropping empty hostnames
+ * and collapsing duplicates (later entries win).
+ *
+ * @param value - Raw registry from storage or user input.
+ */
+function normalizeTrustedExternalDomains(value: unknown): TrustedExternalDomain[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const byDomain = new Map<string, TrustedExternalDomain>();
+  for (const entry of value) {
+    if (!isTrustedExternalDomain(entry) || typeof entry.domain !== 'string') {
+      continue;
+    }
+    const domain = entry.domain.trim().toLowerCase();
+    if (!domain) {
+      continue;
+    }
+    byDomain.set(domain, { domain, enabled: entry.enabled !== false });
+  }
+  return [...byDomain.values()];
+}
 
 /**
  * Normalizes a collection/environment variable row.
@@ -181,6 +224,7 @@ function normalizeDismissedRequestEditorNotices(input: unknown): EditorTab[] {
  *
  * Accepts legacy `warnWhenCreatingTabGroup` / `warnWhenOpeningTabGroup` keys from
  * older persisted blobs and maps them onto the renamed workspace fields.
+ * Legacy `warnWhenOpeningExternalLinks: false` maps to `allowAllExternalDomains: true`.
  *
  * @param input - Raw settings from storage or user input.
  * @returns Normalized settings.
@@ -189,6 +233,7 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
   const legacy = input as Partial<GeneralSettings> & {
     warnWhenCreatingTabGroup?: boolean;
     warnWhenOpeningTabGroup?: boolean;
+    warnWhenOpeningExternalLinks?: boolean;
   };
   const warnWhenCreatingWorkspace =
     typeof legacy.warnWhenCreatingWorkspace === 'boolean'
@@ -202,6 +247,10 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
       : typeof legacy.warnWhenOpeningTabGroup === 'boolean'
         ? legacy.warnWhenOpeningTabGroup
         : true;
+  const allowAllExternalDomains =
+    typeof legacy.allowAllExternalDomains === 'boolean'
+      ? legacy.allowAllExternalDomains
+      : legacy.warnWhenOpeningExternalLinks === false;
 
   return {
     requestTimeoutMs: normalizeNonNegativeNumber(
@@ -241,6 +290,8 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     warnWhenCreatingWorkspace,
     warnWhenOpeningWorkspace,
     warnWhenAgentUsesTerminal: input.warnWhenAgentUsesTerminal !== false,
+    trustedExternalDomains: normalizeTrustedExternalDomains(input.trustedExternalDomains),
+    allowAllExternalDomains,
     dismissedRequestEditorNotices: normalizeDismissedRequestEditorNotices(
       input.dismissedRequestEditorNotices
     ),

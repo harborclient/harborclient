@@ -12,6 +12,7 @@ import type { Variable } from '@harborclient/core/types';
 
 import {
   faInbox,
+  faKeyboard,
   faPaperPlane,
   faCodeBranch,
   faSun,
@@ -30,11 +31,8 @@ import {
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   closeActionMenuModal,
-  closeShortcutsReferenceModal,
   openActionMenuModal,
-  openShortcutsReferenceModal,
-  selectActionMenuModal,
-  selectShortcutsReferenceModal
+  selectActionMenuModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
@@ -42,7 +40,6 @@ import {
   usePluginFooterPanels,
   usePluginStatusBarItems
 } from '#/renderer/src/plugins/pluginHooks';
-import { SHORTCUTS_REFERENCE_MODAL_ID } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
 import { handleFooterBarTabNavigation } from './footerBarTabNavigation';
 import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
@@ -145,6 +142,16 @@ interface Props {
   onToggleGitSidebar: () => void;
 
   /**
+   * Whether the Shortcuts sidebar is currently visible.
+   */
+  shortcutsSidebarOpen: boolean;
+
+  /**
+   * Toggles the Shortcuts sidebar visible/hidden.
+   */
+  onToggleShortcutsSidebar: () => void;
+
+  /**
    * Whether the request editor is currently visible.
    */
   requestEditorOpen: boolean;
@@ -209,6 +216,8 @@ export function Footer({
   onToggleAiSidebar,
   gitSidebarOpen,
   onToggleGitSidebar,
+  shortcutsSidebarOpen,
+  onToggleShortcutsSidebar,
   requestEditorOpen,
   onToggleRequestEditor,
   responseEditorOpen,
@@ -224,7 +233,6 @@ export function Footer({
   const pluginFooterPanelIndicators = usePluginFooterPanelIndicators();
   const statusBarItems = usePluginStatusBarItems();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
-  const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
   const actionMenuOpen = useAppSelector(selectActionMenuModal)?.open === true;
   const environments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
@@ -371,19 +379,6 @@ export function Footer({
               groups={environmentMenuGroups}
             />
             <FooterButton
-              active={shortcutsReferenceOpen}
-              onClick={() =>
-                dispatch(
-                  shortcutsReferenceOpen
-                    ? closeShortcutsReferenceModal()
-                    : openShortcutsReferenceModal()
-                )
-              }
-              controlsId={SHORTCUTS_REFERENCE_MODAL_ID}
-            >
-              Shortcuts
-            </FooterButton>
-            <FooterButton
               active={consoleOpen}
               onClick={onToggleConsole}
               controlsId="footer-console-panel"
@@ -496,6 +491,13 @@ export function Footer({
               active={gitSidebarOpen}
               activeStyle="selection"
               label="git source control"
+            />
+            <FooterIcon
+              onClick={onToggleShortcutsSidebar}
+              icon={faKeyboard}
+              active={shortcutsSidebarOpen}
+              activeStyle="selection"
+              label="shortcuts"
             />
           </div>
         </div>

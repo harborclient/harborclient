@@ -21,7 +21,6 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
-  openShortcutsReferenceModal,
   openSyncModal,
   openUpdateModal,
   closeActionMenuModal
@@ -30,6 +29,7 @@ import {
   toggleAiSidebar,
   toggleConsole,
   toggleGitSidebar,
+  toggleShortcutsSidebar,
   toggleMcp,
   toggleRequestEditor,
   toggleResponseEditor,
@@ -286,8 +286,8 @@ export function useActionCommands(): UseActionCommandsResult {
       'builtin:check-for-updates': () => {
         dispatch(openUpdateModal());
       },
-      'builtin:shortcuts-reference': () => {
-        dispatch(openShortcutsReferenceModal());
+      'builtin:toggle-shortcuts-sidebar': () => {
+        dispatch(toggleShortcutsSidebar());
       },
       'builtin:about': () => {
         dispatch(openAboutModal());

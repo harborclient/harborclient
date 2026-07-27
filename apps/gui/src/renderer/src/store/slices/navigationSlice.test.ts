@@ -6,6 +6,7 @@ import navigationReducer, {
   setPendingPluginInstall,
   toggleAiSidebar,
   toggleGitSidebar,
+  toggleShortcutsSidebar,
   openGitSidebar,
   toggleConsole,
   toggleMcp,
@@ -23,6 +24,7 @@ describe('navigationSlice', () => {
     expect(state.showSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
     expect(state.showGitSidebar).toBe(false);
+    expect(state.showShortcutsSidebar).toBe(false);
     expect(state.showRequestEditor).toBe(true);
     expect(state.showResponseEditor).toBe(true);
     expect(state.requestEditorSplitHeight).toBe(340);
@@ -100,6 +102,7 @@ describe('navigationSlice', () => {
     state = navigationReducer(state, toggleAiSidebar());
     expect(state.showAiSidebar).toBe(true);
     expect(state.showGitSidebar).toBe(false);
+    expect(state.showShortcutsSidebar).toBe(false);
   });
 
   it('closes AI sidebar when opening Git sidebar', () => {
@@ -109,15 +112,36 @@ describe('navigationSlice', () => {
     state = navigationReducer(state, toggleGitSidebar());
     expect(state.showGitSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
+    expect(state.showShortcutsSidebar).toBe(false);
   });
 
-  it('openGitSidebar enables Git and closes AI sidebar', () => {
+  it('closes AI and Git sidebars when opening Shortcuts sidebar', () => {
+    let state = navigationReducer(undefined, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+
+    state = navigationReducer(state, toggleShortcutsSidebar());
+    expect(state.showShortcutsSidebar).toBe(true);
+    expect(state.showAiSidebar).toBe(false);
+    expect(state.showGitSidebar).toBe(false);
+  });
+
+  it('closes Shortcuts sidebar when opening AI sidebar', () => {
+    let state = navigationReducer(undefined, toggleShortcutsSidebar());
+    expect(state.showShortcutsSidebar).toBe(true);
+
+    state = navigationReducer(state, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+    expect(state.showShortcutsSidebar).toBe(false);
+  });
+
+  it('openGitSidebar enables Git and closes other right sidebars', () => {
     let state = navigationReducer(undefined, toggleAiSidebar());
     expect(state.showAiSidebar).toBe(true);
 
     state = navigationReducer(state, openGitSidebar());
     expect(state.showGitSidebar).toBe(true);
     expect(state.showAiSidebar).toBe(false);
+    expect(state.showShortcutsSidebar).toBe(false);
   });
 
   it('toggles request editor visibility when response is visible', () => {

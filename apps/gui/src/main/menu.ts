@@ -100,7 +100,7 @@ export function buildThemeMenuItems(
  * @param gitSidebarVisible - Whether the Git sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
  * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
- * @param shortcutsReferenceOpen - Whether the shortcuts reference modal checkbox should appear checked.
+ * @param shortcutsSidebarOpen - Whether the Shortcuts sidebar checkbox should appear checked.
  * @param consoleVisible - Whether the console panel checkbox should appear checked.
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
@@ -121,7 +121,7 @@ export function buildAppearanceMenuItems(
   gitSidebarVisible: boolean,
   requestEditorVisible: boolean,
   responseEditorVisible: boolean,
-  shortcutsReferenceOpen: boolean,
+  shortcutsSidebarOpen: boolean,
   consoleVisible: boolean,
   variablesVisible: boolean,
   mcpVisible: boolean,
@@ -159,6 +159,13 @@ export function buildAppearanceMenuItems(
         click: () => sendMenuAction(window, 'toggle-git-sidebar')
       },
       {
+        label: 'Shortcuts',
+        type: 'checkbox',
+        checked: shortcutsSidebarOpen,
+        accelerator: acceleratorFor(accelerators, 'toggle-shortcuts-sidebar'),
+        click: () => sendMenuAction(window, 'toggle-shortcuts-sidebar')
+      },
+      {
         label: 'Request',
         type: 'checkbox',
         checked: requestEditorVisible,
@@ -173,13 +180,6 @@ export function buildAppearanceMenuItems(
         click: () => sendMenuAction(window, 'toggle-response-editor')
       },
       { type: 'separator' },
-      {
-        label: 'Shortcuts',
-        type: 'checkbox',
-        checked: shortcutsReferenceOpen,
-        accelerator: acceleratorFor(accelerators, 'shortcuts-reference'),
-        click: () => sendMenuAction(window, 'shortcuts-reference')
-      },
       {
         label: 'Console',
         type: 'checkbox',
@@ -274,7 +274,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
  * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
- * @param shortcutsReferenceOpen - Whether the shortcuts reference modal checkbox should appear checked.
+ * @param shortcutsSidebarOpen - Whether the Shortcuts sidebar checkbox should appear checked.
  * @param consoleVisible - Whether the console panel checkbox should appear checked.
  * @param variablesVisible - Whether the variables panel checkbox should appear checked.
  * @param mcpVisible - Whether the MCP panel checkbox should appear checked.
@@ -303,7 +303,7 @@ export function buildMenu(
   gitSidebarVisible = false,
   requestEditorVisible = true,
   responseEditorVisible = true,
-  shortcutsReferenceOpen = false,
+  shortcutsSidebarOpen = false,
   consoleVisible = false,
   variablesVisible = false,
   mcpVisible = false,
@@ -443,7 +443,7 @@ export function buildMenu(
           gitSidebarVisible,
           requestEditorVisible,
           responseEditorVisible,
-          shortcutsReferenceOpen,
+          shortcutsSidebarOpen,
           consoleVisible,
           variablesVisible,
           mcpVisible,
@@ -603,8 +603,8 @@ export function buildMenu(
         },
         {
           label: 'Keyboard Shortcuts',
-          accelerator: acceleratorFor(accelerators, 'shortcuts-reference'),
-          click: () => sendMenuAction(window, 'shortcuts-reference')
+          accelerator: acceleratorFor(accelerators, 'toggle-shortcuts-sidebar'),
+          click: () => sendMenuAction(window, 'toggle-shortcuts-sidebar')
         },
         {
           label: 'About',

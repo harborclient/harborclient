@@ -72,7 +72,7 @@ Start with the response **Status**, **Headers**, and **Body** tabs to read the e
 
 ### Where can I see keyboard shortcuts?
 
-Open **Help → Keyboard Shortcuts** for a searchable reference of default bindings, or go to **Settings → Shortcuts** to customize them. Common defaults include **Cmd/Ctrl+N** (new request), **Cmd/Ctrl+S** (save), and **F5** (send).
+Open **Help → Keyboard Shortcuts** or the footer Shortcuts icon to open the Shortcuts sidebar, where you can search and customize bindings. Common defaults include **Cmd/Ctrl+N** (new request), **Cmd/Ctrl+S** (save), and **F5** (send).
 
 ### How do I share collections with my team?
 

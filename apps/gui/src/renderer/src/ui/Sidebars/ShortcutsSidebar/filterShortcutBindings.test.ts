@@ -16,7 +16,7 @@ const SAMPLE_BINDINGS: ShortcutBinding[] = [
     defaultAccelerator: 'F5'
   },
   {
-    id: 'shortcuts-reference',
+    id: 'toggle-shortcuts-sidebar',
     label: 'Keyboard shortcuts',
     accelerator: 'Alt+Shift+K',
     defaultAccelerator: 'Alt+Shift+K'

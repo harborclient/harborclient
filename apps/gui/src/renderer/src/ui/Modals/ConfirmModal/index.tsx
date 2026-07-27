@@ -12,7 +12,7 @@ export function ConfirmModal(): JSX.Element | null {
 
   if (!confirmModal) return null;
 
-  const contentKey = `${confirmModal.title}\0${confirmModal.message}\0${confirmModal.confirmLabel}\0${confirmModal.checkboxLabel ?? ''}\0${confirmModal.reconfirm ? '1' : '0'}`;
+  const contentKey = `${confirmModal.title}\0${confirmModal.message}\0${confirmModal.confirmLabel}\0${confirmModal.checkboxLabel ?? ''}\0${confirmModal.reconfirm ? '1' : '0'}\0${confirmModal.url ?? ''}`;
 
   return <ConfirmModalContent key={contentKey} confirmModal={confirmModal} dispatch={dispatch} />;
 }

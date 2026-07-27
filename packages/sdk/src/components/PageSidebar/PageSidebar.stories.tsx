@@ -1,4 +1,4 @@
-import { faGear, faKeyboard } from '@fortawesome/free-solid-svg-icons';
+import { faGear, faServer } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 import { Page } from '../Page/index.js';
@@ -24,7 +24,7 @@ export const WithIcons: Story = {
     onSelect: fn(),
     items: [
       { value: 'general', label: 'General', icon: faGear },
-      { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard }
+      { value: 'proxy', label: 'Proxy', icon: faServer }
     ]
   },
   render: (args) => (

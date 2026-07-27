@@ -7,6 +7,7 @@ import {
   setShowConsole,
   setShowGitSidebar,
   setShowMcp,
+  setShowShortcutsSidebar,
   setShowSidebar,
   setShowTerminal,
   setShowVariables,
@@ -28,6 +29,7 @@ export function captureSidebarFooterSnapshot(
     showSidebar: navigation.showSidebar,
     showAiSidebar: navigation.showAiSidebar,
     showGitSidebar: navigation.showGitSidebar,
+    showShortcutsSidebar: navigation.showShortcutsSidebar,
     activeSidebarPanelId: navigation.activeSidebarPanelId,
     showConsole: navigation.showConsole,
     showVariables: navigation.showVariables,
@@ -40,7 +42,7 @@ export function captureSidebarFooterSnapshot(
 /**
  * Restores sidebar and footer panel visibility from a Hide sidebars snapshot.
  *
- * Applies AI/Git through their setters so mutual exclusivity stays enforced.
+ * Applies right sidebars through their setters so mutual exclusivity stays enforced.
  * Restores the plugin Collections sidebar panel only when the Collections sidebar is shown.
  *
  * @param dispatch - Redux dispatch for panel visibility updates.
@@ -56,9 +58,12 @@ export function applySidebarFooterSnapshot(
     dispatch(setShowGitSidebar(true));
   } else if (snapshot.showAiSidebar) {
     dispatch(setShowAiSidebar(true));
+  } else if (snapshot.showShortcutsSidebar) {
+    dispatch(setShowShortcutsSidebar(true));
   } else {
     dispatch(setShowAiSidebar(false));
     dispatch(setShowGitSidebar(false));
+    dispatch(setShowShortcutsSidebar(false));
   }
 
   dispatch(setActiveSidebarPanel(snapshot.showSidebar ? snapshot.activeSidebarPanelId : null));
@@ -82,6 +87,7 @@ export const hideSidebarsAndFooterPanels = createAsyncThunk<void, void, ThunkApi
     dispatch(setShowSidebar(false));
     dispatch(setShowAiSidebar(false));
     dispatch(setShowGitSidebar(false));
+    dispatch(setShowShortcutsSidebar(false));
     dispatch(setActiveSidebarPanel(null));
     dispatch(setShowConsole(false));
     dispatch(setShowVariables(false));

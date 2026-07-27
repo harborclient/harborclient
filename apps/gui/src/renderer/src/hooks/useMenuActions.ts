@@ -8,15 +8,13 @@ import {
   openAcceptTeamHubInviteModal,
   openCollectionModal,
   openActionMenuModal,
-  openShortcutsReferenceModal,
-  closeShortcutsReferenceModal,
   openSyncModal,
-  openUpdateModal,
-  selectShortcutsReferenceModal
+  openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
+  selectShortcutsSidebarVisible,
   selectShowConsole,
   selectShowMcp,
   selectShowRequestEditor,
@@ -27,6 +25,7 @@ import {
   toggleAiSidebar,
   toggleConsole,
   toggleGitSidebar,
+  toggleShortcutsSidebar,
   toggleMcp,
   toggleRequestEditor,
   toggleResponseEditor,
@@ -102,9 +101,9 @@ export function useMenuActions(): void {
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
+  const shortcutsSidebarVisible = useAppSelector(selectShortcutsSidebarVisible);
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
-  const shortcutsReferenceOpen = useAppSelector(selectShortcutsReferenceModal)?.open === true;
   const consoleVisible = useAppSelector(selectShowConsole);
   const variablesVisible = useAppSelector(selectShowVariables);
   const mcpVisible = useAppSelector(selectShowMcp);
@@ -147,11 +146,11 @@ export function useMenuActions(): void {
   }, [responseEditorVisible]);
 
   /**
-   * Keeps the View > Appearance submenu Shortcuts checkbox aligned with the reference modal.
+   * Keeps the View > Appearance submenu Shortcuts checkbox aligned with Shortcuts sidebar visibility.
    */
   useEffect(() => {
-    void window.api.setMenuShortcutsReferenceOpen(shortcutsReferenceOpen);
-  }, [shortcutsReferenceOpen]);
+    void window.api.setMenuShortcutsSidebarOpen(shortcutsSidebarVisible);
+  }, [shortcutsSidebarVisible]);
 
   /**
    * Keeps the View > Appearance submenu Console checkbox aligned with console panel visibility.
@@ -317,12 +316,8 @@ export function useMenuActions(): void {
         case 'about':
           dispatch(openAboutModal());
           break;
-        case 'shortcuts-reference':
-          if (store.getState().modals.shortcutsReference?.open === true) {
-            dispatch(closeShortcutsReferenceModal());
-          } else {
-            dispatch(openShortcutsReferenceModal());
-          }
+        case 'toggle-shortcuts-sidebar':
+          dispatch(toggleShortcutsSidebar());
           break;
         case 'action-menu':
           dispatch(openActionMenuModal());

@@ -76,7 +76,7 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'check-for-updates')?.accelerator).toBe(
       'CmdOrCtrl+Shift+U'
     );
-    expect(bindings.find((binding) => binding.id === 'shortcuts-reference')?.accelerator).toBe(
+    expect(bindings.find((binding) => binding.id === 'toggle-shortcuts-sidebar')?.accelerator).toBe(
       'Alt+Shift+K'
     );
     expect(bindings.find((binding) => binding.id === 'action-menu')?.accelerator).toBe(

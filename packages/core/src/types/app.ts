@@ -59,7 +59,7 @@ export type MenuActionId =
   | 'report-issue'
   | 'about'
   | 'check-for-updates'
-  | 'shortcuts-reference'
+  | 'toggle-shortcuts-sidebar'
   | 'action-menu'
   | 'undo'
   | 'redo'

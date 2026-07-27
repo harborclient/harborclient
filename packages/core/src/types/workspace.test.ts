@@ -19,6 +19,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showSidebar: true,
       showAiSidebar: false,
       showGitSidebar: true,
+      showShortcutsSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,

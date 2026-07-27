@@ -57,6 +57,7 @@ export function CollectionsHeaderActions(): JSX.Element {
       <SidebarSortButton
         sectionKey="collections"
         hasMarkerOption
+        hasMethodOption
         ariaLabel="Sort collections"
         title="Sort collections"
       />

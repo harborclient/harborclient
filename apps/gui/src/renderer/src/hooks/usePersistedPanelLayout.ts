@@ -6,6 +6,7 @@ import {
   selectRequestEditorSplitHeight,
   selectShowAiSidebar,
   selectShowGitSidebar,
+  selectShowShortcutsSidebar,
   selectShowConsole,
   selectShowMcp,
   selectShowRequestEditor,
@@ -17,6 +18,7 @@ import {
   setRequestEditorSplitHeight,
   setShowAiSidebar,
   setShowGitSidebar,
+  setShowShortcutsSidebar,
   setShowConsole,
   setShowMcp,
   setShowRequestEditor,
@@ -58,6 +60,7 @@ export function usePersistedPanelLayout(): void {
   const showSidebar = useAppSelector(selectShowSidebar);
   const showAiSidebar = useAppSelector(selectShowAiSidebar);
   const showGitSidebar = useAppSelector(selectShowGitSidebar);
+  const showShortcutsSidebar = useAppSelector(selectShowShortcutsSidebar);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const requestEditorSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
@@ -84,8 +87,17 @@ export function usePersistedPanelLayout(): void {
       }
 
       dispatch(setShowSidebar(layout.showSidebar));
-      dispatch(setShowAiSidebar(layout.showAiSidebar));
-      dispatch(setShowGitSidebar(layout.showGitSidebar));
+      if (layout.showGitSidebar) {
+        dispatch(setShowGitSidebar(true));
+      } else if (layout.showAiSidebar) {
+        dispatch(setShowAiSidebar(true));
+      } else if (layout.showShortcutsSidebar) {
+        dispatch(setShowShortcutsSidebar(true));
+      } else {
+        dispatch(setShowAiSidebar(false));
+        dispatch(setShowGitSidebar(false));
+        dispatch(setShowShortcutsSidebar(false));
+      }
       dispatch(setShowRequestEditor(layout.showRequestEditor));
       dispatch(setShowResponseEditor(layout.showResponseEditor));
       dispatch(setRequestEditorSplitHeight(splitHeight));
@@ -101,6 +113,7 @@ export function usePersistedPanelLayout(): void {
           showSidebar: layout.showSidebar,
           showAiSidebar: layout.showAiSidebar,
           showGitSidebar: layout.showGitSidebar,
+          showShortcutsSidebar: layout.showShortcutsSidebar,
           showRequestEditor: layout.showRequestEditor,
           showResponseEditor: layout.showResponseEditor,
           requestEditorSplitHeight: splitHeight,
@@ -132,6 +145,7 @@ export function usePersistedPanelLayout(): void {
       showSidebar,
       showAiSidebar,
       showGitSidebar,
+      showShortcutsSidebar,
       showRequestEditor,
       showResponseEditor,
       requestEditorSplitHeight,
@@ -145,6 +159,7 @@ export function usePersistedPanelLayout(): void {
     showSidebar,
     showAiSidebar,
     showGitSidebar,
+    showShortcutsSidebar,
     showRequestEditor,
     showResponseEditor,
     requestEditorSplitHeight,

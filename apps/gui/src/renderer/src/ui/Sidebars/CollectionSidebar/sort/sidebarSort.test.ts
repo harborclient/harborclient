@@ -11,12 +11,14 @@ interface Item {
   name: string;
   createdAt: number;
   marker?: string | null;
+  method?: string | null;
 }
 
 const accessors = {
   name: (item: Item) => item.name,
   createdAt: (item: Item) => item.createdAt,
-  marker: (item: Item) => item.marker
+  marker: (item: Item) => item.marker,
+  method: (item: Item) => item.method
 };
 
 describe('sidebarSortOptions', () => {
@@ -34,6 +36,28 @@ describe('sidebarSortOptions', () => {
     expect(sidebarSortOptions(true).map((option) => option.id)).toContain('marker');
   });
 
+  it('inserts Method options before date options when hasMethod is true', () => {
+    expect(sidebarSortOptions(false, 'Date created', true).map((option) => option.id)).toEqual([
+      'default',
+      'name-asc',
+      'name-desc',
+      'method-asc',
+      'method-desc',
+      'created-asc',
+      'created-desc'
+    ]);
+    expect(sidebarSortOptions(true, 'Date created', true).map((option) => option.label)).toEqual([
+      'Default',
+      'A-Z ascending',
+      'A-Z descending',
+      'Method ascending',
+      'Method descending',
+      'Date created ascending',
+      'Date created descending',
+      'Color marker'
+    ]);
+  });
+
   it('uses a custom date label for trash-style deleted timestamps', () => {
     const options = sidebarSortOptions(false, 'Date deleted');
     expect(options.find((option) => option.id === 'created-asc')?.label).toBe(
@@ -48,6 +72,7 @@ describe('sidebarSortOptions', () => {
 describe('sidebarSortIcon', () => {
   it('uses arrow-up-short-wide for ascending and marker modes', () => {
     expect(sidebarSortIcon('name-asc')).toBe(faArrowUpShortWide);
+    expect(sidebarSortIcon('method-asc')).toBe(faArrowUpShortWide);
     expect(sidebarSortIcon('created-asc')).toBe(faArrowUpShortWide);
     expect(sidebarSortIcon('marker')).toBe(faArrowUpShortWide);
   });
@@ -55,6 +80,7 @@ describe('sidebarSortIcon', () => {
   it('uses arrow-down-short-wide for descending and default modes', () => {
     expect(sidebarSortIcon('default')).toBe(faArrowDownShortWide);
     expect(sidebarSortIcon('name-desc')).toBe(faArrowDownShortWide);
+    expect(sidebarSortIcon('method-desc')).toBe(faArrowDownShortWide);
     expect(sidebarSortIcon('created-desc')).toBe(faArrowDownShortWide);
   });
 });
@@ -105,6 +131,34 @@ describe('sortSidebarItems', () => {
       'Charlie',
       'alpha'
     ]);
+  });
+
+  it('sorts by method ascending GET through OPTIONS with name tie-break', () => {
+    const methodItems: Item[] = [
+      { name: 'Zed', createdAt: 1, method: 'POST' },
+      { name: 'Able', createdAt: 2, method: 'POST' },
+      { name: 'Fetch', createdAt: 3, method: 'GET' },
+      { name: 'Remove', createdAt: 4, method: 'DELETE' },
+      { name: 'Folder', createdAt: 5, method: null },
+      { name: 'Probe', createdAt: 6, method: 'OPTIONS' }
+    ];
+    expect(sortSidebarItems(methodItems, 'method-asc', accessors).map((item) => item.name)).toEqual(
+      ['Fetch', 'Able', 'Zed', 'Remove', 'Probe', 'Folder']
+    );
+  });
+
+  it('sorts by method descending as the reverse order with name tie-break', () => {
+    const methodItems: Item[] = [
+      { name: 'Zed', createdAt: 1, method: 'POST' },
+      { name: 'Able', createdAt: 2, method: 'POST' },
+      { name: 'Fetch', createdAt: 3, method: 'GET' },
+      { name: 'Remove', createdAt: 4, method: 'DELETE' },
+      { name: 'Folder', createdAt: 5, method: null },
+      { name: 'Probe', createdAt: 6, method: 'OPTIONS' }
+    ];
+    expect(
+      sortSidebarItems(methodItems, 'method-desc', accessors).map((item) => item.name)
+    ).toEqual(['Probe', 'Remove', 'Able', 'Zed', 'Fetch', 'Folder']);
   });
 });
 

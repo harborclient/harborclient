@@ -9,23 +9,20 @@ import { filterShortcutBindings } from './filterShortcutBindings';
 import { Button } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { Input } from '@harborclient/sdk/components';
-import { Page } from '@harborclient/sdk/components';
-import { SettingSectionHeading } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { field } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { sectionEntryBySection } from '../catalog/catalog';
-import { settingsSectionMeta } from '../constants';
 import { acceleratorFromKeyboardEvent } from './acceleratorFromKeyboardEvent';
 import { FieldError } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 
 /**
- * Keyboard shortcut settings with press-to-record editing and restore defaults.
+ * Press-to-record keyboard shortcut editor for the Shortcuts sidebar.
  */
-export function ShortcutsSection(): JSX.Element {
+export function ShortcutsEditor(): JSX.Element {
   const confirm = useConfirm();
   const statusId = useId();
+  const searchId = useId();
   const [bindings, setBindings] = useState<ShortcutBinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [recordingId, setRecordingId] = useState<ShortcutId | null>(null);
@@ -187,122 +184,101 @@ export function ShortcutsSection(): JSX.Element {
     }
   };
 
-  const { label, icon } = settingsSectionMeta('shortcuts');
-  const shortcutsCatalog = sectionEntryBySection('shortcuts');
+  if (loading) {
+    return (
+      <p className="p-3 text-muted" role="status">
+        Loading shortcuts…
+      </p>
+    );
+  }
 
   return (
-    <Page
-      embedded
-      title={label}
-      icon={icon}
-      description="Click a key combination to record a new shortcut. Changes apply immediately when valid."
-    >
-      <div className="flex flex-col gap-3">
-        {loading ? (
-          <p className="text-muted" role="status">
-            Loading shortcuts…
-          </p>
-        ) : (
-          <div>
-            <SettingSectionHeading
-              settingId="shortcuts.bindings"
-              title="Keyboard shortcuts"
-              description={shortcutsCatalog.description}
-              className="flex flex-col gap-1 mb-2"
-              descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
-            />
-            <FormGroup
-              label="Search shortcuts"
-              htmlFor="shortcut-search"
-              srOnly
-              className="mb-4 w-full"
-            >
-              <Input
-                id="shortcut-search"
-                type="search"
-                placeholder="Search shortcuts"
-                value={query}
-                className="w-full"
-                onChange={(event) => setQuery(event.target.value)}
-              />
-            </FormGroup>
+    <div className="flex flex-col gap-3 p-3">
+      <p className="m-0 text-[14px] text-muted">
+        Customize keyboard shortcuts for menus and common actions. Click a key combination to record
+        a new shortcut. Changes apply immediately when valid.
+      </p>
 
-            <div className="overflow-x-auto rounded-md border border-separator">
-              <table className="w-full border-collapse text-[14px]">
-                <caption className="sr-only">Keyboard shortcuts</caption>
-                <thead>
-                  <tr className="border-b border-separator bg-sidebar/40 text-left">
-                    <th scope="col" className="px-3 py-2 font-medium text-text">
-                      Shortcut
-                    </th>
-                    <th scope="col" className="px-3 py-2 font-medium text-text text-right">
-                      Key combination
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBindings.map((binding) => {
-                    const recording = recordingId === binding.id;
-                    const errorId = `${binding.id}-error`;
-                    const error = errors[binding.id];
+      <FormGroup label="Search shortcuts" htmlFor={searchId} srOnly className="w-full">
+        <Input
+          id={searchId}
+          type="search"
+          placeholder="Search shortcuts"
+          value={query}
+          className="w-full"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </FormGroup>
 
-                    return (
-                      <tr key={binding.id} className="border-b border-separator last:border-b-0">
-                        <td className="px-3 py-2 text-text">{binding.label}</td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            className={`${field} min-w-[160px] cursor-pointer text-left  ${recording ? 'ring-2 ring-accent' : ''}`}
-                            aria-label={`Change shortcut for ${binding.label}`}
-                            aria-invalid={error != null ? true : undefined}
-                            aria-describedby={error != null ? errorId : undefined}
-                            onClick={() => handleStartRecording(binding.id)}
-                          >
-                            {recording
-                              ? 'Press keys…'
-                              : formatAcceleratorDisplay(binding.accelerator)}
-                          </button>
-                          {error != null ? <FieldError id={errorId}>{error}</FieldError> : null}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+      <div className="overflow-x-auto rounded-md border border-separator">
+        <table className="w-full border-collapse text-[14px]">
+          <caption className="sr-only">Keyboard shortcuts</caption>
+          <thead>
+            <tr className="border-b border-separator bg-sidebar/40 text-left">
+              <th scope="col" className="px-3 py-2 font-medium text-text">
+                Shortcut
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium text-text">
+                Key combination
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBindings.map((binding) => {
+              const recording = recordingId === binding.id;
+              const errorId = `${binding.id}-error`;
+              const error = errors[binding.id];
 
-            {query.trim().length > 0 && filteredBindings.length === 0 ? (
-              <p className="mt-3 text-muted" role="status">
-                No shortcuts match your search.
-              </p>
-            ) : null}
-
-            {globalError != null ? (
-              <FieldError spacing="section" roleAlert>
-                {globalError}
-              </FieldError>
-            ) : null}
-
-            <StatusMessage id={statusId} className="mt-3">
-              {statusMessage ?? ''}
-            </StatusMessage>
-
-            <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 p-3">
-              <p className="m-0 mb-2 text-text">
-                Restore all shortcuts to their original defaults. This cannot be undone.
-              </p>
-              <Button
-                type="button"
-                variant="primaryDanger"
-                disabled={restoring}
-                onClick={() => void handleRestoreDefaults()}
-              >
-                {restoring ? 'Restoring…' : 'Restore defaults'}
-              </Button>
-            </div>
-          </div>
-        )}
+              return (
+                <tr key={binding.id} className="border-b border-separator last:border-b-0">
+                  <td className="px-3 py-2 text-text">{binding.label}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      className={`${field} min-w-[140px] cursor-pointer text-left ${recording ? 'ring-2 ring-accent' : ''}`}
+                      aria-label={`Change shortcut for ${binding.label}`}
+                      aria-invalid={error != null ? true : undefined}
+                      aria-describedby={error != null ? errorId : undefined}
+                      onClick={() => handleStartRecording(binding.id)}
+                    >
+                      {recording ? 'Press keys…' : formatAcceleratorDisplay(binding.accelerator)}
+                    </button>
+                    {error != null ? <FieldError id={errorId}>{error}</FieldError> : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </Page>
+
+      {query.trim().length > 0 && filteredBindings.length === 0 ? (
+        <p className="m-0 text-muted" role="status">
+          No shortcuts match your search.
+        </p>
+      ) : null}
+
+      {globalError != null ? (
+        <FieldError spacing="section" roleAlert>
+          {globalError}
+        </FieldError>
+      ) : null}
+
+      <StatusMessage id={statusId}>{statusMessage ?? ''}</StatusMessage>
+
+      <div className="rounded-md border border-danger/30 bg-danger/5 p-3">
+        <p className="m-0 mb-2 text-[14px] text-text">
+          Restore all shortcuts to their original defaults. This cannot be undone.
+        </p>
+        <Button
+          type="button"
+          variant="primaryDanger"
+          disabled={restoring}
+          onClick={() => void handleRestoreDefaults()}
+        >
+          {restoring ? 'Restoring…' : 'Restore defaults'}
+        </Button>
+      </div>
+    </div>
   );
 }

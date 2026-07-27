@@ -15,7 +15,6 @@ const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'general',
   'syntax',
   'storage',
-  'shortcuts',
   'proxy',
   'globals',
   'ai',

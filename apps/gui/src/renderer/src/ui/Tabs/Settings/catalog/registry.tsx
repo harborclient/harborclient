@@ -9,7 +9,6 @@ import { AiSettingsExtras } from '../extras/AiSettingsExtras';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GitIdentitiesSection } from '../GitIdentitiesSection';
 import { GlobalsSection } from '../GlobalsSection';
-import { ShortcutsSection } from '../ShortcutsSection';
 import { StorageLocationsSection } from '../StorageLocationsSection';
 import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
@@ -17,6 +16,7 @@ import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
 import { GeneralUserAgentField } from '../fields/GeneralUserAgentField';
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
+import { GeneralTrustedDomainsField } from '../fields/GeneralTrustedDomainsField';
 import { GeneralScrollbarAutoHideField } from '../fields/GeneralScrollbarAutoHideField';
 import { GeneralSpellCheckEnabledField } from '../fields/GeneralSpellCheckEnabledField';
 import { GeneralWrapTabsField } from '../fields/GeneralWrapTabsField';
@@ -85,6 +85,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.closeToTray': GeneralCloseToTrayField,
   'general.spellCheckEnabled': GeneralSpellCheckEnabledField,
   'general.logFilePath': GeneralLogFilePathField,
+  'general.trustedDomains': GeneralTrustedDomainsField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,
   'proxy.host': ProxyHostField,
@@ -107,13 +108,12 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
  * Maps management section ids to their existing panel components.
  */
 export const SETTINGS_SECTION_REGISTRY: Record<
-  'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore',
+  'globals' | 'storage' | 'git' | 'backup-restore',
   ComponentType<SettingsSectionComponentProps>
 > = {
   'globals': GlobalsSection,
   'storage': StorageLocationsSection,
   'git': GitIdentitiesSection,
-  'shortcuts': ShortcutsSection,
   'backup-restore': BackupRestoreSection
 };
 
@@ -167,12 +167,11 @@ export function renderSettingFields(ids: FieldSettingId[]): JSX.Element {
  */
 export function isManagementSettingsSection(
   section: SettingsSection
-): section is 'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore' {
+): section is 'globals' | 'storage' | 'git' | 'backup-restore' {
   return (
     section === 'globals' ||
     section === 'storage' ||
     section === 'git' ||
-    section === 'shortcuts' ||
     section === 'backup-restore'
   );
 }

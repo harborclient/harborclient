@@ -33,7 +33,7 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:show-sidebars', group: 'View', label: 'Show sidebars' },
   { id: 'builtin:toggle-request-editor', group: 'View', label: 'Request' },
   { id: 'builtin:toggle-response-editor', group: 'View', label: 'Response' },
-  { id: 'builtin:shortcuts-reference', group: 'View', label: 'Shortcuts' },
+  { id: 'builtin:toggle-shortcuts-sidebar', group: 'View', label: 'Shortcuts' },
   { id: 'builtin:toggle-console', group: 'View', label: 'Console' },
   { id: 'builtin:toggle-variables', group: 'View', label: 'Variables' },
   { id: 'builtin:toggle-mcp', group: 'View', label: 'MCP' },

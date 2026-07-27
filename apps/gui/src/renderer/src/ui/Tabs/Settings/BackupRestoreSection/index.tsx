@@ -137,6 +137,49 @@ export function BackupRestoreSection({
       icon={icon}
       description="Export everything HarborClient stores locally — collections, environments, settings, chats, credentials, and UI state — into a single backup file."
     >
+      <div
+        id={settingAnchorId(CONFIRMATIONS_GROUP_ID)}
+        className="mb-6 flex flex-col gap-3 scroll-mt-4"
+      >
+        <SettingSectionHeading
+          settingId={CONFIRMATIONS_GROUP_ID}
+          title={confirmationsCatalog.label}
+          description={confirmationsCatalog.description}
+          className="flex flex-col gap-1"
+          descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
+        />
+        <ConfirmationsTable />
+      </div>
+
+      <FormGroup
+        label="Data directory"
+        className="mb-8"
+        description="HarborClient stores local databases, settings, and other on-disk data in this folder."
+        htmlFor={DATA_DIRECTORY_INPUT_ID}
+      >
+        <div className="flex gap-2">
+          <Input
+            id={DATA_DIRECTORY_INPUT_ID}
+            type="text"
+            className="min-w-0 flex-1"
+            value={dataDirectoryPath}
+            readOnly
+            aria-label="Data directory"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!dataDirectoryPath}
+            aria-label="Open data directory in file browser"
+            onClick={() => {
+              void handleOpenDataDirectory();
+            }}
+          >
+            Open
+          </Button>
+        </div>
+      </FormGroup>
+
       <div className="mb-6 flex flex-col gap-3">
         <SettingSectionHeading
           settingId="backup-restore.actions"
@@ -197,48 +240,6 @@ export function BackupRestoreSection({
           </p>
         ) : null}
       </div>
-
-      <div
-        id={settingAnchorId(CONFIRMATIONS_GROUP_ID)}
-        className="mb-6 flex flex-col gap-3 scroll-mt-4"
-      >
-        <SettingSectionHeading
-          settingId={CONFIRMATIONS_GROUP_ID}
-          title={confirmationsCatalog.label}
-          description={confirmationsCatalog.description}
-          className="flex flex-col gap-1"
-          descriptionClassName="hc-form-group-description m-0 text-[14px] text-muted mb-2"
-        />
-        <ConfirmationsTable />
-      </div>
-
-      <FormGroup
-        label="Data directory"
-        description="HarborClient stores local databases, settings, and other on-disk data in this folder."
-        htmlFor={DATA_DIRECTORY_INPUT_ID}
-      >
-        <div className="flex gap-2">
-          <Input
-            id={DATA_DIRECTORY_INPUT_ID}
-            type="text"
-            className="min-w-0 flex-1"
-            value={dataDirectoryPath}
-            readOnly
-            aria-label="Data directory"
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={!dataDirectoryPath}
-            aria-label="Open data directory in file browser"
-            onClick={() => {
-              void handleOpenDataDirectory();
-            }}
-          >
-            Open
-          </Button>
-        </div>
-      </FormGroup>
     </Page>
   );
 }

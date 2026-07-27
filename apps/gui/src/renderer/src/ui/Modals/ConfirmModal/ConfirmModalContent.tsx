@@ -1,5 +1,5 @@
-import { Button, Checkbox, Modal, ModalFooter } from '@harborclient/sdk/components';
-import { useCallback, useState, type JSX } from 'react';
+import { Button, Checkbox, Input, Modal, ModalFooter } from '@harborclient/sdk/components';
+import { useCallback, useId, useState, type JSX } from 'react';
 import type { ConfirmModalState } from '#/renderer/src/store/slices/modalsSlice';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import { resolveConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -22,6 +22,7 @@ interface Props {
  * Renders one confirmation dialog instance; remounting resets optional checkbox state.
  */
 export function ConfirmModalContent({ confirmModal, dispatch }: Props): JSX.Element {
+  const urlInputId = useId();
   const [checkboxChecked, setCheckboxChecked] = useState(false);
   const [reconfirming, setReconfirming] = useState(false);
 
@@ -51,8 +52,21 @@ export function ConfirmModalContent({ confirmModal, dispatch }: Props): JSX.Elem
   }, [confirmModal.reconfirm, handleConfirm, reconfirming]);
 
   return (
-    <Modal onClose={handleCancel} labelledBy="confirm-modal-title" title={confirmModal.title}>
+    <Modal
+      onClose={handleCancel}
+      labelledBy="confirm-modal-title"
+      title={confirmModal.title}
+      className={confirmModal.url ? 'w-[32rem]' : 'w-96'}
+    >
       <p className="mb-4 text-muted">{confirmModal.message}</p>
+      {confirmModal.url ? (
+        <div className="mb-4">
+          <label htmlFor={urlInputId} className="mb-1 block text-muted">
+            URL
+          </label>
+          <Input id={urlInputId} value={confirmModal.url} className="w-full" readOnly />
+        </div>
+      ) : null}
       {confirmModal.checkboxLabel ? (
         <div className="mb-4 flex items-center gap-2">
           <Checkbox

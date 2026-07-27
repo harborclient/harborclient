@@ -9,7 +9,7 @@ let gitSidebarVisible = false;
 let aiSidebarVisible = false;
 let requestEditorVisible = true;
 let responseEditorVisible = true;
-let shortcutsReferenceOpen = false;
+let shortcutsSidebarOpen = false;
 let consoleVisible = false;
 let variablesVisible = false;
 let mcpVisible = false;
@@ -146,13 +146,13 @@ export function setMenuResponseEditorVisible(visible: boolean): void {
 /**
  * Updates the View > Appearance submenu Shortcuts checkbox and rebuilds the menu when the value changes.
  *
- * @param open - Whether the shortcuts reference modal is currently open.
+ * @param open - Whether the Shortcuts sidebar is currently open.
  */
-export function setMenuShortcutsReferenceOpen(open: boolean): void {
-  if (shortcutsReferenceOpen === open) {
+export function setMenuShortcutsSidebarOpen(open: boolean): void {
+  if (shortcutsSidebarOpen === open) {
     return;
   }
-  shortcutsReferenceOpen = open;
+  shortcutsSidebarOpen = open;
   rebuildAppMenu();
 }
 
@@ -426,7 +426,7 @@ export function rebuildAppMenu(): void {
       gitSidebarVisible,
       requestEditorVisible,
       responseEditorVisible,
-      shortcutsReferenceOpen,
+      shortcutsSidebarOpen,
       consoleVisible,
       variablesVisible,
       mcpVisible,

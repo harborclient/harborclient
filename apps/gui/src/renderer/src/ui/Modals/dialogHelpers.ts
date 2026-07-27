@@ -27,6 +27,8 @@ export interface ConfirmOptions {
   checkboxLabel?: string;
   /** When true, the confirm button requires a second "Are you sure?" click. */
   reconfirm?: boolean;
+  /** When set, shows this URL in a read-only input below the message. */
+  url?: string;
 }
 
 /**
@@ -192,7 +194,8 @@ export function showConfirm(
         cancelLabel: options.cancelLabel ?? 'Cancel',
         variant: options.variant ?? 'default',
         checkboxLabel: options.checkboxLabel,
-        reconfirm: options.reconfirm
+        reconfirm: options.reconfirm,
+        url: options.url
       })
     );
   });

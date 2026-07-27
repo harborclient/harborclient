@@ -11,8 +11,10 @@ import {
   isPluginNetworkAllowed,
   isScriptFileReadAllowed,
   isScriptFileWriteAllowed,
+  normalizeGeneralSettings,
   setGeneralSettings
 } from './generalSettings';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 describe('generalSettings', () => {
   let settingsStore: Record<string, string>;
@@ -418,6 +420,33 @@ describe('generalSettings', () => {
     });
 
     expect(getGeneralSettings().warnWhenAgentUsesTerminal).toBe(false);
+  });
+
+  it('defaults allowAllExternalDomains to false when unset', () => {
+    expect(getGeneralSettings().allowAllExternalDomains).toBe(false);
+    expect(getGeneralSettings().trustedExternalDomains).toEqual([]);
+  });
+
+  it('persists allowAllExternalDomains and trustedExternalDomains', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      allowAllExternalDomains: true,
+      trustedExternalDomains: [{ domain: 'developer.mozilla.org', enabled: true }]
+    });
+
+    expect(getGeneralSettings().allowAllExternalDomains).toBe(true);
+    expect(getGeneralSettings().trustedExternalDomains).toEqual([
+      { domain: 'developer.mozilla.org', enabled: true }
+    ]);
+  });
+
+  it('migrates warnWhenOpeningExternalLinks false to allowAllExternalDomains', () => {
+    expect(
+      normalizeGeneralSettings({
+        warnWhenOpeningExternalLinks: false
+      } as Partial<GeneralSettings> & { warnWhenOpeningExternalLinks: boolean })
+        .allowAllExternalDomains
+    ).toBe(true);
   });
 
   it('defaults dismissedRequestEditorNotices to an empty list when unset', () => {

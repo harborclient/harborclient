@@ -35,7 +35,7 @@ describe('buildAppearanceMenuItems', () => {
     expect(item.label).toBe('Appearance');
     const submenu = item.submenu as MenuItemConstructorOptions[];
     expect(submenu).toHaveLength(18);
-    expect(submenu[5]).toEqual({ type: 'separator' });
+    expect(submenu[6]).toEqual({ type: 'separator' });
     expect(submenu[11]).toEqual({ type: 'separator' });
 
     const sidebarItem = submenu.find(
@@ -80,7 +80,7 @@ describe('buildAppearanceMenuItems', () => {
     expect(sidebarItem.checked).toBe(true);
     expect(responseItem.checked).toBe(false);
     expect(shortcutsItem.checked).toBe(true);
-    expect(shortcutsItem.accelerator).toBe(accelerators.get('shortcuts-reference'));
+    expect(shortcutsItem.accelerator).toBe(accelerators.get('toggle-shortcuts-sidebar'));
     expect(consoleItem.checked).toBe(false);
     expect(consoleItem.accelerator).toBe(accelerators.get('toggle-console'));
     expect(variablesItem.checked).toBe(true);

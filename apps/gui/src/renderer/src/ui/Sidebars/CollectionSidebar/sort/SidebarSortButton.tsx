@@ -17,6 +17,12 @@ interface Props {
   hasMarkerOption?: boolean;
 
   /**
+   * When true, includes Method ascending/descending options (Collections section
+   * where rows are HTTP requests).
+   */
+  hasMethodOption?: boolean;
+
+  /**
    * Label prefix for date options. Defaults to "Date created"; Trash uses
    * "Date deleted".
    */
@@ -40,6 +46,7 @@ interface Props {
  *
  * @param sectionKey - Section whose sort mode to read/write.
  * @param hasMarkerOption - Whether to show the Marker option.
+ * @param hasMethodOption - Whether to show Method ascending/descending options.
  * @param dateLabel - Prefix for date sort labels.
  * @param ariaLabel - Accessible name for the trigger.
  * @param title - Tooltip for the trigger.
@@ -47,6 +54,7 @@ interface Props {
 export function SidebarSortButton({
   sectionKey,
   hasMarkerOption = false,
+  hasMethodOption = false,
   dateLabel,
   ariaLabel,
   title
@@ -60,11 +68,11 @@ export function SidebarSortButton({
 
   /**
    * Options for the listbox; Marker is omitted when markers are hidden or the
-   * section has no marker field.
+   * section has no marker field. Method options appear only when requested.
    */
   const options = useMemo(
-    () => sidebarSortOptions(hasMarkerOption && showMarkers, dateLabel),
-    [dateLabel, hasMarkerOption, showMarkers]
+    () => sidebarSortOptions(hasMarkerOption && showMarkers, dateLabel, hasMethodOption),
+    [dateLabel, hasMarkerOption, hasMethodOption, showMarkers]
   );
 
   /**

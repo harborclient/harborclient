@@ -58,11 +58,11 @@ export interface ApiWindow {
    */
   setMenuResponseEditorVisible: (visible: boolean) => Promise<void>;
   /**
-   * Syncs shortcuts reference modal open state to the View > Appearance submenu checkbox.
+   * Syncs Shortcuts sidebar open state to the View > Appearance submenu checkbox.
    *
-   * @param open - Whether the shortcuts reference modal is currently open.
+   * @param open - Whether the Shortcuts sidebar is currently open.
    */
-  setMenuShortcutsReferenceOpen: (open: boolean) => Promise<void>;
+  setMenuShortcutsSidebarOpen: (open: boolean) => Promise<void>;
   /**
    * Syncs console panel visibility to the View > Appearance submenu checkbox in the main process.
    *

@@ -70,7 +70,7 @@ export type ShortcutId =
   | 'report-issue'
   | 'check-for-updates'
   | 'about'
-  | 'shortcuts-reference'
+  | 'toggle-shortcuts-sidebar'
   | 'action-menu'
   | 'new-collection-git'
   | 'git-create-branch'
@@ -609,11 +609,11 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'check-for-updates'
   },
   {
-    id: 'shortcuts-reference',
+    id: 'toggle-shortcuts-sidebar',
     label: 'Keyboard shortcuts',
     defaultAccelerator: 'Alt+Shift+K',
     kind: 'action',
-    actionId: 'shortcuts-reference'
+    actionId: 'toggle-shortcuts-sidebar'
   },
   {
     id: 'action-menu',
@@ -719,13 +719,27 @@ export function normalizeShortcutOverrides(raw: unknown): ShortcutOverrides {
 
   const entries = Object.entries(raw);
   const legacyActionMenu = entries.find(([key]) => key === 'search-anything');
-  const migratedEntries =
+  let migratedEntries =
     legacyActionMenu != null && !entries.some(([key]) => key === 'action-menu')
       ? [...entries, ['action-menu', legacyActionMenu[1]] as const]
       : entries;
 
+  const legacyShortcutsReference = migratedEntries.find(([key]) => key === 'shortcuts-reference');
+  if (
+    legacyShortcutsReference != null &&
+    !migratedEntries.some(([key]) => key === 'toggle-shortcuts-sidebar')
+  ) {
+    migratedEntries = [
+      ...migratedEntries,
+      ['toggle-shortcuts-sidebar', legacyShortcutsReference[1]] as const
+    ];
+  }
+
   const result: ShortcutOverrides = {};
   for (const [key, value] of migratedEntries) {
+    if (key === 'search-anything' || key === 'shortcuts-reference') {
+      continue;
+    }
     if (!SHORTCUT_DEF_BY_ID.has(key as ShortcutId)) {
       continue;
     }

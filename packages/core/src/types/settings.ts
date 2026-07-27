@@ -24,6 +24,8 @@ export type SidebarSortMode =
   | 'default'
   | 'name-asc'
   | 'name-desc'
+  | 'method-asc'
+  | 'method-desc'
   | 'created-asc'
   | 'created-desc'
   | 'marker';
@@ -181,6 +183,11 @@ export interface PanelLayoutState {
   showGitSidebar: boolean;
 
   /**
+   * Whether the Shortcuts editor sidebar is shown when not hidden by an overlay.
+   */
+  showShortcutsSidebar: boolean;
+
+  /**
    * Whether the request editor panel is shown in the main content area.
    */
   showRequestEditor: boolean;
@@ -264,6 +271,21 @@ export type EditorTab =
   | 'pre'
   | 'post'
   | 'comment';
+
+/**
+ * One hostname the user may open in the system browser without confirmation.
+ */
+export interface TrustedExternalDomain {
+  /**
+   * Hostname extracted from an external URL (for example `developer.mozilla.org`).
+   */
+  domain: string;
+
+  /**
+   * When true, links to this domain skip the open-external confirmation modal.
+   */
+  enabled: boolean;
+}
 
 /**
  * General application settings for HTTP request execution.
@@ -400,6 +422,16 @@ export interface GeneralSettings {
   warnWhenAgentUsesTerminal: boolean;
 
   /**
+   * Hostnames the user has trusted for opening external links without confirmation.
+   */
+  trustedExternalDomains: TrustedExternalDomain[];
+
+  /**
+   * When true, external links open without confirmation for every domain.
+   */
+  allowAllExternalDomains: boolean;
+
+  /**
    * Built-in request editor tabs whose inline help notice the user dismissed.
    * Empty means every tab still shows its notice.
    */
@@ -473,7 +505,6 @@ export type SettingsSection =
   | 'general'
   | 'syntax'
   | 'storage'
-  | 'shortcuts'
   | 'proxy'
   | 'globals'
   | 'ai'

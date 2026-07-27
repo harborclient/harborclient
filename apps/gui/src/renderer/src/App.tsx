@@ -27,6 +27,7 @@ import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
+  selectShortcutsSidebarVisible,
   selectShowConsole,
   selectShowMcp,
   selectShowTerminal,
@@ -36,6 +37,7 @@ import {
   selectSidebarVisible,
   toggleAiSidebar,
   toggleGitSidebar,
+  toggleShortcutsSidebar,
   toggleConsole,
   toggleMcp,
   toggleTerminal,
@@ -44,10 +46,7 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import {
-  openShortcutsReferenceModal,
-  openThemePicker
-} from '#/renderer/src/store/slices/modalsSlice';
+import { openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { initializeStore, refreshCollectionContents } from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
@@ -57,12 +56,14 @@ import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
 import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
+import { OpenExternalLinkModal } from '#/renderer/src/ui/Modals/OpenExternalLinkModal';
 import { HostedModalOverlay } from '#/renderer/src/ui/HostedModalOverlay';
 import { ShareModal } from '#/renderer/src/ui/Modals/ShareModal';
 import { QuitPrompt } from '#/renderer/src/ui/Modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/Modals/UnsavedLoadPrompt';
 import { AiSidebar } from '#/renderer/src/ui/Sidebars/AiSidebar';
 import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
+import { ShortcutsSidebar } from '#/renderer/src/ui/Sidebars/ShortcutsSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
 import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/SidebarExpansionProvider';
@@ -85,6 +86,7 @@ import {
   AI_SIDEBAR_SECTION_ID,
   COLLECTIONS_SIDEBAR_SECTION_ID,
   GIT_SIDEBAR_SECTION_ID,
+  SHORTCUTS_SIDEBAR_SECTION_ID,
   type SkipNavigationVisibility
 } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import {
@@ -97,7 +99,6 @@ import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { McpHost } from '#/renderer/src/store/ai/McpHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/Modals/ThemePickerModal';
-import { ShortcutsReferenceModal } from '#/renderer/src/ui/Modals/ShortcutsReferenceModal';
 import { ActionMenuModal } from '#/renderer/src/ui/Modals/ActionMenuModal';
 import { TeamHubJoinDeepLinkHost } from '#/renderer/src/ui/Tabs/TeamHub/TeamHubJoinDeepLinkHost';
 import { AcceptTeamHubInviteModal } from '#/renderer/src/ui/Modals/AcceptTeamHubInviteModal';
@@ -123,6 +124,7 @@ export default function App(): JSX.Element {
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
+  const shortcutsSidebarVisible = useAppSelector(selectShortcutsSidebarVisible);
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const showConsole = useAppSelector(selectShowConsole);
@@ -304,12 +306,14 @@ export default function App(): JSX.Element {
       responseEditorVisible,
       aiSidebarVisible,
       gitSidebarVisible,
+      shortcutsSidebarVisible,
       isRequestTab: activeTab != null && isRequestTab(activeTab)
     };
   }, [
     activeTab,
     aiSidebarVisible,
     gitSidebarVisible,
+    shortcutsSidebarVisible,
     requestEditorVisible,
     responseEditorVisible,
     sidebarVisible
@@ -329,7 +333,7 @@ export default function App(): JSX.Element {
               <BusyIndicator isBusy={isBusy} />
               <SkipNavigation
                 visibility={skipNavigationVisibility}
-                onOpenShortcuts={() => dispatch(openShortcutsReferenceModal())}
+                onOpenShortcuts={() => dispatch(toggleShortcutsSidebar())}
               />
               <TitleBar />
               <SidebarModalsProvider>
@@ -442,6 +446,14 @@ export default function App(): JSX.Element {
                   >
                     <AiSidebar />
                   </AnimatedHorizontalPanel>
+
+                  <AnimatedHorizontalPanel
+                    id={SHORTCUTS_SIDEBAR_SECTION_ID}
+                    tabIndex={-1}
+                    open={shortcutsSidebarVisible}
+                  >
+                    <ShortcutsSidebar />
+                  </AnimatedHorizontalPanel>
                 </div>
               </SidebarModalsProvider>
 
@@ -466,6 +478,8 @@ export default function App(): JSX.Element {
                 onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
                 gitSidebarOpen={gitSidebarVisible}
                 onToggleGitSidebar={() => dispatch(toggleGitSidebar())}
+                shortcutsSidebarOpen={shortcutsSidebarVisible}
+                onToggleShortcutsSidebar={() => dispatch(toggleShortcutsSidebar())}
                 requestEditorOpen={requestEditorVisible}
                 onToggleRequestEditor={() => dispatch(toggleRequestEditor())}
                 responseEditorOpen={responseEditorVisible}
@@ -482,8 +496,8 @@ export default function App(): JSX.Element {
               <SyncModal />
               <AlertModal />
               <ConfirmModal />
+              <OpenExternalLinkModal />
               <ThemePickerModal />
-              <ShortcutsReferenceModal />
               <ActionMenuModal />
               <HostedModalOverlay />
               <AcceptTeamHubInviteModal />

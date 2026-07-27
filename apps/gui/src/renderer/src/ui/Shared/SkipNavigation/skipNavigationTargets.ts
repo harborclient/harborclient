@@ -12,6 +12,9 @@ export const AI_SIDEBAR_SECTION_ID = 'ai-sidebar';
 /** Stable id of the Git sidebar skip target wrapper in the app shell. */
 export const GIT_SIDEBAR_SECTION_ID = 'git-sidebar';
 
+/** Stable id of the Shortcuts sidebar skip target wrapper in the app shell. */
+export const SHORTCUTS_SIDEBAR_SECTION_ID = 'shortcuts-sidebar';
+
 /** Stable id of the persistent footer bar skip target. */
 export const APP_FOOTER_SECTION_ID = 'app-footer';
 
@@ -70,6 +73,11 @@ export interface SkipNavigationVisibility {
   gitSidebarVisible: boolean;
 
   /**
+   * Whether the Shortcuts sidebar panel is open.
+   */
+  shortcutsSidebarVisible: boolean;
+
+  /**
    * Whether the active tab is a request tab rather than a settings/page tab.
    */
   isRequestTab: boolean;
@@ -126,6 +134,14 @@ export function resolveSkipNavigationLinks(
       id: 'git-sidebar',
       label: 'Skip to Git sidebar',
       targetId: GIT_SIDEBAR_SECTION_ID
+    });
+  }
+
+  if (visibility.shortcutsSidebarVisible) {
+    links.push({
+      id: 'shortcuts-sidebar',
+      label: 'Skip to Shortcuts sidebar',
+      targetId: SHORTCUTS_SIDEBAR_SECTION_ID
     });
   }
 

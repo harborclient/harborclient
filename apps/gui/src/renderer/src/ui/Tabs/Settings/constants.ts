@@ -23,7 +23,6 @@ import {
   faGear,
   faGlobe,
   faGithub,
-  faKeyboard,
   faServer,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -69,6 +68,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   warnWhenCreatingWorkspace: true,
   warnWhenOpeningWorkspace: true,
   warnWhenAgentUsesTerminal: true,
+  trustedExternalDomains: [],
+  allowAllExternalDomains: false,
   dismissedRequestEditorNotices: [],
   gitAutoAdd: true,
   externalMergeEditorPath: '',
@@ -178,7 +179,6 @@ export const SETTINGS_SECTIONS: Array<{
   { value: 'globals', label: 'Globals', icon: faGlobe },
   { value: 'storage', label: 'Storage', icon: faDatabase },
   { value: 'git', label: 'Git', icon: faGithub },
-  { value: 'shortcuts', label: 'Shortcuts', icon: faKeyboard },
   { value: 'syntax', label: 'Scripting', icon: faCode },
   { value: 'ai', label: 'AI & MCP', icon: faWandMagicSparkles },
   { value: 'proxy', label: 'Proxy', icon: faServer },

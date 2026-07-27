@@ -61,6 +61,11 @@ export interface SidebarFooterLayoutSnapshot {
   showGitSidebar: boolean;
 
   /**
+   * Whether the Shortcuts sidebar was open when recorded.
+   */
+  showShortcutsSidebar: boolean;
+
+  /**
    * Active plugin sidebar panel id within the Collections sidebar, if any.
    */
   activeSidebarPanelId: string | null;
@@ -98,6 +103,7 @@ export interface NavigationState {
   showSidebar: boolean;
   showAiSidebar: boolean;
   showGitSidebar: boolean;
+  showShortcutsSidebar: boolean;
   showRequestEditor: boolean;
   showResponseEditor: boolean;
   requestEditorSplitHeight: number;
@@ -127,6 +133,7 @@ const initialState: NavigationState = {
   showSidebar: true,
   showAiSidebar: false,
   showGitSidebar: false,
+  showShortcutsSidebar: false,
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: 340,
@@ -196,49 +203,75 @@ const navigationSlice = createSlice({
       state.showSidebar = action.payload;
     },
     /**
-     * Toggles AI sidebar visibility and closes the Git sidebar when opening.
+     * Toggles AI sidebar visibility and closes other right sidebars when opening.
      */
     toggleAiSidebar(state) {
       const next = !state.showAiSidebar;
       state.showAiSidebar = next;
       if (next) {
         state.showGitSidebar = false;
+        state.showShortcutsSidebar = false;
       }
     },
     /**
-     * Sets AI sidebar visibility explicitly and closes the Git sidebar when opening.
+     * Sets AI sidebar visibility explicitly and closes other right sidebars when opening.
      */
     setShowAiSidebar(state, action: PayloadAction<boolean>) {
       state.showAiSidebar = action.payload;
       if (action.payload) {
         state.showGitSidebar = false;
+        state.showShortcutsSidebar = false;
       }
     },
     /**
-     * Toggles Git sidebar visibility and closes the AI sidebar when opening.
+     * Toggles Git sidebar visibility and closes other right sidebars when opening.
      */
     toggleGitSidebar(state) {
       const next = !state.showGitSidebar;
       state.showGitSidebar = next;
       if (next) {
         state.showAiSidebar = false;
+        state.showShortcutsSidebar = false;
       }
     },
     /**
-     * Sets Git sidebar visibility explicitly and closes the AI sidebar when opening.
+     * Sets Git sidebar visibility explicitly and closes other right sidebars when opening.
      */
     setShowGitSidebar(state, action: PayloadAction<boolean>) {
       state.showGitSidebar = action.payload;
       if (action.payload) {
         state.showAiSidebar = false;
+        state.showShortcutsSidebar = false;
       }
     },
     /**
-     * Opens the Git sidebar and closes the AI sidebar.
+     * Opens the Git sidebar and closes other right sidebars.
      */
     openGitSidebar(state) {
       state.showGitSidebar = true;
       state.showAiSidebar = false;
+      state.showShortcutsSidebar = false;
+    },
+    /**
+     * Toggles Shortcuts sidebar visibility and closes other right sidebars when opening.
+     */
+    toggleShortcutsSidebar(state) {
+      const next = !state.showShortcutsSidebar;
+      state.showShortcutsSidebar = next;
+      if (next) {
+        state.showAiSidebar = false;
+        state.showGitSidebar = false;
+      }
+    },
+    /**
+     * Sets Shortcuts sidebar visibility explicitly and closes other right sidebars when opening.
+     */
+    setShowShortcutsSidebar(state, action: PayloadAction<boolean>) {
+      state.showShortcutsSidebar = action.payload;
+      if (action.payload) {
+        state.showAiSidebar = false;
+        state.showGitSidebar = false;
+      }
     },
     /**
      * Toggles request editor visibility while keeping at least one editor visible.
@@ -461,6 +494,8 @@ export const {
   toggleGitSidebar,
   setShowGitSidebar,
   openGitSidebar,
+  toggleShortcutsSidebar,
+  setShowShortcutsSidebar,
   toggleRequestEditor,
   setShowRequestEditor,
   toggleResponseEditor,
@@ -531,6 +566,16 @@ export const selectShowGitSidebar = (state: RootState): boolean => state.navigat
  */
 export const selectGitSidebarVisible = (state: RootState): boolean =>
   state.navigation.showGitSidebar;
+/**
+ * Returns the user Shortcuts sidebar visibility preference.
+ */
+export const selectShowShortcutsSidebar = (state: RootState): boolean =>
+  state.navigation.showShortcutsSidebar;
+/**
+ * Returns effective Shortcuts sidebar visibility for layout rendering.
+ */
+export const selectShortcutsSidebarVisible = (state: RootState): boolean =>
+  state.navigation.showShortcutsSidebar;
 /**
  * Returns the user request editor visibility preference.
  */

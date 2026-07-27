@@ -55,6 +55,7 @@ describe('captureSidebarFooterSnapshot', () => {
       showSidebar: true,
       showAiSidebar: false,
       showGitSidebar: true,
+      showShortcutsSidebar: false,
       activeSidebarPanelId: 'plugin-sidebar-1',
       showConsole: false,
       showVariables: false,
@@ -80,6 +81,7 @@ describe('hideSidebarsAndFooterPanels', () => {
       showSidebar: true,
       showAiSidebar: true,
       showGitSidebar: false,
+      showShortcutsSidebar: false,
       activeSidebarPanelId: 'plugin-sidebar-1',
       showConsole: true,
       showVariables: false,
@@ -90,6 +92,7 @@ describe('hideSidebarsAndFooterPanels', () => {
     expect(state.showSidebar).toBe(false);
     expect(state.showAiSidebar).toBe(false);
     expect(state.showGitSidebar).toBe(false);
+    expect(state.showShortcutsSidebar).toBe(false);
     expect(state.activeSidebarPanelId).toBeNull();
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(false);
@@ -110,6 +113,7 @@ describe('hideSidebarsAndFooterPanels', () => {
       showSidebar: false,
       showAiSidebar: false,
       showGitSidebar: false,
+      showShortcutsSidebar: false,
       activeSidebarPanelId: null,
       showConsole: false,
       showVariables: false,
@@ -164,6 +168,7 @@ describe('showSidebarsAndFooterPanels', () => {
       showSidebar: true,
       showAiSidebar: true,
       showGitSidebar: false,
+      showShortcutsSidebar: false,
       activeSidebarPanelId: null,
       showConsole: false,
       showVariables: true,
@@ -186,6 +191,7 @@ describe('showSidebarsAndFooterPanels', () => {
       showSidebar: false,
       showAiSidebar: false,
       showGitSidebar: true,
+      showShortcutsSidebar: false,
       activeSidebarPanelId: 'plugin-sidebar-1',
       showConsole: false,
       showVariables: false,

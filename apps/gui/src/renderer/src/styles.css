@@ -666,20 +666,6 @@
     color: rgba(255, 255, 255, 0.72);
   }
 
-  .hc-settings-sidebar nav {
-    gap: 4px;
-  }
-
-  .hc-settings-sidebar nav button {
-    font-size: 15px;
-    padding-block: 8px;
-  }
-
-  .hc-settings-sidebar nav button svg {
-    width: 18px;
-    height: 18px;
-  }
-
   /**
    * Panel resize separators (sidebar, editor split, footer panels) use yellow
    * borders and larger grips in high contrast for visibility on black backgrounds.

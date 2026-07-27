@@ -1217,8 +1217,8 @@ function setMenuResponseEditorVisible(visible: boolean): Promise<void> {
  *
  * @param open - Whether the shortcuts reference modal is currently open.
  */
-function setMenuShortcutsReferenceOpen(open: boolean): Promise<void> {
-  return ipcRenderer.invoke('menu:setShortcutsReferenceOpen', open);
+function setMenuShortcutsSidebarOpen(open: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setShortcutsSidebarOpen', open);
 }
 
 /**
@@ -4119,7 +4119,7 @@ const api: Api = {
   setMenuGitSidebarVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
-  setMenuShortcutsReferenceOpen,
+  setMenuShortcutsSidebarOpen,
   setMenuConsoleVisible,
   setMenuVariablesVisible,
   setMenuMcpVisible,

@@ -44,6 +44,8 @@ const SIDEBAR_SORT_MODES: readonly SidebarSortMode[] = [
   'default',
   'name-asc',
   'name-desc',
+  'method-asc',
+  'method-desc',
   'created-asc',
   'created-desc',
   'marker'

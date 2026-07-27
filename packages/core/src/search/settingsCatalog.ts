@@ -16,6 +16,7 @@ export type SettingId =
   | 'general.closeToTray'
   | 'general.spellCheckEnabled'
   | 'general.logFilePath'
+  | 'general.trustedDomains'
   | 'proxy.enabled'
   | 'proxy.protocol'
   | 'proxy.host'
@@ -39,7 +40,6 @@ export type SettingId =
   | 'globals'
   | 'storage'
   | 'git'
-  | 'shortcuts'
   | 'backup-restore'
   | 'backup-restore.confirmations'
   | 'git.autoTrack'
@@ -55,7 +55,7 @@ export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack' | 
  */
 export type FieldSettingId = Exclude<
   SettingId,
-  'globals' | 'storage' | 'git' | 'shortcuts' | 'backup-restore' | GroupSettingId
+  'globals' | 'storage' | 'git' | 'backup-restore' | GroupSettingId
 >;
 
 /**
@@ -270,6 +270,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     keywords: ['log', 'logging', 'file', 'verbose', 'diagnostics', 'debug']
   },
   {
+    id: 'general.trustedDomains',
+    section: 'general',
+    kind: 'field',
+    label: 'Trusted domains',
+    description:
+      'Domains that may open in the system browser without confirmation. Disable a row to prompt again, or remove it entirely.',
+    keywords: ['trusted', 'domain', 'external link', 'mdn', 'mozilla', 'browser', 'confirmation']
+  },
+  {
     id: 'proxy.enabled',
     section: 'proxy',
     kind: 'field',
@@ -481,14 +490,6 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'Name and email stamped on commits created through HarborClient. When empty, HarborClient falls back to repo-local git config or a default identity.',
     keywords: ['git', 'commit', 'author', 'name', 'email', 'identity', 'user.name', 'user.email']
-  },
-  {
-    id: 'shortcuts',
-    section: 'shortcuts',
-    kind: 'section',
-    label: 'Shortcuts',
-    description: 'Customize keyboard shortcuts for menus and common actions.',
-    keywords: ['keyboard', 'keybindings']
   },
   {
     id: 'backup-restore',
