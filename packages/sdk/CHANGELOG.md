@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.3.3 - 2026-07-27
+
 - Update @harborclient/team-hub-api dependency to version 0.4.1 and enhance documentation for import handlers. (`516c9dae`)
 - Add OpenCollection Import Functionality. (`ac4dc71a`)
 - Add Appearance Options for Storage Locations, Color Markers, Highlights, and Indicators. (`ee9e54d5`)
