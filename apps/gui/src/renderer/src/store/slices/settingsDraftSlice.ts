@@ -4,6 +4,7 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from '@harborclient/core/codeEditorSettings';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import type {
   AiSettings,
   CodeEditorSetup,
@@ -11,10 +12,7 @@ import type {
   ProxySettings
 } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
-import {
-  DEFAULT_AI_SETTINGS,
-  DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Tabs/Settings/constants';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 /**
  * Snapshot of persisted settings values used for dirty detection.
@@ -34,8 +32,8 @@ export interface SettingsDraftState {
 }
 
 const initialState: SettingsDraftState = {
-  general: DEFAULT_GENERAL_SETTINGS,
-  ai: DEFAULT_AI_SETTINGS,
+  general: structuredClone(DEFAULT_GENERAL_SETTINGS),
+  ai: structuredClone(DEFAULT_AI_SETTINGS),
   baseline: null,
   loading: false,
   saving: false,
@@ -148,7 +146,11 @@ const settingsDraftSlice = createSlice({
       state.ai[action.payload.key] = action.payload.value;
     },
     /**
-     * Resets draft values to the last loaded baseline.
+     * Resets the entire draft to the last loaded/saved baseline snapshot.
+     *
+     * Per-field reset via `resetFieldToDefault` (VS Code–style) is the primary
+     * UI path. This action is for programmatic full revert and has no Settings
+     * UI control today.
      */
     resetSettingsDraftToBaseline(state) {
       if (state.baseline == null) {

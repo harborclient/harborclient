@@ -1,4 +1,9 @@
-import { DEFAULT_CODE_EDITOR_SETUP } from '@harborclient/core/codeEditorSettings';
+import {
+  DEFAULT_CODE_EDITOR_SETUP,
+  normalizeCodeEditorFontSize,
+  normalizeCodeEditorSetup,
+  normalizeCodeEditorTheme
+} from '@harborclient/core/codeEditorSettings';
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import type {
   AiSettings,
@@ -69,6 +74,17 @@ function valuesEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
+ * Returns a fresh copy of an object/array default so reset never shares
+ * references with {@link DEFAULT_GENERAL_SETTINGS} (or similar constants).
+ *
+ * @param value - Factory default value.
+ * @returns Cloned value for objects/arrays; primitives unchanged.
+ */
+function cloneDefaultValue<T>(value: T): T {
+  return typeof value === 'object' && value !== null ? structuredClone(value) : value;
+}
+
+/**
  * Builds a binding for a top-level general settings field.
  *
  * @param key - Key on {@link GeneralSettings}.
@@ -79,7 +95,12 @@ function createGeneralBinding<K extends keyof GeneralSettings>(key: K): SettingF
     getValue: (state) => state.settingsDraft.general[key],
     getDefault: () => DEFAULT_GENERAL_SETTINGS[key],
     reset: (dispatch) => {
-      dispatch(setDraftGeneralField({ key, value: DEFAULT_GENERAL_SETTINGS[key] }));
+      dispatch(
+        setDraftGeneralField({
+          key,
+          value: cloneDefaultValue(DEFAULT_GENERAL_SETTINGS[key])
+        })
+      );
     }
   };
 }
@@ -111,7 +132,8 @@ function createCodeEditorSetupBinding(key: keyof CodeEditorSetup): SettingFieldB
     getValue: (state) => state.settingsDraft.general.codeEditorSetup[key],
     getDefault: () => DEFAULT_CODE_EDITOR_SETUP[key],
     reset: (dispatch) => {
-      dispatch(setDraftCodeEditorSetupField({ key, value: DEFAULT_CODE_EDITOR_SETUP[key] }));
+      const normalized = normalizeCodeEditorSetup(DEFAULT_CODE_EDITOR_SETUP);
+      dispatch(setDraftCodeEditorSetupField({ key, value: normalized[key] }));
     }
   };
 }
@@ -151,7 +173,7 @@ function getTrustedDomainsValue(state: RootState): TrustedDomainsValue {
 function getTrustedDomainsDefault(): TrustedDomainsValue {
   return {
     allowAllExternalDomains: DEFAULT_GENERAL_SETTINGS.allowAllExternalDomains,
-    trustedExternalDomains: DEFAULT_GENERAL_SETTINGS.trustedExternalDomains
+    trustedExternalDomains: cloneDefaultValue(DEFAULT_GENERAL_SETTINGS.trustedExternalDomains)
   };
 }
 
@@ -181,7 +203,7 @@ function resetTrustedDomains(dispatch: AppDispatch): void {
   dispatch(
     setDraftGeneralField({
       key: 'trustedExternalDomains',
-      value: DEFAULT_GENERAL_SETTINGS.trustedExternalDomains
+      value: cloneDefaultValue(DEFAULT_GENERAL_SETTINGS.trustedExternalDomains)
     })
   );
 }
@@ -193,7 +215,9 @@ const codeEditorThemeBinding: SettingFieldBinding = {
   getValue: (state) => state.settingsDraft.general.codeEditorTheme,
   getDefault: () => DEFAULT_GENERAL_SETTINGS.codeEditorTheme,
   reset: (dispatch) => {
-    dispatch(setDraftCodeEditorTheme(DEFAULT_GENERAL_SETTINGS.codeEditorTheme));
+    dispatch(
+      setDraftCodeEditorTheme(normalizeCodeEditorTheme(DEFAULT_GENERAL_SETTINGS.codeEditorTheme))
+    );
   }
 };
 
@@ -207,7 +231,7 @@ const codeEditorFontSizeBinding: SettingFieldBinding = {
     dispatch(
       setDraftGeneralField({
         key: 'codeEditorFontSize',
-        value: DEFAULT_GENERAL_SETTINGS.codeEditorFontSize
+        value: normalizeCodeEditorFontSize(DEFAULT_GENERAL_SETTINGS.codeEditorFontSize)
       })
     );
   }
@@ -274,7 +298,9 @@ export function getFieldBinding(id: FieldSettingId): SettingFieldBinding | undef
 /**
  * Returns true when the draft value for a field differs from its factory default.
  *
- * Unbound ids are treated as not modified.
+ * Unbound ids are treated as not modified. This is independent of
+ * `selectSettingsDraftDirty`, which compares the full draft against the last
+ * saved baseline.
  *
  * @param state - Redux root state.
  * @param id - Catalog field id.
@@ -290,7 +316,14 @@ export function isFieldModified(state: RootState, id: FieldSettingId): boolean {
 }
 
 /**
- * Resets a settings field to its factory default in the draft.
+ * Resets a settings field to its factory default in the draft only.
+ *
+ * Does not call IPC or `saveSettingsDraft`. Nested object/array defaults are
+ * cloned so factory constants are never mutated in place.
+ *
+ * After reset, `isFieldModified` is false (draft matches factory default), but
+ * `selectSettingsDraftDirty` may become true when the saved baseline differs
+ * from the factory default — the user must Save to persist the reset.
  *
  * Unbound ids are a no-op.
  *

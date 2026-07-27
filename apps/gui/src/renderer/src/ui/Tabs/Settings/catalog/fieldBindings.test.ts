@@ -4,14 +4,14 @@ import type { UnknownAction } from '@reduxjs/toolkit';
 import type { RootState } from '#/renderer/src/store/redux';
 import settingsDraftReducer, {
   initSettingsDraft,
+  selectSettingsDraftDirty,
+  setDraftAiField,
   setDraftCodeEditorSetupField,
   setDraftGeneralField,
   setDraftProxyField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
-import {
-  DEFAULT_AI_SETTINGS,
-  DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Tabs/Settings/constants';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 import type { FieldSettingId } from './catalog';
 import {
@@ -204,5 +204,85 @@ describe('isFieldModified / resetFieldToDefault', () => {
     const holder = { current: draft };
     resetFieldToDefault(createDraftDispatch(holder) as never, 'ai.enterToSend');
     expect(holder.current).toEqual(before);
+  });
+
+  it('marks modified but not dirty when baseline differs from factory default', () => {
+    let draft = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    expect(isFieldModified(buildState(draft), 'general.verifySsl')).toBe(true);
+    expect(selectSettingsDraftDirty(buildState(draft))).toBe(false);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'general.verifySsl');
+    draft = holder.current;
+
+    expect(draft.general.verifySsl).toBe(true);
+    expect(isFieldModified(buildState(draft), 'general.verifySsl')).toBe(false);
+    expect(selectSettingsDraftDirty(buildState(draft))).toBe(true);
+    expect(draft.baseline?.general.verifySsl).toBe(false);
+  });
+
+  it('clones nested defaults so reset does not share factory arrays', () => {
+    let draft = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: {
+          ...DEFAULT_GENERAL_SETTINGS,
+          trustedExternalDomains: [{ domain: 'example.com', enabled: true }]
+        },
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'general.trustedDomains');
+    draft = holder.current;
+
+    expect(draft.general.trustedExternalDomains).toEqual([]);
+    expect(draft.general.trustedExternalDomains).not.toBe(
+      DEFAULT_GENERAL_SETTINGS.trustedExternalDomains
+    );
+
+    // Mutating a detached copy must not affect the factory constant either.
+    const detached = [...draft.general.trustedExternalDomains];
+    detached.push({ domain: 'mutated.test', enabled: true });
+    expect(DEFAULT_GENERAL_SETTINGS.trustedExternalDomains).toEqual([]);
+    expect(draft.general.trustedExternalDomains).toEqual([]);
+  });
+
+  it('resets ai.openaiApiKey to an empty draft string', () => {
+    let draft = initDefaultDraft();
+    draft = settingsDraftReducer(
+      draft,
+      setDraftAiField({ key: 'openaiApiKey', value: 'sk-test-key' })
+    );
+    expect(isFieldModified(buildState(draft), 'ai.openaiApiKey')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'ai.openaiApiKey');
+    expect(holder.current.ai.openaiApiKey).toBe('');
+    expect(isFieldModified(buildState(holder.current), 'ai.openaiApiKey')).toBe(false);
+  });
+
+  it('compares numeric requestTimeoutMs against the factory default', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'general.requestTimeoutMs')).toBe(false);
+
+    draft = settingsDraftReducer(
+      draft,
+      setDraftGeneralField({ key: 'requestTimeoutMs', value: 60_000 })
+    );
+    expect(isFieldModified(buildState(draft), 'general.requestTimeoutMs')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'general.requestTimeoutMs');
+    expect(holder.current.general.requestTimeoutMs).toBe(DEFAULT_GENERAL_SETTINGS.requestTimeoutMs);
+    expect(isFieldModified(buildState(holder.current), 'general.requestTimeoutMs')).toBe(false);
   });
 });

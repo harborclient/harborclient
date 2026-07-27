@@ -1,7 +1,8 @@
-import { FormGroup, SettingIdLabel } from '@harborclient/sdk/components';
+import { FormGroup, SettingFieldActions, SettingIdLabel } from '@harborclient/sdk/components';
 import type { ComponentProps, JSX, ReactNode } from 'react';
 
 import { entryById, type FieldSettingId } from '../catalog/catalog';
+import { useSettingFieldState } from '../hooks/useSettingFieldState';
 import { settingAnchorId } from '../settingAnchorId';
 
 type FormGroupProps = ComponentProps<typeof FormGroup>;
@@ -60,7 +61,8 @@ function settingDescriptionId(settingId: FieldSettingId): string {
 }
 
 /**
- * Catalog-backed form field wrapper that injects setting metadata and id tooltips.
+ * Catalog-backed form field wrapper that injects setting metadata, id tooltips,
+ * a modified accent border, and a per-setting cog menu (reset / copy id).
  */
 export function SettingField({
   settingId,
@@ -77,14 +79,30 @@ export function SettingField({
     throw new Error(`SettingField requires a field entry: ${settingId}`);
   }
 
+  const { isModified, resetToDefault, copySettingId } = useSettingFieldState(settingId);
   const controlId = htmlFor ?? settingControlId(settingId);
   const descriptionId = settingDescriptionId(settingId);
   const description = entry.description;
 
+  /**
+   * Label row with cog actions beside the setting id label.
+   */
+  const label = (
+    <span className="flex min-w-0 items-center gap-2">
+      <SettingFieldActions
+        settingId={settingId}
+        isModified={isModified}
+        onReset={resetToDefault}
+        onCopyId={() => void copySettingId()}
+      />
+      <SettingIdLabel settingId={settingId}>{entry.label}</SettingIdLabel>
+    </span>
+  );
+
   return (
-    <div className="hc-setting-field">
+    <div className="hc-setting-field group/setting-field">
       <FormGroup
-        label={<SettingIdLabel settingId={settingId}>{entry.label}</SettingIdLabel>}
+        label={label}
         description={description}
         descriptionId={description.length > 0 ? descriptionId : undefined}
         htmlFor={controlId}
@@ -93,6 +111,7 @@ export function SettingField({
         layout={layout}
         labelTone={labelTone}
         className={className}
+        modified={isModified}
       >
         {children}
       </FormGroup>

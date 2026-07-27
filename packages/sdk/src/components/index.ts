@@ -159,6 +159,7 @@ export type { MenuItem } from './RowActionsMenu/index.js';
 export { buildReorderMenuGroup } from './rowActionsMenuHelpers.js';
 export { SettingIdLabel } from './SettingIdLabel/index.js';
 export type { Props as SettingIdLabelProps } from './SettingIdLabel/index.js';
+export { SettingFieldActions } from './SettingFieldActions/index.js';
 export { SettingSectionHeading } from './SettingSectionHeading/index.js';
 export type { Props as SettingSectionHeadingProps } from './SettingSectionHeading/index.js';
 export { SortButton } from './SortButton/index.js';

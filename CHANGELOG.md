@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor settings draft management and enhance default handling. (`5650b3e6`)
 - Refactor BodyEditor selection logic and improve utility functions. (`9541bf1a`)
 - Refactor BodyEditor selection handling and improve utility functions. (`f7d035aa`)
 - Refactor BodyEditor and enhance selection handling. (`d28dd6b7`)

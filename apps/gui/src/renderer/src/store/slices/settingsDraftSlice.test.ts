@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  DEFAULT_AI_SETTINGS,
-  DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Tabs/Settings/constants';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 import settingsDraftReducer, {
   initSettingsDraft,
   selectSettingsDraftDirty,
@@ -97,6 +95,41 @@ describe('settingsDraftSlice', () => {
     );
 
     expect(state.general.requestTimeoutMs).toBe(120000);
+    expect(selectSettingsDraftDirty(buildState(state))).toBe(true);
+  });
+
+  it('stays clean when loaded value differs from factory default', () => {
+    const state = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    expect(state.general.verifySsl).toBe(false);
+    expect(state.baseline?.general.verifySsl).toBe(false);
+    expect(selectSettingsDraftDirty(buildState(state))).toBe(false);
+  });
+
+  it('becomes dirty when a field is reset toward the factory default', () => {
+    let state = settingsDraftReducer(
+      undefined,
+      initSettingsDraft({
+        general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
+        ai: DEFAULT_AI_SETTINGS
+      })
+    );
+
+    expect(selectSettingsDraftDirty(buildState(state))).toBe(false);
+
+    state = settingsDraftReducer(
+      state,
+      setDraftGeneralField({ key: 'verifySsl', value: DEFAULT_GENERAL_SETTINGS.verifySsl })
+    );
+
+    expect(state.general.verifySsl).toBe(true);
+    expect(state.baseline?.general.verifySsl).toBe(false);
     expect(selectSettingsDraftDirty(buildState(state))).toBe(true);
   });
 });

@@ -8,10 +8,8 @@ import settingsDraftReducer, {
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import settingsReducer from '#/renderer/src/store/slices/settingsSlice';
 import { loadSettingsDraft, saveSettingsDraft } from './settingsDraft';
-import {
-  DEFAULT_AI_SETTINGS,
-  DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Tabs/Settings/constants';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 const apiMock = vi.hoisted(() => ({
   getGeneralSettings: vi.fn(),

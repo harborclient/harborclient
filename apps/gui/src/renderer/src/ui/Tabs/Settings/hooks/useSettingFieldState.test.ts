@@ -10,10 +10,8 @@ import settingsDraftReducer, {
   initSettingsDraft,
   setDraftGeneralField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
-import {
-  DEFAULT_AI_SETTINGS,
-  DEFAULT_GENERAL_SETTINGS
-} from '#/renderer/src/ui/Tabs/Settings/constants';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 import type { FieldSettingId } from '../catalog/catalog';
 import { useSettingFieldState, type SettingFieldState } from './useSettingFieldState';
@@ -140,6 +138,30 @@ describe('useSettingFieldState', () => {
 
     expect((store.getState() as RootState).settingsDraft.general.verifySsl).toBe(true);
     expect(latestState?.isModified).toBe(false);
+  });
+
+  it('resetToDefault does not dispatch saveSettingsDraft', () => {
+    act(() => {
+      store.dispatch(setDraftGeneralField({ key: 'verifySsl', value: false }));
+    });
+
+    renderHookFixture('general.verifySsl');
+
+    const dispatchedTypes: string[] = [];
+    const originalDispatch = store.dispatch.bind(store);
+    store.dispatch = ((action: unknown) => {
+      if (typeof action === 'object' && action !== null && 'type' in action) {
+        dispatchedTypes.push(String((action as { type: string }).type));
+      }
+      return originalDispatch(action as never);
+    }) as typeof store.dispatch;
+
+    act(() => {
+      latestState?.resetToDefault();
+    });
+
+    expect(dispatchedTypes.some((type) => type.startsWith('settingsDraft/save'))).toBe(false);
+    expect((store.getState() as RootState).settingsDraft.general.verifySsl).toBe(true);
   });
 
   it('copySettingId writes the catalog id and shows a success toast', async () => {

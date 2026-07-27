@@ -1,4 +1,4 @@
-import { DEFAULT_PROXY_SETTINGS, HARD_MAX_RESPONSE_SIZE_MB } from '@harborclient/http';
+import { DEFAULT_PROXY_SETTINGS, HARD_MAX_RESPONSE_SIZE_MB } from '@harborclient/http/settings';
 import {
   DEFAULT_CODE_EDITOR_FONT_SIZE,
   DEFAULT_CODE_EDITOR_SETUP,

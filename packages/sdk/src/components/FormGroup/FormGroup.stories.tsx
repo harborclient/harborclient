@@ -73,6 +73,43 @@ export const CheckboxWithDescription: Story = {
   }
 };
 
+export const Modified: Story = {
+  args: {
+    label: 'API key',
+    htmlFor: 'api-key-modified',
+    description: 'Value differs from the factory default.',
+    modified: true,
+    children: <Input id="api-key-modified" defaultValue="sk-changed" />
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A left border in the unsaved-tab color marks the field as modified from its default.'
+      }
+    }
+  }
+};
+
+export const ModifiedCheckbox: Story = {
+  args: {
+    label: 'Verify SSL certificates',
+    htmlFor: 'verify-ssl-modified',
+    description: 'When enabled, HTTPS requests reject invalid or untrusted TLS certificates.',
+    layout: 'checkbox',
+    modified: true,
+    children: <CheckboxControl id="verify-ssl-modified" />
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Modified unsaved-tab border spans the full height of a bordered checkbox form group.'
+      }
+    }
+  }
+};
+
 export const Radio: Story = {
   args: {
     label: 'Content type'

@@ -86,23 +86,32 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'clas
    * inline layouts for fields nested inside an already-bordered section.
    */
   bordered?: boolean;
+
+  /**
+   * When true and `bordered`, draws a left border using the unsaved-tab color
+   * (`--color-tab-unsaved`) to indicate the field value differs from its factory
+   * default — the same token used for dirty request tab titles.
+   */
+  modified?: boolean;
 }
 
-/**
- * Returns Tailwind classes for the label text based on tone and visibility.
- *
- * @returns Class string for the label element.
- */
 /**
  * Returns wrapper classes for bordered stacked, checkbox, and inline layouts.
  *
  * @param bordered - Whether the default border and padding should be applied.
  * @param layoutClasses - Layout-specific flex and sizing classes.
  * @param extra - Caller-supplied className override.
+ * @param modified - When true with `bordered`, adds a left unsaved-tab color border.
  */
-function borderedWrapperClasses(bordered: boolean, layoutClasses: string, extra: string): string {
+function borderedWrapperClasses(
+  bordered: boolean,
+  layoutClasses: string,
+  extra: string,
+  modified = false
+): string {
   const frame = bordered ? 'p-4 border border-separator rounded-md' : '';
-  const base = `hc-form-group ${layoutClasses} ${frame}`.trim();
+  const accent = bordered && modified ? 'border-l-2 border-l-[var(--color-tab-unsaved)]' : '';
+  const base = `hc-form-group ${layoutClasses} ${frame} ${accent}`.trim();
   return extra ? `${base} ${extra}` : base;
 }
 
@@ -141,6 +150,7 @@ export function FormGroup({
   className,
   labelClassName,
   bordered = true,
+  modified = false,
   ...props
 }: Props): JSX.Element {
   const generatedId = useId();
@@ -205,7 +215,7 @@ export function FormGroup({
       id: controlId,
       invalid: resolvedErrorId != null
     });
-    const wrapperClasses = borderedWrapperClasses(bordered, 'flex flex-col gap-1', extra);
+    const wrapperClasses = borderedWrapperClasses(bordered, 'flex flex-col gap-1', extra, modified);
     return (
       <div {...props} className={wrapperClasses}>
         <label htmlFor={controlId} className="hc-form-group-label flex flex-col gap-1">
@@ -235,7 +245,8 @@ export function FormGroup({
     const wrapperClasses = borderedWrapperClasses(
       bordered,
       'flex min-w-0 flex-1 items-center gap-2',
-      extra
+      extra,
+      modified
     );
     const linkedChildren = enhanceControl(children, { id: controlId });
     return (
@@ -261,7 +272,7 @@ export function FormGroup({
     invalid: resolvedErrorId != null,
     id: htmlFor
   });
-  const wrapperClasses = borderedWrapperClasses(bordered, 'flex flex-col gap-1', extra);
+  const wrapperClasses = borderedWrapperClasses(bordered, 'flex flex-col gap-1', extra, modified);
 
   return (
     <div {...props} className={wrapperClasses}>

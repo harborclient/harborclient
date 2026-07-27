@@ -4,18 +4,12 @@ import type {
   StorageConnection,
   StorageProvider,
   FirestoreSettings,
-  GeneralSettings,
   GitSettings,
   MySqlSettings,
   PostgresSettings,
   ProxySettings,
   SqliteSettings
 } from '@harborclient/core/types';
-import {
-  DEFAULT_CODE_EDITOR_FONT_SIZE,
-  DEFAULT_CODE_EDITOR_SETUP
-} from '@harborclient/core/codeEditorSettings';
-import { DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import {
   faCode,
   faDatabase,
@@ -29,62 +23,13 @@ import {
 import type { SettingsSection } from './types';
 
 /**
- * Baseline proxy configuration used when proxy is disabled or reset.
+ * Authoritative factory defaults for general and proxy settings (from core).
+ * Re-exported so GUI modules can import settings defaults from one place.
  */
-export const DEFAULT_PROXY_SETTINGS: ProxySettings = {
-  enabled: false,
-  protocol: 'http',
-  host: '',
-  port: 8080,
-  authEnabled: false,
-  username: '',
-  password: ''
-};
-
-/**
- * Factory defaults for app-wide General settings (timeouts, editor, SSL, proxy).
- */
-export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
-  requestTimeoutMs: 30000,
-  scriptTimeoutMs: 5000,
-  allowScriptNetworkRequests: false,
-  allowedNetworkPlugins: [],
-  allowScriptFileRead: false,
-  allowScriptFileWrite: false,
-  scriptFileRoot: '',
-  maxResponseSizeMb: 50,
-  verifySsl: true,
-  followRedirects: true,
-  scrollbarAutoHide: false,
-  wrapTabs: true,
-  closeToTray: false,
-  spellCheckEnabled: true,
-  warnWhenSwitchingThemes: true,
-  warnWhenExitingWithUnsavedChanges: true,
-  warnWhenClosingUnsavedRequests: true,
-  warnWhenEditingSnippet: true,
-  warnWhenCloningSnippet: true,
-  warnWhenClickingReadonlySnippet: true,
-  warnWhenCreatingWorkspace: true,
-  warnWhenOpeningWorkspace: true,
-  warnWhenAgentUsesTerminal: true,
-  trustedExternalDomains: [],
-  allowAllExternalDomains: false,
-  dismissedRequestEditorNotices: [],
-  gitAutoAdd: true,
-  externalMergeEditorPath: '',
-  gitCommitAuthorName: '',
-  gitCommitAuthorEmail: '',
-  gitCommitAuthorPrompted: false,
-  codeEditorTheme: 'monokai',
-  codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
-  codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
-  proxy: { ...DEFAULT_PROXY_SETTINGS },
-  globalVariables: [],
-  logFilePath: '',
-  userAgent: DEFAULT_USER_AGENT,
-  customUserAgents: []
-};
+export {
+  DEFAULT_GENERAL_SETTINGS,
+  DEFAULT_PROXY_SETTINGS
+} from '@harborclient/core/generalSettings';
 
 /**
  * Select options for the proxy protocol field in Proxy settings.

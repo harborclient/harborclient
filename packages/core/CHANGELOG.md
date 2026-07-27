@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor settings draft management and enhance default handling. (`5650b3e6`)
 - Enhance response body handling and UI interactions. (`af009245`)
 - Refactor shortcuts handling and update UI components. (`a85cf446`)
 - Enhance response handling and UI features. (`b076b194`)
