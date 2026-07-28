@@ -1,5 +1,6 @@
 import type { HttpMethod } from '@harborclient/core/types';
 import { runCollection } from './runCollection';
+import { runWorkflowCommand } from './runWorkflow';
 import { sendAdHocRequest } from './sendAdHoc';
 
 const HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
@@ -16,6 +17,7 @@ function printHelp(): void {
 Usage:
   harborclient <METHOD> <url> [options]
   harborclient run <collection> [options]
+  harborclient workflow run <workflow> [options]
 
 Ad-hoc options:
   -H, --header <Name: value>   Add a request header (repeatable)
@@ -31,15 +33,71 @@ Collection run options:
   --user-data <path>           Override Electron userData directory
   --stop-on-failure            Stop after the first failed request
 
+Workflow run options:
+  workflow run <name-or-uuid>  Run a saved workflow headlessly
+  --user-data <path>           Override Electron userData directory
+  --stop-on-failure            Stop after the first failed request.send
+  --export <dir>               Write a workflow-run JSON export to this directory
+
 Examples:
   harborclient GET https://httpbin.org/get
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
+  harborclient workflow run "My Workflow" --export ./results
 `);
 }
 
 /**
- * Parses CLI argv into an ad-hoc or collection-run command and executes it.
+ * Parses `workflow …` subcommands after the leading `workflow` token.
+ *
+ * @param argv - Arguments following `workflow`.
+ * @returns Process exit code.
+ */
+async function runWorkflowArgv(argv: string[]): Promise<number> {
+  if (argv[0] !== 'run') {
+    console.error(`Unknown workflow subcommand: ${argv[0] ?? '(missing)'}`);
+    printHelp();
+    return 1;
+  }
+
+  const workflowRef = argv[1];
+  if (!workflowRef) {
+    console.error('Missing workflow name or uuid');
+    printHelp();
+    return 1;
+  }
+
+  let userDataPath: string | undefined;
+  let stopOnFailure = false;
+  let exportDirectory: string | undefined;
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg === '--user-data') {
+      userDataPath = argv[++i];
+      if (userDataPath == null) {
+        console.error('Missing value for --user-data');
+        return 1;
+      }
+    } else if (arg === '--stop-on-failure') {
+      stopOnFailure = true;
+    } else if (arg === '--export') {
+      exportDirectory = argv[++i];
+      if (exportDirectory == null) {
+        console.error('Missing value for --export');
+        return 1;
+      }
+    } else {
+      console.error(`Unknown option: ${arg}`);
+      return 1;
+    }
+  }
+
+  return runWorkflowCommand({ workflowRef, userDataPath, stopOnFailure, exportDirectory });
+}
+
+/**
+ * Parses CLI argv into an ad-hoc, collection-run, or workflow-run command and executes it.
  *
  * @param argv - Process arguments excluding node and script path.
  * @returns Process exit code.
@@ -48,6 +106,10 @@ export async function runCli(argv: string[]): Promise<number> {
   if (argv.length === 0 || argv.includes('-h') || argv.includes('--help')) {
     printHelp();
     return argv.length === 0 ? 1 : 0;
+  }
+
+  if (argv[0] === 'workflow') {
+    return runWorkflowArgv(argv.slice(1));
   }
 
   if (argv[0] === 'run') {

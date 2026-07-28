@@ -1,15 +1,10 @@
 import type { WorkflowAction } from '@harborclient/core/types';
+import { runWorkflow } from '@harborclient/core/workflowRunner/runWorkflow';
 import type { WorkflowPlayCtx } from './workflowEventTypes';
 import type { WorkflowRegistryCoreEntry } from './workflowRegistryCore';
 import { WORKFLOW_REGISTRY_CORE } from './workflowRegistryCore';
 import { buildWorkflowPlaybackMap } from './utils';
-import { resolveWorkflowNextIndex } from './resolveWorkflowNextIndex';
-import {
-  beginWorkflowActionScriptContext,
-  endWorkflowActionScriptContext,
-  resetWorkflowScriptContextForTests,
-  takeWorkflowScriptDirectives
-} from './workflowScriptContext';
+import { resetWorkflowScriptContextForTests } from './workflowScriptContext';
 import { setWorkflowRecordingMuted } from './workflowRecorder';
 import {
   appendWorkflowRunLogEntry,
@@ -397,7 +392,7 @@ export function getPlaybackRegistryEntry(eventType: string): WorkflowRegistryCor
 }
 
 /**
- * Plays remaining actions from the current cursor.
+ * Plays remaining actions from the current cursor via the shared core runner.
  *
  * In gapless mode, each action runs as soon as the previous await finishes.
  * In gapped mode, waits until the recorded relative `at` time before each step.
@@ -419,18 +414,18 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
   const generation = ++playGeneration;
   const startIndex = index;
   const startedFromBeginning = startIndex === 0;
-  const baseAt = actions[startIndex]?.at;
   const segmentWallStart = Date.now();
   playing = true;
   segmentStartedAt = segmentWallStart;
   notifyPlaybackListeners();
 
+  const state = ctx.getState();
+  const workflow = state.workflows?.items?.find((item) => item.uuid === workflowUuid);
+  const activeEnvironmentId = state.environments?.activeEnvironmentId ?? null;
+  const environmentUuid =
+    state.environments != null ? resolveEnvironmentUuid(state, activeEnvironmentId) : null;
+
   if (startedFromBeginning) {
-    const state = ctx.getState();
-    const workflow = state.workflows?.items?.find((item) => item.uuid === workflowUuid);
-    const activeEnvironmentId = state.environments?.activeEnvironmentId ?? null;
-    const environmentUuid =
-      state.environments != null ? resolveEnvironmentUuid(state, activeEnvironmentId) : null;
     beginWorkflowRunLog({
       workflowUuid,
       name: workflow?.name ?? 'Workflow',
@@ -440,78 +435,65 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
   }
 
   try {
-    while (playing && generation === playGeneration && index < actions.length) {
-      const action = actions[index];
-      if (action == null) {
-        break;
-      }
-
-      if (!gapless && typeof baseAt === 'number' && typeof action.at === 'number') {
-        const targetDelay = action.at - baseAt;
-        const elapsed = Date.now() - segmentWallStart;
-        const waitMs = Math.max(0, targetDelay - elapsed);
-        const completed = await waitGapMs(waitMs, generation);
-        if (!completed || !playing || generation !== playGeneration) {
-          return;
+    const result = await runWorkflow({
+      actions,
+      workflowUuid,
+      workflowName: workflow?.name ?? 'Workflow',
+      environmentUuid: environmentUuid ?? '',
+      delayMs,
+      gapless,
+      startIndex,
+      executor: {
+        /**
+         * Plays one action through the GUI Redux registry.
+         *
+         * @param action - Workflow action at the cursor.
+         * @returns Registry play result.
+         */
+        play: async (action) => {
+          const entry = playbackMap.get(action.type);
+          if (entry?.play == null) {
+            throw new Error(`Unknown workflow action type: ${action.type}`);
+          }
+          return await entry.play(action, ctx);
         }
-      }
-
-      const entry = playbackMap.get(action.type);
-      if (entry?.play == null) {
-        throw new Error(`Unknown workflow action type: ${action.type}`);
-      }
-
-      beginWorkflowActionScriptContext({
-        workflowId: workflowUuid,
-        workflowActionId: action.uuid,
-        workflowActionIteration: index
-      });
-      let playResult: unknown;
-      try {
-        playResult = await entry.play(action, ctx);
-      } finally {
-        endWorkflowActionScriptContext();
-      }
-
-      if (!playing || generation !== playGeneration) {
-        return;
-      }
-
-      appendWorkflowRunLogEntry(action, resolveWorkflowRunLogResult(action, playResult, ctx));
-
-      const directives = workflowUuid ? takeWorkflowScriptDirectives() : {};
-      const nextIndex = resolveWorkflowNextIndex(actions, index, directives.workflowNextAction);
-      if (nextIndex === null) {
-        index = actions.length;
+      },
+      resolveLogResult: (action, playResult) =>
+        resolveWorkflowRunLogResult(action, playResult, ctx),
+      onIndexChange: (nextIndex) => {
+        index = nextIndex;
         notifyPlaybackListeners();
-        break;
-      }
+      },
+      onStepComplete: (entry) => {
+        appendWorkflowRunLogEntry(entry.action, entry.result);
+      },
+      shouldStop: () => !playing || generation !== playGeneration,
+      waitMs: (ms) => waitGapMs(ms, generation)
+    });
 
-      if (delayMs > 0 && nextIndex < actions.length) {
-        const completed = await waitGapMs(delayMs, generation);
-        if (!completed || !playing || generation !== playGeneration) {
-          index = nextIndex;
-          notifyPlaybackListeners();
-          return;
-        }
+    if (result.error != null) {
+      if (playing && generation === playGeneration) {
+        stopPlayback();
       }
+      throw result.error;
+    }
 
-      index = nextIndex;
-      notifyPlaybackListeners();
+    if (playing && generation === playGeneration) {
+      const completedFullRun =
+        startedFromBeginning &&
+        result.completed &&
+        result.lastIndex >= actions.length &&
+        actions.length > 0;
+      stopPlayback();
+      if (completedFullRun) {
+        await exportCompletedWorkflowRunIfConfigured(ctx.getState);
+      }
     }
   } catch (error) {
     if (playing && generation === playGeneration) {
       stopPlayback();
     }
     throw error;
-  }
-
-  if (playing && generation === playGeneration) {
-    const completedFullRun = startedFromBeginning && index >= actions.length && actions.length > 0;
-    stopPlayback();
-    if (completedFullRun) {
-      await exportCompletedWorkflowRunIfConfigured(ctx.getState);
-    }
   }
 }
 

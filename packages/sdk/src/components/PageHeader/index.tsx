@@ -27,7 +27,8 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
 
 /**
  * Full-bleed page header with a bordered bottom edge, title block on the left,
- * and optional action controls on the right.
+ * and optional action controls on the right. Sticks to the top of its nearest
+ * scroll ancestor so title and actions stay visible while page content scrolls.
  */
 export function PageHeader({
   title,
@@ -41,7 +42,7 @@ export function PageHeader({
     <div
       {...props}
       className={cn(
-        'hc-page-header -mx-6 mb-4 flex flex-wrap items-center gap-2 border-b border-separator px-6 py-4',
+        'hc-page-header sticky top-0 z-10 -mx-6 mb-4 flex flex-wrap items-center gap-2 border-b border-separator bg-surface px-6 py-4',
         className
       )}
     >

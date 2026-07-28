@@ -5,7 +5,6 @@ import type { RootState } from '#/renderer/src/store/redux';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWorkflows } from '#/renderer/src/store/slices/workflowsSlice';
 import {
-  getWorkflowRunExportForEntry,
   getWorkflowRunLog,
   getWorkflowRunLogMeta,
   getWorkflowRunLogVersion,
@@ -56,7 +55,7 @@ function readMatchingRunLog(workflowUuid: string): MatchingRunLog {
  * Page tab listing workflow actions in the exact order they ran.
  *
  * Reads the in-memory run log for {@link page.workflowUuid}. Clicking a block
- * opens a read-only JSON modal with a single-action `workflow-run` export.
+ * opens a read-only JSON modal with that action's result object only.
  *
  * @param props - Page identity with the workflow uuid.
  * @returns Scrollable list of timeline blocks and optional detail modal.
@@ -94,15 +93,15 @@ export function WorkflowRunResults({ page }: Props): JSX.Element {
   }, [page.workflowUuid, workflows, runLog.meta]);
 
   /**
-   * Single-action export for the open detail modal.
+   * Per-action result for the open detail modal.
    */
-  const detailExport = useMemo(() => {
+  const detailResult = useMemo(() => {
     void runLogVersion;
     if (selectedIndex == null) {
       return null;
     }
-    return getWorkflowRunExportForEntry(selectedIndex);
-  }, [selectedIndex, runLogVersion]);
+    return runLog.entries[selectedIndex]?.result ?? null;
+  }, [selectedIndex, runLog.entries, runLogVersion]);
 
   /**
    * Opens the JSON detail modal for a run-log index.
@@ -159,7 +158,7 @@ export function WorkflowRunResults({ page }: Props): JSX.Element {
         </div>
       )}
 
-      <WorkflowRunResultDetailModal exportPayload={detailExport} onClose={handleCloseDetail} />
+      <WorkflowRunResultDetailModal result={detailResult} onClose={handleCloseDetail} />
     </div>
   );
 }

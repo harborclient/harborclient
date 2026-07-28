@@ -13,6 +13,7 @@ Usage:
   harborclient [gui-options]           Open the desktop app with options
   harborclient <METHOD> <url> [opts]   Send an ad-hoc HTTP request
   harborclient run <collection> [opts] Run a saved collection
+  harborclient workflow run <wf> [opts] Run a saved workflow
   harborclient -h, --help              Show this help
   harborclient -V, --version           Show version
 
@@ -35,11 +36,18 @@ Collection run options:
   --user-data <path>           Override Electron userData directory
   --stop-on-failure            Stop after the first failed request
 
+Workflow run options:
+  workflow run <name-or-uuid>  Run a saved workflow headlessly
+  --user-data <path>           Override Electron userData directory
+  --stop-on-failure            Stop after the first failed request.send
+  --export <dir>               Write a workflow-run JSON export to this directory
+
 Examples:
   harborclient
   harborclient GET https://httpbin.org/get
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
+  harborclient workflow run "My Workflow" --export ./results
 `);
 }
 

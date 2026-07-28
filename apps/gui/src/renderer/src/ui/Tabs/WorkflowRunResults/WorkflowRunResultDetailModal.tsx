@@ -1,12 +1,11 @@
 import { useCallback, useId, useMemo, type JSX } from 'react';
 import { CodeEditor, Modal, ModalFooter, Button } from '@harborclient/sdk/components';
-import type { WorkflowRunExport } from '@harborclient/core/types';
 
 interface Props {
   /**
-   * Single-action workflow-run export to display, or null when closed.
+   * Per-action run result to display, or null when closed.
    */
-  exportPayload: WorkflowRunExport | null;
+  result: unknown | null;
 
   /**
    * Closes the detail modal.
@@ -15,45 +14,49 @@ interface Props {
 }
 
 /**
+ * Reads a display title from an action result when it has a string `name`.
+ *
+ * @param result - Action result payload.
+ * @returns Result name, or a generic fallback.
+ */
+function actionResultTitle(result: unknown): string {
+  if (result != null && typeof result === 'object' && 'name' in result) {
+    const name = (result as { name?: unknown }).name;
+    if (typeof name === 'string' && name.trim().length > 0) {
+      return name;
+    }
+  }
+  return 'Action result';
+}
+
+/**
  * Read-only JSON viewer for one workflow-run action result.
  *
- * Shows a `workflow-run` export envelope with a single action in `actions`,
- * matching the HarborClient export header convention.
+ * Shows only the action's result object (payload or request-send snapshot),
+ * not the full `workflow-run` export envelope.
  *
- * @param props - Export payload and close handler.
+ * @param props - Result payload and close handler.
  * @returns Modal with a read-only JSON CodeEditor, or null when closed.
  */
-export function WorkflowRunResultDetailModal({
-  exportPayload,
-  onClose
-}: Props): JSX.Element | null {
+export function WorkflowRunResultDetailModal({ result, onClose }: Props): JSX.Element | null {
   const titleId = 'workflow-run-result-detail-title';
   const editorId = useId();
 
   /**
    * Pretty-printed JSON for the CodeEditor.
    */
-  const draft = useMemo(
-    () => (exportPayload == null ? '' : JSON.stringify(exportPayload, null, 2)),
-    [exportPayload]
-  );
+  const draft = useMemo(() => (result == null ? '' : JSON.stringify(result, null, 2)), [result]);
 
   /**
    * No-op change handler; the editor is read-only.
    */
   const handleChange = useCallback((): void => {}, []);
 
-  if (exportPayload == null) {
+  if (result == null) {
     return null;
   }
 
-  const actionLabel =
-    exportPayload.actions.length === 1 &&
-    exportPayload.actions[0] != null &&
-    typeof exportPayload.actions[0] === 'object' &&
-    'name' in (exportPayload.actions[0] as object)
-      ? String((exportPayload.actions[0] as { name?: unknown }).name ?? 'Action result')
-      : 'Action result';
+  const title = actionResultTitle(result);
 
   return (
     <Modal
@@ -61,8 +64,8 @@ export function WorkflowRunResultDetailModal({
       overlayClassName="z-[70]"
       labelledBy={titleId}
       onClose={onClose}
-      title={actionLabel}
-      description={`Workflow “${exportPayload.name}” run result.`}
+      title={title}
+      description="JSON result for this workflow action."
     >
       <div className="flex min-h-0 flex-col gap-3">
         <CodeEditor

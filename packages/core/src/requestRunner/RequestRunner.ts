@@ -1,5 +1,6 @@
 import { buildScriptRunInfo } from '../types/script';
 import type { KeyValue, ScriptRequestContext, ScriptRunResult, SendResult } from '../types';
+import { getActiveWorkflowScriptContext } from '../workflowRunner/workflowScriptContext';
 import { buildSendInput, resolveRequestVariables, substituteRequestVariables } from './helpers';
 import type { RequestRunnerDeps, RunRequestInput, RunRequestResult } from './types';
 
@@ -32,8 +33,17 @@ export class RequestRunner {
     const scriptErrors: string[] = [];
     let scriptNextRequest: string | null | undefined;
     let scriptSkipRequest = false;
+    let workflowNextAction: string | undefined;
+    let workflowSkipAction = false;
     const cookieDomain = resolveCookieDomain(substituteRequestVariables(request.url, variables));
     let cookies = cookieDomain ? this.deps.cookieJar.getCookiesForDomain(cookieDomain) : [];
+    const activeWorkflow = getActiveWorkflowScriptContext();
+    const workflowInfo = {
+      workflowId: input.workflow?.workflowId ?? activeWorkflow?.workflowId,
+      workflowActionId: input.workflow?.workflowActionId ?? activeWorkflow?.workflowActionId,
+      workflowActionIteration:
+        input.workflow?.workflowActionIteration ?? activeWorkflow?.workflowActionIteration
+    };
 
     /**
      * Runs one script phase and applies its portable runtime mutations.
@@ -55,7 +65,8 @@ export class RequestRunner {
           cookies,
           info: buildScriptRunInfo(phase, {
             requestName: input.requestIdentity?.name,
-            requestId: input.requestIdentity?.id
+            requestId: input.requestIdentity?.id,
+            ...workflowInfo
           }),
           collection: input.collection
             ? {
@@ -84,6 +95,10 @@ export class RequestRunner {
           scriptNextRequest = result.nextRequest;
         }
         scriptSkipRequest ||= result.skipRequest === true;
+        if (result.workflowNextAction !== undefined) {
+          workflowNextAction = result.workflowNextAction;
+        }
+        workflowSkipAction ||= result.workflowSkipAction === true;
       }
     };
 
@@ -98,7 +113,9 @@ export class RequestRunner {
           executionEvents,
           scriptErrors,
           scriptNextRequest,
-          true
+          true,
+          workflowNextAction,
+          workflowSkipAction
         );
       }
 
@@ -122,7 +139,9 @@ export class RequestRunner {
         executionEvents,
         scriptErrors,
         scriptNextRequest,
-        false
+        false,
+        workflowNextAction,
+        workflowSkipAction
       );
     } catch (error) {
       return buildResult(
@@ -133,7 +152,9 @@ export class RequestRunner {
         executionEvents,
         scriptErrors,
         scriptNextRequest,
-        scriptSkipRequest
+        scriptSkipRequest,
+        workflowNextAction,
+        workflowSkipAction
       );
     }
   }
@@ -344,6 +365,8 @@ function errorResult(error: unknown): SendResult {
  * @param scriptErrors - Aggregated script errors.
  * @param scriptNextRequest - Script-selected collection-run target.
  * @param scriptSkipRequest - Whether pre scripts skipped transport.
+ * @param workflowNextAction - Workflow next-action directive from scripts.
+ * @param workflowSkipAction - Whether scripts requested skipping the workflow action.
  * @returns Portable request run outcome.
  */
 function buildResult(
@@ -354,7 +377,9 @@ function buildResult(
   executionEvents: RunRequestResult['executionEvents'],
   scriptErrors: string[],
   scriptNextRequest: string | null | undefined,
-  scriptSkipRequest: boolean
+  scriptSkipRequest: boolean,
+  workflowNextAction?: string,
+  workflowSkipAction?: boolean
 ): RunRequestResult {
   return {
     response,
@@ -364,6 +389,8 @@ function buildResult(
     executionEvents,
     ...(scriptErrors.length ? { scriptError: scriptErrors.join('\n') } : {}),
     ...(scriptNextRequest !== undefined ? { scriptNextRequest } : {}),
-    scriptSkipRequest
+    scriptSkipRequest,
+    ...(workflowNextAction !== undefined ? { workflowNextAction } : {}),
+    ...(workflowSkipAction ? { workflowSkipAction: true } : {})
   };
 }

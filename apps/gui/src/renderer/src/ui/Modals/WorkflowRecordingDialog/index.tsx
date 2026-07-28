@@ -97,6 +97,19 @@ function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
 }
 
 /**
+ * Returns the most recently recorded session event as a workflow action.
+ *
+ * @returns Last session event, or null when the recorder buffer is empty.
+ */
+function getLastRecordedAction(): WorkflowAction | null {
+  const events = getSessionEvents();
+  if (events.length === 0) {
+    return null;
+  }
+  return events[events.length - 1] ?? null;
+}
+
+/**
  * Floating, non-blocking dialog for recording, editing, or running a workflow session.
  */
 export function WorkflowRecordingDialog(): JSX.Element | null {
@@ -114,6 +127,9 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   const [recording, setRecording] = useState(() => getIsRecording());
   const [recordingElapsedMs, setRecordingElapsedMs] = useState(() => getRecordingElapsedMs());
   const [actionCount, setActionCount] = useState(() => getSessionEvents().length);
+  const [lastRecordedAction, setLastRecordedAction] = useState<WorkflowAction | null>(() =>
+    getLastRecordedAction()
+  );
 
   /**
    * Bumps when the playback module notifies so render re-reads module getters.
@@ -308,21 +324,29 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     }
 
     /**
-     * Refreshes recording flag, elapsed time, and action count.
+     * Refreshes action count and last-recorded preview from the session buffer.
+     */
+    const syncActionPreview = (): void => {
+      setActionCount(getSessionEvents().length);
+      setLastRecordedAction(getLastRecordedAction());
+    };
+
+    /**
+     * Refreshes recording flag, elapsed time, action count, and last action preview.
      */
     const syncSession = (): void => {
       setRecording(getIsRecording());
       setRecordingElapsedMs(getRecordingElapsedMs());
-      setActionCount(getSessionEvents().length);
+      syncActionPreview();
     };
 
     syncSession();
     const unsubscribeSession = subscribeRecordingSession(syncSession);
     const unsubscribeEvents = getWorkflowLogApi().subscribe(() => {
-      setActionCount(getSessionEvents().length);
+      syncActionPreview();
     });
     const intervalId = window.setInterval(() => {
-      setActionCount(getSessionEvents().length);
+      syncActionPreview();
       if (getIsRecording()) {
         setRecordingElapsedMs(getRecordingElapsedMs());
       }
@@ -1022,7 +1046,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
       initialLeft={recordSavedPosition.left}
       initialTop={recordSavedPosition.top}
       onPositionChange={saveWorkflowRecordingDialogPosition}
-      className="w-72"
+      className="w-96"
       dragHandle={
         <div className="flex items-center justify-between gap-2 border-b border-separator px-3 py-2">
           <h2 id={titleId} className="text-[15px] font-semibold">
@@ -1052,6 +1076,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
             {`${actionCount} action${actionCount === 1 ? '' : 's'}`}
           </p>
         </div>
+        <WorkflowRunActionPreview action={lastRecordedAction} getState={store.getState} />
         <div className="flex items-center gap-2">
           <Button
             type="button"

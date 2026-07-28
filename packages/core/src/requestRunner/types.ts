@@ -172,6 +172,15 @@ export interface RunRequestInput {
    * Cancellation signal forwarded to the transport.
    */
   signal?: AbortSignal;
+
+  /**
+   * Workflow playback identity for hc.info when running inside a workflow.
+   */
+  workflow?: {
+    workflowId?: string;
+    workflowActionId?: string;
+    workflowActionIteration?: number;
+  };
 }
 
 /**
@@ -217,4 +226,14 @@ export interface RunRequestResult {
    * True when a pre-request script skipped transport execution.
    */
   scriptSkipRequest: boolean;
+
+  /**
+   * When set via hc.execution.workflowNextAction during this run.
+   */
+  workflowNextAction?: string;
+
+  /**
+   * When true via hc.execution.workflowSkipAction during this run.
+   */
+  workflowSkipAction?: boolean;
 }

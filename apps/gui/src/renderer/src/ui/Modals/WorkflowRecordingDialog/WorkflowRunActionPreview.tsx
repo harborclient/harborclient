@@ -7,7 +7,8 @@ import { getWorkflowRegistryEntry } from '#/renderer/src/workflows/workflowRegis
 
 interface Props {
   /**
-   * Action currently at the playback cursor, or null when the workflow has no actions.
+   * Action to preview: the playback cursor step in run mode, or the last recorded
+   * session event in record mode. Null when there are no actions.
    */
   action: WorkflowAction | null;
 
@@ -18,13 +19,14 @@ interface Props {
 }
 
 /**
- * Non-interactive timeline block preview of the current run step.
+ * Non-interactive timeline block preview of a workflow action.
  *
  * Mirrors TimelineTrack chrome (TimelineBlock + registry thumbnail) so the compact
- * run dialog shows the same visual as the timeline editor for the active action.
- * The block fills the dialog content width; long labels truncate with ellipsis.
+ * run and record dialogs show the same visual as the timeline editor. Used for the
+ * active run step and the last recorded action. The block fills the dialog content
+ * width; long labels truncate with ellipsis.
  *
- * @param props - Current action and store accessor.
+ * @param props - Action to display and store accessor.
  * @returns Status region with a selected, disabled timeline block or empty placeholder.
  */
 export function WorkflowRunActionPreview({ action, getState }: Props): JSX.Element {
