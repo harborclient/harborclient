@@ -1,8 +1,9 @@
 import type { Middleware, UnknownAction } from '@reduxjs/toolkit';
 import { operationFinished, operationStarted } from '#/renderer/src/store/slices/uiSlice';
+import { SEND_REQUEST_TYPE } from '#/renderer/src/store/thunks/sendRequestType';
 
 const EXCLUDED_THUNKS = new Set([
-  'tabs/sendRequest',
+  SEND_REQUEST_TYPE,
   'tabs/cancelRequest',
   'aiChat/sendMessage',
   'aiChat/cancelMessage',

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor workflow registry and recorder. (`08b97462`)
 - Implement workflow management features. (`a4525074`)
 
 ## 2.8.5 - 2026-07-28

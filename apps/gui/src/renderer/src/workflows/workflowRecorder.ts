@@ -2,7 +2,8 @@ import type { UnknownAction } from '@reduxjs/toolkit';
 import { WorkflowCoalescer } from './workflowCoalescer';
 import { WorkflowEventSink } from './workflowEventSink';
 import type { WorkflowEvent } from './workflowEventTypes';
-import { buildWorkflowRegistryMap, WORKFLOW_REGISTRY } from './workflowRegistry';
+import { WORKFLOW_REGISTRY } from './workflowRegistry';
+import { buildWorkflowRegistryMap } from './utils';
 
 type SessionListener = () => void;
 

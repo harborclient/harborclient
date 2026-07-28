@@ -18,6 +18,7 @@ import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
 import { recordRequestHistoryFromSend } from './requestHistory';
+import { SEND_REQUEST_TYPE } from './sendRequestType';
 import { syncTrash } from './trash';
 import {
   applyScriptRequestMutations,
@@ -1085,7 +1086,7 @@ export async function executeRequestDraft(
  * Sends the active tab request, running pre/post scripts and recording console output.
  */
 export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiConfig>(
-  'tabs/sendRequest',
+  SEND_REQUEST_TYPE,
   async (tabIdArg, { dispatch, getState }) => {
     const state = getState();
     const activeTab = tabIdArg

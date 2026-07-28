@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { SavedRequest } from '@harborclient/core/types';
+import { loadRequest, setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
+import { SEND_REQUEST_PENDING_TYPE } from '#/renderer/src/store/thunks/sendRequestType';
 import {
   clearSession,
   getRecordingElapsedMs,
@@ -96,7 +98,7 @@ afterEach(() => {
 describe('processWorkflowAction', () => {
   it('ignores actions while the session is stopped', () => {
     processWorkflowAction({
-      type: 'tabs/loadRequest',
+      type: loadRequest.type,
       payload: { req: sampleRequest(), activate: true }
     });
     expect(getWorkflowLogApi().events).toEqual([]);
@@ -112,25 +114,25 @@ describe('processWorkflowAction', () => {
   it('records load, coalesced drafts, and send in order', () => {
     startRecording();
     processWorkflowAction({
-      type: 'tabs/loadRequest',
+      type: loadRequest.type,
       payload: { req: sampleRequest(), activate: true }
     });
     processWorkflowAction({
-      type: 'tabs/setActiveDraft',
+      type: setActiveDraft.type,
       payload: sampleDraft({
         url: 'https://example.com/things?a=1',
         headers: [{ key: 'X-Test', value: '1', enabled: true }]
       })
     });
     processWorkflowAction({
-      type: 'tabs/setActiveDraft',
+      type: setActiveDraft.type,
       payload: sampleDraft({
         url: 'https://example.com/things?a=2',
         headers: [{ key: 'X-Test', value: '2', enabled: true }]
       })
     });
     processWorkflowAction({
-      type: 'tabs/sendRequest/pending',
+      type: SEND_REQUEST_PENDING_TYPE,
       meta: { requestId: 'r1', arg: undefined }
     });
 
@@ -155,17 +157,17 @@ describe('processWorkflowAction', () => {
   it('appends across stop and start cycles', () => {
     startRecording();
     processWorkflowAction({
-      type: 'tabs/loadRequest',
+      type: loadRequest.type,
       payload: { req: sampleRequest(), activate: true }
     });
     stopRecording();
     processWorkflowAction({
-      type: 'tabs/sendRequest/pending',
+      type: SEND_REQUEST_PENDING_TYPE,
       meta: { requestId: 'r1' }
     });
     startRecording();
     processWorkflowAction({
-      type: 'tabs/sendRequest/pending',
+      type: SEND_REQUEST_PENDING_TYPE,
       meta: { requestId: 'r2' }
     });
 
@@ -190,7 +192,7 @@ describe('processWorkflowAction', () => {
 
   it('clearSession removes flushed history and resets the timer', () => {
     startRecording();
-    processWorkflowAction({ type: 'tabs/sendRequest/pending', meta: { requestId: 'r1' } });
+    processWorkflowAction({ type: SEND_REQUEST_PENDING_TYPE, meta: { requestId: 'r1' } });
     vi.advanceTimersByTime(1_000);
     const api = getWorkflowLogApi();
     expect(api.events).toHaveLength(1);
