@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { buildWorkflowExport, validateWorkflowExport } from './workflow';
+import { buildWorkflowExport, normalizeWorkflowDelayMs, validateWorkflowExport } from './workflow';
+
+describe('normalizeWorkflowDelayMs', () => {
+  it('floors finite non-negative numbers', () => {
+    expect(normalizeWorkflowDelayMs(250.9)).toBe(250);
+    expect(normalizeWorkflowDelayMs(0)).toBe(0);
+  });
+
+  it('maps invalid values to 0', () => {
+    expect(normalizeWorkflowDelayMs(-1)).toBe(0);
+    expect(normalizeWorkflowDelayMs(Number.NaN)).toBe(0);
+    expect(normalizeWorkflowDelayMs(undefined)).toBe(0);
+    expect(normalizeWorkflowDelayMs('nope')).toBe(0);
+  });
+});
 
 describe('buildWorkflowExport', () => {
   it('builds a portable workflow envelope with defaults', () => {
@@ -19,17 +33,19 @@ describe('buildWorkflowExport', () => {
     });
   });
 
-  it('includes duration and variables when provided', () => {
+  it('includes duration, delay, and variables when provided', () => {
     const envelope = buildWorkflowExport({
       uuid: 'wf-2',
       name: 'With vars',
       variables: { env: 'qa' },
       durationMs: 12_500,
+      delayMs: 250,
       actions: [{ uuid: 'action-2', type: 'environment.setActive', payload: { id: 3 } }]
     });
 
     expect(envelope.variables).toEqual({ env: 'qa' });
     expect(envelope.durationMs).toBe(12_500);
+    expect(envelope.delayMs).toBe(250);
   });
 });
 
@@ -59,6 +75,19 @@ describe('validateWorkflowExport', () => {
     });
 
     expect(exportData.variables).toEqual({});
+  });
+
+  it('accepts an optional delayMs', () => {
+    const exportData = validateWorkflowExport({
+      harborclientVersion: 1,
+      harborclientExport: 'workflow',
+      uuid: 'wf-4b',
+      name: 'With delay',
+      actions: [],
+      delayMs: 500
+    });
+
+    expect(exportData.delayMs).toBe(500);
   });
 
   it('rejects unknown export kinds', () => {

@@ -665,6 +665,7 @@ export class TrashService {
       name: payload.workflow.name,
       uuid: payload.workflow.uuid,
       durationMs: payload.workflow.durationMs,
+      delayMs: payload.workflow.delayMs ?? 0,
       variables: payload.workflow.variables,
       actions: payload.workflow.actions
     });

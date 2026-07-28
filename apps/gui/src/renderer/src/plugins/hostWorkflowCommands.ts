@@ -38,6 +38,7 @@ export function toHostWorkflow(workflow: Workflow): HostWorkflow {
     uuid: workflow.uuid,
     name: workflow.name,
     durationMs: workflow.durationMs,
+    delayMs: workflow.delayMs,
     variables: { ...workflow.variables },
     actions: workflow.actions.map(
       (action): WorkflowActionRef => ({
@@ -120,6 +121,7 @@ export async function createWorkflowForPlugin(input: CreateWorkflowPayload): Pro
     name: input.name.trim(),
     uuid,
     durationMs: input.durationMs,
+    delayMs: typeof input.delayMs === 'number' ? input.delayMs : 0,
     variables: input.variables ?? {},
     actions: input.actions
   });
@@ -146,6 +148,9 @@ export async function updateWorkflowForPlugin(input: UpdateWorkflowPayload): Pro
   if (typeof input.durationMs !== 'number' || !Number.isFinite(input.durationMs)) {
     throw new Error('harborclient.updateWorkflow requires a numeric durationMs.');
   }
+  if (typeof input.delayMs !== 'number' || !Number.isFinite(input.delayMs)) {
+    throw new Error('harborclient.updateWorkflow requires a numeric delayMs.');
+  }
   if (!Array.isArray(input.actions)) {
     throw new Error('harborclient.updateWorkflow requires an actions array.');
   }
@@ -153,7 +158,8 @@ export async function updateWorkflowForPlugin(input: UpdateWorkflowPayload): Pro
   const items = await window.api.updateWorkflow({
     id: input.id,
     actions: input.actions,
-    durationMs: input.durationMs
+    durationMs: input.durationMs,
+    delayMs: input.delayMs
   });
   store.dispatch(setWorkflows(items));
   emitPluginWorkflowsChanged({ reason: 'updated', workflowId: input.id });

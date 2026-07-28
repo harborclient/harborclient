@@ -729,6 +729,7 @@ export const createWorkflowInput = z.object({
   name: z.string().trim().min(1),
   uuid: z.string().trim().min(1).optional(),
   durationMs: z.number().finite().nonnegative(),
+  delayMs: z.number().finite().nonnegative().optional(),
   variables: z.record(z.string(), z.string()).optional(),
   actions: z.array(
     z.object({
@@ -743,6 +744,7 @@ export const createWorkflowInput = z.object({
 export const updateWorkflowInput = z.object({
   id: z.number().int().positive(),
   durationMs: z.number().finite().nonnegative(),
+  delayMs: z.number().finite().nonnegative(),
   actions: z.array(
     z.object({
       uuid: z.string().trim().min(1),

@@ -20,7 +20,8 @@ export function registerWorkflowHandlers(): void {
   handle('workflows:update', ipcArgSchemas.workflowsUpdate, (_event, input) =>
     getLocalDatabase().updateWorkflow(input.id, {
       actions: input.actions,
-      durationMs: input.durationMs
+      durationMs: input.durationMs,
+      delayMs: input.delayMs
     })
   );
 

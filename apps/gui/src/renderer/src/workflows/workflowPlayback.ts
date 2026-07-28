@@ -30,6 +30,8 @@ let playGeneration = 0;
 let workflowUuid = '';
 /** When true, play runs actions back-to-back without recorded `at` waits. */
 let gapless = true;
+/** Pause between consecutive actions during playback, in milliseconds. */
+let delayMs = 0;
 /** Cancellable gap wait handle for the active play loop. */
 let gapWait: { cancel: () => void } | null = null;
 
@@ -120,8 +122,13 @@ function waitGapMs(ms: number, generation: number): Promise<boolean> {
  *
  * @param nextActions - Ordered workflow actions to play.
  * @param nextWorkflowUuid - Portable workflow UUID for hc.info during script runs.
+ * @param nextDelayMs - Pause between consecutive actions in milliseconds.
  */
-export function loadPlayback(nextActions: readonly WorkflowAction[], nextWorkflowUuid = ''): void {
+export function loadPlayback(
+  nextActions: readonly WorkflowAction[],
+  nextWorkflowUuid = '',
+  nextDelayMs = 0
+): void {
   stopPlayback();
   actions = nextActions.map((action) => ({ ...action }));
   index = 0;
@@ -129,6 +136,7 @@ export function loadPlayback(nextActions: readonly WorkflowAction[], nextWorkflo
   segmentStartedAt = null;
   sessionLoaded = true;
   workflowUuid = typeof nextWorkflowUuid === 'string' ? nextWorkflowUuid.trim() : '';
+  delayMs = normalizeDelayMs(nextDelayMs);
   setWorkflowRecordingMuted(true);
   notifyPlaybackListeners();
 }
@@ -144,6 +152,7 @@ export function clearPlayback(): void {
   segmentStartedAt = null;
   sessionLoaded = false;
   workflowUuid = '';
+  delayMs = 0;
   setWorkflowRecordingMuted(false);
   notifyPlaybackListeners();
 }
@@ -231,6 +240,42 @@ export function setPlaybackGapless(next: boolean): void {
   }
   gapless = next;
   notifyPlaybackListeners();
+}
+
+/**
+ * Returns the configured pause between consecutive playback actions.
+ *
+ * @returns Delay in milliseconds.
+ */
+export function getPlaybackDelayMs(): number {
+  return delayMs;
+}
+
+/**
+ * Sets the pause between consecutive playback actions for the loaded session.
+ *
+ * @param next - Delay in milliseconds; invalid values become 0.
+ */
+export function setPlaybackDelayMs(next: number): void {
+  const normalized = normalizeDelayMs(next);
+  if (delayMs === normalized) {
+    return;
+  }
+  delayMs = normalized;
+  notifyPlaybackListeners();
+}
+
+/**
+ * Normalizes a playback delay to a non-negative integer milliseconds value.
+ *
+ * @param value - Raw delay candidate.
+ * @returns Clamped delay in milliseconds.
+ */
+function normalizeDelayMs(value: number): number {
+  if (!Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return Math.floor(value);
 }
 
 /**
@@ -345,6 +390,8 @@ export function getPlaybackRegistryEntry(eventType: string): WorkflowRegistryCor
  *
  * In gapless mode, each action runs as soon as the previous await finishes.
  * In gapped mode, waits until the recorded relative `at` time before each step.
+ * When {@link delayMs} is greater than zero, waits that long after each completed
+ * step before advancing to the next action.
  *
  * @param ctx - Redux dispatch / getState for play handlers.
  * @returns Resolves when stopped or finished; rejects when a step fails.
@@ -406,6 +453,16 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
         notifyPlaybackListeners();
         break;
       }
+
+      if (delayMs > 0 && nextIndex < actions.length) {
+        const completed = await waitGapMs(delayMs, generation);
+        if (!completed || !playing || generation !== playGeneration) {
+          index = nextIndex;
+          notifyPlaybackListeners();
+          return;
+        }
+      }
+
       index = nextIndex;
       notifyPlaybackListeners();
     }
@@ -435,6 +492,7 @@ export function resetWorkflowPlaybackForTests(): void {
   sessionLoaded = false;
   workflowUuid = '';
   gapless = true;
+  delayMs = 0;
   setWorkflowRecordingMuted(false);
   playbackListeners.clear();
   resetWorkflowScriptContextForTests();

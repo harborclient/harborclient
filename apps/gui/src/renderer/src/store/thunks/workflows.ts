@@ -61,6 +61,7 @@ export const createWorkflowFromSession = createAsyncThunk<void, string, ThunkApi
         name: trimmed,
         uuid,
         durationMs,
+        delayMs: 0,
         variables: {},
         actions
       });
@@ -113,15 +114,16 @@ export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
  */
 export const updateWorkflowActions = createAsyncThunk<
   void,
-  { id: number; actions: WorkflowAction[]; durationMs: number },
+  { id: number; actions: WorkflowAction[]; durationMs: number; delayMs: number },
   ThunkApiConfig
->('workflows/updateActions', async ({ id, actions, durationMs }, { dispatch }) => {
+>('workflows/updateActions', async ({ id, actions, durationMs, delayMs }, { dispatch }) => {
   const sanitized = sanitizeWorkflowActions(actions);
   const nextDurationMs = sanitized.length === 0 ? 0 : durationMs;
   const items = await window.api.updateWorkflow({
     id,
     actions: sanitized,
-    durationMs: nextDurationMs
+    durationMs: nextDurationMs,
+    delayMs
   });
   dispatch(setWorkflows(items));
   emitPluginWorkflowsChanged({ reason: 'updated', workflowId: id });
@@ -145,7 +147,8 @@ export const exportWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
       name: workflow.name,
       variables: workflow.variables,
       actions: sanitizeWorkflowActions(workflow.actions),
-      durationMs: workflow.durationMs
+      durationMs: workflow.durationMs,
+      delayMs: workflow.delayMs
     });
     const saved = await window.api.saveTextFile(
       JSON.stringify(envelope, null, 2),

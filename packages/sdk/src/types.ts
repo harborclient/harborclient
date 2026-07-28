@@ -2299,6 +2299,8 @@ export interface HostWorkflow {
   name: string;
   /** Accumulated recording duration in milliseconds. */
   durationMs: number;
+  /** Pause between consecutive actions during playback, in milliseconds. */
+  delayMs: number;
   /** Workflow-scoped variables for parameterization. */
   variables: Record<string, string>;
   /** Ordered recorded actions. */
@@ -2319,6 +2321,8 @@ export interface CreateWorkflowPayload {
   uuid?: string;
   /** Accumulated recording duration in milliseconds. */
   durationMs: number;
+  /** Optional pause between consecutive actions during playback, in milliseconds. */
+  delayMs?: number;
   /** Optional workflow variables; defaults to an empty object. */
   variables?: Record<string, string>;
   /** Ordered recorded actions to persist. */
@@ -2337,6 +2341,8 @@ export interface UpdateWorkflowPayload {
   actions: WorkflowActionRef[];
   /** Accumulated recording duration in milliseconds. */
   durationMs: number;
+  /** Pause between consecutive actions during playback, in milliseconds. */
+  delayMs: number;
 }
 
 /**

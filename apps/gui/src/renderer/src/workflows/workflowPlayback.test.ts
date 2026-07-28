@@ -456,6 +456,48 @@ describe('workflowPlayback cursor', () => {
     expect(isPlaying()).toBe(false);
     vi.useRealTimers();
   });
+
+  it('waits delayMs between completed steps', async () => {
+    vi.useFakeTimers();
+
+    const order: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          order.push(typed.payload as number);
+        }
+      }
+      return action;
+    });
+
+    loadPlayback(
+      [
+        a('environment.activate', { environmentId: 1 }),
+        a('environment.activate', { environmentId: 2 })
+      ],
+      '',
+      200
+    );
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(order).toEqual([1]);
+
+    await vi.advanceTimersByTimeAsync(199);
+    expect(order).toEqual([1]);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await playPromise;
+
+    expect(order).toEqual([1, 2]);
+    expect(isPlaying()).toBe(false);
+    vi.useRealTimers();
+  });
 });
 
 describe('mergeWorkflowDraftPayload', () => {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add delayMs property to workflow management for enhanced playback control. (`eff9c395`)
 - Enhance workflow execution and metadata handling. (`1390072c`)
 - Enhance workflow action management with UUID integration. (`9647b650`)
 - Enhance workflow management and plugin integration. (`e55d2821`)

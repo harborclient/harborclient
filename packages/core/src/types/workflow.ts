@@ -50,6 +50,11 @@ export interface Workflow {
   durationMs: number;
 
   /**
+   * Pause between consecutive actions during playback, in milliseconds.
+   */
+  delayMs: number;
+
+  /**
    * Workflow-scoped variables for future parameterization.
    */
   variables: Record<string, string>;
@@ -90,6 +95,12 @@ export interface CreateWorkflowInput {
   durationMs: number;
 
   /**
+   * Optional pause between consecutive actions during playback, in milliseconds.
+   * Defaults to 0 when omitted.
+   */
+  delayMs?: number;
+
+  /**
    * Optional workflow variables; defaults to an empty object.
    */
   variables?: Record<string, string>;
@@ -118,6 +129,11 @@ export interface UpdateWorkflowInput {
    * Accumulated recording duration in milliseconds.
    */
   durationMs: number;
+
+  /**
+   * Pause between consecutive actions during playback, in milliseconds.
+   */
+  delayMs: number;
 }
 
 /**
@@ -158,6 +174,11 @@ export interface WorkflowExport {
    * Optional recording duration in milliseconds.
    */
   durationMs?: number;
+
+  /**
+   * Optional pause between consecutive actions during playback, in milliseconds.
+   */
+  delayMs?: number;
 }
 
 const workflowActionSchema = z.object({
@@ -177,7 +198,8 @@ export const workflowExportSchema = z.object({
   name: z.string().trim().min(1),
   variables: z.record(z.string(), z.string()).default({}),
   actions: z.array(workflowActionSchema),
-  durationMs: z.number().finite().nonnegative().optional()
+  durationMs: z.number().finite().nonnegative().optional(),
+  delayMs: z.number().finite().nonnegative().optional()
 }) satisfies z.ZodType<WorkflowExport>;
 
 /**
@@ -203,6 +225,7 @@ export function buildWorkflowExport(input: {
   variables?: Record<string, string>;
   actions: WorkflowAction[];
   durationMs?: number;
+  delayMs?: number;
 }): WorkflowExport {
   return {
     harborclientVersion: 1,
@@ -211,6 +234,21 @@ export function buildWorkflowExport(input: {
     name: input.name,
     variables: input.variables ?? {},
     actions: input.actions,
-    ...(input.durationMs != null ? { durationMs: input.durationMs } : {})
+    ...(input.durationMs != null ? { durationMs: input.durationMs } : {}),
+    ...(input.delayMs != null ? { delayMs: input.delayMs } : {})
   };
+}
+
+/**
+ * Normalizes a workflow inter-step delay to a non-negative integer milliseconds value.
+ *
+ * @param value - Raw delay candidate.
+ * @returns Clamped delay in milliseconds; invalid or missing values become 0.
+ */
+export function normalizeWorkflowDelayMs(value: unknown): number {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return 0;
+  }
+  return Math.floor(numeric);
 }

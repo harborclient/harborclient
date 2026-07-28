@@ -31,6 +31,7 @@ import type {
   WorkspaceRequest,
   Variable
 } from '@harborclient/core/types';
+import { normalizeWorkflowDelayMs } from '@harborclient/core/types';
 import {
   normalizeWorkspaceLayout,
   serializeWorkspaceLayout
@@ -52,6 +53,10 @@ const WORKFLOW_COLUMNS = 'id, uuid, name, payload, duration_ms, sort_order, crea
 interface WorkflowPayloadJson {
   variables: Record<string, string>;
   actions: WorkflowAction[];
+  /**
+   * Pause between consecutive actions during playback, in milliseconds.
+   */
+  delayMs?: number;
 }
 
 /**
@@ -2587,10 +2592,11 @@ export class LocalDatabase {
                 }
               ];
             })
-          : []
+          : [],
+        delayMs: normalizeWorkflowDelayMs(parsed.delayMs)
       };
     } catch {
-      return { variables: {}, actions: [] };
+      return { variables: {}, actions: [], delayMs: 0 };
     }
   }
 
@@ -2620,6 +2626,7 @@ export class LocalDatabase {
         uuid: row.uuid,
         name: row.name,
         durationMs: row.duration_ms,
+        delayMs: payload.delayMs ?? 0,
         variables: payload.variables,
         actions: payload.actions,
         createdAt: row.created_at,
@@ -2650,9 +2657,11 @@ export class LocalDatabase {
     const trimmedName = trimRequiredName(input.name, 'Workflow name');
     const now = Date.now();
     const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
+    const delayMs = normalizeWorkflowDelayMs(input.delayMs);
     const payload = JSON.stringify({
       variables: input.variables ?? {},
-      actions: input.actions
+      actions: input.actions,
+      delayMs
     } satisfies WorkflowPayloadJson);
 
     this.getDb()
@@ -2689,23 +2698,29 @@ export class LocalDatabase {
   }
 
   /**
-   * Updates a workflow's actions and duration and returns the refreshed list.
+   * Updates a workflow's actions, duration, and delay and returns the refreshed list.
    *
    * @param id - Workflow id.
-   * @param input - New actions and duration (variables and name are preserved).
+   * @param input - New actions, duration, and delay (variables and name are preserved).
    * @returns Updated workflow list.
    * @throws When the workflow id does not exist.
    */
-  updateWorkflow(id: number, input: { actions: WorkflowAction[]; durationMs: number }): Workflow[] {
+  updateWorkflow(
+    id: number,
+    input: { actions: WorkflowAction[]; durationMs: number; delayMs?: number }
+  ): Workflow[] {
     const existing = this.listWorkflows().find((workflow) => workflow.id === id);
     if (!existing) {
       throw new Error(`Workflow not found: ${id}`);
     }
 
     const now = Date.now();
+    const delayMs =
+      input.delayMs === undefined ? existing.delayMs : normalizeWorkflowDelayMs(input.delayMs);
     const payload = JSON.stringify({
       variables: existing.variables,
-      actions: input.actions
+      actions: input.actions,
+      delayMs
     } satisfies WorkflowPayloadJson);
 
     this.getDb()

@@ -44,6 +44,7 @@ import {
   clearPlayback,
   getPlaybackActionCount,
   getPlaybackActions,
+  getPlaybackDelayMs,
   getPlaybackElapsedMs,
   getPlaybackIndex,
   isPlaybackGapless,
@@ -52,6 +53,7 @@ import {
   replacePlaybackActions,
   restartPlayback,
   seekPlaybackTo,
+  setPlaybackDelayMs,
   setPlaybackGapless,
   startPlayback,
   stepPlaybackCursor,
@@ -123,6 +125,11 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   const [dirty, setDirty] = useState(false);
 
   /**
+   * Draft inter-step delay for the open play/run session.
+   */
+  const [delayMs, setDelayMs] = useState(0);
+
+  /**
    * Index of the action whose payload is open in the JSON editor, or null when closed.
    */
   const [payloadEditIndex, setPayloadEditIndex] = useState<number | null>(null);
@@ -139,6 +146,11 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     setDirtyScope({ mode: dialogMode, id: playbackWorkflowId });
     setDirty(false);
     setPayloadEditIndex(null);
+    const workflowDelay =
+      playbackWorkflowId == null
+        ? 0
+        : (workflows.find((item) => item.id === playbackWorkflowId)?.delayMs ?? 0);
+    setDelayMs(workflowDelay);
   }
 
   /**
@@ -257,7 +269,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     }
 
     stopRecording();
-    loadPlayback(workflow.actions, workflow.uuid);
+    loadPlayback(workflow.actions, workflow.uuid, workflow.delayMs);
   }, [dialogMode, dispatch, playbackWorkflowId, store]);
 
   /**
@@ -448,6 +460,18 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }, []);
 
   /**
+   * Updates the inter-step delay draft and marks the play buffer dirty.
+   *
+   * @param nextDelayMs - Delay in milliseconds between consecutive actions.
+   */
+  const handleDelayMsChange = useCallback((nextDelayMs: number): void => {
+    setDelayMs(nextDelayMs);
+    setPlaybackDelayMs(nextDelayMs);
+    setDirty(true);
+    setPlaybackTick((tick) => tick + 1);
+  }, []);
+
+  /**
    * Applies a timeline edit to the playback buffer without persisting.
    *
    * @param nextActions - Actions after the edit.
@@ -529,7 +553,8 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
         updateWorkflowActions({
           id: playbackWorkflowId,
           actions,
-          durationMs
+          durationMs,
+          delayMs: getPlaybackDelayMs()
         })
       ).unwrap();
       setDirty(false);
@@ -797,10 +822,12 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
                 playing={playing}
                 actionIndex={playbackIndex}
                 actionCount={playbackActionCount}
+                delayMs={delayMs}
                 onTogglePlay={handleTogglePlay}
                 onRewind={handleRewind}
                 onFastForward={handleFastForward}
                 onRestart={handleRestart}
+                onDelayMsChange={handleDelayMsChange}
                 compact
               />
               <WorkflowEditControls

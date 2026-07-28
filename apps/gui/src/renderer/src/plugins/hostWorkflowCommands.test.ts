@@ -36,6 +36,7 @@ function makeWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     uuid: 'wf-1',
     name: 'Smoke',
     durationMs: 1200,
+    delayMs: 0,
     variables: { env: 'dev' },
     actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { requestId: 3 } }],
     createdAt: 1_700_000_000_000,
@@ -89,6 +90,7 @@ describe('hostWorkflowCommands mappers', () => {
       uuid: 'wf-1',
       name: 'Smoke',
       durationMs: 1200,
+      delayMs: 0,
       variables: { env: 'dev' },
       actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { requestId: 3 } }],
       createdAt: 1_700_000_000_000,
@@ -127,16 +129,18 @@ describe('hostWorkflowCommands CRUD', () => {
   });
 
   it('updates a workflow', async () => {
-    const updated = makeWorkflow({ durationMs: 50, actions: [] });
+    const updated = makeWorkflow({ durationMs: 50, delayMs: 100, actions: [] });
     updateWorkflowMock.mockResolvedValue([updated]);
 
     const result = await updateWorkflowForPlugin({
       id: 1,
       durationMs: 50,
+      delayMs: 100,
       actions: []
     });
 
     expect(result.durationMs).toBe(50);
+    expect(result.delayMs).toBe(100);
     expect(pushPluginWorkflowsChangedMock).toHaveBeenCalledWith({
       reason: 'updated',
       workflowId: 1

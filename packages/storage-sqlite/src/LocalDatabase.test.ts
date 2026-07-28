@@ -767,6 +767,7 @@ describeSqlite('LocalDatabase workflows', () => {
       name: 'Login flow',
       uuid: 'wf-uuid-1',
       durationMs: 4_200,
+      delayMs: 0,
       variables: { stage: 'qa' },
       actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
     });
@@ -787,6 +788,7 @@ describeSqlite('LocalDatabase workflows', () => {
       name: 'Login flow',
       uuid: 'wf-uuid-2',
       durationMs: 4_200,
+      delayMs: 150,
       variables: { stage: 'qa' },
       actions: [
         { uuid: 'action-load', type: 'request.load', at: 10, payload: { uuid: 'req-1' } },
@@ -794,8 +796,11 @@ describeSqlite('LocalDatabase workflows', () => {
       ]
     });
 
+    expect(created[0]?.delayMs).toBe(150);
+
     const updated = database.updateWorkflow(created[0]!.id, {
       durationMs: 4_200,
+      delayMs: 300,
       actions: [
         { uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
         { uuid: 'action-load', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
@@ -807,6 +812,7 @@ describeSqlite('LocalDatabase workflows', () => {
       name: 'Login flow',
       uuid: 'wf-uuid-2',
       durationMs: 4_200,
+      delayMs: 300,
       variables: { stage: 'qa' },
       actions: [
         { uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
@@ -814,6 +820,30 @@ describeSqlite('LocalDatabase workflows', () => {
       ]
     });
     expect(updated[0]!.updatedAt).toBeGreaterThanOrEqual(created[0]!.updatedAt);
+  });
+
+  it('defaults missing delayMs to 0 for legacy workflow payloads', async () => {
+    const { database, rootDir } = await createRegistry();
+
+    const created = database.createWorkflow({
+      name: 'Legacy delay',
+      uuid: 'wf-legacy-delay',
+      durationMs: 100,
+      actions: [{ uuid: 'action-1', type: 'request.send', at: 1, payload: {} }]
+    });
+
+    const raw = new Database(join(rootDir, 'harborclient-registry.db'));
+    raw.prepare(`UPDATE workflows SET payload = ? WHERE id = ?`).run(
+      JSON.stringify({
+        variables: {},
+        actions: [{ uuid: 'action-1', type: 'request.send', at: 1, payload: {} }]
+      }),
+      created[0]!.id
+    );
+    raw.close();
+
+    const listed = database.listWorkflows();
+    expect(listed[0]?.delayMs).toBe(0);
   });
 
   it('backfills missing action uuids when loading workflows', async () => {
