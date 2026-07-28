@@ -4,14 +4,16 @@ import {
   CodeEditor,
   FieldError,
   FormGroup,
+  Input,
   Modal,
   ModalFooter
 } from '@harborclient/sdk/components';
 import { useCallback, useId, useMemo, useState, type JSX } from 'react';
+import toast from 'react-hot-toast';
 
 interface Props {
   /**
-   * Timeline action whose payload is being edited.
+   * Timeline action being edited.
    */
   action: WorkflowAction;
 
@@ -45,16 +47,18 @@ function parsePayloadDraft(
 }
 
 /**
- * Blocking editor for a workflow action payload as pretty-printed JSON.
+ * Blocking editor for a workflow action's identity and JSON payload.
  *
- * Update applies the parsed payload to the parent timeline buffer only; it does
- * not persist until the workflow Save control runs.
+ * Shows a readonly action uuid (with copy) and a payload CodeEditor. Update
+ * applies the parsed payload to the parent timeline buffer only; it does not
+ * persist until the workflow Save control runs.
  *
  * @param props - Action to edit and close/update handlers.
- * @returns Modal with a JSON CodeEditor and Update/Cancel actions.
+ * @returns Modal with uuid field, JSON CodeEditor, and Update/Cancel actions.
  */
 export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props): JSX.Element {
   const titleId = 'workflow-action-payload-title';
+  const uuidId = useId();
   const editorId = useId();
   const errorId = useId();
 
@@ -68,6 +72,7 @@ export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props)
 
   const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   /**
    * Updates the draft string and clears a stale parse error while typing.
@@ -78,6 +83,23 @@ export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props)
     setDraft(nextDraft);
     setError(null);
   }, []);
+
+  /**
+   * Copies the action uuid to the clipboard and briefly shows a Copied label.
+   */
+  const handleCopyUuid = useCallback((): void => {
+    void navigator.clipboard.writeText(action.uuid).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      },
+      () => {
+        toast.error('Failed to copy');
+      }
+    );
+  }, [action.uuid]);
 
   /**
    * Parses the draft and applies it when valid; otherwise shows an inline error.
@@ -99,22 +121,46 @@ export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props)
       overlayClassName="z-[70]"
       labelledBy={titleId}
       onClose={onClose}
-      title="Edit action payload"
-      description={`JSON payload for “${action.type}”. Changes apply to the timeline only until you save the workflow.`}
+      title="Edit action"
+      description={`Action “${action.type}”. Changes apply to the timeline only until you save the workflow.`}
     >
-      <FormGroup label="Payload JSON" htmlFor={editorId}>
-        <CodeEditor
-          id={editorId}
-          value={draft}
-          onChange={handleDraftChange}
-          language="json"
-          placeholder={'{\n  "key": "value"\n}'}
-          minHeight="240px"
-          aria-label="Action payload JSON"
-          aria-invalid={hasError}
-          aria-describedby={hasError ? errorId : undefined}
-        />
-      </FormGroup>
+      <div className="flex flex-col gap-4">
+        <FormGroup label="UUID" htmlFor={uuidId}>
+          <div className="flex gap-2">
+            <Input
+              id={uuidId}
+              type="text"
+              readOnly
+              className="min-w-0 flex-1 font-mono text-[14px]"
+              value={action.uuid}
+              aria-label="Action UUID"
+              onFocus={(event) => event.target.select()}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label="Copy action UUID"
+              onClick={handleCopyUuid}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+        </FormGroup>
+
+        <FormGroup label="Payload JSON" htmlFor={editorId}>
+          <CodeEditor
+            id={editorId}
+            value={draft}
+            onChange={handleDraftChange}
+            language="json"
+            placeholder={'{\n  "key": "value"\n}'}
+            minHeight="240px"
+            aria-label="Action payload JSON"
+            aria-invalid={hasError}
+            aria-describedby={hasError ? errorId : undefined}
+          />
+        </FormGroup>
+      </div>
 
       {hasError ? (
         <FieldError id={errorId} spacing="section" className="mt-3">

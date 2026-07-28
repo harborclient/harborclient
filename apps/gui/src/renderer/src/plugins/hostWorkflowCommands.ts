@@ -41,6 +41,7 @@ export function toHostWorkflow(workflow: Workflow): HostWorkflow {
     variables: { ...workflow.variables },
     actions: workflow.actions.map(
       (action): WorkflowActionRef => ({
+        uuid: action.uuid,
         type: action.type,
         ...(action.at != null ? { at: action.at } : {}),
         payload: action.payload

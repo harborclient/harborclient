@@ -26,6 +26,11 @@ export interface WorkflowThumbnailCtx {
  */
 export interface WorkflowEvent {
   /**
+   * Stable identifier for this action; used when other actions refer to it.
+   */
+  uuid: string;
+
+  /**
    * Stable logical event name (not the raw Redux action type).
    */
   type: string;

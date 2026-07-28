@@ -10,7 +10,7 @@ import type { WorkflowEvent } from './workflowEventTypes';
  * @returns Workflow event.
  */
 function makeEvent(type: string, payload: unknown = null): WorkflowEvent {
-  return { type, at: 1, payload };
+  return { uuid: `event-${type}`, type, at: 1, payload };
 }
 
 describe('WorkflowCoalescer', () => {

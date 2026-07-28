@@ -16,7 +16,7 @@ import {
  * @returns Workflow action.
  */
 function action(id: number): WorkflowAction {
-  return { type: `step.${id}`, payload: { id } };
+  return { uuid: `action-${id}`, type: `step.${id}`, payload: { id } };
 }
 
 describe('canMoveWorkflowAction', () => {
@@ -68,12 +68,12 @@ describe('deleteWorkflowActionAt', () => {
 describe('updateWorkflowActionPayloadAt', () => {
   it('replaces only the payload at the given index', () => {
     const actions: WorkflowAction[] = [
-      { type: 'step.1', at: 10, payload: { id: 1 } },
-      { type: 'step.2', at: 20, payload: { id: 2 } }
+      { uuid: 'action-1', type: 'step.1', at: 10, payload: { id: 1 } },
+      { uuid: 'action-2', type: 'step.2', at: 20, payload: { id: 2 } }
     ];
     expect(updateWorkflowActionPayloadAt(actions, 1, { id: 99, name: 'updated' })).toEqual([
-      { type: 'step.1', at: 10, payload: { id: 1 } },
-      { type: 'step.2', at: 20, payload: { id: 99, name: 'updated' } }
+      { uuid: 'action-1', type: 'step.1', at: 10, payload: { id: 1 } },
+      { uuid: 'action-2', type: 'step.2', at: 20, payload: { id: 99, name: 'updated' } }
     ]);
   });
 

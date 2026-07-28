@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '@harborclient/core/auth';
-import type { SavedRequest } from '@harborclient/core/types';
+import type { SavedRequest, WorkflowAction } from '@harborclient/core/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 import { emptyKeyValue } from '#/renderer/src/store/tabs';
 import { loadRequest } from '#/renderer/src/store/slices/tabsSlice';
@@ -29,6 +29,22 @@ import {
   resetWorkflowRecorderForTests,
   startRecording
 } from './workflowRecorder';
+
+/**
+ * Builds a workflow action fixture with a stable uuid for playback tests.
+ *
+ * @param type - Logical event type.
+ * @param payload - Action payload.
+ * @param at - Optional wall-clock timestamp.
+ * @returns Workflow action with a deterministic uuid.
+ */
+function a(type: string, payload: unknown, at?: number): WorkflowAction {
+  const uuid =
+    at != null
+      ? `pb-${type}-${at}-${JSON.stringify(payload)}`
+      : `pb-${type}-${JSON.stringify(payload)}`;
+  return { uuid, type, ...(at != null ? { at } : {}), payload };
+}
 
 /**
  * Builds a minimal saved request for recording mute tests.
@@ -78,9 +94,9 @@ describe('workflowPlayback cursor', () => {
   it('clamps rewind and fast-forward without dispatching', () => {
     const dispatch = vi.fn();
     loadPlayback([
-      { type: 'environment.activate', payload: { environmentId: 1 } },
-      { type: 'environment.activate', payload: { environmentId: 2 } },
-      { type: 'environment.activate', payload: { environmentId: 3 } }
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 3 })
     ]);
 
     expect(getPlaybackIndex()).toBe(0);
@@ -95,38 +111,38 @@ describe('workflowPlayback cursor', () => {
 
   it('replacePlaybackActions updates actions and cursor without clearing elapsed time', () => {
     loadPlayback([
-      { type: 'environment.activate', payload: { environmentId: 1 } },
-      { type: 'environment.activate', payload: { environmentId: 2 } },
-      { type: 'environment.activate', payload: { environmentId: 3 } }
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 3 })
     ]);
     seekPlaybackTo(2);
     const elapsedBefore = getPlaybackElapsedMs();
 
     replacePlaybackActions(
       [
-        { type: 'environment.activate', payload: { environmentId: 2 } },
-        { type: 'environment.activate', payload: { environmentId: 1 } },
-        { type: 'environment.activate', payload: { environmentId: 3 } }
+        a('environment.activate', { environmentId: 2 }),
+        a('environment.activate', { environmentId: 1 }),
+        a('environment.activate', { environmentId: 3 })
       ],
       1
     );
 
     expect(getPlaybackIndex()).toBe(1);
     expect(getPlaybackActions()).toEqual([
-      { type: 'environment.activate', payload: { environmentId: 2 } },
-      { type: 'environment.activate', payload: { environmentId: 1 } },
-      { type: 'environment.activate', payload: { environmentId: 3 } }
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 3 })
     ]);
     expect(getPlaybackElapsedMs()).toBe(elapsedBefore);
   });
 
   it('replacePlaybackActions clamps the cursor when actions shrink', () => {
     loadPlayback([
-      { type: 'environment.activate', payload: { environmentId: 1 } },
-      { type: 'environment.activate', payload: { environmentId: 2 } }
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 })
     ]);
     seekPlaybackTo(2);
-    replacePlaybackActions([{ type: 'environment.activate', payload: { environmentId: 1 } }]);
+    replacePlaybackActions([a('environment.activate', { environmentId: 1 })]);
     expect(getPlaybackIndex()).toBe(1);
   });
 
@@ -145,8 +161,8 @@ describe('workflowPlayback cursor', () => {
     });
 
     loadPlayback([
-      { type: 'request.send', payload: { target: 'active' } },
-      { type: 'environment.activate', payload: { environmentId: 2 } }
+      a('request.send', { target: 'active' }),
+      a('environment.activate', { environmentId: 2 })
     ]);
 
     const playPromise = startPlayback({
@@ -180,8 +196,8 @@ describe('workflowPlayback cursor', () => {
     });
 
     loadPlayback([
-      { type: 'environment.activate', payload: { environmentId: 10 } },
-      { type: 'environment.activate', payload: { environmentId: 20 } }
+      a('environment.activate', { environmentId: 10 }),
+      a('environment.activate', { environmentId: 20 })
     ]);
 
     await startPlayback({
@@ -209,8 +225,8 @@ describe('workflowPlayback cursor', () => {
     });
 
     loadPlayback([
-      { type: 'request.send', payload: { target: 'active' } },
-      { type: 'environment.activate', payload: { environmentId: 2 } }
+      a('request.send', { target: 'active' }),
+      a('environment.activate', { environmentId: 2 })
     ]);
 
     const playPromise = startPlayback({
@@ -229,7 +245,7 @@ describe('workflowPlayback cursor', () => {
 
   it('mutes recording while a playback session is loaded', () => {
     startRecording();
-    loadPlayback([{ type: 'environment.activate', payload: { environmentId: 1 } }]);
+    loadPlayback([a('environment.activate', { environmentId: 1 })]);
     expect(isWorkflowRecordingMuted()).toBe(true);
 
     processWorkflowAction(loadRequest({ req: sampleRequest() }), () => ({}) as never);
@@ -245,9 +261,9 @@ describe('workflowPlayback cursor', () => {
   it('seekPlaybackTo clamps and does not dispatch', () => {
     const dispatch = vi.fn();
     loadPlayback([
-      { type: 'environment.activate', payload: { environmentId: 1 } },
-      { type: 'environment.activate', payload: { environmentId: 2 } },
-      { type: 'environment.activate', payload: { environmentId: 3 } }
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 3 })
     ]);
 
     seekPlaybackTo(2);
@@ -274,8 +290,8 @@ describe('workflowPlayback cursor', () => {
     });
 
     loadPlayback([
-      { type: 'request.send', payload: { target: 'active' } },
-      { type: 'environment.activate', payload: { environmentId: 2 } }
+      a('request.send', { target: 'active' }),
+      a('environment.activate', { environmentId: 2 })
     ]);
 
     const playPromise = startPlayback({
@@ -311,8 +327,8 @@ describe('workflowPlayback cursor', () => {
 
     const t0 = 1_000_000;
     loadPlayback([
-      { type: 'environment.activate', at: t0, payload: { environmentId: 1 } },
-      { type: 'environment.activate', at: t0 + 500, payload: { environmentId: 2 } }
+      a('environment.activate', { environmentId: 1 }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + 500)
     ]);
 
     const playPromise = startPlayback({
@@ -351,8 +367,8 @@ describe('workflowPlayback cursor', () => {
 
     const t0 = 2_000_000;
     loadPlayback([
-      { type: 'environment.activate', at: t0, payload: { environmentId: 1 } },
-      { type: 'environment.activate', at: t0 + 5_000, payload: { environmentId: 2 } }
+      a('environment.activate', { environmentId: 1 }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + 5_000)
     ]);
 
     const playPromise = startPlayback({

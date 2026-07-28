@@ -6,7 +6,7 @@ describe('buildWorkflowExport', () => {
     const envelope = buildWorkflowExport({
       uuid: 'wf-1',
       name: 'Morning checks',
-      actions: [{ type: 'request.load', at: 100, payload: { uuid: 'req-1' } }]
+      actions: [{ uuid: 'action-1', type: 'request.load', at: 100, payload: { uuid: 'req-1' } }]
     });
 
     expect(envelope).toEqual({
@@ -15,7 +15,7 @@ describe('buildWorkflowExport', () => {
       uuid: 'wf-1',
       name: 'Morning checks',
       variables: {},
-      actions: [{ type: 'request.load', at: 100, payload: { uuid: 'req-1' } }]
+      actions: [{ uuid: 'action-1', type: 'request.load', at: 100, payload: { uuid: 'req-1' } }]
     });
   });
 
@@ -25,7 +25,7 @@ describe('buildWorkflowExport', () => {
       name: 'With vars',
       variables: { env: 'qa' },
       durationMs: 12_500,
-      actions: [{ type: 'environment.setActive', payload: { id: 3 } }]
+      actions: [{ uuid: 'action-2', type: 'environment.setActive', payload: { id: 3 } }]
     });
 
     expect(envelope.variables).toEqual({ env: 'qa' });
@@ -41,7 +41,7 @@ describe('validateWorkflowExport', () => {
       uuid: 'wf-3',
       name: 'Valid',
       variables: {},
-      actions: [{ type: 'tabs.openPage', payload: { page: 'settings' } }],
+      actions: [{ uuid: 'action-3', type: 'tabs.openPage', payload: { page: 'settings' } }],
       durationMs: 1000
     });
 
@@ -80,7 +80,19 @@ describe('validateWorkflowExport', () => {
         harborclientExport: 'workflow',
         uuid: 'wf-6',
         name: 'Bad action',
-        actions: [{ type: '  ', payload: {} }]
+        actions: [{ uuid: 'action-6', type: '  ', payload: {} }]
+      })
+    ).toThrow();
+  });
+
+  it('rejects actions missing uuid', () => {
+    expect(() =>
+      validateWorkflowExport({
+        harborclientVersion: 1,
+        harborclientExport: 'workflow',
+        uuid: 'wf-7',
+        name: 'Missing action uuid',
+        actions: [{ type: 'request.send', payload: { target: 'active' } }]
       })
     ).toThrow();
   });

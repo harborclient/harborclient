@@ -38,7 +38,7 @@ interface Props {
   onMoveBehind: () => void;
 
   /**
-   * Opens the JSON payload editor for the targeted action.
+   * Opens the action editor for the targeted action.
    */
   onEditPayload: () => void;
 
@@ -54,7 +54,7 @@ interface Props {
 }
 
 /**
- * Context menu for a workflow timeline action (move, edit payload, delete).
+ * Context menu for a workflow timeline action (move, edit, delete).
  *
  * @param props - Target index, disable state, handlers, and anchor position.
  * @returns Cursor-positioned context menu.
@@ -71,7 +71,7 @@ export function WorkflowTimelineActionMenu({
   onClose
 }: Props): JSX.Element {
   /**
-   * Builds menu groups mirroring the toolbar edit controls plus payload edit.
+   * Builds menu groups mirroring the toolbar edit controls plus action edit.
    */
   const groups = useMemo((): MenuItem[][] => {
     /**
@@ -100,7 +100,7 @@ export function WorkflowTimelineActionMenu({
       ],
       [
         {
-          label: 'Edit payload',
+          label: 'Edit action',
           disabled: !canEdit,
           onSelect: onEditPayload
         }

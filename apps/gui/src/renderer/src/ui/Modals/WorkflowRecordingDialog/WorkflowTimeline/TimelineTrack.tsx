@@ -211,6 +211,7 @@ export function TimelineTrack({
             workflowId,
             actionIndex: segment.index,
             action: {
+              uuid: action.uuid,
               type: action.type,
               ...(action.at != null ? { at: action.at } : {}),
               payload: action.payload

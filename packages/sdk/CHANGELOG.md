@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance workflow action management with UUID integration. (`9647b650`)
 - Enhance workflow management and plugin integration. (`e55d2821`)
 - Implement workflow update functionality and enhance playback controls. (`443b20ec`)
 - Enhance environment variable management and UI readiness. (`abab021c`)

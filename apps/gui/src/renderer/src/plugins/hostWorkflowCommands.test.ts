@@ -37,7 +37,7 @@ function makeWorkflow(overrides: Partial<Workflow> = {}): Workflow {
     name: 'Smoke',
     durationMs: 1200,
     variables: { env: 'dev' },
-    actions: [{ type: 'request.load', at: 10, payload: { requestId: 3 } }],
+    actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { requestId: 3 } }],
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_001_000,
     ...overrides
@@ -90,7 +90,7 @@ describe('hostWorkflowCommands mappers', () => {
       name: 'Smoke',
       durationMs: 1200,
       variables: { env: 'dev' },
-      actions: [{ type: 'request.load', at: 10, payload: { requestId: 3 } }],
+      actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { requestId: 3 } }],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_001_000
     });

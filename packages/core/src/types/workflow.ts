@@ -5,6 +5,11 @@ import { z } from 'zod';
  */
 export interface WorkflowAction {
   /**
+   * Stable identifier for this action; used when other actions refer to it.
+   */
+  uuid: string;
+
+  /**
    * Stable logical event name (for example `request.load`).
    */
   type: string;
@@ -156,6 +161,7 @@ export interface WorkflowExport {
 }
 
 const workflowActionSchema = z.object({
+  uuid: z.string().trim().min(1),
   type: z.string().trim().min(1),
   at: z.number().finite().optional(),
   payload: z.unknown()

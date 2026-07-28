@@ -2548,6 +2548,9 @@ export class LocalDatabase {
   /**
    * Parses a workflow payload JSON string into variables and actions.
    *
+   * Legacy actions without a uuid receive a freshly minted one so callers always
+   * see a stable per-action identifier (persisted on the next save).
+   *
    * @param raw - JSON text from the workflows.payload column.
    * @returns Normalized payload fields.
    */
@@ -2566,12 +2569,24 @@ export class LocalDatabase {
               )
             : {},
         actions: Array.isArray(parsed.actions)
-          ? parsed.actions.filter(
-              (action): action is WorkflowAction =>
-                typeof action === 'object' &&
-                action != null &&
-                typeof (action as WorkflowAction).type === 'string'
-            )
+          ? parsed.actions.flatMap((action): WorkflowAction[] => {
+              if (typeof action !== 'object' || action == null) {
+                return [];
+              }
+              const candidate = action as Partial<WorkflowAction>;
+              if (typeof candidate.type !== 'string') {
+                return [];
+              }
+              const existingUuid = typeof candidate.uuid === 'string' ? candidate.uuid.trim() : '';
+              return [
+                {
+                  uuid: existingUuid.length > 0 ? existingUuid : generateDocumentUuid(),
+                  type: candidate.type,
+                  ...(typeof candidate.at === 'number' ? { at: candidate.at } : {}),
+                  payload: candidate.payload
+                }
+              ];
+            })
           : []
       };
     } catch {

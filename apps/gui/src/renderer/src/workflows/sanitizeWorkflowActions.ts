@@ -43,7 +43,21 @@ function sanitizeDraftPayload(payload: unknown): unknown {
 }
 
 /**
+ * Returns a non-empty action uuid from an existing action, or mints a new one.
+ *
+ * @param action - Event or action that may already carry a uuid.
+ * @returns Stable action uuid string.
+ */
+function resolveActionUuid(action: { uuid?: string }): string {
+  const existing = typeof action.uuid === 'string' ? action.uuid.trim() : '';
+  return existing.length > 0 ? existing : crypto.randomUUID();
+}
+
+/**
  * Normalizes recorder events or stored actions for portable export.
+ *
+ * Preserves each action's uuid when present; mints one for legacy actions that
+ * lack it so exports and persistence always include per-action identifiers.
  *
  * @param actions - Session events or persisted actions.
  * @returns Sanitized workflow actions.
@@ -52,6 +66,7 @@ export function sanitizeWorkflowActions(
   actions: readonly WorkflowEvent[] | readonly WorkflowAction[]
 ): WorkflowAction[] {
   return actions.map((action) => ({
+    uuid: resolveActionUuid(action),
     type: action.type,
     ...(typeof action.at === 'number' ? { at: action.at } : {}),
     payload: action.type === 'request.draft' ? sanitizeDraftPayload(action.payload) : action.payload

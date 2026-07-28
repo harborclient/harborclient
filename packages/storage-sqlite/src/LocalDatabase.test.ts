@@ -759,7 +759,7 @@ describeSqlite('LocalDatabase workflows', () => {
       uuid: 'wf-uuid-1',
       durationMs: 4_200,
       variables: { stage: 'qa' },
-      actions: [{ type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
+      actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
     });
 
     expect(created).toHaveLength(1);
@@ -768,7 +768,7 @@ describeSqlite('LocalDatabase workflows', () => {
       uuid: 'wf-uuid-1',
       durationMs: 4_200,
       variables: { stage: 'qa' },
-      actions: [{ type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
+      actions: [{ uuid: 'action-1', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
     });
 
     expect(database.listWorkflows()).toHaveLength(1);
@@ -789,16 +789,16 @@ describeSqlite('LocalDatabase workflows', () => {
       durationMs: 4_200,
       variables: { stage: 'qa' },
       actions: [
-        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } },
-        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } }
+        { uuid: 'action-load', type: 'request.load', at: 10, payload: { uuid: 'req-1' } },
+        { uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-1' } }
       ]
     });
 
     const updated = database.updateWorkflow(created[0]!.id, {
       durationMs: 4_200,
       actions: [
-        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
-        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
+        { uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
+        { uuid: 'action-load', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
       ]
     });
 
@@ -809,11 +809,40 @@ describeSqlite('LocalDatabase workflows', () => {
       durationMs: 4_200,
       variables: { stage: 'qa' },
       actions: [
-        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
-        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
+        { uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
+        { uuid: 'action-load', type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
       ]
     });
     expect(updated[0]!.updatedAt).toBeGreaterThanOrEqual(created[0]!.updatedAt);
+  });
+
+  it('backfills missing action uuids when loading workflows', async () => {
+    const { database, rootDir } = await createRegistry();
+
+    const created = database.createWorkflow({
+      name: 'Legacy',
+      uuid: 'wf-legacy',
+      durationMs: 100,
+      actions: [{ uuid: 'will-be-stripped', type: 'request.send', at: 1, payload: {} }]
+    });
+
+    // Simulate a legacy payload written without per-action uuids.
+    const raw = new Database(join(rootDir, 'harborclient-registry.db'));
+    raw.prepare(`UPDATE workflows SET payload = ? WHERE id = ?`).run(
+      JSON.stringify({
+        variables: {},
+        actions: [{ type: 'request.send', at: 1, payload: { target: 'active' } }]
+      }),
+      created[0]!.id
+    );
+    raw.close();
+
+    const listed = database.listWorkflows();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]!.actions[0]!.type).toBe('request.send');
+    expect(listed[0]!.actions[0]!.uuid).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
   });
 });
 

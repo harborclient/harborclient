@@ -743,6 +743,11 @@ export interface ScriptEditorActionContribution {
  */
 export interface WorkflowActionRef {
   /**
+   * Stable identifier for this action; used when other actions refer to it.
+   */
+  uuid: string;
+
+  /**
    * Stable logical event name (for example `request.load`).
    */
   type: string;

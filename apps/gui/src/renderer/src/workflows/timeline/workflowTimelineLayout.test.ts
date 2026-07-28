@@ -17,15 +17,15 @@ import {
  * @returns Workflow action.
  */
 function timed(at: number, type = 'environment.activate'): WorkflowAction {
-  return { type, at, payload: {} };
+  return { uuid: `timed-${at}`, type, at, payload: {} };
 }
 
 describe('layoutWorkflowTimeline', () => {
   it('uses equal widths when timestamps are missing', () => {
     const actions: WorkflowAction[] = [
-      { type: 'tab.new', payload: {} },
-      { type: 'tab.new', payload: {} },
-      { type: 'tab.new', payload: {} }
+      { uuid: 'a1', type: 'tab.new', payload: {} },
+      { uuid: 'a2', type: 'tab.new', payload: {} },
+      { uuid: 'a3', type: 'tab.new', payload: {} }
     ];
     const layout = layoutWorkflowTimeline(actions, 3000, 300);
     expect(layout.segments).toHaveLength(3);

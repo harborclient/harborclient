@@ -18,14 +18,14 @@ interface WorkflowRegistryMapEntry {
 }
 
 /**
- * Builds a workflow event with a fresh timestamp.
+ * Builds a workflow event with a fresh timestamp and uuid.
  *
  * @param type - Logical event type.
  * @param payload - Normalized payload.
- * @returns Timestamped workflow event.
+ * @returns Timestamped workflow event with a stable action uuid.
  */
 export function event(type: string, payload: unknown): WorkflowEvent {
-  return { type, at: Date.now(), payload };
+  return { uuid: crypto.randomUUID(), type, at: Date.now(), payload };
 }
 
 /**

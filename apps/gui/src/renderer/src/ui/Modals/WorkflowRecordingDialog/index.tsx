@@ -772,6 +772,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
                   action:
                     playbackIndex >= 0 && playbackIndex < playbackActionsList.length
                       ? {
+                          uuid: playbackActionsList[playbackIndex]!.uuid,
                           type: playbackActionsList[playbackIndex]!.type,
                           ...(playbackActionsList[playbackIndex]!.at != null
                             ? { at: playbackActionsList[playbackIndex]!.at }

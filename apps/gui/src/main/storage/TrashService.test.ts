@@ -89,7 +89,7 @@ describeSqlite('TrashService registry entities', () => {
       uuid: 'wf-trash-1',
       durationMs: 1_500,
       variables: { env: 'dev' },
-      actions: [{ type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
+      actions: [{ uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
     });
     const workflowId = workflows[0]!.id;
 
@@ -107,7 +107,7 @@ describeSqlite('TrashService registry entities', () => {
         uuid: 'wf-trash-1',
         durationMs: 1_500,
         variables: { env: 'dev' },
-        actions: [{ type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
+        actions: [{ uuid: 'action-send', type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
       })
     ]);
     expect(trash.listTrashItems()).toEqual([]);

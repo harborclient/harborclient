@@ -729,6 +729,7 @@ export const createWorkflowInput = z.object({
   variables: z.record(z.string(), z.string()).optional(),
   actions: z.array(
     z.object({
+      uuid: z.string().trim().min(1),
       type: z.string().trim().min(1),
       at: z.number().finite().optional(),
       payload: z.unknown()
@@ -741,6 +742,7 @@ export const updateWorkflowInput = z.object({
   durationMs: z.number().finite().nonnegative(),
   actions: z.array(
     z.object({
+      uuid: z.string().trim().min(1),
       type: z.string().trim().min(1),
       at: z.number().finite().optional(),
       payload: z.unknown()
