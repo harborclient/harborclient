@@ -6,8 +6,8 @@ import { fieldFrame } from '../forms/index.js';
 import { VariableInput } from './index.js';
 
 const sampleVariables: Variable[] = [
-  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', share: false },
-  { key: 'host', value: '', defaultValue: 'localhost', share: false }
+  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false },
+  { key: 'host', value: '', defaultValue: 'localhost', enabled: true, share: false }
 ];
 
 const meta = {

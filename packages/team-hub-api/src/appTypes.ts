@@ -48,6 +48,11 @@ export interface Variable {
   defaultValue: string;
 
   /**
+   * When false, the row is ignored at resolve time so a parent/lower scope can pass through.
+   */
+  enabled: boolean;
+
+  /**
    * When true, value is included in collection exports.
    */
   share: boolean;

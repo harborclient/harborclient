@@ -48,7 +48,7 @@ export function GlobalsSectionForm({
   const [variables, setVariables] = useState<Variable[]>(
     savedVariables.length
       ? savedVariables
-      : [{ key: '', value: '', defaultValue: '', share: false }]
+      : [{ key: '', value: '', defaultValue: '', enabled: true, share: false }]
   );
   const [saving, setSaving] = useState(false);
 

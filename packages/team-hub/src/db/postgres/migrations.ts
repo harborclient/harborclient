@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS environments (
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL
+  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  parent_uuid TEXT REFERENCES environments(id) ON DELETE SET NULL
 );
 `.trim();
 
@@ -452,6 +453,14 @@ export const DOCUMENTS_MARKER_MIGRATION_SQL = buildMarkerMigrationSql('documents
 export const ENVIRONMENTS_MARKER_MIGRATION_SQL = buildMarkerMigrationSql('environments');
 
 /**
+ * Adds nullable parent_uuid for environment inheritance on existing databases.
+ */
+export const ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL = `
+ALTER TABLE environments
+  ADD COLUMN IF NOT EXISTS parent_uuid TEXT REFERENCES environments(id) ON DELETE SET NULL;
+`.trim();
+
+/**
  * Ordered Postgres migrations applied by {@link PostgresDatabase.migrate}.
  */
 export const POSTGRES_MIGRATIONS = [
@@ -488,5 +497,6 @@ export const POSTGRES_MIGRATIONS = [
   FOLDERS_MARKER_MIGRATION_SQL,
   REQUESTS_MARKER_MIGRATION_SQL,
   DOCUMENTS_MARKER_MIGRATION_SQL,
-  ENVIRONMENTS_MARKER_MIGRATION_SQL
+  ENVIRONMENTS_MARKER_MIGRATION_SQL,
+  ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL
 ];

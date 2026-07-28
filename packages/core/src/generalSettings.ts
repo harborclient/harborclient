@@ -109,6 +109,10 @@ export function normalizeVariable(v: Partial<Variable>): Variable {
     key: typeof v.key === 'string' ? v.key : '',
     value: typeof v.value === 'string' ? v.value : '',
     defaultValue: typeof v.defaultValue === 'string' ? v.defaultValue : '',
+    /**
+     * Legacy rows without `enabled` remain active so existing data keeps working.
+     */
+    enabled: v.enabled !== false,
     share: v.share === true
   };
 }

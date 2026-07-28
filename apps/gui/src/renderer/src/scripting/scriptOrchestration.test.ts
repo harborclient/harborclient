@@ -35,8 +35,8 @@ describe('buildRuntimeVars', () => {
   it('resolves value and defaultValue', () => {
     expect(
       buildRuntimeVars([
-        { key: 'host', value: 'api.example.com', defaultValue: 'localhost', share: false },
-        { key: 'token', value: '', defaultValue: 'fallback', share: false }
+        { key: 'host', value: 'api.example.com', defaultValue: 'localhost', enabled: true, share: false },
+        { key: 'token', value: '', defaultValue: 'fallback', enabled: true, share: false }
       ])
     ).toEqual({
       host: 'api.example.com',
@@ -95,12 +95,12 @@ describe('applyCollectionVariableSets', () => {
   it('updates existing keys and appends new ones', () => {
     expect(
       applyCollectionVariableSets(
-        [{ key: 'token', value: 'old', defaultValue: 'fallback', share: false }],
+        [{ key: 'token', value: 'old', defaultValue: 'fallback', enabled: true, share: false }],
         { token: 'new', apiKey: 'secret' }
       )
     ).toEqual([
-      { key: 'token', value: 'new', defaultValue: 'fallback', share: false },
-      { key: 'apiKey', value: 'secret', defaultValue: '', share: false }
+      { key: 'token', value: 'new', defaultValue: 'fallback', enabled: true, share: false },
+      { key: 'apiKey', value: 'secret', defaultValue: '', enabled: true, share: false }
     ]);
   });
 });
@@ -110,12 +110,12 @@ describe('applyVariableClears', () => {
     expect(
       applyVariableClears(
         [
-          { key: 'token', value: 'abc', defaultValue: '', share: false },
-          { key: 'host', value: 'example.com', defaultValue: '', share: false }
+          { key: 'token', value: 'abc', defaultValue: '', enabled: true, share: false },
+          { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
         ],
         ['token']
       )
-    ).toEqual([{ key: 'host', value: 'example.com', defaultValue: '', share: false }]);
+    ).toEqual([{ key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }]);
   });
 });
 
@@ -302,7 +302,7 @@ describe('buildScriptSlots', () => {
 describe('script substitution chain', () => {
   it('uses updated runtime vars for later scripts', () => {
     let runtimeVars = buildRuntimeVars([
-      { key: 'token', value: '', defaultValue: 'initial', share: false }
+      { key: 'token', value: '', defaultValue: 'initial', enabled: true, share: false }
     ]);
     runtimeVars = mergeVariableSets(runtimeVars, { token: 'updated' });
 

@@ -917,7 +917,12 @@ export const ipcArgSchemas = {
   snippetLoadUnpackedFromPath: z.tuple([z.string().min(1)]),
   snippetPreviewFromGit: z.tuple([z.string().min(1), z.string().min(1).optional()]),
   snippetCatalogId: z.tuple([z.string().min(1)]),
-  environmentUpdate: z.tuple([dbId, name, z.array(variable)]),
+  environmentUpdate: z.tuple([
+    dbId,
+    name,
+    z.array(variable),
+    z.union([z.string().uuid(), z.null()]).optional()
+  ]),
   collectionMove: z.tuple([dbId, connectionId]),
   collectionReorder: z.tuple([z.array(dbId)]),
   environmentReorder: z.tuple([z.array(dbId)]),

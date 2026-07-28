@@ -182,7 +182,7 @@ describe('convertPostmanCollection', () => {
     expect(result.harborclientExport).toBe('collection');
     expect(result.name).toBe('Pintail');
     expect(result.variables).toEqual([
-      { key: 'base_url', value: '', defaultValue: '', share: true }
+      { key: 'base_url', value: '', defaultValue: '', enabled: true, share: true }
     ]);
     expect(result.auth?.type).toBe('bearer');
     expect(result.auth?.bearer.token).toBe('secret-token');

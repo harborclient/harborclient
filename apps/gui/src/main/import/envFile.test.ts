@@ -31,8 +31,8 @@ describe('parseDotenvEnvironment', () => {
       harborclientExport: 'environment',
       name: 'dev.env',
       variables: [
-        { key: 'API_URL', value: 'https://api.example.com', defaultValue: '', share: false },
-        { key: 'API_KEY', value: 'secret', defaultValue: '', share: false }
+        { key: 'API_URL', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false },
+        { key: 'API_KEY', value: 'secret', defaultValue: '', enabled: true, share: false }
       ]
     });
   });
@@ -44,8 +44,8 @@ describe('parseDotenvEnvironment', () => {
     );
 
     expect(result.variables).toEqual([
-      { key: 'HOST', value: 'localhost', defaultValue: '', share: false },
-      { key: 'PORT', value: '8080', defaultValue: '', share: false }
+      { key: 'HOST', value: 'localhost', defaultValue: '', enabled: true, share: false },
+      { key: 'PORT', value: '8080', defaultValue: '', enabled: true, share: false }
     ]);
     expect(result.name).toBe('.env');
   });
@@ -54,7 +54,7 @@ describe('parseDotenvEnvironment', () => {
     const result = parseDotenvEnvironment('MESSAGE="hello world"\n', 'prod.env');
 
     expect(result.variables).toEqual([
-      { key: 'MESSAGE', value: 'hello world', defaultValue: '', share: false }
+      { key: 'MESSAGE', value: 'hello world', defaultValue: '', enabled: true, share: false }
     ]);
   });
 

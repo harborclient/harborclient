@@ -85,5 +85,6 @@ export const variable = z.object({
   key: z.string(),
   value: z.string(),
   defaultValue: z.string(),
+  enabled: z.boolean().default(true),
   share: z.boolean()
 }) satisfies z.ZodType<Variable>;

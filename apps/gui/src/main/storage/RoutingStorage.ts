@@ -689,8 +689,13 @@ export class RoutingStorage implements IStorage {
   /**
    * Updates an environment in the hidden registry.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
-    return this.database.updateEnvironment(id, name, variables);
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
+    return this.database.updateEnvironment(id, name, variables, parentUuid);
   }
 
   /**

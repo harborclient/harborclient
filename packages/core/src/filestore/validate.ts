@@ -24,6 +24,7 @@ export function maskVariablesForExport(variables: Variable[]): Variable[] {
     key: v.key,
     value: v.share ? v.value : '',
     defaultValue: v.defaultValue,
+    enabled: v.enabled !== false,
     share: v.share
   }));
 }

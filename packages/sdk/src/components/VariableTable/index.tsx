@@ -10,7 +10,13 @@ import { cn } from '../utils.js';
 /**
  * Returns a blank variable row for new table entries.
  */
-const emptyVariable = (): Variable => ({ key: '', value: '', defaultValue: '', share: false });
+const emptyVariable = (): Variable => ({
+  key: '',
+  value: '',
+  defaultValue: '',
+  enabled: true,
+  share: false
+});
 
 interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'onChange'> {
   /**
@@ -35,7 +41,7 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'onCh
 }
 
 /**
- * Editable table for key/value/default/share variable rows.
+ * Editable table for key/value/default/share variable rows with an enable toggle.
  */
 export function VariableTable({
   variables,
@@ -50,6 +56,9 @@ export function VariableTable({
 
   /**
    * Updates a single variable row by index.
+   *
+   * @param index - Row index to patch.
+   * @param patch - Fields to merge into the row.
    */
   const updateVariable = (index: number, patch: Partial<Variable>): void => {
     onChange(variables.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -64,6 +73,8 @@ export function VariableTable({
 
   /**
    * Removes a variable row, keeping at least one empty row.
+   *
+   * @param index - Row index to remove.
    */
   const removeVariable = (index: number): void => {
     if (variables.length === 1) {
@@ -121,6 +132,9 @@ export function VariableTable({
         <Table>
           <TableHeader>
             <tr>
+              <TableHead className="w-6 p-0">
+                <span className="sr-only">Enable</span>
+              </TableHead>
               <TableHead>Key</TableHead>
               <TableHead>Value</TableHead>
               <TableHead>Default</TableHead>
@@ -131,6 +145,14 @@ export function VariableTable({
           <TableBody>
             {variables.map((variable, index) => (
               <tr key={index}>
+                <TableCell className="w-6 text-center">
+                  <Checkbox
+                    checked={variable.enabled !== false}
+                    onChange={(e) => updateVariable(index, { enabled: e.target.checked })}
+                    aria-label={`Enable, row ${index + 1}`}
+                    title="Enable variable"
+                  />
+                </TableCell>
                 <TableCell>
                   <Input
                     type="text"

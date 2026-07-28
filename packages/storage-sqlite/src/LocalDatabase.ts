@@ -11,6 +11,7 @@ import {
 import { trimRequiredName } from './trimRequiredName';
 import { generateDocumentUuid } from './uuid';
 import { migrateSidebarMarkerColumn, serializeSidebarMarker } from './sidebarMarkerMigration';
+import { wouldCreateEnvironmentInheritanceCycle } from '@harborclient/core/environmentTree';
 import { readSidebarMarker } from '@harborclient/core/sidebarMarker';
 import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '@harborclient/core/ai/chatTitle';
 import type {
@@ -41,7 +42,7 @@ import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/s
 import type { ScriptStage } from '@harborclient/sdk';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
 const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
 const WORKFLOW_COLUMNS = 'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at';
 
@@ -521,6 +522,7 @@ export class LocalDatabase {
     this.migrateRegistryArchived();
     this.migrateEnvironmentUuid();
     this.migrateEnvironmentSortOrder();
+    this.migrateEnvironmentParentUuid();
     this.migrateSnippetUuid();
     this.migrateSnippetScope();
     this.migrateSnippetStage();
@@ -1085,6 +1087,21 @@ export class LocalDatabase {
   }
 
   /**
+   * Adds nullable parent_uuid for environment inheritance on legacy databases.
+   */
+  private migrateEnvironmentParentUuid(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(environments)').all() as Array<{
+      name: string;
+    }>;
+    const hasParentUuid = columns.some((col) => col.name === 'parent_uuid');
+    if (hasParentUuid) {
+      return;
+    }
+
+    this.getDb().exec('ALTER TABLE environments ADD COLUMN parent_uuid TEXT');
+  }
+
+  /**
    * Flushes WAL pages into the main database file for consistent backup snapshots.
    */
   checkpointWal(): void {
@@ -1466,7 +1483,7 @@ export class LocalDatabase {
     const sortOrder = this.nextEnvironmentSortOrder();
     this.getDb()
       .prepare(
-        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at, marker) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO environments (id, uuid, name, variables, sort_order, created_at, marker, parent_uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       )
       .run(
         environment.id,
@@ -1475,7 +1492,8 @@ export class LocalDatabase {
         JSON.stringify(environment.variables),
         sortOrder,
         environment.created_at,
-        serializeSidebarMarker(environment.marker)
+        serializeSidebarMarker(environment.marker),
+        environment.parentUuid?.trim() || null
       );
 
     const row = this.getDb()
@@ -1486,18 +1504,53 @@ export class LocalDatabase {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
-  updateEnvironment(id: number, name: string, variables: Variable[]): Environment {
+  updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Environment {
     const trimmedName = trimRequiredName(name, 'Environment name');
-    this.getDb()
-      .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
-      .run(trimmedName, JSON.stringify(variables), id);
+    if (parentUuid === undefined) {
+      this.getDb()
+        .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
+        .run(trimmedName, JSON.stringify(variables), id);
+    } else {
+      const normalizedParent = parentUuid?.trim() || null;
+      if (normalizedParent) {
+        const parent = this.findEnvironmentByUuid(normalizedParent);
+        if (!parent) {
+          throw new Error(`Parent environment not found: ${normalizedParent}`);
+        }
+        if (parent.id === id) {
+          throw new Error('An environment cannot inherit from itself');
+        }
+        const current = this.listEnvironments().find((environment) => environment.id === id);
+        if (!current) {
+          throw new Error('Environment not found');
+        }
+        if (
+          wouldCreateEnvironmentInheritanceCycle(
+            current.uuid,
+            normalizedParent,
+            this.listEnvironments()
+          )
+        ) {
+          throw new Error('Environment inheritance cycle detected');
+        }
+      }
+      this.getDb()
+        .prepare('UPDATE environments SET name = ?, variables = ?, parent_uuid = ? WHERE id = ?')
+        .run(trimmedName, JSON.stringify(variables), normalizedParent, id);
+    }
 
     const row = this.getDb()
       .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
@@ -1544,17 +1597,27 @@ export class LocalDatabase {
     return this.updateEnvironment(
       created.id,
       copyName,
-      source.variables.map((variable) => ({ ...variable }))
+      source.variables.map((variable) => ({ ...variable })),
+      source.parentUuid ?? null
     );
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parent_uuid).
    *
    * @param id - Environment ID to delete.
    */
   deleteEnvironment(id: number): void {
-    this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
+    const source = this.listEnvironments().find((environment) => environment.id === id);
+    const deleteRow = this.getDb().transaction(() => {
+      if (source?.uuid) {
+        this.getDb()
+          .prepare('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?')
+          .run(source.uuid);
+      }
+      this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
+    });
+    deleteRow();
   }
 
   /**

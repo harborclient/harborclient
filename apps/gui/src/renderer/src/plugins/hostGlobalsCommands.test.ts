@@ -15,7 +15,7 @@ vi.mock('#/renderer/src/store/redux', () => ({
       settings: {
         general: {
           globalVariables: [
-            { key: 'TOKEN', value: 'abc', defaultValue: '', share: false, enabled: true }
+            { key: 'TOKEN', value: 'abc', defaultValue: '', enabled: true, share: false, enabled: true }
           ]
         }
       }
@@ -45,7 +45,7 @@ describe('setGlobalVariable', () => {
     expect(dispatchMock).toHaveBeenCalledWith({
       type: 'saveGlobalVariables',
       payload: [
-        { key: 'TOKEN', value: 'abc', defaultValue: '', share: false, enabled: true },
+        { key: 'TOKEN', value: 'abc', defaultValue: '', enabled: true, share: false, enabled: true },
         {
           key: 'echoBaseUrl',
           value: 'http://localhost:4335',
@@ -62,7 +62,7 @@ describe('setGlobalVariable', () => {
 
     expect(dispatchMock).toHaveBeenCalledWith({
       type: 'saveGlobalVariables',
-      payload: [{ key: 'TOKEN', value: 'next', defaultValue: '', share: false, enabled: true }]
+      payload: [{ key: 'TOKEN', value: 'next', defaultValue: '', enabled: true, share: false, enabled: true }]
     });
   });
 
@@ -74,7 +74,7 @@ describe('setGlobalVariable', () => {
 describe('getGlobalVariables', () => {
   it('reads globals from the settings slice', () => {
     expect(getGlobalVariables()).toEqual([
-      { key: 'TOKEN', value: 'abc', defaultValue: '', share: false, enabled: true }
+      { key: 'TOKEN', value: 'abc', defaultValue: '', enabled: true, share: false, enabled: true }
     ]);
   });
 });
@@ -85,7 +85,7 @@ describe('updateGlobalVariables', () => {
 
     expect(dispatchMock).toHaveBeenCalledWith({
       type: 'saveGlobalVariables',
-      payload: [{ key: 'ONLY', value: 'one', defaultValue: '', share: false }]
+      payload: [{ key: 'ONLY', value: 'one', defaultValue: '', enabled: true, share: false }]
     });
   });
 });

@@ -5,7 +5,7 @@ import type { FormDataPart, Variable } from '../../types.js';
 import { FormDataEditor } from './index.js';
 
 const sampleVariables: Variable[] = [
-  { key: 'username', value: 'demo', defaultValue: '', share: false }
+  { key: 'username', value: 'demo', defaultValue: '', enabled: true, share: false }
 ];
 
 const initialParts: FormDataPart[] = [

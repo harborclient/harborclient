@@ -513,7 +513,12 @@ export class GitStorage implements IStorage {
   /**
    * @inheritdoc
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     const existing = this.#environments.get(id);
     if (!existing) {
       throw new Error('Environment not found');
@@ -522,7 +527,8 @@ export class GitStorage implements IStorage {
     const updated: EnvironmentExport = {
       ...existing,
       name: trimmedName,
-      variables
+      variables,
+      ...(parentUuid === undefined ? {} : { parentUuid: parentUuid?.trim() || null })
     };
     deleteEnvironmentFile(this.#root, updated.uuid!);
     writeEnvironmentFile(this.#root, updated);
@@ -556,8 +562,17 @@ export class GitStorage implements IStorage {
     if (!existing) {
       throw new Error('Environment not found');
     }
-    deleteEnvironmentFile(this.#root, resolveImportUuid(existing.uuid));
-    delete this.#idIndex.environmentIds[resolveImportUuid(existing.uuid)];
+    const deletedUuid = resolveImportUuid(existing.uuid);
+    for (const [childId, child] of this.#environments) {
+      if (child.parentUuid === deletedUuid) {
+        const updated: EnvironmentExport = { ...child, parentUuid: null };
+        deleteEnvironmentFile(this.#root, updated.uuid!);
+        writeEnvironmentFile(this.#root, updated);
+        this.#environments.set(childId, updated);
+      }
+    }
+    deleteEnvironmentFile(this.#root, deletedUuid);
+    delete this.#idIndex.environmentIds[deletedUuid];
     this.#environments.delete(id);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
@@ -2212,7 +2227,8 @@ export class GitStorage implements IStorage {
       name: env.name,
       variables: env.variables,
       created_at: new Date().toISOString(),
-      marker: env.marker ?? null
+      marker: env.marker ?? null,
+      parentUuid: env.parentUuid ?? null
     };
   }
 

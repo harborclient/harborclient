@@ -6,7 +6,7 @@ import type { AutocompleteSource } from '../Autocomplete/types.js';
 import { KeyValueEditor } from './index.js';
 
 const sampleVariables: Variable[] = [
-  { key: 'token', value: 'abc123', defaultValue: '', share: false }
+  { key: 'token', value: 'abc123', defaultValue: '', enabled: true, share: false }
 ];
 
 const initialRows: KeyValue[] = [

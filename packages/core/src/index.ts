@@ -8,6 +8,7 @@
 export type * from './types';
 export * from './auth';
 export * from './environmentVariables';
+export * from './environmentTree';
 export * from './httpMethod';
 export * from './collectionRunner';
 export * from './scriptRefs';

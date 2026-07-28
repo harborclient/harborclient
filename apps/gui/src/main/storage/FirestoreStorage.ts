@@ -475,7 +475,8 @@ export class FirestoreStorage implements IStorage {
       name: trimmedName,
       variables: [] as Variable[],
       created_at: createdAt,
-      marker: null
+      marker: null,
+      parentUuid: null as string | null
     };
 
     await setDoc(doc(this.getFirestore(), 'environments', String(id)), data);
@@ -483,29 +484,39 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const ref = doc(this.getFirestore(), 'environments', String(id));
     const snap = await getDoc(ref);
     if (!snap.exists()) throw new Error('Environment not found');
 
     const existing = snap.data() as Record<string, unknown>;
+    const normalizedParent =
+      parentUuid === undefined ? undefined : parentUuid?.trim() || null;
     await updateDoc(ref, {
       name: trimmedName,
-      variables
+      variables,
+      ...(normalizedParent === undefined ? {} : { parentUuid: normalizedParent })
     });
 
     return docToEnvironment(id, {
       ...existing,
       name: trimmedName,
-      variables
+      variables,
+      ...(normalizedParent === undefined ? {} : { parentUuid: normalizedParent })
     });
   }
 
@@ -528,12 +539,28 @@ export class FirestoreStorage implements IStorage {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parentUuid).
    *
    * @param id - Environment ID to delete.
    */
   async deleteEnvironment(id: number): Promise<void> {
-    await deleteDoc(doc(this.getFirestore(), 'environments', String(id)));
+    const firestore = this.getFirestore();
+    const ref = doc(firestore, 'environments', String(id));
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const data = snap.data() as Record<string, unknown>;
+      const deletedUuid =
+        typeof data.uuid === 'string' && data.uuid.trim() !== '' ? data.uuid.trim() : null;
+      if (deletedUuid) {
+        const children = await getDocs(
+          query(collection(firestore, 'environments'), where('parentUuid', '==', deletedUuid))
+        );
+        for (const child of children.docs) {
+          await updateDoc(child.ref, { parentUuid: null });
+        }
+      }
+    }
+    await deleteDoc(ref);
   }
 
   /**

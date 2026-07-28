@@ -59,7 +59,7 @@ describeSqlite('TeamHubStorage', () => {
         {
           id: serverId,
           name: 'Team API',
-          variables: [{ key: 'base', value: 'https://example.com', defaultValue: '', share: true }],
+          variables: [{ key: 'base', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
           headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
           auth: {
             type: 'none',
@@ -89,7 +89,7 @@ describeSqlite('TeamHubStorage', () => {
           id: serverId,
           name: 'Production',
           variables: [
-            { key: 'host', value: 'https://api.example.com', defaultValue: '', share: true }
+            { key: 'host', value: 'https://api.example.com', defaultValue: '', enabled: true, share: true }
           ],
           createdAt: '2026-01-02T00:00:00.000Z'
         }
@@ -100,7 +100,7 @@ describeSqlite('TeamHubStorage', () => {
     expect(environment.id).toBe(1);
     expect(environment.name).toBe('Production');
     expect(environment.variables).toEqual([
-      { key: 'host', value: 'https://api.example.com', defaultValue: '', share: true }
+      { key: 'host', value: 'https://api.example.com', defaultValue: '', enabled: true, share: true }
     ]);
     expect(environment.uuid).toBe(serverId);
   });
@@ -444,7 +444,7 @@ describeSqlite('TeamHubStorage', () => {
     const collectionId = idMap.toLocalId('collection', collectionServerId);
     const folderId = idMap.toLocalId('folder', folderServerId);
     const variables = [
-      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: false }
     ];
 
     await db.updateFolder(
@@ -580,7 +580,7 @@ describeSqlite('TeamHubStorage', () => {
     await db.updateFolder(
       folderId,
       'Auth',
-      [{ key: 'token', value: 'secret', defaultValue: '', share: false }],
+      [{ key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }],
       [],
       '',
       '',
@@ -626,14 +626,14 @@ describeSqlite('TeamHubStorage', () => {
     const idMap = (db as unknown as { idMap: TeamHubIdMap }).idMap;
     const collectionId = idMap.toLocalId('collection', collectionServerId);
     const folderId = idMap.toLocalId('folder', folderServerId);
-    const variables = [{ key: 'plan', value: 'pro', defaultValue: '', share: false }];
+    const variables = [{ key: 'plan', value: 'pro', defaultValue: '', enabled: true, share: false }];
 
     await db.updateFolder(folderId, 'Billing', variables, [], '', '', defaultAuth(), '');
 
     const exported = await db.exportCollectionData(collectionId);
     expect(exported.folders ?? []).toHaveLength(1);
     expect(exported.folders?.[0]?.variables).toEqual([
-      { key: 'plan', value: '', defaultValue: '', share: false }
+      { key: 'plan', value: '', defaultValue: '', enabled: true, share: false }
     ]);
   });
 
@@ -658,7 +658,7 @@ describeSqlite('TeamHubStorage', () => {
       createdAt: '2026-01-01T00:00:00.000Z'
     };
     const variables = [
-      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+      { key: 'apiUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: false }
     ];
 
     const db = createStorage({
@@ -718,7 +718,7 @@ describeSqlite('TeamHubStorage', () => {
       postRequestScript: '',
       createdAt: '2026-01-01T00:00:00.000Z'
     };
-    const updatedVariables = [{ key: 'token', value: 'updated', defaultValue: '', share: false }];
+    const updatedVariables = [{ key: 'token', value: 'updated', defaultValue: '', enabled: true, share: false }];
 
     const db = createStorage({
       updateCollection: vi.fn().mockResolvedValue(collectionRecord),

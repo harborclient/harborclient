@@ -6,9 +6,9 @@ describe('buildSendRuntimeVars', () => {
   it('merges globals, collection, and environment with environment winning duplicates', () => {
     expect(
       buildSendRuntimeVars(
-        [{ key: 'host', value: 'global.example', defaultValue: '', share: false }],
-        [{ key: 'host', value: 'collection.example', defaultValue: '', share: false }],
-        [{ key: 'host', value: 'env.example', defaultValue: '', share: false }]
+        [{ key: 'host', value: 'global.example', defaultValue: '', enabled: true, share: false }],
+        [{ key: 'host', value: 'collection.example', defaultValue: '', enabled: true, share: false }],
+        [{ key: 'host', value: 'env.example', defaultValue: '', enabled: true, share: false }]
       )
     ).toEqual({
       host: 'env.example'

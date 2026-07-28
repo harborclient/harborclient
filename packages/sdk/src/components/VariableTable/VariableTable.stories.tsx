@@ -5,8 +5,14 @@ import type { Variable } from '../../types.js';
 import { VariableTable } from './index.js';
 
 const initialVariables: Variable[] = [
-  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', share: true },
-  { key: 'apiKey', value: '', defaultValue: 'dev-key', share: false }
+  {
+    key: 'baseUrl',
+    value: 'https://api.example.com',
+    defaultValue: '',
+    enabled: true,
+    share: true
+  },
+  { key: 'apiKey', value: '', defaultValue: 'dev-key', enabled: true, share: false }
 ];
 
 const meta = {
@@ -31,7 +37,7 @@ export const Default: Story = {
 
 export const WithDescription: Story = {
   args: {
-    variables: [{ key: '', value: '', defaultValue: '', share: false }],
+    variables: [{ key: '', value: '', defaultValue: '', enabled: true, share: false }],
     description: 'Variables are substituted into requests using {{key}} syntax.'
   },
   render: (args) => {
@@ -42,7 +48,7 @@ export const WithDescription: Story = {
 
 export const SingleEmptyRow: Story = {
   args: {
-    variables: [{ key: '', value: '', defaultValue: '', share: false }]
+    variables: [{ key: '', value: '', defaultValue: '', enabled: true, share: false }]
   },
   render: (args) => {
     const [variables, setVariables] = useState<Variable[]>(args.variables);

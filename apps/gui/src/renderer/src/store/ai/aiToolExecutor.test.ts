@@ -1733,7 +1733,7 @@ hc.test("Status code is 2xx", () => {
       id: 1,
       uuid: collectionUuid,
       name: 'API',
-      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
+      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
       headers: [],
       auth: defaultAuth(),
       userAgent: '',

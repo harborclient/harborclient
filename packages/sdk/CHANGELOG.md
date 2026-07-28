@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Update variable schema and enhance environment management. (`34cc08f0`)
 - Add workspace management features to routing and state management. (`2bb3eb22`)
 - Implement workflow management features. (`a4525074`)
 

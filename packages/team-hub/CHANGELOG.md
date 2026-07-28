@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Update variable schema and enhance environment management. (`34cc08f0`)
+
 ## 0.4.6 - 2026-07-27
 
 - Add sidebar marker support across collections, environments, folders, requests, and documents. (`872135d`)

@@ -249,13 +249,22 @@ export function rowToCollection(row: Record<string, unknown>): Collection {
  * @param row - Row or document fields including numeric `id`.
  */
 export function rowToEnvironment(row: Record<string, unknown>): Environment {
+  const parentRaw = row.parent_uuid ?? row.parentUuid;
+  const parentUuid =
+    parentRaw == null || parentRaw === ''
+      ? null
+      : typeof parentRaw === 'string'
+        ? parentRaw
+        : null;
+
   return {
     id: readNumber(row.id),
     uuid: readString(row.uuid),
     name: readString(row.name),
     variables: readVariables(row.variables),
     created_at: readTimestamp(row.created_at),
-    marker: readRowMarker(row)
+    marker: readRowMarker(row),
+    parentUuid
   };
 }
 

@@ -65,7 +65,7 @@ export async function importEnvironmentData(
         return null;
       }
       if (choice === 'update') {
-        await db.updateEnvironment(existing.id, data.name, data.variables);
+        await db.updateEnvironment(existing.id, data.name, data.variables, data.parentUuid ?? null);
         const colored = await db.setEnvironmentMarker(existing.id, data.marker ?? null);
         return { environment: colored, action: 'updated' };
       }
@@ -75,7 +75,12 @@ export async function importEnvironmentData(
 
   const targetUuid = resolveImportUuid(payload.uuid);
   const created = await db.createEnvironment(payload.name, targetUuid);
-  let environment = await db.updateEnvironment(created.id, payload.name, payload.variables);
+  let environment = await db.updateEnvironment(
+    created.id,
+    payload.name,
+    payload.variables,
+    payload.parentUuid ?? null
+  );
   environment = await db.setEnvironmentMarker(created.id, payload.marker ?? null);
   return { environment, action: 'created' };
 }
@@ -94,11 +99,12 @@ export function registerEnvironmentHandlers(db: IStorage): void {
     db.createEnvironment(environmentName)
   );
 
-  // Updates an environment's name and variables.
+  // Updates an environment's name, variables, and optional parent link.
   handle(
     'environments:update',
     ipcArgSchemas.environmentUpdate,
-    (_event, id, environmentName, variables) => db.updateEnvironment(id, environmentName, variables)
+    (_event, id, environmentName, variables, parentUuid) =>
+      db.updateEnvironment(id, environmentName, variables, parentUuid)
   );
 
   handle('environments:setMarker', ipcArgSchemas.environmentsSetMarker, (_event, id, marker) =>

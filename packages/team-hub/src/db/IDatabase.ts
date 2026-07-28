@@ -341,13 +341,14 @@ export interface IDatabase {
   createEnvironment(name: string, actingUserId: string): Promise<EnvironmentRecord>;
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
    * @param actingUserId - User performing the update action.
    * @param marker - Optional sidebar marker; omit to leave the stored value unchanged.
+   * @param parentUuid - Parent environment id; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
   updateEnvironment(
@@ -355,7 +356,8 @@ export interface IDatabase {
     name: string,
     variables: Variable[],
     actingUserId: string,
-    marker?: string | null
+    marker?: string | null,
+    parentUuid?: string | null
   ): Promise<EnvironmentRecord>;
 
   /**

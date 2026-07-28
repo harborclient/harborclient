@@ -53,7 +53,8 @@ export const environmentRecordSchema = z.object({
   createdByUserId: z.string().nullable(),
   updatedByUserId: z.string().nullable(),
   deletionLocked: z.boolean(),
-  marker: z.string().nullable()
+  marker: z.string().nullable(),
+  parentUuid: z.string().nullable()
 });
 
 /**
@@ -154,7 +155,8 @@ export const createEnvironmentBodySchema = z.object({
 export const updateEnvironmentBodySchema = z.object({
   name: z.string().trim().min(1),
   variables: z.array(variableSchema),
-  marker: sidebarMarkerBodySchema
+  marker: sidebarMarkerBodySchema,
+  parentUuid: z.union([z.string().trim().min(1), z.null()]).optional()
 });
 
 /**

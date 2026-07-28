@@ -38,6 +38,11 @@ export interface Environment {
    * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
   marker?: string | null;
+
+  /**
+   * Portable uuid of the parent environment this one inherits from, or null when a root.
+   */
+  parentUuid?: string | null;
 }
 /**
  * Portable environment export file format.
@@ -72,4 +77,9 @@ export interface EnvironmentExport {
    * Optional sidebar marker for visual grouping (CSS hex or rgba string).
    */
   marker?: string | null;
+
+  /**
+   * Portable uuid of the parent environment this one inherits from, or null when a root.
+   */
+  parentUuid?: string | null;
 }

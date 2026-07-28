@@ -296,11 +296,12 @@ export interface FirestoreEnvironmentDocument {
    * Optional sidebar marker (CSS color string) for visual grouping.
    */
   marker?: string | null;
-}
 
-/**
- * Firestore document shape for persisted snippets.
- */
+  /**
+   * Parent environment id for inheritance, or null when a root.
+   */
+  parentUuid?: string | null;
+}
 export interface FirestoreSnippetDocument {
   /**
    * Display name for the snippet.

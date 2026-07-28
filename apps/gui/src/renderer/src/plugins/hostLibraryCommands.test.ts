@@ -61,7 +61,7 @@ function makeFolder(overrides: Partial<Folder> = {}): Folder {
     parent_folder_id: null,
     name: 'pets',
     sort_order: 0,
-    variables: [{ key: 'secret', value: 'x', defaultValue: '', share: false }],
+    variables: [{ key: 'secret', value: 'x', defaultValue: '', enabled: true, share: false }],
     headers: [],
     userAgent: '',
     auth: defaultAuth(),

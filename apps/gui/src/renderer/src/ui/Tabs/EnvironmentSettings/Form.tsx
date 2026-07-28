@@ -64,7 +64,7 @@ export function Form({
   const [variables, setVariables] = useState<Variable[]>(
     environment.variables.length
       ? environment.variables
-      : [{ key: '', value: '', defaultValue: '', share: false }]
+      : [{ key: '', value: '', defaultValue: '', enabled: true, share: false }]
   );
   const [saving, setSaving] = useState(false);
 

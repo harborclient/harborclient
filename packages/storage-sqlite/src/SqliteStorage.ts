@@ -85,7 +85,7 @@ import { migrateSidebarMarkerColumn, serializeSidebarMarker } from './sidebarMar
 
 const COLLECTION_COLUMNS =
   'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
 
 /**
  * Resolves the SQLite database path, copying from legacy locations when needed.
@@ -372,6 +372,7 @@ export class SqliteStorage implements IStorage {
     }
 
     this.ensureParentFolderIdColumn();
+    this.ensureEnvironmentParentUuidColumn();
     this.normalizeContainerOrders();
   }
 
@@ -395,6 +396,19 @@ export class SqliteStorage implements IStorage {
       CREATE INDEX IF NOT EXISTS idx_folders_collection_parent_sort
         ON folders (collection_id, parent_folder_id, sort_order)
     `);
+  }
+
+  /**
+   * Adds nullable `parent_uuid` to legacy environments tables for inheritance.
+   */
+  private ensureEnvironmentParentUuidColumn(): void {
+    const database = this.getDb();
+    const columns = database.prepare('PRAGMA table_info(environments)').all() as Array<{
+      name: string;
+    }>;
+    if (!columns.some((col) => col.name === 'parent_uuid')) {
+      database.exec('ALTER TABLE environments ADD COLUMN parent_uuid TEXT');
+    }
   }
 
   /**
@@ -700,18 +714,30 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     const trimmedName = trimRequiredName(name, 'Environment name');
-    this.getDb()
-      .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
-      .run(trimmedName, JSON.stringify(variables), id);
+    if (parentUuid === undefined) {
+      this.getDb()
+        .prepare('UPDATE environments SET name = ?, variables = ? WHERE id = ?')
+        .run(trimmedName, JSON.stringify(variables), id);
+    } else {
+      this.getDb()
+        .prepare('UPDATE environments SET name = ?, variables = ?, parent_uuid = ? WHERE id = ?')
+        .run(trimmedName, JSON.stringify(variables), parentUuid?.trim() || null, id);
+    }
 
     const row = this.getDb()
       .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
@@ -742,12 +768,24 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parent_uuid).
    *
    * @param id - Environment ID to delete.
    */
   async deleteEnvironment(id: number): Promise<void> {
-    this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
+    const row = this.getDb()
+      .prepare(`SELECT ${ENVIRONMENT_COLUMNS} FROM environments WHERE id = ?`)
+      .get(id) as Record<string, unknown> | undefined;
+    const source = row ? rowToEnvironment(row) : undefined;
+    const deleteRow = this.getDb().transaction(() => {
+      if (source?.uuid) {
+        this.getDb()
+          .prepare('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?')
+          .run(source.uuid);
+      }
+      this.getDb().prepare('DELETE FROM environments WHERE id = ?').run(id);
+    });
+    deleteRow();
   }
 
   /**

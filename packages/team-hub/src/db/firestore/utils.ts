@@ -228,7 +228,8 @@ export function mapFirestoreEnvironment(
     createdByUserId: data.createdByUserId ?? null,
     updatedByUserId: data.updatedByUserId ?? null,
     deletionLocked: data.deletionLocked ?? false,
-    marker: readSidebarMarker(data.marker)
+    marker: readSidebarMarker(data.marker),
+    parentUuid: data.parentUuid?.trim() || null
   };
 }
 

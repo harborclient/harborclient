@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update variable schema and enhance environment management. (`34cc08f0`)
 - Implement workflow management features. (`a4525074`)
 
 ## 0.2.5 - 2026-07-28

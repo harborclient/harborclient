@@ -120,7 +120,7 @@ export function applyCollectionVariableSets(
     if (existingIndex !== undefined) {
       updated[existingIndex] = { ...updated[existingIndex], value };
     } else {
-      updated.push({ key, value, defaultValue: '', share: false });
+      updated.push({ key, value, defaultValue: '', enabled: true, share: false });
     }
   }
 

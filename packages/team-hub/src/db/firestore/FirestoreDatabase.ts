@@ -1064,7 +1064,8 @@ export class FirestoreDatabase implements IDatabase {
       updatedAt: now,
       createdByUserId: actingUserId,
       updatedByUserId: actingUserId,
-      deletionLocked: false
+      deletionLocked: false,
+      parentUuid: null
     };
 
     await this.requireClient().collection(ENVIRONMENTS_COLLECTION).doc(id).set(data);
@@ -1073,16 +1074,19 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param actingUserId - User performing the update action.
+   * @param marker - Optional sidebar marker; omit to leave unchanged.
+   * @param parentUuid - Parent environment id; `null` clears; omit to leave unchanged.
    */
   async updateEnvironment(
     id: string,
     name: string,
     variables: Variable[],
     actingUserId: string,
-    marker?: string | null
+    marker?: string | null,
+    parentUuid?: string | null
   ): Promise<EnvironmentRecord> {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const updatedAt = new Date();
@@ -1095,13 +1099,16 @@ export class FirestoreDatabase implements IDatabase {
     const existing = snapshot.data() as FirestoreEnvironmentDocument;
     const serializedMarker =
       marker !== undefined ? serializeSidebarMarker(marker) : existing.marker;
+    const normalizedParent =
+      parentUuid === undefined ? undefined : parentUuid?.trim() || null;
     const updated: FirestoreEnvironmentDocument = {
       ...existing,
       name: trimmedName,
       variables,
       updatedAt,
       updatedByUserId: actingUserId,
-      ...(marker !== undefined ? { marker: serializedMarker } : {})
+      ...(marker !== undefined ? { marker: serializedMarker } : {}),
+      ...(normalizedParent === undefined ? {} : { parentUuid: normalizedParent })
     };
 
     await docRef.update({
@@ -1109,7 +1116,8 @@ export class FirestoreDatabase implements IDatabase {
       variables,
       updatedAt,
       updatedByUserId: actingUserId,
-      ...(marker !== undefined ? { marker: serializedMarker } : {})
+      ...(marker !== undefined ? { marker: serializedMarker } : {}),
+      ...(normalizedParent === undefined ? {} : { parentUuid: normalizedParent })
     });
 
     await this.recordAuditEntry(actingUserId, 'update', 'environment', id);
@@ -1117,14 +1125,24 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parentUuid).
    *
    * @param id - Environment ID to delete.
    * @param actingUserId - User performing the delete action.
    */
   async deleteEnvironment(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'environment', id);
-    await this.requireClient().collection(ENVIRONMENTS_COLLECTION).doc(id).delete();
+    const client = this.requireClient();
+    const children = await client
+      .collection(ENVIRONMENTS_COLLECTION)
+      .where('parentUuid', '==', id)
+      .get();
+    const batch = client.batch();
+    for (const child of children.docs) {
+      batch.update(child.ref, { parentUuid: null });
+    }
+    batch.delete(client.collection(ENVIRONMENTS_COLLECTION).doc(id));
+    await batch.commit();
   }
 
   /**

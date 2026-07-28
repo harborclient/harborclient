@@ -266,8 +266,8 @@ describeSqlite('SqliteStorage uuid import', () => {
     const collection = await db.createCollection('Folder Settings');
     const folder = await db.createFolder(collection.id, 'Auth');
     const variables = [
-      { key: 'token', value: 'secret', defaultValue: 'fallback', share: false },
-      { key: 'publicId', value: 'visible', defaultValue: '', share: true }
+      { key: 'token', value: 'secret', defaultValue: 'fallback', enabled: true, share: false },
+      { key: 'publicId', value: 'visible', defaultValue: '', enabled: true, share: true }
     ];
     const headers = [{ key: 'X-Test', value: '1', enabled: true }];
     await db.updateFolder(
@@ -285,8 +285,8 @@ describeSqlite('SqliteStorage uuid import', () => {
 
     const exported = await db.exportCollectionData(collection.id);
     expect(exported.folders?.[0]?.variables).toEqual([
-      { key: 'token', value: '', defaultValue: 'fallback', share: false },
-      { key: 'publicId', value: 'visible', defaultValue: '', share: true }
+      { key: 'token', value: '', defaultValue: 'fallback', enabled: true, share: false },
+      { key: 'publicId', value: 'visible', defaultValue: '', enabled: true, share: true }
     ]);
     expect(exported.folders?.[0]?.userAgent).toBe('FolderAgent/1.0');
 

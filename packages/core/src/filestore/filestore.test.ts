@@ -39,7 +39,7 @@ const validV1Export = {
   harborclientVersion: 1 as const,
   harborclientExport: 'collection' as const,
   name: 'Imported',
-  variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
+  variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
   headers: [validKeyValue],
   pre_request_script: '',
   post_request_script: '',
@@ -349,7 +349,7 @@ describe('validateCollectionExport', () => {
       requests: []
     });
 
-    expect(result.variables).toEqual([{ key: 'token', value: '', defaultValue: '', share: false }]);
+    expect(result.variables).toEqual([{ key: 'token', value: '', defaultValue: '', enabled: true, share: false }]);
   });
 
   it('accepts collection auth without oauth2 and normalizes defaults', () => {
@@ -487,7 +487,7 @@ describe('validateEnvironmentExport', () => {
     harborclientExport: 'environment' as const,
     name: 'Staging',
     variables: [
-      { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', share: true }
+      { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true }
     ]
   };
 
@@ -604,8 +604,8 @@ describe('parse and stringify', () => {
     const exportData = validateCollectionExport({
       ...validV1Export,
       variables: [
-        { key: 'public', value: 'shown', defaultValue: '', share: true },
-        { key: 'secret', value: 'hidden', defaultValue: '', share: false }
+        { key: 'public', value: 'shown', defaultValue: '', enabled: true, share: true },
+        { key: 'secret', value: 'hidden', defaultValue: '', enabled: true, share: false }
       ]
     });
     const json = stringifyCollection(exportData, { maskPrivateVariables: true, pretty: false });

@@ -683,6 +683,11 @@ export interface Variable {
   defaultValue: string;
 
   /**
+   * When false, the row is ignored at resolve time so a parent/lower scope can pass through.
+   */
+  enabled: boolean;
+
+  /**
    * When true, value is included in collection exports.
    */
   share: boolean;
@@ -806,6 +811,11 @@ export interface EnvironmentRecord {
    * Optional sidebar marker (CSS color string) for visual grouping.
    */
   marker: string | null;
+
+  /**
+   * Portable uuid of the parent environment this one inherits from, or null when a root.
+   */
+  parentUuid: string | null;
 }
 
 /**
@@ -1361,6 +1371,10 @@ export function normalizeVariable(value: Partial<Variable>): Variable {
     key: typeof value.key === 'string' ? value.key : '',
     value: typeof value.value === 'string' ? value.value : '',
     defaultValue: typeof value.defaultValue === 'string' ? value.defaultValue : '',
+    /**
+     * Legacy rows without `enabled` remain active so existing data keeps working.
+     */
+    enabled: value.enabled !== false,
     share: typeof value.share === 'boolean' ? value.share : false
   };
 }

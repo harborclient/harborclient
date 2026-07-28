@@ -108,14 +108,21 @@ export interface IStorage {
   createEnvironment(name: string, uuid?: string): Promise<Environment>;
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid to inherit from; `null` clears;
+   *   omit to leave the existing parent unchanged.
    * @returns The updated environment.
    */
-  updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment>;
+  updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment>;
 
   /**
    * Updates an environment's sidebar marker.

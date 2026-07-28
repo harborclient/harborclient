@@ -543,7 +543,8 @@ export const environmentExportSchema = z.object({
   uuid: optionalDocumentUuid,
   name: z.string().trim().min(1, 'environment name is required'),
   variables: importVariables,
-  marker: optionalSidebarMarker
+  marker: optionalSidebarMarker,
+  parentUuid: z.union([z.string().uuid(), z.null()]).optional()
 }) satisfies z.ZodType<EnvironmentExport>;
 
 /**

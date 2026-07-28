@@ -82,7 +82,7 @@ describe('updateEnvironmentVariables', () => {
       payload: {
         id: 7,
         name: 'Dev',
-        variables: [{ key: 'TOKEN', value: 'next', defaultValue: '', share: false }]
+        variables: [{ key: 'TOKEN', value: 'next', defaultValue: '', enabled: true, share: false }]
       }
     });
   });

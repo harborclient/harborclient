@@ -56,6 +56,7 @@ export const variable = z.object({
   key: z.string(),
   value: z.string(),
   defaultValue: z.string(),
+  enabled: z.boolean().optional().default(true),
   share: z.boolean()
 }) satisfies z.ZodType<Variable>;
 
@@ -124,7 +125,14 @@ export const environmentRecordSchema = z.object({
   variables: z.array(variable),
   createdAt: timestampSchema,
   deletionLocked: deletionLockedSchema,
-  marker: sidebarMarkerSchema
+  marker: sidebarMarkerSchema,
+  /**
+   * Absent on hub servers that predate environment inheritance; those are roots.
+   */
+  parentUuid: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((value) => value ?? null)
 }) satisfies z.ZodType<EnvironmentRecord>;
 
 /**

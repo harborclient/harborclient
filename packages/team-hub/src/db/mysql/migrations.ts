@@ -54,8 +54,10 @@ CREATE TABLE IF NOT EXISTS environments (
   updated_at DATETIME NOT NULL,
   created_by_user_id VARCHAR(36) NULL,
   updated_by_user_id VARCHAR(36) NULL,
+  parent_uuid VARCHAR(36) NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (parent_uuid) REFERENCES environments(id) ON DELETE SET NULL
 )
 `.trim();
 
@@ -242,6 +244,14 @@ ALTER TABLE folders
 export const FOLDERS_PARENT_MIGRATION_SQL = `
 ALTER TABLE folders
   ADD COLUMN IF NOT EXISTS parent_folder_id VARCHAR(36) NULL
+`.trim();
+
+/**
+ * Adds nullable parent_uuid for environment inheritance on existing databases.
+ */
+export const ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL = `
+ALTER TABLE environments
+  ADD COLUMN IF NOT EXISTS parent_uuid VARCHAR(36) NULL
 `.trim();
 
 /**
@@ -494,5 +504,6 @@ export const MYSQL_MIGRATIONS = [
   USERS_SNIPPET_ACCESS_BACKFILL_SQL,
   RUN_RESULTS_MIGRATION_SQL,
   USER_INVITATIONS_MIGRATION_SQL,
-  ...MARKER_MIGRATIONS_SQL
+  ...MARKER_MIGRATIONS_SQL,
+  ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL
 ];

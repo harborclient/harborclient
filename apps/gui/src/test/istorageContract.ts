@@ -112,7 +112,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       const updated = await db.updateCollection(
         created.id,
         '  Updated  ',
-        [{ key: 'host', value: 'api.example.com', defaultValue: '', share: true }],
+        [{ key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: true }],
         [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
         'console.log("pre");',
         'console.log("post");',
@@ -127,7 +127,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(updated).toMatchObject({
         id: created.id,
         name: 'Updated',
-        variables: [{ key: 'host', value: 'api.example.com', defaultValue: '', share: true }],
+        variables: [{ key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: true }],
         headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
         auth: {
           type: 'bearer',
@@ -207,11 +207,11 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       const { db } = await createTestDb();
       const created = await db.createEnvironment('Dev');
       const updated = await db.updateEnvironment(created.id, 'Staging', [
-        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', share: true }
+        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true }
       ]);
       expect(updated.name).toBe('Staging');
       expect(updated.variables).toEqual([
-        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', share: true }
+        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true }
       ]);
     });
 
@@ -380,8 +380,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
         collection.id,
         'Export Me',
         [
-          { key: 'shared', value: 'visible', defaultValue: '', share: true },
-          { key: 'private', value: 'secret', defaultValue: '', share: false }
+          { key: 'shared', value: 'visible', defaultValue: '', enabled: true, share: true },
+          { key: 'private', value: 'secret', defaultValue: '', enabled: true, share: false }
         ],
         [{ key: 'X-Header', value: '1', enabled: true }],
         'pre script',
@@ -413,8 +413,8 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(exported).toMatchObject({
         name: 'Export Me',
         variables: [
-          { key: 'shared', value: 'visible', defaultValue: '', share: true },
-          { key: 'private', value: '', defaultValue: '', share: false }
+          { key: 'shared', value: 'visible', defaultValue: '', enabled: true, share: true },
+          { key: 'private', value: '', defaultValue: '', enabled: true, share: false }
         ],
         headers: [{ key: 'X-Header', value: '1', enabled: true }],
         auth: {
@@ -456,7 +456,7 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
         harborclientExport: 'collection',
         name: 'Imported',
         variables: [
-          { key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }
+          { key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }
         ],
         headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
         pre_request_script: 'collection pre',

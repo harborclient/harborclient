@@ -19,7 +19,7 @@ import {
 
 const sampleFields = (): ScopedSettingsCoreFields => ({
   name: '  My Scope  ',
-  variables: [{ key: 'token', value: 'abc', defaultValue: '', share: false }],
+  variables: [{ key: 'token', value: 'abc', defaultValue: '', enabled: true, share: false }],
   headers: [{ key: 'X-Test', value: '1', enabled: true }],
   userAgent: '',
   auth: defaultAuth(),
@@ -45,12 +45,12 @@ describe('cleanHeaders', () => {
 describe('seedScopedSettingsVariables', () => {
   it('returns a blank row when the list is empty', () => {
     expect(seedScopedSettingsVariables([])).toEqual([
-      { key: '', value: '', defaultValue: '', share: false }
+      { key: '', value: '', defaultValue: '', enabled: true, share: false }
     ]);
   });
 
   it('preserves existing rows', () => {
-    const variables: Variable[] = [{ key: 'a', value: 'b', defaultValue: '', share: true }];
+    const variables: Variable[] = [{ key: 'a', value: 'b', defaultValue: '', enabled: true, share: true }];
     expect(seedScopedSettingsVariables(variables)).toBe(variables);
   });
 });
@@ -115,7 +115,7 @@ describe('cleanScopedSettingsCoreFields', () => {
     const cleaned = cleanScopedSettingsCoreFields({
       ...sampleFields(),
       name: '  Name  ',
-      variables: [{ key: '', value: '', defaultValue: '', share: false }],
+      variables: [{ key: '', value: '', defaultValue: '', enabled: true, share: false }],
       headers: [{ key: '', value: '', enabled: true }]
     });
 

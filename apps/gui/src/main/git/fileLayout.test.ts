@@ -65,8 +65,8 @@ describe('git file layout', () => {
 
     const exportData = buildTestCollectionExport({
       variables: [
-        { key: 'shared', value: 'visible', defaultValue: '', share: true },
-        { key: 'private', value: 'secret', defaultValue: '', share: false }
+        { key: 'shared', value: 'visible', defaultValue: '', enabled: true, share: true },
+        { key: 'private', value: 'secret', defaultValue: '', enabled: true, share: false }
       ],
       requests: [
         {

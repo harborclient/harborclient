@@ -91,7 +91,7 @@ describe('entityMappers', () => {
         id: 1,
         uuid: '',
         name: 'My Collection',
-        variables: [{ key: 'base', value: 'https://example.com', defaultValue: '', share: true }],
+        variables: [{ key: 'base', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
         headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
         auth: defaultAuth(),
         pre_request_script: 'console.log("pre")',
@@ -119,7 +119,7 @@ describe('entityMappers', () => {
         id: 2,
         uuid: '',
         name: 'Production',
-        variables: [{ key: 'token', value: 'secret', defaultValue: '', share: false }],
+        variables: [{ key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }],
         created_at: '2024-01-02T00:00:00.000Z',
         marker: null
       });
@@ -226,7 +226,7 @@ describe('entityMappers', () => {
         id: 10,
         uuid: '',
         name: 'Firestore Collection',
-        variables: [{ key: 'env', value: 'dev', defaultValue: '', share: false }],
+        variables: [{ key: 'env', value: 'dev', defaultValue: '', enabled: true, share: false }],
         headers: [{ key: 'X-Test', value: '1', enabled: true }],
         userAgent: '',
         auth: defaultAuth(),

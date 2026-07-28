@@ -54,8 +54,8 @@ function labels(options: readonly Completion[]): string[] {
 }
 
 const variables: Variable[] = [
-  { key: 'host', value: 'api.example.com', defaultValue: '', share: false },
-  { key: 'token', value: 'abc', defaultValue: 'fallback', share: false }
+  { key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: false },
+  { key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }
 ];
 
 const importableSnippetNames = ['pass-testing.js', 'utils/foo.js', 'utils/bar.js'];
@@ -282,14 +282,14 @@ describe('createHcCompletionSource', () => {
 
   it('reads the latest variables from a getter on each completion query', async () => {
     let currentVariables: Variable[] = [
-      { key: 'host', value: 'api.example.com', defaultValue: '', share: false }
+      { key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: false }
     ];
     const source = createHcCompletionSource('pre', () => currentVariables);
 
     const firstResult = await complete(source, mockContext('const url = "{{ho'));
     expect(labels(firstResult!.options)).toEqual(['host']);
 
-    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', share: false }];
+    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }];
 
     const secondResult = await complete(source, mockContext('const url = "{{to'));
     expect(labels(secondResult!.options)).toEqual(['token']);
@@ -298,7 +298,7 @@ describe('createHcCompletionSource', () => {
   it('reads the latest phase and variables from live getters', async () => {
     let currentPhase: 'pre' | 'post' = 'pre';
     let currentVariables: Variable[] = [
-      { key: 'host', value: 'api.example.com', defaultValue: '', share: false }
+      { key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: false }
     ];
     const source = createLiveHcCompletionSource(
       () => currentPhase,
@@ -313,7 +313,7 @@ describe('createHcCompletionSource', () => {
     const postResult = await complete(source, mockContext('hc.'));
     expect(labels(postResult!.options).sort()).toContain('response');
 
-    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', share: false }];
+    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }];
 
     const variableResult = await complete(source, mockContext('const url = "{{to'));
     expect(labels(variableResult!.options)).toEqual(['token']);

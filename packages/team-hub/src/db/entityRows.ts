@@ -170,6 +170,11 @@ export interface EnvironmentSqlRow {
    * Optional sidebar marker column.
    */
   marker: string | null;
+
+  /**
+   * Parent environment id for inheritance, or null when a root.
+   */
+  parent_uuid: string | null;
 }
 
 /**
@@ -487,7 +492,8 @@ export function mapEnvironmentSqlRow(row: EnvironmentSqlRow): EnvironmentRecord 
     createdByUserId: row.created_by_user_id ?? null,
     updatedByUserId: row.updated_by_user_id ?? null,
     deletionLocked: Boolean(row.deletion_locked),
-    marker: readSidebarMarker(row.marker)
+    marker: readSidebarMarker(row.marker),
+    parentUuid: row.parent_uuid?.trim() || null
   };
 }
 

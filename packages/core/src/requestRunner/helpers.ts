@@ -28,6 +28,9 @@ import type { SettingsProvider } from '../interfaces';
 export function buildRuntimeVariables(variables: Variable[]): Record<string, string> {
   const values: Record<string, string> = {};
   for (const variable of variables) {
+    if (variable.enabled === false) {
+      continue;
+    }
     const key = variable.key.trim();
     if (key) {
       values[key] = variable.value !== '' ? variable.value : variable.defaultValue;

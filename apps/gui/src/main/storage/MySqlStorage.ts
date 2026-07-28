@@ -78,7 +78,7 @@ import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =
   'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
 
 export class MySqlStorage implements IStorage {
   #pool: Pool | null = null;
@@ -173,7 +173,8 @@ export class MySqlStorage implements IStorage {
         id INT PRIMARY KEY AUTO_INCREMENT,
         name VARCHAR(255) NOT NULL,
         variables LONGTEXT NOT NULL,
-        created_at VARCHAR(64) NOT NULL
+        created_at VARCHAR(64) NOT NULL,
+        parent_uuid VARCHAR(36) NULL
       )
     `);
 
@@ -228,6 +229,7 @@ export class MySqlStorage implements IStorage {
     await this.addColumnIfMissing('collections', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('requests', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('environments', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
+    await this.addColumnIfMissing('environments', 'parent_uuid', 'VARCHAR(36) NULL');
     await this.addColumnIfMissing('folders', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     for (const table of ['collections', 'folders', 'requests', 'documents', 'environments']) {
       await this.renameColumnIfPresent(table, 'color', 'marker', 'TEXT NULL');
@@ -559,19 +561,31 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     const trimmedName = trimRequiredName(name, 'Environment name');
-    const [result] = await this.getPool().execute<ResultSetHeader>(
-      'UPDATE environments SET name = ?, variables = ? WHERE id = ?',
-      [trimmedName, JSON.stringify(variables), id]
-    );
+    const [result] =
+      parentUuid === undefined
+        ? await this.getPool().execute<ResultSetHeader>(
+            'UPDATE environments SET name = ?, variables = ? WHERE id = ?',
+            [trimmedName, JSON.stringify(variables), id]
+          )
+        : await this.getPool().execute<ResultSetHeader>(
+            'UPDATE environments SET name = ?, variables = ?, parent_uuid = ? WHERE id = ?',
+            [trimmedName, JSON.stringify(variables), parentUuid?.trim() || null, id]
+          );
 
     if (result.affectedRows === 0) throw new Error('Environment not found');
 
@@ -610,11 +624,22 @@ export class MySqlStorage implements IStorage {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parent_uuid).
    *
    * @param id - Environment ID to delete.
    */
   async deleteEnvironment(id: number): Promise<void> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT uuid FROM environments WHERE id = ?',
+      [id]
+    );
+    const uuid = rows[0]?.uuid as string | undefined;
+    if (uuid) {
+      await this.getPool().execute(
+        'UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?',
+        [uuid]
+      );
+    }
     await this.getPool().execute('DELETE FROM environments WHERE id = ?', [id]);
   }
 

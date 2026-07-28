@@ -15,7 +15,7 @@ describe('mapCollectionSqlRow', () => {
       id: 'collection-1',
       name: 'API Tests',
       variables: JSON.stringify([
-        { key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }
+        { key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }
       ]),
       headers: JSON.stringify([{ key: 'Accept', value: 'application/json', enabled: true }]),
       auth: DEFAULT_AUTH_JSON,
@@ -32,7 +32,7 @@ describe('mapCollectionSqlRow', () => {
     expect(record).toEqual({
       id: 'collection-1',
       name: 'API Tests',
-      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', share: true }],
+      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
       headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
       auth: {
         type: 'none',
@@ -80,26 +80,28 @@ describe('mapEnvironmentSqlRow', () => {
       id: 'env-1',
       name: 'Production',
       variables: JSON.stringify([
-        { key: 'host', value: 'prod.example.com', defaultValue: '', share: false }
+        { key: 'host', value: 'prod.example.com', defaultValue: '', enabled: true, share: false }
       ]),
       created_at: createdAt,
       updated_at: updatedAt,
       created_by_user_id: 'user-1',
       updated_by_user_id: 'user-2',
       deletion_locked: true,
-      marker: null
+      marker: null,
+      parent_uuid: null
     });
 
     expect(record).toEqual({
       id: 'env-1',
       name: 'Production',
-      variables: [{ key: 'host', value: 'prod.example.com', defaultValue: '', share: false }],
+      variables: [{ key: 'host', value: 'prod.example.com', defaultValue: '', enabled: true, share: false }],
       createdAt,
       updatedAt,
       createdByUserId: 'user-1',
       updatedByUserId: 'user-2',
       deletionLocked: true,
-      marker: null
+      marker: null,
+      parentUuid: null
     });
   });
 });

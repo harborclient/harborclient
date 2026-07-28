@@ -34,7 +34,7 @@ describeSqlite('TrashService registry entities', () => {
     const { database } = await createRegistry();
     const environment = database.createEnvironment('QA');
     database.updateEnvironment(environment.id, 'QA', [
-      { key: 'token', value: 'abc', defaultValue: '', share: false }
+      { key: 'token', value: 'abc', defaultValue: '', enabled: true, share: false }
     ]);
 
     const trash = new TrashService({} as IStorage, database);
@@ -48,7 +48,7 @@ describeSqlite('TrashService registry entities', () => {
     expect(database.listEnvironments()).toEqual([
       expect.objectContaining({
         name: 'QA',
-        variables: [{ key: 'token', value: 'abc', defaultValue: '', share: false }]
+        variables: [{ key: 'token', value: 'abc', defaultValue: '', enabled: true, share: false }]
       })
     ]);
     expect(trash.listTrashItems()).toEqual([]);

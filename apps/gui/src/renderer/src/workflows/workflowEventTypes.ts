@@ -1,4 +1,25 @@
+import type { ReactNode } from 'react';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
+
+/**
+ * Context passed to registry thumbnail renderers for timeline blocks.
+ */
+export interface WorkflowThumbnailCtx {
+  /**
+   * True when this block is the current playback cursor.
+   */
+  selected: boolean;
+
+  /**
+   * True when the block is too narrow for secondary text.
+   */
+  compact: boolean;
+
+  /**
+   * Optional Redux getter for resolving display names (environments, etc.).
+   */
+  getState?: () => RootState;
+}
 
 /**
  * A normalized workflow activity event recorded from Redux.
@@ -100,4 +121,16 @@ export interface WorkflowRegistryEntry {
    * @returns Coalesce key; defaults to `event.type` when omitted.
    */
   coalesceKey?: (event: WorkflowEvent) => string;
+
+  /**
+   * Renders the visual content shown inside a timeline block for this event type.
+   *
+   * @param action - Recorded workflow action (`type` + `payload`).
+   * @param ctx - Selection / density context for the block.
+   * @returns Thumbnail content (not the surrounding block chrome).
+   */
+  thumbnail: (
+    action: { type: string; at?: number; payload: unknown },
+    ctx: WorkflowThumbnailCtx
+  ) => ReactNode;
 }

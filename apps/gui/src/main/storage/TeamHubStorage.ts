@@ -165,7 +165,8 @@ function serverToEnvironment(record: EnvironmentRecord, localId: number): Enviro
     variables: record.variables.map(normalizeVariable),
     created_at: record.createdAt,
     deletion_locked: record.deletionLocked,
-    marker: readTeamHubMarker(record.marker)
+    marker: readTeamHubMarker(record.marker),
+    parentUuid: record.parentUuid ?? null
   };
 }
 
@@ -675,10 +676,16 @@ export class TeamHubStorage implements IStorage {
   /**
    * Environments are stored in the local registry for team hub collections.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     void id;
     void name;
     void variables;
+    void parentUuid;
     throw new Error('Environments are not stored on team hubs.');
   }
 

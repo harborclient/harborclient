@@ -78,7 +78,7 @@ import { generateDocumentUuid } from './uuid';
 
 const COLLECTION_COLUMNS =
   'id, uuid, name, variables, headers, user_agent, auth, pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, created_at, marker';
-const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
+const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
 
 export class PostgresStorage implements IStorage {
   #pool: Pool | null = null;
@@ -172,7 +172,8 @@ export class PostgresStorage implements IStorage {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         variables TEXT NOT NULL,
-        created_at VARCHAR(64) NOT NULL
+        created_at VARCHAR(64) NOT NULL,
+        parent_uuid TEXT
       )
     `);
 
@@ -251,6 +252,10 @@ export class PostgresStorage implements IStorage {
 
     await this.#pool.query(`
       ALTER TABLE environments ADD COLUMN IF NOT EXISTS uuid TEXT NOT NULL DEFAULT ''
+    `);
+
+    await this.#pool.query(`
+      ALTER TABLE environments ADD COLUMN IF NOT EXISTS parent_uuid TEXT
     `);
 
     await this.#pool.query(`
@@ -523,19 +528,31 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param id - Environment ID to update.
    * @param name - New display name.
    * @param variables - Environment-scoped variables.
+   * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
    * @returns The updated environment.
    */
-  async updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
+  async updateEnvironment(
+    id: number,
+    name: string,
+    variables: Variable[],
+    parentUuid?: string | null
+  ): Promise<Environment> {
     const trimmedName = trimRequiredName(name, 'Environment name');
-    const result = await this.getPool().query(
-      'UPDATE environments SET name = $1, variables = $2 WHERE id = $3',
-      [trimmedName, JSON.stringify(variables), id]
-    );
+    const result =
+      parentUuid === undefined
+        ? await this.getPool().query(
+            'UPDATE environments SET name = $1, variables = $2 WHERE id = $3',
+            [trimmedName, JSON.stringify(variables), id]
+          )
+        : await this.getPool().query(
+            'UPDATE environments SET name = $1, variables = $2, parent_uuid = $3 WHERE id = $4',
+            [trimmedName, JSON.stringify(variables), parentUuid?.trim() || null, id]
+          );
 
     if (result.rowCount === 0) throw new Error('Environment not found');
 
@@ -574,11 +591,21 @@ export class PostgresStorage implements IStorage {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parent_uuid).
    *
    * @param id - Environment ID to delete.
    */
   async deleteEnvironment(id: number): Promise<void> {
+    const selectResult = await this.getPool().query(
+      'SELECT uuid FROM environments WHERE id = $1',
+      [id]
+    );
+    const uuid = selectResult.rows[0]?.uuid as string | undefined;
+    if (uuid) {
+      await this.getPool().query('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = $1', [
+        uuid
+      ]);
+    }
     await this.getPool().query('DELETE FROM environments WHERE id = $1', [id]);
   }
 

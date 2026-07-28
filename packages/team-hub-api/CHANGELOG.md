@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Update variable schema and enhance environment management. (`34cc08f0`)
+
 ## 0.4.1 - 2026-07-27
 
 - Rename the sidebar `color` field to `marker` on collection, folder, request, document, and environment records and inputs.

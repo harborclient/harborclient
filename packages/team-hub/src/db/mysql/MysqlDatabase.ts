@@ -1203,47 +1203,46 @@ export class MysqlDatabase implements IDatabase {
   }
 
   /**
-   * Updates an environment's name and variables.
+   * Updates an environment's name, variables, and optional parent link.
    *
    * @param actingUserId - User performing the update action.
+   * @param marker - Optional sidebar marker; omit to leave unchanged.
+   * @param parentUuid - Parent environment id; `null` clears; omit to leave unchanged.
    */
   async updateEnvironment(
     id: string,
     name: string,
     variables: Variable[],
     actingUserId: string,
-    marker?: string | null
+    marker?: string | null,
+    parentUuid?: string | null
   ): Promise<EnvironmentRecord> {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const updatedAt = new Date();
-    const result =
-      marker !== undefined
-        ? await this.executeStatement(
-            `UPDATE environments
-      SET name = ?,
-        variables = ?,
-        updated_at = ?,
-        updated_by_user_id = ?,
-        marker = ?
+    const setClauses = [
+      'name = ?',
+      'variables = ?',
+      'updated_at = ?',
+      'updated_by_user_id = ?'
+    ];
+    const params: unknown[] = [trimmedName, JSON.stringify(variables), updatedAt, actingUserId];
+
+    if (marker !== undefined) {
+      setClauses.push('marker = ?');
+      params.push(serializeSidebarMarker(marker));
+    }
+    if (parentUuid !== undefined) {
+      setClauses.push('parent_uuid = ?');
+      params.push(parentUuid?.trim() || null);
+    }
+    params.push(id);
+
+    const result = await this.executeStatement(
+      `UPDATE environments
+      SET ${setClauses.join(',\n        ')}
       WHERE id = ?`,
-            [
-              trimmedName,
-              JSON.stringify(variables),
-              updatedAt,
-              actingUserId,
-              serializeSidebarMarker(marker),
-              id
-            ]
-          )
-        : await this.executeStatement(
-            `UPDATE environments
-      SET name = ?,
-        variables = ?,
-        updated_at = ?,
-        updated_by_user_id = ?
-      WHERE id = ?`,
-            [trimmedName, JSON.stringify(variables), updatedAt, actingUserId, id]
-          );
+      params
+    );
 
     if ((result.affectedRows ?? 0) === 0) {
       throw new Error('Environment not found');
@@ -1264,13 +1263,16 @@ export class MysqlDatabase implements IDatabase {
   }
 
   /**
-   * Deletes an environment.
+   * Deletes an environment and orphans any direct children (clears their parent_uuid).
    *
    * @param id - Environment ID to delete.
    * @param actingUserId - User performing the delete action.
    */
   async deleteEnvironment(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'environment', id);
+    await this.executeStatement('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?', [
+      id
+    ]);
     await this.executeStatement('DELETE FROM environments WHERE id = ?', [id]);
   }
 

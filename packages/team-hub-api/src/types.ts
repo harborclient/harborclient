@@ -776,6 +776,11 @@ export interface EnvironmentRecord {
    * Optional sidebar marker token (CSS color string), or null when unset.
    */
   marker?: string | null;
+
+  /**
+   * Parent environment id for inheritance, or null when a root.
+   */
+  parentUuid?: string | null;
 }
 
 /**
@@ -811,6 +816,11 @@ export interface UpdateEnvironmentInput {
    * Optional sidebar marker token (CSS color string), or null when unset.
    */
   marker?: string | null;
+
+  /**
+   * Parent environment id; `null` clears; omit to leave unchanged.
+   */
+  parentUuid?: string | null;
 }
 
 /**

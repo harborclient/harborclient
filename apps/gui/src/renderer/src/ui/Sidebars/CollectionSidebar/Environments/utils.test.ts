@@ -28,13 +28,13 @@ describe('environmentSummaryText', () => {
     expect(environmentSummaryText([])).toBe('0 variables');
     expect(
       environmentSummaryText([
-        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false }
+        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: false }
       ])
     ).toBe('1 variable');
     expect(
       environmentSummaryText([
-        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false },
-        { key: 'token', value: 'secret', defaultValue: '', share: false }
+        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: false },
+        { key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }
       ])
     ).toBe('2 variables');
   });
@@ -44,9 +44,9 @@ describe('environmentVariableCount', () => {
   it('counts only variables with non-empty keys', () => {
     expect(
       environmentVariableCount([
-        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', share: false },
-        { key: '', value: 'ignored', defaultValue: '', share: false },
-        { key: '   ', value: 'ignored', defaultValue: '', share: false }
+        { key: 'apiUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: false },
+        { key: '', value: 'ignored', defaultValue: '', enabled: true, share: false },
+        { key: '   ', value: 'ignored', defaultValue: '', enabled: true, share: false }
       ])
     ).toBe(1);
   });

@@ -82,9 +82,9 @@ describe('RequestRunner', () => {
         request,
         environment: {
           variables: [
-            { key: 'host', value: 'api.example.test', defaultValue: '', share: false },
-            { key: 'path', value: 'users', defaultValue: '', share: false },
-            { key: 'token', value: 'secret', defaultValue: '', share: false }
+            { key: 'host', value: 'api.example.test', defaultValue: '', enabled: true, share: false },
+            { key: 'path', value: 'users', defaultValue: '', enabled: true, share: false },
+            { key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }
           ]
         }
       },
