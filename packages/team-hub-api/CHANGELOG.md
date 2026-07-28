@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.4 - 2026-07-28
+
 - Enhance environment variable management and UI readiness. (`abab021c`)
 - Update variable schema and enhance environment management. (`34cc08f0`)
 
