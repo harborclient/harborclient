@@ -14,9 +14,10 @@ const hydrateTerminalLayout = vi.fn(() => ({
 }));
 const refreshCollections = vi.fn(() => ({ type: 'collections/refresh' }));
 const refreshEnvironments = vi.fn(() => ({ type: 'environments/refresh' }));
-const refreshCollectionContents = vi.fn(() => ({
-  type: 'collections/refreshContents'
-}));
+const refreshCollectionContents = vi.fn((id: number) => {
+  void id;
+  return { type: 'collections/refreshContents' };
+});
 const openSeededBuiltinRequestIfNeeded = vi.fn(() => ({
   type: 'collections/openSeededBuiltinRequestIfNeeded'
 }));

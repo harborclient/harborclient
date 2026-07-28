@@ -103,6 +103,7 @@ import type {
   RequestHistoryEntry,
   CreateWorkflowInput,
   CreateWorkspaceInput,
+  UpdateWorkflowInput,
   Workflow,
   Workspace,
   TrashEntityType,
@@ -488,6 +489,15 @@ function listWorkflows(): Promise<Workflow[]> {
  */
 function createWorkflow(input: CreateWorkflowInput): Promise<Workflow[]> {
   return ipcRenderer.invoke('workflows:create', input);
+}
+
+/**
+ * Updates a workflow's actions and duration and returns the refreshed list.
+ *
+ * @param input - Workflow id, actions, and duration.
+ */
+function updateWorkflow(input: UpdateWorkflowInput): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:update', input);
 }
 
 /**
@@ -4120,6 +4130,7 @@ const api: Api = {
   importWorkspace,
   listWorkflows,
   createWorkflow,
+  updateWorkflow,
   deleteWorkflow,
   listTrashItems,
   restoreTrashItem,

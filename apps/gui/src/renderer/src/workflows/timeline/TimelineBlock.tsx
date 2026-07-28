@@ -1,4 +1,4 @@
-import type { JSX, ReactNode } from 'react';
+import type { JSX, MouseEvent, ReactNode } from 'react';
 
 interface Props {
   /**
@@ -27,6 +27,13 @@ interface Props {
   onSeek: () => void;
 
   /**
+   * Opens the action context menu at the pointer position.
+   *
+   * @param event - Native contextmenu event from the block button.
+   */
+  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
+
+  /**
    * When true, the block cannot be activated (e.g. while playing).
    */
   disabled?: boolean;
@@ -52,6 +59,7 @@ export function TimelineBlock({
   selected,
   widthPx,
   onSeek,
+  onContextMenu,
   disabled = false,
   children
 }: Props): JSX.Element {
@@ -64,6 +72,13 @@ export function TimelineBlock({
       aria-label={label}
       disabled={disabled}
       onClick={onSeek}
+      onContextMenu={(event) => {
+        if (onContextMenu == null) {
+          return;
+        }
+        event.preventDefault();
+        onContextMenu(event);
+      }}
       className={[
         'relative flex h-full min-h-[56px] shrink-0 flex-col justify-center overflow-hidden rounded-md border px-2 py-1.5 text-left transition-colors',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',

@@ -6,11 +6,13 @@ import { emptyKeyValue } from '#/renderer/src/store/tabs';
 import { loadRequest } from '#/renderer/src/store/slices/tabsSlice';
 import {
   clearPlayback,
+  getPlaybackActions,
   getPlaybackElapsedMs,
   getPlaybackIndex,
   isPlaybackGapless,
   isPlaying,
   loadPlayback,
+  replacePlaybackActions,
   resetWorkflowPlaybackForTests,
   restartPlayback,
   seekPlaybackTo,
@@ -89,6 +91,43 @@ describe('workflowPlayback cursor', () => {
     stepPlaybackCursor(10);
     expect(getPlaybackIndex()).toBe(3);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('replacePlaybackActions updates actions and cursor without clearing elapsed time', () => {
+    loadPlayback([
+      { type: 'environment.activate', payload: { environmentId: 1 } },
+      { type: 'environment.activate', payload: { environmentId: 2 } },
+      { type: 'environment.activate', payload: { environmentId: 3 } }
+    ]);
+    seekPlaybackTo(2);
+    const elapsedBefore = getPlaybackElapsedMs();
+
+    replacePlaybackActions(
+      [
+        { type: 'environment.activate', payload: { environmentId: 2 } },
+        { type: 'environment.activate', payload: { environmentId: 1 } },
+        { type: 'environment.activate', payload: { environmentId: 3 } }
+      ],
+      1
+    );
+
+    expect(getPlaybackIndex()).toBe(1);
+    expect(getPlaybackActions()).toEqual([
+      { type: 'environment.activate', payload: { environmentId: 2 } },
+      { type: 'environment.activate', payload: { environmentId: 1 } },
+      { type: 'environment.activate', payload: { environmentId: 3 } }
+    ]);
+    expect(getPlaybackElapsedMs()).toBe(elapsedBefore);
+  });
+
+  it('replacePlaybackActions clamps the cursor when actions shrink', () => {
+    loadPlayback([
+      { type: 'environment.activate', payload: { environmentId: 1 } },
+      { type: 'environment.activate', payload: { environmentId: 2 } }
+    ]);
+    seekPlaybackTo(2);
+    replacePlaybackActions([{ type: 'environment.activate', payload: { environmentId: 1 } }]);
+    expect(getPlaybackIndex()).toBe(1);
   });
 
   it('restart resets cursor and elapsed time', async () => {

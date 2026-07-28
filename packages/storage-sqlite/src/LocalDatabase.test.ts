@@ -776,6 +776,42 @@ describeSqlite('LocalDatabase workflows', () => {
     const remaining = database.deleteWorkflow(created[0]!.id);
     expect(remaining).toEqual([]);
   });
+
+  it('updates workflow actions and duration while preserving name and variables', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createWorkflow({
+      name: 'Login flow',
+      uuid: 'wf-uuid-2',
+      durationMs: 4_200,
+      variables: { stage: 'qa' },
+      actions: [
+        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } },
+        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } }
+      ]
+    });
+
+    const updated = database.updateWorkflow(created[0]!.id, {
+      durationMs: 4_200,
+      actions: [
+        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
+        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
+      ]
+    });
+
+    expect(updated).toHaveLength(1);
+    expect(updated[0]).toMatchObject({
+      name: 'Login flow',
+      uuid: 'wf-uuid-2',
+      durationMs: 4_200,
+      variables: { stage: 'qa' },
+      actions: [
+        { type: 'request.send', at: 20, payload: { uuid: 'req-1' } },
+        { type: 'request.load', at: 10, payload: { uuid: 'req-1' } }
+      ]
+    });
+    expect(updated[0]!.updatedAt).toBeGreaterThanOrEqual(created[0]!.updatedAt);
+  });
 });
 
 describeSqlite('LocalDatabase trash items', () => {

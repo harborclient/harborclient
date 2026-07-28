@@ -1,6 +1,12 @@
 import { Button, FaIcon, FloatingDialog, Switch } from '@harborclient/sdk/components';
 import type { FloatingDialogPosition, FloatingDialogSize } from '@harborclient/sdk/components';
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import type { WorkflowAction } from '@harborclient/core/types';
+import {
+  acceleratorMatchesChord,
+  getShortcutDef,
+  type KeyChord
+} from '@harborclient/core/shortcuts';
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { faFloppyDisk, faStop, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector, useAppStore } from '#/renderer/src/store/hooks';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -11,8 +17,17 @@ import {
   selectWorkflows,
   setWorkflowSaveNameModalOpen
 } from '#/renderer/src/store/slices/workflowsSlice';
+import { updateWorkflowActions } from '#/renderer/src/store/thunks/workflows';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { formatWorkflowDuration } from '#/renderer/src/workflows/formatWorkflowDuration';
+import {
+  canMoveWorkflowAction,
+  cursorAfterDelete,
+  cursorAfterMove,
+  deleteWorkflowActionAt,
+  swapWorkflowActions,
+  type WorkflowActionMoveDirection
+} from '#/renderer/src/workflows/workflowActionEdits';
 import {
   clearSession,
   getRecordingElapsedMs,
@@ -26,11 +41,13 @@ import {
 import {
   clearPlayback,
   getPlaybackActionCount,
+  getPlaybackActions,
   getPlaybackElapsedMs,
   getPlaybackIndex,
   isPlaybackGapless,
   isPlaying as getIsPlaying,
   loadPlayback,
+  replacePlaybackActions,
   restartPlayback,
   seekPlaybackTo,
   setPlaybackGapless,
@@ -39,6 +56,7 @@ import {
   stopPlayback,
   subscribePlayback
 } from '#/renderer/src/workflows/workflowPlayback';
+import { describeWorkflowAction } from '#/renderer/src/workflows/timeline/workflowThumbnails';
 import {
   DEFAULT_WORKFLOW_RECORDING_DIALOG_POSITION,
   loadWorkflowRecordingDialogPosition,
@@ -51,8 +69,25 @@ import {
   workflowPlayDialogMinWidth,
   WORKFLOW_PLAY_DIALOG_MIN_HEIGHT_PX
 } from './workflowPlayDialogGeometry';
+import { WorkflowEditControls } from './WorkflowEditControls';
 import { WorkflowPlaybackControls } from './WorkflowPlaybackControls';
 import { WorkflowTimeline } from './WorkflowTimeline';
+
+/**
+ * Builds a normalized keyboard chord from a browser keydown event.
+ *
+ * @param event - Keydown event from the document.
+ * @returns Chord suitable for shortcut matching.
+ */
+function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
+  return {
+    key: event.key,
+    control: event.ctrlKey,
+    meta: event.metaKey,
+    shift: event.shiftKey,
+    alt: event.altKey
+  };
+}
 
 /**
  * Floating, non-blocking dialog for recording or playing a workflow session.
@@ -75,6 +110,37 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
    * Bumps when the playback module notifies so render re-reads module getters.
    */
   const [playbackTick, setPlaybackTick] = useState(0);
+
+  /**
+   * True when the play-mode buffer has unsaved timeline edits.
+   */
+  const [dirty, setDirty] = useState(false);
+
+  /**
+   * Session identity used to reset dirty when play mode or workflow changes.
+   */
+  const [dirtyScope, setDirtyScope] = useState({
+    mode: dialogMode,
+    id: playbackWorkflowId
+  });
+
+  if (dirtyScope.mode !== dialogMode || dirtyScope.id !== playbackWorkflowId) {
+    setDirtyScope({ mode: dialogMode, id: playbackWorkflowId });
+    setDirty(false);
+  }
+
+  /**
+   * True while an explicit workflow save is in flight.
+   */
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+
+  /**
+   * Effective accelerator for the configured `save` shortcut.
+   */
+  const [saveAccelerator, setSaveAccelerator] = useState(
+    () => getShortcutDef('save')?.defaultAccelerator ?? 'CmdOrCtrl+S'
+  );
 
   const recordSavedPosition =
     loadWorkflowRecordingDialogPosition() ?? DEFAULT_WORKFLOW_RECORDING_DIALOG_POSITION;
@@ -115,13 +181,13 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }));
 
   const playbackWorkflow = workflows.find((workflow) => workflow.id === playbackWorkflowId);
-  const playbackActions = playbackWorkflow?.actions;
 
   void playbackTick;
   const playing = getIsPlaying();
   const playbackElapsedMs = getPlaybackElapsedMs();
   const playbackIndex = getPlaybackIndex();
   const playbackActionCount = getPlaybackActionCount();
+  const playbackActionsList = [...getPlaybackActions()];
   const gapless = isPlaybackGapless();
 
   /**
@@ -153,24 +219,60 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }, [dialogMode]);
 
   /**
-   * Loads playback actions when entering play mode, or clears playback otherwise.
+   * Loads playback actions when entering play mode or switching workflows.
+   *
+   * Intentionally omits Redux `actions` so in-dialog edits do not reset the cursor
+   * via {@link loadPlayback}. Dirty state resets via the play-session scope above.
    */
   useEffect(() => {
-    if (dialogMode === 'play') {
-      if (playbackWorkflowId != null && playbackActions == null) {
-        dispatch(closeWorkflowDialog());
-        return;
-      }
-      if (playbackActions != null) {
-        stopRecording();
-        loadPlayback(playbackActions);
-      }
+    if (dialogMode !== 'play') {
+      stopPlayback();
+      clearPlayback();
       return;
     }
 
-    stopPlayback();
-    clearPlayback();
-  }, [dialogMode, dispatch, playbackActions, playbackWorkflowId]);
+    if (playbackWorkflowId == null) {
+      dispatch(closeWorkflowDialog());
+      return;
+    }
+
+    const workflow = store
+      .getState()
+      .workflows.items.find((item) => item.id === playbackWorkflowId);
+    if (workflow == null) {
+      dispatch(closeWorkflowDialog());
+      return;
+    }
+
+    stopRecording();
+    loadPlayback(workflow.actions);
+  }, [dialogMode, dispatch, playbackWorkflowId, store]);
+
+  /**
+   * Loads the effective save shortcut from user settings while play mode is open.
+   */
+  useEffect(() => {
+    if (dialogMode !== 'play') {
+      return;
+    }
+
+    let cancelled = false;
+
+    void window.api.getShortcuts().then((bindings) => {
+      if (cancelled) {
+        return;
+      }
+
+      const saveBinding = bindings.find((binding) => binding.id === 'save');
+      if (saveBinding != null) {
+        setSaveAccelerator(saveBinding.accelerator);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dialogMode]);
 
   /**
    * Syncs local UI state from the recorder session while the record dialog is open.
@@ -301,6 +403,149 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }, []);
 
   /**
+   * Applies a timeline edit to the playback buffer without persisting.
+   *
+   * @param nextActions - Actions after the edit.
+   * @param nextIndex - Playback cursor after the edit.
+   */
+  const applyLocalEdit = useCallback((nextActions: WorkflowAction[], nextIndex: number): void => {
+    replacePlaybackActions(nextActions, nextIndex);
+    setDirty(true);
+    setPlaybackTick((tick) => tick + 1);
+  }, []);
+
+  /**
+   * Persists the current playback buffer when there are unsaved edits.
+   */
+  const handleSaveWorkflowEdits = useCallback(async (): Promise<void> => {
+    if (playbackWorkflowId == null || !dirty || savingRef.current || getIsPlaying()) {
+      return;
+    }
+
+    savingRef.current = true;
+    setSaving(true);
+    const actions = [...getPlaybackActions()];
+    const durationMs = actions.length === 0 ? 0 : (playbackWorkflow?.durationMs ?? 0);
+
+    try {
+      await dispatch(
+        updateWorkflowActions({
+          id: playbackWorkflowId,
+          actions,
+          durationMs
+        })
+      ).unwrap();
+      setDirty(false);
+    } catch (error) {
+      showAlert(dispatch, formatErrorMessage(error, 'Failed to update workflow'));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }, [dirty, dispatch, playbackWorkflow?.durationMs, playbackWorkflowId]);
+
+  /**
+   * Moves the active (or explicitly targeted) action ahead or behind its neighbor.
+   *
+   * @param direction - Timeline move direction.
+   * @param indexOverride - Optional index from the context menu; defaults to the cursor.
+   */
+  const handleMoveAction = useCallback(
+    (direction: WorkflowActionMoveDirection, indexOverride?: number): void => {
+      if (getIsPlaying() || playbackWorkflowId == null) {
+        return;
+      }
+      const currentActions = getPlaybackActions();
+      const index = indexOverride ?? getPlaybackIndex();
+      if (!canMoveWorkflowAction(index, currentActions.length, direction)) {
+        return;
+      }
+      const nextActions = swapWorkflowActions(currentActions, index, direction);
+      if (nextActions == null) {
+        return;
+      }
+      applyLocalEdit(nextActions, cursorAfterMove(index, direction));
+    },
+    [applyLocalEdit, playbackWorkflowId]
+  );
+
+  /**
+   * Prompts to delete the active (or explicitly targeted) action locally.
+   *
+   * @param indexOverride - Optional index from the context menu; defaults to the cursor.
+   */
+  const handleDeleteAction = useCallback(
+    async (indexOverride?: number): Promise<void> => {
+      if (getIsPlaying() || playbackWorkflowId == null) {
+        return;
+      }
+      const currentActions = getPlaybackActions();
+      const index = indexOverride ?? getPlaybackIndex();
+      if (index < 0 || index >= currentActions.length) {
+        return;
+      }
+      const action = currentActions[index];
+      if (action == null) {
+        return;
+      }
+      const described = describeWorkflowAction(action, {
+        selected: true,
+        compact: false,
+        getState: store.getState
+      });
+      const confirmed = await confirm({
+        title: 'Delete action?',
+        message: `Delete “${described.title}” from this workflow?`,
+        confirmLabel: 'Delete',
+        variant: 'danger'
+      });
+      if (!confirmed) {
+        return;
+      }
+      const nextActions = deleteWorkflowActionAt(currentActions, index);
+      if (nextActions == null) {
+        return;
+      }
+      const nextIndex = cursorAfterDelete(getPlaybackIndex(), index, nextActions.length);
+      applyLocalEdit(nextActions, nextIndex);
+    },
+    [applyLocalEdit, confirm, playbackWorkflowId, store]
+  );
+
+  /**
+   * Wires the configured save shortcut while play mode is open and dirty.
+   */
+  useEffect(() => {
+    if (dialogMode !== 'play') {
+      return;
+    }
+
+    /**
+     * Saves when the configured save shortcut is pressed and the buffer is dirty.
+     *
+     * @param event - Keydown event from the document.
+     */
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (!acceleratorMatchesChord(saveAccelerator, chordFromKeyboardEvent(event))) {
+        return;
+      }
+
+      if (!dirty || savingRef.current || getIsPlaying()) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      void handleSaveWorkflowEdits();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [dialogMode, dirty, handleSaveWorkflowEdits, saveAccelerator]);
+
+  /**
    * Persists play dialog position after a drag.
    *
    * @param position - New top-left coordinates.
@@ -337,12 +582,24 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   );
 
   /**
-   * Closes the dialog, confirming discard when unsaved recording actions exist.
+   * Closes the dialog, confirming discard when unsaved recording or timeline edits exist.
    */
   const handleClose = useCallback(async (): Promise<void> => {
     if (isPlayMode) {
+      if (dirty) {
+        const confirmed = await confirm({
+          title: 'Discard unsaved changes?',
+          message: 'Close without saving? Timeline edits will be lost.',
+          confirmLabel: 'Discard',
+          variant: 'danger'
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
       stopPlayback();
       clearPlayback();
+      setDirty(false);
       dispatch(closeWorkflowDialog());
       return;
     }
@@ -362,7 +619,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     }
     clearSession();
     dispatch(closeWorkflowDialog());
-  }, [confirm, dispatch, isPlayMode]);
+  }, [confirm, dirty, dispatch, isPlayMode]);
 
   if (!open) {
     return null;
@@ -372,7 +629,6 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     const title = playbackWorkflow?.name ?? 'Run workflow';
     const titleId = 'workflow-play-dialog-title';
     const recordedDuration = playbackWorkflow?.durationMs ?? 0;
-    const playbackActionsList = playbackActions ?? [];
 
     return (
       <FloatingDialog
@@ -402,7 +658,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
             </div>
             <button
               type="button"
-              className="rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               aria-label="Close run dialog"
               onClick={(event) => {
                 event.stopPropagation();
@@ -416,7 +672,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
         }
       >
         <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[220px] flex-1">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <WorkflowPlaybackControls
               playing={playing}
               actionIndex={playbackIndex}
@@ -426,6 +682,25 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
               onFastForward={handleFastForward}
               onRestart={handleRestart}
               compact
+            />
+            <WorkflowEditControls
+              playing={playing}
+              actionIndex={playbackIndex}
+              actionCount={playbackActionCount}
+              dirty={dirty}
+              saving={saving}
+              onMoveAhead={() => {
+                handleMoveAction('ahead');
+              }}
+              onMoveBehind={() => {
+                handleMoveAction('behind');
+              }}
+              onDelete={() => {
+                void handleDeleteAction();
+              }}
+              onSave={() => {
+                void handleSaveWorkflowEdits();
+              }}
             />
           </div>
           <p className="font-mono text-[15px] tabular-nums" aria-live="polite">
@@ -450,6 +725,15 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
           playing={playing}
           getState={store.getState}
           onSeek={handleSeek}
+          onMoveAhead={(index) => {
+            handleMoveAction('ahead', index);
+          }}
+          onMoveBehind={(index) => {
+            handleMoveAction('behind', index);
+          }}
+          onDelete={(index) => {
+            void handleDeleteAction(index);
+          }}
         />
       </FloatingDialog>
     );
@@ -476,7 +760,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
           </h2>
           <button
             type="button"
-            className="rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             aria-label="Close recording dialog"
             onClick={(event) => {
               event.stopPropagation();

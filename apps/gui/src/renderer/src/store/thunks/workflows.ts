@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { buildWorkflowExport } from '@harborclient/core/types/workflow';
+import type { WorkflowAction } from '@harborclient/core/types';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   closeWorkflowDialog,
@@ -86,6 +87,25 @@ export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
     await syncTrash(dispatch);
   }
 );
+
+/**
+ * Persists edited workflow actions and refreshes the list.
+ */
+export const updateWorkflowActions = createAsyncThunk<
+  void,
+  { id: number; actions: WorkflowAction[]; durationMs: number },
+  ThunkApiConfig
+>('workflows/updateActions', async ({ id, actions, durationMs }, { dispatch }) => {
+  const sanitized = sanitizeWorkflowActions(actions);
+  const nextDurationMs = sanitized.length === 0 ? 0 : durationMs;
+  const items = await window.api.updateWorkflow({
+    id,
+    actions: sanitized,
+    durationMs: nextDurationMs
+  });
+  dispatch(setWorkflows(items));
+  toast.success('Workflow updated');
+});
 
 /**
  * Exports a workflow as a HarborClient JSON file via the save dialog.

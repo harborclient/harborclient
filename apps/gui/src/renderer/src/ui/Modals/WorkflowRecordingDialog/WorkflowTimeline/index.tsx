@@ -44,12 +44,33 @@ interface Props {
    * @param index - Target action index.
    */
   onSeek: (index: number) => void;
+
+  /**
+   * Moves the action at the given index one step earlier.
+   *
+   * @param index - Action index to move.
+   */
+  onMoveAhead: (index: number) => void;
+
+  /**
+   * Moves the action at the given index one step later.
+   *
+   * @param index - Action index to move.
+   */
+  onMoveBehind: (index: number) => void;
+
+  /**
+   * Deletes the action at the given index after confirmation.
+   *
+   * @param index - Action index to delete.
+   */
+  onDelete: (index: number) => void;
 }
 
 /**
  * Ruler, fixed-width track, and detail strip for workflow playback.
  *
- * @param props - Actions, duration, cursor, and seek handler.
+ * @param props - Actions, duration, cursor, seek, and edit handlers.
  * @returns Timeline panel body.
  */
 export function WorkflowTimeline({
@@ -58,7 +79,10 @@ export function WorkflowTimeline({
   selectedIndex,
   playing,
   getState,
-  onSeek
+  onSeek,
+  onMoveAhead,
+  onMoveBehind,
+  onDelete
 }: Props): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [trackWidthPx, setTrackWidthPx] = useState(800);
@@ -150,6 +174,9 @@ export function WorkflowTimeline({
             playing={playing}
             getState={getState}
             onSeek={onSeek}
+            onMoveAhead={onMoveAhead}
+            onMoveBehind={onMoveBehind}
+            onDelete={onDelete}
           />
         </div>
       </div>

@@ -96,6 +96,26 @@ export interface CreateWorkflowInput {
 }
 
 /**
+ * Input for updating a workflow's actions and duration in the local registry.
+ */
+export interface UpdateWorkflowInput {
+  /**
+   * Database primary key of the workflow to update.
+   */
+  id: number;
+
+  /**
+   * Ordered recorded actions to persist.
+   */
+  actions: WorkflowAction[];
+
+  /**
+   * Accumulated recording duration in milliseconds.
+   */
+  durationMs: number;
+}
+
+/**
  * Portable HarborClient workflow export envelope.
  */
 export interface WorkflowExport {

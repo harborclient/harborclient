@@ -49,6 +49,7 @@ import type {
   SidebarExpansionState,
   RequestHistoryEntry,
   CreateWorkflowInput,
+  UpdateWorkflowInput,
   CreateWorkspaceInput,
   McpClientServer,
   McpServerSettings
@@ -735,6 +736,18 @@ export const createWorkflowInput = z.object({
   )
 }) satisfies z.ZodType<CreateWorkflowInput>;
 
+export const updateWorkflowInput = z.object({
+  id: z.number().int().positive(),
+  durationMs: z.number().finite().nonnegative(),
+  actions: z.array(
+    z.object({
+      type: z.string().trim().min(1),
+      at: z.number().finite().optional(),
+      payload: z.unknown()
+    })
+  )
+}) satisfies z.ZodType<UpdateWorkflowInput>;
+
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
   showAiSidebar: z.boolean(),
@@ -1249,6 +1262,7 @@ export const ipcArgSchemas = {
   workspacesReorder: z.tuple([z.array(dbId)]),
   workspacesSetMarker: z.tuple([dbId, sidebarMarker]),
   workflowsCreate: z.tuple([createWorkflowInput]),
+  workflowsUpdate: z.tuple([updateWorkflowInput]),
   workflowsDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetArchived: z.tuple([dbId, z.boolean()]),

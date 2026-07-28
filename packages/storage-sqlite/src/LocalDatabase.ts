@@ -2659,6 +2659,33 @@ export class LocalDatabase {
   }
 
   /**
+   * Updates a workflow's actions and duration and returns the refreshed list.
+   *
+   * @param id - Workflow id.
+   * @param input - New actions and duration (variables and name are preserved).
+   * @returns Updated workflow list.
+   * @throws When the workflow id does not exist.
+   */
+  updateWorkflow(id: number, input: { actions: WorkflowAction[]; durationMs: number }): Workflow[] {
+    const existing = this.listWorkflows().find((workflow) => workflow.id === id);
+    if (!existing) {
+      throw new Error(`Workflow not found: ${id}`);
+    }
+
+    const now = Date.now();
+    const payload = JSON.stringify({
+      variables: existing.variables,
+      actions: input.actions
+    } satisfies WorkflowPayloadJson);
+
+    this.getDb()
+      .prepare(`UPDATE workflows SET payload = ?, duration_ms = ?, updated_at = ? WHERE id = ?`)
+      .run(payload, Math.max(0, Math.floor(input.durationMs)), now, id);
+
+    return this.listWorkflows();
+  }
+
+  /**
    * Deletes a workflow and returns the refreshed list.
    *
    * @param id - Workflow id.

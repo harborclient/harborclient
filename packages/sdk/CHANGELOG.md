@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Implement workflow update functionality and enhance playback controls. (`443b20ec`)
 - Enhance environment variable management and UI readiness. (`abab021c`)
 - Update variable schema and enhance environment management. (`34cc08f0`)
 - Add workspace management features to routing and state management. (`2bb3eb22`)

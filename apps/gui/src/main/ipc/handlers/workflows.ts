@@ -13,6 +13,13 @@ export function registerWorkflowHandlers(): void {
     getLocalDatabase().createWorkflow(input)
   );
 
+  handle('workflows:update', ipcArgSchemas.workflowsUpdate, (_event, input) =>
+    getLocalDatabase().updateWorkflow(input.id, {
+      actions: input.actions,
+      durationMs: input.durationMs
+    })
+  );
+
   handle('workflows:delete', ipcArgSchemas.workflowsDelete, (_event, id) => {
     getTrashService().moveWorkflowToTrash(id);
     return getLocalDatabase().listWorkflows();

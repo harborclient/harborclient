@@ -10,6 +10,12 @@ import type { JSX, KeyboardEvent } from 'react';
 import type { MenuItem } from '../RowActionsMenu/index.js';
 import { type MenuPosition, clampMenuPosition } from '../menuPosition.js';
 import { portalToBody } from '../portalToBody.js';
+import {
+  findAdjacentEnabledIndex,
+  findEdgeEnabledIndex,
+  isMenuItemEnabled,
+  menuItemClass
+} from '../rowActionsMenuHelpers.js';
 import { cn, resolveTabListKeyAction } from '../utils.js';
 
 interface Props {
@@ -30,21 +36,10 @@ interface Props {
 }
 
 /**
- * Tailwind classes for a single menu item button.
- *
- * @param variant - Visual variant for default or destructive actions.
- */
-function menuItemClass(variant: MenuItem['variant']): string {
-  const base =
-    'block w-full cursor-pointer border-none bg-transparent px-3.5 py-1.5 text-left app-no-drag';
-
-  return variant === 'danger'
-    ? `${base} text-text hover:bg-danger/15 hover:text-danger`
-    : `${base} text-text hover:bg-selection`;
-}
-
-/**
  * Cursor-positioned context menu for tab bars, rendered in a portal at the click point.
+ *
+ * @param props - Menu groups, cursor anchor, and close handler.
+ * @returns Portal menu panel, or null when there are no items.
  */
 export function TabContextMenu({ groups, position, onClose }: Props): JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -73,7 +68,7 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
   }, []);
 
   /**
-   * Re-clamps the menu after mount and focuses the first item once dimensions are known.
+   * Re-clamps the menu after mount and focuses the first enabled item once dimensions are known.
    */
   useLayoutEffect(() => {
     const menu = menuRef.current;
@@ -88,8 +83,11 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
         height: rect.height
       })
     );
-    itemRefs.current[0]?.focus();
-  }, [position, groups]);
+    const firstEnabled = findEdgeEnabledIndex(flatItems, false);
+    if (firstEnabled != null) {
+      focusItem(firstEnabled);
+    }
+  }, [position, groups, flatItems, focusItem]);
 
   /**
    * Closes the menu on outside click or Escape while it is open.
@@ -131,6 +129,16 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
       return;
     }
 
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      const next = findAdjacentEnabledIndex(flatItems, focusedIndex, direction);
+      if (next != null) {
+        event.preventDefault();
+        focusItem(next);
+      }
+      return;
+    }
+
     const arrowIndex = resolveTabListKeyAction(event.key, focusedIndex, flatItems.length);
     if (arrowIndex !== null) {
       event.preventDefault();
@@ -147,7 +155,7 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
       ref={menuRef}
       role="menu"
       aria-label="Tab actions"
-      className="hc-tab-context-menu app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-tab-context-menu app-no-drag fixed z-[70] min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: clampedPosition.x, top: clampedPosition.y }}
       onKeyDown={handleMenuKeyDown}
     >
@@ -167,6 +175,7 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
           >
             {group.map((item) => {
               const itemIndex = flatIndex++;
+              const disabled = !isMenuItemEnabled(item);
               return (
                 <button
                   key={item.label}
@@ -175,10 +184,14 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
                   }}
                   type="button"
                   role="menuitem"
-                  tabIndex={itemIndex === focusedIndex ? 0 : -1}
-                  className={cn('hc-tab-context-menu-item', menuItemClass(item.variant))}
+                  disabled={disabled}
+                  tabIndex={itemIndex === focusedIndex && !disabled ? 0 : -1}
+                  className={cn('hc-tab-context-menu-item', menuItemClass(item.variant, disabled))}
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (disabled) {
+                      return;
+                    }
                     closeMenu();
                     item.onSelect?.();
                   }}

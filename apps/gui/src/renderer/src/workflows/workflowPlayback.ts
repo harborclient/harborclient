@@ -247,6 +247,30 @@ export function seekPlaybackTo(nextIndex: number): void {
 }
 
 /**
+ * Replaces the loaded playback actions without resetting elapsed time.
+ *
+ * Stops any active play loop, swaps the action list, and clamps the cursor so
+ * timeline edits (reorder / delete) stay in sync with the UI.
+ *
+ * @param nextActions - Updated ordered workflow actions.
+ * @param nextIndex - Optional absolute cursor; defaults to clamping the current index.
+ */
+export function replacePlaybackActions(
+  nextActions: readonly WorkflowAction[],
+  nextIndex?: number
+): void {
+  if (!sessionLoaded) {
+    return;
+  }
+  stopPlayback();
+  actions = nextActions.map((action) => ({ ...action }));
+  const fallback = Math.min(Math.max(index, 0), actions.length);
+  index =
+    nextIndex == null ? fallback : Math.min(Math.max(Math.floor(nextIndex), 0), actions.length);
+  notifyPlaybackListeners();
+}
+
+/**
  * Stops the play loop and pauses the playback clock without clearing actions.
  */
 export function stopPlayback(): void {
