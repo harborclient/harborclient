@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Variable } from '@harborclient/core/types';
+import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
@@ -9,11 +10,12 @@ import {
 
 /**
  * Merges global, collection, folder, and environment variables; higher scopes win on duplicate keys.
+ * Disabled rows are skipped so a lower scope can pass through.
  *
  * @param globalVars - Application-wide variables.
  * @param collectionVars - Collection-scoped variables.
  * @param folderVars - Folder-scoped variables.
- * @param envVars - Active environment variables.
+ * @param envVars - Active environment variables (already inheritance-merged when applicable).
  * @returns Deduplicated variables for request editor highlighting.
  */
 export function mergeRequestVariables(
@@ -24,18 +26,22 @@ export function mergeRequestVariables(
 ): Variable[] {
   const map = new Map<string, Variable>();
   for (const variable of globalVars) {
+    if (variable.enabled === false) continue;
     const key = variable.key.trim();
     if (key) map.set(key, variable);
   }
   for (const variable of collectionVars) {
+    if (variable.enabled === false) continue;
     const key = variable.key.trim();
     if (key) map.set(key, variable);
   }
   for (const variable of folderVars) {
+    if (variable.enabled === false) continue;
     const key = variable.key.trim();
     if (key) map.set(key, variable);
   }
   for (const variable of envVars) {
+    if (variable.enabled === false) continue;
     const key = variable.key.trim();
     if (key) map.set(key, variable);
   }
@@ -71,11 +77,20 @@ export function useMergedRequestVariables(
         ? environments.find((entry) => entry.id === activeEnvironmentId)
         : undefined;
 
+    let envVars: Variable[] = [];
+    if (environment) {
+      try {
+        envVars = resolveInheritedEnvironmentVariables(environment, environments);
+      } catch {
+        envVars = environment.variables.filter((variable) => variable.enabled !== false);
+      }
+    }
+
     return mergeRequestVariables(
       globalVariables,
       collection?.variables ?? [],
       folder?.variables ?? [],
-      environment?.variables ?? []
+      envVars
     );
   }, [
     activeEnvironmentId,

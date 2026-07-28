@@ -62,7 +62,9 @@ export const cleanHeaders = (headers: KeyValue[]): KeyValue[] =>
  * @returns Variables suitable for editor state initialization.
  */
 export const seedScopedSettingsVariables = (variables: Variable[]): Variable[] =>
-  variables.length ? variables : [{ key: '', value: '', defaultValue: '', enabled: true, share: false }];
+  variables.length
+    ? variables
+    : [{ key: '', value: '', defaultValue: '', enabled: true, share: false }];
 
 /**
  * Seeds headers state with a blank row when the persisted list is empty.

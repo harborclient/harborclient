@@ -39,7 +39,8 @@ const sampleEnvironment = {
   updatedAt: new Date('2026-01-02T00:00:00.000Z'),
   ...sampleAttribution,
   deletionLocked: false,
-  marker: null
+  marker: null,
+  parentUuid: null
 };
 
 const sampleFolder = {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, type JSX } from 'react';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
+import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import {
@@ -85,6 +86,18 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
       activeEnvironmentId != null
         ? environments.find((entry) => entry.id === activeEnvironmentId)
         : undefined;
+    let environmentVariables =
+      activeEnvironment?.variables.filter((variable) => variable.enabled !== false) ?? [];
+    if (activeEnvironment) {
+      try {
+        environmentVariables = resolveInheritedEnvironmentVariables(
+          activeEnvironment,
+          environments
+        );
+      } catch {
+        // Keep own enabled variables when the inheritance chain is invalid.
+      }
+    }
 
     const activeFolder =
       draft?.collection_id != null && activeFolderId != null
@@ -98,7 +111,7 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
       globalVariables,
       collectionVariables: activeCollection?.variables ?? [],
       folderVariables: activeFolder?.variables ?? [],
-      environmentVariables: activeEnvironment?.variables ?? [],
+      environmentVariables,
       activeCollectionId: draft?.collection_id ?? null,
       activeFolderId,
       activeEnvironmentId

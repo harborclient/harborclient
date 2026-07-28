@@ -42,6 +42,11 @@ interface ExpansionSnapshot {
    * Folder ids expanded before search started.
    */
   expandedFolderIds: Set<number>;
+
+  /**
+   * Environment ids expanded before search started.
+   */
+  expandedEnvironmentIds: Set<number>;
 }
 
 interface Options {
@@ -111,6 +116,11 @@ interface Options {
   expandedFolderIds: Set<number>;
 
   /**
+   * Environment ids whose child environments are expanded.
+   */
+  expandedEnvironmentIds: Set<number>;
+
+  /**
    * Updates expanded collection ids.
    */
   setExpandedCollectionIds: Dispatch<SetStateAction<Set<number>>>;
@@ -119,6 +129,11 @@ interface Options {
    * Updates expanded folder ids.
    */
   setExpandedFolderIds: Dispatch<SetStateAction<Set<number>>>;
+
+  /**
+   * Updates expanded environment ids.
+   */
+  setExpandedEnvironmentIds: Dispatch<SetStateAction<Set<number>>>;
 }
 
 interface Result {
@@ -148,7 +163,7 @@ interface Result {
   searchLoading: boolean;
 
   /**
-   * Collapses all collection and folder trees, clears active search, and persists collapsed state.
+   * Collapses all collection, folder, and environment trees, clears active search, and persists collapsed state.
    */
   collapseAllSidebarTrees: () => void;
 }
@@ -179,7 +194,8 @@ export function clearExpansionSnapshot(snapshot: ExpansionSnapshot): ExpansionSn
   return {
     ...snapshot,
     expandedCollectionIds: new Set(),
-    expandedFolderIds: new Set()
+    expandedFolderIds: new Set(),
+    expandedEnvironmentIds: new Set()
   };
 }
 
@@ -202,8 +218,10 @@ export function useSidebarSearch({
   setArchiveSectionVisible,
   expandedCollectionIds,
   expandedFolderIds,
+  expandedEnvironmentIds,
   setExpandedCollectionIds,
-  setExpandedFolderIds
+  setExpandedFolderIds,
+  setExpandedEnvironmentIds
 }: Options): Result {
   const dispatch = useAppDispatch();
   const { sidebarInput, sidebarIndex } = useSearchIndexes();
@@ -214,7 +232,8 @@ export function useSidebarSearch({
     environmentsSectionExpanded,
     archiveSectionExpanded,
     expandedCollectionIds,
-    expandedFolderIds
+    expandedFolderIds,
+    expandedEnvironmentIds
   });
 
   /**
@@ -226,14 +245,16 @@ export function useSidebarSearch({
       environmentsSectionExpanded,
       archiveSectionExpanded,
       expandedCollectionIds,
-      expandedFolderIds
+      expandedFolderIds,
+      expandedEnvironmentIds
     };
   }, [
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     archiveSectionExpanded,
     expandedCollectionIds,
-    expandedFolderIds
+    expandedFolderIds,
+    expandedEnvironmentIds
   ]);
 
   /**
@@ -308,6 +329,7 @@ export function useSidebarSearch({
       setArchiveSectionExpanded(snapshot.archiveSectionExpanded);
       setExpandedCollectionIds(new Set(snapshot.expandedCollectionIds));
       setExpandedFolderIds(new Set(snapshot.expandedFolderIds));
+      setExpandedEnvironmentIds(new Set(snapshot.expandedEnvironmentIds));
       expansionSnapshotRef.current = null;
       return;
     }
@@ -322,7 +344,8 @@ export function useSidebarSearch({
       environmentsSectionExpanded: current.environmentsSectionExpanded,
       archiveSectionExpanded: current.archiveSectionExpanded,
       expandedCollectionIds: new Set(current.expandedCollectionIds),
-      expandedFolderIds: new Set(current.expandedFolderIds)
+      expandedFolderIds: new Set(current.expandedFolderIds),
+      expandedEnvironmentIds: new Set(current.expandedEnvironmentIds)
     };
   }, [
     searchQuery,
@@ -330,7 +353,8 @@ export function useSidebarSearch({
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setExpandedCollectionIds,
-    setExpandedFolderIds
+    setExpandedFolderIds,
+    setExpandedEnvironmentIds
   ]);
 
   /**
@@ -384,19 +408,20 @@ export function useSidebarSearch({
   ]);
 
   /**
-   * Collapses all collection and folder trees, clears search when active, and keeps
+   * Collapses all collection, folder, and environment trees, clears search when active, and keeps
    * the collapsed state when search snapshots are restored.
    */
   const collapseAllSidebarTrees = useCallback((): void => {
     setExpandedCollectionIds(new Set());
     setExpandedFolderIds(new Set());
+    setExpandedEnvironmentIds(new Set());
 
     if (expansionSnapshotRef.current != null) {
       expansionSnapshotRef.current = clearExpansionSnapshot(expansionSnapshotRef.current);
     }
 
     setSearchQuery((current) => (current.trim().length > 0 ? '' : current));
-  }, [setExpandedCollectionIds, setExpandedFolderIds]);
+  }, [setExpandedCollectionIds, setExpandedEnvironmentIds, setExpandedFolderIds]);
 
   return {
     searchQuery,

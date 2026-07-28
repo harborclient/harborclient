@@ -12,6 +12,7 @@ import type {
   SidebarSectionKey,
   SidebarSortMode
 } from '@harborclient/core/types';
+import { consumePrefetchedSidebarExpansion } from '#/renderer/src/store/sidebarExpansionPrefetch';
 import { clearRegisteredSectionFilters } from '../filter/clearRegisteredSectionFilters';
 import { scrollSidebarFolderRowIntoView } from '../navigation/sidebarListNavigation';
 import { registerSidebarExpansionApplier } from './sidebarExpansionBridge';
@@ -395,6 +396,11 @@ interface Result {
   expandedFolderIds: Set<number>;
 
   /**
+   * Environment ids whose child environments are expanded.
+   */
+  expandedEnvironmentIds: Set<number>;
+
+  /**
    * Updates expanded collection ids.
    */
   setExpandedCollectionIds: Dispatch<SetStateAction<Set<number>>>;
@@ -403,6 +409,18 @@ interface Result {
    * Updates expanded folder ids.
    */
   setExpandedFolderIds: Dispatch<SetStateAction<Set<number>>>;
+
+  /**
+   * Updates expanded environment ids.
+   */
+  setExpandedEnvironmentIds: Dispatch<SetStateAction<Set<number>>>;
+
+  /**
+   * Toggles whether an environment's children are visible in the sidebar tree.
+   *
+   * @param id - Environment database id.
+   */
+  toggleEnvironment: (id: number) => void;
 
   /**
    * Expands the Collections section and a collection tree for user navigation.
@@ -428,6 +446,7 @@ interface Result {
  * @param sectionSort - Per-section sort modes.
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
+ * @param expandedEnvironmentIds - Expanded environment ids in memory.
  * @param showStorageLocationBadges - Whether storage location badges are shown.
  * @param showMarkers - Whether user-assigned color marker dots are shown.
  * @param showMethodColors - Whether HTTP method badges use per-method colors.
@@ -441,6 +460,7 @@ export function serializeSidebarExpansion(
   sectionSort: SidebarExpansionState['sectionSort'],
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>,
+  expandedEnvironmentIds: Set<number>,
   showStorageLocationBadges: boolean,
   showMarkers: boolean,
   showMethodColors: boolean,
@@ -454,6 +474,7 @@ export function serializeSidebarExpansion(
     sectionSort,
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds],
+    environmentIds: [...expandedEnvironmentIds],
     showStorageLocationBadges,
     showMarkers,
     showMethodColors,
@@ -556,6 +577,7 @@ export function usePersistedSidebarExpansion({
   );
   const [expandedCollectionIds, setExpandedCollectionIds] = useState<Set<number>>(new Set());
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
+  const [expandedEnvironmentIds, setExpandedEnvironmentIds] = useState<Set<number>>(new Set());
   const restoredRef = useRef(false);
   const skipPersistRef = useRef(true);
   const showFiltersRef = useRef(showFilters);
@@ -604,6 +626,7 @@ export function usePersistedSidebarExpansion({
       setSectionSortState(stored.sectionSort);
       setExpandedCollectionIds(new Set(validExpanded));
       setExpandedFolderIds(new Set(stored.folderIds));
+      setExpandedEnvironmentIds(new Set(stored.environmentIds));
 
       for (const id of validExpanded) {
         onExpandCollection(id);
@@ -614,13 +637,26 @@ export function usePersistedSidebarExpansion({
 
   /**
    * Restores persisted expansion after collections are listed so stale collection
-   * ids are filtered before contents are loaded.
+   * ids are filtered before contents are loaded. Prefers a snapshot prefetched
+   * during shell bootstrap to avoid a second IPC round-trip and post-reveal jump.
    */
   useEffect(() => {
     if (!collectionsListed || restoredRef.current) return;
     restoredRef.current = true;
 
     let cancelled = false;
+
+    const prefetched = consumePrefetchedSidebarExpansion();
+    if (prefetched != null) {
+      void Promise.resolve().then(() => {
+        if (cancelled) return;
+        applyExpansionSnapshot(prefetched);
+        setLoaded(true);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
 
     void window.api.getSidebarExpansion().then((stored) => {
       if (cancelled) return;
@@ -675,6 +711,7 @@ export function usePersistedSidebarExpansion({
       sectionSort,
       expandedCollectionIds,
       expandedFolderIds,
+      expandedEnvironmentIds,
       showStorageLocationBadges,
       showMarkers,
       showMethodColors,
@@ -705,6 +742,7 @@ export function usePersistedSidebarExpansion({
     sectionSort,
     expandedCollectionIds,
     expandedFolderIds,
+    expandedEnvironmentIds,
     showStorageLocationBadges,
     showMarkers,
     showMethodColors,
@@ -956,6 +994,23 @@ export function usePersistedSidebarExpansion({
     });
   }, []);
 
+  /**
+   * Toggles whether an environment's children are visible in the sidebar tree.
+   *
+   * @param id - Environment database id.
+   */
+  const toggleEnvironment = useCallback((id: number): void => {
+    setExpandedEnvironmentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
   return {
     loaded,
     collectionsSectionExpanded,
@@ -1028,8 +1083,11 @@ export function usePersistedSidebarExpansion({
     setSectionSort,
     expandedCollectionIds,
     expandedFolderIds,
+    expandedEnvironmentIds,
     setExpandedCollectionIds,
     setExpandedFolderIds,
+    setExpandedEnvironmentIds,
+    toggleEnvironment,
     revealCollection,
     revealArchivedCollection,
     revealFolder

@@ -14,7 +14,7 @@ import {
  * @param share - Whether the value is included in exports.
  */
 function variable(key: string, value: string, defaultValue = '', share = false): Variable {
-  return { key, value, defaultValue, share };
+  return { key, value, defaultValue, enabled: true, share };
 }
 
 describe('mergeEnvironmentVariables', () => {

@@ -588,15 +588,21 @@ function createEnvironment(name: string): Promise<Environment> {
 }
 
 /**
- * Updates an environment's name and variables via IPC.
+ * Updates an environment's name, variables, and optional parent link via IPC.
  *
  * @param id - Environment ID to update.
  * @param name - New display name.
  * @param variables - Environment-scoped variables.
+ * @param parentUuid - Parent environment uuid; `null` clears; omit to leave unchanged.
  * @returns The updated environment.
  */
-function updateEnvironment(id: number, name: string, variables: Variable[]): Promise<Environment> {
-  return ipcRenderer.invoke('environments:update', id, name, variables);
+function updateEnvironment(
+  id: number,
+  name: string,
+  variables: Variable[],
+  parentUuid?: string | null
+): Promise<Environment> {
+  return ipcRenderer.invoke('environments:update', id, name, variables, parentUuid);
 }
 
 /**
@@ -1605,6 +1611,14 @@ function toggleFullscreenWindow(): Promise<void> {
  */
 function closeWindow(): Promise<void> {
   return ipcRenderer.invoke('window:close');
+}
+
+/**
+ * Signals that the renderer shell has finished bootstrap so main may close
+ * the splash and show the main window.
+ */
+function notifyUiReady(): Promise<void> {
+  return ipcRenderer.invoke('window:notifyUiReady');
 }
 
 /**
@@ -4215,6 +4229,7 @@ const api: Api = {
   toggleMaximizeWindow,
   toggleFullscreenWindow,
   closeWindow,
+  notifyUiReady,
   getGeneralSettings,
   setGeneralSettings,
   getAiSettings,

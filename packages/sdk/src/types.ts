@@ -1947,6 +1947,11 @@ export interface PluginVariableInput {
   defaultValue?: string;
 
   /**
+   * When false, the row is ignored at resolve time. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+
+  /**
    * When true, value is included in collection exports.
    */
   share?: boolean;

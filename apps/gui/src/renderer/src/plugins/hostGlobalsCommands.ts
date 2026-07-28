@@ -46,7 +46,7 @@ export async function setGlobalVariable(name: string, value: string): Promise<vo
       ? current.map((row, index) =>
           index === existingIndex ? { ...row, value: nextValue, enabled: true } : row
         )
-      : [...current, { key, value: nextValue, defaultValue: '', enabled: true, share: false, enabled: true }];
+      : [...current, { key, value: nextValue, defaultValue: '', enabled: true, share: false }];
 
   await store.dispatch(saveGlobalVariables(next)).unwrap();
 }

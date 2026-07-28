@@ -2,6 +2,7 @@ import { BusyIndicator, CodeEditorConfigProvider } from '@harborclient/sdk/compo
 import { useCallback, useEffect, useMemo, type JSX } from 'react';
 import { Toaster } from 'react-hot-toast';
 import type { Collection, Environment } from '@harborclient/core/types';
+import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { useBeforeClose } from '#/renderer/src/hooks/useBeforeClose';
 import { useEscapeBack } from '#/renderer/src/hooks/useEscapeBack';
 import { useMenuActions } from '#/renderer/src/hooks/useMenuActions';
@@ -48,7 +49,12 @@ import {
 } from '#/renderer/src/store/slices/navigationSlice';
 import { openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
-import { initializeStore, refreshCollectionContents } from '#/renderer/src/store/thunks';
+import {
+  bootstrapShellForReveal,
+  refreshCollectionContents,
+  startBackgroundRefresh,
+  waitForPaint
+} from '#/renderer/src/store/thunks';
 import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
 import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
@@ -147,20 +153,38 @@ export default function App(): JSX.Element {
   useBeforeClose();
 
   /**
-   * Loads folders and requests when a collection tree is expanded in the sidebar.
+   * Loads folders and requests when a collection tree is expanded in the sidebar,
+   * skipping collections whose contents were already hydrated during shell bootstrap.
    */
   const handleExpandCollection = useCallback(
     (id: number) => {
+      if (foldersByCollection[id] !== undefined) {
+        return;
+      }
       void dispatch(refreshCollectionContents(id));
     },
-    [dispatch]
+    [dispatch, foldersByCollection]
   );
 
   /**
-   * Initializes the store.
+   * Bootstraps shell data while the splash is visible, then reveals the main window.
    */
   useEffect(() => {
-    initializeStore(dispatch);
+    let cancelled = false;
+
+    void (async () => {
+      await dispatch(bootstrapShellForReveal());
+      if (cancelled) return;
+      await waitForPaint();
+      if (cancelled) return;
+      await window.api.notifyUiReady();
+      if (cancelled) return;
+      startBackgroundRefresh(dispatch);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   /**
@@ -252,7 +276,8 @@ export default function App(): JSX.Element {
 
   /**
    * Loads folders and requests for the active collection when that data has not
-   * been fetched yet (lazy load on mount or collection change).
+   * been fetched yet (for example after switching collections post-bootstrap).
+   * Shell bootstrap already hydrates the initial active collection before reveal.
    */
   useEffect(() => {
     if (activeCollectionId == null) return;
@@ -270,6 +295,20 @@ export default function App(): JSX.Element {
     activeEnvironmentId != null
       ? environments.find((env: Environment) => env.id === activeEnvironmentId)
       : undefined;
+
+  /**
+   * Effective environment variables including ancestors from parentUuid inheritance.
+   */
+  const activeEnvironmentVariables = useMemo(() => {
+    if (!activeEnvironment) {
+      return [];
+    }
+    try {
+      return resolveInheritedEnvironmentVariables(activeEnvironment, environments);
+    } catch {
+      return activeEnvironment.variables.filter((variable) => variable.enabled !== false);
+    }
+  }, [activeEnvironment, environments]);
 
   const activeFolderId = useMemo(() => {
     if (activeCollectionId == null) return null;
@@ -361,7 +400,7 @@ export default function App(): JSX.Element {
                           globalVariables,
                           collectionVariables: activeCollection?.variables ?? [],
                           folderVariables: activeFolder?.variables ?? [],
-                          environmentVariables: activeEnvironment?.variables ?? [],
+                          environmentVariables: activeEnvironmentVariables,
                           activeCollectionId,
                           activeFolderId,
                           activeEnvironmentId
@@ -426,7 +465,7 @@ export default function App(): JSX.Element {
                       globalVariables={globalVariables}
                       collectionVariables={activeCollection?.variables ?? []}
                       folderVariables={activeFolder?.variables ?? []}
-                      environmentVariables={activeEnvironment?.variables ?? []}
+                      environmentVariables={activeEnvironmentVariables}
                       collectionName={activeCollection?.name}
                       folderName={activeFolder?.name}
                       environmentName={activeEnvironment?.name}
@@ -473,7 +512,7 @@ export default function App(): JSX.Element {
                 globalVariables={globalVariables}
                 collectionVariables={activeCollection?.variables ?? []}
                 folderVariables={activeFolder?.variables ?? []}
-                environmentVariables={activeEnvironment?.variables ?? []}
+                environmentVariables={activeEnvironmentVariables}
                 sidebarOpen={sidebarVisible}
                 onToggleSidebar={() => dispatch(toggleSidebar())}
                 aiSidebarOpen={aiSidebarVisible}

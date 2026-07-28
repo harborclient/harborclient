@@ -582,7 +582,15 @@ describeSqlite('RoutingStorage duplicateCollection', () => {
     await router.updateCollection(
       collection.id,
       'Source API',
-      [{ key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: true }],
+      [
+        {
+          key: 'baseUrl',
+          value: 'https://api.example.com',
+          defaultValue: '',
+          enabled: true,
+          share: true
+        }
+      ],
       [{ key: 'Accept', value: 'application/json', enabled: true }],
       'console.log("pre")',
       'console.log("post")',
@@ -611,7 +619,13 @@ describeSqlite('RoutingStorage duplicateCollection', () => {
     expect(duplicated.name).toBe('Source API (copy)');
     expect(duplicated.connectionId).toBe(CONN_A.id);
     expect(duplicated.variables).toEqual([
-      { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: true }
+      {
+        key: 'baseUrl',
+        value: 'https://api.example.com',
+        defaultValue: '',
+        enabled: true,
+        share: true
+      }
     ]);
     expect(duplicated.headers).toEqual([
       { key: 'Accept', value: 'application/json', enabled: true }
@@ -826,7 +840,13 @@ describeSqlite('RoutingStorage duplicateEnvironment', () => {
     const { router } = await createRoutingFixture();
     const source = await router.createEnvironment('Staging');
     await router.updateEnvironment(source.id, 'Staging', [
-      { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true },
+      {
+        key: 'baseUrl',
+        value: 'https://staging.example.com',
+        defaultValue: '',
+        enabled: true,
+        share: true
+      },
       { key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }
     ]);
 
@@ -836,7 +856,13 @@ describeSqlite('RoutingStorage duplicateEnvironment', () => {
     expect(duplicated.uuid).not.toBe(source.uuid);
     expect(duplicated.name).toBe('Staging (copy)');
     expect(duplicated.variables).toEqual([
-      { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true },
+      {
+        key: 'baseUrl',
+        value: 'https://staging.example.com',
+        defaultValue: '',
+        enabled: true,
+        share: true
+      },
       { key: 'token', value: 'secret', defaultValue: '', enabled: true, share: false }
     ]);
 

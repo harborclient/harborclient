@@ -31,6 +31,7 @@ export function pluginVariablesToVariables(variables: PluginVariableInput[]): Va
       key,
       value: typeof variable.value === 'string' ? variable.value : '',
       defaultValue: typeof variable.defaultValue === 'string' ? variable.defaultValue : '',
+      enabled: variable.enabled !== false,
       share: variable.share === true
     });
   }

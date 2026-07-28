@@ -678,6 +678,7 @@ export const sidebarExpansion = z.object({
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
+  environmentIds: z.array(dbId),
   showStorageLocationBadges: z.boolean(),
   showMarkers: z.boolean(),
   showMethodColors: z.boolean(),

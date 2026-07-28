@@ -31,8 +31,10 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
     setArchiveSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
+    expandedEnvironmentIds,
     setExpandedCollectionIds,
-    setExpandedFolderIds
+    setExpandedFolderIds,
+    setExpandedEnvironmentIds
   } = useSidebarExpansion();
 
   const {
@@ -56,8 +58,10 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
     setArchiveSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
+    expandedEnvironmentIds,
     setExpandedCollectionIds,
-    setExpandedFolderIds
+    setExpandedFolderIds,
+    setExpandedEnvironmentIds
   });
 
   const value = useMemo<SidebarSearchContextValue>(

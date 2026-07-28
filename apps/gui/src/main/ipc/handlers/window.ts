@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron';
 import { isDeveloperToolsEnabled } from '#/main/devMode';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { getRegisteredMainWindow, requestMainWindowReveal } from '#/main/window/mainWindowReveal';
 
 /**
  * Registers IPC handlers for frameless Linux window chrome controls.
@@ -36,6 +37,15 @@ export function registerWindowHandlers(): void {
   // Closes the focused application window.
   handle('window:close', ipcArgSchemas.none, () => {
     BrowserWindow.getFocusedWindow()?.close();
+  });
+
+  // Reveals the main window after renderer shell bootstrap completes.
+  handle('window:notifyUiReady', ipcArgSchemas.none, (event) => {
+    const registered = getRegisteredMainWindow();
+    if (!registered || event.sender !== registered.webContents) {
+      return;
+    }
+    requestMainWindowReveal('renderer');
   });
 
   // Inspects the DOM node at viewport coordinates and opens DevTools when enabled.

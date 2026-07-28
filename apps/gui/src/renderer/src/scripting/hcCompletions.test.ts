@@ -289,7 +289,9 @@ describe('createHcCompletionSource', () => {
     const firstResult = await complete(source, mockContext('const url = "{{ho'));
     expect(labels(firstResult!.options)).toEqual(['host']);
 
-    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }];
+    currentVariables = [
+      { key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }
+    ];
 
     const secondResult = await complete(source, mockContext('const url = "{{to'));
     expect(labels(secondResult!.options)).toEqual(['token']);
@@ -313,7 +315,9 @@ describe('createHcCompletionSource', () => {
     const postResult = await complete(source, mockContext('hc.'));
     expect(labels(postResult!.options).sort()).toContain('response');
 
-    currentVariables = [{ key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }];
+    currentVariables = [
+      { key: 'token', value: 'abc', defaultValue: 'fallback', enabled: true, share: false }
+    ];
 
     const variableResult = await complete(source, mockContext('const url = "{{to'));
     expect(labels(variableResult!.options)).toEqual(['token']);

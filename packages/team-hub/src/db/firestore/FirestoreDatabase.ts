@@ -1099,8 +1099,7 @@ export class FirestoreDatabase implements IDatabase {
     const existing = snapshot.data() as FirestoreEnvironmentDocument;
     const serializedMarker =
       marker !== undefined ? serializeSidebarMarker(marker) : existing.marker;
-    const normalizedParent =
-      parentUuid === undefined ? undefined : parentUuid?.trim() || null;
+    const normalizedParent = parentUuid === undefined ? undefined : parentUuid?.trim() || null;
     const updated: FirestoreEnvironmentDocument = {
       ...existing,
       name: trimmedName,

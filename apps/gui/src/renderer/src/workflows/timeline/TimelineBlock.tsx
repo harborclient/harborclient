@@ -2,6 +2,11 @@ import type { JSX, ReactNode } from 'react';
 
 interface Props {
   /**
+   * Optional DOM id for aria-activedescendant targeting.
+   */
+  id?: string;
+
+  /**
    * Accessible name for the seek button (primary action description).
    */
   label: string;
@@ -42,6 +47,7 @@ interface Props {
  * @returns Timeline block button wrapping thumbnail content.
  */
 export function TimelineBlock({
+  id,
   label,
   selected,
   widthPx,
@@ -51,6 +57,7 @@ export function TimelineBlock({
 }: Props): JSX.Element {
   return (
     <button
+      id={id}
       type="button"
       role="option"
       aria-selected={selected}

@@ -7,7 +7,15 @@ describe('buildSendRuntimeVars', () => {
     expect(
       buildSendRuntimeVars(
         [{ key: 'host', value: 'global.example', defaultValue: '', enabled: true, share: false }],
-        [{ key: 'host', value: 'collection.example', defaultValue: '', enabled: true, share: false }],
+        [
+          {
+            key: 'host',
+            value: 'collection.example',
+            defaultValue: '',
+            enabled: true,
+            share: false
+          }
+        ],
         [{ key: 'host', value: 'env.example', defaultValue: '', enabled: true, share: false }]
       )
     ).toEqual({

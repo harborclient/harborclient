@@ -4,6 +4,7 @@ import {
   appendMissingEnvironmentVariables,
   mergeEnvironmentVariables
 } from '@harborclient/core/environmentVariables';
+import { findNextSiblingEnvironment } from '@harborclient/core/environmentTree';
 import {
   reorderEnvironmentsLocal,
   setActiveEnvironmentId,
@@ -58,10 +59,10 @@ export const createEnvironment = createAsyncThunk<Environment, string, ThunkApiC
  */
 export const updateEnvironment = createAsyncThunk<
   void,
-  { id: number; name: string; variables: Variable[] },
+  { id: number; name: string; variables: Variable[]; parentUuid?: string | null },
   ThunkApiConfig
->('environments/update', async ({ id, name, variables }, { dispatch }) => {
-  await window.api.updateEnvironment(id, name, variables);
+>('environments/update', async ({ id, name, variables, parentUuid }, { dispatch }) => {
+  await window.api.updateEnvironment(id, name, variables, parentUuid);
   await dispatch(refreshEnvironments());
 });
 
@@ -128,13 +129,12 @@ export const mergeEnvironmentDown = createAsyncThunk<void, number, ThunkApiConfi
   'environments/mergeDown',
   async (topEnvironmentId, { dispatch, getState }) => {
     const { environments, activeEnvironmentId } = getState().environments;
-    const index = environments.findIndex((environment) => environment.id === topEnvironmentId);
-    if (index < 0 || index >= environments.length - 1) {
-      throw new Error('Cannot merge down: no environment below the selected one.');
+    const top = environments.find((environment) => environment.id === topEnvironmentId);
+    const bottom = findNextSiblingEnvironment(topEnvironmentId, environments);
+    if (!top || !bottom) {
+      throw new Error('Cannot merge down: no sibling environment below the selected one.');
     }
 
-    const top = environments[index];
-    const bottom = environments[index + 1];
     const mergedVariables = mergeEnvironmentVariables(bottom.variables, top.variables);
 
     await window.api.updateEnvironment(bottom.id, top.name, mergedVariables);
@@ -172,13 +172,12 @@ export const copyEnvironmentVariablesDown = createAsyncThunk<
   ThunkApiConfig
 >('environments/copyDown', async (topEnvironmentId, { dispatch, getState }) => {
   const { environments } = getState().environments;
-  const index = environments.findIndex((environment) => environment.id === topEnvironmentId);
-  if (index < 0 || index >= environments.length - 1) {
-    throw new Error('Cannot copy down: no environment below the selected one.');
+  const top = environments.find((environment) => environment.id === topEnvironmentId);
+  const bottom = findNextSiblingEnvironment(topEnvironmentId, environments);
+  if (!top || !bottom) {
+    throw new Error('Cannot copy down: no sibling environment below the selected one.');
   }
 
-  const top = environments[index];
-  const bottom = environments[index + 1];
   const { variables, addedCount } = appendMissingEnvironmentVariables(
     bottom.variables,
     top.variables

@@ -504,8 +504,7 @@ export class FirestoreStorage implements IStorage {
     if (!snap.exists()) throw new Error('Environment not found');
 
     const existing = snap.data() as Record<string, unknown>;
-    const normalizedParent =
-      parentUuid === undefined ? undefined : parentUuid?.trim() || null;
+    const normalizedParent = parentUuid === undefined ? undefined : parentUuid?.trim() || null;
     await updateDoc(ref, {
       name: trimmedName,
       variables,

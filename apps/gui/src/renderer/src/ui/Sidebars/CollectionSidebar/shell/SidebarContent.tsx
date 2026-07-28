@@ -97,6 +97,7 @@ export function SidebarContent(): JSX.Element {
     trashSectionVisible,
     expandedCollectionIds,
     expandedFolderIds,
+    expandedEnvironmentIds,
     toggleCollectionsSectionVisible,
     toggleEnvironmentsSectionVisible,
     toggleRunResultsSectionVisible,
@@ -115,17 +116,23 @@ export function SidebarContent(): JSX.Element {
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
 
   /**
-   * Collapses collection/folder trees first; when none remain expanded, collapses
+   * Collapses collection/folder/environment trees first; when none remain expanded, collapses
    * every sidebar section header (built-in and plugin).
    */
   const handleCollapseAll = useCallback((): void => {
-    if (hasExpandedSidebarTrees(expandedCollectionIds, expandedFolderIds)) {
+    if (hasExpandedSidebarTrees(expandedCollectionIds, expandedFolderIds, expandedEnvironmentIds)) {
       collapseAllSidebarTrees();
       return;
     }
 
     collapseAllSections();
-  }, [collapseAllSections, collapseAllSidebarTrees, expandedCollectionIds, expandedFolderIds]);
+  }, [
+    collapseAllSections,
+    collapseAllSidebarTrees,
+    expandedCollectionIds,
+    expandedEnvironmentIds,
+    expandedFolderIds
+  ]);
 
   /**
    * Left toolbar actions that show or hide sidebar sections.

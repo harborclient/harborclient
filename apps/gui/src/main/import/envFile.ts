@@ -45,6 +45,7 @@ export function parseDotenvEnvironment(raw: string, fileName: string): Environme
     key,
     value,
     defaultValue: '',
+    enabled: true,
     share: false
   }));
 

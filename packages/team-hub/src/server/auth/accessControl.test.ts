@@ -101,7 +101,8 @@ const sampleEnvironments: EnvironmentRecord[] = [
     createdByUserId: null,
     updatedByUserId: null,
     deletionLocked: false,
-    marker: null
+    marker: null,
+    parentUuid: null
   },
   {
     id: 'env-b',
@@ -112,7 +113,8 @@ const sampleEnvironments: EnvironmentRecord[] = [
     createdByUserId: null,
     updatedByUserId: null,
     deletionLocked: false,
-    marker: null
+    marker: null,
+    parentUuid: null
   }
 ];
 

@@ -127,7 +127,9 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       expect(updated).toMatchObject({
         id: created.id,
         name: 'Updated',
-        variables: [{ key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: true }],
+        variables: [
+          { key: 'host', value: 'api.example.com', defaultValue: '', enabled: true, share: true }
+        ],
         headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
         auth: {
           type: 'bearer',
@@ -207,11 +209,23 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
       const { db } = await createTestDb();
       const created = await db.createEnvironment('Dev');
       const updated = await db.updateEnvironment(created.id, 'Staging', [
-        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true }
+        {
+          key: 'baseUrl',
+          value: 'https://staging.example.com',
+          defaultValue: '',
+          enabled: true,
+          share: true
+        }
       ]);
       expect(updated.name).toBe('Staging');
       expect(updated.variables).toEqual([
-        { key: 'baseUrl', value: 'https://staging.example.com', defaultValue: '', enabled: true, share: true }
+        {
+          key: 'baseUrl',
+          value: 'https://staging.example.com',
+          defaultValue: '',
+          enabled: true,
+          share: true
+        }
       ]);
     });
 
@@ -456,7 +470,13 @@ export function runIstorageContractSuite(label: string, createTestDb: CreateTest
         harborclientExport: 'collection',
         name: 'Imported',
         variables: [
-          { key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }
+          {
+            key: 'baseUrl',
+            value: 'https://example.com',
+            defaultValue: '',
+            enabled: true,
+            share: true
+          }
         ],
         headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
         pre_request_script: 'collection pre',

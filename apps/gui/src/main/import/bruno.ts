@@ -396,6 +396,7 @@ function convertVariables(variables: BrunoKeyValue[] | undefined): Variable[] {
       key: variable.name!.trim(),
       value: typeof variable.value === 'string' ? variable.value : '',
       defaultValue: '',
+      enabled: true,
       share: true
     }));
 }

@@ -4,10 +4,18 @@ import { resolveVariableEditTarget } from './resolveVariableEditTarget';
 describe('resolveVariableEditTarget', () => {
   const baseInput = {
     key: 'apiUrl',
-    globalVariables: [{ key: 'apiUrl', value: 'global', defaultValue: '', enabled: true, share: false }],
-    collectionVariables: [{ key: 'apiUrl', value: 'collection', defaultValue: '', enabled: true, share: false }],
-    folderVariables: [{ key: 'apiUrl', value: 'folder', defaultValue: '', enabled: true, share: false }],
-    environmentVariables: [{ key: 'apiUrl', value: 'env', defaultValue: '', enabled: true, share: false }],
+    globalVariables: [
+      { key: 'apiUrl', value: 'global', defaultValue: '', enabled: true, share: false }
+    ],
+    collectionVariables: [
+      { key: 'apiUrl', value: 'collection', defaultValue: '', enabled: true, share: false }
+    ],
+    folderVariables: [
+      { key: 'apiUrl', value: 'folder', defaultValue: '', enabled: true, share: false }
+    ],
+    environmentVariables: [
+      { key: 'apiUrl', value: 'env', defaultValue: '', enabled: true, share: false }
+    ],
     activeCollectionId: 10,
     activeFolderId: 15,
     activeEnvironmentId: 20

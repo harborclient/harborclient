@@ -880,7 +880,13 @@ describe('TeamHubClient', () => {
         id: '660e8400-e29b-41d4-a716-446655440002',
         name: 'Production',
         variables: [
-          { key: 'host', value: 'https://api.example.com', defaultValue: '', enabled: true, share: true }
+          {
+            key: 'host',
+            value: 'https://api.example.com',
+            defaultValue: '',
+            enabled: true,
+            share: true
+          }
         ],
         createdAt: '2026-01-02T00:00:00.000Z',
         deletionLocked: false
@@ -897,7 +903,7 @@ describe('TeamHubClient', () => {
       const client = createClient();
       const environments = await client.listEnvironments();
 
-      expect(environments).toEqual([environment]);
+      expect(environments).toEqual([{ ...environment, parentUuid: null }]);
       expect(fetchMock).toHaveBeenCalledWith(
         'http://127.0.0.1:8788/environments',
         expect.objectContaining({

@@ -8,7 +8,7 @@ import {
 import { WorkflowCoalescer } from './workflowCoalescer';
 import { WorkflowEventSink } from './workflowEventSink';
 import type { WorkflowEvent } from './workflowEventTypes';
-import { WORKFLOW_REGISTRY } from './workflowRegistry';
+import { WORKFLOW_REGISTRY_CORE } from './workflowRegistryCore';
 import { buildWorkflowRegistryMap } from './utils';
 import { resetTabCloseRecordingForTests } from './workflowTabCloseBridge';
 
@@ -75,7 +75,7 @@ export interface WorkflowLogApi {
   subscribeSession: (listener: SessionListener) => () => void;
 }
 
-const registryMap = buildWorkflowRegistryMap(WORKFLOW_REGISTRY);
+const registryMap = buildWorkflowRegistryMap(WORKFLOW_REGISTRY_CORE);
 const coalescer = new WorkflowCoalescer();
 const sink = new WorkflowEventSink();
 const sessionListeners = new Set<SessionListener>();

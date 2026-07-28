@@ -50,7 +50,9 @@ describe('seedScopedSettingsVariables', () => {
   });
 
   it('preserves existing rows', () => {
-    const variables: Variable[] = [{ key: 'a', value: 'b', defaultValue: '', enabled: true, share: true }];
+    const variables: Variable[] = [
+      { key: 'a', value: 'b', defaultValue: '', enabled: true, share: true }
+    ];
     expect(seedScopedSettingsVariables(variables)).toBe(variables);
   });
 });

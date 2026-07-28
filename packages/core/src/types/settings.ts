@@ -91,6 +91,11 @@ export interface SidebarExpansionState {
   folderIds: number[];
 
   /**
+   * Environment ids whose child environments are expanded in the sidebar.
+   */
+  environmentIds: number[];
+
+  /**
    * Whether entire top-level sidebar sections are rendered.
    */
   sectionVisibility: {

@@ -596,15 +596,15 @@ export class PostgresStorage implements IStorage {
    * @param id - Environment ID to delete.
    */
   async deleteEnvironment(id: number): Promise<void> {
-    const selectResult = await this.getPool().query(
-      'SELECT uuid FROM environments WHERE id = $1',
-      [id]
-    );
+    const selectResult = await this.getPool().query('SELECT uuid FROM environments WHERE id = $1', [
+      id
+    ]);
     const uuid = selectResult.rows[0]?.uuid as string | undefined;
     if (uuid) {
-      await this.getPool().query('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = $1', [
-        uuid
-      ]);
+      await this.getPool().query(
+        'UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = $1',
+        [uuid]
+      );
     }
     await this.getPool().query('DELETE FROM environments WHERE id = $1', [id]);
   }

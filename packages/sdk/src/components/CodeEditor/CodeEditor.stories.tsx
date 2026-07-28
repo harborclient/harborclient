@@ -6,7 +6,13 @@ import { CodeEditorConfigProvider, DEFAULT_CODE_EDITOR_CONFIG } from './config.j
 import { CodeEditor } from './index.js';
 
 const sampleVariables: Variable[] = [
-  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false },
+  {
+    key: 'baseUrl',
+    value: 'https://api.example.com',
+    defaultValue: '',
+    enabled: true,
+    share: false
+  },
   { key: 'token', value: 'secret-token', defaultValue: '', enabled: true, share: false }
 ];
 

@@ -270,6 +270,7 @@ function convertVariables(
       key: v.key!.trim(),
       value: typeof v.value === 'string' ? v.value : '',
       defaultValue: '',
+      enabled: true,
       share: true
     }));
 }

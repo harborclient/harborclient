@@ -20,24 +20,29 @@ interface Props {
   environment: Pick<Environment, 'id' | 'uuid' | 'name' | 'marker' | 'variables'>;
 
   /**
-   * Zero-based index of this environment among sidebar environments.
+   * Zero-based index of this environment among its sidebar siblings.
    */
   environmentIndex: number;
 
   /**
-   * Total number of environments, used to enable/disable reorder actions.
+   * Total sibling count, used to enable/disable reorder actions.
    */
   environmentsCount: number;
 
   /**
-   * Name of the environment directly below this one, when Copy/Merge down is available.
+   * Name of the next sibling environment, when Copy/Merge down is available.
    */
   environmentBelowName: string | undefined;
 
   /**
-   * Variables of the environment directly below this one, when Copy down is available.
+   * Variables of the next sibling environment, when Copy down is available.
    */
   environmentBelowVariables: Variable[] | undefined;
+
+  /**
+   * Number of direct child environments that would become roots if this one is deleted.
+   */
+  childrenCount?: number;
 
   /**
    * Whether to show the multi-select bulk actions menu instead of single-item actions.
@@ -65,7 +70,7 @@ interface Props {
   reorderEnabled?: boolean;
 
   /**
-   * Moves the environment one position up or down in the sidebar.
+   * Moves the environment one position up or down among siblings.
    */
   onMove: (direction: 'up' | 'down') => void;
 
@@ -85,12 +90,12 @@ interface Props {
   onDuplicate: () => void;
 
   /**
-   * Copies missing variables from this environment into the one directly below it.
+   * Copies missing variables from this environment into the next sibling.
    */
   onCopyDown: () => void;
 
   /**
-   * Merges this environment into the one directly below it.
+   * Merges this environment into the next sibling.
    */
   onMergeDown: () => void;
 
@@ -120,7 +125,7 @@ export function ActionsMenu(props: Props): JSX.Element {
    */
   const singleMenuGroups = useMemo((): MenuItem[][] => {
     /**
-     * Confirms and copies missing variables into the environment below.
+     * Confirms and copies missing variables into the next sibling environment.
      * Skips the dialog when there is nothing new to copy.
      */
     const handleCopyDown = (): void => {
@@ -149,7 +154,7 @@ export function ActionsMenu(props: Props): JSX.Element {
     };
 
     /**
-     * Confirms and merges this environment into the one below it.
+     * Confirms and merges this environment into the next sibling.
      */
     const handleMergeDown = (): void => {
       if (props.environmentBelowName == null) {
@@ -168,13 +173,18 @@ export function ActionsMenu(props: Props): JSX.Element {
     };
 
     /**
-     * Confirms and deletes this environment.
+     * Confirms and deletes this environment, warning when children would become roots.
      */
     const handleDelete = (): void => {
       void (async () => {
+        const childrenCount = props.childrenCount ?? 0;
+        const childWarning =
+          childrenCount > 0
+            ? ` Its ${childrenCount} child environment${childrenCount === 1 ? '' : 's'} will become top-level.`
+            : '';
         const confirmed = await confirm({
           title: 'Delete environment',
-          message: `Delete environment "${props.environment.name}"?`,
+          message: `Delete environment "${props.environment.name}"?${childWarning}`,
           confirmLabel: 'Delete',
           variant: 'danger'
         });

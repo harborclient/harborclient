@@ -633,7 +633,8 @@ export class TrashService {
     this.database.updateEnvironment(
       created.id,
       payload.environment.name,
-      payload.environment.variables
+      payload.environment.variables,
+      payload.environment.parentUuid ?? null
     );
   }
 

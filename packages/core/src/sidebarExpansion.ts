@@ -72,6 +72,7 @@ export function defaultSidebarExpansion(): SidebarExpansionState {
     sectionSort: { ...DEFAULT_SECTION_SORT },
     collectionIds: [],
     folderIds: [],
+    environmentIds: [],
     showStorageLocationBadges: DEFAULT_SHOW_STORAGE_LOCATION_BADGES,
     showMarkers: DEFAULT_SHOW_MARKERS,
     showMethodColors: DEFAULT_SHOW_METHOD_COLORS,
@@ -245,6 +246,7 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
     sectionSort: normalizeSectionSort(raw.sectionSort),
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds),
+    environmentIds: normalizeIdList(raw.environmentIds),
     showStorageLocationBadges:
       typeof raw.showStorageLocationBadges === 'boolean'
         ? raw.showStorageLocationBadges

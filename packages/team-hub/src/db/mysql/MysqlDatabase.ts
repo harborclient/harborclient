@@ -1219,13 +1219,13 @@ export class MysqlDatabase implements IDatabase {
   ): Promise<EnvironmentRecord> {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const updatedAt = new Date();
-    const setClauses = [
-      'name = ?',
-      'variables = ?',
-      'updated_at = ?',
-      'updated_by_user_id = ?'
+    const setClauses = ['name = ?', 'variables = ?', 'updated_at = ?', 'updated_by_user_id = ?'];
+    const params: Array<string | number | Date | null> = [
+      trimmedName,
+      JSON.stringify(variables),
+      updatedAt,
+      actingUserId
     ];
-    const params: unknown[] = [trimmedName, JSON.stringify(variables), updatedAt, actingUserId];
 
     if (marker !== undefined) {
       setClauses.push('marker = ?');
@@ -1270,9 +1270,10 @@ export class MysqlDatabase implements IDatabase {
    */
   async deleteEnvironment(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'environment', id);
-    await this.executeStatement('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?', [
-      id
-    ]);
+    await this.executeStatement(
+      'UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?',
+      [id]
+    );
     await this.executeStatement('DELETE FROM environments WHERE id = ?', [id]);
   }
 

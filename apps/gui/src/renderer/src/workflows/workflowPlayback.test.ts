@@ -8,10 +8,13 @@ import {
   clearPlayback,
   getPlaybackElapsedMs,
   getPlaybackIndex,
+  isPlaybackGapless,
   isPlaying,
   loadPlayback,
   resetWorkflowPlaybackForTests,
   restartPlayback,
+  seekPlaybackTo,
+  setPlaybackGapless,
   startPlayback,
   stepPlaybackCursor,
   stopPlayback
@@ -198,6 +201,137 @@ describe('workflowPlayback cursor', () => {
 
     processWorkflowAction(loadRequest({ req: sampleRequest() }), () => ({}) as never);
     expect(getSessionEvents()).toHaveLength(1);
+  });
+
+  it('seekPlaybackTo clamps and does not dispatch', () => {
+    const dispatch = vi.fn();
+    loadPlayback([
+      { type: 'environment.activate', payload: { environmentId: 1 } },
+      { type: 'environment.activate', payload: { environmentId: 2 } },
+      { type: 'environment.activate', payload: { environmentId: 3 } }
+    ]);
+
+    seekPlaybackTo(2);
+    expect(getPlaybackIndex()).toBe(2);
+    seekPlaybackTo(-5);
+    expect(getPlaybackIndex()).toBe(0);
+    seekPlaybackTo(99);
+    expect(getPlaybackIndex()).toBe(3);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('seekPlaybackTo is a no-op while playing', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const dispatch = vi.fn((action: unknown) => {
+      if (typeof action === 'function') {
+        const promise = gate.then(() => undefined);
+        return Object.assign(promise, { unwrap: () => gate });
+      }
+      return action;
+    });
+
+    loadPlayback([
+      { type: 'request.send', payload: { target: 'active' } },
+      { type: 'environment.activate', payload: { environmentId: 2 } }
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await Promise.resolve();
+    seekPlaybackTo(1);
+    expect(getPlaybackIndex()).toBe(0);
+
+    stopPlayback();
+    release();
+    await playPromise;
+  });
+
+  it('defaults to gapless and waits recorded gaps when gapless is off', async () => {
+    vi.useFakeTimers();
+    expect(isPlaybackGapless()).toBe(true);
+    setPlaybackGapless(false);
+    expect(isPlaybackGapless()).toBe(false);
+
+    const order: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          order.push(typed.payload as number);
+        }
+      }
+      return action;
+    });
+
+    const t0 = 1_000_000;
+    loadPlayback([
+      { type: 'environment.activate', at: t0, payload: { environmentId: 1 } },
+      { type: 'environment.activate', at: t0 + 500, payload: { environmentId: 2 } }
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(order).toEqual([1]);
+
+    await vi.advanceTimersByTimeAsync(499);
+    expect(order).toEqual([1]);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await playPromise;
+
+    expect(order).toEqual([1, 2]);
+    expect(isPlaying()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('stop cancels a pending gapped wait', async () => {
+    vi.useFakeTimers();
+    setPlaybackGapless(false);
+
+    const order: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          order.push(typed.payload as number);
+        }
+      }
+      return action;
+    });
+
+    const t0 = 2_000_000;
+    loadPlayback([
+      { type: 'environment.activate', at: t0, payload: { environmentId: 1 } },
+      { type: 'environment.activate', at: t0 + 5_000, payload: { environmentId: 2 } }
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(order).toEqual([1]);
+
+    stopPlayback();
+    await vi.advanceTimersByTimeAsync(5_000);
+    await playPromise;
+
+    expect(order).toEqual([1]);
+    expect(getPlaybackIndex()).toBe(1);
+    expect(isPlaying()).toBe(false);
+    vi.useRealTimers();
   });
 });
 

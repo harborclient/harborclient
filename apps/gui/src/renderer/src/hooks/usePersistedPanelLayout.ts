@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  hydratePanelLayoutFromSettings,
+  isPanelLayoutHydrated
+} from '#/renderer/src/store/panelLayoutHydration';
 import {
   selectActivePluginFooterPanelId,
   selectRequestEditorSplitHeight,
@@ -13,44 +16,8 @@ import {
   selectShowResponseEditor,
   selectShowSidebar,
   selectShowTerminal,
-  selectShowVariables,
-  setActivePluginFooterPanelId,
-  setRequestEditorSplitHeight,
-  setShowAiSidebar,
-  setShowGitSidebar,
-  setShowShortcutsSidebar,
-  setShowConsole,
-  setShowMcp,
-  setShowRequestEditor,
-  setShowResponseEditor,
-  setShowSidebar,
-  setShowTerminal,
-  setShowVariables
+  selectShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-
-/** Legacy localStorage key for request editor split height before electron-store migration. */
-const LEGACY_REQUEST_EDITOR_HEIGHT_KEY = 'hc.requestEditorHeight';
-
-/**
- * Loads a legacy request editor split height from localStorage when present.
- *
- * @returns Stored height in pixels, or null when unset or invalid.
- */
-function loadLegacyRequestEditorHeight(): number | null {
-  try {
-    const raw = localStorage.getItem(LEGACY_REQUEST_EDITOR_HEIGHT_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) {
-      return null;
-    }
-    return Math.round(parsed);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Restores and persists sidebar, AI sidebar, request/response editor, and footer panel layout preferences.
@@ -69,65 +36,23 @@ export function usePersistedPanelLayout(): void {
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
-  const hydratedRef = useRef(false);
+  const hydratedRef = useRef(isPanelLayoutHydrated());
 
   /**
-   * Loads persisted panel layout on mount before writes are enabled.
+   * Loads persisted panel layout on mount before writes are enabled, unless
+   * shell bootstrap already hydrated layout via {@link hydratePanelLayoutFromSettings}.
    */
   useEffect(() => {
+    if (isPanelLayoutHydrated()) {
+      hydratedRef.current = true;
+      return;
+    }
+
     let cancelled = false;
 
-    void window.api.getPanelLayout().then((layout) => {
-      if (cancelled) return;
-
-      let splitHeight = layout.requestEditorSplitHeight;
-      const legacyHeight = loadLegacyRequestEditorHeight();
-      if (splitHeight === DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT && legacyHeight != null) {
-        splitHeight = legacyHeight;
-      }
-
-      dispatch(setShowSidebar(layout.showSidebar));
-      if (layout.showGitSidebar) {
-        dispatch(setShowGitSidebar(true));
-      } else if (layout.showAiSidebar) {
-        dispatch(setShowAiSidebar(true));
-      } else if (layout.showShortcutsSidebar) {
-        dispatch(setShowShortcutsSidebar(true));
-      } else {
-        dispatch(setShowAiSidebar(false));
-        dispatch(setShowGitSidebar(false));
-        dispatch(setShowShortcutsSidebar(false));
-      }
-      dispatch(setShowRequestEditor(layout.showRequestEditor));
-      dispatch(setShowResponseEditor(layout.showResponseEditor));
-      dispatch(setRequestEditorSplitHeight(splitHeight));
-      dispatch(setShowConsole(layout.showConsole));
-      dispatch(setShowVariables(layout.showVariables));
-      dispatch(setShowMcp(layout.showMcp));
-      dispatch(setShowTerminal(layout.showTerminal));
-      dispatch(setActivePluginFooterPanelId(layout.activePluginFooterPanelId));
-      hydratedRef.current = true;
-
-      if (legacyHeight != null && splitHeight === legacyHeight) {
-        void window.api.setPanelLayout({
-          showSidebar: layout.showSidebar,
-          showAiSidebar: layout.showAiSidebar,
-          showGitSidebar: layout.showGitSidebar,
-          showShortcutsSidebar: layout.showShortcutsSidebar,
-          showRequestEditor: layout.showRequestEditor,
-          showResponseEditor: layout.showResponseEditor,
-          requestEditorSplitHeight: splitHeight,
-          showConsole: layout.showConsole,
-          showVariables: layout.showVariables,
-          showMcp: layout.showMcp,
-          showTerminal: layout.showTerminal,
-          activePluginFooterPanelId: layout.activePluginFooterPanelId
-        });
-        try {
-          localStorage.removeItem(LEGACY_REQUEST_EDITOR_HEIGHT_KEY);
-        } catch {
-          // Ignore quota or privacy-mode failures.
-        }
+    void hydratePanelLayoutFromSettings(dispatch).then(() => {
+      if (!cancelled) {
+        hydratedRef.current = true;
       }
     });
 
@@ -140,7 +65,8 @@ export function usePersistedPanelLayout(): void {
    * Writes panel layout preferences to disk when sidebar, editor visibility, split height, or footer panels change.
    */
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!hydratedRef.current && !isPanelLayoutHydrated()) return;
+    hydratedRef.current = true;
     void window.api.setPanelLayout({
       showSidebar,
       showAiSidebar,

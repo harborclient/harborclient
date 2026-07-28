@@ -35,7 +35,13 @@ describe('buildRuntimeVars', () => {
   it('resolves value and defaultValue', () => {
     expect(
       buildRuntimeVars([
-        { key: 'host', value: 'api.example.com', defaultValue: 'localhost', enabled: true, share: false },
+        {
+          key: 'host',
+          value: 'api.example.com',
+          defaultValue: 'localhost',
+          enabled: true,
+          share: false
+        },
         { key: 'token', value: '', defaultValue: 'fallback', enabled: true, share: false }
       ])
     ).toEqual({
@@ -115,7 +121,9 @@ describe('applyVariableClears', () => {
         ],
         ['token']
       )
-    ).toEqual([{ key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }]);
+    ).toEqual([
+      { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+    ]);
   });
 });
 

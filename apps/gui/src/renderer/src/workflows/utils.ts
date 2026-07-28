@@ -1,6 +1,21 @@
 import type { SavedRequest } from '@harborclient/core/types';
 import type { PageRef, RequestDraft } from '#/renderer/src/store/tabs';
-import type { WorkflowEvent, WorkflowRegistryEntry } from './workflowEventTypes';
+import type { WorkflowEvent } from './workflowEventTypes';
+
+/**
+ * Minimal registry shape needed to build record/play lookup maps.
+ */
+interface WorkflowRegistryMapEntry {
+  /**
+   * Stable logical event type.
+   */
+  eventType: string;
+
+  /**
+   * Redux action type string(s) this entry handles.
+   */
+  match: string | readonly string[];
+}
 
 /**
  * Builds a workflow event with a fresh timestamp.
@@ -62,10 +77,10 @@ export function isPageRef(value: unknown): value is PageRef {
  * @param entries - Registry entries to index.
  * @returns Map of action type → entry.
  */
-export function buildWorkflowRegistryMap(
-  entries: readonly WorkflowRegistryEntry[]
-): Map<string, WorkflowRegistryEntry> {
-  const map = new Map<string, WorkflowRegistryEntry>();
+export function buildWorkflowRegistryMap<T extends WorkflowRegistryMapEntry>(
+  entries: readonly T[]
+): Map<string, T> {
+  const map = new Map<string, T>();
   for (const entry of entries) {
     const matches = typeof entry.match === 'string' ? [entry.match] : entry.match;
     for (const type of matches) {
@@ -81,10 +96,10 @@ export function buildWorkflowRegistryMap(
  * @param entries - Registry entries to index.
  * @returns Map of event type → entry.
  */
-export function buildWorkflowPlaybackMap(
-  entries: readonly WorkflowRegistryEntry[]
-): Map<string, WorkflowRegistryEntry> {
-  const map = new Map<string, WorkflowRegistryEntry>();
+export function buildWorkflowPlaybackMap<T extends WorkflowRegistryMapEntry>(
+  entries: readonly T[]
+): Map<string, T> {
+  const map = new Map<string, T>();
   for (const entry of entries) {
     map.set(entry.eventType, entry);
   }

@@ -46,6 +46,7 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -86,6 +87,7 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -109,7 +111,8 @@ describe('sidebarExpansionSettings', () => {
     mockGet.mockReturnValue({
       sections: { collections: false, environments: false },
       collectionIds: [1, 1, -1],
-      folderIds: [9]
+      folderIds: [9],
+      environmentIds: []
     });
     const { getSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
@@ -136,6 +139,7 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [1],
       folderIds: [9],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -181,6 +185,7 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [2, 2, -3],
       folderIds: [8],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -222,6 +227,7 @@ describe('sidebarExpansionSettings', () => {
       },
       collectionIds: [2],
       folderIds: [8],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',

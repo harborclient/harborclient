@@ -291,6 +291,11 @@ export interface ApiWindow {
    */
   closeWindow: () => Promise<void>;
   /**
+   * Signals that the renderer shell has finished bootstrap so main may close
+   * the splash and show the main window.
+   */
+  notifyUiReady: () => Promise<void>;
+  /**
    * Subscribes to window close and app quit attempts from the main process.
    *
    * @param callback - Handler invoked when the user tries to close or quit.

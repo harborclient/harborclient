@@ -21,6 +21,7 @@ const variable = (key: string, value: string, defaultValue = '', share = false):
   key,
   value,
   defaultValue,
+  enabled: true,
   share
 });
 

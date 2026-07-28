@@ -8,7 +8,13 @@ import type { Variable } from '../../types.js';
 import { VariableInput } from './index.js';
 
 const sampleVariables: Variable[] = [
-  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false },
+  {
+    key: 'baseUrl',
+    value: 'https://api.example.com',
+    defaultValue: '',
+    enabled: true,
+    share: false
+  },
   { key: 'host', value: 'localhost', defaultValue: '', enabled: true, share: false }
 ];
 

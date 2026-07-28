@@ -44,6 +44,7 @@ describe('pluginVariablesToVariables', () => {
         key: 'API_URL',
         value: 'https://example.com',
         defaultValue: '',
+        enabled: true,
         share: true
       }
     ]);

@@ -31,7 +31,13 @@ describe('parseDotenvEnvironment', () => {
       harborclientExport: 'environment',
       name: 'dev.env',
       variables: [
-        { key: 'API_URL', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false },
+        {
+          key: 'API_URL',
+          value: 'https://api.example.com',
+          defaultValue: '',
+          enabled: true,
+          share: false
+        },
         { key: 'API_KEY', value: 'secret', defaultValue: '', enabled: true, share: false }
       ]
     });

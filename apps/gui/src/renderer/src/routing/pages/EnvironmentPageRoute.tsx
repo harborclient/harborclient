@@ -38,12 +38,18 @@ export function EnvironmentPageRoute({
   return (
     <EnvironmentSettings
       environment={environment}
+      environments={environments}
       focusVariableKey={page.focusVariableKey}
       tabId={tabId}
       onDirtyChange={(dirty) => dispatch(setEnvironmentSettingsDirty(dirty))}
-      onSave={async (id: number, name: string, variables: Variable[]) => {
+      onSave={async (
+        id: number,
+        name: string,
+        variables: Variable[],
+        parentUuid: string | null
+      ) => {
         try {
-          await dispatch(updateEnvironment({ id, name, variables })).unwrap();
+          await dispatch(updateEnvironment({ id, name, variables, parentUuid })).unwrap();
           toast.success('Environment updated');
         } catch (err) {
           showAlert(dispatch, formatErrorMessage(err, 'Failed to update environment'));

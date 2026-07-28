@@ -1,6 +1,7 @@
 import type { WorkflowAction } from '@harborclient/core/types';
-import type { WorkflowPlayCtx, WorkflowRegistryEntry } from './workflowEventTypes';
-import { WORKFLOW_REGISTRY } from './workflowRegistry';
+import type { WorkflowPlayCtx } from './workflowEventTypes';
+import type { WorkflowRegistryCoreEntry } from './workflowRegistryCore';
+import { WORKFLOW_REGISTRY_CORE } from './workflowRegistryCore';
 import { buildWorkflowPlaybackMap } from './utils';
 import { setWorkflowRecordingMuted } from './workflowRecorder';
 
@@ -8,7 +9,7 @@ type PlaybackListener = () => void;
 
 export type { WorkflowPlayCtx };
 
-const playbackMap = buildWorkflowPlaybackMap(WORKFLOW_REGISTRY);
+const playbackMap = buildWorkflowPlaybackMap(WORKFLOW_REGISTRY_CORE);
 const playbackListeners = new Set<PlaybackListener>();
 
 let actions: WorkflowAction[] = [];
@@ -18,6 +19,10 @@ let elapsedMs = 0;
 let segmentStartedAt: number | null = null;
 let sessionLoaded = false;
 let playGeneration = 0;
+/** When true, play runs actions back-to-back without recorded `at` waits. */
+let gapless = true;
+/** Cancellable gap wait handle for the active play loop. */
+let gapWait: { cancel: () => void } | null = null;
 
 /**
  * Notifies subscribers that playback cursor, timer, or playing state changed.
@@ -49,6 +54,56 @@ function getElapsedMs(): number {
     return elapsedMs;
   }
   return elapsedMs + (Date.now() - segmentStartedAt);
+}
+
+/**
+ * Cancels any in-flight gapped wait without changing play generation.
+ */
+function cancelGapWait(): void {
+  if (gapWait == null) {
+    return;
+  }
+  gapWait.cancel();
+  gapWait = null;
+}
+
+/**
+ * Sleeps until `ms` elapses or the wait is cancelled / generation advances.
+ *
+ * @param ms - Milliseconds to wait.
+ * @param generation - Play generation that must still be current.
+ * @returns Resolves true when the full wait completed; false when cancelled.
+ */
+function waitGapMs(ms: number, generation: number): Promise<boolean> {
+  if (ms <= 0) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      gapWait = null;
+      resolve(generation === playGeneration && playing);
+    }, ms);
+
+    gapWait = {
+      /**
+       * Aborts the pending gap sleep.
+       */
+      cancel: () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        resolve(false);
+      }
+    };
+  });
 }
 
 /**
@@ -109,6 +164,15 @@ export function getPlaybackActionCount(): number {
 }
 
 /**
+ * Returns a copy of the loaded playback actions.
+ *
+ * @returns Workflow actions for the current session.
+ */
+export function getPlaybackActions(): readonly WorkflowAction[] {
+  return actions;
+}
+
+/**
  * Returns elapsed playback time for the current session.
  *
  * @returns Elapsed milliseconds including any open segment.
@@ -124,6 +188,28 @@ export function getPlaybackElapsedMs(): number {
  */
 export function isPlaying(): boolean {
   return playing;
+}
+
+/**
+ * Returns whether playback skips recorded timing gaps.
+ *
+ * @returns True when gapless mode is enabled (default).
+ */
+export function isPlaybackGapless(): boolean {
+  return gapless;
+}
+
+/**
+ * Enables or disables gapless playback (no waits between recorded `at` times).
+ *
+ * @param next - True for back-to-back play; false to honor recorded gaps.
+ */
+export function setPlaybackGapless(next: boolean): void {
+  if (gapless === next) {
+    return;
+  }
+  gapless = next;
+  notifyPlaybackListeners();
 }
 
 /**
@@ -144,14 +230,33 @@ export function stepPlaybackCursor(delta: number): void {
 }
 
 /**
+ * Seeks the action cursor to an absolute index without dispatching.
+ *
+ * @param nextIndex - Target 0-based index (clamped to `[0, actions.length]`).
+ */
+export function seekPlaybackTo(nextIndex: number): void {
+  if (!sessionLoaded || playing) {
+    return;
+  }
+  const next = Math.min(Math.max(Math.floor(nextIndex), 0), actions.length);
+  if (next === index) {
+    return;
+  }
+  index = next;
+  notifyPlaybackListeners();
+}
+
+/**
  * Stops the play loop and pauses the playback clock without clearing actions.
  */
 export function stopPlayback(): void {
   if (!playing) {
+    cancelGapWait();
     return;
   }
   playing = false;
   playGeneration += 1;
+  cancelGapWait();
   commitOpenSegment();
   notifyPlaybackListeners();
 }
@@ -186,12 +291,15 @@ export function subscribePlayback(listener: PlaybackListener): () => void {
  * @param eventType - Logical event type from a recorded action.
  * @returns Registry entry, or undefined when unknown.
  */
-export function getPlaybackRegistryEntry(eventType: string): WorkflowRegistryEntry | undefined {
+export function getPlaybackRegistryEntry(eventType: string): WorkflowRegistryCoreEntry | undefined {
   return playbackMap.get(eventType);
 }
 
 /**
- * Plays remaining actions from the current cursor as fast as each await allows.
+ * Plays remaining actions from the current cursor.
+ *
+ * In gapless mode, each action runs as soon as the previous await finishes.
+ * In gapped mode, waits until the recorded relative `at` time before each step.
  *
  * @param ctx - Redux dispatch / getState for play handlers.
  * @returns Resolves when stopped or finished; rejects when a step fails.
@@ -202,8 +310,11 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
   }
 
   const generation = ++playGeneration;
+  const startIndex = index;
+  const baseAt = actions[startIndex]?.at;
+  const segmentWallStart = Date.now();
   playing = true;
-  segmentStartedAt = Date.now();
+  segmentStartedAt = segmentWallStart;
   notifyPlaybackListeners();
 
   try {
@@ -211,6 +322,16 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
       const action = actions[index];
       if (action == null) {
         break;
+      }
+
+      if (!gapless && typeof baseAt === 'number' && typeof action.at === 'number') {
+        const targetDelay = action.at - baseAt;
+        const elapsed = Date.now() - segmentWallStart;
+        const waitMs = Math.max(0, targetDelay - elapsed);
+        const completed = await waitGapMs(waitMs, generation);
+        if (!completed || !playing || generation !== playGeneration) {
+          return;
+        }
       }
 
       const entry = playbackMap.get(action.type);
@@ -245,11 +366,13 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
 export function resetWorkflowPlaybackForTests(): void {
   playGeneration += 1;
   playing = false;
+  cancelGapWait();
   actions = [];
   index = 0;
   elapsedMs = 0;
   segmentStartedAt = null;
   sessionLoaded = false;
+  gapless = true;
   setWorkflowRecordingMuted(false);
   playbackListeners.clear();
 }

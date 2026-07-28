@@ -31,9 +31,7 @@ export interface EnvironmentTreeNode {
  * @param environments - Flat environments from storage (already sort-ordered).
  * @returns Root-level tree nodes (parentUuid null or missing parent).
  */
-export function buildEnvironmentTree(
-  environments: readonly Environment[]
-): EnvironmentTreeNode[] {
+export function buildEnvironmentTree(environments: readonly Environment[]): EnvironmentTreeNode[] {
   const byUuid = new Map<string, EnvironmentTreeNode>();
   for (const environment of environments) {
     byUuid.set(environment.uuid, { environment, children: [] });
@@ -326,4 +324,92 @@ export function listInheritedEnvironmentVariables(
   return [...byKey.values()]
     .filter((entry) => !leafEnabledKeys.has(entry.key))
     .sort((left, right) => left.key.localeCompare(right.key));
+}
+
+/**
+ * Returns the next sibling environment under the same parent in storage/list order.
+ *
+ * @param environmentId - Environment whose next sibling is requested.
+ * @param environments - Flat environments already ordered by sort_order.
+ * @returns Next sibling, or undefined when this is the last sibling.
+ */
+export function findNextSiblingEnvironment(
+  environmentId: number,
+  environments: readonly Environment[]
+): Environment | undefined {
+  const environment = environments.find((entry) => entry.id === environmentId);
+  if (!environment) {
+    return undefined;
+  }
+  const parentKey = environment.parentUuid?.trim() || null;
+  const siblings = environments.filter((entry) => (entry.parentUuid?.trim() || null) === parentKey);
+  const index = siblings.findIndex((entry) => entry.id === environmentId);
+  if (index < 0 || index >= siblings.length - 1) {
+    return undefined;
+  }
+  return siblings[index + 1];
+}
+
+/**
+ * Collects environment ids for a node and all descendants in preorder.
+ *
+ * @param node - Tree node to flatten.
+ * @returns Ids in preorder.
+ */
+export function collectEnvironmentSubtreeIds(node: EnvironmentTreeNode): number[] {
+  return [node.environment.id, ...node.children.flatMap(collectEnvironmentSubtreeIds)];
+}
+
+/**
+ * Reorders sibling nodes and returns a full preorder id list for the updated tree.
+ *
+ * @param roots - Current environment tree.
+ * @param parentUuid - Parent uuid of the sibling group (`null` for roots).
+ * @param orderedSiblingIds - Desired sibling id order for that group.
+ * @returns Full environment ids in sidebar preorder after the sibling reorder.
+ */
+export function reorderEnvironmentSiblingIds(
+  roots: EnvironmentTreeNode[],
+  parentUuid: string | null,
+  orderedSiblingIds: number[]
+): number[] {
+  const parentKey = parentUuid?.trim() || null;
+
+  /**
+   * Applies sibling reorder at the matching parent level.
+   *
+   * @param nodes - Sibling nodes at the current level.
+   * @param currentParentUuid - Parent uuid for these nodes.
+   * @returns Updated sibling nodes.
+   */
+  function apply(
+    nodes: EnvironmentTreeNode[],
+    currentParentUuid: string | null
+  ): EnvironmentTreeNode[] {
+    const mappedChildren = nodes.map((node) => ({
+      ...node,
+      children: apply(node.children, node.environment.uuid)
+    }));
+
+    if ((currentParentUuid?.trim() || null) !== parentKey) {
+      return mappedChildren;
+    }
+
+    const byId = new Map(mappedChildren.map((node) => [node.environment.id, node]));
+    const reordered: EnvironmentTreeNode[] = [];
+    for (const id of orderedSiblingIds) {
+      const node = byId.get(id);
+      if (node) {
+        reordered.push(node);
+        byId.delete(id);
+      }
+    }
+    for (const node of byId.values()) {
+      reordered.push(node);
+    }
+    return reordered;
+  }
+
+  const nextRoots = apply(roots, null);
+  return flattenEnvironmentTree(nextRoots).map((environment) => environment.id);
 }

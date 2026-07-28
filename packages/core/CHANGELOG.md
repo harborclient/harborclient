@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance environment variable management and UI readiness. (`abab021c`)
 - Update variable schema and enhance environment management. (`34cc08f0`)
 - Implement workflow management features. (`a4525074`)
 

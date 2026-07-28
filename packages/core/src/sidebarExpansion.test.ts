@@ -26,6 +26,7 @@ describe('defaultSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -57,7 +58,8 @@ describe('normalizeSidebarExpansion', () => {
       normalizeSidebarExpansion({
         sections: { collections: false, environments: 'yes' },
         collectionIds: [1, 1, -2, 3.5, '4', 2],
-        folderIds: [10, 0, -1]
+        folderIds: [10, 0, -1],
+        environmentIds: []
       })
     ).toEqual({
       sections: {
@@ -82,6 +84,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [1, 2],
       folderIds: [10],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -106,7 +109,8 @@ describe('normalizeSidebarExpansion', () => {
       normalizeSidebarExpansion({
         sections: { collections: true, environments: false },
         collectionIds: [5, 7],
-        folderIds: [12]
+        folderIds: [12],
+        environmentIds: []
       })
     ).toEqual({
       sections: {
@@ -131,6 +135,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [5, 7],
       folderIds: [12],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -156,7 +161,8 @@ describe('normalizeSidebarExpansion', () => {
         sections: { collections: true, environments: true },
         sectionVisibility: { collections: false, environments: true },
         collectionIds: [],
-        folderIds: []
+        folderIds: [],
+        environmentIds: []
       })
     ).toEqual({
       sections: {
@@ -181,6 +187,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -207,6 +214,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         showStorageLocationBadges: false
       })
     ).toEqual({
@@ -232,6 +240,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -258,6 +267,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         showMarkers: false
       })
     ).toEqual({
@@ -283,6 +293,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -309,6 +320,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         showMethodColors: false
       })
     ).toEqual({
@@ -334,6 +346,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -360,6 +373,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         showIndicators: false
       })
     ).toEqual({
@@ -385,6 +399,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -411,6 +426,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         showFilters: true,
         showSorting: true
       })
@@ -437,6 +453,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'default',
         environments: 'default',
@@ -463,6 +480,7 @@ describe('normalizeSidebarExpansion', () => {
         sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
+        environmentIds: [],
         sectionSort: {
           collections: 'method-asc',
           environments: 'marker',
@@ -496,6 +514,7 @@ describe('normalizeSidebarExpansion', () => {
       },
       collectionIds: [],
       folderIds: [],
+      environmentIds: [],
       sectionSort: {
         collections: 'method-asc',
         environments: 'marker',

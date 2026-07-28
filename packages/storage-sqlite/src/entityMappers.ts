@@ -251,11 +251,7 @@ export function rowToCollection(row: Record<string, unknown>): Collection {
 export function rowToEnvironment(row: Record<string, unknown>): Environment {
   const parentRaw = row.parent_uuid ?? row.parentUuid;
   const parentUuid =
-    parentRaw == null || parentRaw === ''
-      ? null
-      : typeof parentRaw === 'string'
-        ? parentRaw
-        : null;
+    parentRaw == null || parentRaw === '' ? null : typeof parentRaw === 'string' ? parentRaw : null;
 
   return {
     id: readNumber(row.id),

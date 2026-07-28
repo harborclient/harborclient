@@ -10,9 +10,11 @@ import type {
   ScriptTestResult,
   ScriptExecutionEvent,
   ScriptRunError,
-  SendResult
+  SendResult,
+  Variable
 } from '@harborclient/core/types';
 import { defaultAuth } from '@harborclient/core/auth';
+import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { buildSendInput } from '@harborclient/core/requestRunner';
 import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
@@ -571,12 +573,25 @@ export async function executeRequestDraft(
     ? state.environments.environments.find((env) => env.id === activeEnvironmentId)
     : undefined;
   const globalVariables = state.settings.general.globalVariables;
+  let inheritedEnvironmentVariables: Variable[] = [];
+  if (environment) {
+    try {
+      inheritedEnvironmentVariables = resolveInheritedEnvironmentVariables(
+        environment,
+        state.environments.environments
+      );
+    } catch {
+      inheritedEnvironmentVariables = environment.variables.filter(
+        (variable) => variable.enabled !== false
+      );
+    }
+  }
 
   let runtimeVars = {
     ...buildRuntimeVars(globalVariables),
     ...buildRuntimeVars(collection?.variables ?? []),
     ...buildRuntimeVars(folder?.variables ?? []),
-    ...buildRuntimeVars(environment?.variables ?? [])
+    ...buildRuntimeVars(inheritedEnvironmentVariables)
   };
   let globalVarSets: Record<string, string> = {};
   let collectionVarSets: Record<string, string> = {};

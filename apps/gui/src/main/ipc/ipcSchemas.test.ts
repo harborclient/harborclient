@@ -650,8 +650,13 @@ describe('object schema happy paths', () => {
 
   it('parses variable with key, value, defaultValue, and share flag', () => {
     expect(
-      variable.safeParse({ key: 'baseUrl', value: 'https://a', defaultValue: '', enabled: true, share: false })
-        .success
+      variable.safeParse({
+        key: 'baseUrl',
+        value: 'https://a',
+        defaultValue: '',
+        enabled: true,
+        share: false
+      }).success
     ).toBe(true);
   });
 

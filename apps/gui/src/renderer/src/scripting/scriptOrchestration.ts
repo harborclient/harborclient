@@ -19,6 +19,9 @@ export type { ScriptSlot };
 export function buildRuntimeVars(variables: Variable[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const variable of variables) {
+    if (variable.enabled === false) {
+      continue;
+    }
     const key = variable.key.trim();
     if (!key) continue;
     map[key] = variable.value !== '' ? variable.value : variable.defaultValue;

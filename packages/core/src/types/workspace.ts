@@ -241,6 +241,7 @@ const workspaceSidebarExpansionSchema = z.object({
   }),
   collectionIds: z.array(z.number().int().positive()),
   folderIds: z.array(z.number().int().positive()),
+  environmentIds: z.array(z.number().int().positive()),
   showStorageLocationBadges: z.boolean(),
   showMarkers: z.boolean(),
   showMethodColors: z.boolean(),

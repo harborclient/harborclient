@@ -92,12 +92,24 @@ describe('generalSettings', () => {
     setGeneralSettings({
       ...DEFAULT_GENERAL_SETTINGS,
       globalVariables: [
-        { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false }
+        {
+          key: 'baseUrl',
+          value: 'https://api.example.com',
+          defaultValue: '',
+          enabled: true,
+          share: false
+        }
       ]
     });
 
     expect(getGeneralSettings().globalVariables).toEqual([
-      { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', enabled: true, share: false }
+      {
+        key: 'baseUrl',
+        value: 'https://api.example.com',
+        defaultValue: '',
+        enabled: true,
+        share: false
+      }
     ]);
   });
 

@@ -38,6 +38,13 @@ import {
   trackWindowState
 } from '#/main/window/windowState';
 import {
+  clearMainWindowReveal,
+  isMainWindowRevealed,
+  registerMainWindowReveal,
+  requestMainWindowReveal,
+  startUiReadyTimeout
+} from '#/main/window/mainWindowReveal';
+import {
   attachRendererNavigationGuards,
   createRendererNavigationPolicy
 } from '#/main/window/navigationSecurity';
@@ -119,9 +126,16 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 
 /**
  * Restores, shows, and focuses the main application window.
+ *
+ * Skips `show()` while shell bootstrap is still deferred behind the splash so
+ * deep links and second-instance focus cannot reveal an empty shell early.
  */
 function focusMainWindow(): void {
   if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (!isMainWindowRevealed()) {
     return;
   }
 
@@ -707,23 +721,17 @@ function createWindow(): BrowserWindow {
 
   restoreZoomFactor(window.webContents);
 
-  let revealed = false;
-
   /**
    * Closes the splash and shows the main window exactly once.
    *
-   * Triggered by whichever of `ready-to-show` or `did-finish-load` fires first.
-   * `ready-to-show` is the preferred signal (it fires after the first frame is
-   * painted, avoiding a white flash), but some Linux window managers never emit
-   * it. `did-finish-load` is a reliable fallback so startup cannot hang on the
-   * splash screen. The guard keeps the reveal idempotent across both events and
-   * any later reloads (for example Vite HMR in dev).
+   * Triggered by the renderer via `window:notifyUiReady` after shell bootstrap
+   * (tabs, layout, collections) finishes, or by the UI-ready timeout so startup
+   * cannot hang on the splash forever. The reveal registry keeps this idempotent
+   * across both paths and any later reloads (for example Vite HMR in dev).
    *
    * @param trigger - Name of the event that initiated the reveal, for logging.
    */
   const revealMainWindow = (trigger: string): void => {
-    if (revealed) return;
-    revealed = true;
     logVerbose(`createWindow: revealing main window (${trigger}), closing splash`);
     closeSplash();
     window.show();
@@ -731,17 +739,26 @@ function createWindow(): BrowserWindow {
     trackWindowState(window);
   };
 
-  window.on('ready-to-show', () => revealMainWindow('ready-to-show'));
+  registerMainWindowReveal(window, revealMainWindow);
+
+  window.on('ready-to-show', () => {
+    logVerbose('createWindow: ready-to-show (waiting for renderer notifyUiReady)');
+  });
 
   window.webContents.on('did-finish-load', () => {
-    logVerbose('createWindow: renderer finished loading');
-    revealMainWindow('did-finish-load');
+    logVerbose('createWindow: renderer finished loading; starting UI-ready timeout');
     rendererReady = true;
     flushPendingDeepLink();
+    startUiReadyTimeout();
   });
 
   window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     console.error(`Renderer failed to load (${errorCode} ${errorDescription}): ${validatedURL}`);
+    requestMainWindowReveal('did-fail-load');
+  });
+
+  window.on('closed', () => {
+    clearMainWindowReveal();
   });
 
   if (isVerbose) {
@@ -992,7 +1009,7 @@ app.whenReady().then(async () => {
       resolveAppIcon
     });
     syncTrayFromSettings(getGeneralSettings().closeToTray);
-    logVerbose('startup: main window created, waiting for ready-to-show');
+    logVerbose('startup: main window created, waiting for renderer notifyUiReady');
 
     const startupDeepLink = findDeepLinkInArgv(process.argv);
     if (startupDeepLink) {
@@ -1016,22 +1033,29 @@ app.whenReady().then(async () => {
     }
     if (BrowserWindow.getAllWindows().length === 0) {
       isQuitting = false;
-      mainWindow = createWindow();
-      pluginManager?.setNotifyWindow(() => mainWindow);
-      setMenuWindow(mainWindow);
-      syncTrayFromSettings(getGeneralSettings().closeToTray);
-      void db.getSetting(THEME_SETTING_KEY).then((stored) => {
-        const theme: ThemeSource =
-          stored === 'light' ||
-          stored === 'dark' ||
-          stored === 'system' ||
-          stored === 'high-contrast' ||
-          stored?.startsWith('plugin:')
-            ? (stored as ThemeSource)
-            : 'system';
-        setMenuActiveTheme(theme);
-        rebuildAppMenu();
-      });
+      void (async () => {
+        try {
+          await createSplashWindow();
+        } catch (err) {
+          console.warn('Splash screen failed to load on activate, continuing without it:', err);
+        }
+        mainWindow = createWindow();
+        pluginManager?.setNotifyWindow(() => mainWindow);
+        setMenuWindow(mainWindow);
+        syncTrayFromSettings(getGeneralSettings().closeToTray);
+        void db.getSetting(THEME_SETTING_KEY).then((stored) => {
+          const theme: ThemeSource =
+            stored === 'light' ||
+            stored === 'dark' ||
+            stored === 'system' ||
+            stored === 'high-contrast' ||
+            stored?.startsWith('plugin:')
+              ? (stored as ThemeSource)
+              : 'system';
+          setMenuActiveTheme(theme);
+          rebuildAppMenu();
+        });
+      })();
     }
   });
 });

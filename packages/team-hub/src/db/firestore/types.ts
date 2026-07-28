@@ -302,6 +302,10 @@ export interface FirestoreEnvironmentDocument {
    */
   parentUuid?: string | null;
 }
+
+/**
+ * Firestore document shape for persisted snippets.
+ */
 export interface FirestoreSnippetDocument {
   /**
    * Display name for the snippet.

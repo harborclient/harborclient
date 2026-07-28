@@ -15,7 +15,13 @@ describe('mapCollectionSqlRow', () => {
       id: 'collection-1',
       name: 'API Tests',
       variables: JSON.stringify([
-        { key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }
+        {
+          key: 'baseUrl',
+          value: 'https://example.com',
+          defaultValue: '',
+          enabled: true,
+          share: true
+        }
       ]),
       headers: JSON.stringify([{ key: 'Accept', value: 'application/json', enabled: true }]),
       auth: DEFAULT_AUTH_JSON,
@@ -32,7 +38,15 @@ describe('mapCollectionSqlRow', () => {
     expect(record).toEqual({
       id: 'collection-1',
       name: 'API Tests',
-      variables: [{ key: 'baseUrl', value: 'https://example.com', defaultValue: '', enabled: true, share: true }],
+      variables: [
+        {
+          key: 'baseUrl',
+          value: 'https://example.com',
+          defaultValue: '',
+          enabled: true,
+          share: true
+        }
+      ],
       headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
       auth: {
         type: 'none',
@@ -94,7 +108,9 @@ describe('mapEnvironmentSqlRow', () => {
     expect(record).toEqual({
       id: 'env-1',
       name: 'Production',
-      variables: [{ key: 'host', value: 'prod.example.com', defaultValue: '', enabled: true, share: false }],
+      variables: [
+        { key: 'host', value: 'prod.example.com', defaultValue: '', enabled: true, share: false }
+      ],
       createdAt,
       updatedAt,
       createdByUserId: 'user-1',

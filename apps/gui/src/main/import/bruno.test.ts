@@ -86,6 +86,7 @@ describe('convertBrunoCollection', () => {
         key: 'collectionToken',
         value: 'secret-coll-token',
         defaultValue: '',
+        enabled: true,
         share: true
       }
     ]);

@@ -150,7 +150,8 @@ export function registerEnvironmentHandlers(db: IStorage): void {
       uuid: environment.uuid,
       name: environment.name,
       variables: maskVariablesForExport(environment.variables),
-      marker: environment.marker ?? null
+      marker: environment.marker ?? null,
+      parentUuid: environment.parentUuid ?? null
     };
 
     const win = BrowserWindow.getFocusedWindow();
