@@ -8,6 +8,10 @@ import {
   emitPluginLibraryChanged
 } from './pluginLibraryChangedBus';
 import {
+  clearPluginWorkflowsChangedSubscribers,
+  emitPluginWorkflowsChanged
+} from './pluginWorkflowsChangedBus';
+import {
   clearPluginSidebarSelectionSubscribers,
   emitPluginSidebarSelectionChanged
 } from './pluginSidebarSelectionBus';
@@ -37,6 +41,7 @@ beforeEach(() => {
   activatePluginMainMock.mockReset();
   clearPluginAfterSendSubscribers();
   clearPluginLibraryChangedSubscribers();
+  clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
 
   vi.stubGlobal('window', {
@@ -45,11 +50,13 @@ beforeEach(() => {
       activatePluginMain: activatePluginMainMock,
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
       pushPluginLibraryChanged: vi.fn().mockResolvedValue(undefined),
+      pushPluginWorkflowsChanged: vi.fn().mockResolvedValue(undefined),
       pushPluginSidebarSelectionChanged: vi.fn().mockResolvedValue(undefined),
       listCollections: vi.fn().mockResolvedValue({ collections: [], warnings: [] }),
       listFolders: vi.fn().mockResolvedValue([]),
       listRequests: vi.fn().mockResolvedValue([]),
-      listDocuments: vi.fn().mockResolvedValue([])
+      listDocuments: vi.fn().mockResolvedValue([]),
+      listWorkflows: vi.fn().mockResolvedValue([])
     }
   });
 });
@@ -57,6 +64,7 @@ beforeEach(() => {
 afterEach(() => {
   clearPluginAfterSendSubscribers();
   clearPluginLibraryChangedSubscribers();
+  clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
   vi.unstubAllGlobals();
 });
@@ -139,6 +147,8 @@ describe('createPluginContext runtime surfaces', () => {
     await expect(hc.host.listCollections()).rejects.toThrow(/lacks permission: ui/);
     await expect(hc.host.listLibraryTree()).rejects.toThrow(/lacks permission: ui/);
     expect(() => hc.host.onLibraryChanged(() => {})).toThrow(/lacks permission: ui/);
+    await expect(hc.host.listWorkflows()).rejects.toThrow(/lacks permission: ui/);
+    expect(() => hc.host.onWorkflowsChanged(() => {})).toThrow(/lacks permission: ui/);
   });
 
   it('tracks and disposes hc.host.onLibraryChanged subscriptions', () => {
@@ -153,6 +163,21 @@ describe('createPluginContext runtime surfaces', () => {
     disposable.dispose();
     expect(hc.subscriptions).not.toContain(disposable);
     emitPluginLibraryChanged({ reason: 'folders', collectionId: 1 });
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks and disposes hc.host.onWorkflowsChanged subscriptions', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    const listener = vi.fn();
+    const disposable = hc.host.onWorkflowsChanged(listener);
+
+    expect(hc.subscriptions).toContain(disposable);
+    emitPluginWorkflowsChanged({ reason: 'created', workflowId: 3 });
+    expect(listener).toHaveBeenCalledWith({ reason: 'created', workflowId: 3 });
+
+    disposable.dispose();
+    expect(hc.subscriptions).not.toContain(disposable);
+    emitPluginWorkflowsChanged({ reason: 'deleted', workflowId: 3 });
     expect(listener).toHaveBeenCalledTimes(1);
   });
 

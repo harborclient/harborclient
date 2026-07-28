@@ -273,6 +273,8 @@ export interface PluginUi {
   registerMenuItem(item: MenuItemContribution): Disposable;
   registerRequestToolbarAction(action: RequestToolbarActionContribution): Disposable;
   registerScriptEditorAction(action: ScriptEditorActionContribution): Disposable;
+  registerWorkflowToolbarAction(action: WorkflowToolbarActionContribution): Disposable;
+  registerWorkflowActionBlock(block: WorkflowActionBlockContribution): Disposable;
   registerContextMenuItem(item: ContextMenuItemContribution): Disposable;
   registerStatusBarItem(item: StatusBarItemContribution): Disposable;
   showToast(message: string, options?: { duration?: number }): void;
@@ -369,6 +371,13 @@ export interface PluginHost {
     variables: PluginVariableInput[]
   ): Promise<void>;
   createCollection(payload: CreateCollectionPayload): Promise<CreateCollectionResult>;
+  listWorkflows(): Promise<HostWorkflow[]>;
+  getWorkflow(workflowId: number): Promise<HostWorkflow | null>;
+  createWorkflow(input: CreateWorkflowPayload): Promise<HostWorkflow>;
+  updateWorkflow(input: UpdateWorkflowPayload): Promise<HostWorkflow>;
+  renameWorkflow(workflowId: number, name: string): Promise<HostWorkflow>;
+  deleteWorkflow(workflowId: number): Promise<void>;
+  onWorkflowsChanged(listener: (event: WorkflowsChangedEvent) => void): Disposable;
   openImageView(payload: OpenImageViewPayload): Promise<void>;
 }
 

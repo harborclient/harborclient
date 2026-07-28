@@ -15,7 +15,9 @@ import type {
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
-  RegisteredStatusBarItem
+  RegisteredStatusBarItem,
+  RegisteredWorkflowActionBlock,
+  RegisteredWorkflowToolbarAction
 } from '@harborclient/core/plugin/types';
 import {
   getRegisteredCollectionSettingsTabs,
@@ -34,6 +36,8 @@ import {
   getRegisteredSidebarPanels,
   getRegisteredSidebarSections,
   getRegisteredStatusBarItems,
+  getRegisteredWorkflowActionBlocks,
+  getRegisteredWorkflowToolbarActions,
   subscribePluginRegistry
 } from './registry';
 
@@ -156,6 +160,41 @@ export function usePluginScriptEditorActions(
 
   return actions.filter(
     (action) => !action.phases || action.phases.length === 0 || action.phases.includes(phase)
+  );
+}
+
+/**
+ * Subscribes to plugin workflow play/edit toolbar action contributions.
+ */
+export function usePluginWorkflowToolbarActions(): RegisteredWorkflowToolbarAction[] {
+  return useSyncExternalStore(
+    subscribePluginRegistry,
+    getRegisteredWorkflowToolbarActions,
+    () => []
+  );
+}
+
+/**
+ * Subscribes to plugin workflow action-block contributions, optionally filtered by action type.
+ *
+ * @param actionType - When set, only contributions that match (or omit actionTypes) are returned.
+ */
+export function usePluginWorkflowActionBlocks(
+  actionType?: string
+): RegisteredWorkflowActionBlock[] {
+  const blocks = useSyncExternalStore(
+    subscribePluginRegistry,
+    getRegisteredWorkflowActionBlocks,
+    () => []
+  );
+
+  if (actionType == null) {
+    return blocks;
+  }
+
+  return blocks.filter(
+    (block) =>
+      !block.actionTypes || block.actionTypes.length === 0 || block.actionTypes.includes(actionType)
   );
 }
 

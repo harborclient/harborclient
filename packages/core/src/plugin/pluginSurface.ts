@@ -12,7 +12,8 @@ export type PluginContributionKind =
   | 'collectionSettingsTabs'
   | 'footerPanels'
   | 'statusBarItems'
-  | 'modals';
+  | 'modals'
+  | 'workflowActionBlocks';
 
 /**
  * Builds the harbor-plugin agent shell URL for one plugin.

@@ -97,6 +97,8 @@ export interface PluginManifest {
     footerPanels?: ManifestContributionEntry[];
     requestToolbarActions?: ManifestContributionEntry[];
     scriptEditorActions?: ManifestContributionEntry[];
+    workflowToolbarActions?: ManifestContributionEntry[];
+    workflowActionBlocks?: ManifestContributionEntry[];
     contextMenus?: ManifestContributionEntry[];
     statusBarItems?: ManifestContributionEntry[];
     themes?: Array<
@@ -376,6 +378,31 @@ export interface RegisteredScriptEditorAction {
   order?: number;
   /** When set, limits the action to specific script phases. */
   phases?: Array<'pre' | 'post'>;
+}
+
+/**
+ * Registered workflow play/edit toolbar action contribution.
+ */
+export interface RegisteredWorkflowToolbarAction {
+  pluginId: string;
+  id: string;
+  title: string;
+  command: string;
+  icon?: string;
+  order?: number;
+}
+
+/**
+ * Registered workflow timeline action-block HostedSurface contribution.
+ */
+export interface RegisteredWorkflowActionBlock {
+  pluginId: string;
+  id: string;
+  title: string;
+  order?: number;
+  /** When set, limits the surface to these action types. */
+  actionTypes?: string[];
+  contributionId: string;
 }
 
 /**

@@ -81,6 +81,8 @@ export const pluginManifestSchema = z.object({
       footerPanels: z.array(contributionEntry).optional(),
       requestToolbarActions: z.array(contributionEntry).optional(),
       scriptEditorActions: z.array(contributionEntry).optional(),
+      workflowToolbarActions: z.array(contributionEntry).optional(),
+      workflowActionBlocks: z.array(contributionEntry).optional(),
       contextMenus: z.array(contributionEntry).optional(),
       statusBarItems: z.array(contributionEntry).optional(),
       themes: z.array(themeContributionEntry).optional(),

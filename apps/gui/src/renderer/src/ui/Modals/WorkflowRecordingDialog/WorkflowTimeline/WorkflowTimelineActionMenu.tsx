@@ -38,6 +38,11 @@ interface Props {
   onMoveBehind: () => void;
 
   /**
+   * Opens the JSON payload editor for the targeted action.
+   */
+  onEditPayload: () => void;
+
+  /**
    * Deletes the targeted action after confirmation.
    */
   onDelete: () => void;
@@ -49,7 +54,7 @@ interface Props {
 }
 
 /**
- * Context menu for a workflow timeline action (move ahead/behind, delete).
+ * Context menu for a workflow timeline action (move, edit payload, delete).
  *
  * @param props - Target index, disable state, handlers, and anchor position.
  * @returns Cursor-positioned context menu.
@@ -61,11 +66,12 @@ export function WorkflowTimelineActionMenu({
   position,
   onMoveAhead,
   onMoveBehind,
+  onEditPayload,
   onDelete,
   onClose
 }: Props): JSX.Element {
   /**
-   * Builds menu groups mirroring the toolbar edit controls.
+   * Builds menu groups mirroring the toolbar edit controls plus payload edit.
    */
   const groups = useMemo((): MenuItem[][] => {
     /**
@@ -76,6 +82,8 @@ export function WorkflowTimelineActionMenu({
      */
     const canMove = (direction: WorkflowActionMoveDirection): boolean =>
       !playing && canMoveWorkflowAction(actionIndex, actionCount, direction);
+
+    const canEdit = !playing && actionIndex >= 0 && actionIndex < actionCount;
 
     return [
       [
@@ -92,14 +100,21 @@ export function WorkflowTimelineActionMenu({
       ],
       [
         {
+          label: 'Edit payload',
+          disabled: !canEdit,
+          onSelect: onEditPayload
+        }
+      ],
+      [
+        {
           label: 'Delete',
           variant: 'danger',
-          disabled: playing || actionIndex < 0 || actionIndex >= actionCount,
+          disabled: !canEdit,
           onSelect: onDelete
         }
       ]
     ];
-  }, [actionCount, actionIndex, onDelete, onMoveAhead, onMoveBehind, playing]);
+  }, [actionCount, actionIndex, onDelete, onEditPayload, onMoveAhead, onMoveBehind, playing]);
 
   return <TabContextMenu groups={groups} position={position} onClose={onClose} />;
 }

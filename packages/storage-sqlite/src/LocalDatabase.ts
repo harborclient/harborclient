@@ -2659,6 +2659,21 @@ export class LocalDatabase {
   }
 
   /**
+   * Renames a workflow and returns the refreshed list.
+   *
+   * @param id - Workflow id.
+   * @param name - New display name.
+   * @returns Updated workflow list.
+   */
+  renameWorkflow(id: number, name: string): Workflow[] {
+    const trimmedName = trimRequiredName(name, 'Workflow name');
+    this.getDb()
+      .prepare('UPDATE workflows SET name = ?, updated_at = ? WHERE id = ?')
+      .run(trimmedName, Date.now(), id);
+    return this.listWorkflows();
+  }
+
+  /**
    * Updates a workflow's actions and duration and returns the refreshed list.
    *
    * @param id - Workflow id.

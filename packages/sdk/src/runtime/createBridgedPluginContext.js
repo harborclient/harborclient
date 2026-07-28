@@ -795,6 +795,47 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
           });
         });
       },
+      registerWorkflowToolbarAction: (action) => {
+        assertManifestContribution('workflowToolbarActions', action.id);
+        if (!isAgent) {
+          return noopDisposable();
+        }
+        void bridgeInvoke('registerContribution', {
+          kind: 'workflowToolbarActions',
+          contribution: {
+            pluginId,
+            id: action.id,
+            title: action.title,
+            command: action.command,
+            icon: action.icon,
+            order: action.order
+          }
+        });
+        return track(() => {
+          void bridgeInvoke('unregisterContribution', {
+            kind: 'workflowToolbarActions',
+            contributionId: action.id
+          });
+        });
+      },
+      registerWorkflowActionBlock: (block) => {
+        assertManifestContribution('workflowActionBlocks', block.id);
+        if (!canRegisterUi()) {
+          return noopDisposable();
+        }
+        return registerUiContribution(
+          'workflowActionBlocks',
+          block.id,
+          {
+            id: `plugin:${pluginId}:${block.id}`,
+            title: block.title,
+            order: block.order,
+            actionTypes: block.actionTypes,
+            contributionId: block.id
+          },
+          block.Component
+        );
+      },
       registerContextMenuItem: (item) => {
         assertManifestContribution('contextMenus', item.id);
         if (!isAgent) {
@@ -1038,6 +1079,39 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
       onLibraryChanged: (listener) => {
         assertUi();
         const unsubscribe = bridgeOn('library.changed', listener);
+        return track({
+          dispose: () => {
+            unsubscribe();
+          }
+        });
+      },
+      listWorkflows: async () => {
+        assertUi();
+        return bridgeInvoke('host.listWorkflows');
+      },
+      getWorkflow: async (workflowId) => {
+        assertUi();
+        return bridgeInvoke('host.getWorkflow', { workflowId });
+      },
+      createWorkflow: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.createWorkflow', { input });
+      },
+      updateWorkflow: async (input) => {
+        assertUi();
+        return bridgeInvoke('host.updateWorkflow', { input });
+      },
+      renameWorkflow: async (workflowId, name) => {
+        assertUi();
+        return bridgeInvoke('host.renameWorkflow', { workflowId, name });
+      },
+      deleteWorkflow: async (workflowId) => {
+        assertUi();
+        await bridgeInvoke('host.deleteWorkflow', { workflowId });
+      },
+      onWorkflowsChanged: (listener) => {
+        assertUi();
+        const unsubscribe = bridgeOn('workflows.changed', listener);
         return track({
           dispose: () => {
             unsubscribe();

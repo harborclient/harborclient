@@ -5,10 +5,14 @@ import {
   getRegisteredRequestTabs,
   getRegisteredSettingsSections,
   getRegisteredSidebarPanels,
+  getRegisteredWorkflowActionBlocks,
+  getRegisteredWorkflowToolbarActions,
   registerRequestTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
   registerThemeContribution,
+  registerWorkflowActionBlockContribution,
+  registerWorkflowToolbarActionContribution,
   unregisterContribution
 } from './registry';
 
@@ -123,5 +127,50 @@ describe('plugin registry', () => {
 
     disposable.dispose();
     expect(getRegisteredSidebarPanels()).toHaveLength(0);
+  });
+
+  it('registers and unregisters workflow toolbar actions and action blocks', () => {
+    const toolbar = registerWorkflowToolbarActionContribution('com.example.wf', {
+      id: 'annotate',
+      title: 'Annotate',
+      command: 'annotate',
+      order: 1
+    });
+    const block = registerWorkflowActionBlockContribution('com.example.wf', {
+      id: 'plugin:com.example.wf:badge',
+      title: 'Badge',
+      contributionId: 'badge',
+      actionTypes: ['request.send'],
+      order: 2
+    });
+
+    expect(getRegisteredWorkflowToolbarActions()).toEqual([
+      {
+        pluginId: 'com.example.wf',
+        id: 'annotate',
+        title: 'Annotate',
+        command: 'annotate',
+        order: 1
+      }
+    ]);
+    expect(getRegisteredWorkflowActionBlocks()).toEqual([
+      {
+        pluginId: 'com.example.wf',
+        id: 'plugin:com.example.wf:badge',
+        title: 'Badge',
+        contributionId: 'badge',
+        actionTypes: ['request.send'],
+        order: 2
+      }
+    ]);
+
+    unregisterContribution('com.example.wf', 'workflowToolbarActions', 'annotate');
+    unregisterContribution('com.example.wf', 'workflowActionBlocks', 'badge');
+    expect(getRegisteredWorkflowToolbarActions()).toHaveLength(0);
+    expect(getRegisteredWorkflowActionBlocks()).toHaveLength(0);
+
+    toolbar.dispose();
+    block.dispose();
+    clearPluginContributions('com.example.wf');
   });
 });

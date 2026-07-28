@@ -492,6 +492,16 @@ function createWorkflow(input: CreateWorkflowInput): Promise<Workflow[]> {
 }
 
 /**
+ * Renames a workflow and returns the refreshed list.
+ *
+ * @param id - Workflow id.
+ * @param name - New display name.
+ */
+function renameWorkflow(id: number, name: string): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:rename', id, name);
+}
+
+/**
  * Updates a workflow's actions and duration and returns the refreshed list.
  *
  * @param input - Workflow id, actions, and duration.
@@ -3908,6 +3918,16 @@ function pushPluginLibraryChanged(payload: {
 }
 
 /**
+ * Pushes a coarse workflow invalidation to plugin webviews with the `ui` permission.
+ */
+function pushPluginWorkflowsChanged(payload: {
+  reason: 'created' | 'updated' | 'renamed' | 'deleted' | 'refreshed';
+  workflowId?: number;
+}): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushWorkflowsChanged', payload);
+}
+
+/**
  * Pushes host sidebar selection changes to plugin webviews with the `ui` permission.
  */
 function pushPluginSidebarSelectionChanged(
@@ -4130,6 +4150,7 @@ const api: Api = {
   importWorkspace,
   listWorkflows,
   createWorkflow,
+  renameWorkflow,
   updateWorkflow,
   deleteWorkflow,
   listTrashItems,
@@ -4460,6 +4481,7 @@ const api: Api = {
   pushPluginViewContext,
   pushPluginHttpAfterSend,
   pushPluginLibraryChanged,
+  pushPluginWorkflowsChanged,
   pushPluginSidebarSelectionChanged,
   executePluginAgentCommand,
   invokePluginImportHandler,

@@ -72,6 +72,25 @@ export function deleteWorkflowActionAt(
 }
 
 /**
+ * Replaces the payload of the action at `index` without changing `type` or `at`.
+ *
+ * @param actions - Current ordered actions.
+ * @param index - Action index whose payload should be replaced.
+ * @param payload - New payload value (any JSON-serializable value).
+ * @returns New action array, or null when the index is out of range.
+ */
+export function updateWorkflowActionPayloadAt(
+  actions: readonly WorkflowAction[],
+  index: number,
+  payload: unknown
+): WorkflowAction[] | null {
+  if (index < 0 || index >= actions.length) {
+    return null;
+  }
+  return actions.map((action, i) => (i === index ? { ...action, payload } : { ...action }));
+}
+
+/**
  * Returns the playback cursor after moving an action so it stays on the moved item.
  *
  * @param index - Index before the move.

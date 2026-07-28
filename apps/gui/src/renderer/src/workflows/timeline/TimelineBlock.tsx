@@ -1,4 +1,4 @@
-import type { JSX, MouseEvent, ReactNode } from 'react';
+import type { JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
 interface Props {
   /**
@@ -7,7 +7,7 @@ interface Props {
   id?: string;
 
   /**
-   * Accessible name for the seek button (primary action description).
+   * Accessible name for the seek control (primary action description).
    */
   label: string;
 
@@ -27,11 +27,16 @@ interface Props {
   onSeek: () => void;
 
   /**
+   * Opens the payload editor for this action (typically on double-click).
+   */
+  onEditPayload?: () => void;
+
+  /**
    * Opens the action context menu at the pointer position.
    *
-   * @param event - Native contextmenu event from the block button.
+   * @param event - Native contextmenu event from the block chrome.
    */
-  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onContextMenu?: (event: MouseEvent<HTMLDivElement>) => void;
 
   /**
    * When true, the block cannot be activated (e.g. while playing).
@@ -42,16 +47,23 @@ interface Props {
    * Thumbnail content from the workflow registry entry.
    */
   children: ReactNode;
+
+  /**
+   * Optional plugin HostedSurface region rendered below the thumbnail.
+   * Kept outside the seek control so interactive webviews are valid HTML.
+   */
+  pluginSurface?: ReactNode;
 }
 
 /**
  * Shared chrome for a single workflow timeline segment.
  *
- * Renders as a button so keyboard users can seek; width reflects recorded
- * duration (subject to a layout min-width).
+ * Uses a `div` with `role="option"` (not a `<button>`) so plugin HostedSurface
+ * webviews can nest inside without invalid interactive nesting. Seek / edit /
+ * context menu stay on the thumbnail chrome; plugin surfaces stop propagation.
  *
- * @param props - Label, selection, width, and thumbnail children.
- * @returns Timeline block button wrapping thumbnail content.
+ * @param props - Label, selection, width, handlers, thumbnail, and optional plugin surface.
+ * @returns Timeline block option wrapping thumbnail and plugin surface children.
  */
 export function TimelineBlock({
   id,
@@ -59,19 +71,36 @@ export function TimelineBlock({
   selected,
   widthPx,
   onSeek,
+  onEditPayload,
   onContextMenu,
   disabled = false,
-  children
+  children,
+  pluginSurface
 }: Props): JSX.Element {
+  /**
+   * Seeks when the user activates the block via keyboard.
+   *
+   * @param event - Keyboard event from the option element.
+   */
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (disabled) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSeek();
+    }
+  };
+
   return (
-    <button
+    <div
       id={id}
-      type="button"
       role="option"
       aria-selected={selected}
       aria-label={label}
-      disabled={disabled}
-      onClick={onSeek}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : 0}
+      onKeyDown={handleKeyDown}
       onContextMenu={(event) => {
         if (onContextMenu == null) {
           return;
@@ -80,7 +109,7 @@ export function TimelineBlock({
         onContextMenu(event);
       }}
       className={[
-        'relative flex h-full min-h-[56px] shrink-0 flex-col justify-center overflow-hidden rounded-md border px-2 py-1.5 text-left transition-colors',
+        'relative flex h-full min-h-[56px] shrink-0 flex-col overflow-hidden rounded-md border text-left transition-colors',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         selected
           ? 'border-accent bg-accent/10 text-fg'
@@ -89,7 +118,38 @@ export function TimelineBlock({
       ].join(' ')}
       style={{ width: widthPx }}
     >
-      {children}
-    </button>
+      <div
+        className="flex min-h-0 flex-1 flex-col justify-center px-2 py-1.5"
+        onClick={() => {
+          if (!disabled) {
+            onSeek();
+          }
+        }}
+        onDoubleClick={() => {
+          if (disabled || onEditPayload == null) {
+            return;
+          }
+          onEditPayload();
+        }}
+      >
+        {children}
+      </div>
+      {pluginSurface != null ? (
+        <div
+          className="relative min-h-[28px] shrink-0 border-t border-separator"
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          {pluginSurface}
+        </div>
+      ) : null}
+    </div>
   );
 }

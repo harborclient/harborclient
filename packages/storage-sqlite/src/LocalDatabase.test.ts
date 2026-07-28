@@ -773,6 +773,9 @@ describeSqlite('LocalDatabase workflows', () => {
 
     expect(database.listWorkflows()).toHaveLength(1);
 
+    const renamed = database.renameWorkflow(created[0]!.id, 'Auth flow');
+    expect(renamed[0]?.name).toBe('Auth flow');
+
     const remaining = database.deleteWorkflow(created[0]!.id);
     expect(remaining).toEqual([]);
   });

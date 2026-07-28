@@ -568,6 +568,40 @@ const requests = await hc.host.listRequests(collections[0].id);
 const documents = await hc.host.listDocuments(collections[0].id);
 ```
 
+### Workflow CRUD
+
+Local workflow registry APIs require the `ui` permission. Destructive methods
+are silent — confirm with `hc.ui` modals before calling `deleteWorkflow`.
+
+| Method                                     | Returns                |
+| ------------------------------------------ | ---------------------- |
+| `hc.host.listWorkflows()`                  | `HostWorkflow[]`       |
+| `hc.host.getWorkflow(workflowId)`          | `HostWorkflow \| null` |
+| `hc.host.createWorkflow(input)`            | `HostWorkflow`         |
+| `hc.host.updateWorkflow(input)`            | `HostWorkflow`         |
+| `hc.host.renameWorkflow(workflowId, name)` | `HostWorkflow`         |
+| `hc.host.deleteWorkflow(workflowId)`       | `void`                 |
+| `hc.host.onWorkflowsChanged(listener)`     | `Disposable`           |
+
+`updateWorkflow` replaces `actions` and `durationMs` only; name/variables are
+preserved. Use `renameWorkflow` to change the display name.
+
+```typescript
+const stop = hc.host.onWorkflowsChanged((event) => {
+  // event.reason: 'created' | 'updated' | 'renamed' | 'deleted' | 'refreshed'
+  void hc.host.listWorkflows().then(renderWorkflowList);
+});
+
+const workflows = await hc.host.listWorkflows();
+const created = await hc.host.createWorkflow({
+  name: 'Smoke path',
+  durationMs: 0,
+  actions: []
+});
+await hc.host.renameWorkflow(created.id, 'Smoke path (renamed)');
+stop.dispose();
+```
+
 ### Navigation and open APIs
 
 Replacement sidebars open host editors and modals through typed `hc.host`

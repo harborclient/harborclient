@@ -5,7 +5,8 @@ import {
   cursorAfterDelete,
   cursorAfterMove,
   deleteWorkflowActionAt,
-  swapWorkflowActions
+  swapWorkflowActions,
+  updateWorkflowActionPayloadAt
 } from './workflowActionEdits';
 
 /**
@@ -61,6 +62,23 @@ describe('deleteWorkflowActionAt', () => {
 
   it('returns null for an out-of-range index', () => {
     expect(deleteWorkflowActionAt([action(1)], 1)).toBeNull();
+  });
+});
+
+describe('updateWorkflowActionPayloadAt', () => {
+  it('replaces only the payload at the given index', () => {
+    const actions: WorkflowAction[] = [
+      { type: 'step.1', at: 10, payload: { id: 1 } },
+      { type: 'step.2', at: 20, payload: { id: 2 } }
+    ];
+    expect(updateWorkflowActionPayloadAt(actions, 1, { id: 99, name: 'updated' })).toEqual([
+      { type: 'step.1', at: 10, payload: { id: 1 } },
+      { type: 'step.2', at: 20, payload: { id: 99, name: 'updated' } }
+    ]);
+  });
+
+  it('returns null for an out-of-range index', () => {
+    expect(updateWorkflowActionPayloadAt([action(1)], 1, { id: 2 })).toBeNull();
   });
 });
 

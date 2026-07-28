@@ -13,6 +13,10 @@ export function registerWorkflowHandlers(): void {
     getLocalDatabase().createWorkflow(input)
   );
 
+  handle('workflows:rename', ipcArgSchemas.workflowsRename, (_event, id, name) =>
+    getLocalDatabase().renameWorkflow(id, name)
+  );
+
   handle('workflows:update', ipcArgSchemas.workflowsUpdate, (_event, input) =>
     getLocalDatabase().updateWorkflow(input.id, {
       actions: input.actions,

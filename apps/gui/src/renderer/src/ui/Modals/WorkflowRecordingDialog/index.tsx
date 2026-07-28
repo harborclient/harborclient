@@ -19,6 +19,7 @@ import {
 } from '#/renderer/src/store/slices/workflowsSlice';
 import { updateWorkflowActions } from '#/renderer/src/store/thunks/workflows';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { WorkflowPlayDialogTitle } from '#/renderer/src/ui/Modals/WorkflowRecordingDialog/WorkflowPlayDialogTitle';
 import { formatWorkflowDuration } from '#/renderer/src/workflows/formatWorkflowDuration';
 import {
   canMoveWorkflowAction,
@@ -26,6 +27,7 @@ import {
   cursorAfterMove,
   deleteWorkflowActionAt,
   swapWorkflowActions,
+  updateWorkflowActionPayloadAt,
   type WorkflowActionMoveDirection
 } from '#/renderer/src/workflows/workflowActionEdits';
 import {
@@ -71,6 +73,7 @@ import {
 } from './workflowPlayDialogGeometry';
 import { WorkflowEditControls } from './WorkflowEditControls';
 import { WorkflowPlaybackControls } from './WorkflowPlaybackControls';
+import { WorkflowActionPayloadModal } from './WorkflowActionPayloadModal';
 import { WorkflowTimeline } from './WorkflowTimeline';
 
 /**
@@ -117,6 +120,11 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   const [dirty, setDirty] = useState(false);
 
   /**
+   * Index of the action whose payload is open in the JSON editor, or null when closed.
+   */
+  const [payloadEditIndex, setPayloadEditIndex] = useState<number | null>(null);
+
+  /**
    * Session identity used to reset dirty when play mode or workflow changes.
    */
   const [dirtyScope, setDirtyScope] = useState({
@@ -127,6 +135,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   if (dirtyScope.mode !== dialogMode || dirtyScope.id !== playbackWorkflowId) {
     setDirtyScope({ mode: dialogMode, id: playbackWorkflowId });
     setDirty(false);
+    setPayloadEditIndex(null);
   }
 
   /**
@@ -415,6 +424,58 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }, []);
 
   /**
+   * Seeks to an action and opens the payload JSON editor when playback is idle.
+   *
+   * @param index - Action index to edit.
+   */
+  const handleEditPayload = useCallback(
+    (index: number): void => {
+      if (getIsPlaying() || playbackWorkflowId == null) {
+        return;
+      }
+      const currentActions = getPlaybackActions();
+      if (index < 0 || index >= currentActions.length) {
+        return;
+      }
+      seekPlaybackTo(index);
+      setPlaybackTick((tick) => tick + 1);
+      setPayloadEditIndex(index);
+    },
+    [playbackWorkflowId]
+  );
+
+  /**
+   * Closes the payload JSON editor without applying draft changes.
+   */
+  const handleClosePayloadEditor = useCallback((): void => {
+    setPayloadEditIndex(null);
+  }, []);
+
+  /**
+   * Applies a parsed payload to the open timeline action and marks the buffer dirty.
+   *
+   * @param payload - Parsed JSON value for the action payload.
+   */
+  const handleUpdatePayload = useCallback(
+    (payload: unknown): void => {
+      if (payloadEditIndex == null || playbackWorkflowId == null) {
+        return;
+      }
+      const nextActions = updateWorkflowActionPayloadAt(
+        getPlaybackActions(),
+        payloadEditIndex,
+        payload
+      );
+      if (nextActions == null) {
+        return;
+      }
+      applyLocalEdit(nextActions, payloadEditIndex);
+      setPayloadEditIndex(null);
+    },
+    [applyLocalEdit, payloadEditIndex, playbackWorkflowId]
+  );
+
+  /**
    * Persists the current playback buffer when there are unsaved edits.
    */
   const handleSaveWorkflowEdits = useCallback(async (): Promise<void> => {
@@ -600,6 +661,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
       stopPlayback();
       clearPlayback();
       setDirty(false);
+      setPayloadEditIndex(null);
       dispatch(closeWorkflowDialog());
       return;
     }
@@ -629,113 +691,154 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     const title = playbackWorkflow?.name ?? 'Run workflow';
     const titleId = 'workflow-play-dialog-title';
     const recordedDuration = playbackWorkflow?.durationMs ?? 0;
+    const payloadEditAction =
+      payloadEditIndex != null &&
+      payloadEditIndex >= 0 &&
+      payloadEditIndex < playbackActionsList.length
+        ? playbackActionsList[payloadEditIndex]
+        : null;
 
     return (
-      <FloatingDialog
-        label={title}
-        labelledBy={titleId}
-        onClose={() => {
-          void handleClose();
-        }}
-        initialLeft={playGeometry.left}
-        initialTop={playGeometry.top}
-        initialWidth={playGeometry.width}
-        initialHeight={playGeometry.height}
-        minWidth={playMinWidth}
-        minHeight={WORKFLOW_PLAY_DIALOG_MIN_HEIGHT_PX}
-        onPositionChange={handlePlayPositionChange}
-        onSizeChange={handlePlaySizeChange}
-        bodyClassName="flex min-h-0 flex-col gap-3 p-3"
-        dragHandle={
-          <div className="flex items-center justify-between gap-2 border-b border-separator px-3 py-2">
-            <div className="min-w-0">
-              <h2 id={titleId} className="truncate text-[15px] font-semibold">
-                {title}
-              </h2>
-              <p className="truncate text-[14px] text-muted">
-                {formatWorkflowDuration(recordedDuration)} recorded
-              </p>
+      <>
+        <FloatingDialog
+          label={title}
+          labelledBy={titleId}
+          onClose={() => {
+            void handleClose();
+          }}
+          initialLeft={playGeometry.left}
+          initialTop={playGeometry.top}
+          initialWidth={playGeometry.width}
+          initialHeight={playGeometry.height}
+          minWidth={playMinWidth}
+          minHeight={WORKFLOW_PLAY_DIALOG_MIN_HEIGHT_PX}
+          onPositionChange={handlePlayPositionChange}
+          onSizeChange={handlePlaySizeChange}
+          bodyClassName="flex min-h-0 flex-col gap-3 p-3"
+          dragHandle={
+            <div className="flex items-center justify-between gap-2 border-b border-separator px-3 py-2">
+              <div className="min-w-0">
+                {playbackWorkflowId != null && playbackWorkflow != null ? (
+                  <WorkflowPlayDialogTitle
+                    workflowId={playbackWorkflowId}
+                    name={playbackWorkflow.name}
+                    titleId={titleId}
+                  />
+                ) : (
+                  <h2 id={titleId} className="truncate text-[15px] font-semibold">
+                    {title}
+                  </h2>
+                )}
+                <p className="truncate text-[14px] text-muted">
+                  {formatWorkflowDuration(recordedDuration)} recorded
+                </p>
+              </div>
+              <button
+                type="button"
+                className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                aria-label="Close run dialog"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleClose();
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <FaIcon icon={faXmark} className="h-3.5 w-3.5" aria-hidden />
+              </button>
             </div>
-            <button
-              type="button"
-              className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-              aria-label="Close run dialog"
-              onClick={(event) => {
-                event.stopPropagation();
-                void handleClose();
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <FaIcon icon={faXmark} className="h-3.5 w-3.5" aria-hidden />
-            </button>
+          }
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+              <WorkflowPlaybackControls
+                playing={playing}
+                actionIndex={playbackIndex}
+                actionCount={playbackActionCount}
+                onTogglePlay={handleTogglePlay}
+                onRewind={handleRewind}
+                onFastForward={handleFastForward}
+                onRestart={handleRestart}
+                compact
+              />
+              <WorkflowEditControls
+                playing={playing}
+                actionIndex={playbackIndex}
+                actionCount={playbackActionCount}
+                dirty={dirty}
+                saving={saving}
+                toolbarContext={{
+                  workflowId: playbackWorkflowId ?? -1,
+                  actionIndex: playbackIndex,
+                  action:
+                    playbackIndex >= 0 && playbackIndex < playbackActionsList.length
+                      ? {
+                          type: playbackActionsList[playbackIndex]!.type,
+                          ...(playbackActionsList[playbackIndex]!.at != null
+                            ? { at: playbackActionsList[playbackIndex]!.at }
+                            : {}),
+                          payload: playbackActionsList[playbackIndex]!.payload
+                        }
+                      : null,
+                  dirty
+                }}
+                onMoveAhead={() => {
+                  handleMoveAction('ahead');
+                }}
+                onMoveBehind={() => {
+                  handleMoveAction('behind');
+                }}
+                onDelete={() => {
+                  void handleDeleteAction();
+                }}
+                onSave={() => {
+                  void handleSaveWorkflowEdits();
+                }}
+              />
+            </div>
+            <p className="font-mono text-[15px] tabular-nums" aria-live="polite">
+              {formatWorkflowDuration(playbackElapsedMs)}
+              <span className="text-muted"> / {formatWorkflowDuration(recordedDuration)}</span>
+            </p>
+            <label className="inline-flex items-center gap-2 text-[14px]">
+              <Switch
+                checked={gapless}
+                onChange={(event) => {
+                  handleGaplessChange(event.target.checked);
+                }}
+                aria-label="Gapless playback"
+              />
+              Gapless
+            </label>
           </div>
-        }
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-            <WorkflowPlaybackControls
-              playing={playing}
-              actionIndex={playbackIndex}
-              actionCount={playbackActionCount}
-              onTogglePlay={handleTogglePlay}
-              onRewind={handleRewind}
-              onFastForward={handleFastForward}
-              onRestart={handleRestart}
-              compact
-            />
-            <WorkflowEditControls
-              playing={playing}
-              actionIndex={playbackIndex}
-              actionCount={playbackActionCount}
-              dirty={dirty}
-              saving={saving}
-              onMoveAhead={() => {
-                handleMoveAction('ahead');
-              }}
-              onMoveBehind={() => {
-                handleMoveAction('behind');
-              }}
-              onDelete={() => {
-                void handleDeleteAction();
-              }}
-              onSave={() => {
-                void handleSaveWorkflowEdits();
-              }}
-            />
-          </div>
-          <p className="font-mono text-[15px] tabular-nums" aria-live="polite">
-            {formatWorkflowDuration(playbackElapsedMs)}
-            <span className="text-muted"> / {formatWorkflowDuration(recordedDuration)}</span>
-          </p>
-          <label className="inline-flex items-center gap-2 text-[14px]">
-            <Switch
-              checked={gapless}
-              onChange={(event) => {
-                handleGaplessChange(event.target.checked);
-              }}
-              aria-label="Gapless playback"
-            />
-            Gapless
-          </label>
-        </div>
-        <WorkflowTimeline
-          actions={playbackActionsList}
-          durationMs={recordedDuration}
-          selectedIndex={playbackIndex}
-          playing={playing}
-          getState={store.getState}
-          onSeek={handleSeek}
-          onMoveAhead={(index) => {
-            handleMoveAction('ahead', index);
-          }}
-          onMoveBehind={(index) => {
-            handleMoveAction('behind', index);
-          }}
-          onDelete={(index) => {
-            void handleDeleteAction(index);
-          }}
-        />
-      </FloatingDialog>
+          <WorkflowTimeline
+            workflowId={playbackWorkflowId ?? -1}
+            actions={playbackActionsList}
+            durationMs={recordedDuration}
+            selectedIndex={playbackIndex}
+            playing={playing}
+            getState={store.getState}
+            onSeek={handleSeek}
+            onMoveAhead={(index) => {
+              handleMoveAction('ahead', index);
+            }}
+            onMoveBehind={(index) => {
+              handleMoveAction('behind', index);
+            }}
+            onDelete={(index) => {
+              void handleDeleteAction(index);
+            }}
+            onEditPayload={handleEditPayload}
+          />
+        </FloatingDialog>
+        {payloadEditAction != null && payloadEditIndex != null ? (
+          <WorkflowActionPayloadModal
+            key={`payload-edit-${payloadEditIndex}`}
+            action={payloadEditAction}
+            onClose={handleClosePayloadEditor}
+            onUpdate={handleUpdatePayload}
+          />
+        ) : null}
+      </>
     );
   }
 

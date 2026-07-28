@@ -15,6 +15,11 @@ export interface ApiWorkflows {
   createWorkflow: (input: CreateWorkflowInput) => Promise<Workflow[]>;
 
   /**
+   * Renames a workflow and returns the refreshed list.
+   */
+  renameWorkflow: (id: number, name: string) => Promise<Workflow[]>;
+
+  /**
    * Updates a workflow's actions and duration and returns the refreshed list.
    */
   updateWorkflow: (input: UpdateWorkflowInput) => Promise<Workflow[]>;

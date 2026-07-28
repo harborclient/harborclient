@@ -3,7 +3,8 @@ import type {
   LibraryChangedEvent,
   PluginHttpRequest,
   PluginHttpResponse,
-  SidebarSelection
+  SidebarSelection,
+  WorkflowsChangedEvent
 } from '@harborclient/sdk';
 import type {
   PluginAssetResult,
@@ -299,6 +300,10 @@ export interface ApiPlugins {
    * Pushes a coarse library invalidation event to plugin webviews with the `ui` permission.
    */
   pushPluginLibraryChanged: (event: LibraryChangedEvent) => Promise<void>;
+  /**
+   * Pushes a coarse workflow invalidation to plugin webviews with the `ui` permission.
+   */
+  pushPluginWorkflowsChanged: (event: WorkflowsChangedEvent) => Promise<void>;
   /**
    * Pushes host sidebar selection changes to plugin webviews with the `ui` permission.
    */

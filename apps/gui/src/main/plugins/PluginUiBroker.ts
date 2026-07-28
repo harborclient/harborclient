@@ -92,6 +92,12 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.listLibraryTree': 'ui',
   'host.listCollectionRequests': 'ui',
   'host.getCollectionMetadata': 'ui',
+  'host.listWorkflows': 'ui',
+  'host.getWorkflow': 'ui',
+  'host.createWorkflow': 'ui',
+  'host.updateWorkflow': 'ui',
+  'host.renameWorkflow': 'ui',
+  'host.deleteWorkflow': 'ui',
   'host.logRequestToConsole': 'ui',
   'host.sendHttpRequest': 'network',
   'host.clearResponse': 'ui',
@@ -140,6 +146,12 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'host.listLibraryTree',
   'host.listCollectionRequests',
   'host.getCollectionMetadata',
+  'host.listWorkflows',
+  'host.getWorkflow',
+  'host.createWorkflow',
+  'host.updateWorkflow',
+  'host.renameWorkflow',
+  'host.deleteWorkflow',
   'host.loadDocument',
   'host.getSidebarSelection',
   'host.setSidebarSelection',
@@ -402,6 +414,27 @@ export class PluginUiBroker {
       }
       this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
         channel: 'library.changed',
+        payload: event
+      });
+    }
+  }
+
+  /**
+   * Pushes a coarse workflow invalidation to every plugin webview that declares
+   * the `ui` permission so `hc.host.onWorkflowsChanged` handlers can refetch.
+   *
+   * @param event - Coarse reason and optional workflow id.
+   */
+  pushWorkflowsChanged(event: {
+    reason: 'created' | 'updated' | 'renamed' | 'deleted' | 'refreshed';
+    workflowId?: number;
+  }): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasUiPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'workflows.changed',
         payload: event
       });
     }

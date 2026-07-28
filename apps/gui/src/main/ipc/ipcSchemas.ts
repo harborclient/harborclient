@@ -1214,6 +1214,12 @@ export const ipcArgSchemas = {
       collectionId: z.number().optional()
     })
   ]),
+  pluginPushWorkflowsChanged: z.tuple([
+    z.object({
+      reason: z.enum(['created', 'updated', 'renamed', 'deleted', 'refreshed']),
+      workflowId: z.number().optional()
+    })
+  ]),
   pluginPushSidebarSelectionChanged: z.tuple([
     z
       .object({
@@ -1262,6 +1268,7 @@ export const ipcArgSchemas = {
   workspacesReorder: z.tuple([z.array(dbId)]),
   workspacesSetMarker: z.tuple([dbId, sidebarMarker]),
   workflowsCreate: z.tuple([createWorkflowInput]),
+  workflowsRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   workflowsUpdate: z.tuple([updateWorkflowInput]),
   workflowsDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),

@@ -25,6 +25,8 @@ import {
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
   registerScriptEditorActionContribution,
+  registerWorkflowActionBlockContribution,
+  registerWorkflowToolbarActionContribution,
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
@@ -85,6 +87,15 @@ import {
 import { openImageView } from './hostImageCommands';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
 import { subscribePluginLibraryChanged } from './pluginLibraryChangedBus';
+import { subscribePluginWorkflowsChanged } from './pluginWorkflowsChangedBus';
+import {
+  createWorkflowForPlugin,
+  deleteWorkflowForPlugin,
+  getWorkflowForPlugin,
+  listWorkflowsForPlugin,
+  renameWorkflowForPlugin,
+  updateWorkflowForPlugin
+} from './hostWorkflowCommands';
 import {
   getSidebarSelection,
   setSidebarSelection,
@@ -546,6 +557,24 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertManifestContribution(manifest, 'scriptEditorActions', action.id);
         return track(registerScriptEditorActionContribution(pluginId, action));
       },
+      registerWorkflowToolbarAction: (action) => {
+        assertUi();
+        assertManifestContribution(manifest, 'workflowToolbarActions', action.id);
+        return track(registerWorkflowToolbarActionContribution(pluginId, action));
+      },
+      registerWorkflowActionBlock: (block) => {
+        assertUi();
+        assertManifestContribution(manifest, 'workflowActionBlocks', block.id);
+        return track(
+          registerWorkflowActionBlockContribution(pluginId, {
+            id: pluginContributionId(pluginId, block.id),
+            title: block.title,
+            order: block.order,
+            actionTypes: block.actionTypes,
+            contributionId: block.id
+          })
+        );
+      },
       registerContextMenuItem: (item) => {
         assertUi();
         assertManifestContribution(manifest, 'contextMenus', item.id);
@@ -770,6 +799,34 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       onLibraryChanged: (listener) => {
         assertUi();
         return track(subscribePluginLibraryChanged(listener));
+      },
+      listWorkflows: async () => {
+        assertUi();
+        return listWorkflowsForPlugin();
+      },
+      getWorkflow: async (workflowId) => {
+        assertUi();
+        return getWorkflowForPlugin(workflowId);
+      },
+      createWorkflow: async (input) => {
+        assertUi();
+        return createWorkflowForPlugin(input);
+      },
+      updateWorkflow: async (input) => {
+        assertUi();
+        return updateWorkflowForPlugin(input);
+      },
+      renameWorkflow: async (workflowId, name) => {
+        assertUi();
+        return renameWorkflowForPlugin(workflowId, name);
+      },
+      deleteWorkflow: async (workflowId) => {
+        assertUi();
+        await deleteWorkflowForPlugin(workflowId);
+      },
+      onWorkflowsChanged: (listener) => {
+        assertUi();
+        return track(subscribePluginWorkflowsChanged(listener));
       },
       listCollectionRequests: async (collectionId, folderId) => {
         assertUi();

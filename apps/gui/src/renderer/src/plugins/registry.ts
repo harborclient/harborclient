@@ -15,6 +15,8 @@ import type {
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
+  RegisteredWorkflowActionBlock,
+  RegisteredWorkflowToolbarAction,
   Disposable,
   FooterPanelIndicatorState
 } from '@harborclient/core/plugin/types';
@@ -42,6 +44,8 @@ interface MutableRegistryState {
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
+  workflowToolbarActions: RegisteredWorkflowToolbarAction[];
+  workflowActionBlocks: RegisteredWorkflowActionBlock[];
   contextMenuItems: RegisteredContextMenuItem[];
   actions: RegisteredAction[];
 }
@@ -62,6 +66,8 @@ interface CachedRegistrySnapshot {
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
+  workflowToolbarActions: RegisteredWorkflowToolbarAction[];
+  workflowActionBlocks: RegisteredWorkflowActionBlock[];
   contextMenuItems: RegisteredContextMenuItem[];
   actions: RegisteredAction[];
 }
@@ -82,6 +88,8 @@ const state: MutableRegistryState = {
   menuItems: [],
   requestToolbarActions: [],
   scriptEditorActions: [],
+  workflowToolbarActions: [],
+  workflowActionBlocks: [],
   contextMenuItems: [],
   actions: []
 };
@@ -110,6 +118,8 @@ function emptySnapshot(): CachedRegistrySnapshot {
     menuItems: [],
     requestToolbarActions: [],
     scriptEditorActions: [],
+    workflowToolbarActions: [],
+    workflowActionBlocks: [],
     contextMenuItems: [],
     actions: []
   };
@@ -222,6 +232,10 @@ function rebuildCachedSnapshots(): void {
     scriptEditorActions: sortByOrderThenTitle(
       state.scriptEditorActions.map((entry) => ({ ...entry, title: entry.title }))
     ),
+    workflowToolbarActions: sortByOrderThenTitle(
+      state.workflowToolbarActions.map((entry) => ({ ...entry, title: entry.title }))
+    ),
+    workflowActionBlocks: sortByOrderThenTitle(state.workflowActionBlocks),
     contextMenuItems: sortByOrderThenTitle(
       state.contextMenuItems.map((entry) => ({ ...entry, title: entry.title }))
     ),
@@ -624,6 +638,46 @@ export function registerScriptEditorActionContribution(
 }
 
 /**
+ * Registers a workflow play/edit toolbar action contribution.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param action - Toolbar action contribution metadata.
+ */
+export function registerWorkflowToolbarActionContribution(
+  pluginId: string,
+  action: Omit<RegisteredWorkflowToolbarAction, 'pluginId'>
+): Disposable {
+  const entry: RegisteredWorkflowToolbarAction = { pluginId, ...action };
+  return registerContribution(
+    state.workflowToolbarActions,
+    pluginId,
+    action.id,
+    entry,
+    (item) => item.pluginId === pluginId && item.id === action.id
+  );
+}
+
+/**
+ * Registers a workflow timeline action-block HostedSurface contribution.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param block - Action block contribution metadata.
+ */
+export function registerWorkflowActionBlockContribution(
+  pluginId: string,
+  block: Omit<RegisteredWorkflowActionBlock, 'pluginId'>
+): Disposable {
+  const entry: RegisteredWorkflowActionBlock = { pluginId, ...block };
+  return registerContribution(
+    state.workflowActionBlocks,
+    pluginId,
+    block.id,
+    entry,
+    (item) => item.pluginId === pluginId && item.id === block.id
+  );
+}
+
+/**
  * Registers a sidebar context menu item contribution.
  *
  * @param pluginId - Plugin manifest id.
@@ -690,6 +744,8 @@ export function unregisterContribution(
     | 'menuItems'
     | 'requestToolbarActions'
     | 'scriptEditorActions'
+    | 'workflowToolbarActions'
+    | 'workflowActionBlocks'
     | 'contextMenuItems'
     | 'actions',
   contributionId: string
@@ -788,6 +844,18 @@ export function unregisterContribution(
         (item) => item.pluginId === pluginId && item.id === contributionId
       );
       break;
+    case 'workflowToolbarActions':
+      filter(
+        state.workflowToolbarActions,
+        (item) => item.pluginId === pluginId && item.id === contributionId
+      );
+      break;
+    case 'workflowActionBlocks':
+      filter(
+        state.workflowActionBlocks,
+        (item) => item.pluginId === pluginId && item.contributionId === contributionId
+      );
+      break;
     case 'contextMenuItems':
       filter(
         state.contextMenuItems,
@@ -839,6 +907,12 @@ export function clearPluginContributions(pluginId: string): void {
   state.scriptEditorActions = state.scriptEditorActions.filter(
     (item) => item.pluginId !== pluginId
   );
+  state.workflowToolbarActions = state.workflowToolbarActions.filter(
+    (item) => item.pluginId !== pluginId
+  );
+  state.workflowActionBlocks = state.workflowActionBlocks.filter(
+    (item) => item.pluginId !== pluginId
+  );
   state.contextMenuItems = state.contextMenuItems.filter((item) => item.pluginId !== pluginId);
   state.actions = state.actions.filter((item) => item.pluginId !== pluginId);
   emitChange();
@@ -870,6 +944,10 @@ export const getRegisteredRequestToolbarActions = (): RegisteredRequestToolbarAc
   cachedSnapshot.requestToolbarActions;
 export const getRegisteredScriptEditorActions = (): RegisteredScriptEditorAction[] =>
   cachedSnapshot.scriptEditorActions;
+export const getRegisteredWorkflowToolbarActions = (): RegisteredWorkflowToolbarAction[] =>
+  cachedSnapshot.workflowToolbarActions;
+export const getRegisteredWorkflowActionBlocks = (): RegisteredWorkflowActionBlock[] =>
+  cachedSnapshot.workflowActionBlocks;
 export const getRegisteredContextMenuItems = (): RegisteredContextMenuItem[] =>
   cachedSnapshot.contextMenuItems;
 export const getRegisteredActions = (): RegisteredAction[] => cachedSnapshot.actions;

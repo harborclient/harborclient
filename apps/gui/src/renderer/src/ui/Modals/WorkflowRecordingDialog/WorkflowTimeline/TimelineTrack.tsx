@@ -1,7 +1,10 @@
 import type { WorkflowAction } from '@harborclient/core/types';
+import type { WorkflowActionBlockContext } from '@harborclient/sdk';
 import type { JSX, MouseEvent } from 'react';
 import { useCallback, useState } from 'react';
 import type { RootState } from '#/renderer/src/store/redux';
+import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
+import { usePluginWorkflowActionBlocks } from '#/renderer/src/plugins/pluginHooks';
 import { TimelineBlock } from '#/renderer/src/workflows/timeline/TimelineBlock';
 import {
   WORKFLOW_TIMELINE_COMPACT_WIDTH_PX,
@@ -13,6 +16,11 @@ import { TimelinePlayhead } from './TimelinePlayhead';
 import { WorkflowTimelineActionMenu } from './WorkflowTimelineActionMenu';
 
 interface Props {
+  /**
+   * Database id of the workflow open in play/edit mode.
+   */
+  workflowId: number;
+
   /**
    * Loaded workflow actions in play order.
    */
@@ -70,6 +78,13 @@ interface Props {
    * @param index - Action index to delete.
    */
   onDelete: (index: number) => void;
+
+  /**
+   * Opens the JSON payload editor for the action at the given index.
+   *
+   * @param index - Action index to edit.
+   */
+  onEditPayload: (index: number) => void;
 }
 
 /**
@@ -99,6 +114,7 @@ interface ContextMenuState {
  * @returns Track listbox of seekable blocks.
  */
 export function TimelineTrack({
+  workflowId,
   actions,
   layout,
   selectedIndex,
@@ -108,9 +124,11 @@ export function TimelineTrack({
   onSeek,
   onMoveAhead,
   onMoveBehind,
-  onDelete
+  onDelete,
+  onEditPayload
 }: Props): JSX.Element {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const actionBlocks = usePluginWorkflowActionBlocks();
 
   /**
    * Opens the action context menu after seeking to the right-clicked block.
@@ -119,7 +137,7 @@ export function TimelineTrack({
    * @param event - Context menu mouse event.
    */
   const handleBlockContextMenu = useCallback(
-    (index: number, event: MouseEvent<HTMLButtonElement>): void => {
+    (index: number, event: MouseEvent<HTMLDivElement>): void => {
       if (playing) {
         return;
       }
@@ -127,6 +145,21 @@ export function TimelineTrack({
       setContextMenu({ index, x: event.clientX, y: event.clientY });
     },
     [onSeek, playing]
+  );
+
+  /**
+   * Seeks to the block and opens the payload editor when playback is idle.
+   *
+   * @param index - Action index to edit.
+   */
+  const handleEditPayload = useCallback(
+    (index: number): void => {
+      if (playing) {
+        return;
+      }
+      onEditPayload(index);
+    },
+    [onEditPayload, playing]
   );
 
   /**
@@ -166,6 +199,25 @@ export function TimelineTrack({
             described.subtitle != null && described.subtitle.length > 0
               ? `${described.title}, ${described.subtitle}`
               : described.title;
+          const matchingBlocks = compact
+            ? []
+            : actionBlocks.filter(
+                (block) =>
+                  !block.actionTypes ||
+                  block.actionTypes.length === 0 ||
+                  block.actionTypes.includes(action.type)
+              );
+          const blockContext: WorkflowActionBlockContext = {
+            workflowId,
+            actionIndex: segment.index,
+            action: {
+              type: action.type,
+              ...(action.at != null ? { at: action.at } : {}),
+              payload: action.payload
+            },
+            selected: segment.index === selectedIndex,
+            compact
+          };
 
           return (
             <TimelineBlock
@@ -178,9 +230,29 @@ export function TimelineTrack({
               onSeek={() => {
                 onSeek(segment.index);
               }}
+              onEditPayload={() => {
+                handleEditPayload(segment.index);
+              }}
               onContextMenu={(event) => {
                 handleBlockContextMenu(segment.index, event);
               }}
+              pluginSurface={
+                matchingBlocks.length > 0 ? (
+                  <div className="flex h-full min-h-[28px] flex-col gap-0.5">
+                    {matchingBlocks.map((block) => (
+                      <HostedSurface
+                        key={`${block.pluginId}:${block.contributionId}`}
+                        pluginId={block.pluginId}
+                        contributionId={block.contributionId}
+                        kind="workflowActionBlocks"
+                        context={blockContext}
+                        className="min-h-[28px] flex-1"
+                        resizeMode="fill"
+                      />
+                    ))}
+                  </div>
+                ) : undefined
+              }
             >
               {entry?.thumbnail(action, {
                 selected: segment.index === selectedIndex,
@@ -202,6 +274,9 @@ export function TimelineTrack({
           }}
           onMoveBehind={() => {
             onMoveBehind(contextMenu.index);
+          }}
+          onEditPayload={() => {
+            handleEditPayload(contextMenu.index);
           }}
           onDelete={() => {
             onDelete(contextMenu.index);

@@ -107,6 +107,7 @@ Contribution buckets include:
 - `settingsSections`, `sidebarPanels`, `sidebarSections`, `mainViews`
 - `requestTabs`, `responseTabs`, `collectionSettingsTabs`
 - `footerPanels`, `statusBarItems`, `requestToolbarActions`, `contextMenus`
+- `workflowToolbarActions`, `workflowActionBlocks`
 - `themes`, `commands`, `menus`
 
 Types live in [`src/shared/plugin/types.ts`](../../../shared/plugin/types.ts).
@@ -332,21 +333,23 @@ as `plugin:{pluginId}:{contributionId}`.
 (`order`, then `pluginId`, then contribution id) and mounts that panel as the
 primary collections surface when `activeSidebarPanelId` is `null`.
 
-| Registry bucket          | Host component                                                                               | Hook                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `settingsSections`       | [`Settings/index.tsx`](../ui/Tabs/Settings/index.tsx)                                        | `usePluginSettingsSections`           |
-| `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarPanels`              |
-| `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                  | `usePluginSidebarSections`            |
-| `mainViews`              | [`HostedMainView`](../ui/HostedMainView/index.tsx) via Redux                                 | `usePluginMainViews`                  |
-| `requestTabs`            | [`Main/RequestEditor/Editor/TabContent.tsx`](../ui/Main/RequestEditor/Editor/TabContent.tsx) | `usePluginRequestTabs`                |
-| `responseTabs`           | [`Main/ResponseEditor/index.tsx`](../ui/Main/ResponseEditor/index.tsx)                       | `usePluginResponseTabs`               |
-| `collectionSettingsTabs` | [`CollectionSettings/index.tsx`](../ui/Tabs/CollectionSettings/index.tsx)                    | `usePluginCollectionSettingsTabs`     |
-| `footerPanels`           | [`HostedFooterPanel`](../ui/Footer/HostedFooterPanel/index.tsx)                              | `usePluginFooterPanels`               |
-| `statusBarItems`         | [`Footer/index.tsx`](../ui/Footer/index.tsx)                                                 | `usePluginStatusBarItems`             |
-| `requestToolbarActions`  | [`UrlBar.tsx`](../ui/Main/RequestEditor/Editor/UrlBar.tsx)                                   | `usePluginRequestToolbarActions`      |
-| `menuItems`              | Native app menu (main process merge)                                                         | `pluginMenuSync.ts`                   |
-| `contextMenuItems`       | Sidebar row context menus                                                                    | `pluginContextMenuHelpers.ts`         |
-| `themes`                 | General Settings appearance picker                                                           | `usePluginThemes` + `themeRuntime.ts` |
+| Registry bucket          | Host component                                                                                 | Hook                                  |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `settingsSections`       | [`Settings/index.tsx`](../ui/Tabs/Settings/index.tsx)                                          | `usePluginSettingsSections`           |
+| `sidebarPanels`          | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                    | `usePluginSidebarPanels`              |
+| `sidebarSections`        | [`CollectionSidebar/index.tsx`](../ui/Sidebars/CollectionSidebar/index.tsx)                    | `usePluginSidebarSections`            |
+| `mainViews`              | [`HostedMainView`](../ui/HostedMainView/index.tsx) via Redux                                   | `usePluginMainViews`                  |
+| `requestTabs`            | [`Main/RequestEditor/Editor/TabContent.tsx`](../ui/Main/RequestEditor/Editor/TabContent.tsx)   | `usePluginRequestTabs`                |
+| `responseTabs`           | [`Main/ResponseEditor/index.tsx`](../ui/Main/ResponseEditor/index.tsx)                         | `usePluginResponseTabs`               |
+| `collectionSettingsTabs` | [`CollectionSettings/index.tsx`](../ui/Tabs/CollectionSettings/index.tsx)                      | `usePluginCollectionSettingsTabs`     |
+| `footerPanels`           | [`HostedFooterPanel`](../ui/Footer/HostedFooterPanel/index.tsx)                                | `usePluginFooterPanels`               |
+| `statusBarItems`         | [`Footer/index.tsx`](../ui/Footer/index.tsx)                                                   | `usePluginStatusBarItems`             |
+| `requestToolbarActions`  | [`UrlBar.tsx`](../ui/Main/RequestEditor/Editor/UrlBar.tsx)                                     | `usePluginRequestToolbarActions`      |
+| `workflowToolbarActions` | [`WorkflowEditControls.tsx`](../ui/Modals/WorkflowRecordingDialog/WorkflowEditControls.tsx)    | `usePluginWorkflowToolbarActions`     |
+| `workflowActionBlocks`   | [`TimelineTrack.tsx`](../ui/Modals/WorkflowRecordingDialog/WorkflowTimeline/TimelineTrack.tsx) | `usePluginWorkflowActionBlocks`       |
+| `menuItems`              | Native app menu (main process merge)                                                           | `pluginMenuSync.ts`                   |
+| `contextMenuItems`       | Sidebar row context menus                                                                      | `pluginContextMenuHelpers.ts`         |
+| `themes`                 | General Settings appearance picker                                                             | `usePluginThemes` + `themeRuntime.ts` |
 
 Toolbar actions and context menu items invoke commands only — they do not mount
 webviews. Visible plugin UI always goes through `HostedSurface`.

@@ -437,6 +437,67 @@ hc.ui.registerScriptEditorAction({
 });
 ```
 
+## hc.ui.registerWorkflowToolbarAction(action)
+
+**Signature:** `(action: WorkflowToolbarActionContribution) => Disposable`
+
+**Manifest:** `contributes.workflowToolbarActions` plus a matching `contributes.commands` entry
+
+| Parameter | Type     | Description                     |
+| --------- | -------- | ------------------------------- |
+| `id`      | `string` | Action id                       |
+| `title`   | `string` | Button label or tooltip         |
+| `command` | `string` | Command id to run on click      |
+| `icon`    | `string` | Optional icon name              |
+| `order`   | `number` | Sort order to the right of Save |
+
+Adds a button to the right of Save in the workflow play/edit toolbar. The
+command handler receives a single `WorkflowToolbarActionContext` argument with
+`workflowId`, `actionIndex`, `action`, and `dirty`.
+
+```typescript
+hc.commands.register('myPlugin.annotate', (context: WorkflowToolbarActionContext) => {
+  hc.ui.showToast(`Workflow ${context.workflowId} selected action ${context.actionIndex}`);
+});
+hc.ui.registerWorkflowToolbarAction({
+  id: 'myPlugin.annotate',
+  title: 'Annotate',
+  command: 'myPlugin.annotate'
+});
+```
+
+## hc.ui.registerWorkflowActionBlock(block)
+
+**Signature:** `(block: WorkflowActionBlockContribution) => Disposable`
+
+**Manifest:** `contributes.workflowActionBlocks`
+
+| Parameter     | Type        | Description                                             |
+| ------------- | ----------- | ------------------------------------------------------- |
+| `id`          | `string`    | Contribution id                                         |
+| `title`       | `string`    | Display label                                           |
+| `Component`   | `Component` | Receives `{ context: WorkflowActionBlockContext }`      |
+| `actionTypes` | `string[]`  | Optional filter — omit to show on every timeline action |
+| `order`       | `number`    | Sort order among stacked surfaces in a block            |
+
+Renders a HostedSurface inside matching workflow timeline action blocks (below
+the built-in thumbnail). Surfaces are skipped when the block is compact (too
+narrow). Prefer a narrow `actionTypes` list to avoid mounting many webviews.
+
+```typescript
+function ActionBadge({ context }: { context: WorkflowActionBlockContext }) {
+  const { react: React } = hc;
+  return React.createElement('span', null, context.action.type);
+}
+
+hc.ui.registerWorkflowActionBlock({
+  id: 'badge',
+  title: 'Action badge',
+  actionTypes: ['request.send', 'request.load'],
+  Component: ActionBadge
+});
+```
+
 ## hc.ui.registerContextMenuItem(item)
 
 **Signature:** `(item: ContextMenuItemContribution) => Disposable`

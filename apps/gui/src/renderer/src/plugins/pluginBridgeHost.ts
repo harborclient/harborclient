@@ -15,6 +15,8 @@ import type {
   RegisteredSidebarPanel,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
+  RegisteredWorkflowActionBlock,
+  RegisteredWorkflowToolbarAction,
   ThemeContribution
 } from '@harborclient/core/plugin/types';
 import {
@@ -28,6 +30,8 @@ import {
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
   registerScriptEditorActionContribution,
+  registerWorkflowActionBlockContribution,
+  registerWorkflowToolbarActionContribution,
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
@@ -81,6 +85,14 @@ import {
   setCollectionArchivedForPlugin,
   updateCollectionForPlugin
 } from './hostLibraryMutations';
+import {
+  createWorkflowForPlugin,
+  deleteWorkflowForPlugin,
+  getWorkflowForPlugin,
+  listWorkflowsForPlugin,
+  renameWorkflowForPlugin,
+  updateWorkflowForPlugin
+} from './hostWorkflowCommands';
 import { openImageView } from './hostImageCommands';
 import {
   createEnvironmentWithVariables,
@@ -142,6 +154,8 @@ type ContributionKind =
   | 'menuItems'
   | 'requestToolbarActions'
   | 'scriptEditorActions'
+  | 'workflowToolbarActions'
+  | 'workflowActionBlocks'
   | 'contextMenuItems'
   | 'actions';
 
@@ -274,6 +288,18 @@ export function applyContributionMessage(message: ContributionMessage): void {
       registerScriptEditorActionContribution(
         message.pluginId,
         contribution as Omit<RegisteredScriptEditorAction, 'pluginId'>
+      );
+      break;
+    case 'workflowToolbarActions':
+      registerWorkflowToolbarActionContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredWorkflowToolbarAction, 'pluginId'>
+      );
+      break;
+    case 'workflowActionBlocks':
+      registerWorkflowActionBlockContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredWorkflowActionBlock, 'pluginId'>
       );
       break;
     case 'contextMenuItems':
@@ -528,6 +554,29 @@ export async function handlePluginHostBridgeInvoke(
       return listLibraryTreeForPlugin(
         (payload as { options?: LibraryListOptions } | undefined)?.options
       );
+    case 'host.listWorkflows':
+      return listWorkflowsForPlugin();
+    case 'host.getWorkflow': {
+      const { workflowId } = payload as { workflowId: number };
+      return getWorkflowForPlugin(workflowId);
+    }
+    case 'host.createWorkflow':
+      return createWorkflowForPlugin(
+        (payload as { input: Parameters<typeof createWorkflowForPlugin>[0] }).input
+      );
+    case 'host.updateWorkflow':
+      return updateWorkflowForPlugin(
+        (payload as { input: Parameters<typeof updateWorkflowForPlugin>[0] }).input
+      );
+    case 'host.renameWorkflow': {
+      const { workflowId, name } = payload as { workflowId: number; name: string };
+      return renameWorkflowForPlugin(workflowId, name);
+    }
+    case 'host.deleteWorkflow': {
+      const { workflowId } = payload as { workflowId: number };
+      await deleteWorkflowForPlugin(workflowId);
+      return undefined;
+    }
     case 'host.listCollectionRequests': {
       const { collectionId, folderId } = payload as {
         collectionId: number;

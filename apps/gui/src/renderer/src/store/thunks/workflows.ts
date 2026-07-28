@@ -19,6 +19,7 @@ import {
   stopRecording
 } from '#/renderer/src/workflows/workflowRecorder';
 import { sanitizeWorkflowActions } from '#/renderer/src/workflows/sanitizeWorkflowActions';
+import { emitPluginWorkflowsChanged } from '#/renderer/src/plugins/pluginWorkflowsChangedBus';
 
 /**
  * Reloads workflows from the local registry into the store.
@@ -28,6 +29,7 @@ export const refreshWorkflows = createAsyncThunk<void, void, ThunkApiConfig>(
   async (_arg, { dispatch }) => {
     const items = await window.api.listWorkflows();
     dispatch(setWorkflows(items));
+    emitPluginWorkflowsChanged({ reason: 'refreshed' });
   }
 );
 
@@ -63,6 +65,11 @@ export const createWorkflowFromSession = createAsyncThunk<void, string, ThunkApi
         actions
       });
       dispatch(setWorkflows(items));
+      const created = items.find((item) => item.uuid === uuid);
+      emitPluginWorkflowsChanged({
+        reason: 'created',
+        ...(created != null ? { workflowId: created.id } : {})
+      });
       clearSession();
       dispatch(setWorkflowSaveNameModalOpen(false));
       dispatch(closeWorkflowDialog());
@@ -77,6 +84,18 @@ export const createWorkflowFromSession = createAsyncThunk<void, string, ThunkApi
 );
 
 /**
+ * Renames a workflow and refreshes the list.
+ */
+export const renameWorkflow = createAsyncThunk<void, { id: number; name: string }, ThunkApiConfig>(
+  'workflows/rename',
+  async ({ id, name }, { dispatch }) => {
+    const items = await window.api.renameWorkflow(id, name.trim());
+    dispatch(setWorkflows(items));
+    emitPluginWorkflowsChanged({ reason: 'renamed', workflowId: id });
+  }
+);
+
+/**
  * Moves a workflow to trash and refreshes the list.
  */
 export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
@@ -84,6 +103,7 @@ export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
   async (id, { dispatch }) => {
     const items = await window.api.deleteWorkflow(id);
     dispatch(setWorkflows(items));
+    emitPluginWorkflowsChanged({ reason: 'deleted', workflowId: id });
     await syncTrash(dispatch);
   }
 );
@@ -104,6 +124,7 @@ export const updateWorkflowActions = createAsyncThunk<
     durationMs: nextDurationMs
   });
   dispatch(setWorkflows(items));
+  emitPluginWorkflowsChanged({ reason: 'updated', workflowId: id });
   toast.success('Workflow updated');
 });
 

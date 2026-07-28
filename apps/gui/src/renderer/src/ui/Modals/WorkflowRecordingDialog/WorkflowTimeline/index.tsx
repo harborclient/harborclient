@@ -14,6 +14,11 @@ import { TimelineTrack } from './TimelineTrack';
 
 interface Props {
   /**
+   * Database id of the workflow open in play/edit mode.
+   */
+  workflowId: number;
+
+  /**
    * Loaded workflow actions.
    */
   actions: readonly WorkflowAction[];
@@ -65,6 +70,13 @@ interface Props {
    * @param index - Action index to delete.
    */
   onDelete: (index: number) => void;
+
+  /**
+   * Opens the JSON payload editor for the action at the given index.
+   *
+   * @param index - Action index to edit.
+   */
+  onEditPayload: (index: number) => void;
 }
 
 /**
@@ -74,6 +86,7 @@ interface Props {
  * @returns Timeline panel body.
  */
 export function WorkflowTimeline({
+  workflowId,
   actions,
   durationMs,
   selectedIndex,
@@ -82,7 +95,8 @@ export function WorkflowTimeline({
   onSeek,
   onMoveAhead,
   onMoveBehind,
-  onDelete
+  onDelete,
+  onEditPayload
 }: Props): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [trackWidthPx, setTrackWidthPx] = useState(800);
@@ -167,6 +181,7 @@ export function WorkflowTimeline({
         />
         <div className="pt-2">
           <TimelineTrack
+            workflowId={workflowId}
             actions={actions}
             layout={layout}
             selectedIndex={selectedIndex}
@@ -177,6 +192,7 @@ export function WorkflowTimeline({
             onMoveAhead={onMoveAhead}
             onMoveBehind={onMoveBehind}
             onDelete={onDelete}
+            onEditPayload={onEditPayload}
           />
         </div>
       </div>

@@ -497,6 +497,14 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   );
 
   handle(
+    'plugins:pushWorkflowsChanged',
+    ipcArgSchemas.pluginPushWorkflowsChanged,
+    (_event, eventPayload) => {
+      getPluginUiBroker().pushWorkflowsChanged(eventPayload);
+    }
+  );
+
+  handle(
     'plugins:pushSidebarSelectionChanged',
     ipcArgSchemas.pluginPushSidebarSelectionChanged,
     (_event, selection) => {

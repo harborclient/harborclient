@@ -739,6 +739,139 @@ export interface ScriptEditorActionContribution {
 }
 
 /**
+ * One recorded workflow step exposed to plugin toolbar commands and action-block surfaces.
+ */
+export interface WorkflowActionRef {
+  /**
+   * Stable logical event name (for example `request.load`).
+   */
+  type: string;
+
+  /**
+   * Wall-clock time when the action was recorded; optional in portable files.
+   */
+  at?: number;
+
+  /**
+   * Normalized action payload.
+   */
+  payload: unknown;
+}
+
+/**
+ * Context passed to a workflow toolbar action command when the user clicks the button.
+ */
+export interface WorkflowToolbarActionContext {
+  /**
+   * Database id of the workflow open in play/edit mode.
+   */
+  workflowId: number;
+
+  /**
+   * 0-based index of the selected timeline action, or `-1` when none is selected.
+   */
+  actionIndex: number;
+
+  /**
+   * Selected timeline action, or `null` when none is selected.
+   */
+  action: WorkflowActionRef | null;
+
+  /**
+   * True when the playback buffer has unsaved edits.
+   */
+  dirty: boolean;
+}
+
+/**
+ * Adds a button to the right of Save in the workflow play/edit toolbar.
+ *
+ * Register the command handler with {@link PluginCommands.register} separately.
+ * The handler receives a single {@link WorkflowToolbarActionContext} argument.
+ * Manifest: `contributes.workflowToolbarActions` plus a matching `contributes.commands` entry.
+ * Requires the `ui` permission.
+ */
+export interface WorkflowToolbarActionContribution {
+  /**
+   * Action id — must match an entry in `contributes.workflowToolbarActions`.
+   */
+  id: string;
+
+  /**
+   * Button label or tooltip text.
+   */
+  title: string;
+
+  /**
+   * Command id to run on click — must match a registered command and manifest entry.
+   */
+  command: string;
+
+  /**
+   * Optional icon name.
+   */
+  icon?: string;
+
+  /**
+   * Sort order to the right of Save. Lower values appear first.
+   */
+  order?: number;
+}
+
+/**
+ * Context passed to {@link WorkflowActionBlockContribution} HostedSurface components.
+ */
+export interface WorkflowActionBlockContext {
+  /**
+   * Database id of the workflow open in play/edit mode.
+   */
+  workflowId: number;
+
+  /**
+   * 0-based index of this timeline action.
+   */
+  actionIndex: number;
+
+  /**
+   * Timeline action rendered inside this block.
+   */
+  action: WorkflowActionRef;
+
+  /**
+   * True when this block is the playback cursor.
+   */
+  selected: boolean;
+
+  /**
+   * True when the block is too narrow for rich content (host may hide the surface).
+   */
+  compact: boolean;
+}
+
+/**
+ * Renders a HostedSurface inside matching workflow timeline action blocks.
+ *
+ * Manifest: `contributes.workflowActionBlocks`. Requires the `ui` permission.
+ */
+export interface WorkflowActionBlockContribution extends UiContributionBase {
+  /**
+   * Block content. Receives `{ context: WorkflowActionBlockContext }`.
+   * Use {@link PluginContext.react} — do not bundle React.
+   */
+  Component: React.ComponentType<{ context: WorkflowActionBlockContext }>;
+
+  /**
+   * When set, limits the surface to these action types. Omit to show on every block.
+   */
+  actionTypes?: string[];
+
+  /**
+   * Sort order among stacked surfaces in a block. Lower values appear first.
+   */
+  order?: number;
+}
+
+/**
  * Sidebar row type that a context menu item applies to.
  *
  * Used by {@link ContextMenuItemContribution.when} to filter which rows show the action.
@@ -1632,6 +1765,26 @@ export interface PluginUi {
   registerScriptEditorAction(action: ScriptEditorActionContribution): Disposable;
 
   /**
+   * Adds a button to the right of Save in the workflow play/edit toolbar.
+   *
+   * Manifest: `contributes.workflowToolbarActions` plus a matching `contributes.commands` entry.
+   *
+   * @param action - Toolbar action contribution.
+   * @returns A {@link Disposable} that unregisters the action when disposed.
+   */
+  registerWorkflowToolbarAction(action: WorkflowToolbarActionContribution): Disposable;
+
+  /**
+   * Renders a HostedSurface inside matching workflow timeline action blocks.
+   *
+   * Manifest: `contributes.workflowActionBlocks` — `block.id` must match an entry there.
+   *
+   * @param block - Action block contribution.
+   * @returns A {@link Disposable} that unregisters the block when disposed.
+   */
+  registerWorkflowActionBlock(block: WorkflowActionBlockContribution): Disposable;
+
+  /**
    * Adds an action to sidebar row context menus.
    *
    * Manifest: `contributes.contextMenus` plus a matching `contributes.commands` entry.
@@ -2112,6 +2265,73 @@ export interface LibraryChangedEvent {
   reason: LibraryChangedReason;
   /** Collection id for per-collection reasons; omitted for `collections`. */
   collectionId?: number;
+}
+
+/**
+ * Coarse reason for a {@link WorkflowsChangedEvent}.
+ */
+export type WorkflowsChangedReason = 'created' | 'updated' | 'renamed' | 'deleted' | 'refreshed';
+
+/**
+ * Coarse invalidation signal so plugins can refetch workflows without polling.
+ */
+export interface WorkflowsChangedEvent {
+  /** Which workflow mutation occurred. */
+  reason: WorkflowsChangedReason;
+  /** Workflow database id when the change targets one row. */
+  workflowId?: number;
+}
+
+/**
+ * Full workflow row returned by {@link PluginHost} workflow CRUD methods.
+ */
+export interface HostWorkflow {
+  /** Database primary key. */
+  id: number;
+  /** Stable portable identifier for export/import. */
+  uuid: string;
+  /** Display name shown in the sidebar. */
+  name: string;
+  /** Accumulated recording duration in milliseconds. */
+  durationMs: number;
+  /** Workflow-scoped variables for parameterization. */
+  variables: Record<string, string>;
+  /** Ordered recorded actions. */
+  actions: WorkflowActionRef[];
+  /** Creation timestamp in milliseconds since epoch. */
+  createdAt: number;
+  /** Last update timestamp in milliseconds since epoch. */
+  updatedAt: number;
+}
+
+/**
+ * Payload for {@link PluginHost.createWorkflow}.
+ */
+export interface CreateWorkflowPayload {
+  /** Display name for the workflow. */
+  name: string;
+  /** Optional portable uuid; generated when omitted. */
+  uuid?: string;
+  /** Accumulated recording duration in milliseconds. */
+  durationMs: number;
+  /** Optional workflow variables; defaults to an empty object. */
+  variables?: Record<string, string>;
+  /** Ordered recorded actions to persist. */
+  actions: WorkflowActionRef[];
+}
+
+/**
+ * Payload for {@link PluginHost.updateWorkflow} — replaces actions and duration.
+ *
+ * Name and variables are preserved. Use {@link PluginHost.renameWorkflow} to rename.
+ */
+export interface UpdateWorkflowPayload {
+  /** Database primary key of the workflow to update. */
+  id: number;
+  /** Ordered recorded actions to persist. */
+  actions: WorkflowActionRef[];
+  /** Accumulated recording duration in milliseconds. */
+  durationMs: number;
 }
 
 /**
@@ -2913,6 +3133,69 @@ export interface PluginHost {
    * @returns A {@link Disposable} that removes the listener when disposed.
    */
   onLibraryChanged(listener: (event: LibraryChangedEvent) => void): Disposable;
+
+  /**
+   * Lists all workflows from the local registry.
+   *
+   * Requires the `ui` permission.
+   */
+  listWorkflows(): Promise<HostWorkflow[]>;
+
+  /**
+   * Returns one workflow by database id, or `null` when missing.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param workflowId - Workflow database id.
+   */
+  getWorkflow(workflowId: number): Promise<HostWorkflow | null>;
+
+  /**
+   * Creates a workflow in the local registry.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Name, actions, duration, and optional uuid/variables.
+   */
+  createWorkflow(input: CreateWorkflowPayload): Promise<HostWorkflow>;
+
+  /**
+   * Replaces a workflow's actions and duration while preserving name and variables.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param input - Workflow id, actions, and duration.
+   */
+  updateWorkflow(input: UpdateWorkflowPayload): Promise<HostWorkflow>;
+
+  /**
+   * Renames a workflow while preserving actions and variables.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param workflowId - Workflow database id.
+   * @param name - New display name.
+   */
+  renameWorkflow(workflowId: number, name: string): Promise<HostWorkflow>;
+
+  /**
+   * Deletes a workflow (moves it to trash when supported).
+   *
+   * Requires the `ui` permission. Silent — plugins must confirm first.
+   *
+   * @param workflowId - Workflow database id.
+   */
+  deleteWorkflow(workflowId: number): Promise<void>;
+
+  /**
+   * Subscribes to coarse workflow invalidation events so plugins can refetch without polling.
+   *
+   * Requires the `ui` permission.
+   *
+   * @param listener - Called when workflows are created, updated, renamed, or deleted.
+   * @returns A {@link Disposable} that removes the listener when disposed.
+   */
+  onWorkflowsChanged(listener: (event: WorkflowsChangedEvent) => void): Disposable;
 
   /**
    * Returns saved requests for a collection or folder in sidebar run order.

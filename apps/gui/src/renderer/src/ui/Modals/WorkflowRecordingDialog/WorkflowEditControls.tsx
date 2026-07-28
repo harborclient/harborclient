@@ -1,6 +1,8 @@
 import { Button, FaIcon } from '@harborclient/sdk/components';
+import type { WorkflowToolbarActionContext } from '@harborclient/sdk';
 import type { JSX } from 'react';
 import { faAngleLeft, faAngleRight, faFloppyDisk, faTrash } from '#/renderer/src/fontawesome';
+import { usePluginWorkflowToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 
 interface Props {
   /**
@@ -29,6 +31,11 @@ interface Props {
   saving: boolean;
 
   /**
+   * Context passed to plugin toolbar command handlers.
+   */
+  toolbarContext: WorkflowToolbarActionContext;
+
+  /**
    * Moves the active action one step earlier in the timeline.
    */
   onMoveAhead: () => void;
@@ -53,9 +60,10 @@ interface Props {
  * Edit controls for the active workflow timeline action (delete, move, save).
  *
  * Rendered as a visually separate group beside the transport controls. Edits stay
- * local until the user clicks Save.
+ * local until the user clicks Save. Plugin {@link usePluginWorkflowToolbarActions}
+ * buttons render to the right of Save.
  *
- * @param props - Selection state and edit handlers.
+ * @param props - Selection state, plugin toolbar context, and edit handlers.
  * @returns Edit control button group.
  */
 export function WorkflowEditControls({
@@ -64,6 +72,7 @@ export function WorkflowEditControls({
   actionCount,
   dirty,
   saving,
+  toolbarContext,
   onMoveAhead,
   onMoveBehind,
   onDelete,
@@ -73,6 +82,7 @@ export function WorkflowEditControls({
   const canMoveAhead = hasActiveAction && actionIndex > 0;
   const canMoveBehind = hasActiveAction && actionIndex < actionCount - 1;
   const canDelete = hasActiveAction;
+  const toolbarActions = usePluginWorkflowToolbarActions();
 
   return (
     <div
@@ -132,6 +142,24 @@ export function WorkflowEditControls({
           Save
         </span>
       </Button>
+      {toolbarActions.map((action) => (
+        <Button
+          key={`${action.pluginId}:${action.id}`}
+          type="button"
+          variant="secondary"
+          className="shrink-0"
+          disabled={playing}
+          title={action.title}
+          aria-label={action.title}
+          onClick={() => {
+            void window.api.executePluginAgentCommand(action.pluginId, action.command, [
+              toolbarContext
+            ]);
+          }}
+        >
+          {action.title}
+        </Button>
+      ))}
     </div>
   );
 }
