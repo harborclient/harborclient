@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.6 - 2026-07-28
+
 - Enhance CLI and GUI workflow functionalities. (`a8b8f495`)
 - Enhance workflow results management and response handling. (`6a092e2e`)
 - Add delayMs property to workflow management for enhanced playback control. (`eff9c395`)
