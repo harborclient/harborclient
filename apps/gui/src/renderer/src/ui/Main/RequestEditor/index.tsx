@@ -21,6 +21,7 @@ import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
+import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import {
   selectActiveEnvironmentId,
   selectActiveMarkdownTab,
@@ -49,6 +50,7 @@ import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
   selectFolderSettingsDirty,
+  selectWorkspaceSettingsDirty,
   selectRequestEditorSplitHeight,
   selectShowRequestEditor,
   selectShowResponseEditor,
@@ -59,6 +61,7 @@ import {
   newTab,
   setActiveTab,
   closeTab,
+  closeAllRequestAndMarkdownTabs,
   reorderTabs
 } from '#/renderer/src/store/slices/tabsSlice';
 import {
@@ -118,6 +121,7 @@ interface CloseManyPrompt {
  * @param collectionSettingsDirty - Whether collection settings have unsaved edits.
  * @param environmentSettingsDirty - Whether environment settings have unsaved edits.
  * @param folderSettingsDirty - Whether folder settings have unsaved edits.
+ * @param workspaceSettingsDirty - Whether workspace settings have unsaved edits.
  * @param warnWhenClosingUnsavedRequests - Whether request-tab close prompts are enabled.
  * @param themeDesignerDirty - Whether the Theme Designer has unsaved edits.
  */
@@ -127,6 +131,7 @@ function isDirtyForClose(
   collectionSettingsDirty: boolean,
   environmentSettingsDirty: boolean,
   folderSettingsDirty: boolean,
+  workspaceSettingsDirty: boolean,
   warnWhenClosingUnsavedRequests: boolean,
   themeDesignerDirty: boolean
 ): boolean {
@@ -147,7 +152,8 @@ function isDirtyForClose(
       tab.page,
       collectionSettingsDirty,
       environmentSettingsDirty,
-      folderSettingsDirty
+      folderSettingsDirty,
+      workspaceSettingsDirty
     );
   }
 
@@ -191,6 +197,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const scriptErrors = useAppSelector(selectScriptErrors);
   const environments = useAppSelector(selectEnvironments);
   const collections = useAppSelector(selectCollections);
+  const workspaces = useAppSelector(selectWorkspaces);
   const { teamHubs } = useTeamHubs();
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
@@ -199,6 +206,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
   const folderSettingsDirty = useAppSelector(selectFolderSettingsDirty);
+  const workspaceSettingsDirty = useAppSelector(selectWorkspaceSettingsDirty);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
@@ -390,10 +398,36 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   /**
    * Closes tabs immediately without prompting, including collection-runner cleanup.
    *
+   * When every open tab is included, request/markdown tabs are closed via a single
+   * `closeAllRequestAndMarkdownTabs` intent (one workflow event), then remaining
+   * page tabs are closed individually.
+   *
    * @param tabIds - Tabs to close.
    */
   const closeTabsImmediately = (tabIds: string[]): void => {
-    for (const tabId of tabIds) {
+    const uniqueTabIds = [...new Set(tabIds)];
+    const closingAll =
+      uniqueTabIds.length > 0 &&
+      tabs.length > 0 &&
+      uniqueTabIds.length === tabs.length &&
+      tabs.every((tab) => uniqueTabIds.includes(tab.tabId));
+
+    if (closingAll) {
+      dispatch(closeAllRequestAndMarkdownTabs());
+      for (const tab of tabs) {
+        if (!isPageTab(tab)) {
+          continue;
+        }
+        if (tab.page.type === 'collection-runner') {
+          dispatch(cancelCollectionRunner());
+          dispatch(closeCollectionRunner());
+        }
+        dispatch(closeTab(tab.tabId));
+      }
+      return;
+    }
+
+    for (const tabId of uniqueTabIds) {
       const tab = tabs.find((entry) => entry.tabId === tabId);
       if (!tab) {
         continue;
@@ -439,6 +473,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         collectionSettingsDirty,
         environmentSettingsDirty,
         folderSettingsDirty,
+        workspaceSettingsDirty,
         warnWhenClosingUnsavedRequests,
         themeDesignerDirty
       )
@@ -465,6 +500,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             collectionSettingsDirty,
             environmentSettingsDirty,
             folderSettingsDirty,
+            workspaceSettingsDirty,
             warnWhenClosingUnsavedRequests,
             themeDesignerDirty
           )
@@ -505,12 +541,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         tab.page,
         collectionSettingsDirty,
         environmentSettingsDirty,
-        folderSettingsDirty
+        folderSettingsDirty,
+        workspaceSettingsDirty
       )
     ) {
       setCloseTabPrompt({
         tabId,
-        name: pageTabCloseName(tab.page, collections, environments, teamHubs)
+        name: pageTabCloseName(tab.page, collections, environments, teamHubs, workspaces)
       });
       return;
     }

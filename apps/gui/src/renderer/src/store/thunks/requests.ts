@@ -67,7 +67,8 @@ import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
-  selectFolderSettingsDirty
+  selectFolderSettingsDirty,
+  selectWorkspaceSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   openCollectionModal,
@@ -1233,8 +1234,16 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
       isPageTab(activeTab) &&
       activeTab.page.type === 'folder' &&
       selectFolderSettingsDirty(state);
+    const workspaceDirty =
+      activeTab != null &&
+      isPageTab(activeTab) &&
+      activeTab.page.type === 'workspace' &&
+      selectWorkspaceSettingsDirty(state);
 
-    if (!skipSettingsCheck && (collectionDirty || environmentDirty || folderDirty)) {
+    if (
+      !skipSettingsCheck &&
+      (collectionDirty || environmentDirty || folderDirty || workspaceDirty)
+    ) {
       dispatch(setPendingLoadRequest({ req, reason: 'settings' }));
       return;
     }

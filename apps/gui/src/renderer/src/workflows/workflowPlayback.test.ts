@@ -190,13 +190,13 @@ describe('workflowPlayback cursor', () => {
     loadPlayback([{ type: 'environment.activate', payload: { environmentId: 1 } }]);
     expect(isWorkflowRecordingMuted()).toBe(true);
 
-    processWorkflowAction(loadRequest({ req: sampleRequest() }));
+    processWorkflowAction(loadRequest({ req: sampleRequest() }), () => ({}) as never);
     expect(getSessionEvents()).toHaveLength(0);
 
     clearPlayback();
     expect(isWorkflowRecordingMuted()).toBe(false);
 
-    processWorkflowAction(loadRequest({ req: sampleRequest() }));
+    processWorkflowAction(loadRequest({ req: sampleRequest() }), () => ({}) as never);
     expect(getSessionEvents()).toHaveLength(1);
   });
 });

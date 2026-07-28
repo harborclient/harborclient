@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add workspace management features to routing and state management. (`2bb3eb22`)
 - Enhance workflow dialog management and playback features. (`13a95802`)
 - Refactor workflow registry and recorder. (`08b97462`)
 - Implement workflow management features. (`a4525074`)

@@ -22,6 +22,7 @@ import {
   runnerTargetLabel
 } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
+import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
@@ -93,6 +94,7 @@ export function TabBar({
 }: Props): JSX.Element {
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
+  const workspaces = useAppSelector(selectWorkspaces);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
@@ -113,6 +115,7 @@ export function TabBar({
       const page = tab.page;
       let collectionName: string | undefined;
       let environmentName: string | undefined;
+      let workspaceName: string | undefined;
       let folderName: string | undefined;
       let pluginTitle: string | undefined;
       let pluginIcon: string | undefined;
@@ -127,6 +130,8 @@ export function TabBar({
         )?.name;
       } else if (page.type === 'environment') {
         environmentName = allEnvironments.find((environment) => environment.id === page.id)?.name;
+      } else if (page.type === 'workspace') {
+        workspaceName = workspaces.find((workspace) => workspace.id === page.id)?.name;
       } else if (page.type === 'collection-runner') {
         if (page.requestIds != null && page.requestIds.length > 0) {
           runnerTargetName = `${page.requestIds.length} request${page.requestIds.length === 1 ? '' : 's'}`;
@@ -158,6 +163,7 @@ export function TabBar({
         pageTabMeta(page, {
           collectionName,
           environmentName,
+          workspaceName,
           folderName,
           pluginTitle,
           pluginIcon,
@@ -168,7 +174,15 @@ export function TabBar({
     }
 
     return displays;
-  }, [tabs, collections, allEnvironments, foldersByCollection, requestsByCollection, teamHubs]);
+  }, [
+    tabs,
+    collections,
+    allEnvironments,
+    workspaces,
+    foldersByCollection,
+    requestsByCollection,
+    teamHubs
+  ]);
 
   /**
    * Maps open request editor tabs into SDK tab bar rows.

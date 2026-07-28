@@ -22,11 +22,20 @@ import {
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
 import { SidebarRowActionsMenu } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/SidebarRowActionsMenu';
-import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent
+} from 'react';
 import type { Workspace } from '@harborclient/core/types/workspace';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { openWorkspaceModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import {
   deleteWorkspace,
@@ -46,7 +55,11 @@ import {
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import toast from 'react-hot-toast';
+import { focusWorkspaceSettings } from '#/renderer/src/ui/Tabs/WorkspaceSettings/focusWorkspaceSettings';
 import { parseWorkspaceDragId, workspaceDragId, workspaceSummaryText } from './utils';
+
+/** Delay before single-click opens a workspace so double-click can open settings instead. */
+const WORKSPACE_OPEN_CLICK_DELAY_MS = 250;
 
 export { WorkspacesHeaderActions } from './WorkspacesHeaderActions';
 
@@ -61,8 +74,29 @@ export function Workspaces(): JSX.Element {
   const { workspacesMarkerFilter } = useSidebarSectionFilter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragGroup, setActiveDragGroup] = useState<Workspace | null>(null);
+  const openClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sortMode = sectionSort.workspaces;
   const sortActive = sortMode !== 'default';
+
+  /**
+   * Clears any pending delayed workspace open so double-click can open settings alone.
+   */
+  const cancelPendingOpen = useCallback((): void => {
+    if (openClickTimerRef.current == null) {
+      return;
+    }
+    clearTimeout(openClickTimerRef.current);
+    openClickTimerRef.current = null;
+  }, []);
+
+  /**
+   * Clears a pending open timer when the Workspaces section unmounts.
+   */
+  useEffect(() => {
+    return () => {
+      cancelPendingOpen();
+    };
+  }, [cancelPendingOpen]);
 
   /**
    * Workspaces limited to the selected marker when a marker filter is active,
@@ -116,6 +150,35 @@ export function Workspaces(): JSX.Element {
       void dispatch(requestOpenWorkspace(group.id));
     },
     [dispatch]
+  );
+
+  /**
+   * Opens the workspace settings page tab for the given workspace.
+   *
+   * @param groupId - Workspace id to configure.
+   */
+  const handleConfigureWorkspace = useCallback(
+    (groupId: number): void => {
+      cancelPendingOpen();
+      dispatch(openPageTab({ type: 'workspace', id: groupId }));
+    },
+    [cancelPendingOpen, dispatch]
+  );
+
+  /**
+   * Schedules opening a workspace after a short delay so double-click can cancel it.
+   *
+   * @param group - Workspace row to open.
+   */
+  const scheduleOpenGroup = useCallback(
+    (group: Workspace): void => {
+      cancelPendingOpen();
+      openClickTimerRef.current = setTimeout(() => {
+        openClickTimerRef.current = null;
+        handleOpenGroup(group);
+      }, WORKSPACE_OPEN_CLICK_DELAY_MS);
+    },
+    [cancelPendingOpen, handleOpenGroup]
   );
 
   /**
@@ -308,8 +371,13 @@ export function Workspaces(): JSX.Element {
                   handleRowClick(
                     group.id,
                     { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                    () => handleOpenGroup(group)
+                    () => scheduleOpenGroup(group)
                   );
+                }}
+                onDoubleClick={() => handleConfigureWorkspace(group.id)}
+                onEnter={() => {
+                  handleConfigureWorkspace(group.id);
+                  focusWorkspaceSettings();
                 }}
                 actions={
                   showBulkMenu ? (
@@ -353,6 +421,10 @@ export function Workspaces(): JSX.Element {
                             onSelect: () => {
                               void handleSaveGroup(group);
                             }
+                          },
+                          {
+                            label: 'Settings',
+                            onSelect: () => handleConfigureWorkspace(group.id)
                           },
                           {
                             label: 'Rename',

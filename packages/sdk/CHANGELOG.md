@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add workspace management features to routing and state management. (`2bb3eb22`)
 - Implement workflow management features. (`a4525074`)
 
 ## 1.3.4 - 2026-07-28

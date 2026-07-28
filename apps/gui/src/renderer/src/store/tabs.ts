@@ -242,6 +242,7 @@ export type PageRef =
   | { type: 'collection'; id: number; focusVariableKey?: string; focusSection?: string }
   | { type: 'folder'; collectionId: number; id: number; focusVariableKey?: string }
   | { type: 'environment'; id: number; focusVariableKey?: string }
+  | { type: 'workspace'; id: number }
   | {
       type: 'collection-runner';
       collectionId: number;

@@ -1,5 +1,5 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import type { JSX, MouseEvent, ReactNode } from 'react';
+import type { JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
 import { SidebarItem, type SidebarItemSortableConfig } from './SidebarItem.js';
 import { SidebarMarkerDot } from './SidebarMarkerDot.js';
@@ -51,6 +51,16 @@ interface Props {
   onClick?: (event: MouseEvent<HTMLElement>) => void;
 
   /**
+   * Called when the primary row area is double-clicked.
+   */
+  onDoubleClick?: (event: MouseEvent<HTMLElement>) => void;
+
+  /**
+   * Called when Enter is pressed on the primary row area.
+   */
+  onEnter?: () => void;
+
+  /**
    * Trailing actions slot, typically a row actions menu.
    */
   actions?: ReactNode;
@@ -73,10 +83,25 @@ export function SidebarWorkspaceItem({
   sortable,
   onContextMenu,
   onClick,
+  onDoubleClick,
+  onEnter,
   actions,
   as = 'li'
 }: Props): JSX.Element {
   const useListboxOption = as === 'li';
+
+  /**
+   * Opens workspace settings when Enter is pressed on the row.
+   */
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+    if (event.key !== 'Enter' || onEnter == null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onEnter();
+  };
 
   return (
     <SidebarItem
@@ -88,7 +113,9 @@ export function SidebarWorkspaceItem({
       listboxOption={
         useListboxOption
           ? {
-              onClick
+              onClick,
+              onDoubleClick,
+              onKeyDown: onEnter != null ? handleKeyDown : undefined
             }
           : undefined
       }

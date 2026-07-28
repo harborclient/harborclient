@@ -4,7 +4,8 @@ import { isMarkdownTab, isPageTab } from '#/renderer/src/store/tabs';
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
-  selectFolderSettingsDirty
+  selectFolderSettingsDirty,
+  selectWorkspaceSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   closeTab,
@@ -267,8 +268,16 @@ export const requestLoadDocument = createAsyncThunk<void, RequestLoadDocumentArg
       isPageTab(activeTab) &&
       activeTab.page.type === 'folder' &&
       selectFolderSettingsDirty(state);
+    const workspaceDirty =
+      activeTab != null &&
+      isPageTab(activeTab) &&
+      activeTab.page.type === 'workspace' &&
+      selectWorkspaceSettingsDirty(state);
 
-    if (!skipSettingsCheck && (collectionDirty || environmentDirty || folderDirty)) {
+    if (
+      !skipSettingsCheck &&
+      (collectionDirty || environmentDirty || folderDirty || workspaceDirty)
+    ) {
       const pending: PendingLoadDocument = { doc, reason: 'settings' };
       dispatch(setPendingLoadDocument(pending));
       return;

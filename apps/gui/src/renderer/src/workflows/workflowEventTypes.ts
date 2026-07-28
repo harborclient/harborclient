@@ -33,6 +33,11 @@ export interface WorkflowRecordCtx {
    * Event currently held in the coalesce buffer, if any.
    */
   buffered: WorkflowEvent | null;
+
+  /**
+   * Returns the current root Redux state (post-reducer for this action).
+   */
+  getState: () => RootState;
 }
 
 /**

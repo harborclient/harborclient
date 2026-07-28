@@ -8,6 +8,7 @@ import {
   faGlobe,
   faDatabase,
   faFolder,
+  faLayerGroup,
   faPalette,
   faPlay,
   faPuzzlePiece,
@@ -225,6 +226,23 @@ export const pageRoutes = {
         return null;
       }
       return { type: 'environment', id: value.id };
+    }
+  }),
+  'workspace': defineRoute({
+    key: (page) => `workspace:${page.id}`,
+    meta: (_page, ctx) => ({ title: ctx.workspaceName ?? 'Workspace', icon: faLayerGroup }),
+    closeName: (_page, ctx) => ctx.workspaceName ?? 'Workspace',
+    dirtyFlag: 'workspace',
+    replaceOnReopen: true,
+    Component: lazyNamed(
+      () => import('#/renderer/src/routing/pages/WorkspacePageRoute'),
+      'WorkspacePageRoute'
+    ),
+    normalize: (value) => {
+      if (typeof value.id !== 'number' || !Number.isFinite(value.id)) {
+        return null;
+      }
+      return { type: 'workspace', id: value.id };
     }
   }),
   'collection-runner': defineRoute({

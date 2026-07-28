@@ -1,11 +1,23 @@
 import type { UnknownAction } from '@reduxjs/toolkit';
+import type { RootState } from '#/renderer/src/store/redux';
+import {
+  OPEN_WORKSPACE_FULFILLED_TYPE,
+  OPEN_WORKSPACE_PENDING_TYPE,
+  OPEN_WORKSPACE_REJECTED_TYPE
+} from '#/renderer/src/store/thunks/openWorkspaceType';
 import { WorkflowCoalescer } from './workflowCoalescer';
 import { WorkflowEventSink } from './workflowEventSink';
 import type { WorkflowEvent } from './workflowEventTypes';
 import { WORKFLOW_REGISTRY } from './workflowRegistry';
 import { buildWorkflowRegistryMap } from './utils';
+import { resetTabCloseRecordingForTests } from './workflowTabCloseBridge';
 
 type SessionListener = () => void;
+
+/**
+ * Logical event types omitted while an atomic `workspace.open` is in flight.
+ */
+const WORKSPACE_FANOUT_SUPPRESSED_EVENT_TYPES = new Set(['request.load', 'environment.activate']);
 
 /**
  * Devtools and UI surface for the current workflow recording session.
@@ -70,6 +82,7 @@ const sessionListeners = new Set<SessionListener>();
 
 let recording = false;
 let recordingMuted = false;
+let suppressWorkspaceFanOut = false;
 let elapsedMs = 0;
 let segmentStartedAt: number | null = null;
 
@@ -212,15 +225,46 @@ export function isWorkflowRecordingMuted(): boolean {
 }
 
 /**
+ * Returns whether nested workspace fan-out events are currently suppressed.
+ *
+ * @returns True between `workspaces/open/pending` and fulfilled/rejected.
+ */
+export function isWorkspaceFanOutSuppressed(): boolean {
+  return suppressWorkspaceFanOut;
+}
+
+/**
+ * Updates the workspace-open fan-out suppress flag from lifecycle actions.
+ *
+ * @param action - Dispatched Redux action.
+ */
+function updateWorkspaceFanOutSuppress(action: UnknownAction): void {
+  if (action.type === OPEN_WORKSPACE_PENDING_TYPE) {
+    suppressWorkspaceFanOut = true;
+    return;
+  }
+  if (
+    action.type === OPEN_WORKSPACE_FULFILLED_TYPE ||
+    action.type === OPEN_WORKSPACE_REJECTED_TYPE
+  ) {
+    suppressWorkspaceFanOut = false;
+  }
+}
+
+/**
  * Processes a Redux action through the workflow registry and coalescer.
  *
  * Actions are ignored while the session is stopped or muted for playback.
  * Matching actions are normalized, coalesced when consecutive keys match, and
- * flushed to the sink.
+ * flushed to the sink. Nested `request.load` / `environment.activate` events
+ * are skipped while an atomic workspace open is in flight.
  *
  * @param action - Dispatched Redux action.
+ * @param getState - Returns the post-reducer root state for identity lookups.
  */
-export function processWorkflowAction(action: UnknownAction): void {
+export function processWorkflowAction(action: UnknownAction, getState: () => RootState): void {
+  updateWorkspaceFanOutSuppress(action);
+
   if (!recording || recordingMuted) {
     return;
   }
@@ -230,9 +274,14 @@ export function processWorkflowAction(action: UnknownAction): void {
     return;
   }
 
+  if (suppressWorkspaceFanOut && WORKSPACE_FANOUT_SUPPRESSED_EVENT_TYPES.has(entry.eventType)) {
+    return;
+  }
+
   const candidate = entry.record(action, {
     prev: sink.getEvents().at(-1) ?? null,
-    buffered: coalescer.peek()
+    buffered: coalescer.peek(),
+    getState
   });
   if (candidate == null) {
     return;
@@ -333,4 +382,6 @@ export function installWorkflowLogGlobal(): void {
 export function resetWorkflowRecorderForTests(): void {
   clearSession();
   recordingMuted = false;
+  suppressWorkspaceFanOut = false;
+  resetTabCloseRecordingForTests();
 }

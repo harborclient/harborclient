@@ -20,6 +20,7 @@ import type { AppDispatch, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { syncTrash } from './trash';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { applyWorkspaceLayout, captureWorkspaceLayout } from './workspaceLayout';
+import { normalizeWorkspaceLayout } from '@harborclient/core/types/workspace';
 
 /**
  * Finds a saved request by uuid, preferring the stored collection id when present.
@@ -229,6 +230,49 @@ export const renameWorkspace = createAsyncThunk<void, { id: number; name: string
   'workspaces/rename',
   async ({ id, name }, { dispatch }) => {
     const items = await window.api.renameWorkspace(id, name);
+    dispatch(setWorkspaces(items));
+  }
+);
+
+/**
+ * Updates workspace display name and the environment restored when the workspace opens.
+ *
+ * @param id - Workspace to update.
+ * @param name - New display name.
+ * @param activeEnvironmentUuid - Environment uuid to restore on open, or null for none.
+ */
+export const updateWorkspaceSettings = createAsyncThunk<
+  void,
+  { id: number; name: string; activeEnvironmentUuid: string | null },
+  ThunkApiConfig
+>(
+  'workspaces/updateSettings',
+  async ({ id, name, activeEnvironmentUuid }, { dispatch, getState }) => {
+    const group = selectWorkspaces(getState()).find((entry) => entry.id === id);
+    if (!group) {
+      throw new Error(`Workspace ${id} not found`);
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new Error('Workspace name is required');
+    }
+
+    if (trimmedName !== group.name) {
+      const renamed = await window.api.renameWorkspace(id, trimmedName);
+      dispatch(setWorkspaces(renamed));
+    }
+
+    const baseLayout = group.layout ?? normalizeWorkspaceLayout({});
+    if (baseLayout == null) {
+      throw new Error('Failed to build workspace layout');
+    }
+
+    const layout = {
+      ...baseLayout,
+      activeEnvironmentUuid
+    };
+    const items = await window.api.updateWorkspace(id, group.requests, layout);
     dispatch(setWorkspaces(items));
   }
 );

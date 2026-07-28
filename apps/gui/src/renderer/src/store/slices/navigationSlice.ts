@@ -101,6 +101,7 @@ export interface NavigationState {
   collectionSettingsDirty: boolean;
   environmentSettingsDirty: boolean;
   folderSettingsDirty: boolean;
+  workspaceSettingsDirty: boolean;
   showSidebar: boolean;
   showAiSidebar: boolean;
   showGitSidebar: boolean;
@@ -137,6 +138,7 @@ const initialState: NavigationState = {
   collectionSettingsDirty: false,
   environmentSettingsDirty: false,
   folderSettingsDirty: false,
+  workspaceSettingsDirty: false,
   showSidebar: true,
   showAiSidebar: false,
   showGitSidebar: false,
@@ -196,6 +198,12 @@ const navigationSlice = createSlice({
      */
     setFolderSettingsDirty(state, action: PayloadAction<boolean>) {
       state.folderSettingsDirty = action.payload;
+    },
+    /**
+     * Tracks unsaved edits in workspace settings.
+     */
+    setWorkspaceSettingsDirty(state, action: PayloadAction<boolean>) {
+      state.workspaceSettingsDirty = action.payload;
     },
     /**
      * Toggles sidebar visibility.
@@ -494,6 +502,7 @@ export const {
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
   setFolderSettingsDirty,
+  setWorkspaceSettingsDirty,
   toggleSidebar,
   setShowSidebar,
   toggleAiSidebar,
@@ -548,6 +557,11 @@ export const selectEnvironmentSettingsDirty = (state: RootState): boolean =>
  */
 export const selectFolderSettingsDirty = (state: RootState): boolean =>
   state.navigation.folderSettingsDirty;
+/**
+ * Returns whether workspace settings have unsaved edits.
+ */
+export const selectWorkspaceSettingsDirty = (state: RootState): boolean =>
+  state.navigation.workspaceSettingsDirty;
 /**
  * Returns the user sidebar visibility preference.
  */

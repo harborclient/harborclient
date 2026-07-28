@@ -37,6 +37,11 @@ export interface PageMetaContext {
   environmentName?: string;
 
   /**
+   * Workspace name when the page is workspace settings.
+   */
+  workspaceName?: string;
+
+  /**
    * Folder name when the page is folder settings.
    */
   folderName?: string;
@@ -65,7 +70,7 @@ export interface PageMetaContext {
 /**
  * Navigation state flags used to detect dirty page tabs on close.
  */
-export type PageDirtyFlag = 'collection' | 'environment' | 'folder';
+export type PageDirtyFlag = 'collection' | 'environment' | 'folder' | 'workspace';
 
 /**
  * Declarative route entry for one {@link PageRef} type.

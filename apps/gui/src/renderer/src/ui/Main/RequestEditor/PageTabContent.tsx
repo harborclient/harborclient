@@ -11,6 +11,7 @@ import {
   selectEnvironments,
   selectFoldersByCollection
 } from '#/renderer/src/store/selectors';
+import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 
 interface Props {
   /**
@@ -32,6 +33,7 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
   const collections = useAppSelector(selectCollections);
   const environments = useAppSelector(selectEnvironments);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
+  const workspaces = useAppSelector(selectWorkspaces);
   const pluginViews = usePluginMainViews();
   const route = getPageRoute(page.type);
   const PageComponent = route.Component;
@@ -67,6 +69,14 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
       return;
     }
 
+    if (page.type === 'workspace') {
+      const exists = workspaces.some((workspace) => workspace.id === page.id);
+      if (!exists) {
+        dispatch(closeTab(tabId));
+      }
+      return;
+    }
+
     if (page.type === 'folder') {
       const exists = (foldersByCollection[page.collectionId] ?? []).some(
         (folder) => folder.id === page.id
@@ -86,7 +96,16 @@ export function PageTabContent({ page, tabId }: Props): JSX.Element | null {
         dispatch(closeTab(tabId));
       }
     }
-  }, [page, tabId, collections, environments, foldersByCollection, pluginViews, dispatch]);
+  }, [
+    page,
+    tabId,
+    collections,
+    environments,
+    workspaces,
+    foldersByCollection,
+    pluginViews,
+    dispatch
+  ]);
 
   return (
     <Suspense
