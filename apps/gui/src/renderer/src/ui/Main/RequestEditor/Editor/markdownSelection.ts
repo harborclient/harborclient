@@ -1,4 +1,4 @@
-import { COPY_TO_CHAT_SHORTCUT_LETTER } from '#/renderer/src/hooks/useCopyToChat';
+import { COPY_TO_CHAT_SHORTCUT_LETTER } from '@harborclient/sdk/ui';
 
 /** Delay before showing the copy-to-chat toolbar after a selection settles. */
 export const MARKDOWN_SELECTION_TOOLBAR_DELAY_MS = 450;

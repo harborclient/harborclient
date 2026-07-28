@@ -750,6 +750,34 @@ describeSqlite('LocalDatabase workspaces', () => {
   });
 });
 
+describeSqlite('LocalDatabase workflows', () => {
+  it('creates, lists, and deletes workflows', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createWorkflow({
+      name: 'Login flow',
+      uuid: 'wf-uuid-1',
+      durationMs: 4_200,
+      variables: { stage: 'qa' },
+      actions: [{ type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      name: 'Login flow',
+      uuid: 'wf-uuid-1',
+      durationMs: 4_200,
+      variables: { stage: 'qa' },
+      actions: [{ type: 'request.load', at: 10, payload: { uuid: 'req-1' } }]
+    });
+
+    expect(database.listWorkflows()).toHaveLength(1);
+
+    const remaining = database.deleteWorkflow(created[0]!.id);
+    expect(remaining).toEqual([]);
+  });
+});
+
 describeSqlite('LocalDatabase trash items', () => {
   it('inserts, lists, and deletes trash snapshot rows', async () => {
     const { database } = await createRegistry();

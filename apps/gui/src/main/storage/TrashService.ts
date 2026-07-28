@@ -12,6 +12,7 @@ import type {
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
+  Workflow,
   Workspace
 } from '@harborclient/core/types';
 import type {
@@ -211,6 +212,9 @@ export class TrashService {
         break;
       case 'workspace':
         await this.restoreWorkspace(item);
+        break;
+      case 'workflow':
+        this.restoreWorkflow(item);
         break;
       default:
         throw new Error(`Unsupported trash entity type: ${String(item.entityType)}`);
@@ -448,6 +452,27 @@ export class TrashService {
   }
 
   /**
+   * Snapshots a workflow and deletes it.
+   *
+   * @param id - Workflow id.
+   */
+  moveWorkflowToTrash(id: number): void {
+    const workflow = this.database.listWorkflows().find((item) => item.id === id);
+    if (!workflow) {
+      throw new Error(`Workflow ${id} not found`);
+    }
+
+    this.database.deleteWorkflow(id);
+
+    this.database.insertTrashItem({
+      entityType: 'workflow',
+      label: workflow.name,
+      originalIds: { workflowId: id },
+      payload: { workflow }
+    });
+  }
+
+  /**
    * Restores a collection from export data on its original connection.
    *
    * @param item - Trash snapshot row.
@@ -626,6 +651,22 @@ export class TrashService {
       layout: payload.workspace.layout ?? null
     };
     this.database.createWorkspace(input);
+  }
+
+  /**
+   * Restores a workflow from its trash snapshot.
+   *
+   * @param item - Trash snapshot row.
+   */
+  private restoreWorkflow(item: TrashItem): void {
+    const payload = item.payload as { workflow: Workflow };
+    this.database.createWorkflow({
+      name: payload.workflow.name,
+      uuid: payload.workflow.uuid,
+      durationMs: payload.workflow.durationMs,
+      variables: payload.workflow.variables,
+      actions: payload.workflow.actions
+    });
   }
 
   /**

@@ -48,6 +48,7 @@ import type {
   ShortcutOverrides,
   SidebarExpansionState,
   RequestHistoryEntry,
+  CreateWorkflowInput,
   CreateWorkspaceInput,
   McpClientServer,
   McpServerSettings
@@ -616,6 +617,7 @@ export const sidebarExpansion = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     workspaces: z.boolean(),
+    workflows: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -625,6 +627,7 @@ export const sidebarExpansion = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     workspaces: z.boolean(),
+    workflows: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -655,6 +658,14 @@ export const sidebarExpansion = z.object({
     ]),
     history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
     workspaces: z.enum([
+      'default',
+      'name-asc',
+      'name-desc',
+      'created-asc',
+      'created-desc',
+      'marker'
+    ]),
+    workflows: z.enum([
       'default',
       'name-asc',
       'name-desc',
@@ -708,6 +719,20 @@ export const createWorkspaceInput = z.object({
   marker: sidebarMarker.optional(),
   layout: workspaceLayoutSchema.nullish()
 }) satisfies z.ZodType<CreateWorkspaceInput>;
+
+export const createWorkflowInput = z.object({
+  name: z.string().trim().min(1),
+  uuid: z.string().trim().min(1).optional(),
+  durationMs: z.number().finite().nonnegative(),
+  variables: z.record(z.string(), z.string()).optional(),
+  actions: z.array(
+    z.object({
+      type: z.string().trim().min(1),
+      at: z.number().finite().optional(),
+      payload: z.unknown()
+    })
+  )
+}) satisfies z.ZodType<CreateWorkflowInput>;
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
@@ -1217,6 +1242,8 @@ export const ipcArgSchemas = {
   workspacesDelete: z.tuple([z.number().int().positive()]),
   workspacesReorder: z.tuple([z.array(dbId)]),
   workspacesSetMarker: z.tuple([dbId, sidebarMarker]),
+  workflowsCreate: z.tuple([createWorkflowInput]),
+  workflowsDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetArchived: z.tuple([dbId, z.boolean()]),
   foldersSetMarker: z.tuple([dbId, sidebarMarker]),

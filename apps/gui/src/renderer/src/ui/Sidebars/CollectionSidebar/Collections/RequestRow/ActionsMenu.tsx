@@ -1,5 +1,6 @@
 import {
   AnchorMenuPanel,
+  COPY_TO_CHAT_LABEL,
   RowActionsMenu,
   type MenuItem,
   type MenuPosition
@@ -230,7 +231,7 @@ export function ActionsMenu(props: Props): JSX.Element {
     primaryGroup.push(buildCopyIdMenuItem(props.req.uuid));
     if (props.aiChatAvailable) {
       primaryGroup.push({
-        label: 'Copy to chat',
+        label: COPY_TO_CHAT_LABEL,
         onSelect: () => props.onCopyToChat(props.req)
       });
     }

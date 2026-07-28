@@ -65,6 +65,11 @@ interface Result {
   workspacesSectionExpanded: boolean;
 
   /**
+   * Whether the Workflows section body is visible.
+   */
+  workflowsSectionExpanded: boolean;
+
+  /**
    * Whether the Trash section body is visible.
    */
   trashSectionExpanded: boolean;
@@ -98,6 +103,11 @@ interface Result {
    * Toggles the Workspaces section expanded state.
    */
   toggleWorkspacesSection: () => void;
+
+  /**
+   * Toggles the Workflows section expanded state.
+   */
+  toggleWorkflowsSection: () => void;
 
   /**
    * Toggles the Trash section expanded state.
@@ -135,6 +145,11 @@ interface Result {
   setWorkspacesSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
+   * Sets the Workflows section expanded state explicitly.
+   */
+  setWorkflowsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
    * Sets the Trash section expanded state explicitly.
    */
   setTrashSectionExpanded: Dispatch<SetStateAction<boolean>>;
@@ -168,6 +183,11 @@ interface Result {
    * Whether the Workspaces section is rendered in the sidebar.
    */
   workspacesSectionVisible: boolean;
+
+  /**
+   * Whether the Workflows section is rendered in the sidebar.
+   */
+  workflowsSectionVisible: boolean;
 
   /**
    * Whether the Trash section is rendered in the sidebar.
@@ -205,6 +225,11 @@ interface Result {
   toggleWorkspacesSectionVisible: () => void;
 
   /**
+   * Toggles the Workflows section visibility.
+   */
+  toggleWorkflowsSectionVisible: () => void;
+
+  /**
    * Toggles the Trash section visibility.
    */
   toggleTrashSectionVisible: () => void;
@@ -238,6 +263,11 @@ interface Result {
    * Sets the Workspaces section visibility explicitly.
    */
   setWorkspacesSectionVisible: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Workflows section visibility explicitly.
+   */
+  setWorkflowsSectionVisible: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Sets the Trash section visibility explicitly.
@@ -486,6 +516,9 @@ export function usePersistedSidebarExpansion({
   const [workspacesSectionExpanded, setWorkspacesSectionExpanded] = useState(
     defaults.sections.workspaces
   );
+  const [workflowsSectionExpanded, setWorkflowsSectionExpanded] = useState(
+    defaults.sections.workflows
+  );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
   const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
@@ -502,6 +535,9 @@ export function usePersistedSidebarExpansion({
   );
   const [workspacesSectionVisible, setWorkspacesSectionVisible] = useState(
     defaults.sectionVisibility.workspaces
+  );
+  const [workflowsSectionVisible, setWorkflowsSectionVisible] = useState(
+    defaults.sectionVisibility.workflows
   );
   const [trashSectionVisible, setTrashSectionVisible] = useState(defaults.sectionVisibility.trash);
   const [archiveSectionVisible, setArchiveSectionVisible] = useState(
@@ -548,6 +584,7 @@ export function usePersistedSidebarExpansion({
       setRunResultsSectionExpanded(stored.sections.runResults);
       setHistorySectionExpanded(stored.sections.history);
       setWorkspacesSectionExpanded(stored.sections.workspaces);
+      setWorkflowsSectionExpanded(stored.sections.workflows);
       setTrashSectionExpanded(stored.sections.trash);
       setArchiveSectionExpanded(stored.sections.archive);
       setCollectionsSectionVisible(stored.sectionVisibility.collections);
@@ -555,6 +592,7 @@ export function usePersistedSidebarExpansion({
       setRunResultsSectionVisible(stored.sectionVisibility.runResults);
       setHistorySectionVisible(stored.sectionVisibility.history);
       setWorkspacesSectionVisible(stored.sectionVisibility.workspaces);
+      setWorkflowsSectionVisible(stored.sectionVisibility.workflows);
       setTrashSectionVisible(stored.sectionVisibility.trash);
       setArchiveSectionVisible(stored.sectionVisibility.archive);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
@@ -620,6 +658,7 @@ export function usePersistedSidebarExpansion({
         runResults: runResultsSectionExpanded,
         history: historySectionExpanded,
         workspaces: workspacesSectionExpanded,
+        workflows: workflowsSectionExpanded,
         archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
@@ -629,6 +668,7 @@ export function usePersistedSidebarExpansion({
         runResults: runResultsSectionVisible,
         history: historySectionVisible,
         workspaces: workspacesSectionVisible,
+        workflows: workflowsSectionVisible,
         archive: archiveSectionVisible,
         trash: trashSectionVisible
       },
@@ -651,6 +691,7 @@ export function usePersistedSidebarExpansion({
     runResultsSectionExpanded,
     historySectionExpanded,
     workspacesSectionExpanded,
+    workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
@@ -658,6 +699,7 @@ export function usePersistedSidebarExpansion({
     runResultsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     sectionSort,
@@ -770,6 +812,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Workflows section expanded state.
+   */
+  const toggleWorkflowsSection = useCallback(() => {
+    setWorkflowsSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Trash section expanded state.
    */
   const toggleTrashSection = useCallback(() => {
@@ -816,6 +865,13 @@ export function usePersistedSidebarExpansion({
    */
   const toggleWorkspacesSectionVisible = useCallback(() => {
     setWorkspacesSectionVisible((visible) => !visible);
+  }, []);
+
+  /**
+   * Toggles the Workflows section visibility.
+   */
+  const toggleWorkflowsSectionVisible = useCallback(() => {
+    setWorkflowsSectionVisible((visible) => !visible);
   }, []);
 
   /**
@@ -907,6 +963,7 @@ export function usePersistedSidebarExpansion({
     runResultsSectionExpanded,
     historySectionExpanded,
     workspacesSectionExpanded,
+    workflowsSectionExpanded,
     trashSectionExpanded,
     archiveSectionExpanded,
     toggleCollectionsSection,
@@ -914,6 +971,7 @@ export function usePersistedSidebarExpansion({
     toggleRunResultsSection,
     toggleHistorySection,
     toggleWorkspacesSection,
+    toggleWorkflowsSection,
     toggleTrashSection,
     toggleArchiveSection,
     setCollectionsSectionExpanded,
@@ -921,6 +979,7 @@ export function usePersistedSidebarExpansion({
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setWorkspacesSectionExpanded,
+    setWorkflowsSectionExpanded,
     setTrashSectionExpanded,
     setArchiveSectionExpanded,
     collectionsSectionVisible,
@@ -928,6 +987,7 @@ export function usePersistedSidebarExpansion({
     runResultsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     trashSectionVisible,
     archiveSectionVisible,
     toggleCollectionsSectionVisible,
@@ -935,6 +995,7 @@ export function usePersistedSidebarExpansion({
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
     toggleWorkspacesSectionVisible,
+    toggleWorkflowsSectionVisible,
     toggleTrashSectionVisible,
     toggleArchiveSectionVisible,
     setCollectionsSectionVisible,
@@ -942,6 +1003,7 @@ export function usePersistedSidebarExpansion({
     setRunResultsSectionVisible,
     setHistorySectionVisible,
     setWorkspacesSectionVisible,
+    setWorkflowsSectionVisible,
     setTrashSectionVisible,
     setArchiveSectionVisible,
     showStorageLocationBadges,

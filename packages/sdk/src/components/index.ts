@@ -35,6 +35,16 @@ export type { StatusDotVariant, StatusDotSize } from './StatusDot/index.js';
 export { Breadcrumb } from './Breadcrumb/index.js';
 export type { BreadcrumbSegment } from './Breadcrumb/index.js';
 export { Button } from './Button/index.js';
+export {
+  CopyToChatButton,
+  COPY_TO_CHAT_ICON,
+  COPY_TO_CHAT_LABEL,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  COPY_TO_CHAT_SHORTCUT_HINT,
+  COPY_TO_CHAT_SHORTCUT_LETTER,
+  copyToChatActionLabel
+} from './CopyToChatButton/index.js';
+export type { Props as CopyToChatButtonProps } from './CopyToChatButton/index.js';
 export { CodeEditor, CODE_EDITOR_THEME_OPTIONS } from './CodeEditor/index.js';
 export {
   CodeEditorConfigProvider,
@@ -93,6 +103,15 @@ export type { Props as KeyValueEditorProps } from './KeyValueEditor/index.js';
 export { MethodSelect } from './MethodSelect/index.js';
 export { Modal, ModalFooter, ModalFormLayout } from './Modal/index.js';
 export { ModalHeader } from './Modal/ModalHeader.js';
+export { FloatingDialog } from './FloatingDialog/index.js';
+export {
+  FLOATING_DIALOG_DEFAULT_LEFT,
+  FLOATING_DIALOG_DEFAULT_TOP,
+  FLOATING_DIALOG_VIEWPORT_MARGIN_PX,
+  isFloatingDialogFullyOnScreen,
+  type FloatingDialogPosition,
+  type FloatingDialogSize
+} from './FloatingDialog/floatingDialogPosition.js';
 export { PromptModal } from './PromptModal/index.js';
 export type { Props as PromptModalProps } from './PromptModal/index.js';
 export { defaultCanSubmitPromptValue } from './PromptModal/promptModal.logic.js';
@@ -125,8 +144,6 @@ export {
 } from './Resizable/index.js';
 export type { UseResizableOptions, UseResizableResult } from './Resizable/useResizable.js';
 export { Scrollbars, type ScrollbarsAxis } from './Scrollbars/index.js';
-export { SelectionActionToolbar } from './SelectionActionToolbar/index.js';
-export type { Props as SelectionActionToolbarProps } from './SelectionActionToolbar/index.js';
 export { ScreenshotCarousel } from './ScreenshotCarousel/index.js';
 export { ScreenshotLightbox } from './ScreenshotCarousel/ScreenshotLightbox.js';
 export {

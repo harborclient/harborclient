@@ -1,8 +1,7 @@
 import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import type { ScriptTestResult } from '@harborclient/core/types';
-import { Button, FaIcon, StatusDot, TableCell } from '@harborclient/sdk/components';
+import { CopyToChatButton, StatusDot, TableCell } from '@harborclient/sdk/components';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { COPY_TO_CHAT_ICON } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppStore } from '#/renderer/src/store/hooks';
 import {
   canCopyTestResultToChat,
@@ -117,13 +116,19 @@ export function TestResultTableRow({ test, requestTabId }: Props): JSX.Element {
   };
 
   /**
-   * Copies the failing assertion into the AI chat composer without opening the editor.
+   * Stops the row click handler from also opening the editor when Copy to chat is used.
    *
    * @param event - Click event from the Copy to chat control.
    */
-  const handleCopyToChat = (event: MouseEvent<HTMLButtonElement>): void => {
+  const handleCopyClick = (event: MouseEvent<HTMLButtonElement>): void => {
     event.preventDefault();
     event.stopPropagation();
+  };
+
+  /**
+   * Copies the failing assertion into the AI chat composer without opening the editor.
+   */
+  const handleCopyToChat = (): void => {
     void copyTestResultToChat(dispatch, store.getState, test, requestTabId, aiSettings);
   };
 
@@ -149,15 +154,13 @@ export function TestResultTableRow({ test, requestTabId }: Props): JSX.Element {
           <span className="text-text">{test.name}</span>
           {location && <span className="text-muted">{location}</span>}
           {canCopy ? (
-            <Button
-              type="button"
-              variant="icon"
+            <CopyToChatButton
+              appearance="icon"
               className={scriptRowIconButtonClass}
               aria-label={`Copy failed test ${test.name} to chat`}
-              onClick={handleCopyToChat}
-            >
-              <FaIcon icon={COPY_TO_CHAT_ICON} />
-            </Button>
+              onClick={handleCopyClick}
+              onSelect={handleCopyToChat}
+            />
           ) : null}
         </div>
       </TableCell>

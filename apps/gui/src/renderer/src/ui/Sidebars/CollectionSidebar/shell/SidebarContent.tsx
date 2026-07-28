@@ -13,6 +13,7 @@ import {
   faFolder,
   faGlobe,
   faLayerGroup,
+  faDiagramProject,
   faPlay,
   faTrash
 } from '#/renderer/src/fontawesome';
@@ -30,11 +31,13 @@ import {
 } from '#/renderer/src/store/selectors';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
+import { setWorkflowRecordingDialogOpen } from '#/renderer/src/store/slices/workflowsSlice';
 import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
 import { RunResults, RunsHeaderActions } from '../RunResults';
 import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
+import { Workflows } from '../Workflows';
 import { Archive, ArchiveHeaderActions } from '../Archive';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
@@ -80,6 +83,7 @@ export function SidebarContent(): JSX.Element {
     runResultsSectionExpanded,
     historySectionExpanded,
     workspacesSectionExpanded,
+    workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
@@ -87,6 +91,7 @@ export function SidebarContent(): JSX.Element {
     runResultsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     expandedCollectionIds,
@@ -96,6 +101,7 @@ export function SidebarContent(): JSX.Element {
     toggleRunResultsSectionVisible,
     toggleHistorySectionVisible,
     toggleWorkspacesSectionVisible,
+    toggleWorkflowsSectionVisible,
     toggleArchiveSectionVisible,
     toggleTrashSectionVisible
   } = useSidebarExpansion();
@@ -168,6 +174,14 @@ export function SidebarContent(): JSX.Element {
         onClick: toggleWorkspacesSectionVisible
       },
       {
+        id: 'toggle-workflows-section',
+        icon: faDiagramProject,
+        label: 'Workflows',
+        title: workflowsSectionVisible ? 'Hide workflows section' : 'Show workflows section',
+        ariaPressed: workflowsSectionVisible,
+        onClick: toggleWorkflowsSectionVisible
+      },
+      {
         id: 'toggle-archive-section',
         icon: faBoxArchive,
         label: 'Archive',
@@ -190,6 +204,7 @@ export function SidebarContent(): JSX.Element {
     environmentsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     trashSectionVisible,
     runResultsSectionVisible,
     toggleArchiveSectionVisible,
@@ -197,6 +212,7 @@ export function SidebarContent(): JSX.Element {
     toggleEnvironmentsSectionVisible,
     toggleHistorySectionVisible,
     toggleWorkspacesSectionVisible,
+    toggleWorkflowsSectionVisible,
     toggleTrashSectionVisible,
     toggleRunResultsSectionVisible
   ]);
@@ -283,6 +299,18 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
+    if (workflowsSectionVisible) {
+      result.push({
+        key: 'workflows',
+        title: 'Workflows',
+        ariaLabel: 'Workflows',
+        initialEntered: workflowsSectionExpanded,
+        onAdd: () => dispatch(setWorkflowRecordingDialogOpen(true)),
+        addLabel: 'Record workflow',
+        children: <Workflows />
+      });
+    }
+
     if (archiveSectionVisible) {
       result.push({
         key: 'archive',
@@ -348,6 +376,8 @@ export function SidebarContent(): JSX.Element {
     searchActive,
     workspacesSectionVisible,
     workspacesSectionExpanded,
+    workflowsSectionVisible,
+    workflowsSectionExpanded,
     archiveSectionVisible,
     archiveSectionExpanded,
     trashSectionVisible,

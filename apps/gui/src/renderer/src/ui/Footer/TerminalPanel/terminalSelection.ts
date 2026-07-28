@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm';
-import { COPY_TO_CHAT_SHORTCUT_LETTER } from '#/renderer/src/hooks/useCopyToChat';
+import { COPY_TO_CHAT_SHORTCUT_LETTER } from '@harborclient/sdk/ui';
 
 /** Lines of terminal context to include before and after a copied selection. */
 export const TERMINAL_SELECTION_CONTEXT_LINES = 10;

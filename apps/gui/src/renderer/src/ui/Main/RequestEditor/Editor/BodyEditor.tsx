@@ -4,7 +4,8 @@ import {
   KeyValueEditor,
   CodeEditor,
   Radio,
-  fieldFrame
+  fieldFrame,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY
 } from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import { useCallback, useId, useMemo, useState, type JSX } from 'react';
@@ -19,11 +20,6 @@ import {
 import { rawUrlEncodedToRows, rowsToRawUrlEncoded } from '@harborclient/core/urlencodedRaw';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import {
-  COPY_TO_CHAT_ICON,
-  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
-  COPY_TO_CHAT_SHORTCUT_HINT
-} from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -298,10 +294,7 @@ export function BodyEditor({
         ? [
             {
               id: 'copy-to-chat',
-              label: 'Copy to chat',
               ariaLabel: `Copy selection from ${requestBodySelectionLabel(bodyType)} to chat`,
-              icon: COPY_TO_CHAT_ICON,
-              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 void handleCopySelectionToChat(selection);

@@ -15,9 +15,8 @@ import {
 import '@mdxeditor/editor/style.css';
 import type { Variable } from '@harborclient/core/types';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react';
-import { FormGroup, SelectionActionToolbar } from '@harborclient/sdk/components';
+import { FormGroup, CopyToChatButton } from '@harborclient/sdk/components';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { COPY_TO_CHAT_ICON, COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -541,12 +540,9 @@ export function CommentEditor({
         />
       </div>
       {showSelectionToolbar ? (
-        <SelectionActionToolbar
+        <CopyToChatButton
           coords={selectionToolbarCoords}
-          label={`Copy selection from ${markdownReference.label} to chat`}
-          text="Copy to chat"
-          icon={COPY_TO_CHAT_ICON}
-          shortcutHint={COPY_TO_CHAT_SHORTCUT_HINT}
+          aria-label={`Copy selection from ${markdownReference.label} to chat`}
           onSelect={() => {
             void handleCopySelectionToChat();
           }}

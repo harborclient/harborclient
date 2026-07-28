@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { copyToChatActionLabel } from '../CopyToChatButton/constants.js';
 import { normalizeHostDiagnostics } from './hostDiagnostics.js';
 
 describe('normalizeHostDiagnostics', () => {
@@ -64,7 +65,7 @@ describe('normalizeHostDiagnostics', () => {
           from: 1,
           to: 4,
           message: 'fail',
-          actions: [{ name: 'Copy to chat (Ctrl+Shift+O)', apply }]
+          actions: [{ name: copyToChatActionLabel(), apply }]
         }
       ])
     ).toEqual([
@@ -73,7 +74,7 @@ describe('normalizeHostDiagnostics', () => {
         to: 4,
         severity: 'error',
         message: 'fail',
-        actions: [{ name: 'Copy to chat (Ctrl+Shift+O)', apply }]
+        actions: [{ name: copyToChatActionLabel(), apply }]
       }
     ]);
   });

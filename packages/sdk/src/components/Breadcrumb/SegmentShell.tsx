@@ -17,6 +17,14 @@ export type SegmentShape = 'first' | 'middle' | 'last' | 'only';
 export type SegmentTone = 'path' | 'selection' | 'current';
 
 /**
+ * Vertical and horizontal density for a segment shell.
+ *
+ * - `default` — full breadcrumb bar sizing (`min-h-[26px]`, generous padding).
+ * - `compact` — toolbar-height sizing for controls like Copy to chat.
+ */
+export type SegmentDensity = 'default' | 'compact';
+
+/**
  * Returns a CSS clip-path polygon for the given segment shape.
  *
  * @param shape - Which segment position to clip for.
@@ -57,6 +65,11 @@ interface Props {
   grow?: boolean;
 
   /**
+   * Vertical and horizontal density. Defaults to full breadcrumb bar sizing.
+   */
+  density?: SegmentDensity;
+
+  /**
    * Additional classes merged onto the segment shell.
    */
   className?: string;
@@ -78,12 +91,14 @@ export function SegmentShell({
   shape,
   tone = 'path',
   grow = false,
+  density = 'default',
   className,
   children
 }: Props): JSX.Element {
   const hasChevron = shape !== 'only';
   const clipPath = clipPathForShape(shape);
   const needsLeadingInset = shape !== 'first' && shape !== 'only';
+  const isCompact = density === 'compact';
   const toneClass =
     tone === 'current'
       ? 'bg-breadcrumb-current'
@@ -91,17 +106,28 @@ export function SegmentShell({
         ? 'bg-selection'
         : 'bg-breadcrumb-segment';
   const usesPillCap = shape === 'first' || shape === 'only';
+  const leadingInsetPx = CHEVRON_PX + (isCompact ? 10 : 16);
 
   const layoutClass = cn(
-    'hc-breadcrumb-segment relative flex min-h-[26px] min-w-0 items-center py-2',
-    grow ? 'min-w-[6rem] flex-1' : 'max-w-[45%] shrink-0',
+    'hc-breadcrumb-segment relative flex min-w-0 items-center',
+    isCompact ? 'min-h-0 py-1' : 'min-h-[26px] py-2',
+    grow ? 'min-w-[6rem] flex-1' : isCompact ? 'shrink-0' : 'max-w-[45%] shrink-0',
     hasChevron && shape !== 'last' && '-mr-[6px]',
-    !needsLeadingInset && 'pl-5',
-    'pr-5',
+    !needsLeadingInset && (isCompact ? 'pl-2.5' : 'pl-5'),
+    isCompact ? 'pr-3' : 'pr-5',
     className
   );
 
-  const content = <div className="relative w-full min-w-0 truncate">{children}</div>;
+  const content = (
+    <div
+      className={cn(
+        'relative min-w-0',
+        isCompact ? 'flex items-center gap-1.5' : 'w-full truncate'
+      )}
+    >
+      {children}
+    </div>
+  );
 
   if (usesPillCap) {
     return (
@@ -111,7 +137,7 @@ export function SegmentShell({
           'overflow-hidden',
           shape === 'only' ? 'rounded-full!' : 'rounded-lg!'
         )}
-        style={needsLeadingInset ? { paddingLeft: `${CHEVRON_PX + 16}px` } : undefined}
+        style={needsLeadingInset ? { paddingLeft: `${leadingInsetPx}px` } : undefined}
       >
         <div
           aria-hidden
@@ -128,7 +154,7 @@ export function SegmentShell({
       className={cn(layoutClass, toneClass)}
       style={{
         ...(clipPath !== 'none' ? { clipPath } : {}),
-        ...(needsLeadingInset ? { paddingLeft: `${CHEVRON_PX + 16}px` } : {})
+        ...(needsLeadingInset ? { paddingLeft: `${leadingInsetPx}px` } : {})
       }}
     >
       {content}

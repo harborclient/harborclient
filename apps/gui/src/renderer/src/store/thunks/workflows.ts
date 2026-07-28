@@ -1,0 +1,117 @@
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import toast from 'react-hot-toast';
+import { buildWorkflowExport } from '@harborclient/core/types/workflow';
+import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import {
+  setWorkflowSaveError,
+  setWorkflowSaveNameModalOpen,
+  setWorkflowSaving,
+  setWorkflowRecordingDialogOpen,
+  setWorkflows
+} from '#/renderer/src/store/slices/workflowsSlice';
+import { syncTrash } from '#/renderer/src/store/thunks/trash';
+import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
+import {
+  clearSession,
+  getRecordingElapsedMs,
+  getSessionEvents,
+  stopRecording
+} from '#/renderer/src/workflows/workflowRecorder';
+import { sanitizeWorkflowActions } from '#/renderer/src/workflows/sanitizeWorkflowActions';
+
+/**
+ * Reloads workflows from the local registry into the store.
+ */
+export const refreshWorkflows = createAsyncThunk<void, void, ThunkApiConfig>(
+  'workflows/refresh',
+  async (_arg, { dispatch }) => {
+    const items = await window.api.listWorkflows();
+    dispatch(setWorkflows(items));
+  }
+);
+
+/**
+ * Persists the current recording session under the given name.
+ */
+export const createWorkflowFromSession = createAsyncThunk<void, string, ThunkApiConfig>(
+  'workflows/createFromSession',
+  async (name, { dispatch }) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      dispatch(setWorkflowSaveError('Workflow name is required'));
+      return;
+    }
+
+    dispatch(setWorkflowSaving(true));
+    dispatch(setWorkflowSaveError(null));
+    try {
+      stopRecording();
+      const actions = sanitizeWorkflowActions(getSessionEvents());
+      if (actions.length === 0) {
+        dispatch(setWorkflowSaveError('Record at least one action before saving'));
+        return;
+      }
+
+      const uuid = crypto.randomUUID();
+      const durationMs = getRecordingElapsedMs();
+      const items = await window.api.createWorkflow({
+        name: trimmed,
+        uuid,
+        durationMs,
+        variables: {},
+        actions
+      });
+      dispatch(setWorkflows(items));
+      clearSession();
+      dispatch(setWorkflowSaveNameModalOpen(false));
+      dispatch(setWorkflowRecordingDialogOpen(false));
+      toast.success('Workflow saved');
+    } catch (error) {
+      dispatch(setWorkflowSaveError(formatErrorMessage(error, 'Failed to save workflow')));
+      throw error;
+    } finally {
+      dispatch(setWorkflowSaving(false));
+    }
+  }
+);
+
+/**
+ * Moves a workflow to trash and refreshes the list.
+ */
+export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
+  'workflows/delete',
+  async (id, { dispatch }) => {
+    const items = await window.api.deleteWorkflow(id);
+    dispatch(setWorkflows(items));
+    await syncTrash(dispatch);
+  }
+);
+
+/**
+ * Exports a workflow as a HarborClient JSON file via the save dialog.
+ */
+export const exportWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
+  'workflows/export',
+  async (id, { getState }) => {
+    const workflow = getState().workflows.items.find((item) => item.id === id);
+    if (!workflow) {
+      toast.error('Workflow not found');
+      return;
+    }
+
+    const envelope = buildWorkflowExport({
+      uuid: workflow.uuid,
+      name: workflow.name,
+      variables: workflow.variables,
+      actions: sanitizeWorkflowActions(workflow.actions),
+      durationMs: workflow.durationMs
+    });
+    const saved = await window.api.saveTextFile(
+      JSON.stringify(envelope, null, 2),
+      `${envelope.name}.json`
+    );
+    if (saved) {
+      toast.success('Workflow exported');
+    }
+  }
+);

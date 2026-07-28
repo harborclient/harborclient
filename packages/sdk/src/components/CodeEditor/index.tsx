@@ -33,6 +33,7 @@ import { isAppearanceDark } from '../../ui/appearanceTheme.js';
 import { normalizeCodeEditorFontSize } from '../../ui/codeEditorSettings.js';
 import { VARIABLE_NAME_CHARS, getVariableTooltipContent } from '../../variables/index.js';
 import { Button } from '../Button/index.js';
+import { CopyToChatButton } from '../CopyToChatButton/index.js';
 import { FaIcon } from '../FaIcon/index.js';
 import { buildVariableTooltipDom } from '../VariableTooltip/dom.js';
 import { VariableTooltipValue } from '../VariableTooltip/index.js';
@@ -40,6 +41,10 @@ import { portalToBody } from '../portalToBody.js';
 import { useCodeEditorConfig } from './config.js';
 import { createBuiltInSyntaxHighlighting, createEditorTheme } from './editorChrome.js';
 import { type CodeEditorDiagnostic, createHostDiagnosticsLinter } from './hostDiagnostics.js';
+import {
+  type SelectionActionToolbarState,
+  createSelectionActionToolbarExtensions
+} from './selectionActionToolbar.js';
 import { createSlashCommandHighlighter } from './slashCommandHighlighter.js';
 import { createSyntaxHighlightedPlaceholder } from './syntaxHighlightedPlaceholder.js';
 import { createJavascriptSyntaxLinter, createJsonSyntaxLinter } from './syntaxLinters.js';
@@ -181,13 +186,16 @@ export interface CodeEditorTextSelection {
 export interface CodeEditorSelectionAction {
   /**
    * Stable action id for host routing.
+   *
+   * When `id` is `copy-to-chat`, the toolbar renders {@link CopyToChatButton} and
+   * ignores `label`, `icon`, and `shortcutHint`.
    */
   id: string;
 
   /**
-   * Visible button label.
+   * Visible button label for non–copy-to-chat actions.
    */
-  label: string;
+  label?: string;
 
   /**
    * Accessible name for the action button.
@@ -200,12 +208,12 @@ export interface CodeEditorSelectionAction {
   onSelect: (selection: CodeEditorTextSelection) => void;
 
   /**
-   * Optional leading icon shown before the action label.
+   * Optional leading icon shown before the action label for non–copy-to-chat actions.
    */
   icon?: IconDefinition;
 
   /**
-   * Optional shortcut hint shown after the label (for example `Ctrl+L`).
+   * Optional shortcut hint shown after the label for non–copy-to-chat actions.
    */
   shortcutHint?: string;
 
@@ -404,9 +412,6 @@ function clampSelection(
 /** Debounce interval for {@link Props.onViewStateChange} notifications. */
 const VIEW_STATE_DEBOUNCE_MS = 300;
 
-/** Delay before showing the selection action toolbar after selection settles. */
-const SELECTION_TOOLBAR_SHOW_DELAY_MS = 450;
-
 /** Extra viewport gap between the selection top edge and the portaled toolbar. */
 const SELECTION_TOOLBAR_OFFSET_PX = 16;
 
@@ -581,14 +586,6 @@ interface SelectionTooltipState {
   left: number;
 }
 
-interface SelectionActionToolbarState {
-  top: number;
-  left: number;
-  text: string;
-  from: number;
-  to: number;
-}
-
 /**
  * Finds the {{variable}} token at a document position, if any.
  *
@@ -694,221 +691,6 @@ function variableTooltipEscapeHandler(
       return false;
     }
   });
-}
-
-/**
- * Computes viewport anchor coordinates for the selection action toolbar.
- *
- * @param view - CodeMirror editor view.
- * @param selectionFrom - Start offset (inclusive) of the selection.
- * @param selectionTo - End offset (exclusive) of the selection.
- * @returns Toolbar anchor position, or null when coords are unavailable.
- */
-function computeSelectionActionToolbarCoords(
-  view: EditorView,
-  selectionFrom: number,
-  selectionTo: number
-): { top: number; left: number } | null {
-  const startCoords = view.coordsAtPos(selectionFrom);
-  if (!startCoords) {
-    return null;
-  }
-
-  const endCoords = view.coordsAtPos(selectionTo);
-  const startCenter = startCoords.left + (startCoords.right - startCoords.left) / 2;
-  const endCenter = endCoords
-    ? endCoords.left + (endCoords.right - endCoords.left) / 2
-    : startCenter;
-
-  return {
-    top: startCoords.top,
-    left: (startCenter + endCenter) / 2
-  };
-}
-
-/**
- * Shared debounce and pointer-drag state for the selection action toolbar.
- */
-interface SelectionActionToolbarController {
-  showTimer: ReturnType<typeof setTimeout> | undefined;
-  isPointerSelecting: boolean;
-  isToolbarOpen: boolean;
-  pendingState: SelectionActionToolbarState | null;
-}
-
-/**
- * Builds update and pointer handlers that debounce toolbar display until selection settles.
- */
-function createSelectionActionToolbarExtensions(
-  onToolbarChange: (state: SelectionActionToolbarState | null) => void,
-  isEnabled: () => boolean,
-  isOpen: () => boolean,
-  onDismiss: () => void
-): Extension[] {
-  const controller: SelectionActionToolbarController = {
-    showTimer: undefined,
-    isPointerSelecting: false,
-    isToolbarOpen: false,
-    pendingState: null
-  };
-
-  /**
-   * Clears a scheduled toolbar reveal without changing open state.
-   */
-  const clearShowTimer = (): void => {
-    if (controller.showTimer) {
-      clearTimeout(controller.showTimer);
-      controller.showTimer = undefined;
-    }
-  };
-
-  /**
-   * Notifies React of toolbar visibility while keeping controller state in sync.
-   */
-  const notifyToolbarChange = (state: SelectionActionToolbarState | null): void => {
-    controller.isToolbarOpen = state != null;
-    if (state == null) {
-      controller.pendingState = null;
-    }
-    onToolbarChange(state);
-  };
-
-  /**
-   * Hides the toolbar immediately and cancels any pending reveal.
-   */
-  const dismissToolbar = (): void => {
-    clearShowTimer();
-    if (controller.isToolbarOpen || controller.pendingState != null) {
-      notifyToolbarChange(null);
-    }
-  };
-
-  /**
-   * Schedules toolbar display after the configured settle delay.
-   */
-  const scheduleShow = (state: SelectionActionToolbarState): void => {
-    controller.pendingState = state;
-    clearShowTimer();
-
-    if (controller.isPointerSelecting) {
-      return;
-    }
-
-    controller.showTimer = setTimeout(() => {
-      controller.showTimer = undefined;
-      if (controller.isPointerSelecting) {
-        return;
-      }
-      notifyToolbarChange(state);
-    }, SELECTION_TOOLBAR_SHOW_DELAY_MS);
-  };
-
-  /**
-   * Repositions or reveals the toolbar without waiting when it is already open.
-   */
-  const showImmediately = (state: SelectionActionToolbarState): void => {
-    clearShowTimer();
-    notifyToolbarChange(state);
-  };
-
-  const updateListener = EditorView.updateListener.of((update) => {
-    if (!isEnabled()) {
-      dismissToolbar();
-      return;
-    }
-
-    if (!update.selectionSet && !update.docChanged && !update.viewportChanged) {
-      return;
-    }
-
-    const { from, to } = update.state.selection.main;
-    if (from === to) {
-      dismissToolbar();
-      return;
-    }
-
-    const selectionFrom = Math.min(from, to);
-    const selectionTo = Math.max(from, to);
-    const text = update.state.sliceDoc(selectionFrom, selectionTo);
-    if (!text.trim()) {
-      dismissToolbar();
-      return;
-    }
-
-    const coords = computeSelectionActionToolbarCoords(update.view, selectionFrom, selectionTo);
-    if (!coords) {
-      dismissToolbar();
-      return;
-    }
-
-    const nextState: SelectionActionToolbarState = {
-      top: coords.top,
-      left: coords.left,
-      text,
-      from: selectionFrom,
-      to: selectionTo
-    };
-
-    if (isOpen() && !update.selectionSet && update.viewportChanged) {
-      showImmediately(nextState);
-      return;
-    }
-
-    if (isOpen() && update.selectionSet) {
-      scheduleShow(nextState);
-      return;
-    }
-
-    scheduleShow(nextState);
-  });
-
-  const pointerGuard = EditorView.domEventHandlers({
-    /**
-     * Suppresses toolbar reveal while the user is drag-selecting with the primary button.
-     */
-    pointerdown(event) {
-      if (event.button === 0) {
-        controller.isPointerSelecting = true;
-        clearShowTimer();
-      }
-      return false;
-    },
-    /**
-     * Resumes debounced reveal after drag-select completes.
-     */
-    pointerup() {
-      controller.isPointerSelecting = false;
-      if (controller.pendingState != null && !isOpen()) {
-        scheduleShow(controller.pendingState);
-      }
-      return false;
-    }
-  });
-
-  const dismissHandler = EditorView.domEventHandlers({
-    keydown(event) {
-      if (event.key === 'Escape' && isOpen()) {
-        event.preventDefault();
-        dismissToolbar();
-        onDismiss();
-        return true;
-      }
-      return false;
-    }
-  });
-
-  const cleanupPlugin = ViewPlugin.fromClass(
-    class {
-      /**
-       * Clears any pending toolbar reveal when the editor extension is destroyed.
-       */
-      destroy(): void {
-        clearShowTimer();
-      }
-    }
-  );
-
-  return [updateListener, pointerGuard, dismissHandler, cleanupPlugin];
 }
 
 /**
@@ -1867,31 +1649,49 @@ export function CodeEditor({
           left: selectionActionToolbar.left
         }}
       >
-        {activeSelectionActions.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            className="hc-code-editor-selection-action inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-            aria-label={action.ariaLabel}
-            onMouseDown={(event) => {
-              event.preventDefault();
-            }}
-            onClick={() => {
-              action.onSelect({
-                text: selectionActionToolbar.text,
-                from: selectionActionToolbar.from,
-                to: selectionActionToolbar.to
-              });
-              setSelectionActionToolbar(null);
-            }}
-          >
-            {action.icon ? <FaIcon icon={action.icon} className="h-3.5 w-3.5" /> : null}
-            <span>{action.label}</span>
-            {action.shortcutHint ? (
-              <span className="text-[14px] text-muted">{action.shortcutHint}</span>
-            ) : null}
-          </button>
-        ))}
+        {activeSelectionActions.map((action) => {
+          /**
+           * Runs the selection action and dismisses the floating toolbar.
+           */
+          const handleSelect = (): void => {
+            action.onSelect({
+              text: selectionActionToolbar.text,
+              from: selectionActionToolbar.from,
+              to: selectionActionToolbar.to
+            });
+            setSelectionActionToolbar(null);
+          };
+
+          if (action.id === 'copy-to-chat') {
+            return (
+              <CopyToChatButton
+                key={action.id}
+                appearance="labeled"
+                aria-label={action.ariaLabel}
+                onSelect={handleSelect}
+              />
+            );
+          }
+
+          return (
+            <button
+              key={action.id}
+              type="button"
+              className="hc-code-editor-selection-action inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-separator bg-control px-2 py-1 text-[14px] text-text shadow-sm hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              aria-label={action.ariaLabel}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={handleSelect}
+            >
+              {action.icon ? <FaIcon icon={action.icon} className="h-3.5 w-3.5" /> : null}
+              {action.label != null ? <span>{action.label}</span> : null}
+              {action.shortcutHint ? (
+                <span className="text-[14px] text-muted">{action.shortcutHint}</span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
     ) : null;
 

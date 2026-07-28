@@ -1,13 +1,12 @@
 import { useCallback, useMemo, type JSX } from 'react';
-import { CodeEditor, type CodeEditorTextSelection } from '@harborclient/sdk/components';
+import {
+  CodeEditor,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  type CodeEditorTextSelection
+} from '@harborclient/sdk/components';
 import type { SendResult } from '@harborclient/core/types';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import {
-  COPY_TO_CHAT_ICON,
-  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
-  COPY_TO_CHAT_SHORTCUT_HINT,
-  useCopyToChat
-} from '#/renderer/src/hooks/useCopyToChat';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setResponseSelection } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import {
@@ -94,10 +93,7 @@ export function Body({
         ? [
             {
               id: 'copy-to-chat',
-              label: 'Copy to chat',
               ariaLabel: 'Copy selection from response body to chat',
-              icon: COPY_TO_CHAT_ICON,
-              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 handleCopySelectionToChat(selection);

@@ -215,6 +215,7 @@ const workspaceSidebarExpansionSchema = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     workspaces: z.boolean(),
+    workflows: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -224,6 +225,7 @@ const workspaceSidebarExpansionSchema = z.object({
     runResults: z.boolean(),
     history: z.boolean(),
     workspaces: z.boolean(),
+    workflows: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -233,6 +235,7 @@ const workspaceSidebarExpansionSchema = z.object({
     runResults: workspaceSidebarSortMode,
     history: workspaceSidebarSortMode,
     workspaces: workspaceSidebarSortMode,
+    workflows: workspaceSidebarSortMode,
     archive: workspaceSidebarSortMode,
     trash: workspaceSidebarSortMode
   }),

@@ -14,6 +14,7 @@ export type SidebarSectionKey =
   | 'runResults'
   | 'history'
   | 'workspaces'
+  | 'workflows'
   | 'archive'
   | 'trash';
 
@@ -64,6 +65,11 @@ export interface SidebarExpansionState {
     workspaces: boolean;
 
     /**
+     * Whether the Workflows section body is visible.
+     */
+    workflows: boolean;
+
+    /**
      * Whether the Archive section body is visible.
      */
     archive: boolean;
@@ -112,6 +118,11 @@ export interface SidebarExpansionState {
      * Whether the Workspaces section is shown in the sidebar.
      */
     workspaces: boolean;
+
+    /**
+     * Whether the Workflows section is shown in the sidebar.
+     */
+    workflows: boolean;
 
     /**
      * Whether the Archive section is shown in the sidebar.

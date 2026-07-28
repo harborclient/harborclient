@@ -6,6 +6,7 @@ const DEFAULT_SECTIONS = {
   runResults: true,
   history: true,
   workspaces: true,
+  workflows: true,
   archive: true,
   trash: true
 } as const;
@@ -16,6 +17,7 @@ const DEFAULT_SECTION_VISIBILITY = {
   runResults: true,
   history: true,
   workspaces: true,
+  workflows: true,
   archive: false,
   trash: false
 } as const;
@@ -26,6 +28,7 @@ const DEFAULT_SECTION_SORT: Record<SidebarSectionKey, SidebarSortMode> = {
   runResults: 'default',
   history: 'default',
   workspaces: 'default',
+  workflows: 'default',
   archive: 'default',
   trash: 'default'
 };
@@ -36,6 +39,7 @@ const SIDEBAR_SECTION_KEYS: readonly SidebarSectionKey[] = [
   'runResults',
   'history',
   'workspaces',
+  'workflows',
   'archive',
   'trash'
 ];
@@ -194,6 +198,10 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
           ? sectionsRaw.history
           : DEFAULT_SECTIONS.history,
       workspaces: readWorkspacesBoolean(sectionsRaw, DEFAULT_SECTIONS.workspaces),
+      workflows:
+        sectionsRaw && typeof sectionsRaw.workflows === 'boolean'
+          ? sectionsRaw.workflows
+          : DEFAULT_SECTIONS.workflows,
       archive:
         sectionsRaw && typeof sectionsRaw.archive === 'boolean'
           ? sectionsRaw.archive
@@ -221,6 +229,10 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
           ? visibilityRaw.history
           : DEFAULT_SECTION_VISIBILITY.history,
       workspaces: readWorkspacesBoolean(visibilityRaw, DEFAULT_SECTION_VISIBILITY.workspaces),
+      workflows:
+        visibilityRaw && typeof visibilityRaw.workflows === 'boolean'
+          ? visibilityRaw.workflows
+          : DEFAULT_SECTION_VISIBILITY.workflows,
       archive:
         visibilityRaw && typeof visibilityRaw.archive === 'boolean'
           ? visibilityRaw.archive

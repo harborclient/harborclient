@@ -117,3 +117,19 @@ body {
   font-size: 16px;
   line-height: 1.5;
 }
+
+/**
+ * Labeled Copy to chat: darken the trailing segment so it reads over code editors.
+ * Light theme keeps breadcrumb-current; request breadcrumbs are unaffected.
+ */
+:root[data-theme='dark'] .hc-copy-to-chat-button .hc-breadcrumb-segment.bg-breadcrumb-current {
+  background-color: var(--mac-surface);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])
+    .hc-copy-to-chat-button
+    .hc-breadcrumb-segment.bg-breadcrumb-current {
+    background-color: var(--mac-surface);
+  }
+}

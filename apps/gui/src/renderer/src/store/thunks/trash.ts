@@ -61,6 +61,9 @@ async function refreshAfterRestore(
     case 'workspace':
       await dispatch((await import('#/renderer/src/store/thunks/workspaces')).refreshWorkspaces());
       break;
+    case 'workflow':
+      await dispatch((await import('#/renderer/src/store/thunks/workflows')).refreshWorkflows());
+      break;
     default:
       break;
   }

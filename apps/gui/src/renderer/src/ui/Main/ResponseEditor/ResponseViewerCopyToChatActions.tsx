@@ -1,4 +1,4 @@
-import { Button, FaIcon } from '@harborclient/sdk/components';
+import { CopyToChatButton } from '@harborclient/sdk/components';
 import type { SendResult } from '@harborclient/http';
 import type {
   ScriptExecutionEvent,
@@ -11,7 +11,7 @@ import {
   type AiResponseSection
 } from '@harborclient/core/ai/scriptReferences';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { COPY_TO_CHAT_ICON, useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setResponseSelection } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import { buildResponseSectionReference } from './responseSectionReference';
@@ -118,15 +118,12 @@ export function ResponseViewerCopyToChatActions({
   }
 
   return (
-    <Button
-      type="button"
-      variant="secondary"
+    <CopyToChatButton
+      appearance="icon"
       aria-label={`Copy ${sectionLabel.toLowerCase()} to chat`}
       title={`Copy ${sectionLabel.toLowerCase()} to chat`}
-      onClick={handleCopyToChat}
       className="inline-flex shrink-0 items-center justify-center"
-    >
-      <FaIcon icon={COPY_TO_CHAT_ICON} className="h-3.5 w-3.5" aria-hidden />
-    </Button>
+      onSelect={handleCopyToChat}
+    />
   );
 }

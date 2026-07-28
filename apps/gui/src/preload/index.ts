@@ -101,7 +101,9 @@ import type {
   Variable,
   KeyValue,
   RequestHistoryEntry,
+  CreateWorkflowInput,
   CreateWorkspaceInput,
+  Workflow,
   Workspace,
   TrashEntityType,
   TrashItem,
@@ -470,6 +472,31 @@ function setWorkspaceMarker(id: number, marker: string | null): Promise<Workspac
  */
 function importWorkspace(): Promise<Workspace[] | null> {
   return ipcRenderer.invoke('workspaces:import');
+}
+
+/**
+ * Lists persisted workflows via IPC.
+ */
+function listWorkflows(): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:list');
+}
+
+/**
+ * Creates a workflow and returns the refreshed list.
+ *
+ * @param input - Workflow name, actions, and duration.
+ */
+function createWorkflow(input: CreateWorkflowInput): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:create', input);
+}
+
+/**
+ * Deletes a workflow (moves it to trash) and returns the refreshed list.
+ *
+ * @param id - Workflow id.
+ */
+function deleteWorkflow(id: number): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:delete', id);
 }
 
 /**
@@ -4077,6 +4104,9 @@ const api: Api = {
   reorderWorkspaces,
   setWorkspaceMarker,
   importWorkspace,
+  listWorkflows,
+  createWorkflow,
+  deleteWorkflow,
   listTrashItems,
   restoreTrashItem,
   permanentlyDeleteTrashItem,

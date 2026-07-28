@@ -23,6 +23,8 @@ export function trashEntityTypeLabel(entityType: TrashEntityType): string {
       return 'Environment';
     case 'workspace':
       return 'Workspace';
+    case 'workflow':
+      return 'Workflow';
     default:
       return 'Item';
   }

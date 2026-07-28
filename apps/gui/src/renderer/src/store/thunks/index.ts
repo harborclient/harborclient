@@ -11,6 +11,7 @@ export * from './collectionRunner';
 export * from './runResults';
 export * from './requestHistory';
 export * from './workspaces';
+export * from './workflows';
 export * from './workspaceLayout';
 export * from './sidebarDeselect';
 export * from './sidebarFooterVisibility';
@@ -27,6 +28,7 @@ import { refreshEnvironments } from './environments';
 import { refreshRunResults } from './runResults';
 import { refreshRequestHistory } from './requestHistory';
 import { refreshWorkspaces } from './workspaces';
+import { refreshWorkflows } from './workflows';
 import { refreshTrash } from './trash';
 import { refreshSnippets } from './snippets';
 import { hydrateOpenTabs } from './tabs';
@@ -46,6 +48,7 @@ export function initializeStore(dispatch: AppDispatch): void {
   void dispatch(refreshRunResults());
   void dispatch(refreshRequestHistory());
   void dispatch(refreshWorkspaces());
+  void dispatch(refreshWorkflows());
   void dispatch(refreshTrash());
   void window.api.getGeneralSettings().then((settings) => {
     dispatch(setGeneralSettingsState(settings));

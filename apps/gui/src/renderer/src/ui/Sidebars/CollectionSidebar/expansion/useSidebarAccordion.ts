@@ -42,6 +42,7 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     workspacesSectionExpanded,
+    workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
@@ -49,6 +50,7 @@ export function useSidebarAccordion(): Result {
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setWorkspacesSectionExpanded,
+    setWorkflowsSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
     collectionsSectionVisible,
@@ -56,6 +58,7 @@ export function useSidebarAccordion(): Result {
     runResultsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     archiveSectionVisible,
     trashSectionVisible
   } = useSidebarExpansion();
@@ -93,6 +96,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'workflows') {
+        setWorkflowsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       if (key === 'archive') {
         setArchiveSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
@@ -117,6 +125,7 @@ export function useSidebarAccordion(): Result {
       setRunResultsSectionExpanded,
       setHistorySectionExpanded,
       setWorkspacesSectionExpanded,
+      setWorkflowsSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
@@ -148,6 +157,10 @@ export function useSidebarAccordion(): Result {
       desiredExpansion.workspaces = workspacesSectionExpanded;
     }
 
+    if (workflowsSectionVisible) {
+      desiredExpansion.workflows = workflowsSectionExpanded;
+    }
+
     if (archiveSectionVisible) {
       desiredExpansion.archive = archiveSectionExpanded;
     }
@@ -167,6 +180,7 @@ export function useSidebarAccordion(): Result {
     runResultsSectionExpanded,
     historySectionExpanded,
     workspacesSectionExpanded,
+    workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     collectionsSectionVisible,
@@ -174,6 +188,7 @@ export function useSidebarAccordion(): Result {
     runResultsSectionVisible,
     historySectionVisible,
     workspacesSectionVisible,
+    workflowsSectionVisible,
     archiveSectionVisible,
     trashSectionVisible,
     pluginSectionExpanded,
@@ -192,6 +207,7 @@ export function useSidebarAccordion(): Result {
     setRunResultsSectionExpanded(false);
     setHistorySectionExpanded(false);
     setWorkspacesSectionExpanded(false);
+    setWorkflowsSectionExpanded(false);
     setArchiveSectionExpanded(false);
     setTrashSectionExpanded(false);
 
@@ -215,6 +231,7 @@ export function useSidebarAccordion(): Result {
     setRunResultsSectionExpanded,
     setHistorySectionExpanded,
     setWorkspacesSectionExpanded,
+    setWorkflowsSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded
   ]);

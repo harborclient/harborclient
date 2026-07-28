@@ -1,4 +1,11 @@
-import { CodeEditor, FieldError, FormGroup, Input, Select } from '@harborclient/sdk/components';
+import {
+  CodeEditor,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  FieldError,
+  FormGroup,
+  Input,
+  Select
+} from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { useCallback, useEffect, useId, useMemo } from 'react';
@@ -9,11 +16,6 @@ import type { ScriptStage } from '@harborclient/sdk';
 import type { SnippetEditDraft } from './snippetEditDraft';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import {
-  COPY_TO_CHAT_ICON,
-  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
-  COPY_TO_CHAT_SHORTCUT_HINT
-} from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -134,10 +136,7 @@ export function SnippetEditFields({
         ? [
             {
               id: 'copy-to-chat',
-              label: 'Copy to chat',
               ariaLabel: `Copy selection from ${draft.name} to chat`,
-              icon: COPY_TO_CHAT_ICON,
-              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 void handleCopySelectionToChat({ from: selection.from, to: selection.to });

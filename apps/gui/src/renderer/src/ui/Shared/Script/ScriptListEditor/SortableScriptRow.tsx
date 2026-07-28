@@ -1,6 +1,13 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button, CodeEditor, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
+import {
+  Button,
+  CodeEditor,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  copyToChatActionLabel,
+  FaIcon,
+  RowActionsMenu
+} from '@harborclient/sdk/components';
 import type { MenuItem } from '@harborclient/sdk/components';
 import {
   useCallback,
@@ -24,11 +31,6 @@ import { SCRIPT_ASK_COMMANDS } from '#/renderer/src/scripting/scriptAskCommands'
 import { runScriptAsk } from '#/renderer/src/scripting/runScriptAsk';
 import { resolveScriptAskModelId } from '#/renderer/src/scripting/scriptAskModel';
 import { ScriptAskModal } from '#/renderer/src/ui/Shared/Script/ScriptAskModal';
-import {
-  COPY_TO_CHAT_ICON,
-  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
-  COPY_TO_CHAT_SHORTCUT_HINT
-} from '#/renderer/src/hooks/useCopyToChat';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -203,10 +205,7 @@ export function SortableScriptRow({
         ? [
             {
               id: 'copy-to-chat',
-              label: 'Copy to chat',
               ariaLabel: `Copy selection from ${label} to chat`,
-              icon: COPY_TO_CHAT_ICON,
-              shortcutHint: COPY_TO_CHAT_SHORTCUT_HINT,
               key: COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
               onSelect: (selection: CodeEditorTextSelection): void => {
                 onCopySelectionToChat({ from: selection.from, to: selection.to });
@@ -231,7 +230,7 @@ export function SortableScriptRow({
     }
 
     return {
-      label: `Copy to chat (${COPY_TO_CHAT_SHORTCUT_HINT})`,
+      label: copyToChatActionLabel(),
       onSelect: (range) => {
         onCopySelectionToChat(range);
       }

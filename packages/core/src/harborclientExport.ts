@@ -9,7 +9,8 @@ export const HARBORCLIENT_EXPORT_KINDS = [
   'theme',
   'collection-run-results',
   'request-run-results',
-  'workspace'
+  'workspace',
+  'workflow'
 ] as const;
 
 /**

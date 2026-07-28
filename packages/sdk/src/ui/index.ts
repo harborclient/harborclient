@@ -16,3 +16,11 @@ export {
   methodColorClass,
   statusColorClass
 } from './tokens.js';
+export {
+  COPY_TO_CHAT_ICON,
+  COPY_TO_CHAT_LABEL,
+  COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY,
+  COPY_TO_CHAT_SHORTCUT_HINT,
+  COPY_TO_CHAT_SHORTCUT_LETTER,
+  copyToChatActionLabel
+} from '../components/CopyToChatButton/constants.js';

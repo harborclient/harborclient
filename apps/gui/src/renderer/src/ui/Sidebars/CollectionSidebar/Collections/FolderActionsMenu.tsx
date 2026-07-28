@@ -1,6 +1,7 @@
 import type { Collection, Folder } from '@harborclient/core/types';
 import {
   buildReorderMenuGroup,
+  COPY_TO_CHAT_LABEL,
   type MenuItem,
   type MenuPosition
 } from '@harborclient/sdk/components';
@@ -164,7 +165,7 @@ export function FolderActionsMenu({
     if (aiAvailable) {
       groups.push([
         {
-          label: 'Copy to chat',
+          label: COPY_TO_CHAT_LABEL,
           onSelect: () => void copyToChat(`@folder.${folder.uuid}`)
         }
       ]);

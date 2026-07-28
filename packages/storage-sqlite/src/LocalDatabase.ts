@@ -18,10 +18,13 @@ import type {
   ChatMessage,
   ChatRole,
   ChatSummary,
+  CreateWorkflowInput,
   CreateWorkspaceInput,
   Environment,
   RequestHistoryEntry,
   Snippet,
+  Workflow,
+  WorkflowAction,
   Workspace,
   WorkspaceLayout,
   WorkspaceRequest,
@@ -40,6 +43,15 @@ import type { ScriptStage } from '@harborclient/sdk';
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker';
 const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
+const WORKFLOW_COLUMNS = 'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at';
+
+/**
+ * Stored JSON payload for a workflow row.
+ */
+interface WorkflowPayloadJson {
+  variables: Record<string, string>;
+  actions: WorkflowAction[];
+}
 
 /**
  * Row shape returned from request_history queries.
@@ -480,6 +492,17 @@ export class LocalDatabase {
         PRIMARY KEY (workspace_id, request_uuid)
       );
 
+      CREATE TABLE IF NOT EXISTS workflows (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid        TEXT    NOT NULL UNIQUE,
+        name        TEXT    NOT NULL,
+        payload     TEXT    NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        created_at  INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS trash_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         entity_type TEXT NOT NULL,
@@ -507,6 +530,7 @@ export class LocalDatabase {
     this.migrateSnippetRegistryTable();
     this.migrateRequestHistoryTable();
     this.migrateWorkspacesTable();
+    this.migrateWorkflowsTable();
     this.migrateTrashTable();
     this.migrateLegacyTabGroupTrashItems();
     migrateSidebarMarkerColumn(this.getDb(), 'environments');
@@ -662,6 +686,24 @@ export class LocalDatabase {
         request_name  TEXT,
         sort_order    INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (workspace_id, request_uuid)
+      );
+    `);
+  }
+
+  /**
+   * Ensures the workflows table exists on legacy databases.
+   */
+  private migrateWorkflowsTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS workflows (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid        TEXT    NOT NULL UNIQUE,
+        name        TEXT    NOT NULL,
+        payload     TEXT    NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        created_at  INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL
       );
     `);
   }
@@ -2438,6 +2480,130 @@ export class LocalDatabase {
   deleteWorkspace(id: number): Workspace[] {
     this.getDb().prepare('DELETE FROM workspaces WHERE id = ?').run(id);
     return this.listWorkspaces();
+  }
+
+  /**
+   * Parses a workflow payload JSON string into variables and actions.
+   *
+   * @param raw - JSON text from the workflows.payload column.
+   * @returns Normalized payload fields.
+   */
+  private parseWorkflowPayload(raw: string): WorkflowPayloadJson {
+    try {
+      const parsed = JSON.parse(raw) as Partial<WorkflowPayloadJson>;
+      return {
+        variables:
+          parsed.variables &&
+          typeof parsed.variables === 'object' &&
+          !Array.isArray(parsed.variables)
+            ? Object.fromEntries(
+                Object.entries(parsed.variables).filter(
+                  (entry): entry is [string, string] => typeof entry[1] === 'string'
+                )
+              )
+            : {},
+        actions: Array.isArray(parsed.actions)
+          ? parsed.actions.filter(
+              (action): action is WorkflowAction =>
+                typeof action === 'object' &&
+                action != null &&
+                typeof (action as WorkflowAction).type === 'string'
+            )
+          : []
+      };
+    } catch {
+      return { variables: {}, actions: [] };
+    }
+  }
+
+  /**
+   * Loads all workflows from the local registry.
+   *
+   * @returns Workflows ordered by sort order then name.
+   */
+  listWorkflows(): Workflow[] {
+    const rows = this.getDb()
+      .prepare(`SELECT ${WORKFLOW_COLUMNS} FROM workflows ORDER BY sort_order ASC, name ASC`)
+      .all() as Array<{
+      id: number;
+      uuid: string;
+      name: string;
+      payload: string;
+      duration_ms: number;
+      sort_order: number;
+      created_at: number;
+      updated_at: number;
+    }>;
+
+    return rows.map((row) => {
+      const payload = this.parseWorkflowPayload(row.payload);
+      return {
+        id: row.id,
+        uuid: row.uuid,
+        name: row.name,
+        durationMs: row.duration_ms,
+        variables: payload.variables,
+        actions: payload.actions,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  /**
+   * Returns the next sort order for a new workflow.
+   *
+   * @returns Next sort order index.
+   */
+  private nextWorkflowSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM workflows')
+      .get() as { next_order: number };
+    return row.next_order;
+  }
+
+  /**
+   * Creates a workflow and returns the refreshed list.
+   *
+   * @param input - Workflow name, actions, and duration.
+   * @returns Updated workflow list.
+   */
+  createWorkflow(input: CreateWorkflowInput): Workflow[] {
+    const trimmedName = trimRequiredName(input.name, 'Workflow name');
+    const now = Date.now();
+    const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
+    const payload = JSON.stringify({
+      variables: input.variables ?? {},
+      actions: input.actions
+    } satisfies WorkflowPayloadJson);
+
+    this.getDb()
+      .prepare(
+        `INSERT INTO workflows (uuid, name, payload, duration_ms, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        uuid,
+        trimmedName,
+        payload,
+        Math.max(0, Math.floor(input.durationMs)),
+        this.nextWorkflowSortOrder(),
+        now,
+        now
+      );
+
+    return this.listWorkflows();
+  }
+
+  /**
+   * Deletes a workflow and returns the refreshed list.
+   *
+   * @param id - Workflow id.
+   * @returns Updated workflow list.
+   */
+  deleteWorkflow(id: number): Workflow[] {
+    this.getDb().prepare('DELETE FROM workflows WHERE id = ?').run(id);
+    return this.listWorkflows();
   }
 
   /**

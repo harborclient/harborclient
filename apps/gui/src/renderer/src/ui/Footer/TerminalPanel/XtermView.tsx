@@ -1,9 +1,8 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { SelectionActionToolbar } from '@harborclient/sdk/components';
+import { CopyToChatButton } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { COPY_TO_CHAT_ICON, COPY_TO_CHAT_SHORTCUT_HINT } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -529,12 +528,9 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
     >
       <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 p-2" />
       {showSelectionToolbar ? (
-        <SelectionActionToolbar
+        <CopyToChatButton
           coords={selectionToolbarCoords}
-          label={`Copy selection from ${title} to chat`}
-          text="Copy to chat"
-          icon={COPY_TO_CHAT_ICON}
-          shortcutHint={COPY_TO_CHAT_SHORTCUT_HINT}
+          aria-label={`Copy selection from ${title} to chat`}
           onSelect={() => {
             void handleCopySelectionToChat();
           }}

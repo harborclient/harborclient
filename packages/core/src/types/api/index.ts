@@ -18,6 +18,7 @@ import type { ApiDocs } from './docs';
 import type { ApiMcp } from './mcp';
 import type { ApiRequestHistory } from './requestHistory';
 import type { ApiWorkspaces } from './workspace';
+import type { ApiWorkflows } from './workflow';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
 
@@ -45,6 +46,7 @@ export interface Api
     ApiMcp,
     ApiRequestHistory,
     ApiWorkspaces,
+    ApiWorkflows,
     ApiTrash,
     ApiTerminal,
     ApiCustomThemes {}

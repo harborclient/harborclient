@@ -81,4 +81,35 @@ describeSqlite('TrashService registry entities', () => {
       })
     ]);
   });
+
+  it('moves a workflow to trash and restores it', async () => {
+    const { database } = await createRegistry();
+    const workflows = database.createWorkflow({
+      name: 'Recorded send',
+      uuid: 'wf-trash-1',
+      durationMs: 1_500,
+      variables: { env: 'dev' },
+      actions: [{ type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
+    });
+    const workflowId = workflows[0]!.id;
+
+    const trash = new TrashService({} as IStorage, database);
+    trash.moveWorkflowToTrash(workflowId);
+
+    expect(database.listWorkflows()).toEqual([]);
+    expect(trash.listTrashItems()[0]?.entityType).toBe('workflow');
+
+    const restoredType = await trash.restoreTrashItem(trash.listTrashItems()[0]!.id);
+    expect(restoredType).toBe('workflow');
+    expect(database.listWorkflows()).toEqual([
+      expect.objectContaining({
+        name: 'Recorded send',
+        uuid: 'wf-trash-1',
+        durationMs: 1_500,
+        variables: { env: 'dev' },
+        actions: [{ type: 'request.send', at: 20, payload: { uuid: 'req-9' } }]
+      })
+    ]);
+    expect(trash.listTrashItems()).toEqual([]);
+  });
 });

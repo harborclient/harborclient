@@ -8,6 +8,7 @@ export * from './collection';
 export * from './request';
 export * from './requestHistory';
 export * from './workspace';
+export * from './workflow';
 export * from './trash';
 export * from './script';
 export * from './settings';

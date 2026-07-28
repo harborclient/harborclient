@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Implement workflow management features. (`a4525074`)
+
 ## 2.8.5 - 2026-07-28
 
 - Implement hc.ask API for one-shot AI completions. (`aed2809f`)

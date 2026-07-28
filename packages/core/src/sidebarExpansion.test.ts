@@ -10,6 +10,7 @@ describe('defaultSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -19,6 +20,7 @@ describe('defaultSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -30,6 +32,7 @@ describe('defaultSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -63,6 +66,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -72,6 +76,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -83,6 +88,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -109,6 +115,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -118,6 +125,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -129,6 +137,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -156,6 +165,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -165,6 +175,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -176,6 +187,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -204,6 +216,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -213,6 +226,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -224,6 +238,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -252,6 +267,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -261,6 +277,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -272,6 +289,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -300,6 +318,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -309,6 +328,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -320,6 +340,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -348,6 +369,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -357,6 +379,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -368,6 +391,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -397,6 +421,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -406,6 +431,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -417,6 +443,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'default',
         history: 'default',
         workspaces: 'default',
+        workflows: 'default',
         archive: 'default',
         trash: 'default'
       },
@@ -453,6 +480,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: true,
         trash: true
       },
@@ -462,6 +490,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: true,
         history: true,
         workspaces: true,
+        workflows: true,
         archive: false,
         trash: false
       },
@@ -473,6 +502,7 @@ describe('normalizeSidebarExpansion', () => {
         runResults: 'created-desc',
         history: 'default',
         workspaces: 'method-desc',
+        workflows: 'default',
         archive: 'created-asc',
         trash: 'default'
       },

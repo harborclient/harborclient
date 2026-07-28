@@ -12,6 +12,7 @@ import settingsDraftReducer from '#/renderer/src/store/slices/settingsDraftSlice
 import runResultsReducer from '#/renderer/src/store/slices/runResultsSlice';
 import requestHistoryReducer from '#/renderer/src/store/slices/requestHistorySlice';
 import workspacesReducer from '#/renderer/src/store/slices/workspaceSlice';
+import workflowsReducer from '#/renderer/src/store/slices/workflowsSlice';
 import trashReducer from '#/renderer/src/store/slices/trashSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardSlice';
@@ -23,6 +24,7 @@ import responseSelectionsReducer from '#/renderer/src/store/slices/responseSelec
 import scriptSelectionsReducer from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
 import openApiImportReducer from '#/renderer/src/store/slices/openApiImportSlice';
+import { workflowRecordMiddleware } from '#/renderer/src/workflows/workflowRecordMiddleware';
 import { persistActiveEnvironmentId, persistTabs, persistTerminalLayout } from './persistence';
 export const store = configureStore({
   reducer: {
@@ -40,6 +42,7 @@ export const store = configureStore({
     runResults: runResultsReducer,
     requestHistory: requestHistoryReducer,
     workspaces: workspacesReducer,
+    workflows: workflowsReducer,
     trash: trashReducer,
     aiChat: aiChatReducer,
     terminals: terminalsReducer,
@@ -51,12 +54,13 @@ export const store = configureStore({
     openApiImport: openApiImportReducer
   },
   /**
-   * Registers default RTK middleware plus busy tracking.
+   * Registers default RTK middleware plus busy tracking and workflow recording.
    *
    * @param getDefaultMiddleware - RTK default middleware factory.
    * @returns Configured middleware chain.
    */
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(busyMiddleware)
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(busyMiddleware, workflowRecordMiddleware)
 });
 
 export type RootState = ReturnType<typeof store.getState>;
