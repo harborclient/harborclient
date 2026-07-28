@@ -2722,7 +2722,10 @@ export interface PluginSendResult {
   headers: Record<string, string>;
   /** Response body as text. */
   body: string;
-  /** Base64-encoded body for image responses. */
+  /**
+   * Base64-encoded body for binary / non-textual responses (images, PDF, zip, etc.);
+   * omitted for JSON, text-ish, and HTML-ish bodies.
+   */
   bodyBase64?: string;
   /** Round-trip time in milliseconds. */
   timeMs: number;

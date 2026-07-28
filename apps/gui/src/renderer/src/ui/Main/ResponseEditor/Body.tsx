@@ -12,6 +12,7 @@ import { setResponseSelection } from '#/renderer/src/store/slices/responseSelect
 import {
   bodyLanguage,
   formatBody,
+  isBinaryResponse,
   isImageResponse
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { buildResponseBodySelectionReference } from './responseSectionReference';
@@ -42,8 +43,8 @@ interface Props {
 /**
  * Read-only pretty-printed response body for the Body viewer tab.
  *
- * Non-image responses expose a Copy to chat selection toolbar when AI is available
- * and a request tab id is known.
+ * Non-image, non-binary responses expose a Copy to chat selection toolbar when AI
+ * is available and a request tab id is known. Binary bodies show base64 text.
  */
 export function Body({
   response,
@@ -54,10 +55,12 @@ export function Body({
   const dispatch = useAppDispatch();
   const { aiAvailable } = useAiAvailability();
   const { copyToChat } = useCopyToChat();
-  const formatted = formatBody(response.body);
+  const binary = isBinaryResponse(response) && !isImageResponse(response.headers);
+  const formatted = binary ? (response.bodyBase64 ?? '') : formatBody(response.body);
   const displayValue = formatted || '(empty body)';
-  const language = bodyLanguage(response.body, response.headers);
-  const allowCopyToChat = aiAvailable && requestTabId != null && !isImageResponse(response.headers);
+  const language = binary ? 'text' : bodyLanguage(response.body, response.headers);
+  const allowCopyToChat =
+    aiAvailable && requestTabId != null && !isImageResponse(response.headers) && !binary;
 
   /**
    * Captures the body selection snapshot, opens AI chat, and inserts the `@res` token.

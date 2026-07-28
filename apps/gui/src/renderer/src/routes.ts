@@ -11,6 +11,7 @@ import {
   faLayerGroup,
   faPalette,
   faPlay,
+  faList,
   faPuzzlePiece,
   faCode,
   faCodeBranch,
@@ -285,6 +286,25 @@ export const pageRoutes = {
         requestId,
         ...(requestIds != null && requestIds.length > 0 ? { requestIds } : {})
       };
+    }
+  }),
+  'workflow-run-results': defineRoute({
+    key: (page) => `workflow-run-results:${page.workflowUuid}`,
+    meta: (_page, ctx) => ({
+      title: ctx.workflowName ? `Results: ${ctx.workflowName}` : 'Workflow results',
+      icon: faList
+    }),
+    closeName: () => 'Workflow results',
+    replaceOnReopen: true,
+    Component: lazyNamed(
+      () => import('#/renderer/src/routing/pages/WorkflowRunResultsPageRoute'),
+      'WorkflowRunResultsPageRoute'
+    ),
+    normalize: (value) => {
+      if (typeof value.workflowUuid !== 'string' || value.workflowUuid.trim() === '') {
+        return null;
+      }
+      return { type: 'workflow-run-results', workflowUuid: value.workflowUuid.trim() };
     }
   }),
   'plugin-detail': defineRoute({

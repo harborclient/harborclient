@@ -34,6 +34,7 @@ export { QueryString } from './QueryString.js';
 export { MAX_REDIRECTS, REDIRECT_STATUSES, Requester } from './Requester.js';
 export { RequestTiming } from './RequestTiming.js';
 export { ResponseReader } from './ResponseReader.js';
+export { shouldEncodeResponseBodyBase64 } from './responseBodyEncoding.js';
 export {
   emptyFormPart,
   normalizeFormPart,

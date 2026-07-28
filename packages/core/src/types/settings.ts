@@ -345,6 +345,12 @@ export interface GeneralSettings {
   scriptFileRoot: string;
 
   /**
+   * Absolute directory where completed workflow runs are auto-exported as JSON.
+   * Empty disables automatic export.
+   */
+  workflowResultsDirectory: string;
+
+  /**
    * Maximum response body size in megabytes; 0 disables the limit.
    */
   maxResponseSizeMb: number;

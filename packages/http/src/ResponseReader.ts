@@ -1,5 +1,6 @@
 import { HARD_MAX_RESPONSE_SIZE_MB } from './settings.js';
 import type { IResponseReader, ReadResponseBodyResult } from './IResponseReader.js';
+import { shouldEncodeResponseBodyBase64 } from './responseBodyEncoding.js';
 
 /**
  * Reads fetch response bodies with user and hard size limits.
@@ -67,8 +68,8 @@ export class ResponseReader implements IResponseReader {
     }
 
     const body = new TextDecoder().decode(combined);
-    const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
-    const bodyBase64 = contentType.startsWith('image/')
+    const contentType = response.headers.get('content-type') ?? '';
+    const bodyBase64 = shouldEncodeResponseBodyBase64(contentType, combined)
       ? Buffer.from(combined).toString('base64')
       : undefined;
 

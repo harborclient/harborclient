@@ -234,6 +234,7 @@ describe('generalSettings', () => {
     allowScriptFileRead: false,
     allowScriptFileWrite: false,
     scriptFileRoot: '',
+    workflowResultsDirectory: '',
     maxResponseSizeMb: 50,
     verifySsl: true,
     followRedirects: true,

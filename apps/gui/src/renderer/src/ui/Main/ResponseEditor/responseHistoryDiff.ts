@@ -4,6 +4,7 @@ import type { CodeEditorLanguage } from '@harborclient/sdk/components';
 import {
   bodyLanguage,
   formatBody,
+  isBinaryResponse,
   isImageResponse
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
@@ -143,7 +144,7 @@ export function canDiffResponse(
   if (response == null || priorEntries.length === 0) {
     return false;
   }
-  if (isImageResponse(response.headers)) {
+  if (isImageResponse(response.headers) || isBinaryResponse(response)) {
     return false;
   }
   return true;

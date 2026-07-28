@@ -4,6 +4,7 @@ import {
   buildHtmlPreviewSrcdoc,
   buildResponseExport,
   defaultResponseTab,
+  isBinaryResponse,
   isHtmlResponse,
   isImageResponse,
   resolveHtmlPreviewBaseUrl,
@@ -88,6 +89,21 @@ describe('buildResponseExport', () => {
       'plain text'
     );
     expect(buildResponseExport(sampleResponse({ body: '' }), [], [], []).body).toBeNull();
+  });
+
+  it('exports base64 envelope for binary bodies', () => {
+    expect(
+      buildResponseExport(
+        sampleResponse({
+          headers: { 'content-type': 'application/pdf' },
+          body: '\u0000',
+          bodyBase64: 'JVBERi0='
+        }),
+        [],
+        [],
+        []
+      ).body
+    ).toEqual({ encoding: 'base64', data: 'JVBERi0=' });
   });
 
   it('includes full timing values when present', () => {
@@ -248,6 +264,19 @@ describe('isImageResponse', () => {
   it('returns false when content-type is missing', () => {
     expect(isImageResponse({})).toBe(false);
     expect(isImageResponse(undefined)).toBe(false);
+  });
+});
+
+describe('isBinaryResponse', () => {
+  it('returns true when bodyBase64 is non-empty', () => {
+    expect(isBinaryResponse({ bodyBase64: 'aaaa' })).toBe(true);
+  });
+
+  it('returns false when bodyBase64 is missing or empty', () => {
+    expect(isBinaryResponse({ bodyBase64: '' })).toBe(false);
+    expect(isBinaryResponse({})).toBe(false);
+    expect(isBinaryResponse(null)).toBe(false);
+    expect(isBinaryResponse(undefined)).toBe(false);
   });
 });
 

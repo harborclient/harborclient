@@ -191,6 +191,15 @@ export function isImageResponse(headers?: Record<string, string>): boolean {
 }
 
 /**
+ * Returns true when the send result includes a lossless base64 body (binary / non-textual).
+ *
+ * @param response - Send result, or a partial with optional `bodyBase64`.
+ */
+export function isBinaryResponse(response?: { bodyBase64?: string } | null): boolean {
+  return response?.bodyBase64 != null && response.bodyBase64.length > 0;
+}
+
+/**
  * Chooses the initial response tab when the editor mounts or remounts.
  *
  * HTML and image responses open on Preview so rendered content is visible
@@ -428,12 +437,19 @@ function formatExecutionEventTrace(event: ScriptExecutionEvent): string {
 }
 
 /**
- * Chooses the export body value from raw response text.
+ * Chooses the export body value from a send result.
  *
- * @param body - Raw response body string.
- * @returns Parsed JSON when valid, raw string otherwise, or null when empty.
+ * Binary responses export `{ encoding: 'base64', data }` so bytes stay lossless.
+ * Textual responses export parsed JSON when valid, otherwise the raw string.
+ *
+ * @param response - Last send result to export.
+ * @returns Parsed JSON, raw string, base64 envelope, or null when empty.
  */
-function responseExportBody(body: string): ResponseExportBody {
+function responseExportBody(response: SendResult): ResponseExportBody {
+  if (isBinaryResponse(response) && response.bodyBase64 != null) {
+    return { encoding: 'base64', data: response.bodyBase64 };
+  }
+  const body = response.body;
   if (!body) {
     return null;
   }
@@ -585,7 +601,7 @@ export function buildResponseExport(
     harborclientVersion: 1,
     harborclientExport: 'response',
     request: buildResponseExportRequest(response, requestUrlFallback),
-    body: responseExportBody(response.body),
+    body: responseExportBody(response),
     headers: response.headers,
     timing: buildResponseExportTiming(response),
     console: buildResponseExportConsole(scriptLogs, executionEvents, scriptError),

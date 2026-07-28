@@ -4,7 +4,7 @@ import type { SendResult } from '@harborclient/http';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRequestHistory } from '#/renderer/src/store/slices/requestHistorySlice';
-import { isImageResponse } from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { isBinaryResponse, isImageResponse } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { ResponseHistoryDiffPickerModal } from './ResponseHistoryDiffPickerModal';
 import {
   canDiffResponse,
@@ -115,11 +115,14 @@ export function ResponseViewerDiffActions({
     if (isImageResponse(response.headers)) {
       return 'Diff is unavailable for image responses';
     }
+    if (isBinaryResponse(response)) {
+      return 'Diff is unavailable for binary responses';
+    }
     if (priorEntries.length === 0) {
       return 'No previous request history to compare';
     }
     return undefined;
-  }, [diffActive, priorEntries.length, response.headers]);
+  }, [diffActive, priorEntries.length, response]);
 
   const buttonLabel = diffActive ? 'Close diff' : 'Diff';
   const ariaLabel = diffActive

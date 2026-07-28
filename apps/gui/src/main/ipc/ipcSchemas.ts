@@ -287,6 +287,7 @@ export const generalSettings = z.object({
   allowScriptFileRead: z.boolean(),
   allowScriptFileWrite: z.boolean(),
   scriptFileRoot: z.string(),
+  workflowResultsDirectory: z.string(),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
@@ -990,6 +991,11 @@ export const ipcArgSchemas = {
   openPath: z.tuple([z.string().min(1)]),
   saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),
+  writeTextInDirectory: z.tuple([
+    z.string().min(1),
+    z.string().min(1),
+    z.string().max(MAX_IPC_REQUEST_BODY_CHARS)
+  ]),
   readImageDataUrl: z.tuple([z.string().min(1)]),
   copyFileToSaveDialog: z.tuple([z.string().min(1), z.string()]),
   saveDataUrlToFile: z.tuple([

@@ -65,4 +65,18 @@ describe('buildRequestHistoryEntry', () => {
     expect(entry.responseHeaders).toEqual({ 'content-type': 'image/png' });
     expect(entry.responseBody).toBeUndefined();
   });
+
+  it('omits responseBody for non-image binary responses while keeping response headers', () => {
+    const entry = buildRequestHistoryEntry(
+      sendInput(),
+      sendResult({
+        headers: { 'content-type': 'application/pdf' },
+        body: '%PDF',
+        bodyBase64: 'JVBERi0='
+      })
+    );
+
+    expect(entry.responseHeaders).toEqual({ 'content-type': 'application/pdf' });
+    expect(entry.responseBody).toBeUndefined();
+  });
 });

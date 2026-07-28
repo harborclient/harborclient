@@ -69,6 +69,16 @@ export interface SaveTextFileResult {
 }
 
 /**
+ * Result of writing UTF-8 text into a caller-chosen directory.
+ */
+export interface WriteTextInDirectoryResult {
+  /**
+   * Absolute path of the file that was written (may include a collision suffix).
+   */
+  path: string;
+}
+
+/**
  * Result of a HarborClient backup export save-dialog action.
  */
 export interface BackupExportResult {

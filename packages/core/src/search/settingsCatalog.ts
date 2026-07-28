@@ -7,6 +7,7 @@ export type SettingId =
   | 'general.allowScriptFileRead'
   | 'general.allowScriptFileWrite'
   | 'general.scriptFileRoot'
+  | 'general.workflowResultsDirectory'
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
@@ -190,6 +191,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'Directory that confines hc.fs paths for non-git collections. Leave empty to use your home directory. Git-backed collections are confined to their git repository directory instead.',
     keywords: ['script', 'file', 'root', 'directory', 'path', 'hc.fs', 'sandbox']
+  },
+  {
+    id: 'general.workflowResultsDirectory',
+    section: 'general',
+    kind: 'field',
+    label: 'Workflow results directory',
+    description:
+      'When set, each completed workflow run is automatically saved as a JSON file in this directory. Leave empty to disable.',
+    keywords: ['workflow', 'results', 'export', 'directory', 'path', 'json', 'run']
   },
   {
     id: 'general.maxResponseSizeMb',

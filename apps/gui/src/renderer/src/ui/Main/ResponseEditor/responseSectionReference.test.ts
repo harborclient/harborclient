@@ -159,6 +159,23 @@ describe('buildResponseSectionReference', () => {
     expect(snapshot.content).toContain('Image response');
     expect(snapshot.content).toContain('Binary body omitted');
   });
+
+  it('notes non-image binary responses instead of dumping base64 body', () => {
+    const { snapshot } = buildResponseSectionReference({
+      requestTabId,
+      requestName: 'Doc',
+      section: 'body',
+      response: sampleResponse({
+        headers: { 'content-type': 'application/pdf' },
+        body: '%PDF',
+        bodyBase64: 'JVBERi0=',
+        sizeBytes: 2048
+      })
+    });
+
+    expect(snapshot.content).toContain('Binary response');
+    expect(snapshot.content).toContain('Base64 body omitted');
+  });
 });
 
 describe('buildResponseBodySelectionReference', () => {

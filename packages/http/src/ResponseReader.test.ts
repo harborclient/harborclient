@@ -95,11 +95,82 @@ describe('ResponseReader', () => {
       });
     });
 
-    it('omits bodyBase64 for non-image content-type responses', async () => {
+    it('omits bodyBase64 for text/plain responses', async () => {
       const payload = 'plain text';
       const response = createStreamResponse([new TextEncoder().encode(payload)], {
         headers: { 'content-type': 'text/plain' }
       });
+
+      const result = await responseReader.read(response, 1);
+
+      expect(result).toEqual({
+        body: payload,
+        sizeBytes: new TextEncoder().encode(payload).length
+      });
+      expect(result).not.toHaveProperty('bodyBase64');
+    });
+
+    it('includes bodyBase64 for application/pdf responses', async () => {
+      const bytes = new TextEncoder().encode('%PDF-1.4 binary-ish');
+      const response = createStreamResponse([bytes], {
+        headers: { 'content-type': 'application/pdf' }
+      });
+
+      const result = await responseReader.read(response, 1);
+
+      expect(result).toEqual({
+        body: new TextDecoder().decode(bytes),
+        sizeBytes: bytes.length,
+        bodyBase64: Buffer.from(bytes).toString('base64')
+      });
+    });
+
+    it('includes bodyBase64 for binary application/octet-stream responses', async () => {
+      const bytes = new Uint8Array([0x00, 0x01, 0x02, 0xff]);
+      const response = createStreamResponse([bytes], {
+        headers: { 'content-type': 'application/octet-stream' }
+      });
+
+      const result = await responseReader.read(response, 1);
+
+      expect(result).toEqual({
+        body: new TextDecoder().decode(bytes),
+        sizeBytes: bytes.length,
+        bodyBase64: Buffer.from(bytes).toString('base64')
+      });
+    });
+
+    it('omits bodyBase64 for JSON application/octet-stream responses', async () => {
+      const payload = '{"ok":true}';
+      const response = createStreamResponse([new TextEncoder().encode(payload)], {
+        headers: { 'content-type': 'application/octet-stream' }
+      });
+
+      const result = await responseReader.read(response, 1);
+
+      expect(result).toEqual({
+        body: payload,
+        sizeBytes: new TextEncoder().encode(payload).length
+      });
+      expect(result).not.toHaveProperty('bodyBase64');
+    });
+
+    it('includes bodyBase64 for empty content-type with null bytes', async () => {
+      const bytes = new Uint8Array([0x00, 0x10, 0x20]);
+      const response = createStreamResponse([bytes]);
+
+      const result = await responseReader.read(response, 1);
+
+      expect(result).toEqual({
+        body: new TextDecoder().decode(bytes),
+        sizeBytes: bytes.length,
+        bodyBase64: Buffer.from(bytes).toString('base64')
+      });
+    });
+
+    it('omits bodyBase64 for empty content-type with plain ASCII', async () => {
+      const payload = 'plain ascii';
+      const response = createStreamResponse([new TextEncoder().encode(payload)]);
 
       const result = await responseReader.read(response, 1);
 

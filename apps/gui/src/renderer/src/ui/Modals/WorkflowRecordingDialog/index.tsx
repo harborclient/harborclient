@@ -18,6 +18,7 @@ import {
   setWorkflowSaveNameModalOpen
 } from '#/renderer/src/store/slices/workflowsSlice';
 import { updateWorkflowActions } from '#/renderer/src/store/thunks/workflows';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { WorkflowPlayDialogTitle } from '#/renderer/src/ui/Modals/WorkflowRecordingDialog/WorkflowPlayDialogTitle';
 import { formatWorkflowDuration } from '#/renderer/src/workflows/formatWorkflowDuration';
@@ -411,9 +412,19 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   }, [dispatch, store]);
 
   /**
-   * Placeholder for the future run-results view; intentionally a no-op for now.
+   * Opens the workflow run results page tab for the current workflow.
    */
-  const handleOpenResults = useCallback((): void => {}, []);
+  const handleOpenResults = useCallback((): void => {
+    if (playbackWorkflow == null) {
+      return;
+    }
+    dispatch(
+      openPageTab({
+        type: 'workflow-run-results',
+        workflowUuid: playbackWorkflow.uuid
+      })
+    );
+  }, [dispatch, playbackWorkflow]);
 
   /**
    * Moves the playback cursor one step backward without dispatching.

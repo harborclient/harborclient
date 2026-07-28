@@ -506,6 +506,14 @@ export interface RequestRunOutcome {
    */
   executionEvents: ScriptExecutionEvent[];
   /**
+   * Final `hc.data` bag after pre/post scripts for this send.
+   */
+  data: Record<string, unknown>;
+  /**
+   * Cookie jar rows for the request host at send time.
+   */
+  cookies: KeyValue[];
+  /**
    * Aggregated script runtime errors, when any script failed.
    */
   scriptError?: string;
@@ -1082,6 +1090,8 @@ export async function executeRequestDraft(
       testResults: allTests,
       scriptLogs: allLogs,
       executionEvents: allExecutionEvents,
+      data: scriptData,
+      cookies: cookieRows.map((row) => ({ ...row })),
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
       scriptNextRequest,
@@ -1123,6 +1133,8 @@ export async function executeRequestDraft(
       testResults: allTests,
       scriptLogs: allLogs,
       executionEvents: allExecutionEvents,
+      data: scriptData,
+      cookies: cookieRows.map((row) => ({ ...row })),
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
       scriptSkipRequest: false,
@@ -1134,79 +1146,86 @@ export async function executeRequestDraft(
 
 /**
  * Sends the active tab request, running pre/post scripts and recording console output.
+ *
+ * @returns Completed send outcome, or null when the tab was missing / already sending.
  */
-export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiConfig>(
-  SEND_REQUEST_TYPE,
-  async (tabIdArg, { dispatch, getState }) => {
-    const state = getState();
-    const activeTab = tabIdArg
-      ? state.tabs.tabs.find((tab) => tab.tabId === tabIdArg)
-      : selectActiveTab(state);
-    if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) return;
+export const sendRequest = createAsyncThunk<
+  RequestRunOutcome | null,
+  string | undefined,
+  ThunkApiConfig
+>(SEND_REQUEST_TYPE, async (tabIdArg, { dispatch, getState }) => {
+  const state = getState();
+  const activeTab = tabIdArg
+    ? state.tabs.tabs.find((tab) => tab.tabId === tabIdArg)
+    : selectActiveTab(state);
+  if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) {
+    return null;
+  }
 
-    const tabId = activeTab.tabId;
-    const requestId = crypto.randomUUID();
+  const tabId = activeTab.tabId;
+  const requestId = crypto.randomUUID();
 
-    /**
-     * Returns whether the tab still owns the in-flight send.
-     */
-    const isRequestStillActive = (): boolean => {
-      const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
-      return tab != null && isRequestTab(tab) && tab.sendingRequestId === requestId;
-    };
+  /**
+   * Returns whether the tab still owns the in-flight send.
+   */
+  const isRequestStillActive = (): boolean => {
+    const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    return tab != null && isRequestTab(tab) && tab.sendingRequestId === requestId;
+  };
 
-    dispatch(
-      updateTab({
-        tabId,
-        updates: {
-          sending: true,
-          response: null,
-          testResults: [],
-          scriptLogs: [],
-          executionEvents: [],
-          scriptError: undefined,
-          scriptErrors: undefined,
-          scriptNextRequest: undefined,
-          scriptSkipRequest: false,
-          scriptWorkflowNextAction: undefined,
-          scriptWorkflowSkipAction: false,
-          sendingRequestId: requestId
-        }
-      })
+  dispatch(
+    updateTab({
+      tabId,
+      updates: {
+        sending: true,
+        response: null,
+        testResults: [],
+        scriptLogs: [],
+        executionEvents: [],
+        scriptError: undefined,
+        scriptErrors: undefined,
+        scriptNextRequest: undefined,
+        scriptSkipRequest: false,
+        scriptWorkflowNextAction: undefined,
+        scriptWorkflowSkipAction: false,
+        sendingRequestId: requestId
+      }
+    })
+  );
+
+  try {
+    const outcome = await executeRequestDraft(
+      { draft: activeTab.draft, requestId, requestTabId: tabId },
+      { dispatch, getState }
     );
 
-    try {
-      const outcome = await executeRequestDraft(
-        { draft: activeTab.draft, requestId, requestTabId: tabId },
-        { dispatch, getState }
+    if (isRequestStillActive()) {
+      dispatch(
+        updateTab({
+          tabId,
+          updates: {
+            response: outcome.response,
+            testResults: outcome.testResults,
+            scriptLogs: outcome.scriptLogs,
+            executionEvents: outcome.executionEvents,
+            scriptError: outcome.scriptError,
+            scriptErrors: outcome.scriptErrors,
+            scriptNextRequest: outcome.scriptNextRequest,
+            scriptSkipRequest: outcome.scriptSkipRequest,
+            scriptWorkflowNextAction: outcome.scriptWorkflowNextAction,
+            scriptWorkflowSkipAction: outcome.scriptWorkflowSkipAction
+          }
+        })
       );
+    }
 
-      if (isRequestStillActive()) {
-        dispatch(
-          updateTab({
-            tabId,
-            updates: {
-              response: outcome.response,
-              testResults: outcome.testResults,
-              scriptLogs: outcome.scriptLogs,
-              executionEvents: outcome.executionEvents,
-              scriptError: outcome.scriptError,
-              scriptErrors: outcome.scriptErrors,
-              scriptNextRequest: outcome.scriptNextRequest,
-              scriptSkipRequest: outcome.scriptSkipRequest,
-              scriptWorkflowNextAction: outcome.scriptWorkflowNextAction,
-              scriptWorkflowSkipAction: outcome.scriptWorkflowSkipAction
-            }
-          })
-        );
-      }
-    } finally {
-      if (isRequestStillActive()) {
-        dispatch(updateTab({ tabId, updates: { sending: false, sendingRequestId: null } }));
-      }
+    return outcome;
+  } finally {
+    if (isRequestStillActive()) {
+      dispatch(updateTab({ tabId, updates: { sending: false, sendingRequestId: null } }));
     }
   }
-);
+});
 
 /**
  * Cancels the in-flight HTTP request owned by a specific tab.

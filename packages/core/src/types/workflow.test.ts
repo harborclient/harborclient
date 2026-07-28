@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildWorkflowExport, normalizeWorkflowDelayMs, validateWorkflowExport } from './workflow';
+import { defaultAuth } from '../auth';
+import {
+  buildWorkflowExport,
+  buildWorkflowRunExport,
+  buildWorkflowRunRequestResult,
+  normalizeWorkflowDelayMs,
+  validateWorkflowExport
+} from './workflow';
 
 describe('normalizeWorkflowDelayMs', () => {
   it('floors finite non-negative numbers', () => {
@@ -46,6 +53,77 @@ describe('buildWorkflowExport', () => {
     expect(envelope.variables).toEqual({ env: 'qa' });
     expect(envelope.durationMs).toBe(12_500);
     expect(envelope.delayMs).toBe(250);
+  });
+});
+
+describe('buildWorkflowRunRequestResult', () => {
+  it('maps send outcome fields into the workflow-run request shape', () => {
+    const entry = buildWorkflowRunRequestResult({
+      name: 'My request',
+      uuid: 'req-uuid',
+      method: 'POST',
+      url: 'https://example.com/api',
+      headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
+      cookies: [{ key: 'session', value: 'abc', enabled: true }],
+      tags: 'alpha, beta',
+      comment: 'note',
+      body: '{"ok":true}',
+      authorization: defaultAuth(),
+      responseBody: '{"id":1}',
+      responseHeaders: { 'content-type': 'application/json' },
+      timeMs: 42,
+      sizeBytes: 8,
+      timing: { waitingMs: 20, downloadMs: 5 },
+      tests: [{ name: 'status is 200', passed: true }],
+      data: { token: 'xyz' }
+    });
+
+    expect(entry).toEqual({
+      name: 'My request',
+      uuid: 'req-uuid',
+      method: 'POST',
+      url: 'https://example.com/api',
+      headers: [{ key: 'Content-Type', value: 'application/json', enabled: true }],
+      cookies: [{ key: 'session', value: 'abc', enabled: true }],
+      notes: { tags: ['alpha', 'beta'], comment: 'note' },
+      body: '{"ok":true}',
+      authorization: defaultAuth(),
+      response: {
+        body: '{"id":1}',
+        headers: [{ key: 'content-type', value: 'application/json', enabled: true }],
+        timing: { totalTime: 42, size: 8, waitingMs: 20, downloadMs: 5 },
+        tests: [{ name: 'status is 200', passed: true }],
+        data: { token: 'xyz' }
+      }
+    });
+  });
+});
+
+describe('buildWorkflowRunExport', () => {
+  it('builds a workflow-run envelope with defaults', () => {
+    const envelope = buildWorkflowRunExport({
+      name: 'Morning checks',
+      actions: [{ target: 'active' }]
+    });
+
+    expect(envelope.harborclientVersion).toBe(1);
+    expect(envelope.harborclientExport).toBe('workflow-run');
+    expect(envelope.name).toBe('Morning checks');
+    expect(envelope.environment).toBe('');
+    expect(typeof envelope.date_created).toBe('string');
+    expect(envelope.actions).toEqual([{ target: 'active' }]);
+  });
+
+  it('preserves environment and date when provided', () => {
+    const envelope = buildWorkflowRunExport({
+      name: 'Run',
+      environment: 'env-uuid',
+      date_created: '2026-07-28T12:00:00.000Z',
+      actions: []
+    });
+
+    expect(envelope.environment).toBe('env-uuid');
+    expect(envelope.date_created).toBe('2026-07-28T12:00:00.000Z');
   });
 });
 

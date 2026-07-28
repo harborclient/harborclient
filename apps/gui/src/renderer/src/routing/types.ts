@@ -65,6 +65,11 @@ export interface PageMetaContext {
    * Primary run target label when the page is the collection runner.
    */
   runnerTargetName?: string;
+
+  /**
+   * Workflow display name when the page is workflow run results.
+   */
+  workflowName?: string;
 }
 
 /**

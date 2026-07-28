@@ -21,6 +21,7 @@ import {
   stepPlaybackCursor,
   stopPlayback
 } from './workflowPlayback';
+import { getWorkflowRunLog, getWorkflowRunLogMeta } from './workflowRunLog';
 import { mergeWorkflowDraftPayload } from './workflowPlaybackHelpers';
 import {
   getSessionEvents,
@@ -89,6 +90,7 @@ describe('workflowPlayback cursor', () => {
   afterEach(() => {
     resetWorkflowPlaybackForTests();
     resetWorkflowRecorderForTests();
+    vi.unstubAllGlobals();
   });
 
   it('clamps rewind and fast-forward without dispatching', () => {
@@ -291,6 +293,113 @@ describe('workflowPlayback cursor', () => {
 
     expect(played).toEqual([1, 3]);
     expect(getPlaybackIndex()).toBe(3);
+  });
+
+  it('records run-log entries in exact jump execution order', async () => {
+    const { noteWorkflowScriptDirectives } = await import('./workflowScriptContext');
+    const actions = [
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 3 })
+    ];
+    actions[0]!.uuid = 'act-0';
+    actions[1]!.uuid = 'act-1';
+    actions[2]!.uuid = 'act-2';
+
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId' && typed.payload === 1) {
+          noteWorkflowScriptDirectives({ workflowNextAction: 'act-2' });
+        }
+      }
+      return action;
+    });
+
+    loadPlayback(actions, 'wf-uuid');
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () =>
+        ({
+          workflows: { items: [{ uuid: 'wf-uuid', name: 'Jump run' }] },
+          environments: { activeEnvironmentId: null, environments: [] }
+        }) as never
+    });
+
+    const log = getWorkflowRunLog();
+    expect(getWorkflowRunLogMeta()?.name).toBe('Jump run');
+    expect(log.map((entry) => entry.action.uuid)).toEqual(['act-0', 'act-2']);
+    expect(log.map((entry) => entry.result)).toEqual([{ environmentId: 1 }, { environmentId: 3 }]);
+  });
+
+  it('auto-exports workflow results when a full run completes and a directory is set', async () => {
+    const writeTextInDirectory = vi.fn(
+      async (directory: string, fileName: string, content: string) => {
+        void directory;
+        void fileName;
+        void content;
+        return { path: '/tmp/out.json' };
+      }
+    );
+    vi.stubGlobal('window', { api: { writeTextInDirectory } });
+
+    const dispatch = vi.fn((action: unknown) => action);
+    loadPlayback([a('environment.activate', { environmentId: 1 })], 'wf-export');
+
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () =>
+        ({
+          workflows: { items: [{ uuid: 'wf-export', name: 'Export me' }] },
+          environments: { activeEnvironmentId: null, environments: [] },
+          settings: { general: { workflowResultsDirectory: '/tmp/workflow-results' } }
+        }) as never
+    });
+
+    expect(writeTextInDirectory).toHaveBeenCalledTimes(1);
+    expect(writeTextInDirectory.mock.calls[0]![0]).toBe('/tmp/workflow-results');
+    vi.unstubAllGlobals();
+  });
+
+  it('does not auto-export when the run is stopped early', async () => {
+    const writeTextInDirectory = vi.fn(async () => ({ path: '/tmp/out.json' }));
+    vi.stubGlobal('window', { api: { writeTextInDirectory } });
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const dispatch = vi.fn((action: unknown) => {
+      if (typeof action === 'function') {
+        const promise = gate.then(() => undefined);
+        return Object.assign(promise, { unwrap: () => gate });
+      }
+      return action;
+    });
+
+    loadPlayback(
+      [a('request.send', { target: 'active' }), a('environment.activate', { environmentId: 2 })],
+      'wf-stop'
+    );
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () =>
+        ({
+          workflows: { items: [{ uuid: 'wf-stop', name: 'Stop me' }] },
+          environments: { activeEnvironmentId: null, environments: [] },
+          settings: { general: { workflowResultsDirectory: '/tmp/workflow-results' } }
+        }) as never
+    });
+
+    await Promise.resolve();
+    stopPlayback();
+    release();
+    await playPromise;
+
+    expect(writeTextInDirectory).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it('falls forward when workflowNextAction uuid is unknown', async () => {

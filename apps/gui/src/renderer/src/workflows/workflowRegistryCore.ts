@@ -69,11 +69,12 @@ export interface WorkflowRegistryCoreEntry {
    *
    * @param action - Recorded workflow action (`type` + `payload`).
    * @param ctx - Dispatch / getState for resolving and applying the step.
+   * @returns Optional result harvested by the run log (e.g. request send outcome).
    */
   play: (
     action: { type: string; at?: number; payload: unknown },
     ctx: WorkflowPlayCtx
-  ) => void | Promise<void>;
+  ) => void | unknown | Promise<void | unknown>;
 
   /**
    * Builds the coalesce key for a candidate event.
@@ -220,10 +221,11 @@ export const WORKFLOW_REGISTRY_CORE: readonly WorkflowRegistryCoreEntry[] = [
      *
      * @param _action - Recorded request.send action.
      * @param ctx - Playback Redux context.
+     * @returns Completed send outcome for the workflow run log, or null when skipped.
      */
     play: async (_action, ctx) => {
       const { sendRequest } = await import('#/renderer/src/store/thunks/requests');
-      await ctx.dispatch(sendRequest()).unwrap();
+      return await ctx.dispatch(sendRequest()).unwrap();
     }
   },
   {

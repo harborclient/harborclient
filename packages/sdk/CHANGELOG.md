@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance workflow results management and response handling. (`6a092e2e`)
 - Add delayMs property to workflow management for enhanced playback control. (`eff9c395`)
 - Enhance workflow execution and metadata handling. (`1390072c`)
 - Enhance workflow action management with UUID integration. (`9647b650`)

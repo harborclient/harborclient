@@ -23,6 +23,7 @@ import {
 } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
+import { selectWorkflows } from '#/renderer/src/store/slices/workflowsSlice';
 
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
@@ -95,6 +96,7 @@ export function TabBar({
   const collections = useAppSelector(selectCollections);
   const allEnvironments = useAppSelector(selectEnvironments);
   const workspaces = useAppSelector(selectWorkspaces);
+  const workflows = useAppSelector(selectWorkflows);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
@@ -121,6 +123,7 @@ export function TabBar({
       let pluginIcon: string | undefined;
       let teamHubName: string | undefined;
       let runnerTargetName: string | undefined;
+      let workflowName: string | undefined;
 
       if (page.type === 'collection') {
         collectionName = collections.find((collection) => collection.id === page.id)?.name;
@@ -148,6 +151,8 @@ export function TabBar({
           );
           runnerTargetName = runnerTargetLabel(names);
         }
+      } else if (page.type === 'workflow-run-results') {
+        workflowName = workflows.find((workflow) => workflow.uuid === page.workflowUuid)?.name;
       } else if (page.type === 'hosted-main-view') {
         const view = getRegisteredMainViews().find(
           (entry) => entry.pluginId === page.pluginId && entry.contributionId === page.viewId
@@ -168,7 +173,8 @@ export function TabBar({
           pluginTitle,
           pluginIcon,
           teamHubName,
-          runnerTargetName
+          runnerTargetName,
+          workflowName
         })
       );
     }
@@ -179,6 +185,7 @@ export function TabBar({
     collections,
     allEnvironments,
     workspaces,
+    workflows,
     foldersByCollection,
     requestsByCollection,
     teamHubs

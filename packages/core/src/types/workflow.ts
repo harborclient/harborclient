@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import type { AuthConfig } from '../auth';
+import type { HttpMethod, KeyValue } from './common';
+import type { ScriptTestResult } from './script';
 
 /**
  * One recorded step inside a workflow session or portable export.
@@ -137,6 +140,285 @@ export interface UpdateWorkflowInput {
 }
 
 /**
+ * Notes block embedded in a workflow-run request result entry.
+ */
+export interface WorkflowRunRequestNotes {
+  /**
+   * Parsed request tags at send time.
+   */
+  tags: string[];
+
+  /**
+   * Free-form request comment at send time.
+   */
+  comment: string;
+}
+
+/**
+ * Timing summary for a workflow-run request response.
+ */
+export interface WorkflowRunRequestTiming {
+  /**
+   * Total round-trip time in milliseconds.
+   */
+  totalTime: number;
+
+  /**
+   * Response body size in bytes when known.
+   */
+  size?: number;
+
+  /**
+   * Optional stalled phase duration in milliseconds.
+   */
+  stalledMs?: number;
+
+  /**
+   * Optional connect phase duration in milliseconds.
+   */
+  connectMs?: number;
+
+  /**
+   * Optional request-sent phase duration in milliseconds.
+   */
+  requestSentMs?: number;
+
+  /**
+   * Optional waiting (TTFB) phase duration in milliseconds.
+   */
+  waitingMs?: number;
+
+  /**
+   * Optional download phase duration in milliseconds.
+   */
+  downloadMs?: number;
+}
+
+/**
+ * Response payload nested under a workflow-run request result entry.
+ */
+export interface WorkflowRunRequestResponse {
+  /**
+   * Response body as text, or base64 for binary / non-textual responses.
+   */
+  body: string;
+
+  /**
+   * Response headers as key/value rows.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Timing summary for the send.
+   */
+  timing: WorkflowRunRequestTiming;
+
+  /**
+   * hc.test assertion results from the send.
+   */
+  tests: ScriptTestResult[];
+
+  /**
+   * Final `hc.data` bag after pre/post scripts for this send.
+   */
+  data: Record<string, unknown>;
+}
+
+/**
+ * Request+response snapshot recorded when a workflow `request.send` action runs.
+ */
+export interface WorkflowRunRequestResult {
+  /**
+   * Display name of the request at send time.
+   */
+  name: string;
+
+  /**
+   * Portable request uuid when the tab was a saved request; empty otherwise.
+   */
+  uuid: string;
+
+  /**
+   * HTTP method used for the send.
+   */
+  method: HttpMethod;
+
+  /**
+   * Request URL used for the send (prefer fully resolved when available).
+   */
+  url: string;
+
+  /**
+   * Outgoing request headers as key/value rows.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Cookie jar rows applied for the request host at send time.
+   */
+  cookies: KeyValue[];
+
+  /**
+   * Request notes (tags and comment) at send time.
+   */
+  notes: WorkflowRunRequestNotes;
+
+  /**
+   * Request body as sent / drafted.
+   */
+  body: string;
+
+  /**
+   * Authorization config on the draft at send time.
+   */
+  authorization: AuthConfig;
+
+  /**
+   * Response, tests, timing, and `hc.data` from the completed send.
+   */
+  response: WorkflowRunRequestResponse;
+}
+
+/**
+ * One entry in a workflow-run results export.
+ *
+ * Request sends use {@link WorkflowRunRequestResult}; other actions store their
+ * recorded payload value directly.
+ */
+export type WorkflowRunActionResult = WorkflowRunRequestResult | unknown;
+
+/**
+ * Portable HarborClient workflow-run results export envelope.
+ */
+export interface WorkflowRunExport {
+  /**
+   * HarborClient export schema version.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying this file as a workflow-run results export.
+   */
+  harborclientExport: 'workflow-run';
+
+  /**
+   * Display name of the workflow that was run.
+   */
+  name: string;
+
+  /**
+   * Active environment uuid at run start, or empty when none was active.
+   */
+  environment: string;
+
+  /**
+   * ISO-8601 timestamp when the run started.
+   */
+  date_created: string;
+
+  /**
+   * Actions in exact execution order (including jumps / repeats).
+   */
+  actions: WorkflowRunActionResult[];
+}
+
+/**
+ * Input for building a {@link WorkflowRunRequestResult} from a completed send.
+ */
+export interface BuildWorkflowRunRequestResultInput {
+  /**
+   * Display name of the request.
+   */
+  name: string;
+
+  /**
+   * Portable request uuid, or empty when unsaved.
+   */
+  uuid: string;
+
+  /**
+   * HTTP method.
+   */
+  method: HttpMethod;
+
+  /**
+   * Request URL.
+   */
+  url: string;
+
+  /**
+   * Outgoing headers.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Cookies applied for the request host.
+   */
+  cookies: KeyValue[];
+
+  /**
+   * Comma-separated or already-parsed tags; normalized to a string array.
+   */
+  tags: string | string[];
+
+  /**
+   * Free-form request comment.
+   */
+  comment: string;
+
+  /**
+   * Request body text.
+   */
+  body: string;
+
+  /**
+   * Authorization config.
+   */
+  authorization: AuthConfig;
+
+  /**
+   * Response body text.
+   */
+  responseBody: string;
+
+  /**
+   * Response headers as a flat map or key/value rows.
+   */
+  responseHeaders: Record<string, string> | KeyValue[];
+
+  /**
+   * Total round-trip time in milliseconds.
+   */
+  timeMs: number;
+
+  /**
+   * Response body size in bytes.
+   */
+  sizeBytes?: number;
+
+  /**
+   * Optional phase timing breakdown.
+   */
+  timing?: {
+    stalledMs?: number;
+    connectMs?: number;
+    requestSentMs?: number;
+    waitingMs?: number;
+    downloadMs?: number;
+  };
+
+  /**
+   * hc.test results from the send.
+   */
+  tests: ScriptTestResult[];
+
+  /**
+   * Final `hc.data` bag.
+   */
+  data: Record<string, unknown>;
+}
+
+/**
  * Portable HarborClient workflow export envelope.
  */
 export interface WorkflowExport {
@@ -251,4 +533,108 @@ export function normalizeWorkflowDelayMs(value: unknown): number {
     return 0;
   }
   return Math.floor(numeric);
+}
+
+/**
+ * Converts a flat header map into key/value rows for workflow-run exports.
+ *
+ * @param headers - Flat response header map.
+ * @returns Key/value rows preserving map insertion order.
+ */
+function headersRecordToKeyValues(headers: Record<string, string>): KeyValue[] {
+  return Object.entries(headers).map(([key, value]) => ({ key, value, enabled: true }));
+}
+
+/**
+ * Normalizes tags input into a string array for workflow-run request notes.
+ *
+ * @param tags - Comma-separated string or already-parsed tags.
+ * @returns Trimmed non-empty tag strings.
+ */
+function normalizeWorkflowRunTags(tags: string | string[]): string[] {
+  if (Array.isArray(tags)) {
+    return tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+  }
+  return tags
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+}
+
+/**
+ * Builds a request+response entry for a workflow-run results export.
+ *
+ * @param input - Draft and send outcome fields captured at playback time.
+ * @returns Portable request result entry.
+ */
+export function buildWorkflowRunRequestResult(
+  input: BuildWorkflowRunRequestResultInput
+): WorkflowRunRequestResult {
+  const responseHeaders = Array.isArray(input.responseHeaders)
+    ? input.responseHeaders.map((row) => ({ ...row }))
+    : headersRecordToKeyValues(input.responseHeaders);
+
+  const timing: WorkflowRunRequestTiming = {
+    totalTime: input.timeMs,
+    ...(input.sizeBytes != null ? { size: input.sizeBytes } : {})
+  };
+  if (input.timing?.stalledMs != null) {
+    timing.stalledMs = input.timing.stalledMs;
+  }
+  if (input.timing?.connectMs != null) {
+    timing.connectMs = input.timing.connectMs;
+  }
+  if (input.timing?.requestSentMs != null) {
+    timing.requestSentMs = input.timing.requestSentMs;
+  }
+  if (input.timing?.waitingMs != null) {
+    timing.waitingMs = input.timing.waitingMs;
+  }
+  if (input.timing?.downloadMs != null) {
+    timing.downloadMs = input.timing.downloadMs;
+  }
+
+  return {
+    name: input.name,
+    uuid: input.uuid,
+    method: input.method,
+    url: input.url,
+    headers: input.headers.map((row) => ({ ...row })),
+    cookies: input.cookies.map((row) => ({ ...row })),
+    notes: {
+      tags: normalizeWorkflowRunTags(input.tags),
+      comment: input.comment
+    },
+    body: input.body,
+    authorization: structuredClone(input.authorization),
+    response: {
+      body: input.responseBody,
+      headers: responseHeaders,
+      timing,
+      tests: input.tests.map((test) => ({ ...test })),
+      data: { ...input.data }
+    }
+  };
+}
+
+/**
+ * Builds a portable workflow-run results export envelope.
+ *
+ * @param input - Run metadata and ordered action results.
+ * @returns Workflow-run export object.
+ */
+export function buildWorkflowRunExport(input: {
+  name: string;
+  environment?: string;
+  date_created?: string;
+  actions: WorkflowRunActionResult[];
+}): WorkflowRunExport {
+  return {
+    harborclientVersion: 1,
+    harborclientExport: 'workflow-run',
+    name: input.name,
+    environment: input.environment ?? '',
+    date_created: input.date_created ?? new Date().toISOString(),
+    actions: input.actions
+  };
 }

@@ -3,7 +3,8 @@ import type {
   PemExportResult,
   SaveTextFileResult,
   SharingIdentity,
-  TrustedSharingKey
+  TrustedSharingKey,
+  WriteTextInDirectoryResult
 } from '../sharing';
 
 /**
@@ -70,4 +71,18 @@ export interface ApiSharing {
    * @param defaultPath - Suggested filename for the save dialog.
    */
   saveTextFile: (content: string, defaultPath: string) => Promise<SaveTextFileResult>;
+  /**
+   * Writes UTF-8 text into a directory using a basename, avoiding path traversal.
+   *
+   * When the preferred filename already exists, appends `-2`, `-3`, … before the extension.
+   *
+   * @param directory - Absolute destination directory.
+   * @param fileName - Basename only (no directory separators).
+   * @param content - UTF-8 text to write.
+   */
+  writeTextInDirectory: (
+    directory: string,
+    fileName: string,
+    content: string
+  ) => Promise<WriteTextInDirectoryResult>;
 }

@@ -28,6 +28,7 @@ import { GeneralAllowScriptNetworkRequestsField } from '../fields/GeneralAllowSc
 import { GeneralAllowScriptFileReadField } from '../fields/GeneralAllowScriptFileReadField';
 import { GeneralAllowScriptFileWriteField } from '../fields/GeneralAllowScriptFileWriteField';
 import { GeneralScriptFileRootField } from '../fields/GeneralScriptFileRootField';
+import { GeneralWorkflowResultsDirectoryField } from '../fields/GeneralWorkflowResultsDirectoryField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
 import { ProxyAuthEnabledField } from '../fields/ProxyAuthEnabledField';
 import { ProxyEnabledField } from '../fields/ProxyEnabledField';
@@ -76,6 +77,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.allowScriptFileRead': GeneralAllowScriptFileReadField,
   'general.allowScriptFileWrite': GeneralAllowScriptFileWriteField,
   'general.scriptFileRoot': GeneralScriptFileRootField,
+  'general.workflowResultsDirectory': GeneralWorkflowResultsDirectoryField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,

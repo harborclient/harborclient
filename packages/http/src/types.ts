@@ -284,7 +284,8 @@ export interface SendResult {
   body: string;
 
   /**
-   * Base64-encoded response body for image responses only; omitted for other content types.
+   * Base64-encoded response body for binary / non-textual responses (images, PDF, zip, etc.);
+   * omitted for JSON, text-ish, and HTML-ish bodies.
    */
   bodyBase64?: string;
 

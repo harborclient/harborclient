@@ -18,7 +18,7 @@ import {
   selectRequestsByCollection
 } from '#/renderer/src/store/selectors';
 import { resolveRunnerTargetNames } from '#/renderer/src/ui/Tabs/CollectionRunner/resolveRunnerTargetName';
-import { isImageResponse } from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { isBinaryResponse } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
 /** Sequence counter disambiguating ids captured within the same millisecond. */
 let entrySequence = 0;
@@ -63,7 +63,7 @@ export function buildRequestHistoryEntry(
   result: SendResult
 ): RequestHistoryEntry {
   const pluginRequest = toPluginHttpRequest(sendInput);
-  const binaryResponse = isImageResponse(result.headers);
+  const binaryResponse = isBinaryResponse(result);
 
   return normalizeRequestHistoryEntry({
     id: nextRequestHistoryEntryId(),

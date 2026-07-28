@@ -261,6 +261,13 @@ export type PageRef =
       requestIds?: number[] | null;
     }
   | {
+      type: 'workflow-run-results';
+      /**
+       * Portable workflow uuid whose in-memory run log this page displays.
+       */
+      workflowUuid: string;
+    }
+  | {
       type: 'plugin-detail';
       kind: PluginDetailPageKind;
       source: PluginDetailPageSource;

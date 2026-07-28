@@ -70,6 +70,7 @@ import type {
   SendRequestInput,
   SendResult,
   SaveTextFileResult,
+  WriteTextInDirectoryResult,
   TeamHub,
   TeamHubSessionScanResult,
   TeamHubInvitationRedeemResult,
@@ -3462,6 +3463,21 @@ function saveTextFile(content: string, defaultPath: string): Promise<SaveTextFil
 }
 
 /**
+ * Writes UTF-8 text into a directory using a basename (no save dialog).
+ *
+ * @param directory - Absolute destination directory.
+ * @param fileName - Basename only.
+ * @param content - UTF-8 text to write.
+ */
+function writeTextInDirectory(
+  directory: string,
+  fileName: string,
+  content: string
+): Promise<WriteTextInDirectoryResult> {
+  return ipcRenderer.invoke('files:writeTextInDirectory', directory, fileName, content);
+}
+
+/**
  * Exports all local HarborClient data to a `.hcb` backup file.
  *
  * @param localStorage - Renderer localStorage snapshot to embed in the archive.
@@ -4429,6 +4445,7 @@ const api: Api = {
   importTrustedPublicKey,
   removeTrustedKey,
   saveTextFile,
+  writeTextInDirectory,
   listCustomThemes,
   getCustomTheme,
   saveCustomTheme,

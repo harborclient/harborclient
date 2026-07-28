@@ -30,6 +30,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   allowScriptFileRead: false,
   allowScriptFileWrite: false,
   scriptFileRoot: '',
+  workflowResultsDirectory: '',
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
@@ -270,6 +271,10 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     allowScriptFileRead: input.allowScriptFileRead === true,
     allowScriptFileWrite: input.allowScriptFileWrite === true,
     scriptFileRoot: typeof input.scriptFileRoot === 'string' ? input.scriptFileRoot.trim() : '',
+    workflowResultsDirectory:
+      typeof input.workflowResultsDirectory === 'string'
+        ? input.workflowResultsDirectory.trim()
+        : '',
     maxResponseSizeMb: Math.min(
       normalizeNonNegativeNumber(
         input.maxResponseSizeMb,

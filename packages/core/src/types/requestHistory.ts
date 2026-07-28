@@ -92,7 +92,7 @@ export interface RequestHistoryEntry {
 
   /**
    * Response body text captured at send time for Diff against later responses.
-   * Omitted for image/binary responses and for older history rows.
+   * Omitted for binary responses (when `bodyBase64` is set) and for older history rows.
    */
   responseBody?: string;
 

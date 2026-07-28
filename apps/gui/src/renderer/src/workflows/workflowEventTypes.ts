@@ -112,11 +112,12 @@ export interface WorkflowRegistryEntry {
    *
    * @param action - Recorded workflow action (`type` + `payload`).
    * @param ctx - Dispatch / getState for resolving and applying the step.
+   * @returns Optional result harvested by the run log (e.g. request send outcome).
    */
   play: (
     action: { type: string; at?: number; payload: unknown },
     ctx: WorkflowPlayCtx
-  ) => void | Promise<void>;
+  ) => void | unknown | Promise<void | unknown>;
 
   /**
    * Builds the coalesce key for a candidate event. Consecutive events with the same

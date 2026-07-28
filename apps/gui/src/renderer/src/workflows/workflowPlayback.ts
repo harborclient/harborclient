@@ -11,6 +11,17 @@ import {
   takeWorkflowScriptDirectives
 } from './workflowScriptContext';
 import { setWorkflowRecordingMuted } from './workflowRecorder';
+import {
+  appendWorkflowRunLogEntry,
+  beginWorkflowRunLog,
+  resetWorkflowRunLogForTests
+} from './workflowRunLog';
+import { buildWorkflowRunRequestResultFromSend } from './buildWorkflowRunRequestResultFromSend';
+import { exportCompletedWorkflowRunIfConfigured } from './exportCompletedWorkflowRunIfConfigured';
+import type { RequestRunOutcome } from '#/renderer/src/store/thunks/requests';
+import { isRequestTab } from '#/renderer/src/store/tabs';
+import { selectActiveTab } from '#/renderer/src/store/selectors';
+import { resolveEnvironmentUuid } from './workflowIdentity';
 
 type PlaybackListener = () => void;
 
@@ -393,6 +404,10 @@ export function getPlaybackRegistryEntry(eventType: string): WorkflowRegistryCor
  * When {@link delayMs} is greater than zero, waits that long after each completed
  * step before advancing to the next action.
  *
+ * When starting from index 0, clears and reseeds the workflow run log so Results
+ * reflects this run's exact execution order (including jumps). When a full run
+ * started from index 0 finishes naturally, auto-exports results when configured.
+ *
  * @param ctx - Redux dispatch / getState for play handlers.
  * @returns Resolves when stopped or finished; rejects when a step fails.
  */
@@ -403,11 +418,26 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
 
   const generation = ++playGeneration;
   const startIndex = index;
+  const startedFromBeginning = startIndex === 0;
   const baseAt = actions[startIndex]?.at;
   const segmentWallStart = Date.now();
   playing = true;
   segmentStartedAt = segmentWallStart;
   notifyPlaybackListeners();
+
+  if (startedFromBeginning) {
+    const state = ctx.getState();
+    const workflow = state.workflows?.items?.find((item) => item.uuid === workflowUuid);
+    const activeEnvironmentId = state.environments?.activeEnvironmentId ?? null;
+    const environmentUuid =
+      state.environments != null ? resolveEnvironmentUuid(state, activeEnvironmentId) : null;
+    beginWorkflowRunLog({
+      workflowUuid,
+      name: workflow?.name ?? 'Workflow',
+      environment: environmentUuid ?? '',
+      date_created: new Date().toISOString()
+    });
+  }
 
   try {
     while (playing && generation === playGeneration && index < actions.length) {
@@ -436,8 +466,9 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
         workflowActionId: action.uuid,
         workflowActionIteration: index
       });
+      let playResult: unknown;
       try {
-        await entry.play(action, ctx);
+        playResult = await entry.play(action, ctx);
       } finally {
         endWorkflowActionScriptContext();
       }
@@ -445,6 +476,8 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
       if (!playing || generation !== playGeneration) {
         return;
       }
+
+      appendWorkflowRunLogEntry(action, resolveWorkflowRunLogResult(action, playResult, ctx));
 
       const directives = workflowUuid ? takeWorkflowScriptDirectives() : {};
       const nextIndex = resolveWorkflowNextIndex(actions, index, directives.workflowNextAction);
@@ -474,8 +507,58 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
   }
 
   if (playing && generation === playGeneration) {
+    const completedFullRun = startedFromBeginning && index >= actions.length && actions.length > 0;
     stopPlayback();
+    if (completedFullRun) {
+      await exportCompletedWorkflowRunIfConfigured(ctx.getState);
+    }
   }
+}
+
+/**
+ * Resolves the run-log result entry for a completed playback step.
+ *
+ * @param action - Workflow action that just played.
+ * @param playResult - Value returned by the registry play handler.
+ * @param ctx - Playback Redux context for draft lookup on request sends.
+ * @returns Export entry for the run log.
+ */
+function resolveWorkflowRunLogResult(
+  action: WorkflowAction,
+  playResult: unknown,
+  ctx: WorkflowPlayCtx
+): unknown {
+  if (action.type !== 'request.send') {
+    return action.payload;
+  }
+
+  if (!isRequestRunOutcome(playResult)) {
+    return action.payload;
+  }
+
+  const activeTab = selectActiveTab(ctx.getState());
+  if (activeTab == null || !isRequestTab(activeTab)) {
+    return action.payload;
+  }
+
+  return buildWorkflowRunRequestResultFromSend(activeTab.draft, playResult, ctx.getState());
+}
+
+/**
+ * Returns whether a play-handler return value is a request send outcome.
+ *
+ * @param value - Unknown play result.
+ * @returns True when the value looks like {@link RequestRunOutcome}.
+ */
+function isRequestRunOutcome(value: unknown): value is RequestRunOutcome {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    'response' in value &&
+    'testResults' in value &&
+    'data' in value &&
+    'cookies' in value
+  );
 }
 
 /**
@@ -496,4 +579,5 @@ export function resetWorkflowPlaybackForTests(): void {
   setWorkflowRecordingMuted(false);
   playbackListeners.clear();
   resetWorkflowScriptContextForTests();
+  resetWorkflowRunLogForTests();
 }

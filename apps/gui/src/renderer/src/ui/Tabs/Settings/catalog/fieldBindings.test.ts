@@ -46,6 +46,7 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
   'general.spellCheckEnabled',
   'general.logFilePath',
   'general.trustedDomains',
+  'general.workflowResultsDirectory',
   'proxy.enabled',
   'proxy.protocol',
   'proxy.host',
@@ -116,7 +117,7 @@ function createDraftDispatch(draft: {
 
 describe('SETTING_FIELD_BINDINGS', () => {
   it('registers a binding for every SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(32);
+    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(33);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
       [...SETTINGS_FIELD_REGISTRY_IDS].sort()
     );

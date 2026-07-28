@@ -9,6 +9,7 @@ import {
   parseDataUrl,
   resolveImageMime
 } from '#/main/ipc/handlers/imageFileHelpers';
+import { resolveAvailableWritePathInDirectory } from '#/main/ipc/handlers/writeTextInDirectory';
 
 /**
  * Opens a save dialog and returns the chosen path, or null when canceled.
@@ -124,6 +125,17 @@ export function registerFileHandlers(): void {
     await writeFile(filePath, content, 'utf-8');
     return { canceled: false, path: filePath };
   });
+
+  // Writes UTF-8 text into a directory using a basename, with collision suffixes.
+  handle(
+    'files:writeTextInDirectory',
+    ipcArgSchemas.writeTextInDirectory,
+    async (_event, directory, fileName, content) => {
+      const filePath = await resolveAvailableWritePathInDirectory(directory, fileName);
+      await writeFile(filePath, content, 'utf-8');
+      return { path: filePath };
+    }
+  );
 
   // Reads a local image file and returns a data URL for the renderer viewer.
   handle('files:readImageDataUrl', ipcArgSchemas.readImageDataUrl, async (_event, filePath) => {

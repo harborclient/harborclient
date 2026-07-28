@@ -18,6 +18,7 @@ import { lineNumberAtOffset } from '#/renderer/src/ui/Main/RequestEditor/Editor/
 import {
   formatBody,
   formatBytes,
+  isBinaryResponse,
   isImageResponse
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
@@ -117,6 +118,15 @@ function buildBodyContent(response: SendResult): {
       'image';
     return {
       content: `Image response (${contentType}, ${formatBytes(response.sizeBytes)}). Binary body omitted.`
+    };
+  }
+
+  if (isBinaryResponse(response)) {
+    const contentType =
+      Object.entries(response.headers).find(([key]) => key.toLowerCase() === 'content-type')?.[1] ??
+      'application/octet-stream';
+    return {
+      content: `Binary response (${contentType}, ${formatBytes(response.sizeBytes)}). Base64 body omitted.`
     };
   }
 
