@@ -9,6 +9,7 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   openWorkflowPlayDialog,
+  openWorkflowRunDialog,
   selectPlaybackWorkflowId,
   selectWorkflowDialogMode,
   selectWorkflows
@@ -16,6 +17,7 @@ import {
 import { deleteWorkflow, exportWorkflow } from '#/renderer/src/store/thunks/workflows';
 import { faDiagramProject } from '#/renderer/src/fontawesome';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import {
   sortSidebarItems,
   toSortTimestamp
@@ -31,7 +33,7 @@ import {
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 
 /**
- * Workflows sidebar section listing saved recordings with export and delete actions.
+ * Workflows sidebar section listing saved recordings with run, edit, copy-id, export, and delete actions.
  */
 export function Workflows(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -79,32 +81,61 @@ export function Workflows(): JSX.Element {
   );
 
   /**
-   * Opens play mode for a workflow, discarding an unsaved recording session when needed.
+   * Confirms discard of an unsaved recording, then stops any active playback session.
    *
-   * @param workflow - Workflow to play.
+   * @returns True when the caller may open another workflow dialog.
+   */
+  const prepareOpenWorkflowDialog = useCallback(async (): Promise<boolean> => {
+    const hasUnsavedRecording = isRecording() || getSessionEvents().length > 0;
+    if (hasUnsavedRecording) {
+      const confirmed = await confirm({
+        title: 'Discard recording?',
+        message: 'Opening a workflow will discard the unsaved recording session.',
+        confirmLabel: 'Discard',
+        variant: 'danger'
+      });
+      if (!confirmed) {
+        return false;
+      }
+      stopRecording();
+      clearSession();
+    }
+
+    stopPlayback();
+    clearPlayback();
+    return true;
+  }, [confirm]);
+
+  /**
+   * Opens the compact run dialog for a workflow, discarding an unsaved recording when needed.
+   *
+   * @param workflow - Workflow to run.
+   */
+  const handleOpenRun = useCallback(
+    async (workflow: Workflow): Promise<void> => {
+      const ready = await prepareOpenWorkflowDialog();
+      if (!ready) {
+        return;
+      }
+      dispatch(openWorkflowRunDialog(workflow.id));
+    },
+    [dispatch, prepareOpenWorkflowDialog]
+  );
+
+  /**
+   * Opens the timeline editor (play mode) for a workflow, discarding an unsaved recording when needed.
+   *
+   * @param workflow - Workflow to edit.
    */
   const handleOpenPlayback = useCallback(
     async (workflow: Workflow): Promise<void> => {
-      const hasUnsavedRecording = isRecording() || getSessionEvents().length > 0;
-      if (hasUnsavedRecording) {
-        const confirmed = await confirm({
-          title: 'Discard recording?',
-          message: 'Opening a workflow will discard the unsaved recording session.',
-          confirmLabel: 'Discard',
-          variant: 'danger'
-        });
-        if (!confirmed) {
-          return;
-        }
-        stopRecording();
-        clearSession();
+      const ready = await prepareOpenWorkflowDialog();
+      if (!ready) {
+        return;
       }
-
-      stopPlayback();
-      clearPlayback();
       dispatch(openWorkflowPlayDialog(workflow.id));
     },
-    [confirm, dispatch]
+    [dispatch, prepareOpenWorkflowDialog]
   );
 
   return (
@@ -112,7 +143,8 @@ export function Workflows(): JSX.Element {
       {workflows.length === 0 ? <EmptySectionLabel label="No workflows" /> : null}
       {workflows.map((workflow) => {
         const menuId = `workflow-${workflow.id}`;
-        const selected = dialogMode === 'play' && playbackWorkflowId === workflow.id;
+        const selected =
+          (dialogMode === 'play' || dialogMode === 'run') && playbackWorkflowId === workflow.id;
         return (
           <SidebarWorkspaceItem
             key={workflow.id}
@@ -127,6 +159,13 @@ export function Workflows(): JSX.Element {
                 onOpenChange={setOpenMenuId}
                 groups={[
                   [
+                    {
+                      label: 'Edit',
+                      onSelect: () => {
+                        void handleOpenPlayback(workflow);
+                      }
+                    },
+                    buildCopyIdMenuItem(workflow.uuid),
                     {
                       label: 'Export',
                       onSelect: () => {
@@ -148,7 +187,7 @@ export function Workflows(): JSX.Element {
             }
             onClick={(event: MouseEvent) => {
               event.preventDefault();
-              void handleOpenPlayback(workflow);
+              void handleOpenRun(workflow);
             }}
             onContextMenu={(event: MouseEvent) => {
               event.preventDefault();

@@ -4,6 +4,7 @@ import type {
   Variable,
   KeyValue
 } from '@harborclient/core/types';
+import { variableKeyIsCleared } from '@harborclient/core/scripting/variableClearMatch';
 import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import type { ScriptRef, Snippet } from '@harborclient/core/types';
 import { buildScopedScriptSlots, type ScriptSlot } from './scriptResolution';
@@ -59,8 +60,11 @@ export function mergeVariableSets(
 /**
  * Removes cleared keys from a runtime variable map.
  *
+ * Clear entries may be exact keys or `namespace.*` patterns from
+ * `hc.*.variables.clear` / `hc.globals.clear`.
+ *
  * @param runtimeVars - Current runtime variables.
- * @param clears - Keys removed via hc.*.variables.clear or hc.globals.clear during send.
+ * @param clears - Exact keys or `namespace.*` patterns removed during send.
  * @returns Updated runtime variable map without cleared keys.
  */
 export function applyRuntimeVariableClears(
@@ -70,10 +74,12 @@ export function applyRuntimeVariableClears(
   if (clears.length === 0) {
     return runtimeVars;
   }
-  const clearSet = new Set(clears.map((key) => key.trim()).filter(Boolean));
+  const clearEntries = clears.map((key) => key.trim()).filter(Boolean);
   const next = { ...runtimeVars };
-  for (const key of clearSet) {
-    delete next[key];
+  for (const key of Object.keys(next)) {
+    if (variableKeyIsCleared(key, clearEntries)) {
+      delete next[key];
+    }
   }
   return next;
 }
@@ -81,16 +87,21 @@ export function applyRuntimeVariableClears(
 /**
  * Removes cleared keys from a persisted variable list.
  *
+ * Clear entries may be exact keys or `namespace.*` patterns. Matching is
+ * case-insensitive to match historical persist behavior.
+ *
  * @param variables - Current collection, environment, or global variable rows.
- * @param clears - Keys removed via hc.*.variables.clear or hc.globals.clear during send.
+ * @param clears - Exact keys or `namespace.*` patterns removed during send.
  * @returns Variable list with cleared keys removed.
  */
 export function applyVariableClears(variables: Variable[], clears: string[]): Variable[] {
   if (clears.length === 0) {
     return variables;
   }
-  const clearSet = new Set(clears.map((key) => key.trim().toLowerCase()).filter(Boolean));
-  return variables.filter((variable) => !clearSet.has(variable.key.trim().toLowerCase()));
+  const clearEntries = clears.map((key) => key.trim()).filter(Boolean);
+  return variables.filter(
+    (variable) => !variableKeyIsCleared(variable.key, clearEntries, { caseInsensitive: true })
+  );
 }
 
 /**

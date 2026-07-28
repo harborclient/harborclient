@@ -34,6 +34,7 @@ import type {
   ScriptJsonWriteOptions
 } from './scriptFileOperations';
 import { resolveStackToOriginalLocation, type ScriptCompileMap } from './scriptSourceMap';
+import { variableKeyIsCleared } from './variableClearMatch';
 
 /**
  * Context fields passed into the hc sandbox without user script source.
@@ -112,6 +113,8 @@ interface ScriptApiState {
   phase: ScriptPhase;
   nextRequest: string | null | undefined;
   skipRequest: boolean;
+  workflowNextAction: string | undefined;
+  workflowSkipAction: boolean;
   data: Record<string, unknown>;
 }
 
@@ -143,9 +146,13 @@ export interface ScriptApi {
 /**
  * Builds a variable bag with get, set, and clear keyed by name.
  *
+ * Clear accepts an exact key or a `namespace.*` pattern that removes every key
+ * under that prefix for the remainder of the script run (and for persistence on
+ * non-request scopes).
+ *
  * @param scope - Variable scope label recorded in execution events.
  * @param getSets - Returns the mutable set map for this scope.
- * @param getClears - Returns the mutable clear set for this scope.
+ * @param getClears - Returns the mutable clear set for this scope (exact keys or `namespace.*`).
  * @param getFallback - Resolves values from the merged runtime variable map.
  * @param emit - Appends a variable execution event in call order.
  * @returns Variable bag API shared by request, collection, environment, and global scopes.
@@ -168,7 +175,7 @@ function makeVariableBag(
       if (Object.prototype.hasOwnProperty.call(sets, k)) {
         return sets[k];
       }
-      if (getClears().has(k)) {
+      if (variableKeyIsCleared(k, getClears())) {
         return undefined;
       }
       return getFallback(k);
@@ -180,7 +187,7 @@ function makeVariableBag(
       let priorValue: string | undefined;
       if (Object.prototype.hasOwnProperty.call(sets, k)) {
         priorValue = sets[k];
-      } else if (clears.has(k)) {
+      } else if (variableKeyIsCleared(k, clears)) {
         priorValue = undefined;
       } else {
         priorValue = getFallback(k);
@@ -205,7 +212,12 @@ function makeVariableBag(
         action: 'clear',
         key: k
       });
-      delete getSets()[k];
+      const sets = getSets();
+      for (const setKey of Object.keys(sets)) {
+        if (variableKeyIsCleared(setKey, [k])) {
+          delete sets[setKey];
+        }
+      }
       getClears().add(k);
     }
   };
@@ -629,6 +641,8 @@ export function createScriptApi(
     phase: input.phase,
     nextRequest: undefined,
     skipRequest: false,
+    workflowNextAction: undefined,
+    workflowSkipAction: false,
     data: input.data ? { ...input.data } : {}
   };
 
@@ -636,7 +650,7 @@ export function createScriptApi(
     if (Object.prototype.hasOwnProperty.call(state.variableSets, key)) {
       return state.variableSets[key];
     }
-    if (state.variableClears.has(key)) {
+    if (variableKeyIsCleared(key, state.variableClears)) {
       return undefined;
     }
     return state.variables[key];
@@ -669,6 +683,15 @@ export function createScriptApi(
       },
       get iteration() {
         return info.iteration;
+      },
+      get workflowId() {
+        return info.workflowId;
+      },
+      get workflowActionId() {
+        return info.workflowActionId;
+      },
+      get workflowActionIteration() {
+        return info.workflowActionIteration;
       }
     },
     request: {
@@ -708,7 +731,7 @@ export function createScriptApi(
             if (Object.prototype.hasOwnProperty.call(state.variableSets, key)) {
               return state.variableSets[key];
             }
-            if (state.variableClears.has(key)) {
+            if (variableKeyIsCleared(key, state.variableClears)) {
               return undefined;
             }
             if (Object.prototype.hasOwnProperty.call(state.variables, key)) {
@@ -805,6 +828,37 @@ export function createScriptApi(
         emitExecutionEvent({
           type: 'flow',
           action: 'skip-request'
+        });
+      },
+      /**
+       * Jumps to a workflow action by UUID after the current action finishes.
+       * No-op when the script is not running inside a workflow.
+       *
+       * @param actionId - Target workflow action UUID.
+       */
+      workflowNextAction: (actionId: unknown) => {
+        if (!info.workflowId) {
+          return;
+        }
+        state.workflowNextAction = String(actionId);
+        emitExecutionEvent({
+          type: 'flow',
+          action: 'workflow-next-action',
+          workflowNextAction: state.workflowNextAction
+        });
+      },
+      /**
+       * Skips the remainder of the current workflow action and advances to the next.
+       * No-op when the script is not running inside a workflow.
+       */
+      workflowSkipAction: () => {
+        if (!info.workflowId) {
+          return;
+        }
+        state.workflowSkipAction = true;
+        emitExecutionEvent({
+          type: 'flow',
+          action: 'workflow-skip-action'
         });
       }
     },
@@ -1026,6 +1080,8 @@ export function createScriptApi(
       folderAuth: state.folderAuth,
       nextRequest: state.nextRequest,
       skipRequest: state.skipRequest || undefined,
+      workflowNextAction: state.workflowNextAction,
+      workflowSkipAction: state.workflowSkipAction || undefined,
       tests: state.tests ?? [],
       logs: state.logs ?? [],
       executionEvents: state.executionEvents ?? [],

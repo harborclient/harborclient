@@ -3,6 +3,13 @@ import type { WorkflowPlayCtx } from './workflowEventTypes';
 import type { WorkflowRegistryCoreEntry } from './workflowRegistryCore';
 import { WORKFLOW_REGISTRY_CORE } from './workflowRegistryCore';
 import { buildWorkflowPlaybackMap } from './utils';
+import { resolveWorkflowNextIndex } from './resolveWorkflowNextIndex';
+import {
+  beginWorkflowActionScriptContext,
+  endWorkflowActionScriptContext,
+  resetWorkflowScriptContextForTests,
+  takeWorkflowScriptDirectives
+} from './workflowScriptContext';
 import { setWorkflowRecordingMuted } from './workflowRecorder';
 
 type PlaybackListener = () => void;
@@ -19,6 +26,8 @@ let elapsedMs = 0;
 let segmentStartedAt: number | null = null;
 let sessionLoaded = false;
 let playGeneration = 0;
+/** UUID of the workflow loaded for playback; empty when unset. */
+let workflowUuid = '';
 /** When true, play runs actions back-to-back without recorded `at` waits. */
 let gapless = true;
 /** Cancellable gap wait handle for the active play loop. */
@@ -110,14 +119,16 @@ function waitGapMs(ms: number, generation: number): Promise<boolean> {
  * Loads actions for playback and mutes recording for the play session.
  *
  * @param nextActions - Ordered workflow actions to play.
+ * @param nextWorkflowUuid - Portable workflow UUID for hc.info during script runs.
  */
-export function loadPlayback(nextActions: readonly WorkflowAction[]): void {
+export function loadPlayback(nextActions: readonly WorkflowAction[], nextWorkflowUuid = ''): void {
   stopPlayback();
   actions = nextActions.map((action) => ({ ...action }));
   index = 0;
   elapsedMs = 0;
   segmentStartedAt = null;
   sessionLoaded = true;
+  workflowUuid = typeof nextWorkflowUuid === 'string' ? nextWorkflowUuid.trim() : '';
   setWorkflowRecordingMuted(true);
   notifyPlaybackListeners();
 }
@@ -132,8 +143,18 @@ export function clearPlayback(): void {
   elapsedMs = 0;
   segmentStartedAt = null;
   sessionLoaded = false;
+  workflowUuid = '';
   setWorkflowRecordingMuted(false);
   notifyPlaybackListeners();
+}
+
+/**
+ * Returns the UUID of the workflow loaded for playback.
+ *
+ * @returns Workflow UUID, or empty when unset.
+ */
+export function getPlaybackWorkflowUuid(): string {
+  return workflowUuid;
 }
 
 /**
@@ -363,13 +384,29 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
         throw new Error(`Unknown workflow action type: ${action.type}`);
       }
 
-      await entry.play(action, ctx);
+      beginWorkflowActionScriptContext({
+        workflowId: workflowUuid,
+        workflowActionId: action.uuid,
+        workflowActionIteration: index
+      });
+      try {
+        await entry.play(action, ctx);
+      } finally {
+        endWorkflowActionScriptContext();
+      }
 
       if (!playing || generation !== playGeneration) {
         return;
       }
 
-      index += 1;
+      const directives = workflowUuid ? takeWorkflowScriptDirectives() : {};
+      const nextIndex = resolveWorkflowNextIndex(actions, index, directives.workflowNextAction);
+      if (nextIndex === null) {
+        index = actions.length;
+        notifyPlaybackListeners();
+        break;
+      }
+      index = nextIndex;
       notifyPlaybackListeners();
     }
   } catch (error) {
@@ -396,7 +433,9 @@ export function resetWorkflowPlaybackForTests(): void {
   elapsedMs = 0;
   segmentStartedAt = null;
   sessionLoaded = false;
+  workflowUuid = '';
   gapless = true;
   setWorkflowRecordingMuted(false);
   playbackListeners.clear();
+  resetWorkflowScriptContextForTests();
 }

@@ -25,7 +25,10 @@ describe('createScriptApi hc.info', () => {
         eventName: 'test',
         requestName: 'Login',
         requestId: '42',
-        iteration: 0
+        iteration: 0,
+        workflowId: '',
+        workflowActionId: '',
+        workflowActionIteration: -1
       }
     });
     const info = api.hc.info as {
@@ -33,12 +36,18 @@ describe('createScriptApi hc.info', () => {
       requestName: string;
       requestId: string;
       iteration: number;
+      workflowId: string;
+      workflowActionId: string;
+      workflowActionIteration: number;
     };
 
     expect(info.eventName).toBe('test');
     expect(info.requestName).toBe('Login');
     expect(info.requestId).toBe('42');
     expect(info.iteration).toBe(0);
+    expect(info.workflowId).toBe('');
+    expect(info.workflowActionId).toBe('');
+    expect(info.workflowActionIteration).toBe(-1);
   });
 
   it('defaults info from phase when input.info is omitted', () => {
@@ -48,12 +57,42 @@ describe('createScriptApi hc.info', () => {
       requestName: string;
       requestId: string;
       iteration: number;
+      workflowId: string;
+      workflowActionId: string;
+      workflowActionIteration: number;
     };
 
     expect(info.eventName).toBe('prerequest');
     expect(info.requestName).toBe('');
     expect(info.requestId).toBe('');
     expect(info.iteration).toBe(0);
+    expect(info.workflowId).toBe('');
+    expect(info.workflowActionId).toBe('');
+    expect(info.workflowActionIteration).toBe(-1);
+  });
+
+  it('exposes workflow metadata when provided on input.info', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      info: {
+        eventName: 'prerequest',
+        requestName: 'Send',
+        requestId: '1',
+        iteration: 0,
+        workflowId: 'wf-1',
+        workflowActionId: 'act-2',
+        workflowActionIteration: 4
+      }
+    });
+    const info = api.hc.info as {
+      workflowId: string;
+      workflowActionId: string;
+      workflowActionIteration: number;
+    };
+
+    expect(info.workflowId).toBe('wf-1');
+    expect(info.workflowActionId).toBe('act-2');
+    expect(info.workflowActionIteration).toBe(4);
   });
 });
 
@@ -124,6 +163,117 @@ describe('createScriptApi variable bag clear', () => {
     expect(result.variableClears).toEqual([]);
     expect(result.variableSets).toEqual({ token: 'restored' });
   });
+
+  it('clears a namespace prefix across bags without touching the bare namespace key', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      variables: {
+        'workflow_a.foo': 'seed-foo',
+        'workflow_a.foo.bar': 'seed-bar',
+        'workflow_a': 'bare',
+        'host': 'example.com'
+      },
+      environment: { name: 'Production' },
+      folder: { id: 1, name: 'Auth', headers: [] }
+    });
+    const hc = api.hc as {
+      request: {
+        variables: {
+          set: (k: string, v: string) => void;
+          get: (k: string) => string | undefined;
+          clear: (k: string) => void;
+        };
+      };
+      collection: {
+        variables: {
+          set: (k: string, v: string) => void;
+          get: (k: string) => string | undefined;
+          clear: (k: string) => void;
+        };
+      };
+      folder: {
+        variables: {
+          set: (k: string, v: string) => void;
+          get: (k: string) => string | undefined;
+          clear: (k: string) => void;
+        };
+      };
+      environment: {
+        variables: {
+          set: (k: string, v: string) => void;
+          get: (k: string) => string | undefined;
+          clear: (k: string) => void;
+        };
+      };
+      globals: {
+        set: (k: string, v: string) => void;
+        get: (k: string) => string | undefined;
+        clear: (k: string) => void;
+      };
+    };
+
+    hc.collection.variables.set('workflow_a.foo', 'collection');
+    hc.folder.variables.set('workflow_a.nested', 'folder');
+    hc.environment.variables.set('workflow_a.token', 'environment');
+    hc.globals.set('workflow_a.global', 'global');
+    hc.request.variables.set('workflow_a.req', 'request');
+
+    hc.collection.variables.clear('workflow_a.*');
+    hc.folder.variables.clear('workflow_a.*');
+    hc.environment.variables.clear('workflow_a.*');
+    hc.globals.clear('workflow_a.*');
+    hc.request.variables.clear('workflow_a.*');
+
+    expect(hc.collection.variables.get('workflow_a.foo')).toBeUndefined();
+    expect(hc.collection.variables.get('workflow_a.foo.bar')).toBeUndefined();
+    expect(hc.collection.variables.get('workflow_a')).toBe('bare');
+    expect(hc.collection.variables.get('host')).toBe('example.com');
+    expect(hc.folder.variables.get('workflow_a.nested')).toBeUndefined();
+    expect(hc.environment.variables.get('workflow_a.token')).toBeUndefined();
+    expect(hc.globals.get('workflow_a.global')).toBeUndefined();
+    expect(hc.request.variables.get('workflow_a.req')).toBeUndefined();
+
+    const result = api.readResult();
+    expect(result.collectionVariableClears).toEqual(['workflow_a.*']);
+    expect(result.folderVariableClears).toEqual(['workflow_a.*']);
+    expect(result.environmentVariableClears).toEqual(['workflow_a.*']);
+    expect(result.globalVariableClears).toEqual(['workflow_a.*']);
+    expect(result.variableClears).toEqual(['workflow_a.*']);
+    expect(result.collectionVariableSets).toEqual({});
+    expect(result.folderVariableSets).toEqual({});
+    expect(result.environmentVariableSets).toEqual({});
+    expect(result.globalVariableSets).toEqual({});
+    expect(result.variableSets).toEqual({});
+  });
+
+  it('set after namespace clear restores that key while keeping the pattern clear', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      variables: {
+        'workflow_a.foo': 'seed-foo',
+        'workflow_a.bar': 'seed-bar'
+      }
+    });
+    const hc = api.hc as {
+      collection: {
+        variables: {
+          set: (k: string, v: string) => void;
+          get: (k: string) => string | undefined;
+          clear: (k: string) => void;
+        };
+      };
+    };
+
+    hc.collection.variables.clear('workflow_a.*');
+    hc.collection.variables.set('workflow_a.foo', 'restored');
+
+    expect(hc.collection.variables.get('workflow_a.foo')).toBe('restored');
+    expect(hc.collection.variables.get('workflow_a.bar')).toBeUndefined();
+
+    const result = api.readResult();
+    expect(result.collectionVariableClears).toEqual(['workflow_a.*']);
+    expect(result.collectionVariableSets).toEqual({ 'workflow_a.foo': 'restored' });
+  });
 });
 
 describe('createScriptApi cookies bag', () => {
@@ -187,6 +337,56 @@ describe('createScriptApi execution', () => {
     expect(result.executionEvents).toEqual([
       { type: 'flow', action: 'set-next-request', nextRequest: null }
     ]);
+  });
+
+  it('records workflowNextAction and workflowSkipAction when running in a workflow', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      info: {
+        eventName: 'prerequest',
+        requestName: '',
+        requestId: '',
+        iteration: 0,
+        workflowId: 'wf-uuid',
+        workflowActionId: 'act-current',
+        workflowActionIteration: 1
+      }
+    });
+    const hc = api.hc as {
+      execution: {
+        workflowNextAction: (actionId: string) => void;
+        workflowSkipAction: () => void;
+      };
+    };
+
+    hc.execution.workflowNextAction('act-target');
+    hc.execution.workflowSkipAction();
+
+    const result = api.readResult();
+    expect(result.workflowNextAction).toBe('act-target');
+    expect(result.workflowSkipAction).toBe(true);
+    expect(result.executionEvents).toEqual([
+      { type: 'flow', action: 'workflow-next-action', workflowNextAction: 'act-target' },
+      { type: 'flow', action: 'workflow-skip-action' }
+    ]);
+  });
+
+  it('no-ops workflowNextAction and workflowSkipAction outside a workflow', () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      execution: {
+        workflowNextAction: (actionId: string) => void;
+        workflowSkipAction: () => void;
+      };
+    };
+
+    hc.execution.workflowNextAction('act-target');
+    hc.execution.workflowSkipAction();
+
+    const result = api.readResult();
+    expect(result.workflowNextAction).toBeUndefined();
+    expect(result.workflowSkipAction).toBeUndefined();
+    expect(result.executionEvents).toEqual([]);
   });
 });
 

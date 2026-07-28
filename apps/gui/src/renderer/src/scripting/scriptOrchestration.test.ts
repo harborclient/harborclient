@@ -125,6 +125,48 @@ describe('applyVariableClears', () => {
       { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
     ]);
   });
+
+  it('removes namespace-prefixed keys for .* patterns', () => {
+    expect(
+      applyVariableClears(
+        [
+          { key: 'workflow_a.foo', value: '1', defaultValue: '', enabled: true, share: false },
+          {
+            key: 'workflow_a.foo.bar',
+            value: '2',
+            defaultValue: '',
+            enabled: true,
+            share: false
+          },
+          { key: 'workflow_a', value: 'bare', defaultValue: '', enabled: true, share: false },
+          { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+        ],
+        ['workflow_a.*']
+      )
+    ).toEqual([
+      { key: 'workflow_a', value: 'bare', defaultValue: '', enabled: true, share: false },
+      { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+    ]);
+  });
+
+  it('applies clears before sets so set-after-namespace-clear persists', () => {
+    const cleared = applyVariableClears(
+      [
+        { key: 'workflow_a.foo', value: 'old', defaultValue: '', enabled: true, share: false },
+        {
+          key: 'workflow_a.bar',
+          value: 'keep-clear',
+          defaultValue: '',
+          enabled: true,
+          share: false
+        }
+      ],
+      ['workflow_a.*']
+    );
+    expect(applyCollectionVariableSets(cleared, { 'workflow_a.foo': 'restored' })).toEqual([
+      { key: 'workflow_a.foo', value: 'restored', defaultValue: '', enabled: true, share: false }
+    ]);
+  });
 });
 
 describe('applyRuntimeVariableClears', () => {
@@ -132,6 +174,20 @@ describe('applyRuntimeVariableClears', () => {
     expect(applyRuntimeVariableClears({ token: 'abc', host: 'example.com' }, ['token'])).toEqual({
       host: 'example.com'
     });
+  });
+
+  it('removes namespace-prefixed keys for .* patterns', () => {
+    expect(
+      applyRuntimeVariableClears(
+        {
+          'workflow_a.foo': '1',
+          'workflow_a.foo.bar': '2',
+          'workflow_a': 'bare',
+          'host': 'example.com'
+        },
+        ['workflow_a.*']
+      )
+    ).toEqual({ workflow_a: 'bare', host: 'example.com' });
   });
 });
 

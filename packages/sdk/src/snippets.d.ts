@@ -66,7 +66,12 @@ interface HcVariableBagApi {
   set(key: string, value: unknown): void;
 
   /**
-   * Removes a single key from this scope for the remainder of the script run.
+   * Removes a single key, or every key under a namespace prefix.
+   *
+   * Pass an exact key (`'token'`) or a trailing `.*` pattern
+   * (`'workflow_a.*'`) to clear `workflow_a.foo`, `workflow_a.foo.bar`, etc.
+   * The bare namespace key (`'workflow_a'`) is not cleared by the pattern.
+   * Non-request scopes persist clears after send.
    */
   clear(key: string): void;
 }
@@ -189,7 +194,7 @@ interface HcCookieApi {
 }
 
 /**
- * Collection runner flow control available in pre/post scripts during a run.
+ * Collection runner and workflow flow control available in pre/post scripts.
  */
 interface HcExecutionApi {
   /**
@@ -201,6 +206,19 @@ interface HcExecutionApi {
    * Skips the HTTP send and post-request scripts for the current request.
    */
   skipRequest(): void;
+
+  /**
+   * Jumps to the workflow action with the given UUID after the current action finishes.
+   * No-op when the script is not running inside a workflow.
+   */
+  workflowNextAction(actionId: string): void;
+
+  /**
+   * Skips the remainder of the current workflow action and advances to the next.
+   * During request.send pre-scripts, also skips the HTTP send and post-request scripts.
+   * No-op when the script is not running inside a workflow.
+   */
+  workflowSkipAction(): void;
 }
 
 /**
@@ -215,6 +233,12 @@ interface HcInfoApi {
   readonly requestId: string;
   /** Collection run iteration index; 0 for manual sends and non-data-driven runs. */
   readonly iteration: number;
+  /** UUID of the workflow being played, or empty when not in a workflow. */
+  readonly workflowId: string;
+  /** UUID of the workflow action currently executing, or empty when not in a workflow. */
+  readonly workflowActionId: string;
+  /** 0-based index of the workflow action currently executing, or -1 when not in a workflow. */
+  readonly workflowActionIteration: number;
 }
 
 /**

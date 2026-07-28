@@ -268,7 +268,10 @@ export const scriptRunInput = z.object({
       eventName: z.enum(['prerequest', 'test']),
       requestName: z.string(),
       requestId: z.string(),
-      iteration: z.number().int().nonnegative()
+      iteration: z.number().int().nonnegative(),
+      workflowId: z.string(),
+      workflowActionId: z.string(),
+      workflowActionIteration: z.number().int()
     })
     .optional(),
   data: z.record(z.string(), z.unknown()).optional(),

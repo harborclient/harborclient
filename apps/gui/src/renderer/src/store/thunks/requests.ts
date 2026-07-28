@@ -47,6 +47,10 @@ import {
 } from '@harborclient/core/scriptRefs';
 import { migrateScriptEditorUiState } from '#/renderer/src/hooks/usePersistedScriptEditorUiState';
 import { buildScriptRunInfo } from '@harborclient/core/types/script';
+import {
+  getActiveWorkflowScriptContext,
+  noteWorkflowScriptDirectives
+} from '#/renderer/src/workflows/workflowScriptContext';
 import { saveGlobalVariables } from './settings';
 import {
   cloneDraft,
@@ -518,6 +522,14 @@ export interface RequestRunOutcome {
    * When true, hc.execution.skipRequest() skipped the HTTP send.
    */
   scriptSkipRequest: boolean;
+  /**
+   * Target workflow action UUID from hc.execution.workflowNextAction, if any.
+   */
+  scriptWorkflowNextAction?: string;
+  /**
+   * When true, hc.execution.workflowSkipAction() skipped the current workflow action.
+   */
+  scriptWorkflowSkipAction?: boolean;
 }
 
 /**
@@ -606,6 +618,8 @@ export async function executeRequestDraft(
   let cookieVarClears: string[] = [];
   let scriptNextRequest: string | null | undefined;
   let scriptSkipRequest = false;
+  let scriptWorkflowNextAction: string | undefined;
+  let scriptWorkflowSkipAction = false;
   let collectionHeaderRows: KeyValue[] = collection
     ? (collection.headers ?? []).map((header) => ({ ...header }))
     : [];
@@ -636,6 +650,7 @@ export async function executeRequestDraft(
 
   const cookieHost = hostFromUrl(substituteWithMap(currentDraft.url, runtimeVars));
   let cookieRows: KeyValue[] = cookieHost != null ? await window.api.getCookies(cookieHost) : [];
+  const workflowScriptContext = getActiveWorkflowScriptContext();
 
   /**
    * Runs pre- or post-request scripts for one phase slot.
@@ -689,7 +704,10 @@ export async function executeRequestDraft(
         cookies: cookieRows,
         info: buildScriptRunInfo(slot.phase, {
           requestName: currentDraft.name,
-          requestId: currentDraft.id ?? null
+          requestId: currentDraft.id ?? null,
+          workflowId: workflowScriptContext?.workflowId,
+          workflowActionId: workflowScriptContext?.workflowActionId,
+          workflowActionIteration: workflowScriptContext?.workflowActionIteration
         }),
         collection: {
           id: collection?.id ?? null,
@@ -744,16 +762,16 @@ export async function executeRequestDraft(
       }
 
       scriptRequest = applyScriptRequestMutations(scriptRequest, result);
-      runtimeVars = mergeVariableSets(runtimeVars, result.variableSets);
-      runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
-      runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
-      runtimeVars = mergeVariableSets(runtimeVars, result.folderVariableSets);
-      runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.variableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.globalVariableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.collectionVariableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.folderVariableClears);
       runtimeVars = applyRuntimeVariableClears(runtimeVars, result.environmentVariableClears);
+      runtimeVars = mergeVariableSets(runtimeVars, result.variableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.globalVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.collectionVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.folderVariableSets);
+      runtimeVars = mergeVariableSets(runtimeVars, result.environmentVariableSets);
       globalVarSets = { ...globalVarSets, ...result.globalVariableSets };
       collectionVarSets = { ...collectionVarSets, ...result.collectionVariableSets };
       folderVarSets = { ...folderVarSets, ...result.folderVariableSets };
@@ -778,6 +796,13 @@ export async function executeRequestDraft(
         scriptNextRequest = result.nextRequest;
       }
       if (result.skipRequest) {
+        scriptSkipRequest = true;
+      }
+      if (result.workflowNextAction !== undefined) {
+        scriptWorkflowNextAction = result.workflowNextAction;
+      }
+      if (result.workflowSkipAction) {
+        scriptWorkflowSkipAction = true;
         scriptSkipRequest = true;
       }
       scriptData = result.data;
@@ -870,9 +895,9 @@ export async function executeRequestDraft(
             updateCollection({
               id: collection.id,
               name: collection.name,
-              variables: applyVariableClears(
-                applyCollectionVariableSets(collection.variables, collectionVarSets),
-                collectionVarClears
+              variables: applyCollectionVariableSets(
+                applyVariableClears(collection.variables, collectionVarClears),
+                collectionVarSets
               ),
               headers: collectionHeaderRows,
               preRequestScript: collection.pre_request_script,
@@ -910,9 +935,9 @@ export async function executeRequestDraft(
               id: folder.id,
               collectionId,
               name: folder.name,
-              variables: applyVariableClears(
-                applyCollectionVariableSets(folder.variables, folderVarSets),
-                folderVarClears
+              variables: applyCollectionVariableSets(
+                applyVariableClears(folder.variables, folderVarClears),
+                folderVarSets
               ),
               headers: folderHeaderRows,
               preRequestScript: folder.pre_request_script,
@@ -937,9 +962,9 @@ export async function executeRequestDraft(
           updateEnvironment({
             id: environment.id,
             name: environment.name,
-            variables: applyVariableClears(
-              applyCollectionVariableSets(environment.variables, envVarSets),
-              envVarClears
+            variables: applyCollectionVariableSets(
+              applyVariableClears(environment.variables, envVarClears),
+              envVarSets
             )
           })
         ).unwrap();
@@ -954,9 +979,9 @@ export async function executeRequestDraft(
       try {
         await dispatch(
           saveGlobalVariables(
-            applyVariableClears(
-              applyCollectionVariableSets(globalVariables, globalVarSets),
-              globalVarClears
+            applyCollectionVariableSets(
+              applyVariableClears(globalVariables, globalVarClears),
+              globalVarSets
             )
           )
         ).unwrap();
@@ -1047,6 +1072,11 @@ export async function executeRequestDraft(
       toast.error(`Failed to persist script changes: ${persistErrors[0]}`);
     }
 
+    noteWorkflowScriptDirectives({
+      workflowNextAction: scriptWorkflowNextAction,
+      workflowSkipAction: scriptWorkflowSkipAction
+    });
+
     return {
       response: result,
       testResults: allTests,
@@ -1055,7 +1085,9 @@ export async function executeRequestDraft(
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
       scriptNextRequest,
-      scriptSkipRequest
+      scriptSkipRequest,
+      scriptWorkflowNextAction,
+      scriptWorkflowSkipAction
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -1093,7 +1125,9 @@ export async function executeRequestDraft(
       executionEvents: allExecutionEvents,
       scriptError: scriptErrors.length ? scriptErrors.join('\n') : undefined,
       scriptErrors: scriptErrorDetails.length ? scriptErrorDetails : undefined,
-      scriptSkipRequest: false
+      scriptSkipRequest: false,
+      scriptWorkflowNextAction,
+      scriptWorkflowSkipAction
     };
   }
 }
@@ -1134,6 +1168,8 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
           scriptErrors: undefined,
           scriptNextRequest: undefined,
           scriptSkipRequest: false,
+          scriptWorkflowNextAction: undefined,
+          scriptWorkflowSkipAction: false,
           sendingRequestId: requestId
         }
       })
@@ -1157,7 +1193,9 @@ export const sendRequest = createAsyncThunk<void, string | undefined, ThunkApiCo
               scriptError: outcome.scriptError,
               scriptErrors: outcome.scriptErrors,
               scriptNextRequest: outcome.scriptNextRequest,
-              scriptSkipRequest: outcome.scriptSkipRequest
+              scriptSkipRequest: outcome.scriptSkipRequest,
+              scriptWorkflowNextAction: outcome.scriptWorkflowNextAction,
+              scriptWorkflowSkipAction: outcome.scriptWorkflowSkipAction
             }
           })
         );

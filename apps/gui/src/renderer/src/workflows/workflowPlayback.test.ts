@@ -258,6 +258,74 @@ describe('workflowPlayback cursor', () => {
     expect(getSessionEvents()).toHaveLength(1);
   });
 
+  it('jumps to a workflow action uuid from script directives', async () => {
+    const { noteWorkflowScriptDirectives } = await import('./workflowScriptContext');
+    const actions = [
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 }),
+      a('environment.activate', { environmentId: 3 })
+    ];
+    actions[0]!.uuid = 'act-0';
+    actions[1]!.uuid = 'act-1';
+    actions[2]!.uuid = 'act-2';
+
+    const played: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          played.push(typed.payload as number);
+          if (typed.payload === 1) {
+            noteWorkflowScriptDirectives({ workflowNextAction: 'act-2' });
+          }
+        }
+      }
+      return action;
+    });
+
+    loadPlayback(actions, 'wf-uuid');
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    expect(played).toEqual([1, 3]);
+    expect(getPlaybackIndex()).toBe(3);
+  });
+
+  it('falls forward when workflowNextAction uuid is unknown', async () => {
+    const { noteWorkflowScriptDirectives } = await import('./workflowScriptContext');
+    const actions = [
+      a('environment.activate', { environmentId: 1 }),
+      a('environment.activate', { environmentId: 2 })
+    ];
+    actions[0]!.uuid = 'act-0';
+    actions[1]!.uuid = 'act-1';
+
+    const played: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          played.push(typed.payload as number);
+          if (typed.payload === 1) {
+            noteWorkflowScriptDirectives({ workflowNextAction: 'missing' });
+          }
+        }
+      }
+      return action;
+    });
+
+    loadPlayback(actions, 'wf-uuid');
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    expect(played).toEqual([1, 2]);
+    expect(getPlaybackIndex()).toBe(2);
+  });
+
   it('seekPlaybackTo clamps and does not dispatch', () => {
     const dispatch = vi.fn();
     loadPlayback([

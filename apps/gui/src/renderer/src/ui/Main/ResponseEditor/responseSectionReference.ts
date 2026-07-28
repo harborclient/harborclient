@@ -181,7 +181,8 @@ function formatExecutionEvent(event: ScriptExecutionEvent): string {
       : event.nextRequest == null
         ? ' (stop)'
         : ` → ${event.nextRequest}`;
-  return `flow ${event.action}${next}${script}`;
+  const workflowNext = event.workflowNextAction == null ? '' : ` → ${event.workflowNextAction}`;
+  return `flow ${event.action}${next}${workflowNext}${script}`;
 }
 
 /**

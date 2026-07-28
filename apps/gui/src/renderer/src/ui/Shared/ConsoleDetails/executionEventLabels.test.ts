@@ -56,12 +56,32 @@ describe('executionEventLabels', () => {
       })
     ).toBe('Skip request');
     expect(
+      formatFlowExecutionLabel({
+        type: 'flow',
+        action: 'workflow-next-action',
+        workflowNextAction: 'act-uuid'
+      })
+    ).toBe('Set next workflow action');
+    expect(
+      formatFlowExecutionLabel({
+        type: 'flow',
+        action: 'workflow-skip-action'
+      })
+    ).toBe('Skip workflow action');
+    expect(
       formatFlowExecutionDetail({
         type: 'flow',
         action: 'set-next-request',
         nextRequest: 'Login'
       })
     ).toBe('Login');
+    expect(
+      formatFlowExecutionDetail({
+        type: 'flow',
+        action: 'workflow-next-action',
+        workflowNextAction: 'act-uuid'
+      })
+    ).toBe('act-uuid');
   });
 
   it('formats variable details for set and clear actions', () => {

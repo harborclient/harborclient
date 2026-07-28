@@ -7,7 +7,7 @@ import {
   type KeyChord
 } from '@harborclient/core/shortcuts';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import { faFloppyDisk, faStop, faXmark } from '#/renderer/src/fontawesome';
+import { faFloppyDisk, faList, faPlay, faStop, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector, useAppStore } from '#/renderer/src/store/hooks';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import {
@@ -74,6 +74,7 @@ import {
 import { WorkflowEditControls } from './WorkflowEditControls';
 import { WorkflowPlaybackControls } from './WorkflowPlaybackControls';
 import { WorkflowActionPayloadModal } from './WorkflowActionPayloadModal';
+import { WorkflowRunActionPreview } from './WorkflowRunActionPreview';
 import { WorkflowTimeline } from './WorkflowTimeline';
 
 /**
@@ -93,7 +94,7 @@ function chordFromKeyboardEvent(event: KeyboardEvent): KeyChord {
 }
 
 /**
- * Floating, non-blocking dialog for recording or playing a workflow session.
+ * Floating, non-blocking dialog for recording, editing, or running a workflow session.
  */
 export function WorkflowRecordingDialog(): JSX.Element | null {
   const dispatch = useAppDispatch();
@@ -104,6 +105,8 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   const workflows = useAppSelector(selectWorkflows);
   const open = dialogMode !== 'closed';
   const isPlayMode = dialogMode === 'play';
+  const isRunMode = dialogMode === 'run';
+  const isPlaybackSession = isPlayMode || isRunMode;
 
   const [recording, setRecording] = useState(() => getIsRecording());
   const [recordingElapsedMs, setRecordingElapsedMs] = useState(() => getRecordingElapsedMs());
@@ -200,10 +203,10 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
   const gapless = isPlaybackGapless();
 
   /**
-   * Subscribes to playback module updates while play mode is open.
+   * Subscribes to playback module updates while play or run mode is open.
    */
   useEffect(() => {
-    if (dialogMode !== 'play') {
+    if (!isPlaybackSession) {
       return;
     }
 
@@ -225,16 +228,16 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
       unsubscribe();
       window.clearInterval(intervalId);
     };
-  }, [dialogMode]);
+  }, [isPlaybackSession]);
 
   /**
-   * Loads playback actions when entering play mode or switching workflows.
+   * Loads playback actions when entering play or run mode or switching workflows.
    *
    * Intentionally omits Redux `actions` so in-dialog edits do not reset the cursor
    * via {@link loadPlayback}. Dirty state resets via the play-session scope above.
    */
   useEffect(() => {
-    if (dialogMode !== 'play') {
+    if (dialogMode !== 'play' && dialogMode !== 'run') {
       stopPlayback();
       clearPlayback();
       return;
@@ -254,7 +257,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     }
 
     stopRecording();
-    loadPlayback(workflow.actions);
+    loadPlayback(workflow.actions, workflow.uuid);
   }, [dialogMode, dispatch, playbackWorkflowId, store]);
 
   /**
@@ -366,6 +369,39 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
         setPlaybackTick((tick) => tick + 1);
       });
   }, [dispatch, store]);
+
+  /**
+   * Starts or stops a real workflow run from the compact run dialog.
+   *
+   * Restarts from the beginning when Play is pressed after the run has finished.
+   */
+  const handleToggleRunPlay = useCallback((): void => {
+    if (getIsPlaying()) {
+      stopPlayback();
+      setPlaybackTick((tick) => tick + 1);
+      return;
+    }
+
+    if (getPlaybackIndex() >= getPlaybackActionCount()) {
+      restartPlayback();
+    }
+
+    void startPlayback({
+      dispatch,
+      getState: store.getState
+    })
+      .catch((error: unknown) => {
+        showAlert(dispatch, formatErrorMessage(error, 'Workflow playback failed'));
+      })
+      .finally(() => {
+        setPlaybackTick((tick) => tick + 1);
+      });
+  }, [dispatch, store]);
+
+  /**
+   * Placeholder for the future run-results view; intentionally a no-op for now.
+   */
+  const handleOpenResults = useCallback((): void => {}, []);
 
   /**
    * Moves the playback cursor one step backward without dispatching.
@@ -666,6 +702,13 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
       return;
     }
 
+    if (isRunMode) {
+      stopPlayback();
+      clearPlayback();
+      dispatch(closeWorkflowDialog());
+      return;
+    }
+
     stopRecording();
     const hasActions = getSessionEvents().length > 0;
     if (hasActions) {
@@ -681,7 +724,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
     }
     clearSession();
     dispatch(closeWorkflowDialog());
-  }, [confirm, dirty, dispatch, isPlayMode]);
+  }, [confirm, dirty, dispatch, isPlayMode, isRunMode]);
 
   if (!open) {
     return null;
@@ -840,6 +883,91 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
           />
         ) : null}
       </>
+    );
+  }
+
+  if (isRunMode) {
+    const title = 'Running workflow';
+    const titleId = 'workflow-run-dialog-title';
+    const runActionNumber =
+      playbackActionCount === 0 ? 0 : Math.min(playbackIndex + 1, playbackActionCount);
+    const runComplete = !playing && playbackIndex >= playbackActionCount && playbackActionCount > 0;
+    const previewAction =
+      playbackActionCount === 0
+        ? null
+        : (playbackActionsList[Math.min(playbackIndex, playbackActionCount - 1)] ?? null);
+
+    return (
+      <FloatingDialog
+        label={title}
+        labelledBy={titleId}
+        onClose={() => {
+          void handleClose();
+        }}
+        initialLeft={recordSavedPosition.left}
+        initialTop={recordSavedPosition.top}
+        onPositionChange={saveWorkflowRecordingDialogPosition}
+        className="w-96"
+        dragHandle={
+          <div className="flex items-center justify-between gap-2 border-b border-separator px-3 py-2">
+            <h2 id={titleId} className="text-[15px] font-semibold">
+              {title}
+            </h2>
+            <button
+              type="button"
+              className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              aria-label="Close run dialog"
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleClose();
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <FaIcon icon={faXmark} className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-mono text-[15px] tabular-nums" aria-live="polite">
+              {formatWorkflowDuration(playbackElapsedMs)}
+            </p>
+            <p className="text-muted" aria-live="polite">
+              {`Action ${runActionNumber} of ${playbackActionCount}`}
+            </p>
+          </div>
+          <WorkflowRunActionPreview action={previewAction} getState={store.getState} />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={playing ? 'primaryDanger' : 'primary'}
+              className="flex-1"
+              onClick={handleToggleRunPlay}
+              aria-pressed={playing}
+              disabled={!playing && playbackActionCount === 0}
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <FaIcon icon={playing ? faStop : faPlay} className="h-3.5 w-3.5" aria-hidden />
+                {playing ? 'Stop' : 'Play'}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              disabled={!runComplete}
+              aria-label="Results"
+              onClick={handleOpenResults}
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <FaIcon icon={faList} className="h-3.5 w-3.5" aria-hidden />
+                Results
+              </span>
+            </Button>
+          </div>
+        </div>
+      </FloatingDialog>
     );
   }
 

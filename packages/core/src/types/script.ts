@@ -178,6 +178,21 @@ export interface ScriptRunInfo {
    * Collection run iteration index (0 when not data-driven); always 0 for manual sends today.
    */
   iteration: number;
+
+  /**
+   * UUID of the workflow being played, or empty when not in a workflow.
+   */
+  workflowId: string;
+
+  /**
+   * UUID of the workflow action currently executing, or empty when not in a workflow.
+   */
+  workflowActionId: string;
+
+  /**
+   * 0-based index of the workflow action currently executing, or -1 when not in a workflow.
+   */
+  workflowActionIteration: number;
 }
 
 /**
@@ -194,7 +209,7 @@ export function scriptEventNameFromPhase(phase: ScriptPhase): ScriptRunInfo['eve
  * Builds hc.info metadata for a script run.
  *
  * @param phase - Pre- or post-request script phase.
- * @param options - Request identity and optional collection-run iteration.
+ * @param options - Request identity, optional collection-run iteration, and optional workflow context.
  * @returns Read-only info snapshot for the sandbox.
  */
 export function buildScriptRunInfo(
@@ -203,6 +218,9 @@ export function buildScriptRunInfo(
     requestName?: string;
     requestId?: number | null;
     iteration?: number;
+    workflowId?: string;
+    workflowActionId?: string;
+    workflowActionIteration?: number;
   } = {}
 ): ScriptRunInfo {
   const requestName = typeof options.requestName === 'string' ? options.requestName.trim() : '';
@@ -216,12 +234,24 @@ export function buildScriptRunInfo(
     options.iteration >= 0
       ? Math.floor(options.iteration)
       : 0;
+  const workflowId = typeof options.workflowId === 'string' ? options.workflowId.trim() : '';
+  const workflowActionId =
+    typeof options.workflowActionId === 'string' ? options.workflowActionId.trim() : '';
+  const workflowActionIteration =
+    typeof options.workflowActionIteration === 'number' &&
+    Number.isFinite(options.workflowActionIteration) &&
+    options.workflowActionIteration >= 0
+      ? Math.floor(options.workflowActionIteration)
+      : -1;
 
   return {
     eventName: scriptEventNameFromPhase(phase),
     requestName,
     requestId,
-    iteration
+    iteration,
+    workflowId,
+    workflowActionId,
+    workflowActionIteration
   };
 }
 
@@ -294,7 +324,11 @@ export type ScriptExecutionVariableAction = 'set' | 'update' | 'clear';
 /**
  * Flow-control action recorded in the execution log.
  */
-export type ScriptExecutionFlowAction = 'set-next-request' | 'skip-request';
+export type ScriptExecutionFlowAction =
+  | 'set-next-request'
+  | 'skip-request'
+  | 'workflow-next-action'
+  | 'workflow-skip-action';
 
 /**
  * Ordered execution activity captured during a script run for the console inspector.
@@ -318,6 +352,10 @@ export type ScriptExecutionEvent =
        * Target request name for set-next-request, or null when the run should stop.
        */
       nextRequest?: string | null;
+      /**
+       * Target workflow action UUID for workflow-next-action.
+       */
+      workflowNextAction?: string;
       /**
        * Display label of the pre/post script that produced this event.
        */
@@ -455,6 +493,7 @@ export interface ScriptRunResult {
   variableSets: Record<string, string>;
   /**
    * Keys removed via hc.request.variables.clear during this script run (runtime-only, not persisted).
+   * Entries may be exact keys or `namespace.*` patterns.
    */
   variableClears: string[];
   /**
@@ -463,6 +502,7 @@ export interface ScriptRunResult {
   collectionVariableSets: Record<string, string>;
   /**
    * Keys removed via hc.collection.variables.clear; persisted to the collection after send.
+   * Entries may be exact keys or `namespace.*` patterns.
    */
   collectionVariableClears: string[];
   /**
@@ -479,6 +519,7 @@ export interface ScriptRunResult {
   folderVariableSets: Record<string, string>;
   /**
    * Keys removed via hc.folder.variables.clear; persisted to the folder after send.
+   * Entries may be exact keys or `namespace.*` patterns.
    */
   folderVariableClears: string[];
   /**
@@ -495,6 +536,7 @@ export interface ScriptRunResult {
   environmentVariableSets: Record<string, string>;
   /**
    * Keys removed via hc.environment.variables.clear; persisted to the active environment after send.
+   * Entries may be exact keys or `namespace.*` patterns.
    */
   environmentVariableClears: string[];
   /**
@@ -503,6 +545,7 @@ export interface ScriptRunResult {
   globalVariableSets: Record<string, string>;
   /**
    * Keys removed via hc.globals.clear; persisted to app global variables after send.
+   * Entries may be exact keys or `namespace.*` patterns.
    */
   globalVariableClears: string[];
   /**
@@ -522,6 +565,15 @@ export interface ScriptRunResult {
    * When true via hc.execution.skipRequest(), the current request send should be skipped.
    */
   skipRequest?: boolean;
+  /**
+   * When set via hc.execution.workflowNextAction, UUID of the next workflow action to play.
+   * Undefined means no directive was issued.
+   */
+  workflowNextAction?: string;
+  /**
+   * When true via hc.execution.workflowSkipAction(), the current workflow action should be skipped.
+   */
+  workflowSkipAction?: boolean;
   tests: ScriptTestResult[];
   logs: string[];
   /**

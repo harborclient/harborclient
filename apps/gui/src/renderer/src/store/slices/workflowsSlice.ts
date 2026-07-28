@@ -5,7 +5,7 @@ import type { RootState } from '#/renderer/src/store/redux';
 /**
  * Visibility mode for the shared floating workflow dialog.
  */
-export type WorkflowDialogMode = 'closed' | 'record' | 'play';
+export type WorkflowDialogMode = 'closed' | 'record' | 'play' | 'run';
 
 /**
  * Redux state for persisted workflows and the floating session dialog.
@@ -17,12 +17,12 @@ export interface WorkflowsState {
   items: Workflow[];
 
   /**
-   * Whether the floating dialog is closed, recording, or playing back.
+   * Whether the floating dialog is closed, recording, editing, or running.
    */
   dialogMode: WorkflowDialogMode;
 
   /**
-   * Workflow id loaded for play mode; null when not playing.
+   * Workflow id loaded for play or run mode; null when neither is active.
    */
   playbackWorkflowId: number | null;
 
@@ -71,13 +71,27 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Opens the floating dialog in play mode for the given workflow.
+     * Opens the floating dialog in play (timeline editor) mode for the given workflow.
      *
      * @param state - Workflows slice state.
-     * @param action - Workflow database id to play.
+     * @param action - Workflow database id to edit.
      */
     openWorkflowPlayDialog(state, action: PayloadAction<number>) {
       state.dialogMode = 'play';
+      state.playbackWorkflowId = action.payload;
+      state.saveNameModalOpen = false;
+      state.saveError = null;
+      state.saving = false;
+    },
+
+    /**
+     * Opens the floating dialog in run mode for the given workflow.
+     *
+     * @param state - Workflows slice state.
+     * @param action - Workflow database id to run.
+     */
+    openWorkflowRunDialog(state, action: PayloadAction<number>) {
+      state.dialogMode = 'run';
       state.playbackWorkflowId = action.payload;
       state.saveNameModalOpen = false;
       state.saveError = null;
@@ -126,6 +140,7 @@ export const {
   setWorkflows,
   openWorkflowRecordDialog,
   openWorkflowPlayDialog,
+  openWorkflowRunDialog,
   closeWorkflowDialog,
   setWorkflowSaveNameModalOpen,
   setWorkflowSaveError,
@@ -146,14 +161,14 @@ export function selectWorkflows(state: RootState): Workflow[] {
  * Selects the floating workflow dialog mode.
  *
  * @param state - Root Redux state.
- * @returns Closed, record, or play.
+ * @returns Closed, record, play, or run.
  */
 export function selectWorkflowDialogMode(state: RootState): WorkflowDialogMode {
   return state.workflows.dialogMode;
 }
 
 /**
- * Selects the workflow id loaded for play mode.
+ * Selects the workflow id loaded for play or run mode.
  *
  * @param state - Root Redux state.
  * @returns Workflow id or null.
@@ -166,7 +181,7 @@ export function selectPlaybackWorkflowId(state: RootState): number | null {
  * Selects whether the floating dialog is open in any mode.
  *
  * @param state - Root Redux state.
- * @returns True when record or play mode is active.
+ * @returns True when record, play, or run mode is active.
  */
 export function selectWorkflowDialogOpen(state: RootState): boolean {
   return state.workflows.dialogMode !== 'closed';

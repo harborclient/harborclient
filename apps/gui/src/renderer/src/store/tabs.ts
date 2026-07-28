@@ -197,6 +197,16 @@ export interface RequestTab {
   scriptSkipRequest?: boolean;
 
   /**
+   * Target workflow action UUID from hc.execution.workflowNextAction for the latest send.
+   */
+  scriptWorkflowNextAction?: string;
+
+  /**
+   * When true, hc.execution.workflowSkipAction() skipped the latest workflow action send.
+   */
+  scriptWorkflowSkipAction?: boolean;
+
+  /**
    * Last selected response viewer sub-tab (Body, Tests, etc.) for this request
    * tab. Session-only so remounting after opening a script-editor page restores
    * the user's choice instead of defaulting to Body.

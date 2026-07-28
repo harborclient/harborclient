@@ -18,8 +18,14 @@ interface Props {
 
   /**
    * Pixel width of the segment on the timeline track.
+   * Required when {@link fillWidth} is false; ignored when filling the container.
    */
-  widthPx: number;
+  widthPx?: number;
+
+  /**
+   * When true, the block stretches to 100% of its parent width instead of using {@link widthPx}.
+   */
+  fillWidth?: boolean;
 
   /**
    * Seeks the playback cursor to this block without dispatching.
@@ -70,6 +76,7 @@ export function TimelineBlock({
   label,
   selected,
   widthPx,
+  fillWidth = false,
   onSeek,
   onEditPayload,
   onContextMenu,
@@ -109,17 +116,18 @@ export function TimelineBlock({
         onContextMenu(event);
       }}
       className={[
-        'relative flex h-full min-h-[56px] shrink-0 flex-col overflow-hidden rounded-md border text-left transition-colors',
+        'relative flex h-full min-h-[56px] flex-col overflow-hidden rounded-md border text-left transition-colors',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+        fillWidth ? 'w-full min-w-0' : 'shrink-0',
         selected
           ? 'border-accent bg-accent/10 text-fg'
           : 'border-separator bg-surface-raised text-fg hover:border-accent/60',
         disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
       ].join(' ')}
-      style={{ width: widthPx }}
+      style={fillWidth ? { width: '100%' } : { width: widthPx }}
     >
       <div
-        className="flex min-h-0 flex-1 flex-col justify-center px-2 py-1.5"
+        className="flex min-h-0 min-w-0 flex-1 flex-col justify-center px-2 py-1.5"
         onClick={() => {
           if (!disabled) {
             onSeek();

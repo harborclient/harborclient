@@ -129,7 +129,7 @@ const HC_NOTES_BAG: HcCompletionOption[] = [
 const HC_VARIABLE_BAG: HcCompletionOption[] = [
   { label: 'get', type: 'method', detail: '(key) => string | undefined' },
   { label: 'set', type: 'method', detail: '(key, value) => void' },
-  { label: 'clear', type: 'method', detail: '(key) => void' }
+  { label: 'clear', type: 'method', detail: "(key | 'namespace.*') => void" }
 ];
 
 const HC_VARIABLES: HcCompletionOption[] = [
@@ -149,7 +149,9 @@ const HC_COOKIES: HcCompletionOption[] = [
 
 const HC_EXECUTION: HcCompletionOption[] = [
   { label: 'setNextRequest', type: 'method', detail: '(name | null) => void' },
-  { label: 'skipRequest', type: 'method', detail: '() => void' }
+  { label: 'skipRequest', type: 'method', detail: '() => void' },
+  { label: 'workflowNextAction', type: 'method', detail: '(actionId) => void' },
+  { label: 'workflowSkipAction', type: 'method', detail: '() => void' }
 ];
 
 const HC_INFO: HcCompletionOption[] = [
@@ -160,6 +162,17 @@ const HC_INFO: HcCompletionOption[] = [
     label: 'iteration',
     type: 'property',
     detail: 'Collection run iteration (0 when not data-driven)'
+  },
+  { label: 'workflowId', type: 'property', detail: 'Workflow UUID, or empty outside a workflow' },
+  {
+    label: 'workflowActionId',
+    type: 'property',
+    detail: 'Current workflow action UUID, or empty outside a workflow'
+  },
+  {
+    label: 'workflowActionIteration',
+    type: 'property',
+    detail: '0-based workflow action index, or -1 outside a workflow'
   }
 ];
 

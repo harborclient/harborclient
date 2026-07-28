@@ -18,7 +18,10 @@ describe('buildScriptRunInfo', () => {
       eventName: 'prerequest',
       requestName: 'Health check',
       requestId: '7',
-      iteration: 2
+      iteration: 2,
+      workflowId: '',
+      workflowActionId: '',
+      workflowActionIteration: -1
     });
   });
 
@@ -27,7 +30,29 @@ describe('buildScriptRunInfo', () => {
       eventName: 'test',
       requestName: 'Draft',
       requestId: '',
-      iteration: 0
+      iteration: 0,
+      workflowId: '',
+      workflowActionId: '',
+      workflowActionIteration: -1
+    });
+  });
+
+  it('includes workflow context when provided', () => {
+    expect(
+      buildScriptRunInfo('pre', {
+        requestName: 'Send',
+        workflowId: 'wf-uuid',
+        workflowActionId: 'action-uuid',
+        workflowActionIteration: 3
+      })
+    ).toEqual({
+      eventName: 'prerequest',
+      requestName: 'Send',
+      requestId: '',
+      iteration: 0,
+      workflowId: 'wf-uuid',
+      workflowActionId: 'action-uuid',
+      workflowActionIteration: 3
     });
   });
 });

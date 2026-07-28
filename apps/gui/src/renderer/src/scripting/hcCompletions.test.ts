@@ -191,7 +191,12 @@ describe('createHcCompletionSource', () => {
     const source = createHcCompletionSource('pre', variables);
     const result = await complete(source, mockContext('hc.execution.'));
 
-    expect(labels(result!.options).sort()).toEqual(['setNextRequest', 'skipRequest']);
+    expect(labels(result!.options).sort()).toEqual([
+      'setNextRequest',
+      'skipRequest',
+      'workflowNextAction',
+      'workflowSkipAction'
+    ]);
   });
 
   it('lists collection members', async () => {
