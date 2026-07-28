@@ -31,7 +31,8 @@ import {
 } from '#/renderer/src/store/selectors';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
-import { setWorkflowRecordingDialogOpen } from '#/renderer/src/store/slices/workflowsSlice';
+import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
+import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
@@ -305,7 +306,11 @@ export function SidebarContent(): JSX.Element {
         title: 'Workflows',
         ariaLabel: 'Workflows',
         initialEntered: workflowsSectionExpanded,
-        onAdd: () => dispatch(setWorkflowRecordingDialogOpen(true)),
+        onAdd: () => {
+          stopPlayback();
+          clearPlayback();
+          dispatch(openWorkflowRecordDialog());
+        },
         addLabel: 'Record workflow',
         children: <Workflows />
       });

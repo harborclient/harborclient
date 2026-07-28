@@ -1,3 +1,5 @@
+import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
+
 /**
  * A normalized workflow activity event recorded from Redux.
  */
@@ -34,9 +36,29 @@ export interface WorkflowRecordCtx {
 }
 
 /**
+ * Redux access passed to registry play handlers during playback.
+ */
+export interface WorkflowPlayCtx {
+  /**
+   * App dispatch (supports thunks).
+   */
+  dispatch: AppDispatch;
+
+  /**
+   * Returns the current root Redux state.
+   */
+  getState: () => RootState;
+}
+
+/**
  * Registry entry that maps one or more Redux action types onto a workflow event.
  */
 export interface WorkflowRegistryEntry {
+  /**
+   * Stable logical event type written to the session / export (for example `request.load`).
+   */
+  eventType: string;
+
   /**
    * Redux action type string(s) this entry handles (including thunk `/pending` forms).
    */
@@ -53,6 +75,17 @@ export interface WorkflowRegistryEntry {
     action: { type: string; payload?: unknown; meta?: unknown },
     ctx: WorkflowRecordCtx
   ) => WorkflowEvent | null;
+
+  /**
+   * Replays a recorded event by dispatching the corresponding Redux intent.
+   *
+   * @param action - Recorded workflow action (`type` + `payload`).
+   * @param ctx - Dispatch / getState for resolving and applying the step.
+   */
+  play: (
+    action: { type: string; at?: number; payload: unknown },
+    ctx: WorkflowPlayCtx
+  ) => void | Promise<void>;
 
   /**
    * Builds the coalesce key for a candidate event. Consecutive events with the same

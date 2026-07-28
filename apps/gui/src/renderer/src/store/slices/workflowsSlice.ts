@@ -3,7 +3,12 @@ import type { Workflow } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
- * Redux state for persisted workflows and recording dialog visibility.
+ * Visibility mode for the shared floating workflow dialog.
+ */
+export type WorkflowDialogMode = 'closed' | 'record' | 'play';
+
+/**
+ * Redux state for persisted workflows and the floating session dialog.
  */
 export interface WorkflowsState {
   /**
@@ -12,9 +17,14 @@ export interface WorkflowsState {
   items: Workflow[];
 
   /**
-   * True when the floating recording dialog is open.
+   * Whether the floating dialog is closed, recording, or playing back.
    */
-  recordingDialogOpen: boolean;
+  dialogMode: WorkflowDialogMode;
+
+  /**
+   * Workflow id loaded for play mode; null when not playing.
+   */
+  playbackWorkflowId: number | null;
 
   /**
    * True when the save-name modal is open.
@@ -34,7 +44,8 @@ export interface WorkflowsState {
 
 const initialState: WorkflowsState = {
   items: [],
-  recordingDialogOpen: false,
+  dialogMode: 'closed',
+  playbackWorkflowId: null,
   saveNameModalOpen: false,
   saveError: null,
   saving: false
@@ -52,15 +63,36 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Opens or closes the floating recording dialog.
+     * Opens the floating dialog in record mode and clears any playback target.
      */
-    setWorkflowRecordingDialogOpen(state, action: PayloadAction<boolean>) {
-      state.recordingDialogOpen = action.payload;
-      if (!action.payload) {
-        state.saveNameModalOpen = false;
-        state.saveError = null;
-        state.saving = false;
-      }
+    openWorkflowRecordDialog(state) {
+      state.dialogMode = 'record';
+      state.playbackWorkflowId = null;
+    },
+
+    /**
+     * Opens the floating dialog in play mode for the given workflow.
+     *
+     * @param state - Workflows slice state.
+     * @param action - Workflow database id to play.
+     */
+    openWorkflowPlayDialog(state, action: PayloadAction<number>) {
+      state.dialogMode = 'play';
+      state.playbackWorkflowId = action.payload;
+      state.saveNameModalOpen = false;
+      state.saveError = null;
+      state.saving = false;
+    },
+
+    /**
+     * Closes the floating dialog and clears playback / save UI state.
+     */
+    closeWorkflowDialog(state) {
+      state.dialogMode = 'closed';
+      state.playbackWorkflowId = null;
+      state.saveNameModalOpen = false;
+      state.saveError = null;
+      state.saving = false;
     },
 
     /**
@@ -92,7 +124,9 @@ const workflowsSlice = createSlice({
 
 export const {
   setWorkflows,
-  setWorkflowRecordingDialogOpen,
+  openWorkflowRecordDialog,
+  openWorkflowPlayDialog,
+  closeWorkflowDialog,
   setWorkflowSaveNameModalOpen,
   setWorkflowSaveError,
   setWorkflowSaving
@@ -109,13 +143,33 @@ export function selectWorkflows(state: RootState): Workflow[] {
 }
 
 /**
- * Selects whether the recording dialog is open.
+ * Selects the floating workflow dialog mode.
  *
  * @param state - Root Redux state.
- * @returns True when the floating dialog should render.
+ * @returns Closed, record, or play.
  */
-export function selectWorkflowRecordingDialogOpen(state: RootState): boolean {
-  return state.workflows.recordingDialogOpen;
+export function selectWorkflowDialogMode(state: RootState): WorkflowDialogMode {
+  return state.workflows.dialogMode;
+}
+
+/**
+ * Selects the workflow id loaded for play mode.
+ *
+ * @param state - Root Redux state.
+ * @returns Workflow id or null.
+ */
+export function selectPlaybackWorkflowId(state: RootState): number | null {
+  return state.workflows.playbackWorkflowId;
+}
+
+/**
+ * Selects whether the floating dialog is open in any mode.
+ *
+ * @param state - Root Redux state.
+ * @returns True when record or play mode is active.
+ */
+export function selectWorkflowDialogOpen(state: RootState): boolean {
+  return state.workflows.dialogMode !== 'closed';
 }
 
 /**

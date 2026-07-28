@@ -69,6 +69,7 @@ const sink = new WorkflowEventSink();
 const sessionListeners = new Set<SessionListener>();
 
 let recording = false;
+let recordingMuted = false;
 let elapsedMs = 0;
 let segmentStartedAt: number | null = null;
 
@@ -193,15 +194,34 @@ export function subscribeRecordingSession(listener: SessionListener): () => void
 }
 
 /**
+ * Mutes recording so playback (and mid-pause UI) does not append workflow events.
+ *
+ * @param muted - True to ignore Redux actions even while recording is active.
+ */
+export function setWorkflowRecordingMuted(muted: boolean): void {
+  recordingMuted = muted;
+}
+
+/**
+ * Returns whether recording is muted by an active playback session.
+ *
+ * @returns True when Redux actions are ignored for recording.
+ */
+export function isWorkflowRecordingMuted(): boolean {
+  return recordingMuted;
+}
+
+/**
  * Processes a Redux action through the workflow registry and coalescer.
  *
- * Actions are ignored while the session is stopped. Matching actions are
- * normalized, coalesced when consecutive keys match, and flushed to the sink.
+ * Actions are ignored while the session is stopped or muted for playback.
+ * Matching actions are normalized, coalesced when consecutive keys match, and
+ * flushed to the sink.
  *
  * @param action - Dispatched Redux action.
  */
 export function processWorkflowAction(action: UnknownAction): void {
-  if (!recording) {
+  if (!recording || recordingMuted) {
     return;
   }
 
@@ -312,4 +332,5 @@ export function installWorkflowLogGlobal(): void {
  */
 export function resetWorkflowRecorderForTests(): void {
   clearSession();
+  recordingMuted = false;
 }

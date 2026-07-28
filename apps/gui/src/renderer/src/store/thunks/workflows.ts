@@ -3,10 +3,10 @@ import toast from 'react-hot-toast';
 import { buildWorkflowExport } from '@harborclient/core/types/workflow';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
+  closeWorkflowDialog,
   setWorkflowSaveError,
   setWorkflowSaveNameModalOpen,
   setWorkflowSaving,
-  setWorkflowRecordingDialogOpen,
   setWorkflows
 } from '#/renderer/src/store/slices/workflowsSlice';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
@@ -64,7 +64,7 @@ export const createWorkflowFromSession = createAsyncThunk<void, string, ThunkApi
       dispatch(setWorkflows(items));
       clearSession();
       dispatch(setWorkflowSaveNameModalOpen(false));
-      dispatch(setWorkflowRecordingDialogOpen(false));
+      dispatch(closeWorkflowDialog());
       toast.success('Workflow saved');
     } catch (error) {
       dispatch(setWorkflowSaveError(formatErrorMessage(error, 'Failed to save workflow')));

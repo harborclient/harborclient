@@ -74,3 +74,19 @@ export function buildWorkflowRegistryMap(
   }
   return map;
 }
+
+/**
+ * Builds a lookup map from logical workflow event type to registry entry.
+ *
+ * @param entries - Registry entries to index.
+ * @returns Map of event type → entry.
+ */
+export function buildWorkflowPlaybackMap(
+  entries: readonly WorkflowRegistryEntry[]
+): Map<string, WorkflowRegistryEntry> {
+  const map = new Map<string, WorkflowRegistryEntry>();
+  for (const entry of entries) {
+    map.set(entry.eventType, entry);
+  }
+  return map;
+}

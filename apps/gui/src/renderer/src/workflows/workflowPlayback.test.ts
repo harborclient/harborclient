@@ -1,0 +1,252 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defaultAuth } from '@harborclient/core/auth';
+import type { SavedRequest } from '@harborclient/core/types';
+import type { RequestDraft } from '#/renderer/src/store/tabs';
+import { emptyKeyValue } from '#/renderer/src/store/tabs';
+import { loadRequest } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  clearPlayback,
+  getPlaybackElapsedMs,
+  getPlaybackIndex,
+  isPlaying,
+  loadPlayback,
+  resetWorkflowPlaybackForTests,
+  restartPlayback,
+  startPlayback,
+  stepPlaybackCursor,
+  stopPlayback
+} from './workflowPlayback';
+import { mergeWorkflowDraftPayload } from './workflowPlaybackHelpers';
+import {
+  getSessionEvents,
+  isWorkflowRecordingMuted,
+  processWorkflowAction,
+  resetWorkflowRecorderForTests,
+  startRecording
+} from './workflowRecorder';
+
+/**
+ * Builds a minimal saved request for recording mute tests.
+ *
+ * @returns Saved request fixture.
+ */
+function sampleRequest(): SavedRequest {
+  return {
+    id: 10,
+    uuid: 'req-uuid-10',
+    collection_id: 1,
+    name: 'List things',
+    method: 'GET',
+    url: 'https://example.com/things',
+    headers: [],
+    params: [],
+    auth: defaultAuth(),
+    userAgent: '',
+    body: '',
+    body_type: 'none',
+    body_raw: null,
+    body_raw_open: false,
+    pre_request_script: '',
+    post_request_script: '',
+    pre_request_scripts: [],
+    post_request_scripts: [],
+    comment: '',
+    tags: '',
+    folder_id: null,
+    sort_order: 0,
+    created_at: '',
+    updated_at: ''
+  };
+}
+
+describe('workflowPlayback cursor', () => {
+  beforeEach(() => {
+    resetWorkflowPlaybackForTests();
+    resetWorkflowRecorderForTests();
+  });
+
+  afterEach(() => {
+    resetWorkflowPlaybackForTests();
+    resetWorkflowRecorderForTests();
+  });
+
+  it('clamps rewind and fast-forward without dispatching', () => {
+    const dispatch = vi.fn();
+    loadPlayback([
+      { type: 'environment.activate', payload: { environmentId: 1 } },
+      { type: 'environment.activate', payload: { environmentId: 2 } },
+      { type: 'environment.activate', payload: { environmentId: 3 } }
+    ]);
+
+    expect(getPlaybackIndex()).toBe(0);
+    stepPlaybackCursor(-1);
+    expect(getPlaybackIndex()).toBe(0);
+    stepPlaybackCursor(1);
+    expect(getPlaybackIndex()).toBe(1);
+    stepPlaybackCursor(10);
+    expect(getPlaybackIndex()).toBe(3);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('restart resets cursor and elapsed time', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const dispatch = vi.fn((action: unknown) => {
+      if (typeof action === 'function') {
+        const promise = gate.then(() => undefined);
+        return Object.assign(promise, { unwrap: () => gate });
+      }
+      return action;
+    });
+
+    loadPlayback([
+      { type: 'request.send', payload: { target: 'active' } },
+      { type: 'environment.activate', payload: { environmentId: 2 } }
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await Promise.resolve();
+    expect(isPlaying()).toBe(true);
+    stopPlayback();
+    expect(getPlaybackElapsedMs()).toBeGreaterThanOrEqual(0);
+    release();
+    await playPromise;
+
+    restartPlayback();
+    expect(getPlaybackIndex()).toBe(0);
+    expect(getPlaybackElapsedMs()).toBe(0);
+    expect(isPlaying()).toBe(false);
+  });
+
+  it('play invokes handlers in order and awaits each step', async () => {
+    const order: number[] = [];
+    const dispatch = vi.fn((action: unknown) => {
+      if (action && typeof action === 'object' && 'type' in action) {
+        const typed = action as { type: string; payload?: number | null };
+        if (typed.type === 'environments/setActiveEnvironmentId') {
+          order.push(typed.payload as number);
+        }
+      }
+      return action;
+    });
+
+    loadPlayback([
+      { type: 'environment.activate', payload: { environmentId: 10 } },
+      { type: 'environment.activate', payload: { environmentId: 20 } }
+    ]);
+
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    expect(order).toEqual([10, 20]);
+    expect(getPlaybackIndex()).toBe(2);
+    expect(isPlaying()).toBe(false);
+  });
+
+  it('stop mid-run leaves the cursor on the next unplayed action', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const dispatch = vi.fn((action: unknown) => {
+      if (typeof action === 'function') {
+        const promise = gate.then(() => undefined);
+        return Object.assign(promise, { unwrap: () => gate });
+      }
+      return action;
+    });
+
+    loadPlayback([
+      { type: 'request.send', payload: { target: 'active' } },
+      { type: 'environment.activate', payload: { environmentId: 2 } }
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await Promise.resolve();
+    stopPlayback();
+    release();
+    await playPromise;
+
+    expect(getPlaybackIndex()).toBe(0);
+    expect(isPlaying()).toBe(false);
+  });
+
+  it('mutes recording while a playback session is loaded', () => {
+    startRecording();
+    loadPlayback([{ type: 'environment.activate', payload: { environmentId: 1 } }]);
+    expect(isWorkflowRecordingMuted()).toBe(true);
+
+    processWorkflowAction(loadRequest({ req: sampleRequest() }));
+    expect(getSessionEvents()).toHaveLength(0);
+
+    clearPlayback();
+    expect(isWorkflowRecordingMuted()).toBe(false);
+
+    processWorkflowAction(loadRequest({ req: sampleRequest() }));
+    expect(getSessionEvents()).toHaveLength(1);
+  });
+});
+
+describe('mergeWorkflowDraftPayload', () => {
+  /**
+   * Builds a minimal request draft for merge tests.
+   *
+   * @returns Request draft fixture.
+   */
+  function baseDraft(): RequestDraft {
+    return {
+      name: 'Old',
+      method: 'GET',
+      url: 'https://example.com',
+      headers: [emptyKeyValue()],
+      params: [emptyKeyValue()],
+      auth: defaultAuth(),
+      userAgent: '',
+      body: '',
+      body_type: 'none',
+      body_raw: null,
+      body_raw_open: false,
+      pre_request_script: '',
+      post_request_script: '',
+      pre_request_scripts: [],
+      post_request_scripts: [],
+      comment: '',
+      tags: ''
+    };
+  }
+
+  it('maps camelCase payload fields onto the active draft', () => {
+    const merged = mergeWorkflowDraftPayload(baseDraft(), {
+      name: 'New',
+      method: 'POST',
+      url: 'https://example.com/v2',
+      bodyType: 'json',
+      body: '{"a":1}',
+      collectionId: 5,
+      folderId: 9,
+      headers: [{ key: 'X', value: '1', enabled: true }]
+    });
+
+    expect(merged.name).toBe('New');
+    expect(merged.method).toBe('POST');
+    expect(merged.body_type).toBe('json');
+    expect(merged.body).toBe('{"a":1}');
+    expect(merged.collection_id).toBe(5);
+    expect(merged.folder_id).toBe(9);
+    expect(merged.headers).toEqual([{ key: 'X', value: '1', enabled: true }]);
+  });
+});

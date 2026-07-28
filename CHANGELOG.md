@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance workflow dialog management and playback features. (`13a95802`)
 - Refactor workflow registry and recorder. (`08b97462`)
 - Implement workflow management features. (`a4525074`)
 

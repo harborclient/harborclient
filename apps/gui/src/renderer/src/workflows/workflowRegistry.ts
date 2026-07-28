@@ -1,9 +1,15 @@
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { loadRequest, openPageTab, setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
 import type { PageRef } from '#/renderer/src/store/tabs';
+import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import { SEND_REQUEST_PENDING_TYPE } from '#/renderer/src/store/thunks/sendRequestType';
 import type { WorkflowRegistryEntry } from './workflowEventTypes';
 import { event, isPageRef, isRequestDraft, isSavedRequest } from './utils';
+import {
+  mergeWorkflowDraftPayload,
+  parseWorkflowDraftPayload,
+  resolveSavedRequestForPlayback
+} from './workflowPlaybackHelpers';
 
 /**
  * Allowlisted Redux actions that become workflow events.
@@ -16,6 +22,7 @@ import { event, isPageRef, isRequestDraft, isSavedRequest } from './utils';
  */
 export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
   {
+    eventType: 'request.load',
     match: loadRequest.type,
     /**
      * Records opening a saved request using stable request identity.
@@ -41,6 +48,30 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
       });
     },
     /**
+     * Reloads a saved request by uuid (preferred) or id into a tab.
+     *
+     * @param action - Recorded request.load action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const payload = (action.payload ?? {}) as {
+        uuid?: string;
+        id?: number;
+        activate?: boolean;
+      };
+      const req = await resolveSavedRequestForPlayback(ctx.getState(), payload);
+      if (req == null) {
+        const label =
+          typeof payload.uuid === 'string'
+            ? payload.uuid
+            : typeof payload.id === 'number'
+              ? String(payload.id)
+              : 'unknown';
+        throw new Error(`Request not found for playback (${label}).`);
+      }
+      ctx.dispatch(loadRequest({ req, activate: payload.activate !== false }));
+    },
+    /**
      * Coalesces repeated loads of the same request (e.g. re-clicks).
      *
      * @param workflowEvent - Candidate request.load event.
@@ -52,6 +83,7 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
     }
   },
   {
+    eventType: 'request.draft',
     match: setActiveDraft.type,
     /**
      * Records the latest full draft after editor changes (coalesced).
@@ -81,6 +113,23 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
       });
     },
     /**
+     * Applies a recorded draft patch onto the active request tab.
+     *
+     * @param action - Recorded request.draft action.
+     * @param ctx - Playback Redux context.
+     */
+    play: (action, ctx) => {
+      const payload = parseWorkflowDraftPayload(action.payload);
+      if (payload == null) {
+        throw new Error('Invalid request.draft payload for playback.');
+      }
+      const tab = selectEffectiveActiveRequestTab(ctx.getState());
+      if (tab == null) {
+        throw new Error('No active request tab for request.draft playback.');
+      }
+      ctx.dispatch(setActiveDraft(mergeWorkflowDraftPayload(tab.draft, payload)));
+    },
+    /**
      * Collapses consecutive draft edits into one last-write-wins event.
      *
      * @returns Constant draft coalesce key.
@@ -88,15 +137,28 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
     coalesceKey: () => 'request.draft'
   },
   {
+    eventType: 'request.send',
     match: SEND_REQUEST_PENDING_TYPE,
     /**
      * Records a send of the active request tab (tab ids are session-local).
      *
      * @returns request.send event targeting the active tab.
      */
-    record: () => event('request.send', { target: 'active' })
+    record: () => event('request.send', { target: 'active' }),
+    /**
+     * Sends the active request via the normal send thunk (not lifecycle pending).
+     *
+     * @param _action - Recorded request.send action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (_action, ctx) => {
+      // Dynamic import keeps the registry load path free of react-hot-toast (requests thunk).
+      const { sendRequest } = await import('#/renderer/src/store/thunks/requests');
+      await ctx.dispatch(sendRequest()).unwrap();
+    }
   },
   {
+    eventType: 'environment.activate',
     match: setActiveEnvironmentId.type,
     /**
      * Records switching the active environment.
@@ -113,6 +175,20 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
       return event('environment.activate', { environmentId });
     },
     /**
+     * Activates the recorded environment id (or clears when null).
+     *
+     * @param action - Recorded environment.activate action.
+     * @param ctx - Playback Redux context.
+     */
+    play: (action, ctx) => {
+      const payload = action.payload as { environmentId?: number | null } | undefined;
+      const environmentId = payload?.environmentId ?? null;
+      if (environmentId !== null && typeof environmentId !== 'number') {
+        throw new Error('Invalid environment.activate payload for playback.');
+      }
+      ctx.dispatch(setActiveEnvironmentId(environmentId));
+    },
+    /**
      * Coalesces rapid environment toggles to the last selection.
      *
      * @returns Constant environment coalesce key.
@@ -120,6 +196,7 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
     coalesceKey: () => 'environment.activate'
   },
   {
+    eventType: 'page.open',
     match: openPageTab.type,
     /**
      * Records opening a configuration / page tab.
@@ -133,6 +210,19 @@ export const WORKFLOW_REGISTRY: readonly WorkflowRegistryEntry[] = [
       }
 
       return event('page.open', { page: action.payload });
+    },
+    /**
+     * Opens or focuses the recorded page tab.
+     *
+     * @param action - Recorded page.open action.
+     * @param ctx - Playback Redux context.
+     */
+    play: (action, ctx) => {
+      const page = (action.payload as { page?: PageRef } | undefined)?.page;
+      if (!isPageRef(page)) {
+        throw new Error('Invalid page.open payload for playback.');
+      }
+      ctx.dispatch(openPageTab(page));
     },
     /**
      * Coalesces reopen/focus of the same page type into one event.
