@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.8.5 - 2026-07-28
+
 - Implement hc.ask API for one-shot AI completions. (`aed2809f`)
 - Enhance plugin library and sidebar selection handling. (`5a919ac6`)
 - Enhance settings management and UI components. (`31e7f975`)
