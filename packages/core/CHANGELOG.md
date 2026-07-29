@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.7 - 2026-07-29
+
 - Enhance Response Editor and Summary with Close Functionality. (`e14d7c7d`)
 
 ## 0.2.6 - 2026-07-28

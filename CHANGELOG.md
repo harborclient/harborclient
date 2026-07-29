@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Refactor styling in WorkflowRecordingDialog and TimelineBlock components. (`3f0b9348`)
+
+## 2.8.7 - 2026-07-29
+
 - Enhance Response Editor and Summary with Close Functionality. (`e14d7c7d`)
 
 ## 2.8.6 - 2026-07-28
