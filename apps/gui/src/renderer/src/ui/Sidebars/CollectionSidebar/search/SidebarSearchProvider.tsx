@@ -13,7 +13,7 @@ interface ProviderProps {
 }
 
 /**
- * Owns sidebar search state and shares it with the search field, toolbar, and
+ * Owns sidebar search state and shares it with the search field, rail, and
  * collection/environment/archive sections so they no longer receive it via props.
  */
 export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element {
@@ -26,9 +26,8 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setArchiveSectionExpanded,
-    setCollectionsSectionVisible,
-    setEnvironmentsSectionVisible,
-    setArchiveSectionVisible,
+    activeSidebarMode,
+    setActiveSidebarMode,
     expandedCollectionIds,
     expandedFolderIds,
     expandedEnvironmentIds,
@@ -42,8 +41,9 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
     setSearchQuery,
     searchFilter,
     archivedSearchFilter,
+    activeSearchFilter,
     searchLoading,
-    collapseAllSidebarTrees
+    collapseSidebarTreesForMode
   } = useSidebarSearch({
     collections,
     foldersByCollection,
@@ -53,9 +53,8 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
     setArchiveSectionExpanded,
-    setCollectionsSectionVisible,
-    setEnvironmentsSectionVisible,
-    setArchiveSectionVisible,
+    activeSidebarMode,
+    setActiveSidebarMode,
     expandedCollectionIds,
     expandedFolderIds,
     expandedEnvironmentIds,
@@ -70,17 +69,19 @@ export function SidebarSearchProvider({ children }: ProviderProps): JSX.Element 
       setSearchQuery,
       searchFilter,
       archivedSearchFilter,
+      activeSearchFilter,
       searchActive: searchFilter != null,
       searchLoading,
-      collapseAllSidebarTrees
+      collapseSidebarTreesForMode
     }),
     [
       searchQuery,
       setSearchQuery,
       searchFilter,
       archivedSearchFilter,
+      activeSearchFilter,
       searchLoading,
-      collapseAllSidebarTrees
+      collapseSidebarTreesForMode
     ]
   );
 

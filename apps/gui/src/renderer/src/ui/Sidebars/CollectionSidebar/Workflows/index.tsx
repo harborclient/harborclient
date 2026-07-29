@@ -8,8 +8,8 @@ import type { Workflow } from '@harborclient/core/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  openWorkflowEditDialog,
   openWorkflowPlayDialog,
-  openWorkflowRunDialog,
   selectPlaybackWorkflowId,
   selectWorkflowDialogMode,
   selectWorkflows
@@ -33,7 +33,7 @@ import {
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 
 /**
- * Workflows sidebar section listing saved recordings with run, edit, copy-id, export, and delete actions.
+ * Workflows sidebar section listing saved recordings with play, edit, copy-id, export, and delete actions.
  */
 export function Workflows(): JSX.Element {
   const dispatch = useAppDispatch();
@@ -83,7 +83,7 @@ export function Workflows(): JSX.Element {
   /**
    * Confirms discard of an unsaved recording, then stops any active playback session.
    *
-   * @returns True when the caller may open another workflow dialog.
+   * @returns True when the caller may open another workflow panel.
    */
   const prepareOpenWorkflowDialog = useCallback(async (): Promise<boolean> => {
     const hasUnsavedRecording = isRecording() || getSessionEvents().length > 0;
@@ -107,27 +107,11 @@ export function Workflows(): JSX.Element {
   }, [confirm]);
 
   /**
-   * Opens the compact run dialog for a workflow, discarding an unsaved recording when needed.
+   * Opens the play panel for a workflow, discarding an unsaved recording when needed.
    *
-   * @param workflow - Workflow to run.
+   * @param workflow - Workflow to play.
    */
-  const handleOpenRun = useCallback(
-    async (workflow: Workflow): Promise<void> => {
-      const ready = await prepareOpenWorkflowDialog();
-      if (!ready) {
-        return;
-      }
-      dispatch(openWorkflowRunDialog(workflow.id));
-    },
-    [dispatch, prepareOpenWorkflowDialog]
-  );
-
-  /**
-   * Opens the timeline editor (play mode) for a workflow, discarding an unsaved recording when needed.
-   *
-   * @param workflow - Workflow to edit.
-   */
-  const handleOpenPlayback = useCallback(
+  const handleOpenPlay = useCallback(
     async (workflow: Workflow): Promise<void> => {
       const ready = await prepareOpenWorkflowDialog();
       if (!ready) {
@@ -138,13 +122,29 @@ export function Workflows(): JSX.Element {
     [dispatch, prepareOpenWorkflowDialog]
   );
 
+  /**
+   * Opens the timeline editor for a workflow, discarding an unsaved recording when needed.
+   *
+   * @param workflow - Workflow to edit.
+   */
+  const handleOpenEdit = useCallback(
+    async (workflow: Workflow): Promise<void> => {
+      const ready = await prepareOpenWorkflowDialog();
+      if (!ready) {
+        return;
+      }
+      dispatch(openWorkflowEditDialog(workflow.id));
+    },
+    [dispatch, prepareOpenWorkflowDialog]
+  );
+
   return (
     <div className="flex flex-col gap-0.5 px-1 pb-1">
       {workflows.length === 0 ? <EmptySectionLabel label="No workflows" /> : null}
       {workflows.map((workflow) => {
         const menuId = `workflow-${workflow.id}`;
         const selected =
-          (dialogMode === 'play' || dialogMode === 'run') && playbackWorkflowId === workflow.id;
+          (dialogMode === 'play' || dialogMode === 'edit') && playbackWorkflowId === workflow.id;
         return (
           <SidebarWorkspaceItem
             key={workflow.id}
@@ -162,7 +162,7 @@ export function Workflows(): JSX.Element {
                     {
                       label: 'Edit',
                       onSelect: () => {
-                        void handleOpenPlayback(workflow);
+                        void handleOpenEdit(workflow);
                       }
                     },
                     buildCopyIdMenuItem(workflow.uuid),
@@ -187,7 +187,7 @@ export function Workflows(): JSX.Element {
             }
             onClick={(event: MouseEvent) => {
               event.preventDefault();
-              void handleOpenRun(workflow);
+              void handleOpenPlay(workflow);
             }}
             onContextMenu={(event: MouseEvent) => {
               event.preventDefault();

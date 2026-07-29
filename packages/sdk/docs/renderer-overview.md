@@ -294,6 +294,7 @@ export interface PluginContext {
   host: PluginHost;
   imports: PluginImports;
   mcp: PluginMcp;
+  ai: PluginAi;
 }
 
 export interface PluginMcpHeader {
@@ -606,5 +607,5 @@ await hc.host.openImageView({
 ## Related reference
 
 - [UI contributions](/renderer-ui) — `hc.ui.register*` methods and `hc.actions.register`
-- [Themes and storage](/renderer-data) — themes, commands, storage, filesystem, [File → Import handlers](/renderer-data#hcimports), and [MCP client servers](/renderer-data#hcmcp)
+- [Themes and storage](/renderer-data) — themes, commands, storage, filesystem, [File → Import handlers](/renderer-data#hcimports), [MCP client servers](/renderer-data#hcmcp), and [AI chat pointers](/renderer-data#hcai)
 - [Main API](/main-api) — HTTP hooks and IPC in the main entry

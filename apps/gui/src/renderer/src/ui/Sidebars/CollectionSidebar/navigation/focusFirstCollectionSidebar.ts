@@ -10,12 +10,13 @@ import {
   SIDEBAR_COLLECTION_ID_ATTR,
   sidebarCollectionRowSelector
 } from './sidebarListNavigation';
+import type { SidebarMode } from '@harborclient/core/types';
 
 export { SIDEBAR_COLLECTION_ID_ATTR, sidebarCollectionRowSelector };
 
 interface SidebarExpansionControls {
-  /** Shows the Collections section in the sidebar. */
-  setCollectionsSectionVisible: (visible: boolean) => void;
+  /** Selects the Collections activity-rail mode. */
+  setActiveSidebarMode: (mode: SidebarMode) => void;
   /** Expands the Collections section accordion panel. */
   setCollectionsSectionExpanded: (expanded: boolean) => void;
 }
@@ -23,7 +24,7 @@ interface SidebarExpansionControls {
 /**
  * Focuses the first collection in the sidebar and selects it for keyboard navigation.
  *
- * Reveals the sidebar and Collections section when hidden. When a plugin panel
+ * Reveals the sidebar and Collections mode when hidden. When a plugin panel
  * replaces the built-in Collections sidebar, reveals the primary surface
  * (`activeSidebarPanelId = null`) and focuses the replacement webview instead
  * of built-in section/row focus.
@@ -32,7 +33,7 @@ interface SidebarExpansionControls {
  *
  * @param dispatch - Redux dispatch for navigation and selection updates.
  * @param getState - Reads the ordered collections list.
- * @param expansion - Sidebar section visibility and expansion setters.
+ * @param expansion - Sidebar mode and expansion setters.
  */
 export function focusFirstCollectionSidebar(
   dispatch: AppDispatch,
@@ -47,7 +48,7 @@ export function focusFirstCollectionSidebar(
     return;
   }
 
-  expansion.setCollectionsSectionVisible(true);
+  expansion.setActiveSidebarMode('collections');
   expansion.setCollectionsSectionExpanded(true);
 
   const firstCollection = selectCollections(getState())[0];

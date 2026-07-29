@@ -7,6 +7,7 @@ describe('clearExpansionSnapshot', () => {
       collectionsSectionExpanded: true,
       environmentsSectionExpanded: false,
       archiveSectionExpanded: true,
+      activeSidebarMode: 'workflows' as const,
       expandedCollectionIds: new Set([1, 2]),
       expandedFolderIds: new Set([9]),
       expandedEnvironmentIds: new Set([4])
@@ -16,6 +17,7 @@ describe('clearExpansionSnapshot', () => {
       collectionsSectionExpanded: true,
       environmentsSectionExpanded: false,
       archiveSectionExpanded: true,
+      activeSidebarMode: 'workflows',
       expandedCollectionIds: new Set(),
       expandedFolderIds: new Set(),
       expandedEnvironmentIds: new Set()

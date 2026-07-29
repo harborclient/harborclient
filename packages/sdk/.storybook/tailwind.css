@@ -7,7 +7,7 @@
   --color-control: #3a3a3c;
   --color-surface: #2c2c2e;
   --color-sidebar: #252526;
-  --color-sidebar-toolbar: color-mix(in srgb, #252526 94%, black);
+  --color-sidebar-toolbar: color-mix(in srgb, #252526 80%, black);
   --color-sidebar-section: #48484a;
   --color-sidebar-section-text: #98989d;
   --color-footer: #252526;

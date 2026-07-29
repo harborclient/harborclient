@@ -157,6 +157,8 @@ export {
   type SidebarSectionConfig
 } from './SidebarSection/index.js';
 export { Sidebar, type SidebarSide } from './Sidebar/index.js';
+export { SidebarRail } from './SidebarRail/index.js';
+export type { SidebarRailItemData } from './SidebarRail/index.js';
 export {
   DEFAULT_HEIGHT,
   MIN_HEIGHT,

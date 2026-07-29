@@ -220,6 +220,60 @@ describe('createBridgedPluginContext mcp', () => {
   });
 });
 
+describe('createBridgedPluginContext ai', () => {
+  it('forwards chat pointer registration and copyToChat in agent mode', async () => {
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['ai'])
+    });
+
+    const disposable = hc.ai.registerChatPointer({
+      id: 'script',
+      agentGuidance: 'Use captured script context.'
+    });
+
+    expect(bridgeInvoke).toHaveBeenCalledWith('ai.registerChatPointer', {
+      registrationId: '1',
+      pointerId: 'script',
+      agentGuidance: 'Use captured script context.'
+    });
+
+    await hc.ai.copyToChat({
+      pointerId: 'script',
+      key: 'abc',
+      label: 'My Script',
+      context: 'console.log(1)',
+      selection: { start: 0, end: 4 }
+    });
+
+    expect(bridgeInvoke).toHaveBeenCalledWith('ai.copyToChat', {
+      pointerId: 'script',
+      key: 'abc',
+      label: 'My Script',
+      context: 'console.log(1)',
+      selection: { start: 0, end: 4 }
+    });
+
+    disposable.dispose();
+    expect(bridgeInvoke).toHaveBeenCalledWith('ai.unregisterChatPointer', {
+      registrationId: '1'
+    });
+  });
+
+  it('rejects invalid chat pointer ids', () => {
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['ai'])
+    });
+
+    expect(() => hc.ai.registerChatPointer({ id: 'Bad_Id' })).toThrow(/Invalid chat pointer id/);
+  });
+});
+
 describe('createBridgedPluginContext subscription auto-tracking', () => {
   it('auto-appends registration disposables to hc.subscriptions', () => {
     const hc = createBridgedPluginContext({

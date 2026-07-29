@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance development and testing workflow in AGENTS.md and CONTRIBUTING.md. (`181dc04a`)
 - Refactor styling in WorkflowRecordingDialog and TimelineBlock components. (`3f0b9348`)
 
 ## 2.8.7 - 2026-07-29

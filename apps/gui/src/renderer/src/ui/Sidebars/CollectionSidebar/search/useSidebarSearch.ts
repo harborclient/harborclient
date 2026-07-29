@@ -7,7 +7,7 @@ import {
   type Dispatch,
   type SetStateAction
 } from 'react';
-import type { Collection, Folder } from '@harborclient/core/types';
+import type { Collection, Folder, SidebarMode } from '@harborclient/core/types';
 import {
   partitionSidebarSearchFilter,
   searchSidebar,
@@ -32,6 +32,11 @@ interface ExpansionSnapshot {
    * Whether the Archive section was expanded before search started.
    */
   archiveSectionExpanded: boolean;
+
+  /**
+   * Activity-rail mode before search started.
+   */
+  activeSidebarMode: SidebarMode;
 
   /**
    * Collection ids expanded before search started.
@@ -91,19 +96,14 @@ interface Options {
   setArchiveSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
-   * Sets the Collections section visibility.
+   * Active activity-rail mode (snapshotted/restored around search).
    */
-  setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
+  activeSidebarMode: SidebarMode;
 
   /**
-   * Sets the Environments section visibility.
+   * Sets the active activity-rail mode.
    */
-  setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Archive section visibility.
-   */
-  setArchiveSectionVisible: Dispatch<SetStateAction<boolean>>;
+  setActiveSidebarMode: Dispatch<SetStateAction<SidebarMode>>;
 
   /**
    * Collection ids whose request trees are expanded.
@@ -158,14 +158,22 @@ interface Result {
   archivedSearchFilter: SidebarSearchFilter | null;
 
   /**
+   * Active (non-archived) half of the search filter, or null when search is inactive.
+   */
+  activeSearchFilter: SidebarSearchFilter | null;
+
+  /**
    * True while a non-empty query is active and some collection contents are still loading.
    */
   searchLoading: boolean;
 
   /**
-   * Collapses all collection, folder, and environment trees, clears active search, and persists collapsed state.
+   * Collapses trees relevant to the given activity-rail mode, clears active search,
+   * and persists collapsed state for the cleared expansion sets.
+   *
+   * @param mode - Active activity-rail sidebar mode.
    */
-  collapseAllSidebarTrees: () => void;
+  collapseSidebarTreesForMode: (mode: SidebarMode) => void;
 }
 
 /**
@@ -213,9 +221,8 @@ export function useSidebarSearch({
   setCollectionsSectionExpanded,
   setEnvironmentsSectionExpanded,
   setArchiveSectionExpanded,
-  setCollectionsSectionVisible,
-  setEnvironmentsSectionVisible,
-  setArchiveSectionVisible,
+  activeSidebarMode,
+  setActiveSidebarMode,
   expandedCollectionIds,
   expandedFolderIds,
   expandedEnvironmentIds,
@@ -231,6 +238,7 @@ export function useSidebarSearch({
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     archiveSectionExpanded,
+    activeSidebarMode,
     expandedCollectionIds,
     expandedFolderIds,
     expandedEnvironmentIds
@@ -244,6 +252,7 @@ export function useSidebarSearch({
       collectionsSectionExpanded,
       environmentsSectionExpanded,
       archiveSectionExpanded,
+      activeSidebarMode,
       expandedCollectionIds,
       expandedFolderIds,
       expandedEnvironmentIds
@@ -252,6 +261,7 @@ export function useSidebarSearch({
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     archiveSectionExpanded,
+    activeSidebarMode,
     expandedCollectionIds,
     expandedFolderIds,
     expandedEnvironmentIds
@@ -313,7 +323,7 @@ export function useSidebarSearch({
   }, [collections, dispatch, foldersByCollection, searchQuery]);
 
   /**
-   * Snapshots expansion when search starts and restores it when the query is cleared.
+   * Snapshots expansion and rail mode when search starts; restores them when cleared.
    */
   useEffect(() => {
     const isSearching = searchQuery.trim().length > 0;
@@ -327,6 +337,7 @@ export function useSidebarSearch({
       setCollectionsSectionExpanded(snapshot.collectionsSectionExpanded);
       setEnvironmentsSectionExpanded(snapshot.environmentsSectionExpanded);
       setArchiveSectionExpanded(snapshot.archiveSectionExpanded);
+      setActiveSidebarMode(snapshot.activeSidebarMode);
       setExpandedCollectionIds(new Set(snapshot.expandedCollectionIds));
       setExpandedFolderIds(new Set(snapshot.expandedFolderIds));
       setExpandedEnvironmentIds(new Set(snapshot.expandedEnvironmentIds));
@@ -343,12 +354,14 @@ export function useSidebarSearch({
       collectionsSectionExpanded: current.collectionsSectionExpanded,
       environmentsSectionExpanded: current.environmentsSectionExpanded,
       archiveSectionExpanded: current.archiveSectionExpanded,
+      activeSidebarMode: current.activeSidebarMode,
       expandedCollectionIds: new Set(current.expandedCollectionIds),
       expandedFolderIds: new Set(current.expandedFolderIds),
       expandedEnvironmentIds: new Set(current.expandedEnvironmentIds)
     };
   }, [
     searchQuery,
+    setActiveSidebarMode,
     setArchiveSectionExpanded,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
@@ -371,17 +384,14 @@ export function useSidebarSearch({
       activeSearchFilter.requestIds.size > 0
     ) {
       setCollectionsSectionExpanded((current) => (current ? current : true));
-      setCollectionsSectionVisible(true);
     }
 
     if (activeSearchFilter.environmentIds.size > 0) {
       setEnvironmentsSectionExpanded((current) => (current ? current : true));
-      setEnvironmentsSectionVisible(true);
     }
 
     if (archivedSearchFilter.collectionIds.size > 0) {
       setArchiveSectionExpanded((current) => (current ? current : true));
-      setArchiveSectionVisible(true);
     }
 
     setExpandedCollectionIds((current) => {
@@ -398,37 +408,57 @@ export function useSidebarSearch({
     archivedSearchFilter,
     searchFilter,
     setArchiveSectionExpanded,
-    setArchiveSectionVisible,
     setCollectionsSectionExpanded,
-    setCollectionsSectionVisible,
     setEnvironmentsSectionExpanded,
-    setEnvironmentsSectionVisible,
     setExpandedCollectionIds,
     setExpandedFolderIds
   ]);
 
   /**
-   * Collapses all collection, folder, and environment trees, clears search when active, and keeps
-   * the collapsed state when search snapshots are restored.
+   * Collapses trees for the active rail mode, clears search when active, and keeps the collapsed
+   * state when search snapshots are restored.
+   *
+   * Collections mode clears collection and folder trees; environments mode clears environment
+   * trees. Other modes skip tree clearing but still clear an active search query.
+   *
+   * @param mode - Active activity-rail sidebar mode.
    */
-  const collapseAllSidebarTrees = useCallback((): void => {
-    setExpandedCollectionIds(new Set());
-    setExpandedFolderIds(new Set());
-    setExpandedEnvironmentIds(new Set());
+  const collapseSidebarTreesForMode = useCallback(
+    (mode: SidebarMode): void => {
+      if (mode === 'collections') {
+        setExpandedCollectionIds(new Set());
+        setExpandedFolderIds(new Set());
 
-    if (expansionSnapshotRef.current != null) {
-      expansionSnapshotRef.current = clearExpansionSnapshot(expansionSnapshotRef.current);
-    }
+        if (expansionSnapshotRef.current != null) {
+          expansionSnapshotRef.current = {
+            ...expansionSnapshotRef.current,
+            expandedCollectionIds: new Set(),
+            expandedFolderIds: new Set()
+          };
+        }
+      } else if (mode === 'environments') {
+        setExpandedEnvironmentIds(new Set());
 
-    setSearchQuery((current) => (current.trim().length > 0 ? '' : current));
-  }, [setExpandedCollectionIds, setExpandedEnvironmentIds, setExpandedFolderIds]);
+        if (expansionSnapshotRef.current != null) {
+          expansionSnapshotRef.current = {
+            ...expansionSnapshotRef.current,
+            expandedEnvironmentIds: new Set()
+          };
+        }
+      }
+
+      setSearchQuery((current) => (current.trim().length > 0 ? '' : current));
+    },
+    [setExpandedCollectionIds, setExpandedEnvironmentIds, setExpandedFolderIds]
+  );
 
   return {
     searchQuery,
     setSearchQuery,
     searchFilter,
     archivedSearchFilter,
+    activeSearchFilter,
     searchLoading,
-    collapseAllSidebarTrees
+    collapseSidebarTreesForMode
   };
 }

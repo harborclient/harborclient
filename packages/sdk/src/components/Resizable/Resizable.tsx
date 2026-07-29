@@ -59,6 +59,12 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'id' 
   showCloseButton?: boolean;
 
   /**
+   * Id of a visible heading that names this panel region. When set, used as
+   * `aria-labelledby` instead of the default `aria-label`.
+   */
+  labelledBy?: string;
+
+  /**
    * Panel body content.
    */
   children: ReactNode;
@@ -80,6 +86,7 @@ export function Resizable({
   headerless = false,
   unmountWhenClosed = false,
   showCloseButton = true,
+  labelledBy,
   children,
   className,
   ...props
@@ -126,7 +133,8 @@ export function Resizable({
       className={cn('hc-resizable', footerPanelClassName(open), className)}
       style={{ height }}
       role="region"
-      aria-label={`${closeLabel} panel`}
+      aria-labelledby={labelledBy}
+      aria-label={labelledBy == null ? `${closeLabel} panel` : undefined}
       aria-hidden={!open}
       inert={!open || undefined}
     >

@@ -26,7 +26,7 @@ describe('focusFirstCollectionSidebar', () => {
       }
     }));
     const expansion = {
-      setCollectionsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setCollectionsSectionExpanded: vi.fn()
     };
 
@@ -42,7 +42,7 @@ describe('focusFirstCollectionSidebar', () => {
 
     expect(dispatch).toHaveBeenCalledWith(setShowSidebar(true));
     expect(dispatch).toHaveBeenCalledWith(setActiveSidebarPanel(null));
-    expect(expansion.setCollectionsSectionVisible).toHaveBeenCalledWith(true);
+    expect(expansion.setActiveSidebarMode).toHaveBeenCalledWith('collections');
     expect(expansion.setCollectionsSectionExpanded).toHaveBeenCalledWith(true);
     expect(dispatch).toHaveBeenCalledWith(setSelectedCollectionId(42));
   });
@@ -67,7 +67,7 @@ describe('focusFirstCollectionSidebar', () => {
       }
     }));
     const expansion = {
-      setCollectionsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setCollectionsSectionExpanded: vi.fn()
     };
 
@@ -83,7 +83,7 @@ describe('focusFirstCollectionSidebar', () => {
 
     expect(dispatch).toHaveBeenCalledWith(setShowSidebar(true));
     expect(dispatch).toHaveBeenCalledWith(setActiveSidebarPanel(null));
-    expect(expansion.setCollectionsSectionVisible).not.toHaveBeenCalled();
+    expect(expansion.setActiveSidebarMode).not.toHaveBeenCalled();
     expect(expansion.setCollectionsSectionExpanded).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalledWith(setSelectedCollectionId(42));
     expect(document.querySelector).toHaveBeenCalled();

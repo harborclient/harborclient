@@ -11,6 +11,59 @@ export const WORKFLOW_TIMELINE_MIN_BLOCK_WIDTH_PX = 48;
 export const WORKFLOW_TIMELINE_COMPACT_WIDTH_PX = 96;
 
 /**
+ * Fixed pixel width for each block in gapless (equal-width) mode.
+ */
+export const WORKFLOW_TIMELINE_GAPLESS_BLOCK_WIDTH_PX = 250;
+
+/**
+ * Pixels per millisecond for duration-based (gapped) block sizing.
+ * 0.25 → 250px per second, matching one gapless block width per second.
+ */
+export const WORKFLOW_TIMELINE_PX_PER_MS = 0.25;
+
+/**
+ * Minimum horizontal gap between adjacent timeline blocks, in pixels
+ * (when playback delay is 0).
+ */
+export const WORKFLOW_TIMELINE_BLOCK_GAP_MIN_PX = 4;
+
+/**
+ * Maximum horizontal gap between adjacent timeline blocks, in pixels
+ * (when playback delay is at or above {@link WORKFLOW_TIMELINE_BLOCK_GAP_MAX_DELAY_MS}).
+ */
+export const WORKFLOW_TIMELINE_BLOCK_GAP_MAX_PX = 18;
+
+/**
+ * Playback delay (ms) at which the inter-block gap reaches its maximum pixel size.
+ */
+export const WORKFLOW_TIMELINE_BLOCK_GAP_MAX_DELAY_MS = 5000;
+
+/**
+ * Default inter-block gap when delay is omitted (same as the minimum).
+ */
+export const WORKFLOW_TIMELINE_BLOCK_GAP_PX = WORKFLOW_TIMELINE_BLOCK_GAP_MIN_PX;
+
+/**
+ * Maps a playback delay to the pixel gap between adjacent timeline blocks.
+ *
+ * Scales linearly from {@link WORKFLOW_TIMELINE_BLOCK_GAP_MIN_PX} at 0 ms to
+ * {@link WORKFLOW_TIMELINE_BLOCK_GAP_MAX_PX} at
+ * {@link WORKFLOW_TIMELINE_BLOCK_GAP_MAX_DELAY_MS} (and above).
+ *
+ * @param delayMs - Workflow playback delay in milliseconds.
+ * @returns Gap width in whole pixels.
+ */
+export function workflowTimelineBlockGapPx(delayMs: number): number {
+  const safeDelay =
+    typeof delayMs === 'number' && Number.isFinite(delayMs) ? Math.max(0, delayMs) : 0;
+  const t = Math.min(safeDelay, WORKFLOW_TIMELINE_BLOCK_GAP_MAX_DELAY_MS);
+  const span = WORKFLOW_TIMELINE_BLOCK_GAP_MAX_PX - WORKFLOW_TIMELINE_BLOCK_GAP_MIN_PX;
+  return Math.round(
+    WORKFLOW_TIMELINE_BLOCK_GAP_MIN_PX + (span * t) / WORKFLOW_TIMELINE_BLOCK_GAP_MAX_DELAY_MS
+  );
+}
+
+/**
  * One action's segment on the recorded timeline.
  */
 export interface WorkflowTimelineSegment {
@@ -35,7 +88,7 @@ export interface WorkflowTimelineSegment {
   durationMs: number;
 
   /**
-   * Pixel width after fitting to the track (includes min-width enforcement).
+   * Absolute pixel width (gapless fixed size or duration-scaled with min floor).
    */
   widthPx: number;
 }
@@ -50,10 +103,15 @@ export interface WorkflowTimelineLayout {
   totalDurationMs: number;
 
   /**
-   * Total pixel width of all segments (always equals the track viewport width when
-   * there is at least one action).
+   * Total pixel width of the track (blocks plus inter-block gaps). May exceed
+   * the viewport so the timeline can scroll horizontally.
    */
   totalWidthPx: number;
+
+  /**
+   * Horizontal gap between adjacent blocks, derived from playback delay.
+   */
+  gapPx: number;
 
   /**
    * Per-action segments with pixel widths.
@@ -116,91 +174,79 @@ function buildSegmentRanges(
 }
 
 /**
- * Distributes integer pixel widths that sum exactly to `trackWidthPx`.
+ * Converts a segment duration to an absolute pixel width for gapped timelines.
  *
- * Prefers duration-proportional shares with a minimum per segment when the track
- * is wide enough; otherwise splits the track into equal-width segments.
- *
- * @param durations - Per-segment duration weights (must be positive).
- * @param trackWidthPx - Exact pixel budget for the full track.
- * @returns Integer widths summing to `trackWidthPx`.
+ * @param durationMs - Segment duration in milliseconds (must be positive).
+ * @returns Width in whole pixels, floored at the minimum block width.
  */
-function distributeSegmentWidths(durations: readonly number[], trackWidthPx: number): number[] {
-  const count = durations.length;
-  if (count === 0) {
-    return [];
-  }
-
-  const safeTrack = Math.max(1, Math.floor(trackWidthPx));
-  const minWidth = WORKFLOW_TIMELINE_MIN_BLOCK_WIDTH_PX;
-
-  if (safeTrack < count * minWidth) {
-    const base = Math.floor(safeTrack / count);
-    const remainder = safeTrack - base * count;
-    return durations.map((_, i) => base + (i < remainder ? 1 : 0));
-  }
-
-  const totalDuration = durations.reduce((sum, duration) => sum + duration, 0);
-  const freeBudget = safeTrack - count * minWidth;
-  const shares = durations.map((duration) => (duration / totalDuration) * freeBudget);
-  const floors = shares.map((share) => Math.floor(share));
-  const remainders = shares
-    .map((share, i) => ({ i, frac: share - floors[i]! }))
-    .sort((a, b) => b.frac - a.frac);
-
-  const extras = new Array<number>(count).fill(0);
-  const leftover = freeBudget - floors.reduce((sum, floor) => sum + floor, 0);
-  for (let n = 0; n < leftover; n += 1) {
-    const entry = remainders[n % remainders.length];
-    if (entry == null) {
-      break;
-    }
-    extras[entry.i]! += 1;
-  }
-
-  return durations.map((_, i) => minWidth + floors[i]! + extras[i]!);
+function durationToWidthPx(durationMs: number): number {
+  return Math.max(
+    WORKFLOW_TIMELINE_MIN_BLOCK_WIDTH_PX,
+    Math.round(durationMs * WORKFLOW_TIMELINE_PX_PER_MS)
+  );
 }
 
 /**
- * Lays out timeline segments for a track of the given pixel width.
+ * Pixel budget consumed by gaps between `count` blocks (no trailing gap).
  *
- * Durations are proportional to recorded gaps when `at` is present. Each block
- * is at least {@link WORKFLOW_TIMELINE_MIN_BLOCK_WIDTH_PX} wide when the track
- * allows it. Segment widths always sum exactly to `trackWidthPx` (no overflow).
+ * @param count - Number of timeline blocks.
+ * @param gapPx - Pixel gap between adjacent blocks.
+ * @returns Total gap pixels, or 0 when fewer than two blocks.
+ */
+function interBlockGapTotalPx(count: number, gapPx: number): number {
+  return count > 1 ? (count - 1) * gapPx : 0;
+}
+
+/**
+ * Lays out timeline segments with absolute pixel widths (scrollable track).
+ *
+ * When `equalWidths` is false (gapped playback), each block width scales with
+ * segment duration at {@link WORKFLOW_TIMELINE_PX_PER_MS}, floored at
+ * {@link WORKFLOW_TIMELINE_MIN_BLOCK_WIDTH_PX}. When `equalWidths` is true
+ * (gapless), every block is {@link WORKFLOW_TIMELINE_GAPLESS_BLOCK_WIDTH_PX}
+ * wide. Segment time ranges stay recorded-based in both modes. Total track
+ * width is the sum of block widths plus delay-derived gaps and may exceed the
+ * viewport.
  *
  * @param actions - Workflow actions in play order.
  * @param durationMs - Saved workflow duration in milliseconds.
- * @param trackWidthPx - Available viewport width for the track.
+ * @param equalWidths - When true, use the fixed gapless block width.
+ * @param delayMs - Playback delay used to size the inter-block gap (default 0 → min gap).
  * @returns Segment geometry and totals.
  */
 export function layoutWorkflowTimeline(
   actions: readonly WorkflowAction[],
   durationMs: number,
-  trackWidthPx: number
+  equalWidths = false,
+  delayMs = 0
 ): WorkflowTimelineLayout {
+  const gapPx = workflowTimelineBlockGapPx(delayMs);
   const { starts, ends, totalDurationMs } = buildSegmentRanges(actions, durationMs);
   const count = actions.length;
   if (count === 0) {
     return {
       totalDurationMs,
-      totalWidthPx: Math.max(0, trackWidthPx),
+      totalWidthPx: 0,
+      gapPx,
       segments: []
     };
   }
 
-  const safeTrack = Math.max(1, Math.floor(trackWidthPx));
-  const durations = starts.map((start, i) => Math.max(1, ends[i]! - start));
-  const widths = distributeSegmentWidths(durations, safeTrack);
+  const segments: WorkflowTimelineSegment[] = starts.map((start, i) => {
+    const duration = Math.max(1, ends[i]! - start);
+    return {
+      index: i,
+      startMs: start,
+      endMs: ends[i]!,
+      durationMs: duration,
+      widthPx: equalWidths ? WORKFLOW_TIMELINE_GAPLESS_BLOCK_WIDTH_PX : durationToWidthPx(duration)
+    };
+  });
 
-  const segments: WorkflowTimelineSegment[] = starts.map((start, i) => ({
-    index: i,
-    startMs: start,
-    endMs: ends[i]!,
-    durationMs: Math.max(1, ends[i]! - start),
-    widthPx: widths[i]!
-  }));
+  const widthsTotal = segments.reduce((sum, segment) => sum + segment.widthPx, 0);
+  const totalWidthPx = widthsTotal + interBlockGapTotalPx(count, gapPx);
 
-  return { totalDurationMs, totalWidthPx: safeTrack, segments };
+  return { totalDurationMs, totalWidthPx, gapPx, segments };
 }
 
 /**
@@ -216,13 +262,18 @@ export function timelineMsToPlayheadX(layout: WorkflowTimelineLayout, timelineMs
   }
 
   const clamped = Math.min(Math.max(timelineMs, 0), layout.totalDurationMs);
+  const gap = layout.gapPx;
   let x = 0;
-  for (const segment of layout.segments) {
+  for (let i = 0; i < layout.segments.length; i += 1) {
+    const segment = layout.segments[i]!;
     if (clamped <= segment.startMs) {
       return x;
     }
     if (clamped >= segment.endMs) {
       x += segment.widthPx;
+      if (i < layout.segments.length - 1) {
+        x += gap;
+      }
       continue;
     }
     const local = (clamped - segment.startMs) / segment.durationMs;
@@ -234,6 +285,8 @@ export function timelineMsToPlayheadX(layout: WorkflowTimelineLayout, timelineMs
 /**
  * Maps a click X (relative to the track content) to the nearest action index.
  *
+ * Clicks that land in an inter-block gap resolve to the following block.
+ *
  * @param layout - Result of {@link layoutWorkflowTimeline}.
  * @param xPx - Click X within the scrollable track content.
  * @returns Action index, or null when there are no segments.
@@ -242,28 +295,52 @@ export function playheadXToActionIndex(layout: WorkflowTimelineLayout, xPx: numb
   if (layout.segments.length === 0) {
     return null;
   }
+  const gap = layout.gapPx;
   let x = 0;
-  for (const segment of layout.segments) {
+  for (let i = 0; i < layout.segments.length; i += 1) {
+    const segment = layout.segments[i]!;
     const next = x + segment.widthPx;
     if (xPx < next) {
       return segment.index;
     }
     x = next;
+    if (i < layout.segments.length - 1) {
+      x += gap;
+      if (xPx < x) {
+        return layout.segments[i + 1]!.index;
+      }
+    }
   }
   return layout.segments[layout.segments.length - 1]!.index;
 }
 
 /**
+ * Formats a timeline offset as a compact ruler label.
+ *
+ * @param ms - Offset in milliseconds.
+ * @returns Human-readable label (e.g. `1.5s`, `1m05s`).
+ */
+function formatRulerTickLabel(ms: number): string {
+  const seconds = ms / 1000;
+  if (seconds >= 60) {
+    return `${Math.floor(seconds / 60)}m${String(Math.floor(seconds % 60)).padStart(2, '0')}s`;
+  }
+  return `${Math.round(seconds * 10) / 10}s`;
+}
+
+/**
  * Returns tick marks for the timeline ruler.
  *
- * @param totalDurationMs - Full timeline duration.
- * @param totalWidthPx - Full track content width.
+ * Tick X positions follow {@link timelineMsToPlayheadX} so labels stay aligned
+ * with the playhead under both proportional and equal-width layouts.
+ *
+ * @param layout - Result of {@link layoutWorkflowTimeline}.
  * @returns Labelled tick positions in pixels.
  */
 export function buildTimelineRulerTicks(
-  totalDurationMs: number,
-  totalWidthPx: number
+  layout: WorkflowTimelineLayout
 ): { xPx: number; label: string; ms: number }[] {
+  const { totalDurationMs, totalWidthPx } = layout;
   if (totalDurationMs <= 0 || totalWidthPx <= 0) {
     return [{ xPx: 0, label: '0s', ms: 0 }];
   }
@@ -276,13 +353,8 @@ export function buildTimelineRulerTicks(
   const ticks: { xPx: number; label: string; ms: number }[] = [];
   for (let ms = 0; ms <= totalDurationMs + 0.5; ms += stepMs) {
     const clamped = Math.min(ms, totalDurationMs);
-    const xPx = (clamped / totalDurationMs) * totalWidthPx;
-    const seconds = clamped / 1000;
-    const label =
-      seconds >= 60
-        ? `${Math.floor(seconds / 60)}m${String(Math.floor(seconds % 60)).padStart(2, '0')}s`
-        : `${Math.round(seconds * 10) / 10}s`;
-    ticks.push({ xPx, label, ms: clamped });
+    const xPx = timelineMsToPlayheadX(layout, clamped);
+    ticks.push({ xPx, label: formatRulerTickLabel(clamped), ms: clamped });
     if (clamped >= totalDurationMs) {
       break;
     }
@@ -303,7 +375,7 @@ export function playbackIndexToTimelineMs(
   durationMs: number,
   index: number
 ): number {
-  const layout = layoutWorkflowTimeline(actions, durationMs, 1000);
+  const layout = layoutWorkflowTimeline(actions, durationMs);
   if (layout.segments.length === 0) {
     return 0;
   }

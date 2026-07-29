@@ -470,21 +470,21 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   },
   {
     id: 'toggle-collections-section',
-    label: 'Toggle collections section',
+    label: 'Show Collections',
     defaultAccelerator: 'CmdOrCtrl+Shift+C',
     kind: 'action',
     actionId: 'toggle-collections-section'
   },
   {
     id: 'toggle-environments-section',
-    label: 'Toggle environments section',
+    label: 'Show Environments',
     defaultAccelerator: 'CmdOrCtrl+Shift+E',
     kind: 'action',
     actionId: 'toggle-environments-section'
   },
   {
     id: 'toggle-run-results-section',
-    label: 'Toggle run results section',
+    label: 'Show Collections (Runs)',
     defaultAccelerator: 'CmdOrCtrl+Shift+M',
     kind: 'action',
     actionId: 'toggle-run-results-section'

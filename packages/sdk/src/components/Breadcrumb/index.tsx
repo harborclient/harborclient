@@ -48,8 +48,8 @@ interface Props {
 /**
  * Full-width breadcrumb bar with interlocking arrow-shaped segments. Leading
  * segments are optionally clickable; the trailing segment is inline-editable.
- * The track background is clipped to the segments' pill silhouette so the
- * rounded caps read against the surrounding surface instead of a square band.
+ * The track background is clipped to the segments' silhouette so the
+ * `rounded-md` ends read against the surrounding surface instead of a square band.
  */
 export function Breadcrumb({
   segments,
@@ -94,12 +94,7 @@ export function Breadcrumb({
       aria-label="Breadcrumb"
       className={cn(
         'hc-breadcrumb flex min-w-0 items-stretch bg-breadcrumb-background',
-        flush
-          ? '-mx-3 -mt-3 w-[calc(100%+1.5rem)]'
-          : cn(
-              'w-full overflow-hidden',
-              editableShape === 'only' ? 'rounded-full' : 'rounded-l-full'
-            ),
+        flush ? '-mx-3 -mt-3 w-[calc(100%+1.5rem)]' : 'w-full overflow-hidden rounded-md',
         className
       )}
     >

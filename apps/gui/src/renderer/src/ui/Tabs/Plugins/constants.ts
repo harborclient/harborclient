@@ -29,7 +29,8 @@ export const PERMISSION_NAMES: Record<PluginPermission, string> = {
   'network': 'Network',
   'ipc': 'IPC',
   'server': 'Server',
-  'mcp': 'MCP'
+  'mcp': 'MCP',
+  'ai': 'AI'
 };
 
 /**
@@ -46,7 +47,8 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'network': 'Outbound HTTP through hc.host.sendHttpRequest',
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
-  'mcp': 'Register remote MCP client servers for the chat agent'
+  'mcp': 'Register remote MCP client servers for the chat agent',
+  'ai': 'Chat tools, system prompt contributions, and agent hooks'
 };
 
 /**
@@ -63,5 +65,6 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   'network': 'Outbound HTTP through hc.host.sendHttpRequest',
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
-  'mcp': 'Register remote MCP client servers for the chat agent'
+  'mcp': 'Register remote MCP client servers for the chat agent',
+  'ai': 'Chat tools, system prompt contributions, and agent hooks'
 };

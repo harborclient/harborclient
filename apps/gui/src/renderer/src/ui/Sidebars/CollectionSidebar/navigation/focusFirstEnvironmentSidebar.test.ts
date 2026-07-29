@@ -19,7 +19,7 @@ describe('focusEnvironmentSidebarById', () => {
   it('reveals the sidebar and selects the given environment', () => {
     const dispatch = vi.fn();
     const expansion = {
-      setEnvironmentsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setEnvironmentsSectionExpanded: vi.fn()
     };
 
@@ -35,7 +35,7 @@ describe('focusEnvironmentSidebarById', () => {
 
     expect(dispatch).toHaveBeenCalledWith(setShowSidebar(true));
     expect(dispatch).toHaveBeenCalledWith(setActiveSidebarPanel(null));
-    expect(expansion.setEnvironmentsSectionVisible).toHaveBeenCalledWith(true);
+    expect(expansion.setActiveSidebarMode).toHaveBeenCalledWith('environments');
     expect(expansion.setEnvironmentsSectionExpanded).toHaveBeenCalledWith(true);
     expect(dispatch).toHaveBeenCalledWith(setActiveEnvironmentId(42));
   });
@@ -50,14 +50,14 @@ describe('focusEnvironmentSidebarById', () => {
 
     const dispatch = vi.fn();
     const expansion = {
-      setEnvironmentsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setEnvironmentsSectionExpanded: vi.fn()
     };
 
     focusEnvironmentSidebarById(dispatch, 42, expansion);
 
     expect(dispatch).not.toHaveBeenCalled();
-    expect(expansion.setEnvironmentsSectionVisible).not.toHaveBeenCalled();
+    expect(expansion.setActiveSidebarMode).not.toHaveBeenCalled();
   });
 });
 
@@ -76,7 +76,7 @@ describe('focusFirstEnvironmentSidebar', () => {
       }
     }));
     const expansion = {
-      setEnvironmentsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setEnvironmentsSectionExpanded: vi.fn()
     };
 
@@ -92,7 +92,7 @@ describe('focusFirstEnvironmentSidebar', () => {
 
     expect(dispatch).toHaveBeenCalledWith(setShowSidebar(true));
     expect(dispatch).toHaveBeenCalledWith(setActiveSidebarPanel(null));
-    expect(expansion.setEnvironmentsSectionVisible).toHaveBeenCalledWith(true);
+    expect(expansion.setActiveSidebarMode).toHaveBeenCalledWith('environments');
     expect(expansion.setEnvironmentsSectionExpanded).toHaveBeenCalledWith(true);
     expect(dispatch).toHaveBeenCalledWith(setActiveEnvironmentId(7));
   });
@@ -113,13 +113,13 @@ describe('focusFirstEnvironmentSidebar', () => {
       }
     }));
     const expansion = {
-      setEnvironmentsSectionVisible: vi.fn(),
+      setActiveSidebarMode: vi.fn(),
       setEnvironmentsSectionExpanded: vi.fn()
     };
 
     focusFirstEnvironmentSidebar(dispatch, getState as never, expansion);
 
     expect(dispatch).not.toHaveBeenCalled();
-    expect(expansion.setEnvironmentsSectionVisible).not.toHaveBeenCalled();
+    expect(expansion.setActiveSidebarMode).not.toHaveBeenCalled();
   });
 });

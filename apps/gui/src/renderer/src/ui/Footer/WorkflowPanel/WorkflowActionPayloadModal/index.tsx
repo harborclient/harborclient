@@ -140,6 +140,7 @@ export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props)
               type="button"
               variant="secondary"
               aria-label="Copy action UUID"
+              title="Copy action UUID"
               onClick={handleCopyUuid}
             >
               {copied ? 'Copied' : 'Copy'}

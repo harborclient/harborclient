@@ -219,7 +219,7 @@
     "test:changed": "vitest run --changed",
     "test:watch": "vitest",
     "clean": "rm -rf dist",
-    "dev": "node scripts/copy-runtime.mjs && concurrently --kill-others --prefixColors=auto -n runtime,tsc \"node scripts/watch-runtime.mjs\" \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\"",
+    "dev": "node scripts/copy-runtime.mjs && concurrently --prefixColors=auto -n runtime,tsc \"node scripts/watch-runtime.mjs\" \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\"",
     "release": "gh workflow run sdk-release.yml --ref main -f branch=main -f bump=patch",
     "release:patch": "gh workflow run sdk-release.yml --ref main -f branch=main -f bump=patch",
     "release:minor": "gh workflow run sdk-release.yml --ref main -f branch=main -f bump=minor",

@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
+import { SIDEBAR_MODE_SECTIONS } from '@harborclient/core/sidebarExpansion';
+import type { SidebarSectionKey } from '@harborclient/core/types';
 import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
+import { builtInSectionsToCollapse, collapsePluginSectionsInMap } from './collapseSidebarSections';
 import { useSidebarExpansion } from './useSidebarExpansion';
 
 /**
@@ -22,9 +25,11 @@ interface Result {
   pluginSectionExpanded: Record<string, boolean>;
 
   /**
-   * Collapses every built-in and plugin sidebar section header.
+   * Collapses the given built-in and plugin sidebar section headers only.
+   *
+   * @param keys - Section keys currently visible in the sidebar body.
    */
-  collapseAllSections: () => void;
+  collapseSections: (keys: readonly string[]) => void;
 }
 
 /**
@@ -53,14 +58,7 @@ export function useSidebarAccordion(): Result {
     setWorkflowsSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    runResultsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    archiveSectionVisible,
-    trashSectionVisible
+    activeSidebarMode
   } = useSidebarExpansion();
 
   /**
@@ -133,48 +131,43 @@ export function useSidebarAccordion(): Result {
 
   /**
    * Controlled expanded map fed into SDK `SidebarSections`.
+   *
+   * Includes every section for the active rail mode (and plugin sections when the
+   * Collections mode is active) so mounted accordion items stay controlled.
    */
   const expanded = useMemo((): Record<string, boolean> => {
     const desiredExpansion: Record<string, boolean> = {};
+    const modeSections = SIDEBAR_MODE_SECTIONS[activeSidebarMode];
+    const sectionExpandedByKey = {
+      collections: collectionsSectionExpanded,
+      environments: environmentsSectionExpanded,
+      runResults: runResultsSectionExpanded,
+      history: historySectionExpanded,
+      workspaces: workspacesSectionExpanded,
+      workflows: workflowsSectionExpanded,
+      archive: archiveSectionExpanded,
+      trash: trashSectionExpanded
+    } as const;
 
-    if (collectionsSectionVisible) {
-      desiredExpansion.collections = collectionsSectionExpanded;
+    for (const key of modeSections) {
+      desiredExpansion[key] = sectionExpandedByKey[key];
     }
 
-    if (environmentsSectionVisible) {
-      desiredExpansion.environments = environmentsSectionExpanded;
-    }
+    // Search may temporarily mount Collections / Environments / Archive outside the
+    // active mode; keep their accordion state available in the controlled map.
+    desiredExpansion.collections = collectionsSectionExpanded;
+    desiredExpansion.environments = environmentsSectionExpanded;
+    desiredExpansion.archive = archiveSectionExpanded;
 
-    if (runResultsSectionVisible) {
-      desiredExpansion.runResults = runResultsSectionExpanded;
-    }
-
-    if (historySectionVisible) {
-      desiredExpansion.history = historySectionExpanded;
-    }
-
-    if (workspacesSectionVisible) {
-      desiredExpansion.workspaces = workspacesSectionExpanded;
-    }
-
-    if (workflowsSectionVisible) {
-      desiredExpansion.workflows = workflowsSectionExpanded;
-    }
-
-    if (archiveSectionVisible) {
-      desiredExpansion.archive = archiveSectionExpanded;
-    }
-
-    if (trashSectionVisible) {
-      desiredExpansion.trash = trashSectionExpanded;
-    }
-
-    for (const section of pluginSidebarSections) {
-      desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
+    if (activeSidebarMode === 'collections') {
+      for (const section of pluginSidebarSections) {
+        desiredExpansion[section.id] = pluginSectionExpanded[section.id] ?? true;
+      }
     }
 
     return desiredExpansion;
   }, [
+    activeSidebarMode,
     collectionsSectionExpanded,
     environmentsSectionExpanded,
     runResultsSectionExpanded,
@@ -183,58 +176,51 @@ export function useSidebarAccordion(): Result {
     workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    runResultsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    archiveSectionVisible,
-    trashSectionVisible,
     pluginSectionExpanded,
     pluginSidebarSections
   ]);
 
   /**
-   * Collapses every built-in section and each registered plugin section.
+   * Collapses only the section keys currently visible in the sidebar body.
    *
-   * Used as the second step of the Collapse all toolbar control when no
-   * collection or folder trees remain expanded.
+   * Used as the second step of the Collapse all control when no trees remain
+   * expanded for the active rail mode. Sections outside `keys` keep their state
+   * so switching modes does not surprise the user with collapsed headers.
+   *
+   * @param keys - Built-in or plugin section ids currently mounted.
    */
-  const collapseAllSections = useCallback((): void => {
-    setCollectionsSectionExpanded(false);
-    setEnvironmentsSectionExpanded(false);
-    setRunResultsSectionExpanded(false);
-    setHistorySectionExpanded(false);
-    setWorkspacesSectionExpanded(false);
-    setWorkflowsSectionExpanded(false);
-    setArchiveSectionExpanded(false);
-    setTrashSectionExpanded(false);
+  const collapseSections = useCallback(
+    (keys: readonly string[]): void => {
+      const setters: Record<SidebarSectionKey, (value: boolean) => void> = {
+        collections: setCollectionsSectionExpanded,
+        environments: setEnvironmentsSectionExpanded,
+        runResults: setRunResultsSectionExpanded,
+        history: setHistorySectionExpanded,
+        workspaces: setWorkspacesSectionExpanded,
+        workflows: setWorkflowsSectionExpanded,
+        archive: setArchiveSectionExpanded,
+        trash: setTrashSectionExpanded
+      };
 
-    setPluginSectionExpanded((current) => {
-      const next: Record<string, boolean> = { ...current };
-      let changed = false;
-
-      for (const section of pluginSidebarSections) {
-        if (next[section.id] !== false) {
-          next[section.id] = false;
-          changed = true;
-        }
+      for (const key of builtInSectionsToCollapse(keys)) {
+        setters[key](false);
       }
 
-      return changed ? next : current;
-    });
-  }, [
-    pluginSidebarSections,
-    setCollectionsSectionExpanded,
-    setEnvironmentsSectionExpanded,
-    setRunResultsSectionExpanded,
-    setHistorySectionExpanded,
-    setWorkspacesSectionExpanded,
-    setWorkflowsSectionExpanded,
-    setArchiveSectionExpanded,
-    setTrashSectionExpanded
-  ]);
+      const pluginIds = pluginSidebarSections.map((section) => section.id);
+      setPluginSectionExpanded((current) => collapsePluginSectionsInMap(current, keys, pluginIds));
+    },
+    [
+      pluginSidebarSections,
+      setCollectionsSectionExpanded,
+      setEnvironmentsSectionExpanded,
+      setRunResultsSectionExpanded,
+      setHistorySectionExpanded,
+      setWorkspacesSectionExpanded,
+      setWorkflowsSectionExpanded,
+      setArchiveSectionExpanded,
+      setTrashSectionExpanded
+    ]
+  );
 
-  return { expanded, onToggle, pluginSectionExpanded, collapseAllSections };
+  return { expanded, onToggle, pluginSectionExpanded, collapseSections };
 }

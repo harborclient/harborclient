@@ -102,7 +102,7 @@ export function UrlBar({
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`request-url-bar flex min-w-0 flex-1 items-center ps-2 ${fieldFrame} rounded-l-full! rounded-r-lg!`}
+        className={`request-url-bar flex h-[35px] min-w-0 flex-1 items-center ps-2 ${fieldFrame} rounded-md!`}
       >
         <MethodSelect value={method} onChange={onMethodChange} className="mt-0.5" />
         <div className="h-5 w-px shrink-0 bg-separator" />
@@ -138,7 +138,7 @@ export function UrlBar({
         type="button"
         onClick={() => (sending ? onCancel() : onSend())}
         aria-label={sending ? 'Cancel request' : undefined}
-        className="hc-send-button inline-flex w-24 shrink-0 items-center justify-center"
+        className="hc-send-button inline-flex min-h-[35px] w-24 shrink-0 items-center justify-center"
       >
         {sending ? <FaIcon icon={faStop} className="h-3.5 w-3.5" aria-hidden /> : 'Send'}
       </Button>
@@ -159,7 +159,7 @@ export function UrlBar({
             event.preventDefault();
           }
         }}
-        className={`hc-save-button inline-flex w-16 shrink-0 items-center justify-center${saveInactive ? ' cursor-not-allowed opacity-50' : ''}`}
+        className={`hc-save-button inline-flex min-h-[35px] w-16 shrink-0 items-center justify-center${saveInactive ? ' cursor-not-allowed opacity-50' : ''}`}
       >
         <FaIcon icon={faFloppyDisk} className="h-3.5 w-3.5" aria-hidden />
       </Button>

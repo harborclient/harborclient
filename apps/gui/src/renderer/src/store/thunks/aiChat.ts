@@ -25,6 +25,7 @@ import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSe
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
+import { selectPluginSelections } from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 import {
   appendMessage,
@@ -410,7 +411,8 @@ export const sendChatMessage = createAsyncThunk<
     buildSidebarItemNameMapsFromState(getState()),
     selectRequestBodySelections(getState()),
     selectScriptSelections(getState()),
-    selectResponseSelections(getState())
+    selectResponseSelections(getState()),
+    selectPluginSelections(getState())
   );
   const referenceSnapshots = collectChatReferenceSnapshots(trimmed, validationContext);
 

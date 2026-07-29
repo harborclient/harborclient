@@ -33,6 +33,11 @@ interface Props {
    * Called when the menu should close without selecting an item.
    */
   onClose: () => void;
+
+  /**
+   * Accessible name for the menu. Defaults to "Tab actions".
+   */
+  ariaLabel?: string;
 }
 
 /**
@@ -41,7 +46,12 @@ interface Props {
  * @param props - Menu groups, cursor anchor, and close handler.
  * @returns Portal menu panel, or null when there are no items.
  */
-export function TabContextMenu({ groups, position, onClose }: Props): JSX.Element | null {
+export function TabContextMenu({
+  groups,
+  position,
+  onClose,
+  ariaLabel = 'Tab actions'
+}: Props): JSX.Element | null {
   const menuRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -154,7 +164,7 @@ export function TabContextMenu({ groups, position, onClose }: Props): JSX.Elemen
     <div
       ref={menuRef}
       role="menu"
-      aria-label="Tab actions"
+      aria-label={ariaLabel}
       className="hc-tab-context-menu app-no-drag fixed z-[70] min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: clampedPosition.x, top: clampedPosition.y }}
       onKeyDown={handleMenuKeyDown}

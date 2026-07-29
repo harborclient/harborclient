@@ -9,11 +9,12 @@ import { HostEntityContextMenuLayer } from '#/renderer/src/plugins/HostEntityCon
 import { SidebarContent } from './shell/SidebarContent';
 
 /**
- * Left sidebar with collapsible collections, environments, history, and run-results
- * sections. Mounts the sidebar context providers (providers, search, section filters,
- * and selection) so each section can own its own data and actions. Folder/document
- * rename modals live in SidebarModalsProvider at the app layout level so the
- * markdown editor tab can open them as well.
+ * Left sidebar with an activity rail and mode-driven sections (collections,
+ * environments, workspaces, workflows, trash). Mounts the sidebar context
+ * providers (providers, search, section filters, and selection) so each section
+ * can own its own data and actions. Folder/document rename modals live in
+ * SidebarModalsProvider at the app layout level so the markdown editor tab can
+ * open them as well.
  */
 export function CollectionSidebar(): JSX.Element {
   return (

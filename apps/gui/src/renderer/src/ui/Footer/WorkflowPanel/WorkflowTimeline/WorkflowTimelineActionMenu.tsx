@@ -116,5 +116,12 @@ export function WorkflowTimelineActionMenu({
     ];
   }, [actionCount, actionIndex, onDelete, onEditPayload, onMoveAhead, onMoveBehind, playing]);
 
-  return <TabContextMenu groups={groups} position={position} onClose={onClose} />;
+  return (
+    <TabContextMenu
+      ariaLabel="Workflow action"
+      groups={groups}
+      position={position}
+      onClose={onClose}
+    />
+  );
 }

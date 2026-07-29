@@ -7,6 +7,7 @@ Complete walkthroughs for common plugin patterns:
 - [Solarized theme](/examples/solarized-theme) — theme plugin via `registerTheme` or JSON `import` (no JavaScript)
 - [Import handler](/examples/import-handler) — **File → Import** handler with preview UI
 - [MCP client server](/examples/mcp-client-server) — register a remote MCP endpoint for Harbor's chat agent
+- [Chat pointers](/examples/chat-pointers) — register `@plugin…` badges and copy context into the AI sidebar
 - [Sidebar replacement tree](/examples/sidebar-replacement-tree) — replace Collections with a custom tree, host context menus, and reorder/move
 
 See [harborclient-plugin-skeleton](https://github.com/harborclient/plugin-skeleton) for a starter project with renderer and main entries.

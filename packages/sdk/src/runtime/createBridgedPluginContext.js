@@ -19,6 +19,7 @@ let importRegistrationCounter = 0;
 
 /** Monotonic id generator for MCP server registrations within one webview. */
 let mcpRegistrationCounter = 0;
+let aiChatPointerRegistrationCounter = 0;
 
 /** Plugin id prefix for built-in HarborClient host commands executed in the renderer. */
 const HOST_COMMAND_OWNER = 'harborclient';
@@ -120,6 +121,7 @@ export function installImportInvokeListener() {
  */
 export function resetMcpServersForTests() {
   mcpRegistrationCounter = 0;
+  aiChatPointerRegistrationCounter = 0;
 }
 
 /**
@@ -344,6 +346,11 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
    * Asserts MCP permission for remote MCP client registration.
    */
   const assertMcp = () => assertPermission('mcp');
+
+  /**
+   * Asserts AI permission for chat pointer registration and copy-to-chat.
+   */
+  const assertAi = () => assertPermission('ai');
 
   /**
    * Asserts that a contribution id is declared in manifest.contributes.
@@ -1185,6 +1192,37 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         });
         return track(() => {
           void bridgeInvoke('mcp.unregisterServer', { registrationId });
+        });
+      }
+    },
+    ai: {
+      registerChatPointer: (config) => {
+        assertAi();
+        if (!isAgent) {
+          return noopDisposable();
+        }
+        const pointerId = String(config?.id ?? '').trim();
+        if (!/^[a-z][a-z0-9-]*$/.test(pointerId)) {
+          throw new Error(`Invalid chat pointer id: ${pointerId}`);
+        }
+        const registrationId = String(++aiChatPointerRegistrationCounter);
+        void bridgeInvoke('ai.registerChatPointer', {
+          registrationId,
+          pointerId,
+          agentGuidance: config?.agentGuidance
+        });
+        return track(() => {
+          void bridgeInvoke('ai.unregisterChatPointer', { registrationId });
+        });
+      },
+      copyToChat: async (input) => {
+        assertAi();
+        await bridgeInvoke('ai.copyToChat', {
+          pointerId: String(input?.pointerId ?? '').trim(),
+          key: String(input?.key ?? '').trim(),
+          label: String(input?.label ?? '').trim(),
+          context: String(input?.context ?? ''),
+          selection: input?.selection
         });
       }
     }

@@ -9,6 +9,7 @@ import {
 import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
 import type {
   SidebarExpansionState,
+  SidebarMode,
   SidebarSectionKey,
   SidebarSortMode
 } from '@harborclient/core/types';
@@ -161,124 +162,24 @@ interface Result {
   setArchiveSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
-   * Whether the Collections section is rendered in the sidebar.
+   * Active activity-rail mode that selects which section set is mounted.
    */
-  collectionsSectionVisible: boolean;
+  activeSidebarMode: SidebarMode;
 
   /**
-   * Whether the Environments section is rendered in the sidebar.
+   * Sets the active activity-rail mode.
    */
-  environmentsSectionVisible: boolean;
+  setActiveSidebarMode: Dispatch<SetStateAction<SidebarMode>>;
 
   /**
-   * Whether the Run Results section is rendered in the sidebar.
+   * Whether the activity rail shows labels beside icons.
    */
-  runResultsSectionVisible: boolean;
+  sidebarRailExpanded: boolean;
 
   /**
-   * Whether the History section is rendered in the sidebar.
+   * Sets whether the activity rail is expanded.
    */
-  historySectionVisible: boolean;
-
-  /**
-   * Whether the Workspaces section is rendered in the sidebar.
-   */
-  workspacesSectionVisible: boolean;
-
-  /**
-   * Whether the Workflows section is rendered in the sidebar.
-   */
-  workflowsSectionVisible: boolean;
-
-  /**
-   * Whether the Trash section is rendered in the sidebar.
-   */
-  trashSectionVisible: boolean;
-
-  /**
-   * Whether the Archive section is rendered in the sidebar.
-   */
-  archiveSectionVisible: boolean;
-
-  /**
-   * Toggles the Collections section visibility.
-   */
-  toggleCollectionsSectionVisible: () => void;
-
-  /**
-   * Toggles the Environments section visibility.
-   */
-  toggleEnvironmentsSectionVisible: () => void;
-
-  /**
-   * Toggles the Run Results section visibility.
-   */
-  toggleRunResultsSectionVisible: () => void;
-
-  /**
-   * Toggles the History section visibility.
-   */
-  toggleHistorySectionVisible: () => void;
-
-  /**
-   * Toggles the Workspaces section visibility.
-   */
-  toggleWorkspacesSectionVisible: () => void;
-
-  /**
-   * Toggles the Workflows section visibility.
-   */
-  toggleWorkflowsSectionVisible: () => void;
-
-  /**
-   * Toggles the Trash section visibility.
-   */
-  toggleTrashSectionVisible: () => void;
-
-  /**
-   * Toggles the Archive section visibility.
-   */
-  toggleArchiveSectionVisible: () => void;
-
-  /**
-   * Sets the Collections section visibility explicitly.
-   */
-  setCollectionsSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Environments section visibility explicitly.
-   */
-  setEnvironmentsSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Run Results section visibility explicitly.
-   */
-  setRunResultsSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the History section visibility explicitly.
-   */
-  setHistorySectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Workspaces section visibility explicitly.
-   */
-  setWorkspacesSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Workflows section visibility explicitly.
-   */
-  setWorkflowsSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Trash section visibility explicitly.
-   */
-  setTrashSectionVisible: Dispatch<SetStateAction<boolean>>;
-
-  /**
-   * Sets the Archive section visibility explicitly.
-   */
-  setArchiveSectionVisible: Dispatch<SetStateAction<boolean>>;
+  setSidebarRailExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Whether storage location name badges appear next to collection names.
@@ -442,7 +343,8 @@ interface Result {
  * Builds a snapshot for electron-store from in-memory expansion state.
  *
  * @param sections - Section expanded flags.
- * @param sectionVisibility - Section show/hide flags.
+ * @param activeSidebarMode - Active activity-rail mode.
+ * @param sidebarRailExpanded - Whether the rail shows labels.
  * @param sectionSort - Per-section sort modes.
  * @param expandedCollectionIds - Expanded collection ids in memory.
  * @param expandedFolderIds - Expanded folder ids in memory.
@@ -456,7 +358,8 @@ interface Result {
  */
 export function serializeSidebarExpansion(
   sections: SidebarExpansionState['sections'],
-  sectionVisibility: SidebarExpansionState['sectionVisibility'],
+  activeSidebarMode: SidebarMode,
+  sidebarRailExpanded: boolean,
   sectionSort: SidebarExpansionState['sectionSort'],
   expandedCollectionIds: Set<number>,
   expandedFolderIds: Set<number>,
@@ -470,7 +373,8 @@ export function serializeSidebarExpansion(
 ): SidebarExpansionState {
   return {
     sections,
-    sectionVisibility,
+    activeSidebarMode,
+    sidebarRailExpanded,
     sectionSort,
     collectionIds: [...expandedCollectionIds],
     folderIds: [...expandedFolderIds],
@@ -542,28 +446,10 @@ export function usePersistedSidebarExpansion({
   );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
-  const [collectionsSectionVisible, setCollectionsSectionVisible] = useState(
-    defaults.sectionVisibility.collections
+  const [activeSidebarMode, setActiveSidebarMode] = useState<SidebarMode>(
+    defaults.activeSidebarMode
   );
-  const [environmentsSectionVisible, setEnvironmentsSectionVisible] = useState(
-    defaults.sectionVisibility.environments
-  );
-  const [runResultsSectionVisible, setRunResultsSectionVisible] = useState(
-    defaults.sectionVisibility.runResults
-  );
-  const [historySectionVisible, setHistorySectionVisible] = useState(
-    defaults.sectionVisibility.history
-  );
-  const [workspacesSectionVisible, setWorkspacesSectionVisible] = useState(
-    defaults.sectionVisibility.workspaces
-  );
-  const [workflowsSectionVisible, setWorkflowsSectionVisible] = useState(
-    defaults.sectionVisibility.workflows
-  );
-  const [trashSectionVisible, setTrashSectionVisible] = useState(defaults.sectionVisibility.trash);
-  const [archiveSectionVisible, setArchiveSectionVisible] = useState(
-    defaults.sectionVisibility.archive
-  );
+  const [sidebarRailExpanded, setSidebarRailExpanded] = useState(defaults.sidebarRailExpanded);
   const [showStorageLocationBadges, setShowStorageLocationBadges] = useState(
     defaults.showStorageLocationBadges
   );
@@ -609,14 +495,8 @@ export function usePersistedSidebarExpansion({
       setWorkflowsSectionExpanded(stored.sections.workflows);
       setTrashSectionExpanded(stored.sections.trash);
       setArchiveSectionExpanded(stored.sections.archive);
-      setCollectionsSectionVisible(stored.sectionVisibility.collections);
-      setEnvironmentsSectionVisible(stored.sectionVisibility.environments);
-      setRunResultsSectionVisible(stored.sectionVisibility.runResults);
-      setHistorySectionVisible(stored.sectionVisibility.history);
-      setWorkspacesSectionVisible(stored.sectionVisibility.workspaces);
-      setWorkflowsSectionVisible(stored.sectionVisibility.workflows);
-      setTrashSectionVisible(stored.sectionVisibility.trash);
-      setArchiveSectionVisible(stored.sectionVisibility.archive);
+      setActiveSidebarMode(stored.activeSidebarMode);
+      setSidebarRailExpanded(stored.sidebarRailExpanded);
       setShowStorageLocationBadges(stored.showStorageLocationBadges);
       setShowMarkers(stored.showMarkers);
       setShowMethodColors(stored.showMethodColors);
@@ -698,16 +578,8 @@ export function usePersistedSidebarExpansion({
         archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
-      {
-        collections: collectionsSectionVisible,
-        environments: environmentsSectionVisible,
-        runResults: runResultsSectionVisible,
-        history: historySectionVisible,
-        workspaces: workspacesSectionVisible,
-        workflows: workflowsSectionVisible,
-        archive: archiveSectionVisible,
-        trash: trashSectionVisible
-      },
+      activeSidebarMode,
+      sidebarRailExpanded,
       sectionSort,
       expandedCollectionIds,
       expandedFolderIds,
@@ -731,14 +603,8 @@ export function usePersistedSidebarExpansion({
     workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    runResultsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    archiveSectionVisible,
-    trashSectionVisible,
+    activeSidebarMode,
+    sidebarRailExpanded,
     sectionSort,
     expandedCollectionIds,
     expandedFolderIds,
@@ -756,7 +622,7 @@ export function usePersistedSidebarExpansion({
    */
   const revealCollection = useCallback(
     (collectionId: number) => {
-      setCollectionsSectionVisible(true);
+      setActiveSidebarMode('collections');
       setCollectionsSectionExpanded(true);
       setExpandedCollectionIds((prev) => {
         if (prev.has(collectionId)) return prev;
@@ -775,7 +641,7 @@ export function usePersistedSidebarExpansion({
    * @param collectionId - Archived collection to reveal in the Archive list.
    */
   const revealArchivedCollection = useCallback((collectionId: number) => {
-    setArchiveSectionVisible(true);
+    setActiveSidebarMode('collections');
     setArchiveSectionExpanded(true);
     setExpandedCollectionIds((prev) => {
       if (prev.has(collectionId)) return prev;
@@ -794,7 +660,7 @@ export function usePersistedSidebarExpansion({
    */
   const revealFolder = useCallback(
     (collectionId: number, folderId: number) => {
-      setCollectionsSectionVisible(true);
+      setActiveSidebarMode('collections');
       setCollectionsSectionExpanded(true);
       setExpandedCollectionIds((prev) => {
         if (prev.has(collectionId)) return prev;
@@ -868,62 +734,6 @@ export function usePersistedSidebarExpansion({
    */
   const toggleArchiveSection = useCallback(() => {
     setArchiveSectionExpanded((open) => !open);
-  }, []);
-
-  /**
-   * Toggles the Collections section visibility.
-   */
-  const toggleCollectionsSectionVisible = useCallback(() => {
-    setCollectionsSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Environments section visibility.
-   */
-  const toggleEnvironmentsSectionVisible = useCallback(() => {
-    setEnvironmentsSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Run Results section visibility.
-   */
-  const toggleRunResultsSectionVisible = useCallback(() => {
-    setRunResultsSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the History section visibility.
-   */
-  const toggleHistorySectionVisible = useCallback(() => {
-    setHistorySectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Workspaces section visibility.
-   */
-  const toggleWorkspacesSectionVisible = useCallback(() => {
-    setWorkspacesSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Workflows section visibility.
-   */
-  const toggleWorkflowsSectionVisible = useCallback(() => {
-    setWorkflowsSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Trash section visibility.
-   */
-  const toggleTrashSectionVisible = useCallback(() => {
-    setTrashSectionVisible((visible) => !visible);
-  }, []);
-
-  /**
-   * Toggles the Archive section visibility.
-   */
-  const toggleArchiveSectionVisible = useCallback(() => {
-    setArchiveSectionVisible((visible) => !visible);
   }, []);
 
   /**
@@ -1037,30 +847,10 @@ export function usePersistedSidebarExpansion({
     setWorkflowsSectionExpanded,
     setTrashSectionExpanded,
     setArchiveSectionExpanded,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    runResultsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    trashSectionVisible,
-    archiveSectionVisible,
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible,
-    toggleHistorySectionVisible,
-    toggleWorkspacesSectionVisible,
-    toggleWorkflowsSectionVisible,
-    toggleTrashSectionVisible,
-    toggleArchiveSectionVisible,
-    setCollectionsSectionVisible,
-    setEnvironmentsSectionVisible,
-    setRunResultsSectionVisible,
-    setHistorySectionVisible,
-    setWorkspacesSectionVisible,
-    setWorkflowsSectionVisible,
-    setTrashSectionVisible,
-    setArchiveSectionVisible,
+    activeSidebarMode,
+    setActiveSidebarMode,
+    sidebarRailExpanded,
+    setSidebarRailExpanded,
     showStorageLocationBadges,
     toggleStorageLocationBadges,
     setShowStorageLocationBadges,

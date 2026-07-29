@@ -25,7 +25,8 @@ export type PluginPermission =
   | 'network'
   | 'ipc'
   | 'server'
-  | 'mcp';
+  | 'mcp'
+  | 'ai';
 
 /**
  * Declarative UI slot entry in manifest.contributes.

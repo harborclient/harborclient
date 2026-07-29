@@ -1,0 +1,328 @@
+import type { ChatPointerDefinition } from '../types.js';
+import {
+  AI_RESPONSE_SECTIONS,
+  AI_SCRIPT_REFERENCE_UUID,
+  type AiResponseSection
+} from '../types.js';
+import { parseSelectionSuffix } from '../shared.js';
+import {
+  PLUGIN_CHAT_POINTER_ID_PATTERN,
+  PLUGIN_CHAT_POINTER_KEY_PATTERN,
+  PLUGIN_CHAT_POINTER_POINTER_ID_PATTERN
+} from '../pluginToken.js';
+import { registerChatPointer, resetChatPointerRegistryForTests } from '../registry.js';
+
+/**
+ * Builtin chat-pointer definitions (match + parse + agent guidance).
+ *
+ * Validate/label/expand/snapshot remain dispatched from scriptReferences against
+ * these registered kinds; match/parse drive token discovery.
+ */
+export const builtinChatPointerPartials: Array<
+  Pick<ChatPointerDefinition, 'id' | 'match' | 'parse' | 'agentGuidance'> &
+    Partial<
+      Pick<
+        ChatPointerDefinition,
+        'validate' | 'resolveName' | 'resolveLabel' | 'expandContext' | 'collectSnapshot'
+      >
+    >
+> = [
+  {
+    id: 'request-script',
+    match: new RegExp(`^(active|\\d+)\\.(pre|post)\\.(\\d+)(?:#(\\d+)\\.(\\d+))?`),
+    agentGuidance: `When a user message contains @<request-id>.<pre|post>.<script-index> (for example @42.pre.3 or @active.post.1), that references a script row on the open request editor — not a saved-request lookup. Never call get_request for these tokens; get_request is only for @request.<uuid>. When a system message already includes the script source, selected text, or last-run error for that @ mention, answer from that context first and do not claim the request or script is missing. To edit, call get_active_request first to read savedRequestId, then update_request_script using that numeric id (or "active" only when savedRequestId is null). Match phase and scriptIndex from the @ reference. When the reference includes #<start>.<end>, those are character offsets into that script's source identifying the region the user selected; focus edits and explanations on that range. replace_range is a literal splice: source.slice(0, startOffset) + code + source.slice(endOffset). Use it only when code is a drop-in, syntactically substitutable replacement for exactly the selected characters. Mentally concatenate the unchanged prefix, replacement, and unchanged suffix and confirm the result is valid JavaScript before calling. Never add an hc.test wrapper via replace_range when the selection is already inside an hc.test callback; do not nest hc.test. If the fix adds or removes a wrapper, changes a chain outside the selection, re-indents surrounding lines, or otherwise changes structure, use mode "replace" with the ENTIRE updated script including all unchanged lines. Never send only a fixed snippet with mode "replace". When the user asks you to apply a fix ("make the change", "fix it for me"), preserve all existing tests, comments, and unrelated statements. When a system message provides selected script text, treat that selection as the focus of the user's question, but choose replace_range only when it is syntactically substitutable. Use hc test API in post scripts, never Postman pm syntax. If update_request_script returns an error, do not claim the change was applied; correct the call and retry.`,
+    parse: (match, fullToken, atIndex) => {
+      const requestIdRaw = match[1];
+      const phase = match[2];
+      const scriptIndexRaw = match[3];
+      if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
+        return null;
+      }
+      if (phase !== 'pre' && phase !== 'post') {
+        return null;
+      }
+      const scriptIndex = Number(scriptIndexRaw);
+      if (!Number.isInteger(scriptIndex) || scriptIndex < 1) {
+        return null;
+      }
+      const requestId =
+        requestIdRaw === 'active'
+          ? 'active'
+          : Number.isFinite(Number(requestIdRaw))
+            ? Number(requestIdRaw)
+            : null;
+      if (requestId == null) {
+        return null;
+      }
+      return {
+        kind: 'request-script',
+        requestId,
+        phase,
+        scriptIndex,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[4], match[5])
+      };
+    }
+  },
+  {
+    id: 'snippet',
+    match: new RegExp(`^snippet\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
+    agentGuidance: `When a user message contains @snippet.<uuid> (for example @snippet.550e8400-e29b-41d4-a716-446655440000), that references a standalone library snippet not linked to any request. Read the full snippet source and selection from the system message context. There is no tool to edit standalone snippets — propose replacement code in your reply for the user to paste back into the snippet editor.`,
+    parse: (match, fullToken, atIndex) => {
+      const snippetUuid = match[1];
+      if (snippetUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'snippet',
+        snippetUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[2], match[3])
+      };
+    }
+  },
+  {
+    id: 'terminal',
+    match: /^term\.(\d+)(?:#(\d+)\.(\d+))?/,
+    agentGuidance: `When a user message contains @term.<terminal-index> (optionally with #startLine.endLine), that references footer terminal output. Prefer selected and surrounding text already included in the system context. For additional ranges, call get_active_terminal then get_active_terminal_lines. Terminal references cannot be edited via tools.`,
+    parse: (match, fullToken, atIndex) => {
+      const terminalIndex = Number(match[1]);
+      if (!Number.isInteger(terminalIndex) || terminalIndex < 1) {
+        return null;
+      }
+      return {
+        kind: 'terminal',
+        terminalIndex,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[2], match[3], true)
+      };
+    }
+  },
+  {
+    id: 'collection',
+    match: new RegExp(`^collection\\.(${AI_SCRIPT_REFERENCE_UUID})`),
+    agentGuidance: `When a user message contains @collection.<uuid>, call get_collection with that uuid before answering. In your reply, refer to the collection by its name, not its uuid.`,
+    parse: (match, fullToken, atIndex) => {
+      const collectionUuid = match[1];
+      if (collectionUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'collection',
+        collectionUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken
+      };
+    }
+  },
+  {
+    id: 'folder',
+    match: new RegExp(`^folder\\.(${AI_SCRIPT_REFERENCE_UUID})`),
+    agentGuidance: `When a user message contains @folder.<uuid>, call get_folder with that uuid. In your reply, refer to folders by their name, not their uuid or database id.`,
+    parse: (match, fullToken, atIndex) => {
+      const folderUuid = match[1];
+      if (folderUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'folder',
+        folderUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken
+      };
+    }
+  },
+  {
+    id: 'request',
+    match: new RegExp(`^request\\.(${AI_SCRIPT_REFERENCE_UUID})`),
+    agentGuidance: `When a user message contains @request.<uuid>, call get_request with that uuid. In your reply, refer to saved requests by their name, not their uuid or database id.`,
+    parse: (match, fullToken, atIndex) => {
+      const requestUuid = match[1];
+      if (requestUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'request',
+        requestUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken
+      };
+    }
+  },
+  {
+    id: 'markdown',
+    match: new RegExp(`^markdown\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
+    agentGuidance: `When a user message contains @markdown.<uuid> (optionally with #start.end character offsets), call get_markdown_document with that uuid to read the full markdown document or request comment source. Markdown references cannot be edited via tools — propose replacement markdown in your reply for the user to paste back into the editor.`,
+    parse: (match, fullToken, atIndex) => {
+      const markdownUuid = match[1];
+      if (markdownUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'markdown',
+        markdownUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[2], match[3])
+      };
+    }
+  },
+  {
+    id: 'response-section',
+    match: new RegExp(
+      `^res\\.(${AI_SCRIPT_REFERENCE_UUID})\\.(body|headers|timing|console|tests)(?:#(\\d+)\\.(\\d+))?`
+    ),
+    agentGuidance: `When a user message contains @res.<request-tab-uuid>.<body|headers|timing|console|tests> (optionally with #start.end character offsets on body selections), that references a captured HTTP response section. Prefer the section content and any selected body text already included in the system context. For @res…body#start.end, offsets are into the pretty-printed body viewer text. Call get_active_request and get_active_request_details for the full request; call get_active_response_summary, get_active_response, or query_response_body when you need more of the live response or non-binary body than the snapshot provides. Response-section references cannot be edited via tools.`,
+    parse: (match, fullToken, atIndex) => {
+      const responseTabId = match[1];
+      const responseSectionRaw = match[2];
+      if (responseTabId == null || responseSectionRaw == null) {
+        return null;
+      }
+      if (!(AI_RESPONSE_SECTIONS as readonly string[]).includes(responseSectionRaw)) {
+        return null;
+      }
+      return {
+        kind: 'response-section',
+        requestTabId: responseTabId,
+        section: responseSectionRaw as AiResponseSection,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[3], match[4])
+      };
+    }
+  },
+  {
+    id: 'body',
+    match: /^body(?:#(\d+)\.(\d+))?/,
+    agentGuidance: `When a user message contains @body (optionally with #start.end), that references a selection from the active request raw body editor. Prefer selected text in the system context. Call get_active_request_details for the full body; use update_active_request with body_raw to edit it.`,
+    parse: (match, fullToken, atIndex) => ({
+      kind: 'body',
+      start: atIndex,
+      end: atIndex + fullToken.length,
+      text: fullToken,
+      selection: parseSelectionSuffix(match[1], match[2])
+    })
+  },
+  {
+    id: 'plugin',
+    match: new RegExp(
+      `^plugin\\.(${PLUGIN_CHAT_POINTER_ID_PATTERN})\\.(${PLUGIN_CHAT_POINTER_POINTER_ID_PATTERN})\\.(${PLUGIN_CHAT_POINTER_KEY_PATTERN})(?:#(\\d+)\\.(\\d+))?`
+    ),
+    agentGuidance: `When a user message contains @plugin.<pluginId>.<pointerId>.<key> (optionally with #start.end), that references plugin-provided context. Prefer the captured context text in the system message. Do not invent plugin data beyond that snapshot unless a matching mcp__ tool or HarborClient tool clearly applies.`,
+    parse: (match, fullToken, atIndex) => {
+      const pluginId = match[1];
+      const pointerId = match[2];
+      const key = match[3];
+      if (pluginId == null || pointerId == null || key == null) {
+        return null;
+      }
+      return {
+        kind: 'plugin',
+        pluginId,
+        pointerId,
+        key,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[4], match[5])
+      };
+    }
+  }
+];
+
+/**
+ * Placeholder validate used until handlers are bound from scriptReferences.
+ *
+ * @returns Always false — replaced by {@link bindBuiltinChatPointerHandlers}.
+ */
+function unboundValidate(): boolean {
+  return false;
+}
+
+/**
+ * Placeholder name resolver until handlers are bound.
+ *
+ * @returns Always null.
+ */
+function unboundName(): null {
+  return null;
+}
+
+/**
+ * Registers all builtin chat pointers. Safe to call once; subsequent calls no-op when ids exist.
+ */
+export function registerBuiltinChatPointers(): void {
+  for (const partial of builtinChatPointerPartials) {
+    try {
+      registerChatPointer({
+        id: partial.id,
+        match: partial.match,
+        parse: partial.parse,
+        agentGuidance: partial.agentGuidance,
+        validate: partial.validate ?? (() => unboundValidate()),
+        resolveName: partial.resolveName ?? (() => unboundName()),
+        resolveLabel: partial.resolveLabel ?? (() => unboundName())
+      });
+    } catch {
+      // Already registered (hot reload / double import).
+    }
+  }
+}
+
+/**
+ * Clears and re-registers builtins (unit tests).
+ */
+export function reinstallBuiltinChatPointersForTests(): void {
+  resetChatPointerRegistryForTests();
+  for (const partial of builtinChatPointerPartials) {
+    registerChatPointer({
+      id: partial.id,
+      match: partial.match,
+      parse: partial.parse,
+      agentGuidance: partial.agentGuidance,
+      validate: partial.validate ?? (() => unboundValidate()),
+      resolveName: partial.resolveName ?? (() => unboundName()),
+      resolveLabel: partial.resolveLabel ?? (() => unboundName())
+    });
+  }
+}
+
+/**
+ * Binds validate/name/label/expand/snapshot handlers onto already-registered builtins.
+ *
+ * @param handlers - Shared implementations from scriptReferences.
+ */
+export function bindBuiltinChatPointerHandlers(handlers: {
+  validate: ChatPointerDefinition['validate'];
+  resolveName: ChatPointerDefinition['resolveName'];
+  resolveLabel: ChatPointerDefinition['resolveLabel'];
+  expandContext: NonNullable<ChatPointerDefinition['expandContext']>;
+  collectSnapshot: NonNullable<ChatPointerDefinition['collectSnapshot']>;
+}): void {
+  resetChatPointerRegistryForTests();
+  for (const partial of builtinChatPointerPartials) {
+    registerChatPointer({
+      id: partial.id,
+      match: partial.match,
+      parse: partial.parse,
+      agentGuidance: partial.agentGuidance,
+      validate: handlers.validate,
+      resolveName: handlers.resolveName,
+      resolveLabel: handlers.resolveLabel,
+      expandContext: handlers.expandContext,
+      collectSnapshot: handlers.collectSnapshot
+    });
+  }
+}

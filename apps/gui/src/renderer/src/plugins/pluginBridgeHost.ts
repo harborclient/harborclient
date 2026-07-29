@@ -132,6 +132,11 @@ import type {
 } from '@harborclient/sdk';
 import toast from 'react-hot-toast';
 import { store } from '#/renderer/src/store/redux';
+import {
+  trackPluginChatPointer,
+  untrackPluginChatPointer
+} from '#/renderer/src/plugins/pluginChatPointerTracker';
+import { copyPluginPointerToChat } from '#/renderer/src/plugins/copyPluginPointerToChat';
 import { setHostedModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   registerBridgedImportHandler,
@@ -432,6 +437,19 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     case 'host.openImageView':
       openImageView((payload as { payload: never }).payload);
       return;
+    case 'ai.trackChatPointer': {
+      const { registrationId, pointerId } = payload as {
+        registrationId: string;
+        pointerId: string;
+      };
+      trackPluginChatPointer({ pluginId, registrationId, pointerId });
+      return;
+    }
+    case 'ai.untrackChatPointer': {
+      const { registrationId } = payload as { registrationId: string };
+      untrackPluginChatPointer(pluginId, registrationId);
+      return;
+    }
     default:
       return;
   }
@@ -447,9 +465,21 @@ export async function handlePluginHostBridgeInvoke(
   message: HostBridgeInvokeMessage
 ): Promise<unknown> {
   const { pluginId, op, payload } = message;
-  void pluginId;
 
   switch (op) {
+    case 'ai.copyToChat': {
+      await copyPluginPointerToChat(
+        pluginId,
+        payload as {
+          pointerId: string;
+          key: string;
+          label: string;
+          context: string;
+          selection?: { start: number; end: number };
+        }
+      );
+      return undefined;
+    }
     case 'host.createEnvironmentWithVariables': {
       const { name, variables } = payload as {
         name: string;

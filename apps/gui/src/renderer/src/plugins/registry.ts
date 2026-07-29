@@ -21,6 +21,7 @@ import type {
   FooterPanelIndicatorState
 } from '@harborclient/core/plugin/types';
 import { pluginContributionId } from '@harborclient/core/plugin/types';
+import { clearTrackedPluginChatPointers } from './pluginChatPointerTracker';
 
 type Listener = () => void;
 
@@ -915,6 +916,7 @@ export function clearPluginContributions(pluginId: string): void {
   );
   state.contextMenuItems = state.contextMenuItems.filter((item) => item.pluginId !== pluginId);
   state.actions = state.actions.filter((item) => item.pluginId !== pluginId);
+  clearTrackedPluginChatPointers(pluginId);
   emitChange();
 }
 

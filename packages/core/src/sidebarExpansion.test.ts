@@ -1,8 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSidebarExpansion, normalizeSidebarExpansion } from './sidebarExpansion';
+import {
+  defaultSidebarExpansion,
+  normalizeSidebarExpansion,
+  SIDEBAR_MODE_SECTIONS
+} from './sidebarExpansion';
+
+/**
+ * Shared appearance + sort defaults used by normalize expectations.
+ */
+const defaultAppearanceAndSort = {
+  sectionSort: {
+    collections: 'default',
+    environments: 'default',
+    runResults: 'default',
+    history: 'default',
+    workspaces: 'default',
+    workflows: 'default',
+    archive: 'default',
+    trash: 'default'
+  },
+  showStorageLocationBadges: true,
+  showMarkers: true,
+  showMethodColors: true,
+  showIndicators: true,
+  showFilters: false,
+  showSorting: false
+} as const;
+
+describe('SIDEBAR_MODE_SECTIONS', () => {
+  it('maps each rail mode to its section set', () => {
+    expect(SIDEBAR_MODE_SECTIONS.collections).toEqual([
+      'collections',
+      'runResults',
+      'history',
+      'archive'
+    ]);
+    expect(SIDEBAR_MODE_SECTIONS.environments).toEqual(['environments']);
+    expect(SIDEBAR_MODE_SECTIONS.workspaces).toEqual(['workspaces']);
+    expect(SIDEBAR_MODE_SECTIONS.workflows).toEqual(['workflows', 'history', 'archive']);
+    expect(SIDEBAR_MODE_SECTIONS.trash).toEqual(['trash']);
+  });
+});
 
 describe('defaultSidebarExpansion', () => {
-  it('starts with all sections expanded and empty tree ids', () => {
+  it('starts with all sections expanded, collections mode, and collapsed rail', () => {
     expect(defaultSidebarExpansion()).toEqual({
       sections: {
         collections: true,
@@ -14,35 +55,12 @@ describe('defaultSidebarExpansion', () => {
         archive: true,
         trash: true
       },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'collections',
+      sidebarRailExpanded: false,
       collectionIds: [],
       folderIds: [],
       environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultAppearanceAndSort
     });
   });
 });
@@ -72,35 +90,12 @@ describe('normalizeSidebarExpansion', () => {
         archive: true,
         trash: true
       },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'collections',
+      sidebarRailExpanded: false,
       collectionIds: [1, 2],
       folderIds: [10],
       environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultAppearanceAndSort
     });
   });
 
@@ -108,6 +103,8 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: false },
+        activeSidebarMode: 'environments',
+        sidebarRailExpanded: true,
         collectionIds: [5, 7],
         folderIds: [12],
         environmentIds: []
@@ -123,39 +120,16 @@ describe('normalizeSidebarExpansion', () => {
         archive: true,
         trash: true
       },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'environments',
+      sidebarRailExpanded: true,
       collectionIds: [5, 7],
       folderIds: [12],
       environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultAppearanceAndSort
     });
   });
 
-  it('preserves persisted section visibility flags', () => {
+  it('migrates legacy sectionVisibility to activeSidebarMode', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
@@ -163,100 +137,44 @@ describe('normalizeSidebarExpansion', () => {
         collectionIds: [],
         folderIds: [],
         environmentIds: []
-      })
-    ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: false,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
-    });
+      }).activeSidebarMode
+    ).toBe('environments');
+
+    expect(
+      normalizeSidebarExpansion({
+        sectionVisibility: {
+          collections: false,
+          environments: false,
+          workspaces: false,
+          workflows: false,
+          trash: true
+        }
+      }).activeSidebarMode
+    ).toBe('trash');
+
+    expect(
+      normalizeSidebarExpansion({
+        sectionVisibility: {
+          collections: true,
+          environments: true,
+          workflows: true
+        }
+      }).activeSidebarMode
+    ).toBe('workflows');
   });
 
   it('preserves persisted storage badge visibility flag', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
         showStorageLocationBadges: false
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: false,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultSidebarExpansion(),
+      showStorageLocationBadges: false
     });
   });
 
@@ -264,52 +182,14 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
         showMarkers: false
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: false,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultSidebarExpansion(),
+      showMarkers: false
     });
   });
 
@@ -317,52 +197,14 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
         showMethodColors: false
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: false,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      ...defaultSidebarExpansion(),
+      showMethodColors: false
     });
   });
 
@@ -370,52 +212,14 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
         showIndicators: false
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: false,
-      showFilters: false,
-      showSorting: false
+      ...defaultSidebarExpansion(),
+      showIndicators: false
     });
   });
 
@@ -423,7 +227,6 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
@@ -431,43 +234,7 @@ describe('normalizeSidebarExpansion', () => {
         showSorting: true
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
+      ...defaultSidebarExpansion(),
       showFilters: true,
       showSorting: true
     });
@@ -477,7 +244,6 @@ describe('normalizeSidebarExpansion', () => {
     expect(
       normalizeSidebarExpansion({
         sections: { collections: true, environments: true },
-        sectionVisibility: { collections: true, environments: true },
         collectionIds: [],
         folderIds: [],
         environmentIds: [],
@@ -492,29 +258,7 @@ describe('normalizeSidebarExpansion', () => {
         }
       })
     ).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
+      ...defaultSidebarExpansion(),
       sectionSort: {
         collections: 'method-asc',
         environments: 'marker',
@@ -524,13 +268,7 @@ describe('normalizeSidebarExpansion', () => {
         workflows: 'default',
         archive: 'created-asc',
         trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      }
     });
   });
 });

@@ -213,9 +213,26 @@ export const WORKFLOW_REGISTRY_CORE: readonly WorkflowRegistryCoreEntry[] = [
     /**
      * Records a send of the active request tab (tab ids are session-local).
      *
+     * Captures method/name/url from the active draft for timeline display; playback
+     * still targets the active tab and ignores display fields.
+     *
+     * @param _action - Redux send pending action.
+     * @param ctx - Record context with getState for the active tab.
      * @returns request.send event targeting the active tab.
      */
-    record: () => event('request.send', { target: 'active' }),
+    record: (_action, ctx) => {
+      const tab = selectEffectiveActiveRequestTab(ctx.getState());
+      const draft = tab?.draft;
+      if (draft == null) {
+        return event('request.send', { target: 'active' });
+      }
+      return event('request.send', {
+        target: 'active',
+        method: draft.method,
+        name: draft.name,
+        url: draft.url
+      });
+    },
     /**
      * Sends the active request via the normal send thunk (not lifecycle pending).
      *

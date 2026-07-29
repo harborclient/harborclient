@@ -29,7 +29,7 @@ export function AiChatToggleButton(): JSX.Element {
       aria-pressed={aiSidebarOpen}
       title={aiChatLabel}
       onClick={() => dispatch(toggleAiSidebar())}
-      className={`hc-ai-chat-button inline-flex w-16 shrink-0 items-center justify-center${aiSidebarOpen ? ' bg-selection' : ''}`}
+      className={`hc-ai-chat-button inline-flex min-h-[35px] w-16 shrink-0 items-center justify-center${aiSidebarOpen ? ' bg-selection' : ''}`}
     >
       <FaIcon icon={faWandMagicSparkles} className="h-3.5 w-3.5" aria-hidden />
     </Button>

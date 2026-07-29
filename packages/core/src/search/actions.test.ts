@@ -111,17 +111,17 @@ describe('matchActionSuggestions', () => {
       {
         id: 'builtin:toggle-collections-section',
         group: 'Sidebar',
-        label: 'Toggle Collections'
+        label: 'Show Collections'
       },
       {
         id: 'builtin:toggle-environments-section',
         group: 'Sidebar',
-        label: 'Toggle Environments'
+        label: 'Show Environments'
       },
       {
         id: 'builtin:toggle-run-results-section',
         group: 'Sidebar',
-        label: 'Toggle Run Results'
+        label: 'Show Collections (Runs)'
       }
     ]);
   });

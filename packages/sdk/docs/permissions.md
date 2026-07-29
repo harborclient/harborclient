@@ -15,6 +15,7 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `ipc`              | Register custom IPC handlers via `hc.ipc.handle`                                                                                                          |
 | `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
+| `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar via `hc.ai`                                                                        |
 
 Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers only; the host checks permissions and path allowlists on each call.
 

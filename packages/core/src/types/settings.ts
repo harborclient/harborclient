@@ -19,6 +19,11 @@ export type SidebarSectionKey =
   | 'trash';
 
 /**
+ * Activity-rail mode that selects which sidebar sections are shown together.
+ */
+export type SidebarMode = 'collections' | 'environments' | 'workspaces' | 'workflows' | 'trash';
+
+/**
  * Persisted sort mode for a collections sidebar section.
  */
 export type SidebarSortMode =
@@ -96,49 +101,14 @@ export interface SidebarExpansionState {
   environmentIds: number[];
 
   /**
-   * Whether entire top-level sidebar sections are rendered.
+   * Which activity-rail mode is active; drives which section set is mounted.
    */
-  sectionVisibility: {
-    /**
-     * Whether the Collections section is shown in the sidebar.
-     */
-    collections: boolean;
+  activeSidebarMode: SidebarMode;
 
-    /**
-     * Whether the Environments section is shown in the sidebar.
-     */
-    environments: boolean;
-
-    /**
-     * Whether the Run Results section is shown in the sidebar.
-     */
-    runResults: boolean;
-
-    /**
-     * Whether the History section is shown in the sidebar.
-     */
-    history: boolean;
-
-    /**
-     * Whether the Workspaces section is shown in the sidebar.
-     */
-    workspaces: boolean;
-
-    /**
-     * Whether the Workflows section is shown in the sidebar.
-     */
-    workflows: boolean;
-
-    /**
-     * Whether the Archive section is shown in the sidebar.
-     */
-    archive: boolean;
-
-    /**
-     * Whether the Trash section is shown in the sidebar.
-     */
-    trash: boolean;
-  };
+  /**
+   * Whether the activity rail shows labels beside icons.
+   */
+  sidebarRailExpanded: boolean;
 
   /**
    * Per-section sort mode for the collections sidebar lists.

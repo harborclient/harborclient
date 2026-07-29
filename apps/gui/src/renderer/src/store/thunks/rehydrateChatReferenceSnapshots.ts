@@ -10,6 +10,10 @@ import {
   setRequestBodySelection
 } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import {
+  selectPluginSelections,
+  setPluginSelection
+} from '#/renderer/src/store/slices/pluginSelectionsSlice';
+import {
   selectResponseSelections,
   setResponseSelection
 } from '#/renderer/src/store/slices/responseSelectionsSlice';
@@ -43,6 +47,7 @@ export function rehydrateChatReferenceSnapshots(
   const seenTerminal = new Set(Object.keys(selectTerminalSelections(state)));
   const seenMarkdown = new Set(Object.keys(selectMarkdownSelections(state)));
   const seenBody = new Set(Object.keys(selectRequestBodySelections(state)));
+  const seenPlugin = new Set(Object.keys(selectPluginSelections(state)));
 
   for (const message of messages) {
     const snapshots = message.referenceSnapshots;
@@ -80,6 +85,12 @@ export function rehydrateChatReferenceSnapshots(
           if (!seenBody.has(token)) {
             dispatch(setRequestBodySelection({ token, snapshot: entry.snapshot }));
             seenBody.add(token);
+          }
+          break;
+        case 'plugin':
+          if (!seenPlugin.has(token)) {
+            dispatch(setPluginSelection({ token, snapshot: entry.snapshot }));
+            seenPlugin.add(token);
           }
           break;
       }

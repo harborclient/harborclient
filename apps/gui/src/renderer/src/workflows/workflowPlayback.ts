@@ -9,18 +9,35 @@ import { setWorkflowRecordingMuted } from './workflowRecorder';
 import {
   appendWorkflowRunLogEntry,
   beginWorkflowRunLog,
+  clearWorkflowRunLog,
   resetWorkflowRunLogForTests
 } from './workflowRunLog';
 import { buildWorkflowRunRequestResultFromSend } from './buildWorkflowRunRequestResultFromSend';
+import { enrichWorkflowSendDisplayFields } from './enrichWorkflowSendDisplayFields';
 import { exportCompletedWorkflowRunIfConfigured } from './exportCompletedWorkflowRunIfConfigured';
 import type { RequestRunOutcome } from '#/renderer/src/store/thunks/requests';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
+import type { RootState } from '#/renderer/src/store/redux';
 import { resolveEnvironmentUuid } from './workflowIdentity';
+import {
+  layoutWorkflowTimeline,
+  playbackIndexToTimelineMs
+} from './timeline/workflowTimelineLayout';
 
 type PlaybackListener = () => void;
 
 export type { WorkflowPlayCtx };
+
+/**
+ * Minimum wall time for a gapless in-block playhead glide, in milliseconds.
+ */
+export const PLAYHEAD_GAPLESS_MIN_TRAVEL_MS = 200;
+
+/**
+ * Maximum wall time for a gapless in-block playhead glide, in milliseconds.
+ */
+export const PLAYHEAD_GAPLESS_MAX_TRAVEL_MS = 800;
 
 const playbackMap = buildWorkflowPlaybackMap(WORKFLOW_REGISTRY_CORE);
 const playbackListeners = new Set<PlaybackListener>();
@@ -40,6 +57,20 @@ let gapless = true;
 let delayMs = 0;
 /** Cancellable gap wait handle for the active play loop. */
 let gapWait: { cancel: () => void } | null = null;
+/**
+ * Recorded timeline offset (ms from origin) at the start of the current play segment.
+ * Used for continuous gapped playhead motion.
+ */
+let playheadBaseTimelineMs = 0;
+/**
+ * Wall-clock origin for the current play segment's continuous playhead, or null when
+ * not playing with a live playhead clock.
+ */
+let playheadWallOrigin: number | null = null;
+/**
+ * Wall-clock origin for the current gapless in-block playhead glide, or null when idle.
+ */
+let playheadSegmentStartedAt: number | null = null;
 
 /**
  * Notifies subscribers that playback cursor, timer, or playing state changed.
@@ -126,23 +157,34 @@ function waitGapMs(ms: number, generation: number): Promise<boolean> {
 /**
  * Loads actions for playback and mutes recording for the play session.
  *
+ * Enriches incomplete `request.send` display fields from preceding request
+ * actions (and `tab.activate` identities when {@link getState} is provided) so
+ * play/edit timeline blocks match record.
+ *
  * @param nextActions - Ordered workflow actions to play.
  * @param nextWorkflowUuid - Portable workflow UUID for hc.info during script runs.
  * @param nextDelayMs - Pause between consecutive actions in milliseconds.
+ * @param getState - Optional Redux getter for tab-identity display resolution.
  */
 export function loadPlayback(
   nextActions: readonly WorkflowAction[],
   nextWorkflowUuid = '',
-  nextDelayMs = 0
+  nextDelayMs = 0,
+  getState?: () => RootState
 ): void {
   stopPlayback();
-  actions = nextActions.map((action) => ({ ...action }));
+  actions = enrichWorkflowSendDisplayFields(
+    nextActions.map((action) => ({ ...action })),
+    getState != null ? { getState } : undefined
+  );
   index = 0;
   elapsedMs = 0;
   segmentStartedAt = null;
   sessionLoaded = true;
   workflowUuid = typeof nextWorkflowUuid === 'string' ? nextWorkflowUuid.trim() : '';
   delayMs = normalizeDelayMs(nextDelayMs);
+  playheadBaseTimelineMs = 0;
+  clearPlayheadClockOrigins();
   setWorkflowRecordingMuted(true);
   notifyPlaybackListeners();
 }
@@ -159,6 +201,8 @@ export function clearPlayback(): void {
   sessionLoaded = false;
   workflowUuid = '';
   delayMs = 0;
+  playheadBaseTimelineMs = 0;
+  clearPlayheadClockOrigins();
   setWorkflowRecordingMuted(false);
   notifyPlaybackListeners();
 }
@@ -215,6 +259,82 @@ export function getPlaybackActions(): readonly WorkflowAction[] {
  */
 export function getPlaybackElapsedMs(): number {
   return getElapsedMs();
+}
+
+/**
+ * Returns whether every loaded action has a usable `at` timestamp.
+ *
+ * @returns True when all actions define a finite `at`.
+ */
+function allPlaybackActionsHaveAt(): boolean {
+  return (
+    actions.length > 0 &&
+    actions.every((action) => typeof action.at === 'number' && Number.isFinite(action.at))
+  );
+}
+
+/**
+ * Clears continuous playhead wall-clock origins (gapped and gapless).
+ */
+function clearPlayheadClockOrigins(): void {
+  playheadWallOrigin = null;
+  playheadSegmentStartedAt = null;
+}
+
+/**
+ * Starts a gapless in-block playhead glide from the current index.
+ */
+function beginGaplessPlayheadSegment(): void {
+  playheadSegmentStartedAt = Date.now();
+}
+
+/**
+ * Clamps a gapless travel duration into the visible short-glide window.
+ *
+ * @param segmentDurationMs - Recorded segment length in milliseconds.
+ * @returns Travel wall time in milliseconds.
+ */
+function gaplessPlayheadTravelMs(segmentDurationMs: number): number {
+  const raw = Math.max(1, segmentDurationMs);
+  return Math.min(PLAYHEAD_GAPLESS_MAX_TRAVEL_MS, Math.max(PLAYHEAD_GAPLESS_MIN_TRAVEL_MS, raw));
+}
+
+/**
+ * Returns the recorded timeline offset for the playhead.
+ *
+ * While playing in gapped mode with timed actions, advances continuously from the
+ * play-segment base using wall time (aligned with the runner's gapped waits).
+ * While playing in gapless mode, glides from the current segment start toward its
+ * end over a short travel window, then holds until the step finishes.
+ * Otherwise returns the segment-start offset for the current cursor index.
+ *
+ * @param durationMs - Saved workflow duration used for layout and clamping.
+ * @returns Milliseconds from the recording origin.
+ */
+export function getPlaybackPlayheadTimelineMs(durationMs: number): number {
+  const safeDuration = Math.max(0, durationMs);
+  if (playing && !gapless && playheadWallOrigin != null && allPlaybackActionsHaveAt()) {
+    const live = playheadBaseTimelineMs + (Date.now() - playheadWallOrigin);
+    return Math.min(Math.max(live, 0), safeDuration > 0 ? safeDuration : live);
+  }
+
+  if (playing && gapless && playheadSegmentStartedAt != null) {
+    const layout = layoutWorkflowTimeline(actions, safeDuration);
+    if (layout.segments.length === 0) {
+      return 0;
+    }
+    if (index >= layout.segments.length) {
+      return layout.totalDurationMs;
+    }
+    const segment = layout.segments[Math.max(0, index)]!;
+    const spanMs = Math.max(1, segment.endMs - segment.startMs);
+    const travelMs = gaplessPlayheadTravelMs(spanMs);
+    const t = Math.min(1, (Date.now() - playheadSegmentStartedAt) / travelMs);
+    const live = segment.startMs + t * spanMs;
+    return Math.min(Math.max(live, 0), safeDuration > 0 ? safeDuration : live);
+  }
+
+  return playbackIndexToTimelineMs(actions, safeDuration, index);
 }
 
 /**
@@ -322,20 +442,26 @@ export function seekPlaybackTo(nextIndex: number): void {
  * Replaces the loaded playback actions without resetting elapsed time.
  *
  * Stops any active play loop, swaps the action list, and clamps the cursor so
- * timeline edits (reorder / delete) stay in sync with the UI.
+ * timeline edits (reorder / delete) stay in sync with the UI. Enriches send
+ * display fields the same way as {@link loadPlayback}.
  *
  * @param nextActions - Updated ordered workflow actions.
  * @param nextIndex - Optional absolute cursor; defaults to clamping the current index.
+ * @param getState - Optional Redux getter for tab-identity display resolution.
  */
 export function replacePlaybackActions(
   nextActions: readonly WorkflowAction[],
-  nextIndex?: number
+  nextIndex?: number,
+  getState?: () => RootState
 ): void {
   if (!sessionLoaded) {
     return;
   }
   stopPlayback();
-  actions = nextActions.map((action) => ({ ...action }));
+  actions = enrichWorkflowSendDisplayFields(
+    nextActions.map((action) => ({ ...action })),
+    getState != null ? { getState } : undefined
+  );
   const fallback = Math.min(Math.max(index, 0), actions.length);
   index =
     nextIndex == null ? fallback : Math.min(Math.max(Math.floor(nextIndex), 0), actions.length);
@@ -354,6 +480,7 @@ export function stopPlayback(): void {
   playGeneration += 1;
   cancelGapWait();
   commitOpenSegment();
+  clearPlayheadClockOrigins();
   notifyPlaybackListeners();
 }
 
@@ -365,7 +492,20 @@ export function restartPlayback(): void {
   index = 0;
   elapsedMs = 0;
   segmentStartedAt = null;
+  playheadBaseTimelineMs = 0;
+  clearPlayheadClockOrigins();
   notifyPlaybackListeners();
+}
+
+/**
+ * Clears the workflow run results log and resets the playhead to the start.
+ *
+ * Used by the play-mode Reset control so Results tabs empty and the timeline
+ * cursor returns to 0ms without tearing down the playback session.
+ */
+export function resetPlaybackAndClearResults(): void {
+  clearWorkflowRunLog();
+  restartPlayback();
 }
 
 /**
@@ -417,6 +557,9 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
   const segmentWallStart = Date.now();
   playing = true;
   segmentStartedAt = segmentWallStart;
+  playheadBaseTimelineMs = playbackIndexToTimelineMs(actions, Number.MAX_SAFE_INTEGER, startIndex);
+  playheadWallOrigin = segmentWallStart;
+  beginGaplessPlayheadSegment();
   notifyPlaybackListeners();
 
   const state = ctx.getState();
@@ -462,6 +605,7 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
         resolveWorkflowRunLogResult(action, playResult, ctx),
       onIndexChange: (nextIndex) => {
         index = nextIndex;
+        beginGaplessPlayheadSegment();
         notifyPlaybackListeners();
       },
       onStepComplete: (entry) => {
@@ -558,6 +702,8 @@ export function resetWorkflowPlaybackForTests(): void {
   workflowUuid = '';
   gapless = true;
   delayMs = 0;
+  playheadBaseTimelineMs = 0;
+  clearPlayheadClockOrigins();
   setWorkflowRecordingMuted(false);
   playbackListeners.clear();
   resetWorkflowScriptContextForTests();

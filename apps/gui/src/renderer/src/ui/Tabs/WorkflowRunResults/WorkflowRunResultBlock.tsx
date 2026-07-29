@@ -1,12 +1,9 @@
 import type { WorkflowAction, WorkflowRunActionResult } from '@harborclient/core/types';
-import { SidebarRequestItem } from '@harborclient/sdk/components';
-import type { JSX, ReactNode } from 'react';
+import type { JSX } from 'react';
 import type { RootState } from '#/renderer/src/store/redux';
 import { TimelineBlock } from '#/renderer/src/workflows/timeline/TimelineBlock';
-import { describeWorkflowAction } from '#/renderer/src/workflows/timeline/workflowThumbnails';
-import { getWorkflowRegistryEntry } from '#/renderer/src/workflows/workflowRegistry';
-import { isWorkflowRunRequestResult } from '#/renderer/src/workflows/isWorkflowRunRequestResult';
-import { WorkflowRunRequestStatus } from './WorkflowRunRequestStatus';
+import { WorkflowActionBlockRow } from '#/renderer/src/workflows/timeline/WorkflowActionBlockRow';
+import { workflowActionBlockPrimaryLabel } from '#/renderer/src/workflows/timeline/workflowActionBlockPrimaryLabel';
 
 interface Props {
   /**
@@ -56,26 +53,11 @@ interface Props {
 }
 
 /**
- * Formats a step start timestamp for the Results subtitle.
- *
- * @param ranAt - ISO-8601 timestamp from the run log.
- * @returns Locale-formatted date/time string.
- */
-function formatStepRanAt(ranAt: string): string {
-  const date = new Date(ranAt);
-  if (Number.isNaN(date.getTime())) {
-    return ranAt;
-  }
-  return date.toLocaleString();
-}
-
-/**
  * Interactive timeline block for one executed workflow-run step.
  *
- * Reuses TimelineBlock + registry thumbnail chrome from the run dialog preview
- * so Results rows match the visual language of the workflow timeline. Height
- * follows content (`fitContent`) so vertical lists do not stretch rows.
- * Send steps with a request result snapshot use {@link SidebarRequestItem}.
+ * Reuses {@link TimelineBlock} + {@link WorkflowActionBlockRow} so Results rows
+ * match the footer timeline thumbnail. Height follows content (`fitContent`).
+ * Shows `#N` and a ran-at · duration subtitle (hidden on the footer timeline).
  *
  * @param props - Index, action, result, timing, selection, store accessor, and open handler.
  * @returns Full-width, content-sized timeline block option.
@@ -91,50 +73,26 @@ export function WorkflowRunResultBlock({
   getState,
   onOpen
 }: Props): JSX.Element {
-  const entry = getWorkflowRegistryEntry(action.type);
-  const requestResult =
-    action.type === 'request.send' && isWorkflowRunRequestResult(result) ? result : null;
-  const described = describeWorkflowAction(action, {
-    selected,
-    compact: false,
-    getState
-  });
-  const primaryLabel =
-    requestResult != null
-      ? `${requestResult.method} ${requestResult.name}`
-      : described.subtitle != null && described.subtitle.length > 0
-        ? `${described.title}, ${described.subtitle}`
-        : described.title;
-  const subtitle = `${formatStepRanAt(ranAt)} · ${durationMs} ms`;
-  const label = `#${index}, ${primaryLabel}, ${subtitle}`;
-
-  const thumbnail: ReactNode =
-    requestResult != null ? (
-      <SidebarRequestItem
-        as="div"
-        method={requestResult.method}
-        name={requestResult.name}
-        className="pl-0 hover:bg-transparent [&_.hc-method-badge]:pl-0"
-        actions={<WorkflowRunRequestStatus result={requestResult} className="ms-auto" />}
-      />
-    ) : (
-      (entry?.thumbnail(action, {
-        selected,
-        compact: false,
-        getState
-      }) ?? <span className="truncate">{described.title}</span>)
-    );
+  const primaryLabel = workflowActionBlockPrimaryLabel(action, result, getState);
+  const date = new Date(ranAt);
+  const formattedRanAt = Number.isNaN(date.getTime()) ? ranAt : date.toLocaleString();
+  const label = `#${index}, ${primaryLabel}, ${formattedRanAt} · ${durationMs} ms`;
 
   return (
     <div className="w-full shrink-0">
       <TimelineBlock id={id} label={label} selected={selected} fillWidth fitContent onSeek={onOpen}>
-        <div className="flex w-full min-w-0 items-start gap-2">
-          <span className="shrink-0 pt-0.5 font-medium tabular-nums text-muted">#{index}</span>
-          <div className="min-w-0 flex-1">
-            {thumbnail}
-            <p className="m-0 truncate text-[14px] leading-tight text-muted">{subtitle}</p>
-          </div>
-        </div>
+        <WorkflowActionBlockRow
+          action={action}
+          selected={selected}
+          compact={false}
+          getState={getState}
+          result={result}
+          showIndex
+          index={index}
+          showTiming
+          ranAt={ranAt}
+          durationMs={durationMs}
+        />
       </TimelineBlock>
     </div>
   );

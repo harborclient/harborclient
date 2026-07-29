@@ -1,28 +1,70 @@
-## Linting
+## Development server
 
-After making code changes, always run:
+Keep `pnpm dev` (or `pnpm dev:gui`) in a dedicated terminal. Agents must not
+Ctrl+C that process or reuse its terminal for `pnpm test`, `pnpm check`, or
+other commands.
 
 ```bash
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test
+pnpm dev       # build SDK once, then watch SDK + GUI in parallel
+pnpm dev:gui   # Electron / electron-vite only (restart after window close)
+pnpm dev:sdk   # SDK tsc --watch + runtime asset copy
 ```
 
-Fix any reported issues before finishing the task.
+- Do **not** run `pnpm test` while the GUI is running — the test script rebuilds
+  `better-sqlite3` for system Node and restores it for Electron; doing that
+  mid-session can break the running app (see [Testing](#testing)).
+- When the terminal shows `apps/gui dev: Done` but the SDK watcher is still
+  running, restart with `pnpm dev:gui` only.
+- For SDK UI component work, `pnpm dev:gui` alone is enough for HMR (Vite
+  resolves `@harborclient/sdk` to source). Run `pnpm dev:sdk` when you need
+  fresh `dist/` types or SDK package test output.
+
+## Linting
+
+Prefer scoped checks while iterating so concurrent agents do not all hammer the
+full monorepo suite. Filter to the packages you changed:
+
+```bash
+pnpm --filter @harborclient/gui lint
+pnpm --filter @harborclient/gui typecheck
+pnpm --filter @harborclient/gui format:check
+pnpm test:changed
+```
+
+Common filters: `@harborclient/gui`, `@harborclient/sdk`, `@harborclient/core`,
+`@harborclient/http`, `@harborclient/storage-sqlite`, `@harborclient/team-hub`,
+`@harborclient/team-hub-api`, `@harborclient/harborclient`. Skip `format:check`
+on a filter when that package has no such script (use root `pnpm format:check`
+only if you need a full format pass).
+
+If you changed the SDK public API, run `pnpm build:sdk` and also check
+dependents that import it.
+
+Before finishing a task, run the orchestrated full suite once from the repo
+root (one SDK build, then lint / format / typecheck / test in parallel):
+
+```bash
+pnpm check
+```
+
+Do **not** run `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and
+`pnpm test` as four separate root commands — that rebuilds the SDK twice and
+serializes work `pnpm check` already parallelizes. Fix any reported issues
+before finishing the task.
 
 ## Testing
 
-Always run tests via `pnpm test` — never `vitest` or `pnpm exec vitest run`
-directly. The test script rebuilds native modules (`better-sqlite3`) for system
-Node, runs vitest, then restores them for Electron. Skipping this leaves the
-wrong ABI and breaks `pnpm dev` / `pnpm build`.
+Always run tests via the pnpm scripts below — never `vitest` or
+`pnpm exec vitest run` directly. Those scripts rebuild native modules
+(`better-sqlite3`) for system Node, run vitest, then restore them for Electron.
+Skipping this leaves the wrong ABI and breaks `pnpm dev` / `pnpm build`.
 
 Tests are colocated as `**/*.test.ts` under each package. See [TESTING.md](./TESTING.md) for
 philosophy, coverage goals, and when to add tests.
 
 ```bash
-pnpm test                 # core + storage-sqlite + gui
+pnpm test:changed         # fast iteration — tests affected by git changes
+pnpm test                 # full suite (also covered by pnpm check)
 pnpm test:gui             # Electron GUI package only
 pnpm --filter @harborclient/core test
 ```

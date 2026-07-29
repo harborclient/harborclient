@@ -1,4 +1,9 @@
-import type { SidebarExpansionState, SidebarSectionKey, SidebarSortMode } from './types/settings';
+import type {
+  SidebarExpansionState,
+  SidebarMode,
+  SidebarSectionKey,
+  SidebarSortMode
+} from './types/settings';
 
 const DEFAULT_SECTIONS = {
   collections: true,
@@ -9,17 +14,6 @@ const DEFAULT_SECTIONS = {
   workflows: true,
   archive: true,
   trash: true
-} as const;
-
-const DEFAULT_SECTION_VISIBILITY = {
-  collections: true,
-  environments: true,
-  runResults: true,
-  history: true,
-  workspaces: true,
-  workflows: true,
-  archive: false,
-  trash: false
 } as const;
 
 const DEFAULT_SECTION_SORT: Record<SidebarSectionKey, SidebarSortMode> = {
@@ -55,6 +49,17 @@ const SIDEBAR_SORT_MODES: readonly SidebarSortMode[] = [
   'marker'
 ];
 
+const SIDEBAR_MODES: readonly SidebarMode[] = [
+  'collections',
+  'environments',
+  'workspaces',
+  'workflows',
+  'trash'
+];
+
+const DEFAULT_ACTIVE_SIDEBAR_MODE: SidebarMode = 'collections';
+const DEFAULT_SIDEBAR_RAIL_EXPANDED = false;
+
 const DEFAULT_SHOW_STORAGE_LOCATION_BADGES = true;
 const DEFAULT_SHOW_MARKERS = true;
 const DEFAULT_SHOW_METHOD_COLORS = true;
@@ -63,12 +68,27 @@ const DEFAULT_SHOW_FILTERS = false;
 const DEFAULT_SHOW_SORTING = false;
 
 /**
+ * Sections mounted for each activity-rail mode.
+ *
+ * History and Archive appear under both Collections and Workflows; they are the
+ * same shared section components, not mode-scoped variants.
+ */
+export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionKey[]> = {
+  collections: ['collections', 'runResults', 'history', 'archive'],
+  environments: ['environments'],
+  workspaces: ['workspaces'],
+  workflows: ['workflows', 'history', 'archive'],
+  trash: ['trash']
+};
+
+/**
  * Returns the default sidebar expansion state for first launch.
  */
 export function defaultSidebarExpansion(): SidebarExpansionState {
   return {
     sections: { ...DEFAULT_SECTIONS },
-    sectionVisibility: { ...DEFAULT_SECTION_VISIBILITY },
+    activeSidebarMode: DEFAULT_ACTIVE_SIDEBAR_MODE,
+    sidebarRailExpanded: DEFAULT_SIDEBAR_RAIL_EXPANDED,
     sectionSort: { ...DEFAULT_SECTION_SORT },
     collectionIds: [],
     folderIds: [],
@@ -119,10 +139,19 @@ function isSidebarSortMode(value: unknown): value is SidebarSortMode {
 }
 
 /**
+ * Returns whether a value is a known {@link SidebarMode}.
+ *
+ * @param value - Raw stored value.
+ */
+function isSidebarMode(value: unknown): value is SidebarMode {
+  return typeof value === 'string' && (SIDEBAR_MODES as readonly string[]).includes(value);
+}
+
+/**
  * Reads a boolean section preference, preferring the renamed `workspaces` key and
  * falling back to the legacy `tabGroups` key from older persisted blobs.
  *
- * @param raw - Partial sections or sectionVisibility object.
+ * @param raw - Partial sections or legacy sectionVisibility object.
  * @param fallback - Default when neither key is a boolean.
  */
 function readWorkspacesBoolean(
@@ -136,6 +165,60 @@ function readWorkspacesBoolean(
     return raw.tabGroups;
   }
   return fallback;
+}
+
+/**
+ * Derives an activity-rail mode from a legacy multi-boolean `sectionVisibility` blob.
+ *
+ * Rule: `trash` only when trash is visible and the four primary modes are all
+ * hidden; otherwise first match among workflows → workspaces → environments →
+ * collections (default).
+ *
+ * @param visibilityRaw - Legacy sectionVisibility object, if present.
+ * @returns Migrated {@link SidebarMode}.
+ */
+function deriveModeFromLegacyVisibility(
+  visibilityRaw: Partial<Record<string, unknown>> | undefined
+): SidebarMode {
+  if (!visibilityRaw) {
+    return DEFAULT_ACTIVE_SIDEBAR_MODE;
+  }
+
+  const collections = visibilityRaw.collections === true;
+  const environments = visibilityRaw.environments === true;
+  const workspaces = readWorkspacesBoolean(visibilityRaw, false);
+  const workflows = visibilityRaw.workflows === true;
+  const trash = visibilityRaw.trash === true;
+
+  if (trash && !collections && !environments && !workspaces && !workflows) {
+    return 'trash';
+  }
+  if (workflows) {
+    return 'workflows';
+  }
+  if (workspaces) {
+    return 'workspaces';
+  }
+  if (environments) {
+    return 'environments';
+  }
+  return 'collections';
+}
+
+/**
+ * Resolves the active sidebar mode from persisted state, migrating legacy
+ * `sectionVisibility` when `activeSidebarMode` is absent.
+ *
+ * @param raw - Partial expansion state object.
+ * @returns Normalized {@link SidebarMode}.
+ */
+function normalizeActiveSidebarMode(raw: Partial<Record<string, unknown>>): SidebarMode {
+  if (isSidebarMode(raw.activeSidebarMode)) {
+    return raw.activeSidebarMode;
+  }
+
+  const visibilityRaw = raw.sectionVisibility as Partial<Record<string, unknown>> | undefined;
+  return deriveModeFromLegacyVisibility(visibilityRaw);
 }
 
 /**
@@ -166,8 +249,9 @@ function normalizeSectionSort(value: unknown): Record<SidebarSectionKey, Sidebar
 /**
  * Normalizes persisted sidebar expansion state from electron-store.
  *
- * Accepts legacy `tabGroups` keys in sections, sectionVisibility, and sectionSort
- * and maps them onto the renamed `workspaces` fields.
+ * Accepts legacy `tabGroups` keys in sections and sectionSort and maps them onto
+ * the renamed `workspaces` fields. Migrates legacy `sectionVisibility` booleans
+ * into `activeSidebarMode` when the newer field is missing.
  *
  * @param value - Raw stored value.
  */
@@ -176,9 +260,8 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
     return defaultSidebarExpansion();
   }
 
-  const raw = value as Partial<SidebarExpansionState>;
+  const raw = value as Partial<SidebarExpansionState> & Record<string, unknown>;
   const sectionsRaw = raw.sections as Partial<Record<string, unknown>> | undefined;
-  const visibilityRaw = raw.sectionVisibility as Partial<Record<string, unknown>> | undefined;
 
   return {
     sections: {
@@ -212,37 +295,11 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
           ? sectionsRaw.trash
           : DEFAULT_SECTIONS.trash
     },
-    sectionVisibility: {
-      collections:
-        visibilityRaw && typeof visibilityRaw.collections === 'boolean'
-          ? visibilityRaw.collections
-          : DEFAULT_SECTION_VISIBILITY.collections,
-      environments:
-        visibilityRaw && typeof visibilityRaw.environments === 'boolean'
-          ? visibilityRaw.environments
-          : DEFAULT_SECTION_VISIBILITY.environments,
-      runResults:
-        visibilityRaw && typeof visibilityRaw.runResults === 'boolean'
-          ? visibilityRaw.runResults
-          : DEFAULT_SECTION_VISIBILITY.runResults,
-      history:
-        visibilityRaw && typeof visibilityRaw.history === 'boolean'
-          ? visibilityRaw.history
-          : DEFAULT_SECTION_VISIBILITY.history,
-      workspaces: readWorkspacesBoolean(visibilityRaw, DEFAULT_SECTION_VISIBILITY.workspaces),
-      workflows:
-        visibilityRaw && typeof visibilityRaw.workflows === 'boolean'
-          ? visibilityRaw.workflows
-          : DEFAULT_SECTION_VISIBILITY.workflows,
-      archive:
-        visibilityRaw && typeof visibilityRaw.archive === 'boolean'
-          ? visibilityRaw.archive
-          : DEFAULT_SECTION_VISIBILITY.archive,
-      trash:
-        visibilityRaw && typeof visibilityRaw.trash === 'boolean'
-          ? visibilityRaw.trash
-          : DEFAULT_SECTION_VISIBILITY.trash
-    },
+    activeSidebarMode: normalizeActiveSidebarMode(raw),
+    sidebarRailExpanded:
+      typeof raw.sidebarRailExpanded === 'boolean'
+        ? raw.sidebarRailExpanded
+        : DEFAULT_SIDEBAR_RAIL_EXPANDED,
     sectionSort: normalizeSectionSort(raw.sectionSort),
     collectionIds: normalizeIdList(raw.collectionIds),
     folderIds: normalizeIdList(raw.folderIds),

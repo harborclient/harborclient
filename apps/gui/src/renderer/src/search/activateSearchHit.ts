@@ -50,7 +50,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
     revealCollection,
     revealArchivedCollection,
     revealFolder,
-    setEnvironmentsSectionVisible,
+    setActiveSidebarMode,
     setEnvironmentsSectionExpanded
   } = useSidebarExpansion();
 
@@ -121,7 +121,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
           }
           dispatch(setShowSidebar(true));
           dispatch(setActiveEnvironmentId(parsed.entityId));
-          setEnvironmentsSectionVisible(true);
+          setActiveSidebarMode('environments');
           setEnvironmentsSectionExpanded(true);
           return;
         }
@@ -192,7 +192,7 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
       revealCollection,
       revealFolder,
       setEnvironmentsSectionExpanded,
-      setEnvironmentsSectionVisible,
+      setActiveSidebarMode,
       sidebarInput
     ]
   );

@@ -84,8 +84,8 @@ interface Props {
  * Renders the arrow-shaped background shell shared by crumb and editable segments.
  *
  * First and only shapes use an overflow-hidden rounded wrapper so the left (or
- * full) edge can be pill-capped like the URL bar; middle and last keep a single
- * clip-path layer for chevron interlocking.
+ * full) edge matches the URL bar's `rounded-md` corners; middle and last keep a
+ * single clip-path layer for chevron interlocking.
  */
 export function SegmentShell({
   shape,
@@ -105,7 +105,7 @@ export function SegmentShell({
       : tone === 'selection'
         ? 'bg-selection'
         : 'bg-breadcrumb-segment';
-  const usesPillCap = shape === 'first' || shape === 'only';
+  const usesRoundedCap = shape === 'first' || shape === 'only';
   const leadingInsetPx = CHEVRON_PX + (isCompact ? 10 : 16);
 
   const layoutClass = cn(
@@ -129,14 +129,10 @@ export function SegmentShell({
     </div>
   );
 
-  if (usesPillCap) {
+  if (usesRoundedCap) {
     return (
       <div
-        className={cn(
-          layoutClass,
-          'overflow-hidden',
-          shape === 'only' ? 'rounded-full!' : 'rounded-lg!'
-        )}
+        className={cn(layoutClass, 'overflow-hidden', 'rounded-md!')}
         style={needsLeadingInset ? { paddingLeft: `${leadingInsetPx}px` } : undefined}
       >
         <div

@@ -3,12 +3,13 @@ import type { JSX } from 'react';
 /**
  * Vertical overhang of the playhead above and below the block row, in pixels.
  */
-export const TIMELINE_PLAYHEAD_OVERHANG_PX = 15;
+export const TIMELINE_PLAYHEAD_OVERHANG_PX = 49;
 
 /**
- * Horizontal gutter so a centered playhead at x=0 (or the track end) is not clipped.
+ * Horizontal padding inside the timeline box (Tailwind `px-4`) so a centered
+ * playhead at x=0 (or the track end) is not clipped.
  */
-export const TIMELINE_PLAYHEAD_EDGE_PAD_PX = 10;
+export const TIMELINE_PLAYHEAD_EDGE_PAD_PX = 16;
 
 interface Props {
   /**

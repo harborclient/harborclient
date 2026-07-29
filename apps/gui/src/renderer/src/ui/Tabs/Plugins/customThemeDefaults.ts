@@ -126,7 +126,7 @@ export const DEFAULT_CUSTOM_THEME_METRICS: CustomThemeMetrics = {
 export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'surface': '#f5f5f7',
   'sidebar': '#ececee',
-  'sidebar-toolbar': '#dedee0',
+  'sidebar-toolbar': '#d0d0d1',
   'sidebar-section': 'rgba(0, 122, 204, 0.18)',
   'sidebar-section-text': 'rgba(0, 0, 0, 0.58)',
   'footer': '#ececee',
@@ -184,7 +184,7 @@ export const LIGHT_CUSTOM_THEME_PALETTE: CustomThemePalette = {
 export const DARK_CUSTOM_THEME_PALETTE: CustomThemePalette = {
   'surface': '#1e1e1e',
   'sidebar': '#252526',
-  'sidebar-toolbar': '#232324',
+  'sidebar-toolbar': '#1e1e1e',
   'sidebar-section': '#343437',
   'sidebar-section-text': 'rgba(255, 255, 255, 0.58)',
   'footer': '#252526',

@@ -142,6 +142,7 @@ describe('bootstrapShellForReveal', () => {
         tabs: Array<{ tabId: string; draft: { collection_id: number; name: string; url: string } }>;
         activeTabId: string;
       };
+      workflows: { dialogMode: 'closed' };
     } => ({
       collections: {
         collections: [{ id: 42 }],
@@ -159,7 +160,8 @@ describe('bootstrapShellForReveal', () => {
           }
         ],
         activeTabId: 'tab-1'
-      }
+      },
+      workflows: { dialogMode: 'closed' }
     });
 
     /**

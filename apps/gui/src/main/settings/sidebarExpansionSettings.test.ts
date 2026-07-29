@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
 
 const { mockGet, mockSet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -22,89 +23,10 @@ describe('sidebarExpansionSettings', () => {
 
   it('returns defaults when unset', async () => {
     const { getSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
+    const defaults = defaultSidebarExpansion();
 
-    expect(getSidebarExpansion()).toEqual({
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
-    });
-    expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', {
-      sections: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
-      collectionIds: [],
-      folderIds: [],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
-    });
+    expect(getSidebarExpansion()).toEqual(defaults);
+    expect(mockGet).toHaveBeenCalledWith('sidebarExpansion', defaults);
   });
 
   it('reads and normalizes persisted state', async () => {
@@ -117,45 +39,14 @@ describe('sidebarExpansionSettings', () => {
     const { getSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
     expect(getSidebarExpansion()).toEqual({
+      ...defaultSidebarExpansion(),
       sections: {
+        ...defaultSidebarExpansion().sections,
         collections: false,
-        environments: false,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
-      },
-      sectionVisibility: {
-        collections: true,
-        environments: true,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
+        environments: false
       },
       collectionIds: [1],
-      folderIds: [9],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: true,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      folderIds: [9]
     });
   });
 
@@ -163,87 +54,31 @@ describe('sidebarExpansionSettings', () => {
     const { setSidebarExpansion } = await import('#/main/settings/sidebarExpansionSettings');
 
     setSidebarExpansion({
+      ...defaultSidebarExpansion(),
       sections: {
+        ...defaultSidebarExpansion().sections,
         collections: true,
-        environments: false,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
+        environments: false
       },
-      sectionVisibility: {
-        collections: false,
-        environments: true,
-        runResults: false,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'environments',
+      sidebarRailExpanded: true,
       collectionIds: [2, 2, -3],
       folderIds: [8],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: false,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      showStorageLocationBadges: false
     });
 
     expect(mockSet).toHaveBeenCalledWith('sidebarExpansion', {
+      ...defaultSidebarExpansion(),
       sections: {
+        ...defaultSidebarExpansion().sections,
         collections: true,
-        environments: false,
-        runResults: true,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: true,
-        trash: true
+        environments: false
       },
-      sectionVisibility: {
-        collections: false,
-        environments: true,
-        runResults: false,
-        history: true,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'environments',
+      sidebarRailExpanded: true,
       collectionIds: [2],
       folderIds: [8],
-      environmentIds: [],
-      sectionSort: {
-        collections: 'default',
-        environments: 'default',
-        runResults: 'default',
-        history: 'default',
-        workspaces: 'default',
-        workflows: 'default',
-        archive: 'default',
-        trash: 'default'
-      },
-      showStorageLocationBadges: false,
-      showMarkers: true,
-      showMethodColors: true,
-      showIndicators: true,
-      showFilters: false,
-      showSorting: false
+      showStorageLocationBadges: false
     });
   });
 });

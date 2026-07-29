@@ -12,6 +12,11 @@ pnpm dev
 
 Use `pnpm` only (lockfile: `pnpm-lock.yaml`). Do not use npm or yarn.
 
+`pnpm dev` builds the SDK once, then runs SDK and GUI watchers together. You can
+also run them separately: `pnpm dev:sdk` (tsc + runtime assets) and
+`pnpm dev:gui` (electron-vite). See [AGENTS.md](./AGENTS.md) for agent-safe
+dev-server guidance.
+
 ## Project layout
 
 HarborClient is a pnpm monorepo:

@@ -26,7 +26,31 @@ describe('sanitizeWorkflowActions', () => {
     });
   });
 
-  it('preserves existing action uuids', () => {
+  it('preserves existing action uuids and enriches bare sends from preceding requests', () => {
+    const actions = sanitizeWorkflowActions([
+      {
+        uuid: 'load-1',
+        type: 'request.load',
+        at: 1,
+        payload: { method: 'GET', name: 'List things', url: 'https://example.com' }
+      },
+      { uuid: 'keep-me', type: 'request.send', at: 10, payload: { target: 'active' } }
+    ]);
+
+    expect(actions[1]).toEqual({
+      uuid: 'keep-me',
+      type: 'request.send',
+      at: 10,
+      payload: {
+        target: 'active',
+        method: 'GET',
+        name: 'List things',
+        url: 'https://example.com'
+      }
+    });
+  });
+
+  it('leaves bare sends unchanged when no preceding request display exists', () => {
     const actions = sanitizeWorkflowActions([
       { uuid: 'keep-me', type: 'request.send', at: 10, payload: { target: 'active' } }
     ]);

@@ -55,6 +55,12 @@ interface Props {
    * When true, does not render children while the panel is closed.
    */
   unmountWhenClosed?: boolean;
+
+  /**
+   * Id of a visible heading that names this panel region. When set, forwarded
+   * to {@link Resizable} as `aria-labelledby`.
+   */
+  labelledBy?: string;
 }
 
 /**
@@ -71,7 +77,8 @@ export function FooterPanel({
   open,
   onClose,
   children,
-  unmountWhenClosed = false
+  unmountWhenClosed = false,
+  labelledBy
 }: Props): JSX.Element {
   const closeButton = (
     <RoundButton
@@ -91,6 +98,7 @@ export function FooterPanel({
       closeLabel={closeLabel}
       storageKey={storageKey}
       unmountWhenClosed={unmountWhenClosed}
+      labelledBy={labelledBy}
       showCloseButton={false}
       headerless
     >

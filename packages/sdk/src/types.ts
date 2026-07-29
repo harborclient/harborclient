@@ -764,13 +764,27 @@ export interface WorkflowActionRef {
 }
 
 /**
+ * Mode of the workflow footer panel when a plugin surface or toolbar action runs.
+ *
+ * - `record` — live recording session (no persisted workflow yet; `workflowId` is `-1`)
+ * - `play` — playback without host edit controls
+ * - `edit` — timeline editor with unsaved buffer edits
+ */
+export type WorkflowPanelPluginMode = 'record' | 'play' | 'edit';
+
+/**
  * Context passed to a workflow toolbar action command when the user clicks the button.
  */
 export interface WorkflowToolbarActionContext {
   /**
-   * Database id of the workflow open in play/edit mode.
+   * Database id of the workflow open in play/edit mode, or `-1` while recording.
    */
   workflowId: number;
+
+  /**
+   * Active workflow footer panel mode.
+   */
+  mode: WorkflowPanelPluginMode;
 
   /**
    * 0-based index of the selected timeline action, or `-1` when none is selected.
@@ -789,7 +803,10 @@ export interface WorkflowToolbarActionContext {
 }
 
 /**
- * Adds a button to the right of Save in the workflow play/edit toolbar.
+ * Adds a button to the right of Save in the workflow footer panel toolbar.
+ *
+ * Surfaces mount in record, play, and edit modes; use {@link WorkflowToolbarActionContext.mode}
+ * to tell them apart. Host delete/move/save buttons are edit-only.
  *
  * Register the command handler with {@link PluginCommands.register} separately.
  * The handler receives a single {@link WorkflowToolbarActionContext} argument.
@@ -828,9 +845,14 @@ export interface WorkflowToolbarActionContribution {
  */
 export interface WorkflowActionBlockContext {
   /**
-   * Database id of the workflow open in play/edit mode.
+   * Database id of the workflow open in play/edit mode, or `-1` while recording.
    */
   workflowId: number;
+
+  /**
+   * Active workflow footer panel mode.
+   */
+  mode: WorkflowPanelPluginMode;
 
   /**
    * 0-based index of this timeline action.
@@ -856,7 +878,8 @@ export interface WorkflowActionBlockContext {
 /**
  * Renders a HostedSurface inside matching workflow timeline action blocks.
  *
- * Manifest: `contributes.workflowActionBlocks`. Requires the `ui` permission.
+ * Surfaces mount in record, play, and edit modes; use {@link WorkflowActionBlockContext.mode}
+ * to tell them apart. Manifest: `contributes.workflowActionBlocks`. Requires the `ui` permission.
  */
 export interface WorkflowActionBlockContribution extends UiContributionBase {
   /**
@@ -1487,6 +1510,85 @@ export interface PluginMcp {
    * @returns A {@link Disposable} that unregisters the server when disposed.
    */
   registerServer(config: PluginMcpServerConfig): Disposable;
+}
+
+/**
+ * Config for {@link PluginAi.registerChatPointer}.
+ */
+export interface PluginChatPointerConfig {
+  /**
+   * Pointer id segment in `@plugin.<pluginId>.<id>.<key>`.
+   *
+   * Must match `[a-z][a-z0-9-]*`.
+   */
+  id: string;
+
+  /**
+   * Static rules merged into the agent system prompt while the plugin is loaded.
+   */
+  agentGuidance?: string;
+}
+
+/**
+ * Input for {@link PluginAi.copyToChat}.
+ */
+export interface PluginCopyToChatInput {
+  /**
+   * Pointer id previously registered with {@link PluginAi.registerChatPointer}.
+   */
+  pointerId: string;
+
+  /**
+   * Opaque key segment after the pointer id (no spaces). Host builds the full token.
+   */
+  key: string;
+
+  /**
+   * Badge label shown in the AI composer and message bubbles.
+   */
+  label: string;
+
+  /**
+   * Text inlined into the send-time ephemeral system message for the agent.
+   */
+  context: string;
+
+  /**
+   * Optional character-range selection appended as `#start.end` on the token.
+   */
+  selection?: {
+    /**
+     * Inclusive start offset.
+     */
+    start: number;
+
+    /**
+     * Exclusive end offset.
+     */
+    end: number;
+  };
+}
+
+/**
+ * AI chat pointer APIs available on {@link PluginContext.ai}.
+ *
+ * Requires the `ai` permission. Registrations are activation-scoped.
+ */
+export interface PluginAi {
+  /**
+   * Registers a namespaced `@plugin.<pluginId>.<id>.…` chat pointer kind.
+   *
+   * @param config - Pointer id and optional static agent guidance.
+   * @returns A {@link Disposable} that unregisters the pointer when disposed.
+   */
+  registerChatPointer(config: PluginChatPointerConfig): Disposable;
+
+  /**
+   * Opens the AI sidebar and queues a plugin `@` badge token with a context snapshot.
+   *
+   * @param input - Pointer id, key, label, and context text captured by the plugin.
+   */
+  copyToChat(input: PluginCopyToChatInput): Promise<void>;
 }
 
 /**
@@ -3361,6 +3463,11 @@ export interface PluginContext {
    * permission.
    */
   mcp: PluginMcp;
+
+  /**
+   * AI chat pointer registration and copy-to-chat. Requires the `ai` permission.
+   */
+  ai: PluginAi;
 
   /**
    * Host-managed disposable list used for registration cleanup on deactivation.

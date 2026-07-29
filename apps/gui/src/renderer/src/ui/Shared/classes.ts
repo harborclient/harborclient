@@ -65,12 +65,13 @@ export const gitWorkingTreeStatusPanel =
 /**
  * Always-on accent highlight for the footer's Action menu toggle — flush against
  * the footer's left edge and stretched to its full height, distinct from the
- * other footer toggles which only highlight while active.
+ * other footer toggles which only highlight while active. Width matches the
+ * collapsed sidebar rail (`w-18`) so the button aligns with the rail.
  *
  * @param active - Whether the Action menu is currently open.
  */
 export function actionMenuToggleClass(active: boolean): string {
   const base =
-    'hc-action-menu-toggle flex shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white app-no-drag';
+    'hc-action-menu-toggle flex w-18 shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white app-no-drag';
   return active ? `${base} shadow-inner` : `${base} hover:brightness-110`;
 }

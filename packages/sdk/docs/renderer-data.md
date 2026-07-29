@@ -1052,10 +1052,45 @@ hc.mcp.registerServer({
 
 Discovered tools are prefixed with `mcp__` in the chat agent tool list, using the same naming scheme as user-configured MCP client servers.
 
+## hc.ai
+
+Chat pointer registration and copy-to-chat for the AI sidebar.
+
+Requires the `ai` permission. Registrations are **activation-scoped**: Harbor merges `agentGuidance` into the agent system prompt while the plugin is enabled and removes it on dispose or unload. Historical message badges keep working from persisted snapshots.
+
+### hc.ai.registerChatPointer(config)
+
+```ts
+hc.ai.registerChatPointer({
+  id: 'script',
+  agentGuidance:
+    'When a user message contains @plugin.<pluginId>.script.<key>, use the captured context in the system message.'
+});
+```
+
+`id` must match `[a-z][a-z0-9-]*`. Tokens are namespaced as `@plugin.<pluginId>.<id>.<key>` with an optional `#start.end` selection suffix.
+
+### hc.ai.copyToChat(input)
+
+Opens the AI sidebar, ensures a chat exists, stores a snapshot, and queues the `@plugin…` badge token in the composer.
+
+```ts
+await hc.ai.copyToChat({
+  pointerId: 'script',
+  key: scriptUuid,
+  label: scriptName,
+  context: scriptSource,
+  selection: { start: 0, end: 12 }
+});
+```
+
+Context longer than 100,000 characters is truncated with a clear marker. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) (or a CodeEditor `copy-to-chat` toolbar action) and call `hc.ai.copyToChat` from `onSelect`.
+
+See [Chat pointers](/examples/chat-pointers) for a full walkthrough.
+
 ## Not extensible
 
 These built-in surfaces are not open to plugin contributions:
 
 - **Open request tab strip** — tabs for unsaved/saved requests in the editor workspace.
-- **AI sidebar** — the built-in assistant panel.
 - **Native window chrome** — title bar and window controls (menu contributions use the application menu only).

@@ -28,6 +28,12 @@ interface Props {
   fillWidth?: boolean;
 
   /**
+   * When true, the block uses `flex-1 min-w-0` with {@link widthPx} as its flex
+   * basis so equal-width (gapless) tracks stay pixel-aligned with the playhead.
+   */
+  flexGrow?: boolean;
+
+  /**
    * When true, height follows content instead of filling the parent (`h-full`).
    * Used for vertical result lists; timeline tracks keep the default stretch behavior.
    */
@@ -56,6 +62,12 @@ interface Props {
   disabled?: boolean;
 
   /**
+   * Roving tabindex for the listbox option. Selected option is `0`; others `-1`.
+   * Defaults to `0` when omitted (standalone Results rows).
+   */
+  tabIndex?: number;
+
+  /**
    * Thumbnail content from the workflow registry entry.
    */
   children: ReactNode;
@@ -74,7 +86,7 @@ interface Props {
  * webviews can nest inside without invalid interactive nesting. Seek / edit /
  * context menu stay on the thumbnail chrome; plugin surfaces stop propagation.
  *
- * @param props - Label, selection, width, fitContent, handlers, thumbnail, and optional plugin surface.
+ * @param props - Label, selection, width, flexGrow, fitContent, handlers, thumbnail, and optional plugin surface.
  * @returns Timeline block option wrapping thumbnail and plugin surface children.
  */
 export function TimelineBlock({
@@ -83,11 +95,13 @@ export function TimelineBlock({
   selected,
   widthPx,
   fillWidth = false,
+  flexGrow = false,
   fitContent = false,
   onSeek,
   onEditPayload,
   onContextMenu,
   disabled = false,
+  tabIndex,
   children,
   pluginSurface
 }: Props): JSX.Element {
@@ -106,6 +120,8 @@ export function TimelineBlock({
     }
   };
 
+  const optionTabIndex = disabled ? -1 : (tabIndex ?? 0);
+
   return (
     <div
       id={id}
@@ -113,7 +129,7 @@ export function TimelineBlock({
       aria-selected={selected}
       aria-label={label}
       aria-disabled={disabled || undefined}
-      tabIndex={disabled ? -1 : 0}
+      tabIndex={optionTabIndex}
       onKeyDown={handleKeyDown}
       onContextMenu={(event) => {
         if (onContextMenu == null) {
@@ -126,13 +142,19 @@ export function TimelineBlock({
         'relative flex min-h-[56px] flex-col overflow-hidden rounded-md border text-left transition-colors',
         fitContent ? 'h-auto' : 'h-full',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-        fillWidth ? 'w-full min-w-0' : 'shrink-0',
+        fillWidth ? 'w-full min-w-0' : flexGrow ? 'min-w-0 flex-1' : 'shrink-0',
         selected
           ? 'border-accent bg-accent/10 text-fg'
           : 'border-separator bg-surface-raised text-fg hover:border-accent/60',
         disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
       ].join(' ')}
-      style={fillWidth ? { width: '100%' } : { width: widthPx }}
+      style={
+        fillWidth
+          ? { width: '100%' }
+          : flexGrow
+            ? { width: widthPx, flexBasis: widthPx }
+            : { width: widthPx }
+      }
     >
       <div
         className={[

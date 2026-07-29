@@ -877,6 +877,15 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertPermission('mcp');
         return track({ dispose: () => undefined });
       }
+    },
+    ai: {
+      registerChatPointer: () => {
+        assertPermission('ai');
+        return track({ dispose: () => undefined });
+      },
+      copyToChat: async () => {
+        assertPermission('ai');
+      }
     }
   };
 }

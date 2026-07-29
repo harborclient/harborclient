@@ -45,6 +45,39 @@ function buildCodemirrorAliases(): Record<string, string> {
 }
 
 /**
+ * SDK subpath → source entry pairs the GUI imports at runtime.
+ * Do not alias the bare `@harborclient/sdk` package: Vite treats string aliases as
+ * prefixes, so mapping it to `index.ts` would resolve `@harborclient/sdk/react-dom`
+ * as `index.ts/react-dom`. The GUI only imports the bare package as `import type`,
+ * which is erased before resolve. Host React overrides (`sdk/react`, `sdk/react-dom`,
+ * `sdk/jsx-runtime`, `sdk/jsx-dev-runtime`) stay in the renderer alias map separately.
+ */
+const HARBOR_SDK_SOURCE_ENTRIES = [
+  ['@harborclient/sdk/components', 'components/index.ts'],
+  ['@harborclient/sdk/variables', 'variables/index.ts'],
+  ['@harborclient/sdk/ui', 'ui/index.ts'],
+  ['@harborclient/sdk/signing', 'signing/index.ts'],
+  ['@harborclient/sdk/styles.css', 'styles.css']
+] as const;
+
+/**
+ * Builds Vite resolve aliases that point `@harborclient/sdk` imports at the SDK
+ * source tree instead of `dist/`. Matching core/http/storage-sqlite, this lets
+ * HMR update individual TSX files without waiting on `tsc --watch` to rewrite
+ * `packages/sdk/dist` (which previously invalidated the whole renderer CSS graph).
+ *
+ * @returns Alias map for main, preload, and renderer resolve configuration.
+ */
+function buildHarborSdkSourceAliases(): Record<string, string> {
+  const sdkSrc = resolve(__dirname, '../../packages/sdk/src');
+  const aliases: Record<string, string> = {};
+  for (const [importPath, relativeEntry] of HARBOR_SDK_SOURCE_ENTRIES) {
+    aliases[importPath] = resolve(sdkSrc, relativeEntry);
+  }
+  return aliases;
+}
+
+/**
  * Prepended to main-process bundles so ESBUILD_BINARY_PATH is set before hoisted
  * require("esbuild") runs in packaged apps (asar cannot execute nested binaries).
  */
@@ -82,7 +115,8 @@ const harborWorkspaceAliases = {
   '@harborclient/core': resolve(__dirname, '../../packages/core/src'),
   '@harborclient/http': resolve(__dirname, '../../packages/http/src'),
   '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src'),
-  '@harborclient/team-hub-api': resolve(__dirname, '../../packages/team-hub-api/src')
+  '@harborclient/team-hub-api': resolve(__dirname, '../../packages/team-hub-api/src'),
+  ...buildHarborSdkSourceAliases()
 };
 
 export default defineConfig({
@@ -94,7 +128,8 @@ export default defineConfig({
           '@harborclient/core',
           '@harborclient/http',
           '@harborclient/storage-sqlite',
-          '@harborclient/team-hub-api'
+          '@harborclient/team-hub-api',
+          '@harborclient/sdk'
         ]
       }),
       copyPluginStaticAssets()
@@ -125,7 +160,8 @@ export default defineConfig({
           '@harborclient/core',
           '@harborclient/http',
           '@harborclient/storage-sqlite',
-          '@harborclient/team-hub-api'
+          '@harborclient/team-hub-api',
+          '@harborclient/sdk'
         ]
       })
     ],
@@ -156,24 +192,26 @@ export default defineConfig({
     // `./logo.png` in splash.html keeps dev (Vite server) and production
     // (file:// loadFile) URLs aligned without bundling the logo into hashed assets.
     publicDir: resolve(__dirname, '../../images'),
-    // Force dependency pre-bundling on every dev start. Vite caches optimized
-    // deps in node_modules/.vite/deps keyed on a hash of the lockfile and config,
-    // not on `file:`-linked package contents. Without forcing, a local
-    // `@harborclient/sdk` rebuild is never picked up: Vite keeps serving the
-    // stale pre-bundled copy even after `pnpm install` and a dev-server restart.
-    // Re-optimizing each start keeps the linked SDK fresh without changing module
-    // resolution (excluding it from bundling breaks its transitive deps).
-    optimizeDeps: {
-      force: true
-    },
+    // SDK (and other workspace packages) resolve to source via harborWorkspaceAliases,
+    // so Vite no longer pre-bundles a stale `file:`-linked `dist/` copy. If optimized
+    // deps ever look stale after a dependency change, clear the cache once with
+    // `rm -rf apps/gui/node_modules/.vite`.
     resolve: {
       dedupe: [...CODEMIRROR_DEDUPE_PACKAGES],
       alias: {
         '@images': resolve(__dirname, '../../images'),
         ...harborWorkspaceAliases,
+        // Host React: SDK source uses `jsxImportSource: '@harborclient/sdk'`, so Vite
+        // emits imports of `@harborclient/sdk/jsx-runtime` (prod) and
+        // `@harborclient/sdk/jsx-dev-runtime` (dev). Pin those — and the react shims —
+        // to this app's React so the GUI does not require plugin `installReact()`.
         '@harborclient/sdk/react': resolve(__dirname, 'node_modules/react'),
         '@harborclient/sdk/react-dom': resolve(__dirname, 'node_modules/react-dom'),
         '@harborclient/sdk/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),
+        '@harborclient/sdk/jsx-dev-runtime': resolve(
+          __dirname,
+          'node_modules/react/jsx-dev-runtime'
+        ),
         ...buildCodemirrorAliases()
       }
     },

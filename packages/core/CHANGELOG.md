@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance development and testing workflow in AGENTS.md and CONTRIBUTING.md. (`181dc04a`)
+
 ## 0.2.7 - 2026-07-29
 
 - Enhance Response Editor and Summary with Close Functionality. (`e14d7c7d`)

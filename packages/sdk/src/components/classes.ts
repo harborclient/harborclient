@@ -15,8 +15,8 @@ const segmentFocusVisible =
  */
 export function segment(active: boolean): string {
   return active
-    ? `cursor-pointer rounded-md border-none bg-selection px-3 py-1 text-text app-no-drag ${segmentFocusVisible}`
-    : `cursor-pointer rounded-md border-none bg-transparent px-3 py-1 text-muted hover:text-text app-no-drag ${segmentFocusVisible}`;
+    ? `cursor-pointer rounded-md border-none bg-selection px-3 h-[32px] leading-none text-text app-no-drag ${segmentFocusVisible}`
+    : `cursor-pointer rounded-md border-none bg-transparent px-3 h-[32px] leading-none text-muted hover:text-text app-no-drag ${segmentFocusVisible}`;
 }
 
 /**

@@ -3,7 +3,9 @@
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "dev": "pnpm build:sdk && pnpm --parallel --filter @harborclient/sdk --filter @harborclient/gui dev",
+    "dev": "pnpm build:sdk && pnpm --parallel --filter @harborclient/sdk --filter @harborclient/gui run dev",
+    "dev:sdk": "pnpm --filter @harborclient/sdk run dev",
+    "dev:gui": "pnpm --filter @harborclient/gui run dev",
     "build": "pnpm build:sdk && pnpm --filter @harborclient/harborclient build",
     "build:sdk": "pnpm --filter @harborclient/sdk build",
     "build:http": "pnpm --filter @harborclient/http build",

@@ -1,4 +1,5 @@
 import type { WorkflowAction } from '@harborclient/core/types/workflow';
+import { enrichWorkflowSendDisplayFields } from './enrichWorkflowSendDisplayFields';
 import type { WorkflowEvent } from './workflowEventTypes';
 
 /**
@@ -58,6 +59,8 @@ function resolveActionUuid(action: { uuid?: string }): string {
  *
  * Preserves each action's uuid when present; mints one for legacy actions that
  * lack it so exports and persistence always include per-action identifiers.
+ * Also copies method/name/url onto incomplete `request.send` payloads from
+ * preceding request actions so play/edit timelines match record.
  *
  * @param actions - Session events or persisted actions.
  * @returns Sanitized workflow actions.
@@ -65,10 +68,11 @@ function resolveActionUuid(action: { uuid?: string }): string {
 export function sanitizeWorkflowActions(
   actions: readonly WorkflowEvent[] | readonly WorkflowAction[]
 ): WorkflowAction[] {
-  return actions.map((action) => ({
+  const sanitized = actions.map((action) => ({
     uuid: resolveActionUuid(action),
     type: action.type,
     ...(typeof action.at === 'number' ? { at: action.at } : {}),
     payload: action.type === 'request.draft' ? sanitizeDraftPayload(action.payload) : action.payload
   }));
+  return enrichWorkflowSendDisplayFields(sanitized);
 }

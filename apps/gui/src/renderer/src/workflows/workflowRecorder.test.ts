@@ -107,6 +107,44 @@ function emptyGetState(): RootState {
 }
 
 /**
+ * getState stub with an active request tab for send display-field capture.
+ *
+ * @param draftOverrides - Fields merged onto the active tab draft.
+ * @returns Root state with one active request tab.
+ */
+function getStateWithActiveRequest(draftOverrides: Record<string, unknown> = {}): () => RootState {
+  const draft = {
+    id: 10,
+    collection_id: 1,
+    folder_id: null,
+    name: 'List things',
+    method: 'GET',
+    url: 'https://example.com/things?a=2',
+    ...draftOverrides
+  };
+  return () =>
+    ({
+      ...emptyGetState(),
+      tabs: {
+        tabs: [
+          {
+            tabId: 'tab-1',
+            draft,
+            savedDraft: draft,
+            response: null,
+            sending: false,
+            sendingRequestId: null,
+            testResults: [],
+            scriptLogs: [],
+            executionEvents: []
+          }
+        ],
+        activeTabId: 'tab-1'
+      }
+    }) as unknown as RootState;
+}
+
+/**
  * Dispatches a workflow action through the recorder with a getState stub.
  *
  * @param action - Redux-like action.
@@ -168,10 +206,15 @@ describe('processWorkflowAction', () => {
         headers: [{ key: 'X-Test', value: '2', enabled: true }]
       })
     });
-    record({
-      type: SEND_REQUEST_PENDING_TYPE,
-      meta: { requestId: 'r1', arg: undefined }
-    });
+    record(
+      {
+        type: SEND_REQUEST_PENDING_TYPE,
+        meta: { requestId: 'r1', arg: undefined }
+      },
+      getStateWithActiveRequest({
+        url: 'https://example.com/things?a=2'
+      })
+    );
 
     const events = getWorkflowLogApi().events;
     expect(events.map((entry) => entry.type)).toEqual([
@@ -188,7 +231,12 @@ describe('processWorkflowAction', () => {
       url: 'https://example.com/things?a=2',
       headers: [{ key: 'X-Test', value: '2', enabled: true }]
     });
-    expect(events[2]?.payload).toEqual({ target: 'active' });
+    expect(events[2]?.payload).toEqual({
+      target: 'active',
+      method: 'GET',
+      name: 'List things',
+      url: 'https://example.com/things?a=2'
+    });
   });
 
   it('coalesces request.load by uuid', () => {

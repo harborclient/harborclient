@@ -2,7 +2,7 @@ import { buildChatTitleSystemPrompt, CHAT_TITLE_TOOL } from './chatTitle';
 import { buildGitCommitMessageSystemPrompt } from './gitCommitMessage';
 import { HC_ASK_SYSTEM_PROMPT } from './hcAskContext';
 import { buildScriptAskSystemPrompt, SCRIPT_ASK_TOOL } from './scriptAsk';
-import { AI_SYSTEM_PROMPT, AI_TOOL_DEFINITIONS } from './tools';
+import { buildAiSystemPrompt, AI_TOOL_DEFINITIONS } from './tools';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { ChatStepInput, ChatStepMessage } from '../types';
 
@@ -113,7 +113,7 @@ export function resolveChatStepMode(
   }
 
   return {
-    systemPrompt: AI_SYSTEM_PROMPT,
+    systemPrompt: buildAiSystemPrompt(),
     tools: filterToolsForChatStep(AI_TOOL_DEFINITIONS, input, options?.hubHasOpenAi),
     messages: input.messages
   };

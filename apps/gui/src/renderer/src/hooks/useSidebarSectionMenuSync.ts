@@ -7,19 +7,15 @@ import { focusFirstEnvironmentSidebar } from '#/renderer/src/ui/Sidebars/Collect
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 
 /**
- * Handles sidebar section toggle shortcuts and focus-first-collection/environment actions.
+ * Handles sidebar mode shortcuts and focus-first-collection/environment actions.
  * Also syncs sidebar display Appearance checkboxes and handles their menu actions.
  */
 export function useSidebarSectionMenuSync(): void {
   const dispatch = useAppDispatch();
   const store = useStore<RootState>();
   const {
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible,
-    setCollectionsSectionVisible,
+    setActiveSidebarMode,
     setCollectionsSectionExpanded,
-    setEnvironmentsSectionVisible,
     setEnvironmentsSectionExpanded,
     showStorageLocationBadges,
     showMarkers,
@@ -78,19 +74,19 @@ export function useSidebarSectionMenuSync(): void {
   }, [showSorting]);
 
   /**
-   * Handles section toggle shortcuts, display toggles, and sidebar list focus shortcuts.
+   * Handles sidebar mode shortcuts, display toggles, and sidebar list focus shortcuts.
    */
   useEffect(() => {
     const unsubscribe = window.api.onMenuAction((action) => {
       switch (action) {
         case 'toggle-collections-section':
-          toggleCollectionsSectionVisible();
+          setActiveSidebarMode('collections');
           break;
         case 'toggle-environments-section':
-          toggleEnvironmentsSectionVisible();
+          setActiveSidebarMode('environments');
           break;
         case 'toggle-run-results-section':
-          toggleRunResultsSectionVisible();
+          setActiveSidebarMode('collections');
           break;
         case 'toggle-storage-locations':
           toggleStorageLocationBadges();
@@ -112,13 +108,13 @@ export function useSidebarSectionMenuSync(): void {
           break;
         case 'focus-first-collection':
           focusFirstCollectionSidebar(dispatch, store.getState, {
-            setCollectionsSectionVisible,
+            setActiveSidebarMode,
             setCollectionsSectionExpanded
           });
           break;
         case 'focus-first-environment':
           focusFirstEnvironmentSidebar(dispatch, store.getState, {
-            setEnvironmentsSectionVisible,
+            setActiveSidebarMode,
             setEnvironmentsSectionExpanded
           });
           break;
@@ -128,18 +124,14 @@ export function useSidebarSectionMenuSync(): void {
   }, [
     dispatch,
     store,
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible,
+    setActiveSidebarMode,
     toggleStorageLocationBadges,
     toggleMarkers,
     toggleMethodColors,
     toggleIndicators,
     toggleFilters,
     toggleSorting,
-    setCollectionsSectionVisible,
     setCollectionsSectionExpanded,
-    setEnvironmentsSectionVisible,
     setEnvironmentsSectionExpanded
   ]);
 }

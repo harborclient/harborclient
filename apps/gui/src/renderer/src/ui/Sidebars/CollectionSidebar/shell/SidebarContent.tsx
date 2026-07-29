@@ -1,4 +1,6 @@
 import { useCallback, useMemo, type JSX } from 'react';
+import type { SidebarMode, SidebarSectionKey } from '@harborclient/core/types';
+import { SIDEBAR_MODE_SECTIONS } from '@harborclient/core/sidebarExpansion';
 import type { SidebarPanelViewContext } from '@harborclient/sdk';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
@@ -7,22 +9,18 @@ import {
 } from '#/renderer/src/plugins/sidebarSelectionMapping';
 import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
 import {
-  faSquareMinus,
-  faBoxArchive,
-  faClockRotateLeft,
+  faDiagramProject,
   faFolder,
   faGlobe,
   faLayerGroup,
-  faDiagramProject,
-  faPlay,
   faTrash
 } from '#/renderer/src/fontawesome';
 import {
   Sidebar,
+  SidebarRail,
   SidebarSections,
-  Toolbar,
-  type SidebarSectionConfig,
-  type ToolbarAction
+  type SidebarRailItemData,
+  type SidebarSectionConfig
 } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
@@ -46,17 +44,40 @@ import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
 import { useResolvedSidebarPanels } from './useResolvedSidebarPanels';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
-import { hasExpandedSidebarTrees } from '../expansion/hasExpandedSidebarTrees';
+import { hasExpandedSidebarTreesForMode } from '../expansion/hasExpandedSidebarTrees';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarListNavigation } from '../navigation/useSidebarListNavigation';
 import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
+import { SidebarCollapseAllHeader } from './SidebarCollapseAllHeader';
+
+const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
+  { id: 'collections', icon: faFolder, label: 'Collections' },
+  { id: 'environments', icon: faGlobe, label: 'Environments' },
+  { id: 'workspaces', icon: faLayerGroup, label: 'Workspaces' },
+  { id: 'workflows', icon: faDiagramProject, label: 'Workflows' },
+  { id: 'trash', icon: faTrash, label: 'Trash' }
+];
+
+/**
+ * Returns whether a value is a known {@link SidebarMode}.
+ *
+ * @param value - Candidate rail item id.
+ */
+function isSidebarMode(value: string): value is SidebarMode {
+  return (
+    value === 'collections' ||
+    value === 'environments' ||
+    value === 'workspaces' ||
+    value === 'workflows' ||
+    value === 'trash'
+  );
+}
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
- * the panel switcher, search field, section toolbar (visibility toggles and
- * collapse-all), and the collapsible Collections/Runs/History/Environments/
- * Workspaces sections. Sections source their own data and actions, so this shell
- * only wires layout and shared UI state.
+ * search above a vertical activity rail and the section accordion, with a
+ * collapse-all header row aligned to section action buttons.
+ * Sections source their own data and actions; this shell wires layout and mode state.
  *
  * When a registered panel declares `replaces: "collections"`, that panel becomes
  * the default body (primary collections surface) and the built-in tree is hidden.
@@ -87,166 +108,89 @@ export function SidebarContent(): JSX.Element {
     workflowsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    runResultsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    archiveSectionVisible,
-    trashSectionVisible,
+    activeSidebarMode,
+    setActiveSidebarMode,
+    sidebarRailExpanded,
+    setSidebarRailExpanded,
     expandedCollectionIds,
     expandedFolderIds,
-    expandedEnvironmentIds,
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible,
-    toggleHistorySectionVisible,
-    toggleWorkspacesSectionVisible,
-    toggleWorkflowsSectionVisible,
-    toggleArchiveSectionVisible,
-    toggleTrashSectionVisible
+    expandedEnvironmentIds
   } = useSidebarExpansion();
 
-  const { searchQuery, setSearchQuery, searchActive, searchLoading, collapseAllSidebarTrees } =
-    useSidebarSearchContext();
+  const {
+    searchQuery,
+    setSearchQuery,
+    activeSearchFilter,
+    archivedSearchFilter,
+    searchActive,
+    searchLoading,
+    collapseSidebarTreesForMode
+  } = useSidebarSearchContext();
   const { openAddEnvironment } = useSidebarModals();
-  const { expanded, onToggle, pluginSectionExpanded, collapseAllSections } = useSidebarAccordion();
+  const { expanded, onToggle, pluginSectionExpanded, collapseSections } = useSidebarAccordion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
 
   /**
-   * Collapses collection/folder/environment trees first; when none remain expanded, collapses
-   * every sidebar section header (built-in and plugin).
+   * Selects an activity-rail mode from a rail item id.
+   *
+   * @param id - Rail item id matching a {@link SidebarMode}.
    */
-  const handleCollapseAll = useCallback((): void => {
-    if (hasExpandedSidebarTrees(expandedCollectionIds, expandedFolderIds, expandedEnvironmentIds)) {
-      collapseAllSidebarTrees();
-      return;
+  const handleRailSelect = useCallback(
+    (id: string): void => {
+      if (isSidebarMode(id)) {
+        setActiveSidebarMode(id);
+      }
+    },
+    [setActiveSidebarMode]
+  );
+
+  /**
+   * Section keys to mount: search hit union while searching, otherwise the active mode set.
+   */
+  const mountedSectionKeys = useMemo((): readonly SidebarSectionKey[] => {
+    if (!searchActive || activeSearchFilter == null) {
+      return SIDEBAR_MODE_SECTIONS[activeSidebarMode];
     }
 
-    collapseAllSections();
-  }, [
-    collapseAllSections,
-    collapseAllSidebarTrees,
-    expandedCollectionIds,
-    expandedEnvironmentIds,
-    expandedFolderIds
-  ]);
+    const keys: SidebarSectionKey[] = [];
+    const hasCollectionHits =
+      activeSearchFilter.collectionIds.size > 0 ||
+      activeSearchFilter.folderIds.size > 0 ||
+      activeSearchFilter.requestIds.size > 0;
+    const hasEnvironmentHits = activeSearchFilter.environmentIds.size > 0;
+    const hasArchiveHits = (archivedSearchFilter?.collectionIds.size ?? 0) > 0;
+
+    if (hasCollectionHits) {
+      keys.push('collections');
+    }
+    if (hasEnvironmentHits) {
+      keys.push('environments');
+    }
+    if (hasArchiveHits) {
+      keys.push('archive');
+    }
+
+    return keys.length > 0 ? keys : SIDEBAR_MODE_SECTIONS[activeSidebarMode];
+  }, [activeSearchFilter, activeSidebarMode, archivedSearchFilter, searchActive]);
 
   /**
-   * Left toolbar actions that show or hide sidebar sections.
+   * Whether the current mount set includes a given section key.
+   *
+   * @param key - Built-in section key.
    */
-  const toolbarActions = useMemo((): ToolbarAction[] => {
-    return [
-      {
-        id: 'toggle-collections-section',
-        icon: faFolder,
-        label: 'Collections',
-        title: collectionsSectionVisible ? 'Hide collections section' : 'Show collections section',
-        ariaPressed: collectionsSectionVisible,
-        onClick: toggleCollectionsSectionVisible
-      },
-      {
-        id: 'toggle-run-results-section',
-        icon: faPlay,
-        label: 'Runs',
-        title: runResultsSectionVisible ? 'Hide runs section' : 'Show runs section',
-        ariaPressed: runResultsSectionVisible,
-        onClick: toggleRunResultsSectionVisible
-      },
-      {
-        id: 'toggle-history-section',
-        icon: faClockRotateLeft,
-        label: 'History',
-        title: historySectionVisible ? 'Hide history section' : 'Show history section',
-        ariaPressed: historySectionVisible,
-        onClick: toggleHistorySectionVisible
-      },
-      {
-        id: 'toggle-environments-section',
-        icon: faGlobe,
-        label: 'Environments',
-        title: environmentsSectionVisible
-          ? 'Hide environments section'
-          : 'Show environments section',
-        ariaPressed: environmentsSectionVisible,
-        onClick: toggleEnvironmentsSectionVisible
-      },
-      {
-        id: 'toggle-tab-groups-section',
-        icon: faLayerGroup,
-        label: 'Workspaces',
-        title: workspacesSectionVisible ? 'Hide workspaces section' : 'Show workspaces section',
-        ariaPressed: workspacesSectionVisible,
-        onClick: toggleWorkspacesSectionVisible
-      },
-      {
-        id: 'toggle-workflows-section',
-        icon: faDiagramProject,
-        label: 'Workflows',
-        title: workflowsSectionVisible ? 'Hide workflows section' : 'Show workflows section',
-        ariaPressed: workflowsSectionVisible,
-        onClick: toggleWorkflowsSectionVisible
-      },
-      {
-        id: 'toggle-archive-section',
-        icon: faBoxArchive,
-        label: 'Archive',
-        title: archiveSectionVisible ? 'Hide archive section' : 'Show archive section',
-        ariaPressed: archiveSectionVisible,
-        onClick: toggleArchiveSectionVisible
-      },
-      {
-        id: 'toggle-trash-section',
-        icon: faTrash,
-        label: 'Trash',
-        title: trashSectionVisible ? 'Hide trash section' : 'Show trash section',
-        ariaPressed: trashSectionVisible,
-        onClick: toggleTrashSectionVisible
-      }
-    ];
-  }, [
-    archiveSectionVisible,
-    collectionsSectionVisible,
-    environmentsSectionVisible,
-    historySectionVisible,
-    workspacesSectionVisible,
-    workflowsSectionVisible,
-    trashSectionVisible,
-    runResultsSectionVisible,
-    toggleArchiveSectionVisible,
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleHistorySectionVisible,
-    toggleWorkspacesSectionVisible,
-    toggleWorkflowsSectionVisible,
-    toggleTrashSectionVisible,
-    toggleRunResultsSectionVisible
-  ]);
+  const isSectionMounted = useCallback(
+    (key: SidebarSectionKey): boolean => mountedSectionKeys.includes(key),
+    [mountedSectionKeys]
+  );
 
   /**
-   * Right-aligned toolbar controls: collapse-all.
-   */
-  const toolbarToggles = useMemo((): ToolbarAction[] => {
-    return [
-      {
-        id: 'collapse-all',
-        icon: faSquareMinus,
-        label: 'Collapse all',
-        title: 'Collapse all collections, folders, and sections',
-        onClick: handleCollapseAll
-      }
-    ];
-  }, [handleCollapseAll]);
-
-  /**
-   * Collapsible section config for the collections sidebar body.
+   * Collapsible section config for the sidebar body driven by rail mode / search.
    */
   const sections = useMemo((): SidebarSectionConfig[] => {
     const result: SidebarSectionConfig[] = [];
 
-    if (collectionsSectionVisible) {
+    if (isSectionMounted('collections')) {
       result.push({
         key: 'collections',
         title: 'Collections',
@@ -259,7 +203,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (runResultsSectionVisible) {
+    if (isSectionMounted('runResults')) {
       result.push({
         key: 'runResults',
         title: 'Runs',
@@ -270,7 +214,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (historySectionVisible) {
+    if (isSectionMounted('history')) {
       result.push({
         key: 'history',
         title: 'History',
@@ -281,7 +225,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (environmentsSectionVisible) {
+    if (isSectionMounted('environments')) {
       result.push({
         key: 'environments',
         title: 'Environments',
@@ -294,7 +238,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (workspacesSectionVisible) {
+    if (isSectionMounted('workspaces')) {
       result.push({
         key: 'workspaces',
         title: 'Workspaces',
@@ -307,7 +251,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (workflowsSectionVisible) {
+    if (isSectionMounted('workflows')) {
       result.push({
         key: 'workflows',
         title: 'Workflows',
@@ -323,7 +267,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (archiveSectionVisible) {
+    if (isSectionMounted('archive')) {
       result.push({
         key: 'archive',
         title: 'Archive',
@@ -334,7 +278,7 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    if (trashSectionVisible) {
+    if (isSectionMounted('trash')) {
       result.push({
         key: 'trash',
         title: 'Trash',
@@ -345,109 +289,138 @@ export function SidebarContent(): JSX.Element {
       });
     }
 
-    for (const section of pluginSidebarSections) {
-      const sectionExpanded = pluginSectionExpanded[section.id] ?? true;
-      result.push({
-        key: section.id,
-        title: section.title,
-        ariaLabel: section.title,
-        initialEntered: sectionExpanded,
-        headerActions: section.hasHeaderActions ? (
-          <HostedSurface
-            pluginId={section.pluginId}
-            contributionId={section.contributionId}
-            kind="sidebarSections"
-            slot="headerActions"
-          />
-        ) : undefined,
-        children: (
-          <HostedSurface
-            pluginId={section.pluginId}
-            contributionId={section.contributionId}
-            kind="sidebarSections"
-            minHeight={120}
-          />
-        )
-      });
+    if (activeSidebarMode === 'collections' && !searchActive) {
+      for (const section of pluginSidebarSections) {
+        const sectionExpanded = pluginSectionExpanded[section.id] ?? true;
+        result.push({
+          key: section.id,
+          title: section.title,
+          ariaLabel: section.title,
+          initialEntered: sectionExpanded,
+          headerActions: section.hasHeaderActions ? (
+            <HostedSurface
+              pluginId={section.pluginId}
+              contributionId={section.contributionId}
+              kind="sidebarSections"
+              slot="headerActions"
+            />
+          ) : undefined,
+          children: (
+            <HostedSurface
+              pluginId={section.pluginId}
+              contributionId={section.contributionId}
+              kind="sidebarSections"
+              minHeight={120}
+            />
+          )
+        });
+      }
     }
 
     return result;
   }, [
-    collectionsSectionVisible,
+    activeSidebarMode,
+    archiveSectionExpanded,
     collectionsSectionExpanded,
     dispatch,
-    environmentsSectionVisible,
     environmentsSectionExpanded,
-    historySectionVisible,
     historySectionExpanded,
+    isSectionMounted,
     openAddEnvironment,
     pluginSectionExpanded,
     pluginSidebarSections,
-    runResultsSectionVisible,
     runResultsSectionExpanded,
     searchActive,
-    workspacesSectionVisible,
+    trashSectionExpanded,
     workspacesSectionExpanded,
-    workflowsSectionVisible,
-    workflowsSectionExpanded,
-    archiveSectionVisible,
-    archiveSectionExpanded,
-    trashSectionVisible,
-    trashSectionExpanded
+    workflowsSectionExpanded
   ]);
 
+  /**
+   * Collapses trees for the active rail mode first; when none remain expanded for that
+   * mode, collapses only the section headers currently visible in the sidebar body.
+   */
+  const handleCollapseAll = useCallback((): void => {
+    if (
+      hasExpandedSidebarTreesForMode(
+        activeSidebarMode,
+        expandedCollectionIds,
+        expandedFolderIds,
+        expandedEnvironmentIds
+      )
+    ) {
+      collapseSidebarTreesForMode(activeSidebarMode);
+      return;
+    }
+
+    collapseSections(sections.map((section) => section.key));
+  }, [
+    activeSidebarMode,
+    collapseSections,
+    collapseSidebarTreesForMode,
+    expandedCollectionIds,
+    expandedEnvironmentIds,
+    expandedFolderIds,
+    sections
+  ]);
+
+  const showChrome = !displayedPanel;
+
   return (
-    <Sidebar
-      side="left"
-      ariaLabel="Collections sidebar"
-      storageKey="hc.sidebarWidth"
-      defaultSize={400}
-      minSize={240}
-      getMaxSize={() => 640}
-      resizeAriaLabel="Resize sidebar"
-      scroll={!displayedPanel}
-      asideClassName={displayedPanel ? 'h-full min-h-0' : undefined}
-      header={
-        <>
-          <SidebarPanelSwitcher
-            panels={switcherPanels}
-            activePanelId={activePanelId}
-            collectionsReplacement={collectionsReplacement}
-            showSwitcher={showSwitcher}
+    <div className="flex h-full min-h-0 flex-col bg-sidebar">
+      {showChrome ? (
+        <div className="shrink-0 border-b border-separator">
+          <SidebarSearch value={searchQuery} onChange={setSearchQuery} loading={searchLoading} />
+        </div>
+      ) : null}
+      <div className="flex min-h-0 min-w-0 flex-1">
+        {showChrome ? (
+          <SidebarRail
+            items={SIDEBAR_RAIL_ITEMS}
+            activeId={activeSidebarMode}
+            expanded={sidebarRailExpanded}
+            onExpandedChange={setSidebarRailExpanded}
+            onSelect={handleRailSelect}
+            ariaLabel="Sidebar"
           />
-          {!displayedPanel ? (
+        ) : null}
+        <Sidebar
+          side="left"
+          ariaLabel="Sidebar"
+          storageKey="hc.sidebarWidth"
+          defaultSize={400}
+          minSize={240}
+          getMaxSize={() => 640}
+          resizeAriaLabel="Resize sidebar"
+          scroll={!displayedPanel}
+          asideClassName="h-full min-h-0"
+          header={
+            <SidebarPanelSwitcher
+              panels={switcherPanels}
+              activePanelId={activePanelId}
+              collectionsReplacement={collectionsReplacement}
+              showSwitcher={showSwitcher}
+            />
+          }
+          bodyClassName={displayedPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
+        >
+          {displayedPanel ? (
+            <HostedSurface
+              pluginId={displayedPanel.pluginId}
+              contributionId={displayedPanel.contributionId}
+              kind="sidebarPanels"
+              resizeMode="fill"
+              className="h-full"
+              context={sidebarPanelContext}
+            />
+          ) : (
             <>
-              <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
-              <Toolbar
-                ariaLabel="Collections sidebar"
-                actions={toolbarActions}
-                toggles={toolbarToggles}
-              />
+              <SidebarCollapseAllHeader onClick={handleCollapseAll} />
+              <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
             </>
-          ) : null}
-        </>
-      }
-      bodyClassName={displayedPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
-    >
-      {displayedPanel ? (
-        <HostedSurface
-          pluginId={displayedPanel.pluginId}
-          contributionId={displayedPanel.contributionId}
-          kind="sidebarPanels"
-          resizeMode="fill"
-          className="h-full"
-          context={sidebarPanelContext}
-        />
-      ) : (
-        <>
-          {searchLoading ? (
-            <p className="mt-1.5 text-muted" role="status">
-              Loading…
-            </p>
-          ) : null}
-          <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
-        </>
-      )}
-    </Sidebar>
+          )}
+        </Sidebar>
+      </div>
+    </div>
   );
 }

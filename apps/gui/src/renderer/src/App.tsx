@@ -61,7 +61,6 @@ import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
-import { WorkflowRecordingDialog } from '#/renderer/src/ui/Modals/WorkflowRecordingDialog';
 import { SaveWorkflowNameModal } from '#/renderer/src/ui/Modals/SaveWorkflowNameModal';
 import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
 import { OpenExternalLinkModal } from '#/renderer/src/ui/Modals/OpenExternalLinkModal';
@@ -88,6 +87,7 @@ import {
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
+import { WorkflowPanel } from '#/renderer/src/ui/Footer/WorkflowPanel';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
 import {
@@ -529,7 +529,7 @@ export default function App(): JSX.Element {
 
               <CollectionModal />
               <WorkspaceModal />
-              <WorkflowRecordingDialog />
+              <WorkflowPanel />
               <SaveWorkflowNameModal />
               <ShareModal />
               <UnsavedLoadPrompt />

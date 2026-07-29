@@ -11,9 +11,12 @@ import {
   faWindowMaximize,
   faXmark
 } from '#/renderer/src/fontawesome';
+import { isWorkflowRunRequestResult } from '../isWorkflowRunRequestResult';
+import { WorkflowRunRequestStatus } from '../WorkflowRunRequestStatus';
 import type { WorkflowThumbnailCtx } from '../workflowEventTypes';
 import { TimelineRequestThumbnail } from './TimelineRequestThumbnail';
 import { TimelineTextThumbnail } from './TimelineTextThumbnail';
+import { WorkflowSendActionContent } from './WorkflowSendActionContent';
 
 /**
  * Human-readable summary for a timeline block / detail strip.
@@ -170,8 +173,22 @@ export function describeWorkflowAction(
         subtitle: url
       };
     }
-    case 'request.send':
+    case 'request.send': {
+      const requestResult =
+        ctx?.result != null && isWorkflowRunRequestResult(ctx.result) ? ctx.result : null;
+      const method = requestResult?.method ?? payloadString(payload, 'method');
+      const name = requestResult?.name ?? payloadString(payload, 'name');
+      if (method != null && name != null) {
+        return {
+          title: `${method} ${name}`,
+          subtitle: requestResult?.url ?? payloadString(payload, 'url')
+        };
+      }
+      if (name != null) {
+        return { title: name, subtitle: payloadString(payload, 'url') };
+      }
       return { title: 'Send' };
+    }
     case 'request.cancel':
       return { title: 'Cancel send' };
     case 'environment.activate': {
@@ -314,15 +331,39 @@ export function requestCreateThumbnail(
 /**
  * Timeline thumbnail for `request.send`.
  *
- * @param _action - Recorded action.
- * @param ctx - Thumbnail context.
+ * Prefers method/name from a run-log request result when present (Results), then
+ * recorded display fields on the action payload. Legacy sends without those
+ * fields fall back to the paper-plane “Send” label.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context (optional run result for status metrics).
  * @returns Thumbnail content.
  */
 export function requestSendThumbnail(
-  _action: { type: string; at?: number; payload: unknown },
+  action: { type: string; at?: number; payload: unknown },
   ctx: WorkflowThumbnailCtx
 ): ReactNode {
-  return <TimelineTextThumbnail icon={faPaperPlane} title="Send" compact={ctx.compact} />;
+  const requestResult =
+    ctx.result != null && isWorkflowRunRequestResult(ctx.result) ? ctx.result : null;
+  const method = requestResult?.method ?? payloadString(action.payload, 'method');
+  const name = requestResult?.name ?? payloadString(action.payload, 'name');
+
+  if (method == null || name == null) {
+    return <TimelineTextThumbnail icon={faPaperPlane} title="Send" compact={ctx.compact} />;
+  }
+
+  return (
+    <WorkflowSendActionContent
+      method={method}
+      name={name}
+      compact={ctx.compact}
+      actions={
+        requestResult != null ? (
+          <WorkflowRunRequestStatus result={requestResult} className="ms-auto" />
+        ) : undefined
+      }
+    />
+  );
 }
 
 /**

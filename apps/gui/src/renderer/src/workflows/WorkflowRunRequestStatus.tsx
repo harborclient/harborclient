@@ -19,7 +19,8 @@ interface Props {
 /**
  * Compact HTTP status, timing, and size metrics for a workflow-run send result.
  *
- * Mirrors the left side of {@link ResponseSummary} for use inside Results rows.
+ * Mirrors the left side of {@link ResponseSummary} for use inside Results rows
+ * and registry send thumbnails.
  *
  * @param props - Request result and optional layout class names.
  * @returns Status dot, code text, duration, and size metrics.

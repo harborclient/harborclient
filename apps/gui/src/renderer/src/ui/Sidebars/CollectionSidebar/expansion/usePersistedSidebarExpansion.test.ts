@@ -17,7 +17,7 @@ const DEFAULT_SECTION_SORT = {
 } as const;
 
 describe('serializeSidebarExpansion', () => {
-  it('serializes section flags, sort modes, and expanded ids', () => {
+  it('serializes section flags, mode, rail density, sort modes, and expanded ids', () => {
     expect(
       serializeSidebarExpansion(
         {
@@ -30,16 +30,8 @@ describe('serializeSidebarExpansion', () => {
           archive: true,
           trash: true
         },
-        {
-          collections: true,
-          environments: false,
-          runResults: true,
-          history: false,
-          workspaces: true,
-          workflows: true,
-          archive: false,
-          trash: false
-        },
+        'workflows',
+        true,
         {
           ...DEFAULT_SECTION_SORT,
           collections: 'name-asc',
@@ -66,16 +58,8 @@ describe('serializeSidebarExpansion', () => {
         archive: true,
         trash: true
       },
-      sectionVisibility: {
-        collections: true,
-        environments: false,
-        runResults: true,
-        history: false,
-        workspaces: true,
-        workflows: true,
-        archive: false,
-        trash: false
-      },
+      activeSidebarMode: 'workflows',
+      sidebarRailExpanded: true,
       sectionSort: {
         ...DEFAULT_SECTION_SORT,
         collections: 'name-asc',

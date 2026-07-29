@@ -25,6 +25,11 @@ import {
   setPluginMcpRegistryManager,
   unregisterPluginMcpServer
 } from './pluginMcpRegistry';
+import {
+  clearPluginChatPointers,
+  registerPluginChatPointer,
+  unregisterPluginChatPointer
+} from './pluginChatPointerRegistry';
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
@@ -110,7 +115,10 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'imports.unregisterHandler': 'ui',
   'imports.invokeComplete': 'ui',
   'mcp.registerServer': 'mcp',
-  'mcp.unregisterServer': 'mcp'
+  'mcp.unregisterServer': 'mcp',
+  'ai.registerChatPointer': 'ai',
+  'ai.unregisterChatPointer': 'ai',
+  'ai.copyToChat': 'ai'
 };
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
@@ -155,7 +163,8 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'host.loadDocument',
   'host.getSidebarSelection',
   'host.setSidebarSelection',
-  'commands.execute'
+  'commands.execute',
+  'ai.copyToChat'
 ]);
 
 /** Maximum wait for the host renderer to complete a return-value host bridge call. */
@@ -316,6 +325,7 @@ export class PluginUiBroker {
     const session = this.#sessions.get(webContentsId);
     if (session?.role === 'agent') {
       clearPluginMcpServers(session.pluginId);
+      clearPluginChatPointers(session.pluginId);
       void refreshMcpClientConnections();
     }
     this.#sessions.delete(webContentsId);
@@ -329,6 +339,7 @@ export class PluginUiBroker {
   clearPlugin(pluginId: string): void {
     this.#agentReady.delete(pluginId);
     clearPluginMcpServers(pluginId);
+    clearPluginChatPointers(pluginId);
     void refreshMcpClientConnections();
   }
 
@@ -805,6 +816,35 @@ export class PluginUiBroker {
         const { registrationId } = payload as { registrationId: string };
         unregisterPluginMcpServer(session.pluginId, registrationId);
         await refreshMcpClientConnections();
+        return undefined;
+      }
+      case 'ai.registerChatPointer': {
+        const { registrationId, pointerId, agentGuidance } = payload as {
+          registrationId: string;
+          pointerId: string;
+          agentGuidance?: string;
+        };
+        registerPluginChatPointer({
+          pluginId: session.pluginId,
+          registrationId,
+          pointerId,
+          agentGuidance
+        });
+        this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
+          pluginId: session.pluginId,
+          op: 'ai.trackChatPointer',
+          payload: { registrationId, pointerId }
+        });
+        return undefined;
+      }
+      case 'ai.unregisterChatPointer': {
+        const { registrationId } = payload as { registrationId: string };
+        unregisterPluginChatPointer(session.pluginId, registrationId);
+        this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
+          pluginId: session.pluginId,
+          op: 'ai.untrackChatPointer',
+          payload: { registrationId }
+        });
         return undefined;
       }
       case 'ui.showToast':

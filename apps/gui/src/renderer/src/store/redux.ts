@@ -22,6 +22,7 @@ import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelec
 import requestBodySelectionsReducer from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import responseSelectionsReducer from '#/renderer/src/store/slices/responseSelectionsSlice';
 import scriptSelectionsReducer from '#/renderer/src/store/slices/scriptSelectionsSlice';
+import pluginSelectionsReducer from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
 import openApiImportReducer from '#/renderer/src/store/slices/openApiImportSlice';
 import { workflowRecordMiddleware } from '#/renderer/src/workflows/workflowRecordMiddleware';
@@ -50,6 +51,7 @@ export const store = configureStore({
     requestBodySelections: requestBodySelectionsReducer,
     responseSelections: responseSelectionsReducer,
     scriptSelections: scriptSelectionsReducer,
+    pluginSelections: pluginSelectionsReducer,
     themeDesigner: themeDesignerReducer,
     openApiImport: openApiImportReducer
   },

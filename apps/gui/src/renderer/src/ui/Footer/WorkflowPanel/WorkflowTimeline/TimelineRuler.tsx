@@ -1,36 +1,36 @@
 import type { JSX } from 'react';
-import { buildTimelineRulerTicks } from '#/renderer/src/workflows/timeline/workflowTimelineLayout';
+import {
+  buildTimelineRulerTicks,
+  type WorkflowTimelineLayout
+} from '#/renderer/src/workflows/timeline/workflowTimelineLayout';
 
 interface Props {
   /**
-   * Full recorded duration in milliseconds.
+   * Layout geometry used to place ticks (aligned with the playhead).
    */
-  totalDurationMs: number;
-
-  /**
-   * Full track content width in pixels.
-   */
-  totalWidthPx: number;
+  layout: WorkflowTimelineLayout;
 }
 
 /**
  * Time ruler drawn above the workflow timeline track.
  *
  * Edge ticks align to the start/end of the track so labels do not overflow
- * horizontally; middle ticks stay centered on their marks.
+ * horizontally; middle ticks stay centered on their marks. Tick X follows
+ * segment geometry so equal-width (gapless) and proportional layouts stay aligned.
  *
- * @param props - Duration and width used to place tick labels.
+ * @param props - Timeline layout used to place tick labels.
  * @returns Ruler row with labelled ticks.
  */
-export function TimelineRuler({ totalDurationMs, totalWidthPx }: Props): JSX.Element {
+export function TimelineRuler({ layout }: Props): JSX.Element {
   /**
-   * Derives tick marks for the current track width and duration.
+   * Derives tick marks for the current layout geometry.
    */
-  const ticks = buildTimelineRulerTicks(totalDurationMs, totalWidthPx);
+  const ticks = buildTimelineRulerTicks(layout);
+  const { totalWidthPx } = layout;
 
   return (
     <div
-      className="relative h-6 shrink-0 overflow-hidden border-b border-separator"
+      className="relative mb-4 h-6 shrink-0 overflow-hidden border-b border-separator"
       style={{ width: totalWidthPx }}
       aria-hidden
     >

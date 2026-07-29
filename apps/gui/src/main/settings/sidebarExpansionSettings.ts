@@ -47,6 +47,8 @@ export function getSidebarExpansion(): SidebarExpansionState {
       Object.prototype.hasOwnProperty.call(raw.sections, 'tabGroups') &&
       !Object.prototype.hasOwnProperty.call(raw.sections, 'workspaces')) ||
       (raw.sectionVisibility != null &&
+        !Object.prototype.hasOwnProperty.call(raw, 'activeSidebarMode')) ||
+      (raw.sectionVisibility != null &&
         Object.prototype.hasOwnProperty.call(raw.sectionVisibility, 'tabGroups') &&
         !Object.prototype.hasOwnProperty.call(raw.sectionVisibility, 'workspaces')) ||
       (raw.sectionSort != null &&

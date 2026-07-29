@@ -1,50 +1,103 @@
 import type { ScriptRef, Snippet } from '../types';
+import {
+  type AiResponseSection,
+  type AiScriptReferenceValidationContext,
+  type ChatComposerTextToken,
+  type ParsedAiScriptReference,
+  type ParsedMarkdownReference,
+  type ParsedPluginReference,
+  type ParsedRequestBodyReference,
+  type ParsedRequestScriptReference,
+  type ParsedResponseSectionReference,
+  type ParsedTerminalReference,
+  type PersistedChatReferenceSnapshotEntry,
+  type PersistedChatReferenceSnapshots,
+  type ScriptSelectionLastRunFailure,
+  type ScriptSelectionSnapshot
+} from './chatPointers/types.js';
+import { getRegisteredChatPointers } from './chatPointers/registry.js';
+import { isScriptReferenceBoundary, stripRegexAnchors } from './chatPointers/shared.js';
+import { bindBuiltinChatPointerHandlers } from './chatPointers/builtins/index.js';
 
-const AI_SCRIPT_REFERENCE_UUID =
-  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+export {
+  registerBuiltinChatPointers,
+  reinstallBuiltinChatPointersForTests,
+  bindBuiltinChatPointerHandlers
+} from './chatPointers/builtins/index.js';
+
+export {
+  AI_RESPONSE_SECTION_LABELS,
+  AI_RESPONSE_SECTIONS,
+  AI_SCRIPT_REFERENCE_UUID,
+  type AiResponseSection,
+  type AiScriptReferenceValidationContext,
+  type ChatComposerTextToken,
+  type ChatPointerDefinition,
+  type ChatPointerContextMessageHints,
+  type ParsedAiScriptReference,
+  type ParsedAiScriptReferenceBase,
+  type ParsedChatPointer,
+  type ParsedCollectionReference,
+  type ParsedFolderReference,
+  type ParsedMarkdownReference,
+  type ParsedPluginReference,
+  type ParsedRequestBodyReference,
+  type ParsedRequestReference,
+  type ParsedRequestScriptReference,
+  type ParsedResponseSectionReference,
+  type ParsedSnippetReference,
+  type ParsedTerminalReference,
+  type PersistedChatReferenceSnapshotEntry,
+  type PersistedChatReferenceSnapshots,
+  type PluginChatPointerSnapshot,
+  type RequestBodySelectionSnapshot,
+  type ResponseSectionSnapshot,
+  type ScriptSelectionLastRunFailure,
+  type ScriptSelectionSnapshot,
+  type TerminalSelectionSnapshot,
+  type MarkdownSelectionSnapshot
+} from './chatPointers/types.js';
+
+export {
+  registerChatPointer,
+  unregisterChatPointer,
+  getChatPointer,
+  getRegisteredChatPointers,
+  getChatPointerAgentGuidance,
+  registerPluginChatPointerGuidance,
+  getPluginChatPointerGuidance,
+  resetChatPointerRegistryForTests
+} from './chatPointers/registry.js';
+
+export {
+  buildPluginChatPointerToken,
+  isValidPluginChatPointerId,
+  isValidPluginChatPointerKey,
+  PLUGIN_CHAT_POINTER_ID_PATTERN,
+  PLUGIN_CHAT_POINTER_KEY_PATTERN
+} from './chatPointers/pluginToken.js';
 
 /**
- * Response-viewer section ids that can be referenced with `@res.<tab-uuid>.<section>`.
- */
-export const AI_RESPONSE_SECTIONS = ['body', 'headers', 'timing', 'console', 'tests'] as const;
-
-/**
- * One response-viewer section that can be copied to chat.
- */
-export type AiResponseSection = (typeof AI_RESPONSE_SECTIONS)[number];
-
-/**
- * Badge labels for `@res` response-section references.
- */
-export const AI_RESPONSE_SECTION_LABELS: Record<AiResponseSection, string> = {
-  body: 'Response body',
-  headers: 'Response headers',
-  timing: 'Response timing',
-  console: 'Response console',
-  tests: 'Response tests'
-};
-
-/**
- * Regex matching `@` script references in chat text:
- * - Request scripts: `@<request-id>.<pre|post>.<script-index>`
- * - Standalone snippets: `@snippet.<uuid>`
- * - Footer terminals: `@term.<terminal-index>`
- * - Collections: `@collection.<uuid>`
- * - Folders: `@folder.<uuid>`
- * - Saved requests: `@request.<uuid>`
- * - Markdown documents and request comments: `@markdown.<uuid>`
- * - Response viewer sections: `@res.<request-tab-uuid>.<body|headers|timing|console|tests>`
- * - Active request raw body: `@body`
+ * Regex matching `@` script references in chat text.
  *
- * Request scripts, snippets, markdown, raw body, and response body selections accept an optional
- * `#<selection-start>.<selection-end>` suffix (character offsets). For `@res…body#start.end`,
- * offsets are into the pretty-printed response body viewer text. Terminal references use the
- * same suffix for 1-based line numbers.
+ * Composed from registered chat-pointer definitions after builtins load.
+ * Includes request scripts, snippets, terminals, collections, folders, requests,
+ * markdown, response sections, raw body, and plugin pointers.
  */
-export const AI_SCRIPT_REFERENCE_PATTERN = new RegExp(
-  `@(?:(active|\\d+)\\.(pre|post)\\.(\\d+)|snippet\\.(${AI_SCRIPT_REFERENCE_UUID})|term\\.(\\d+)|collection\\.(${AI_SCRIPT_REFERENCE_UUID})|folder\\.(${AI_SCRIPT_REFERENCE_UUID})|request\\.(${AI_SCRIPT_REFERENCE_UUID})|markdown\\.(${AI_SCRIPT_REFERENCE_UUID})|res\\.(${AI_SCRIPT_REFERENCE_UUID})\\.(body|headers|timing|console|tests)|(body))(?:#(\\d+)\\.(\\d+))?(?!\\d)`,
-  'g'
-);
+export let AI_SCRIPT_REFERENCE_PATTERN = /@(?!)/g;
+
+/**
+ * Rebuilds {@link AI_SCRIPT_REFERENCE_PATTERN} from the chat-pointer registry.
+ */
+export function refreshAiScriptReferencePattern(): void {
+  const defs = getRegisteredChatPointers();
+  if (defs.length === 0) {
+    AI_SCRIPT_REFERENCE_PATTERN = /@(?!)/g;
+    return;
+  }
+  const alts = defs.map((def) => `(?:${stripRegexAnchors(def.match.source)})`);
+  AI_SCRIPT_REFERENCE_PATTERN = new RegExp(`@(?:${alts.join('|')})(?!\\w)`, 'g');
+}
 
 /**
  * Builds the compact `@res` token for a response-viewer section on a request tab.
@@ -80,829 +133,80 @@ export function buildResponseBodySelectionReferenceToken(
 }
 
 /**
- * Shared fields for every parsed `@` script reference.
- */
-interface ParsedAiScriptReferenceBase {
-  /**
-   * Start offset of the full `@` token in the source text.
-   */
-  start: number;
-
-  /**
-   * End offset (exclusive) of the full `@` token in the source text.
-   */
-  end: number;
-
-  /**
-   * Exact matched substring, including the leading `@`.
-   */
-  text: string;
-
-  /**
-   * Character offsets into the referenced script source when the user selected a range.
-   */
-  selection?: {
-    /**
-     * Start offset (inclusive) in the script source.
-     */
-    start: number;
-
-    /**
-     * End offset (exclusive) in the script source.
-     */
-    end: number;
-  };
-}
-
-/**
- * A parsed `@` reference to a request script row.
- */
-export interface ParsedRequestScriptReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for request-script references.
-   */
-  kind: 'request-script';
-
-  /**
-   * Saved request id from the reference, or the literal `active`.
-   */
-  requestId: number | 'active';
-
-  /**
-   * Script phase: pre-request or post-request.
-   */
-  phase: 'pre' | 'post';
-
-  /**
-   * 1-based index of the script in the phase array.
-   */
-  scriptIndex: number;
-}
-
-/**
- * A parsed `@` reference to a standalone library snippet.
- */
-export interface ParsedSnippetReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for standalone snippet references.
-   */
-  kind: 'snippet';
-
-  /**
-   * UUID of the snippet in the library.
-   */
-  snippetUuid: string;
-}
-
-/**
- * A parsed `@` reference to a footer terminal selection.
- */
-export interface ParsedTerminalReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for footer terminal references.
-   */
-  kind: 'terminal';
-
-  /**
-   * 1-based index of the terminal tab in the footer switcher.
-   */
-  terminalIndex: number;
-}
-
-/**
- * A parsed `@` reference to a collection in the sidebar.
- */
-export interface ParsedCollectionReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for collection references.
-   */
-  kind: 'collection';
-
-  /**
-   * UUID of the collection.
-   */
-  collectionUuid: string;
-}
-
-/**
- * A parsed `@` reference to a folder in the sidebar.
- */
-export interface ParsedFolderReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for folder references.
-   */
-  kind: 'folder';
-
-  /**
-   * UUID of the folder.
-   */
-  folderUuid: string;
-}
-
-/**
- * A parsed `@` reference to a saved request in the sidebar.
- */
-export interface ParsedRequestReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for saved-request references.
-   */
-  kind: 'request';
-
-  /**
-   * UUID of the saved request.
-   */
-  requestUuid: string;
-}
-
-/**
- * A parsed `@` reference to a collection markdown document or request comment.
- */
-export interface ParsedMarkdownReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for markdown document and comment references.
-   */
-  kind: 'markdown';
-
-  /**
-   * UUID of the collection document or saved request.
-   */
-  markdownUuid: string;
-}
-
-/**
- * A parsed `@` reference to the active request's raw body editor.
- */
-export interface ParsedRequestBodyReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for raw-body selection references.
-   */
-  kind: 'body';
-}
-
-/**
- * A parsed `@` reference to a response-viewer section for a request tab.
- */
-export interface ParsedResponseSectionReference extends ParsedAiScriptReferenceBase {
-  /**
-   * Discriminator for response-section references.
-   */
-  kind: 'response-section';
-
-  /**
-   * UUID of the request tab that owns the response.
-   */
-  requestTabId: string;
-
-  /**
-   * Which response viewer section was referenced.
-   */
-  section: AiResponseSection;
-}
-
-/**
- * Snapshot of a response-viewer section captured when the user copies it to chat.
+ * Parses one `@` token match using the chat-pointer registry (longest body match wins).
  *
- * Stored so send-time context expansion does not depend on the response still being
- * present on the request tab.
- */
-export interface ResponseSectionSnapshot {
-  /**
-   * Display label for the badge (for example "Response body").
-   */
-  label: string;
-
-  /**
-   * Request name at capture time.
-   */
-  requestName: string;
-
-  /**
-   * Which response section was captured.
-   */
-  section: AiResponseSection;
-
-  /**
-   * HTTP status code when available.
-   */
-  status?: number;
-
-  /**
-   * HTTP status text when available.
-   */
-  statusText?: string;
-
-  /**
-   * Plain-text (or JSON-ish) content of the section for agent context.
-   */
-  content: string;
-
-  /**
-   * Whether {@link content} was shortened for the LLM payload.
-   */
-  truncated?: boolean;
-
-  /**
-   * Original content length before truncation, when truncated.
-   */
-  originalLength?: number;
-
-  /**
-   * Selected substring when the user copied a body range via `#start.end`.
-   */
-  selectedText?: string;
-
-  /**
-   * Inclusive character offset into the pretty-printed body viewer text.
-   */
-  startOffset?: number;
-
-  /**
-   * Exclusive character offset into the pretty-printed body viewer text.
-   */
-  endOffset?: number;
-
-  /**
-   * 1-based start line of the selection in the pretty-printed body viewer text.
-   */
-  startLine?: number;
-
-  /**
-   * 1-based end line of the selection in the pretty-printed body viewer text.
-   */
-  endLine?: number;
-}
-
-/**
- * Snapshot of terminal output captured when the user copies a selection to chat.
- */
-export interface TerminalSelectionSnapshot {
-  /**
-   * Display label of the terminal tab at capture time.
-   */
-  terminalLabel: string;
-
-  /**
-   * 1-based start line of the selection in the xterm buffer.
-   */
-  startLine: number;
-
-  /**
-   * 1-based end line of the selection in the xterm buffer.
-   */
-  endLine: number;
-
-  /**
-   * Plain-text content of the user's selection.
-   */
-  selectedText: string;
-
-  /**
-   * Surrounding terminal lines included for agent context.
-   */
-  contextText: string;
-}
-
-/**
- * Snapshot of markdown text captured when the user copies a selection to chat.
- */
-export interface MarkdownSelectionSnapshot {
-  /**
-   * Display label at capture time (for example "Document: README.md").
-   */
-  label: string;
-
-  /**
-   * Plain-text content of the user's selection.
-   */
-  selectedText: string;
-
-  /**
-   * Best-effort start offset in the markdown source.
-   */
-  startOffset: number;
-
-  /**
-   * Best-effort end offset in the markdown source.
-   */
-  endOffset: number;
-
-  /**
-   * 1-based start line of the selection in the markdown source.
-   */
-  startLine: number;
-
-  /**
-   * 1-based end line of the selection in the markdown source.
-   */
-  endLine: number;
-}
-
-/**
- * Snapshot of raw request body text captured when the user copies a selection to chat.
- */
-export interface RequestBodySelectionSnapshot {
-  /**
-   * Display label at capture time (for example "Raw multipart body").
-   */
-  label: string;
-
-  /**
-   * Plain-text content of the user's selection.
-   */
-  selectedText: string;
-
-  /**
-   * Start offset in the raw body editor text.
-   */
-  startOffset: number;
-
-  /**
-   * End offset in the raw body editor text.
-   */
-  endOffset: number;
-
-  /**
-   * 1-based start line of the selection in the raw body text.
-   */
-  startLine: number;
-
-  /**
-   * 1-based end line of the selection in the raw body text.
-   */
-  endLine: number;
-}
-
-/**
- * Snapshot of request-script source captured when the user copies a selection to chat.
- *
- * Stored so send-time context expansion does not depend on the active request tab still
- * matching the `@` reference (for example after the user switches tabs).
- */
-export interface ScriptSelectionSnapshot {
-  /**
-   * Display name of the script row at capture time.
-   */
-  scriptLabel: string;
-
-  /**
-   * Script phase at capture time.
-   */
-  phase: 'pre' | 'post';
-
-  /**
-   * 1-based script index within the phase array at capture time.
-   */
-  scriptIndex: number;
-
-  /**
-   * Saved request id or `active` at capture time.
-   */
-  requestId: number | 'active';
-
-  /**
-   * Full script source text at capture time.
-   */
-  source: string;
-
-  /**
-   * Plain-text content of the user's selection.
-   */
-  selectedText: string;
-
-  /**
-   * Start offset in the script source.
-   */
-  startOffset: number;
-
-  /**
-   * End offset in the script source.
-   */
-  endOffset: number;
-
-  /**
-   * 1-based start line of the selection in the script source.
-   */
-  startLine: number;
-
-  /**
-   * 1-based end line of the selection in the script source.
-   */
-  endLine: number;
-
-  /**
-   * Last-run failure for this script slot when Copy to chat captured one.
-   *
-   * Populated from the newest matching console/test diagnostics so the agent
-   * can see the actual error without a separate tool round-trip.
-   */
-  lastRunFailure?: ScriptSelectionLastRunFailure;
-}
-
-/**
- * One persisted `@` reference snapshot entry keyed by its full token string.
- *
- * Stored on chat messages so badge rendering can rehydrate after restart without
- * depending on ephemeral Redux selection slices.
- */
-export type PersistedChatReferenceSnapshotEntry =
-  | { kind: 'response-section'; snapshot: ResponseSectionSnapshot }
-  | { kind: 'script-selection'; snapshot: ScriptSelectionSnapshot }
-  | { kind: 'terminal'; snapshot: TerminalSelectionSnapshot }
-  | { kind: 'markdown'; snapshot: MarkdownSelectionSnapshot }
-  | { kind: 'body'; snapshot: RequestBodySelectionSnapshot };
-
-/**
- * Snapshot map keyed by full `@` reference token (for example `@res.<uuid>.body`).
- */
-export type PersistedChatReferenceSnapshots = Record<string, PersistedChatReferenceSnapshotEntry>;
-
-/**
- * Last-run script failure attached to a Copy-to-chat script selection snapshot.
- */
-export interface ScriptSelectionLastRunFailure {
-  /**
-   * Whether the failure came from a script abort or a failed hc.test row.
-   */
-  kind: 'script-error' | 'test-failure';
-
-  /**
-   * Primary error / assertion message shown to the user.
-   */
-  message: string;
-
-  /**
-   * Failed hc.test name when kind is test-failure.
-   */
-  testName?: string;
-
-  /**
-   * Chai expected value when present.
-   */
-  expected?: string;
-
-  /**
-   * Chai actual value when present.
-   */
-  actual?: string;
-
-  /**
-   * Mapped original file from the compile sourcemap.
-   */
-  source?: string;
-
-  /**
-   * 1-based mapped line of the failure.
-   */
-  line?: number;
-
-  /**
-   * 1-based mapped column of the failure.
-   */
-  column?: number;
-}
-
-/**
- * A parsed `@` script reference with character offsets in the source text.
- */
-export type ParsedAiScriptReference =
-  | ParsedRequestScriptReference
-  | ParsedSnippetReference
-  | ParsedTerminalReference
-  | ParsedCollectionReference
-  | ParsedFolderReference
-  | ParsedRequestReference
-  | ParsedMarkdownReference
-  | ParsedRequestBodyReference
-  | ParsedResponseSectionReference;
-
-/**
- * Active request tab state used to decide whether an `@` reference is highlightable.
- */
-export interface AiScriptReferenceValidationContext {
-  /**
-   * Whether the active tab hosts a request editor draft.
-   */
-  hasActiveRequestTab: boolean;
-
-  /**
-   * Saved request id on the active draft, when the tab is saved.
-   */
-  activeRequestId?: number;
-
-  /**
-   * Number of pre-request scripts on the active draft.
-   */
-  preScriptCount: number;
-
-  /**
-   * Number of post-request scripts on the active draft.
-   */
-  postScriptCount: number;
-
-  /**
-   * Pre-request script rows on the active draft, when available for name resolution.
-   */
-  preScripts?: ScriptRef[];
-
-  /**
-   * Post-request script rows on the active draft, when available for name resolution.
-   */
-  postScripts?: ScriptRef[];
-
-  /**
-   * Snippet library used to resolve snippet-linked script names.
-   */
-  snippets?: Snippet[];
-
-  /**
-   * Terminal selection snapshots keyed by the full `@term` reference token.
-   */
-  terminalSelections?: Record<string, TerminalSelectionSnapshot>;
-
-  /**
-   * Markdown selection snapshots keyed by the full `@markdown` reference token.
-   */
-  markdownSelections?: Record<string, MarkdownSelectionSnapshot>;
-
-  /**
-   * Raw-body selection snapshots keyed by the full `@body` reference token.
-   */
-  requestBodySelections?: Record<string, RequestBodySelectionSnapshot>;
-
-  /**
-   * Response-section snapshots keyed by the full `@res` reference token.
-   */
-  responseSelections?: Record<string, ResponseSectionSnapshot>;
-
-  /**
-   * Request-script selection snapshots keyed by the full `@` script reference token.
-   */
-  scriptSelections?: Record<string, ScriptSelectionSnapshot>;
-
-  /**
-   * Collection display names keyed by uuid for `@collection` badge resolution.
-   */
-  collectionNamesByUuid?: Record<string, string>;
-
-  /**
-   * Folder display names keyed by uuid for `@folder` badge resolution.
-   */
-  folderNamesByUuid?: Record<string, string>;
-
-  /**
-   * Saved request display names keyed by uuid for `@request` badge resolution.
-   */
-  requestNamesByUuid?: Record<string, string>;
-}
-
-/**
- * One render segment for the chat composer backdrop.
- */
-export interface ChatComposerTextToken {
-  /**
-   * Substring from the composer draft.
-   */
-  text: string;
-
-  /**
-   * When true, the segment is a valid `@` script reference and should be highlighted.
-   */
-  highlight: boolean;
-
-  /**
-   * Parsed reference metadata when {@link highlight} is true.
-   */
-  reference?: ParsedAiScriptReference;
-}
-
-/**
- * Returns whether `@` at `index` is at a token boundary (start of text or after whitespace).
- *
- * @param text - Full composer draft.
- * @param index - Index of the `@` character.
- */
-function isScriptReferenceBoundary(text: string, index: number): boolean {
-  if (index === 0) {
-    return true;
-  }
-
-  const previous = text[index - 1];
-  return previous != null && /\s/.test(previous);
-}
-
-/**
- * Parses selection suffix groups from a regex match.
- *
- * @param selectionStartRaw - Captured selection start group.
- * @param selectionEndRaw - Captured selection end group.
- * @param lineRange - When true, requires 1-based line numbers with end >= start.
- */
-function parseSelectionSuffix(
-  selectionStartRaw: string | undefined,
-  selectionEndRaw: string | undefined,
-  lineRange = false
-): ParsedAiScriptReference['selection'] {
-  if (selectionStartRaw == null || selectionEndRaw == null) {
-    return undefined;
-  }
-
-  const selectionStart = Number(selectionStartRaw);
-  const selectionEnd = Number(selectionEndRaw);
-  if (!Number.isInteger(selectionStart) || !Number.isInteger(selectionEnd)) {
-    return undefined;
-  }
-
-  if (lineRange) {
-    if (selectionStart >= 1 && selectionEnd >= selectionStart) {
-      return { start: selectionStart, end: selectionEnd };
-    }
-
-    return undefined;
-  }
-
-  if (selectionStart >= 0 && selectionEnd > selectionStart) {
-    return { start: selectionStart, end: selectionEnd };
-  }
-
-  return undefined;
-}
-
-/**
- * Parses one regex match into a structured script reference.
- *
- * @param match - RegExp match for {@link AI_SCRIPT_REFERENCE_PATTERN}.
+ * @param match - RegExp match whose `[0]` is the full `@…` token (from CodeMirror or composed pattern).
  * @param start - Document start offset of the match.
+ * @returns Parsed reference, or null when no registered pointer matches.
  */
 export function parseAiScriptReferenceMatch(
   match: RegExpMatchArray,
   start: number
 ): ParsedAiScriptReference | null {
   const text = match[0];
-  const requestIdRaw = match[1];
-  const phase = match[2];
-  const scriptIndexRaw = match[3];
-  const snippetUuid = match[4];
-  const terminalIndexRaw = match[5];
-  const collectionUuid = match[6];
-  const folderUuid = match[7];
-  const requestUuid = match[8];
-  const markdownUuid = match[9];
-  const responseTabId = match[10];
-  const responseSectionRaw = match[11];
-  const bodyToken = match[12];
-  const selectionStartRaw = match[13];
-  const selectionEndRaw = match[14];
+  if (!text.startsWith('@')) {
+    return null;
+  }
 
-  if (responseTabId != null && responseSectionRaw != null) {
-    if (!(AI_RESPONSE_SECTIONS as readonly string[]).includes(responseSectionRaw)) {
-      return null;
+  const rest = text.slice(1);
+  let best: ParsedAiScriptReference | null = null;
+  let bestLen = -1;
+
+  for (const def of getRegisteredChatPointers()) {
+    const bodyMatch = rest.match(def.match);
+    if (bodyMatch == null || bodyMatch.index !== 0) {
+      continue;
     }
-
-    return {
-      kind: 'response-section',
-      requestTabId: responseTabId,
-      section: responseSectionRaw as AiResponseSection,
-      start,
-      end: start + text.length,
-      text,
-      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
-    };
-  }
-
-  if (bodyToken != null) {
-    return {
-      kind: 'body',
-      start,
-      end: start + text.length,
-      text,
-      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
-    };
-  }
-
-  if (collectionUuid != null) {
-    return {
-      kind: 'collection',
-      collectionUuid,
-      start,
-      end: start + text.length,
-      text
-    };
-  }
-
-  if (folderUuid != null) {
-    return {
-      kind: 'folder',
-      folderUuid,
-      start,
-      end: start + text.length,
-      text
-    };
-  }
-
-  if (requestUuid != null) {
-    return {
-      kind: 'request',
-      requestUuid,
-      start,
-      end: start + text.length,
-      text
-    };
-  }
-
-  if (markdownUuid != null) {
-    return {
-      kind: 'markdown',
-      markdownUuid,
-      start,
-      end: start + text.length,
-      text,
-      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw)
-    };
-  }
-
-  if (terminalIndexRaw != null) {
-    const terminalIndex = Number(terminalIndexRaw);
-    if (!Number.isInteger(terminalIndex) || terminalIndex < 1) {
-      return null;
+    if (bodyMatch[0] !== rest) {
+      continue;
     }
-
-    return {
-      kind: 'terminal',
-      terminalIndex,
-      start,
-      end: start + text.length,
-      text,
-      selection: parseSelectionSuffix(selectionStartRaw, selectionEndRaw, true)
-    };
+    const parsed = def.parse(bodyMatch, text, start);
+    if (parsed != null && bodyMatch[0].length > bestLen) {
+      best = parsed;
+      bestLen = bodyMatch[0].length;
+    }
   }
 
-  const selection = parseSelectionSuffix(selectionStartRaw, selectionEndRaw);
-
-  if (snippetUuid != null) {
-    return {
-      kind: 'snippet',
-      snippetUuid,
-      start,
-      end: start + text.length,
-      text,
-      selection
-    };
-  }
-
-  if (requestIdRaw == null || phase == null || scriptIndexRaw == null) {
-    return null;
-  }
-
-  if (phase !== 'pre' && phase !== 'post') {
-    return null;
-  }
-
-  const scriptIndex = Number(scriptIndexRaw);
-  if (!Number.isInteger(scriptIndex) || scriptIndex < 1) {
-    return null;
-  }
-
-  const requestId =
-    requestIdRaw === 'active'
-      ? 'active'
-      : Number.isFinite(Number(requestIdRaw))
-        ? Number(requestIdRaw)
-        : null;
-
-  if (requestId == null) {
-    return null;
-  }
-
-  return {
-    kind: 'request-script',
-    requestId,
-    phase,
-    scriptIndex,
-    start,
-    end: start + text.length,
-    text,
-    selection
-  };
+  return best;
 }
 
 /**
  * Finds syntactically valid `@` script reference candidates in plain text.
  *
+ * Scans `@` token boundaries and tries each registered chat-pointer match, keeping the
+ * longest successful parse at each position.
+ *
  * @param text - Composer draft that may contain `@` references.
+ * @returns Parsed candidates in document order.
  */
 export function findAiScriptReferenceCandidates(text: string): ParsedAiScriptReference[] {
   const matches: ParsedAiScriptReference[] = [];
-  const pattern = new RegExp(AI_SCRIPT_REFERENCE_PATTERN.source, 'g');
 
-  for (const match of text.matchAll(pattern)) {
-    const start = match.index ?? 0;
-    if (!isScriptReferenceBoundary(text, start)) {
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] !== '@' || !isScriptReferenceBoundary(text, index)) {
       continue;
     }
 
-    const parsed = parseAiScriptReferenceMatch(match, start);
-    if (parsed) {
-      matches.push(parsed);
+    const rest = text.slice(index + 1);
+    let best: ParsedAiScriptReference | null = null;
+    let bestLen = -1;
+
+    for (const def of getRegisteredChatPointers()) {
+      const bodyMatch = rest.match(def.match);
+      if (bodyMatch == null || bodyMatch.index !== 0) {
+        continue;
+      }
+      const fullToken = `@${bodyMatch[0]}`;
+      const parsed = def.parse(bodyMatch, fullToken, index);
+      if (parsed != null && bodyMatch[0].length > bestLen) {
+        best = parsed;
+        bestLen = bodyMatch[0].length;
+      }
+    }
+
+    if (best != null) {
+      matches.push(best);
+      index = best.end - 1;
     }
   }
 
@@ -941,6 +245,10 @@ export function isValidAiScriptReference(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): boolean {
+  if (reference.kind === 'plugin') {
+    return context.pluginSelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'markdown') {
     if (reference.selection == null) {
       return false;
@@ -1035,6 +343,10 @@ export function resolveAiScriptReferenceName(
 ): string | null {
   if (!isValidAiScriptReference(reference, context)) {
     return null;
+  }
+
+  if (reference.kind === 'plugin') {
+    return context.pluginSelections?.[reference.text]?.label ?? null;
   }
 
   if (reference.kind === 'terminal') {
@@ -1133,7 +445,8 @@ function resolveReferenceSourceCode(
     reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
-    reference.kind === 'request'
+    reference.kind === 'request' ||
+    reference.kind === 'plugin'
   ) {
     return null;
   }
@@ -1227,6 +540,10 @@ export function resolveAiScriptReferenceLabel(
   const name = resolveAiScriptReferenceName(reference, context);
   if (name == null) {
     return null;
+  }
+
+  if (reference.kind === 'plugin') {
+    return name;
   }
 
   if (reference.kind === 'terminal') {
@@ -1731,7 +1048,8 @@ function formatWholeScriptReferenceContextBlock(
     reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
-    reference.kind === 'request'
+    reference.kind === 'request' ||
+    reference.kind === 'plugin'
   ) {
     return null;
   }
@@ -1777,6 +1095,43 @@ function formatWholeScriptReferenceContextBlock(
 }
 
 /**
+ * Formats one resolved plugin chat-pointer reference for the agent context block.
+ *
+ * @param reference - Parsed `@plugin…` reference.
+ * @param context - Plugin selection snapshots keyed by reference token.
+ * @returns Context block for one plugin reference, or null when not resolvable.
+ */
+function formatPluginChatPointerContextBlock(
+  reference: ParsedPluginReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.pluginSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const lines = [
+    `Reference ${reference.text} — plugin chat pointer "${snapshot.label}" (plugin ${snapshot.pluginId}, pointer ${snapshot.pointerId}).`,
+    'Captured plugin context:',
+    '```text',
+    snapshot.context,
+    '```'
+  ];
+
+  if (reference.selection != null) {
+    lines.push(
+      `Focus on the selected region (characters ${reference.selection.start}–${reference.selection.end}) when answering.`
+    );
+  }
+
+  return lines.join('\n');
+}
+
+/**
  * Formats agent context for one `@` script reference, with or without a selection suffix.
  *
  * @param reference - Parsed `@` script reference.
@@ -1786,6 +1141,10 @@ function formatScriptReferenceContextBlock(
   reference: ParsedAiScriptReference,
   context: AiScriptReferenceValidationContext
 ): string | null {
+  if (reference.kind === 'plugin') {
+    return formatPluginChatPointerContextBlock(reference, context);
+  }
+
   if (reference.kind === 'response-section') {
     return formatResponseSectionContextBlock(reference, context);
   }
@@ -1859,6 +1218,7 @@ export function buildAiScriptSelectionContextMessage(
   const hasWholeResponseSection = resolved.some(
     (entry) => entry.reference.kind === 'response-section' && entry.reference.selection == null
   );
+  const hasPluginReference = resolved.some((entry) => entry.reference.kind === 'plugin');
 
   const headerParts: string[] = [];
   if (hasTerminalSelection) {
@@ -1894,6 +1254,11 @@ export function buildAiScriptSelectionContextMessage(
   if (hasWholeResponseSection) {
     headerParts.push(
       'The user referenced one or more HTTP response sections via @res mentions. Use the captured section content below to answer their question.'
+    );
+  }
+  if (hasPluginReference) {
+    headerParts.push(
+      'The user referenced one or more plugin chat pointers via @plugin mentions. Use the captured plugin context below to answer their question.'
     );
   }
 
@@ -2073,6 +1438,14 @@ export function collectChatReferenceSnapshots(
       continue;
     }
 
+    if (reference.kind === 'plugin') {
+      const snapshot = context.pluginSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'plugin', snapshot };
+      }
+      continue;
+    }
+
     if (reference.kind === 'request-script') {
       const snapshot = buildRequestScriptSnapshotForPersistence(reference, context);
       if (snapshot != null) {
@@ -2123,3 +1496,55 @@ export function tokenizeChatComposerText(
 
   return tokens;
 }
+
+/**
+ * Collects a single persistable snapshot entry for one validated reference.
+ *
+ * @param reference - Parsed `@` reference.
+ * @param context - Validation context with ephemeral snapshots.
+ * @returns Snapshot entry, or null when this kind does not persist.
+ */
+function collectSnapshotForPointer(
+  reference: ParsedAiScriptReference,
+  context: AiScriptReferenceValidationContext
+): PersistedChatReferenceSnapshotEntry | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  if (reference.kind === 'response-section') {
+    const snapshot = context.responseSelections?.[reference.text];
+    return snapshot != null ? { kind: 'response-section', snapshot } : null;
+  }
+  if (reference.kind === 'terminal') {
+    const snapshot = context.terminalSelections?.[reference.text];
+    return snapshot != null ? { kind: 'terminal', snapshot } : null;
+  }
+  if (reference.kind === 'markdown') {
+    const snapshot = context.markdownSelections?.[reference.text];
+    return snapshot != null ? { kind: 'markdown', snapshot } : null;
+  }
+  if (reference.kind === 'body') {
+    const snapshot = context.requestBodySelections?.[reference.text];
+    return snapshot != null ? { kind: 'body', snapshot } : null;
+  }
+  if (reference.kind === 'plugin') {
+    const snapshot = context.pluginSelections?.[reference.text];
+    return snapshot != null ? { kind: 'plugin', snapshot } : null;
+  }
+  if (reference.kind === 'request-script') {
+    const snapshot = buildRequestScriptSnapshotForPersistence(reference, context);
+    return snapshot != null ? { kind: 'script-selection', snapshot } : null;
+  }
+
+  return null;
+}
+
+bindBuiltinChatPointerHandlers({
+  validate: isValidAiScriptReference,
+  resolveName: resolveAiScriptReferenceName,
+  resolveLabel: resolveAiScriptReferenceLabel,
+  expandContext: formatScriptReferenceContextBlock,
+  collectSnapshot: collectSnapshotForPointer
+});
+refreshAiScriptReferencePattern();

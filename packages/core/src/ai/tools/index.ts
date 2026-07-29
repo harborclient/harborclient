@@ -36,7 +36,7 @@ import { updateRequestScriptTool } from './updateRequestScript';
 
 export type { UpdateActiveRequestToolArgs };
 export type { ITool } from './ITool';
-export { AI_SYSTEM_PROMPT } from './systemPrompt';
+export { AI_SYSTEM_PROMPT, buildAiSystemPrompt } from './systemPrompt';
 export type {
   CreateCollectionRequestRow,
   CreateSavedRequestKeyValue,

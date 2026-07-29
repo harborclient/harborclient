@@ -30,8 +30,7 @@ interface Props {
 }
 
 /**
- * Stops pointer events from starting a FloatingDialog drag while interacting
- * with the editable title.
+ * Stops pointer events from bubbling while interacting with the editable title.
  *
  * @param event - Pointer event from the title control.
  */
@@ -40,7 +39,7 @@ function stopDragPointerDown(event: ReactPointerEvent): void {
 }
 
 /**
- * Inline-editable workflow name for the play-mode timeline dialog header.
+ * Inline-editable workflow name for the footer panel header.
  * Matches the request breadcrumb pattern: click the name or pen icon to edit;
  * blur or Enter persists; Escape cancels.
  */
@@ -153,7 +152,8 @@ export function WorkflowPlayDialogTitle({ workflowId, name, titleId }: Props): J
         <button
           type="button"
           id={titleId}
-          aria-label="Workflow name"
+          aria-label={`Rename workflow: ${name}`}
+          title="Rename workflow"
           className="app-no-drag inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           onClick={startEditing}
           onPointerDown={stopDragPointerDown}

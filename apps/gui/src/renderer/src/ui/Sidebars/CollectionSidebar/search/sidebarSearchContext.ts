@@ -1,5 +1,6 @@
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
 import type { SidebarSearchFilter } from '@harborclient/core/search/sidebar';
+import type { SidebarMode } from '@harborclient/core/types';
 
 /**
  * Sidebar search state shared across the search field, toolbar, and sections.
@@ -27,6 +28,11 @@ export interface SidebarSearchContextValue {
   archivedSearchFilter: SidebarSearchFilter | null;
 
   /**
+   * Active (non-archived) half of the search filter, or null when search is inactive.
+   */
+  activeSearchFilter: SidebarSearchFilter | null;
+
+  /**
    * Convenience flag: true when a search filter is active.
    */
   searchActive: boolean;
@@ -37,9 +43,11 @@ export interface SidebarSearchContextValue {
   searchLoading: boolean;
 
   /**
-   * Collapses all collection and folder trees and clears active search.
+   * Collapses trees for the active rail mode and clears active search.
+   *
+   * @param mode - Active activity-rail sidebar mode.
    */
-  collapseAllSidebarTrees: () => void;
+  collapseSidebarTreesForMode: (mode: SidebarMode) => void;
 }
 
 /**

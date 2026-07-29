@@ -3,12 +3,17 @@ import type { Workflow } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
- * Visibility mode for the shared floating workflow dialog.
+ * Visibility mode for the shared workflow footer panel.
  */
-export type WorkflowDialogMode = 'closed' | 'record' | 'play' | 'run';
+export type WorkflowDialogMode = 'closed' | 'record' | 'play' | 'edit';
 
 /**
- * Redux state for persisted workflows and the floating session dialog.
+ * Active (non-closed) workflow panel mode.
+ */
+export type WorkflowPanelMode = Exclude<WorkflowDialogMode, 'closed'>;
+
+/**
+ * Redux state for persisted workflows and the footer session panel.
  */
 export interface WorkflowsState {
   /**
@@ -17,12 +22,12 @@ export interface WorkflowsState {
   items: Workflow[];
 
   /**
-   * Whether the floating dialog is closed, recording, editing, or running.
+   * Whether the footer panel is closed, recording, playing, or editing.
    */
   dialogMode: WorkflowDialogMode;
 
   /**
-   * Workflow id loaded for play or run mode; null when neither is active.
+   * Workflow id loaded for play or edit mode; null when neither is active.
    */
   playbackWorkflowId: number | null;
 
@@ -63,7 +68,7 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Opens the floating dialog in record mode and clears any playback target.
+     * Opens the footer panel in record mode and clears any playback target.
      */
     openWorkflowRecordDialog(state) {
       state.dialogMode = 'record';
@@ -71,10 +76,10 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Opens the floating dialog in play (timeline editor) mode for the given workflow.
+     * Opens the footer panel in play mode for the given workflow.
      *
      * @param state - Workflows slice state.
-     * @param action - Workflow database id to edit.
+     * @param action - Workflow database id to play.
      */
     openWorkflowPlayDialog(state, action: PayloadAction<number>) {
       state.dialogMode = 'play';
@@ -85,13 +90,13 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Opens the floating dialog in run mode for the given workflow.
+     * Opens the footer panel in edit (timeline editor) mode for the given workflow.
      *
      * @param state - Workflows slice state.
-     * @param action - Workflow database id to run.
+     * @param action - Workflow database id to edit.
      */
-    openWorkflowRunDialog(state, action: PayloadAction<number>) {
-      state.dialogMode = 'run';
+    openWorkflowEditDialog(state, action: PayloadAction<number>) {
+      state.dialogMode = 'edit';
       state.playbackWorkflowId = action.payload;
       state.saveNameModalOpen = false;
       state.saveError = null;
@@ -99,7 +104,7 @@ const workflowsSlice = createSlice({
     },
 
     /**
-     * Closes the floating dialog and clears playback / save UI state.
+     * Closes the footer panel and clears playback / save UI state.
      */
     closeWorkflowDialog(state) {
       state.dialogMode = 'closed';
@@ -140,7 +145,7 @@ export const {
   setWorkflows,
   openWorkflowRecordDialog,
   openWorkflowPlayDialog,
-  openWorkflowRunDialog,
+  openWorkflowEditDialog,
   closeWorkflowDialog,
   setWorkflowSaveNameModalOpen,
   setWorkflowSaveError,
@@ -158,17 +163,17 @@ export function selectWorkflows(state: RootState): Workflow[] {
 }
 
 /**
- * Selects the floating workflow dialog mode.
+ * Selects the workflow footer panel mode.
  *
  * @param state - Root Redux state.
- * @returns Closed, record, play, or run.
+ * @returns Closed, record, play, or edit.
  */
 export function selectWorkflowDialogMode(state: RootState): WorkflowDialogMode {
   return state.workflows.dialogMode;
 }
 
 /**
- * Selects the workflow id loaded for play or run mode.
+ * Selects the workflow id loaded for play or edit mode.
  *
  * @param state - Root Redux state.
  * @returns Workflow id or null.
@@ -178,10 +183,10 @@ export function selectPlaybackWorkflowId(state: RootState): number | null {
 }
 
 /**
- * Selects whether the floating dialog is open in any mode.
+ * Selects whether the workflow footer panel is open in any mode.
  *
  * @param state - Root Redux state.
- * @returns True when record, play, or run mode is active.
+ * @returns True when record, play, or edit mode is active.
  */
 export function selectWorkflowDialogOpen(state: RootState): boolean {
   return state.workflows.dialogMode !== 'closed';

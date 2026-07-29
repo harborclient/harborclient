@@ -9,12 +9,15 @@ import {
   getPlaybackActions,
   getPlaybackElapsedMs,
   getPlaybackIndex,
+  getPlaybackPlayheadTimelineMs,
   isPlaybackGapless,
   isPlaying,
   loadPlayback,
+  PLAYHEAD_GAPLESS_MAX_TRAVEL_MS,
   replacePlaybackActions,
   resetWorkflowPlaybackForTests,
   restartPlayback,
+  resetPlaybackAndClearResults,
   seekPlaybackTo,
   setPlaybackGapless,
   startPlayback,
@@ -182,6 +185,41 @@ describe('workflowPlayback cursor', () => {
     restartPlayback();
     expect(getPlaybackIndex()).toBe(0);
     expect(getPlaybackElapsedMs()).toBe(0);
+    expect(isPlaying()).toBe(false);
+  });
+
+  it('resetPlaybackAndClearResults clears the run log and seeks the playhead to 0', async () => {
+    const dispatch = vi.fn((action: unknown) => action);
+    const t0 = 7_000_000;
+    const durationMs = 2_000;
+    const actions = [
+      a('environment.activate', { environmentId: 1 }, t0),
+      // Last `at` before durationMs so the final segment can end exactly at durationMs.
+      a('environment.activate', { environmentId: 2 }, t0 + 1_000)
+    ];
+    loadPlayback(actions, 'wf-reset');
+
+    await startPlayback({
+      dispatch: dispatch as never,
+      getState: () =>
+        ({
+          workflows: { items: [{ uuid: 'wf-reset', name: 'Reset run' }] },
+          environments: { activeEnvironmentId: null, environments: [] }
+        }) as never
+    });
+
+    expect(getWorkflowRunLogMeta()?.name).toBe('Reset run');
+    expect(getWorkflowRunLog().length).toBe(2);
+    expect(getPlaybackIndex()).toBe(2);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBeGreaterThan(0);
+
+    resetPlaybackAndClearResults();
+
+    expect(getWorkflowRunLogMeta()).toBeNull();
+    expect(getWorkflowRunLog()).toEqual([]);
+    expect(getPlaybackIndex()).toBe(0);
+    expect(getPlaybackElapsedMs()).toBe(0);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(0);
     expect(isPlaying()).toBe(false);
   });
 
@@ -563,6 +601,128 @@ describe('workflowPlayback cursor', () => {
     expect(order).toEqual([1]);
     expect(getPlaybackIndex()).toBe(1);
     expect(isPlaying()).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('advances playhead timeline ms continuously while gapped playing', async () => {
+    vi.useFakeTimers();
+    setPlaybackGapless(false);
+
+    const dispatch = vi.fn((action: unknown) => action);
+    const t0 = 3_000_000;
+    const durationMs = 2_000;
+    loadPlayback([
+      a('environment.activate', { environmentId: 1 }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + durationMs)
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(isPlaying()).toBe(true);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(0);
+
+    await vi.advanceTimersByTimeAsync(750);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(750);
+
+    await vi.advanceTimersByTimeAsync(1_250);
+    await playPromise;
+
+    expect(isPlaying()).toBe(false);
+    // Past the last action, playhead sits at layout total (last segment ends at start+1 when
+    // duration equals the final `at` offset).
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBeGreaterThanOrEqual(durationMs);
+    vi.useRealTimers();
+  });
+
+  it('clamps gapped playhead timeline ms to the workflow duration', async () => {
+    vi.useFakeTimers();
+    setPlaybackGapless(false);
+
+    const dispatch = vi.fn((action: unknown) => action);
+    const t0 = 4_000_000;
+    const durationMs = 400;
+    loadPlayback([
+      a('environment.activate', { environmentId: 1 }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + 2_000)
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(durationMs);
+
+    stopPlayback();
+    await playPromise;
+    vi.useRealTimers();
+  });
+
+  it('uses index-based playhead timeline ms when paused', () => {
+    const t0 = 5_000_000;
+    const durationMs = 2_000;
+    loadPlayback([
+      a('environment.activate', { environmentId: 1 }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + durationMs)
+    ]);
+
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(0);
+    seekPlaybackTo(1);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(durationMs);
+  });
+
+  it('glides the playhead across the current block while gapless playing', async () => {
+    vi.useFakeTimers();
+    setPlaybackGapless(true);
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const dispatch = vi.fn((action: unknown) => {
+      if (typeof action === 'function') {
+        const promise = gate.then(() => undefined);
+        return Object.assign(promise, { unwrap: () => gate });
+      }
+      return action;
+    });
+
+    const t0 = 6_000_000;
+    const durationMs = 2_000;
+    loadPlayback([
+      a('request.send', { target: 'active' }, t0),
+      a('environment.activate', { environmentId: 2 }, t0 + durationMs)
+    ]);
+
+    const playPromise = startPlayback({
+      dispatch: dispatch as never,
+      getState: () => ({}) as never
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(isPlaying()).toBe(true);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(0);
+
+    // Segment span is 2000ms → travel window clamps to MAX (800ms).
+    await vi.advanceTimersByTimeAsync(PLAYHEAD_GAPLESS_MAX_TRAVEL_MS / 2);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(durationMs / 2);
+
+    await vi.advanceTimersByTimeAsync(PLAYHEAD_GAPLESS_MAX_TRAVEL_MS / 2);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(durationMs);
+
+    // Hold at segment end while the step is still running.
+    await vi.advanceTimersByTimeAsync(500);
+    expect(getPlaybackPlayheadTimelineMs(durationMs)).toBe(durationMs);
+
+    stopPlayback();
+    release();
+    await playPromise;
     vi.useRealTimers();
   });
 

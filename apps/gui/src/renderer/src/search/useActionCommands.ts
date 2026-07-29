@@ -101,9 +101,7 @@ export function useActionCommands(): UseActionCommandsResult {
     pushActiveCollection
   } = useSidebarGit();
   const {
-    toggleCollectionsSectionVisible,
-    toggleEnvironmentsSectionVisible,
-    toggleRunResultsSectionVisible,
+    setActiveSidebarMode,
     toggleStorageLocationBadges,
     toggleMarkers,
     toggleMethodColors,
@@ -275,13 +273,13 @@ export function useActionCommands(): UseActionCommandsResult {
         void selectThemeFromMenu(dispatch, store.getState, 'system', 'System');
       },
       'builtin:toggle-collections-section': () => {
-        toggleCollectionsSectionVisible();
+        setActiveSidebarMode('collections');
       },
       'builtin:toggle-environments-section': () => {
-        toggleEnvironmentsSectionVisible();
+        setActiveSidebarMode('environments');
       },
       'builtin:toggle-run-results-section': () => {
-        toggleRunResultsSectionVisible();
+        setActiveSidebarMode('collections');
       },
       'builtin:check-for-updates': () => {
         dispatch(openUpdateModal());
@@ -303,13 +301,11 @@ export function useActionCommands(): UseActionCommandsResult {
       pullActiveCollection,
       pushActiveCollection,
       store,
-      toggleCollectionsSectionVisible,
-      toggleEnvironmentsSectionVisible,
+      setActiveSidebarMode,
       toggleFilters,
       toggleIndicators,
       toggleMarkers,
       toggleMethodColors,
-      toggleRunResultsSectionVisible,
       toggleSorting,
       toggleStorageLocationBadges
     ]

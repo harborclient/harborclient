@@ -1,25 +1,41 @@
-import type { WorkflowAction } from '@harborclient/core/types';
-import type { WorkflowActionBlockContext } from '@harborclient/sdk';
-import type { JSX, MouseEvent } from 'react';
+import type { WorkflowAction, WorkflowRunActionResult } from '@harborclient/core/types';
+import type { WorkflowActionBlockContext, WorkflowPanelPluginMode } from '@harborclient/sdk';
+import type { JSX, KeyboardEvent, MouseEvent } from 'react';
 import { useCallback, useState } from 'react';
 import type { RootState } from '#/renderer/src/store/redux';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginWorkflowActionBlocks } from '#/renderer/src/plugins/pluginHooks';
 import { TimelineBlock } from '#/renderer/src/workflows/timeline/TimelineBlock';
+import { WorkflowActionBlockRow } from '#/renderer/src/workflows/timeline/WorkflowActionBlockRow';
+import { workflowActionBlockPrimaryLabel } from '#/renderer/src/workflows/timeline/workflowActionBlockPrimaryLabel';
+import { resolveWorkflowTimelineListboxKey } from '#/renderer/src/workflows/timeline/workflowTimelineListboxKeys';
 import {
   WORKFLOW_TIMELINE_COMPACT_WIDTH_PX,
   type WorkflowTimelineLayout
 } from '#/renderer/src/workflows/timeline/workflowTimelineLayout';
-import { describeWorkflowAction } from '#/renderer/src/workflows/timeline/workflowThumbnails';
-import { getWorkflowRegistryEntry } from '#/renderer/src/workflows/workflowRegistry';
 import { TimelinePlayhead } from './TimelinePlayhead';
 import { WorkflowTimelineActionMenu } from './WorkflowTimelineActionMenu';
 
+/**
+ * Run-log fields keyed by action uuid for footer timeline enrichment.
+ */
+export type WorkflowTimelineRunLogByUuid = ReadonlyMap<
+  string,
+  {
+    result: WorkflowRunActionResult;
+  }
+>;
+
 interface Props {
   /**
-   * Database id of the workflow open in play/edit mode.
+   * Database id of the workflow open in play/edit mode, or `-1` while recording.
    */
   workflowId: number;
+
+  /**
+   * Active workflow footer panel mode for plugin action-block contexts.
+   */
+  mode: WorkflowPanelPluginMode;
 
   /**
    * Loaded workflow actions in play order.
@@ -47,9 +63,19 @@ interface Props {
   playing: boolean;
 
   /**
+   * When true, context-menu edits and payload double-click are enabled (edit mode).
+   */
+  editable: boolean;
+
+  /**
    * Optional Redux getter for thumbnail name resolution.
    */
   getState?: () => RootState;
+
+  /**
+   * Optional run-log results keyed by action uuid (play mode after/during a run).
+   */
+  runLogByActionUuid?: WorkflowTimelineRunLogByUuid;
 
   /**
    * Seeks to an action index without dispatching.
@@ -108,19 +134,44 @@ interface ContextMenuState {
 }
 
 /**
+ * Builds a menu anchor near the center of a timeline block element.
+ *
+ * @param index - Action index whose block should anchor the menu.
+ * @returns Viewport coordinates, or null when the block is missing.
+ */
+function menuPositionForBlock(index: number): { x: number; y: number } | null {
+  const node = document.getElementById(`workflow-timeline-block-${index}`);
+  if (node == null) {
+    return null;
+  }
+  const rect = node.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.bottom
+  };
+}
+
+/**
  * Fixed-width row of timeline blocks with a vertical playhead and action context menu.
+ *
+ * The track is a single-tab-stop listbox: arrow keys seek, and ContextMenu /
+ * Shift+F10 opens the edit menu when editable. Options use `tabIndex={-1}` so
+ * focus stays on the listbox with `aria-activedescendant`.
  *
  * @param props - Actions, layout, selection, seek, and edit handlers.
  * @returns Track listbox of seekable blocks.
  */
 export function TimelineTrack({
   workflowId,
+  mode,
   actions,
   layout,
   selectedIndex,
   playheadXPx,
   playing,
+  editable,
   getState,
+  runLogByActionUuid,
   onSeek,
   onMoveAhead,
   onMoveBehind,
@@ -138,28 +189,48 @@ export function TimelineTrack({
    */
   const handleBlockContextMenu = useCallback(
     (index: number, event: MouseEvent<HTMLDivElement>): void => {
-      if (playing) {
+      if (playing || !editable) {
         return;
       }
       onSeek(index);
       setContextMenu({ index, x: event.clientX, y: event.clientY });
     },
-    [onSeek, playing]
+    [editable, onSeek, playing]
   );
 
   /**
-   * Seeks to the block and opens the payload editor when playback is idle.
+   * Opens the action context menu anchored to the selected block (keyboard path).
+   *
+   * @param index - Action index to open the menu for.
+   */
+  const openMenuForIndex = useCallback(
+    (index: number): void => {
+      if (playing || !editable) {
+        return;
+      }
+      onSeek(index);
+      const position = menuPositionForBlock(index);
+      if (position == null) {
+        return;
+      }
+      setContextMenu({ index, x: position.x, y: position.y });
+    },
+    [editable, onSeek, playing]
+  );
+
+  /**
+   * Seeks to the block and opens the payload editor when edits are allowed.
    *
    * @param index - Action index to edit.
    */
   const handleEditPayload = useCallback(
     (index: number): void => {
-      if (playing) {
+      if (playing || !editable) {
         return;
       }
       onEditPayload(index);
     },
-    [onEditPayload, playing]
+    [editable, onEditPayload, playing]
   );
 
   /**
@@ -169,18 +240,48 @@ export function TimelineTrack({
     setContextMenu(null);
   }, []);
 
+  /**
+   * Handles listbox keyboard navigation and keyboard context-menu open.
+   *
+   * @param event - Keyboard event from the listbox container.
+   */
+  const handleListboxKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>): void => {
+      const action = resolveWorkflowTimelineListboxKey({
+        key: event.key,
+        shiftKey: event.shiftKey,
+        selectedIndex,
+        actionCount: actions.length,
+        playing,
+        editable
+      });
+      if (action == null) {
+        return;
+      }
+      event.preventDefault();
+      if (action.type === 'seek') {
+        onSeek(action.index);
+        return;
+      }
+      openMenuForIndex(selectedIndex >= 0 && selectedIndex < actions.length ? selectedIndex : 0);
+    },
+    [actions.length, editable, onSeek, openMenuForIndex, playing, selectedIndex]
+  );
+
   return (
     <>
       <div
-        className="relative flex min-h-[64px] items-stretch"
-        style={{ width: layout.totalWidthPx }}
+        className="relative flex min-h-[64px] items-stretch focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        style={{ width: layout.totalWidthPx, gap: layout.gapPx }}
         role="listbox"
+        tabIndex={playing ? -1 : 0}
         aria-label="Workflow actions"
         aria-activedescendant={
           selectedIndex >= 0 && selectedIndex < actions.length
             ? `workflow-timeline-block-${selectedIndex}`
             : undefined
         }
+        onKeyDown={handleListboxKeyDown}
       >
         <TimelinePlayhead xPx={playheadXPx} />
         {layout.segments.map((segment) => {
@@ -189,16 +290,9 @@ export function TimelineTrack({
             return null;
           }
           const compact = segment.widthPx <= WORKFLOW_TIMELINE_COMPACT_WIDTH_PX;
-          const entry = getWorkflowRegistryEntry(action.type);
-          const described = describeWorkflowAction(action, {
-            selected: segment.index === selectedIndex,
-            compact,
-            getState
-          });
-          const label =
-            described.subtitle != null && described.subtitle.length > 0
-              ? `${described.title}, ${described.subtitle}`
-              : described.title;
+          const runLogEntry = runLogByActionUuid?.get(action.uuid);
+          const result = runLogEntry?.result;
+          const label = workflowActionBlockPrimaryLabel(action, result, getState);
           const matchingBlocks = compact
             ? []
             : actionBlocks.filter(
@@ -209,6 +303,7 @@ export function TimelineTrack({
               );
           const blockContext: WorkflowActionBlockContext = {
             workflowId,
+            mode,
             actionIndex: segment.index,
             action: {
               uuid: action.uuid,
@@ -228,15 +323,24 @@ export function TimelineTrack({
               selected={segment.index === selectedIndex}
               widthPx={segment.widthPx}
               disabled={playing}
+              tabIndex={-1}
               onSeek={() => {
                 onSeek(segment.index);
               }}
-              onEditPayload={() => {
-                handleEditPayload(segment.index);
-              }}
-              onContextMenu={(event) => {
-                handleBlockContextMenu(segment.index, event);
-              }}
+              onEditPayload={
+                editable
+                  ? () => {
+                      handleEditPayload(segment.index);
+                    }
+                  : undefined
+              }
+              onContextMenu={
+                editable
+                  ? (event) => {
+                      handleBlockContextMenu(segment.index, event);
+                    }
+                  : undefined
+              }
               pluginSurface={
                 matchingBlocks.length > 0 ? (
                   <div className="flex h-full min-h-[28px] flex-col gap-0.5">
@@ -255,16 +359,18 @@ export function TimelineTrack({
                 ) : undefined
               }
             >
-              {entry?.thumbnail(action, {
-                selected: segment.index === selectedIndex,
-                compact,
-                getState
-              }) ?? <span className="truncate">{described.title}</span>}
+              <WorkflowActionBlockRow
+                action={action}
+                selected={segment.index === selectedIndex}
+                compact={compact}
+                getState={getState}
+                result={result}
+              />
             </TimelineBlock>
           );
         })}
       </div>
-      {contextMenu != null ? (
+      {contextMenu != null && editable ? (
         <WorkflowTimelineActionMenu
           actionIndex={contextMenu.index}
           actionCount={actions.length}

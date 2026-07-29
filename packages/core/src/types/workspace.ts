@@ -219,16 +219,8 @@ const workspaceSidebarExpansionSchema = z.object({
     archive: z.boolean(),
     trash: z.boolean()
   }),
-  sectionVisibility: z.object({
-    collections: z.boolean(),
-    environments: z.boolean(),
-    runResults: z.boolean(),
-    history: z.boolean(),
-    workspaces: z.boolean(),
-    workflows: z.boolean(),
-    archive: z.boolean(),
-    trash: z.boolean()
-  }),
+  activeSidebarMode: z.enum(['collections', 'environments', 'workspaces', 'workflows', 'trash']),
+  sidebarRailExpanded: z.boolean(),
   sectionSort: z.object({
     collections: workspaceSidebarSortMode,
     environments: workspaceSidebarSortMode,

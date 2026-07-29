@@ -2,7 +2,7 @@
 @import '@harborclient/sdk/styles.css';
 @import 'overlayscrollbars/overlayscrollbars.css';
 @import '@xterm/xterm/css/xterm.css';
-@source "../../../node_modules/@harborclient/sdk/dist/components";
+@source "../../../../../packages/sdk/src/components";
 
 /**
  * OverlayScrollbars theme mapped to HarborClient scrollbar color tokens.
@@ -112,7 +112,7 @@
 
     --mac-surface: #f5f5f7;
     --mac-sidebar: #ececee;
-    --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
+    --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 88%, black);
     --mac-sidebar-section: var(--mac-selection);
     --mac-sidebar-section-text: var(--mac-muted);
     --mac-footer: var(--mac-sidebar);
@@ -223,8 +223,9 @@
     :root:not([data-theme='light']) {
       --mac-surface: #1e1e1e;
       --mac-sidebar: #252526;
-      --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
-      --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+      /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
+      --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
+      --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 93%, white);
       --mac-sidebar-section-text: var(--mac-muted);
       --mac-footer: var(--mac-sidebar);
       --mac-footer-text: var(--mac-text);
@@ -274,8 +275,9 @@
 
     --mac-surface: #1e1e1e;
     --mac-sidebar: #252526;
-    --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 94%, black);
-    --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 86%, black);
+    /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
+    --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
+    --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 93%, white);
     --mac-sidebar-section-text: var(--mac-muted);
     --mac-footer: var(--mac-sidebar);
     --mac-footer-text: var(--mac-text);

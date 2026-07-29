@@ -1,3 +1,4 @@
+import type { WorkflowRunActionResult } from '@harborclient/core/types';
 import type { ReactNode } from 'react';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 
@@ -19,6 +20,11 @@ export interface WorkflowThumbnailCtx {
    * Optional Redux getter for resolving display names (environments, etc.).
    */
   getState?: () => RootState;
+
+  /**
+   * Optional run-log result for this step (e.g. request send snapshot in Results).
+   */
+  result?: WorkflowRunActionResult;
 }
 
 /**

@@ -23,7 +23,7 @@ interface Props {
  */
 export function SidebarSearch({ value, onChange, loading = false }: Props): JSX.Element {
   return (
-    <div className="py-3 px-2 border-b border-separator">
+    <div className="px-2 py-3">
       <FormGroup
         bordered={false}
         label="Search collections and environments"
