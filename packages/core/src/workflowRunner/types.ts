@@ -27,6 +27,16 @@ export interface WorkflowRunnerLogEntry {
    * Export entry for this step (request result or raw payload).
    */
   result: WorkflowRunActionResult;
+
+  /**
+   * ISO-8601 timestamp when this step started executing.
+   */
+  ranAt: string;
+
+  /**
+   * Wall-clock duration of the step's play handler in milliseconds.
+   */
+  durationMs: number;
 }
 
 /**

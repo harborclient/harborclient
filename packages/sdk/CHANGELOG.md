@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance Response Editor and Summary with Close Functionality. (`e14d7c7d`)
+
 ## 1.3.5 - 2026-07-28
 
 - Enhance CLI and GUI workflow functionalities. (`a8b8f495`)

@@ -14,6 +14,7 @@ const meta = {
         'primary',
         'secondary',
         'primaryDanger',
+        'primarySuccess',
         'secondaryDanger',
         'toolbar',
         'icon',
@@ -45,6 +46,13 @@ export const PrimaryDanger: Story = {
   args: {
     children: 'Delete',
     variant: 'primaryDanger'
+  }
+};
+
+export const PrimarySuccess: Story = {
+  args: {
+    children: 'Results',
+    variant: 'primarySuccess'
   }
 };
 

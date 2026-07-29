@@ -9,6 +9,7 @@ import {
   timelineMsToPlayheadX
 } from '#/renderer/src/workflows/timeline/workflowTimelineLayout';
 import { describeWorkflowAction } from '#/renderer/src/workflows/timeline/workflowThumbnails';
+import { TIMELINE_PLAYHEAD_EDGE_PAD_PX, TIMELINE_PLAYHEAD_OVERHANG_PX } from './TimelinePlayhead';
 import { TimelineRuler } from './TimelineRuler';
 import { TimelineTrack } from './TimelineTrack';
 
@@ -102,13 +103,23 @@ export function WorkflowTimeline({
   const [trackWidthPx, setTrackWidthPx] = useState(800);
 
   /**
-   * Observes the track viewport width so proportional layout can fill it exactly.
+   * Observes the track viewport width so proportional layout can fill the inner content
+   * (viewport minus playhead edge padding) exactly.
    */
   useEffect(() => {
     const node = scrollRef.current;
     if (node == null || typeof ResizeObserver === 'undefined') {
       return;
     }
+    /**
+     * Converts a viewport width into the layout track width after edge padding.
+     *
+     * @param viewportWidthPx - Observed scroll viewport width in pixels.
+     * @returns Width available for ruler and track content.
+     */
+    const toTrackWidthPx = (viewportWidthPx: number): number =>
+      Math.max(200, Math.floor(viewportWidthPx) - TIMELINE_PLAYHEAD_EDGE_PAD_PX * 2);
+
     /**
      * Updates track width from the observed content box.
      *
@@ -119,10 +130,10 @@ export function WorkflowTimeline({
       if (entry == null) {
         return;
       }
-      setTrackWidthPx(Math.max(200, Math.floor(entry.contentRect.width)));
+      setTrackWidthPx(toTrackWidthPx(entry.contentRect.width));
     });
     observer.observe(node);
-    setTrackWidthPx(Math.max(200, Math.floor(node.clientWidth)));
+    setTrackWidthPx(toTrackWidthPx(node.clientWidth));
     return () => {
       observer.disconnect();
     };
@@ -175,11 +186,18 @@ export function WorkflowTimeline({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-hidden">
-        <TimelineRuler
-          totalDurationMs={layout.totalDurationMs}
-          totalWidthPx={layout.totalWidthPx}
-        />
-        <div className="pt-2">
+        <div
+          style={{
+            paddingLeft: TIMELINE_PLAYHEAD_EDGE_PAD_PX,
+            paddingRight: TIMELINE_PLAYHEAD_EDGE_PAD_PX,
+            paddingTop: TIMELINE_PLAYHEAD_OVERHANG_PX,
+            paddingBottom: TIMELINE_PLAYHEAD_OVERHANG_PX
+          }}
+        >
+          <TimelineRuler
+            totalDurationMs={layout.totalDurationMs}
+            totalWidthPx={layout.totalWidthPx}
+          />
           <TimelineTrack
             workflowId={workflowId}
             actions={actions}

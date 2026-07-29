@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { AuthConfig } from '../auth';
 import type { HttpMethod, KeyValue } from './common';
-import type { ScriptTestResult } from './script';
+import type { ScriptExecutionEvent, ScriptRunError, ScriptTestResult } from './script';
 
 /**
  * One recorded step inside a workflow session or portable export.
@@ -199,6 +199,16 @@ export interface WorkflowRunRequestTiming {
  */
 export interface WorkflowRunRequestResponse {
   /**
+   * HTTP status code, or 0 when the request failed before a response.
+   */
+  status: number;
+
+  /**
+   * HTTP status text from the response (or a short error label).
+   */
+  statusText: string;
+
+  /**
    * Response body as text, or base64 for binary / non-textual responses.
    */
   body: string;
@@ -222,6 +232,26 @@ export interface WorkflowRunRequestResponse {
    * Final `hc.data` bag after pre/post scripts for this send.
    */
   data: Record<string, unknown>;
+
+  /**
+   * Console output captured from pre/post scripts for this send.
+   */
+  scriptLogs: string[];
+
+  /**
+   * Ordered variable and flow-control activity from scripts for this send.
+   */
+  executionEvents: ScriptExecutionEvent[];
+
+  /**
+   * Aggregated script runtime errors from this send, when any.
+   */
+  scriptError?: string;
+
+  /**
+   * Structured script failures with slot metadata, when any.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -288,6 +318,31 @@ export interface WorkflowRunRequestResult {
 export type WorkflowRunActionResult = WorkflowRunRequestResult | unknown;
 
 /**
+ * One executed step in a portable workflow-run results export.
+ */
+export interface WorkflowRunExportStep {
+  /**
+   * 1-based execution order index for this step.
+   */
+  index: number;
+
+  /**
+   * ISO-8601 timestamp when this step started executing.
+   */
+  ranAt: string;
+
+  /**
+   * Wall-clock duration of the step in milliseconds.
+   */
+  durationMs: number;
+
+  /**
+   * Step result: request snapshot for sends, or the action payload otherwise.
+   */
+  result: WorkflowRunActionResult;
+}
+
+/**
  * Portable HarborClient workflow-run results export envelope.
  */
 export interface WorkflowRunExport {
@@ -317,9 +372,9 @@ export interface WorkflowRunExport {
   date_created: string;
 
   /**
-   * Actions in exact execution order (including jumps / repeats).
+   * Steps in exact execution order (including jumps / repeats).
    */
-  actions: WorkflowRunActionResult[];
+  actions: WorkflowRunExportStep[];
 }
 
 /**
@@ -382,6 +437,16 @@ export interface BuildWorkflowRunRequestResultInput {
   responseBody: string;
 
   /**
+   * HTTP status code, or 0 when the request failed before a response.
+   */
+  status: number;
+
+  /**
+   * HTTP status text from the response (or a short error label).
+   */
+  statusText: string;
+
+  /**
    * Response headers as a flat map or key/value rows.
    */
   responseHeaders: Record<string, string> | KeyValue[];
@@ -416,6 +481,26 @@ export interface BuildWorkflowRunRequestResultInput {
    * Final `hc.data` bag.
    */
   data: Record<string, unknown>;
+
+  /**
+   * Console output captured from pre/post scripts; defaults to `[]` when omitted.
+   */
+  scriptLogs?: string[];
+
+  /**
+   * Ordered variable and flow-control activity from scripts; defaults to `[]` when omitted.
+   */
+  executionEvents?: ScriptExecutionEvent[];
+
+  /**
+   * Aggregated script runtime errors from the send.
+   */
+  scriptError?: string;
+
+  /**
+   * Structured script failures with slot metadata.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -608,11 +693,21 @@ export function buildWorkflowRunRequestResult(
     body: input.body,
     authorization: structuredClone(input.authorization),
     response: {
+      status: input.status,
+      statusText: input.statusText,
       body: input.responseBody,
       headers: responseHeaders,
       timing,
       tests: input.tests.map((test) => ({ ...test })),
-      data: { ...input.data }
+      data: { ...input.data },
+      scriptLogs: (input.scriptLogs ?? []).map((line) => line),
+      executionEvents: (input.executionEvents ?? []).map((event) => ({ ...event })),
+      ...(input.scriptError != null && input.scriptError.length > 0
+        ? { scriptError: input.scriptError }
+        : {}),
+      ...(input.scriptErrors != null && input.scriptErrors.length > 0
+        ? { scriptErrors: input.scriptErrors.map((error) => ({ ...error })) }
+        : {})
     }
   };
 }
@@ -620,14 +715,14 @@ export function buildWorkflowRunRequestResult(
 /**
  * Builds a portable workflow-run results export envelope.
  *
- * @param input - Run metadata and ordered action results.
+ * @param input - Run metadata and ordered step entries.
  * @returns Workflow-run export object.
  */
 export function buildWorkflowRunExport(input: {
   name: string;
   environment?: string;
   date_created?: string;
-  actions: WorkflowRunActionResult[];
+  actions: WorkflowRunExportStep[];
 }): WorkflowRunExport {
   return {
     harborclientVersion: 1,
@@ -635,6 +730,11 @@ export function buildWorkflowRunExport(input: {
     name: input.name,
     environment: input.environment ?? '',
     date_created: input.date_created ?? new Date().toISOString(),
-    actions: input.actions
+    actions: input.actions.map((step) => ({
+      index: step.index,
+      ranAt: step.ranAt,
+      durationMs: step.durationMs,
+      result: step.result
+    }))
   };
 }

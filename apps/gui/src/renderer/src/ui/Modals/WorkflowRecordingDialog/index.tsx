@@ -838,7 +838,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
               </div>
               <button
                 type="button"
-                className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                className="cursor-pointer rounded p-1 text-muted hover:bg-surface hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 aria-label="Close run dialog"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -977,7 +977,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
             </h2>
             <button
               type="button"
-              className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+              className="cursor-pointer rounded p-1 text-muted hover:bg-surface hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
               aria-label="Close run dialog"
               onClick={(event) => {
                 event.stopPropagation();
@@ -1016,7 +1016,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
             </Button>
             <Button
               type="button"
-              variant="secondary"
+              variant="primarySuccess"
               className="flex-1"
               disabled={!runComplete}
               aria-label="Results"
@@ -1054,7 +1054,7 @@ export function WorkflowRecordingDialog(): JSX.Element | null {
           </h2>
           <button
             type="button"
-            className="cursor-pointer rounded p-1 text-muted hover:bg-surface-raised hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="cursor-pointer rounded p-1 text-muted hover:bg-surface hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             aria-label="Close recording dialog"
             onClick={(event) => {
               event.stopPropagation();

@@ -92,6 +92,12 @@ interface Props {
   onClear?: () => void;
 
   /**
+   * Closes an embedded response panel (for example workflow Results). When set,
+   * renders an X control after Clear in the summary toolbar.
+   */
+  onClose?: () => void;
+
+  /**
    * URL of the active request, used to resolve relative assets in HTML preview.
    */
   requestUrl: string;
@@ -131,6 +137,7 @@ export function ResponseEditor({
   scriptErrors,
   onCancel,
   onClear,
+  onClose,
   requestUrl,
   requestTabId
 }: Props): JSX.Element {
@@ -528,6 +535,7 @@ export function ResponseEditor({
           onCopy={() => void handleCopy()}
           onExport={() => void handleExport()}
           onClear={onClear != null ? handleClear : undefined}
+          onClose={onClose}
           onExpand={canExpand ? handleExpand : undefined}
           expandTabLabel={expandTabLabel}
           canCopyOrExport={canCopyOrExport}
@@ -547,7 +555,7 @@ export function ResponseEditor({
 
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-          <div className="-mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
+          <div className="mb-4 -mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
             <SegmentedTabs tabs={tabs} className="border-none" />
           </div>
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance Response Editor and Summary with Close Functionality. (`e14d7c7d`)
+
 ## 0.2.6 - 2026-07-28
 
 - Enhance CLI and GUI workflow functionalities. (`a8b8f495`)

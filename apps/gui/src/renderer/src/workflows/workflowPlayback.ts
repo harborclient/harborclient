@@ -465,7 +465,7 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
         notifyPlaybackListeners();
       },
       onStepComplete: (entry) => {
-        appendWorkflowRunLogEntry(entry.action, entry.result);
+        appendWorkflowRunLogEntry(entry);
       },
       shouldStop: () => !playing || generation !== playGeneration,
       waitMs: (ms) => waitGapMs(ms, generation)

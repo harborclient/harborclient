@@ -20,6 +20,16 @@ export interface WorkflowRunLogEntry {
    * Export entry for this step (request result or raw payload).
    */
   result: WorkflowRunActionResult;
+
+  /**
+   * ISO-8601 timestamp when this step started executing.
+   */
+  ranAt: string;
+
+  /**
+   * Wall-clock duration of the step's play handler in milliseconds.
+   */
+  durationMs: number;
 }
 
 /**
@@ -89,14 +99,18 @@ export function beginWorkflowRunLog(nextMeta: WorkflowRunLogMeta): void {
 /**
  * Appends one executed action to the run log in execution order.
  *
- * @param action - Workflow action that just finished playing.
- * @param result - Export entry for this step.
+ * @param entry - Action, result, and step timing captured by the runner.
  */
-export function appendWorkflowRunLogEntry(
-  action: WorkflowAction,
-  result: WorkflowRunActionResult
-): void {
-  entries = [...entries, { action: { ...action }, result }];
+export function appendWorkflowRunLogEntry(entry: WorkflowRunLogEntry): void {
+  entries = [
+    ...entries,
+    {
+      action: { ...entry.action },
+      result: entry.result,
+      ranAt: entry.ranAt,
+      durationMs: entry.durationMs
+    }
+  ];
   notifyRunLogListeners();
 }
 
@@ -143,7 +157,12 @@ export function getWorkflowRunExport(): WorkflowRunExport | null {
     name: meta.name,
     environment: meta.environment,
     date_created: meta.date_created,
-    actions: entries.map((entry) => entry.result)
+    actions: entries.map((entry, index) => ({
+      index: index + 1,
+      ranAt: entry.ranAt,
+      durationMs: entry.durationMs,
+      result: entry.result
+    }))
   });
 }
 
@@ -165,7 +184,14 @@ export function getWorkflowRunExportForEntry(index: number): WorkflowRunExport |
     name: meta.name,
     environment: meta.environment,
     date_created: meta.date_created,
-    actions: [entry.result]
+    actions: [
+      {
+        index: index + 1,
+        ranAt: entry.ranAt,
+        durationMs: entry.durationMs,
+        result: entry.result
+      }
+    ]
   });
 }
 

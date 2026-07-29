@@ -8,6 +8,7 @@ export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'primaryDanger'
+  | 'primarySuccess'
   | 'secondaryDanger'
   | 'toolbar'
   | 'icon'
@@ -53,6 +54,10 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     BUTTON_BASE,
     'min-h-[32px] justify-center border border-transparent bg-danger px-3 py-1 text-[15px] font-medium text-white shadow-sm hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
   ),
+  primarySuccess: cn(
+    BUTTON_BASE,
+    'min-h-[32px] justify-center border border-transparent bg-success px-3 py-1 text-[15px] font-medium text-white shadow-sm hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50'
+  ),
   secondaryDanger: cn(
     BUTTON_BASE,
     'min-h-[32px] justify-center border border-separator bg-control px-3 py-1 text-[15px] text-danger shadow-sm hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-50'
@@ -73,7 +78,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 
 /**
  * macOS-style button with shared variant presets for primary actions, secondary
- * actions, toolbar controls, and icon-only controls.
+ * actions, danger/success emphasis, toolbar controls, and icon-only controls.
  *
  * Defaults to `type="button"` so clicks do not accidentally submit a parent form.
  * Pass `type="submit"` explicitly when submit behavior is intended.

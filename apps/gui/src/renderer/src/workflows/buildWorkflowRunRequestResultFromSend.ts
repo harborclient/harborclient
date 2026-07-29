@@ -48,11 +48,17 @@ export function buildWorkflowRunRequestResultFromSend(
     body: sent?.body ?? draft.body,
     authorization: draft.auth,
     responseBody,
+    status: outcome.response.status,
+    statusText: outcome.response.statusText,
     responseHeaders: outcome.response.headers,
     timeMs: outcome.response.timeMs,
     sizeBytes: outcome.response.sizeBytes,
     timing: outcome.response.timing,
     tests: outcome.testResults,
-    data: outcome.data
+    data: outcome.data,
+    scriptLogs: outcome.scriptLogs,
+    executionEvents: outcome.executionEvents,
+    scriptError: outcome.scriptError,
+    scriptErrors: outcome.scriptErrors
   });
 }

@@ -1,10 +1,13 @@
-import { useCallback, useMemo, useState, useSyncExternalStore, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type JSX } from 'react';
+import toast from 'react-hot-toast';
+import { Button } from '@harborclient/sdk/components';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { useStore } from 'react-redux';
 import type { RootState } from '#/renderer/src/store/redux';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWorkflows } from '#/renderer/src/store/slices/workflowsSlice';
 import {
+  getWorkflowRunExport,
   getWorkflowRunLog,
   getWorkflowRunLogMeta,
   getWorkflowRunLogVersion,
@@ -12,8 +15,9 @@ import {
   type WorkflowRunLogEntry,
   type WorkflowRunLogMeta
 } from '#/renderer/src/workflows/workflowRunLog';
+import { buildWorkflowRunExportFileName } from '#/renderer/src/workflows/workflowRunExportFile';
 import { WorkflowRunResultBlock } from './WorkflowRunResultBlock';
-import { WorkflowRunResultDetailModal } from './WorkflowRunResultDetailModal';
+import { WorkflowRunResultDetailPanel } from './WorkflowRunResultDetailPanel';
 
 interface Props {
   /**
@@ -55,10 +59,10 @@ function readMatchingRunLog(workflowUuid: string): MatchingRunLog {
  * Page tab listing workflow actions in the exact order they ran.
  *
  * Reads the in-memory run log for {@link page.workflowUuid}. Clicking a block
- * opens a read-only JSON modal with that action's result object only.
+ * opens a bottom detail panel: Response Editor for request sends, JSON otherwise.
  *
  * @param props - Page identity with the workflow uuid.
- * @returns Scrollable list of timeline blocks and optional detail modal.
+ * @returns Scrollable list of timeline blocks and optional detail panel.
  */
 export function WorkflowRunResults({ page }: Props): JSX.Element {
   const store = useStore<RootState>();
@@ -93,39 +97,110 @@ export function WorkflowRunResults({ page }: Props): JSX.Element {
   }, [page.workflowUuid, workflows, runLog.meta]);
 
   /**
-   * Per-action result for the open detail modal.
+   * True when the matching run log has metadata and at least one executed step.
    */
-  const detailResult = useMemo(() => {
+  const canExport = runLog.meta != null && runLog.entries.length > 0;
+
+  /**
+   * Selected run-log entry for the bottom detail panel.
+   */
+  const selectedEntry = useMemo(() => {
     void runLogVersion;
-    if (selectedIndex == null) {
+    if (selectedIndex == null || selectedIndex >= runLog.entries.length) {
       return null;
     }
-    return runLog.entries[selectedIndex]?.result ?? null;
+    return runLog.entries[selectedIndex] ?? null;
   }, [selectedIndex, runLog.entries, runLogVersion]);
 
   /**
-   * Opens the JSON detail modal for a run-log index.
+   * Resolved selection index when it still points at a live run-log entry.
+   */
+  const activeSelectedIndex =
+    selectedIndex != null && selectedIndex < runLog.entries.length ? selectedIndex : null;
+
+  /**
+   * Opens or toggles the detail panel for a run-log index.
    *
    * @param index - 0-based index into the run log.
    */
   const handleOpen = useCallback((index: number): void => {
-    setSelectedIndex(index);
+    setSelectedIndex((current) => (current === index ? null : index));
   }, []);
 
   /**
-   * Closes the JSON detail modal.
+   * Closes the detail panel.
    */
   const handleCloseDetail = useCallback((): void => {
     setSelectedIndex(null);
   }, []);
 
+  /**
+   * Dismisses the detail panel when Escape is pressed while a row is selected.
+   */
+  useEffect(() => {
+    if (activeSelectedIndex == null) {
+      return;
+    }
+
+    /**
+     * Closes the panel on Escape without interfering with other Escape handlers.
+     *
+     * @param event - Keyboard event from the document.
+     */
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      event.preventDefault();
+      setSelectedIndex(null);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeSelectedIndex]);
+
+  /**
+   * Exports the current workflow-run envelope to a JSON file via the native save dialog.
+   */
+  const handleExport = useCallback((): void => {
+    if (!canExport) {
+      return;
+    }
+    const envelope = getWorkflowRunExport();
+    if (envelope == null) {
+      return;
+    }
+    const content = JSON.stringify(envelope, null, 2);
+    const fileName = buildWorkflowRunExportFileName();
+    void window.api
+      .saveTextFile(content, fileName)
+      .then((result) => {
+        if (!result.canceled) {
+          toast.success('Workflow results exported');
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        toast.error(`Failed to export workflow results: ${message}`);
+      });
+  }, [canExport]);
+
   const { entries } = runLog;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-separator px-4 py-3">
-        <h1 className="text-[18px] font-semibold">Results: {workflowName}</h1>
-        <p className="text-muted">Actions in the order they ran during the last workflow run.</p>
+      <header className="flex shrink-0 items-start justify-between gap-4 border-b border-separator px-4 py-3">
+        <div className="min-w-0">
+          <h1 className="text-[18px] font-semibold">Results: {workflowName}</h1>
+          <p className="text-muted">Actions in the order they ran during the last workflow run.</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="button" variant="secondary" disabled={!canExport} onClick={handleExport}>
+            Export
+          </Button>
+        </div>
       </header>
 
       {entries.length === 0 ? (
@@ -140,15 +215,19 @@ export function WorkflowRunResults({ page }: Props): JSX.Element {
           role="listbox"
           aria-label="Workflow run actions"
           aria-activedescendant={
-            selectedIndex != null ? `workflow-run-result-${selectedIndex}` : undefined
+            activeSelectedIndex != null ? `workflow-run-result-${activeSelectedIndex}` : undefined
           }
         >
           {entries.map((entry, index) => (
             <WorkflowRunResultBlock
               key={`${entry.action.uuid}-${index}`}
               id={`workflow-run-result-${index}`}
+              index={index + 1}
               action={entry.action}
-              selected={selectedIndex === index}
+              result={entry.result}
+              ranAt={entry.ranAt}
+              durationMs={entry.durationMs}
+              selected={activeSelectedIndex === index}
               getState={store.getState}
               onOpen={() => {
                 handleOpen(index);
@@ -158,7 +237,11 @@ export function WorkflowRunResults({ page }: Props): JSX.Element {
         </div>
       )}
 
-      <WorkflowRunResultDetailModal result={detailResult} onClose={handleCloseDetail} />
+      <WorkflowRunResultDetailPanel
+        action={selectedEntry?.action ?? null}
+        result={selectedEntry?.result ?? null}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 }

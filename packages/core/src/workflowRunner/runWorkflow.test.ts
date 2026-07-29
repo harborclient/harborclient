@@ -170,6 +170,20 @@ describe('runWorkflow + headless executor', () => {
     expect(session.activeDraft?.url).toBe('https://example.com/updated');
     expect(result.export.actions).toHaveLength(5);
     expect(result.export.harborclientExport).toBe('workflow-run');
+    for (const [i, step] of result.export.actions.entries()) {
+      expect(step.index).toBe(i + 1);
+      expect(typeof step.ranAt).toBe('string');
+      expect(step.durationMs).toBeGreaterThanOrEqual(0);
+      expect(step.result).toBeDefined();
+    }
+    const sendStep = result.export.actions[4];
+    expect(sendStep?.result).toMatchObject({
+      method: expect.any(String),
+      response: {
+        status: 200,
+        statusText: 'OK'
+      }
+    });
   });
 
   it('stops on failure when stopOnFailure is set', async () => {

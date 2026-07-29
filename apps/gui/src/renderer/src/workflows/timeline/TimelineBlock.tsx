@@ -128,16 +128,16 @@ export function TimelineBlock({
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         fillWidth ? 'w-full min-w-0' : 'shrink-0',
         selected
-          ? 'border-accent bg-accent/10 text-fg'
-          : 'border-separator bg-surface-raised text-fg hover:border-accent/60',
+          ? 'border-accent bg-accent/10 text-text'
+          : 'border-separator bg-surface text-text hover:border-accent/60',
         disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
       ].join(' ')}
       style={fillWidth ? { width: '100%' } : { width: widthPx }}
     >
       <div
         className={[
-          'flex min-h-0 min-w-0 flex-col justify-center px-2 py-1.5',
-          fitContent ? '' : 'flex-1'
+          'flex min-h-0 min-w-0 flex-1 flex-col justify-center',
+          fitContent ? 'px-3 py-3' : 'px-2 py-1.5'
         ].join(' ')}
         onClick={() => {
           if (!disabled) {

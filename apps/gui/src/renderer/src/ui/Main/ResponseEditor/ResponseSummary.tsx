@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import type { SendResult } from '@harborclient/core/types';
 import { Button, FaIcon, StatusDot } from '@harborclient/sdk/components';
-import { faExpand } from '#/renderer/src/fontawesome';
+import { faExpand, faXmark } from '#/renderer/src/fontawesome';
 import { focusableReadonlyClass, statusDotVariant } from '#/renderer/src/ui/Shared/classes';
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 
@@ -50,6 +50,12 @@ interface Props {
    * Whether the clear action is enabled.
    */
   canClear?: boolean;
+
+  /**
+   * Closes an embedded response panel (for example workflow Results).
+   * When set, renders an icon-only close control after Clear.
+   */
+  onClose?: () => void;
 }
 
 /**
@@ -97,7 +103,8 @@ export function ResponseSummary({
   onExpand,
   expandTabLabel,
   canCopyOrExport = true,
-  canClear = true
+  canClear = true,
+  onClose
 }: Props): JSX.Element {
   const showActions = onCopy != null && onExport != null;
   const expandLabel =
@@ -179,6 +186,18 @@ export function ResponseSummary({
               onClick={onClear}
             >
               Clear
+            </Button>
+          )}
+          {onClose != null && (
+            <Button
+              type="button"
+              variant="secondary"
+              title="Close response panel"
+              aria-label="Close response panel"
+              className="px-2"
+              onClick={onClose}
+            >
+              <FaIcon icon={faXmark} className="h-4 w-4" />
             </Button>
           )}
         </div>

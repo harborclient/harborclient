@@ -70,6 +70,8 @@ describe('buildWorkflowRunRequestResult', () => {
       body: '{"ok":true}',
       authorization: defaultAuth(),
       responseBody: '{"id":1}',
+      status: 200,
+      statusText: 'OK',
       responseHeaders: { 'content-type': 'application/json' },
       timeMs: 42,
       sizeBytes: 8,
@@ -89,13 +91,54 @@ describe('buildWorkflowRunRequestResult', () => {
       body: '{"ok":true}',
       authorization: defaultAuth(),
       response: {
+        status: 200,
+        statusText: 'OK',
         body: '{"id":1}',
         headers: [{ key: 'content-type', value: 'application/json', enabled: true }],
         timing: { totalTime: 42, size: 8, waitingMs: 20, downloadMs: 5 },
         tests: [{ name: 'status is 200', passed: true }],
-        data: { token: 'xyz' }
+        data: { token: 'xyz' },
+        scriptLogs: [],
+        executionEvents: []
       }
     });
+  });
+
+  it('persists script console logs and execution events when provided', () => {
+    const entry = buildWorkflowRunRequestResult({
+      name: 'Logged request',
+      uuid: '',
+      method: 'GET',
+      url: 'https://example.com',
+      headers: [],
+      cookies: [],
+      tags: '',
+      comment: '',
+      body: '',
+      authorization: defaultAuth(),
+      responseBody: '',
+      status: 200,
+      statusText: 'OK',
+      responseHeaders: {},
+      timeMs: 1,
+      tests: [],
+      data: {},
+      scriptLogs: ['pre: hello'],
+      executionEvents: [
+        { type: 'variable', scope: 'environment', action: 'set', key: 'a', value: '1' }
+      ],
+      scriptError: 'post: boom',
+      scriptErrors: [{ message: 'boom', scriptName: 'post', phase: 'post' }]
+    });
+
+    expect(entry.response.scriptLogs).toEqual(['pre: hello']);
+    expect(entry.response.executionEvents).toEqual([
+      { type: 'variable', scope: 'environment', action: 'set', key: 'a', value: '1' }
+    ]);
+    expect(entry.response.scriptError).toBe('post: boom');
+    expect(entry.response.scriptErrors).toEqual([
+      { message: 'boom', scriptName: 'post', phase: 'post' }
+    ]);
   });
 });
 
@@ -103,7 +146,14 @@ describe('buildWorkflowRunExport', () => {
   it('builds a workflow-run envelope with defaults', () => {
     const envelope = buildWorkflowRunExport({
       name: 'Morning checks',
-      actions: [{ target: 'active' }]
+      actions: [
+        {
+          index: 1,
+          ranAt: '2026-07-28T12:00:00.000Z',
+          durationMs: 10,
+          result: { target: 'active' }
+        }
+      ]
     });
 
     expect(envelope.harborclientVersion).toBe(1);
@@ -111,7 +161,14 @@ describe('buildWorkflowRunExport', () => {
     expect(envelope.name).toBe('Morning checks');
     expect(envelope.environment).toBe('');
     expect(typeof envelope.date_created).toBe('string');
-    expect(envelope.actions).toEqual([{ target: 'active' }]);
+    expect(envelope.actions).toEqual([
+      {
+        index: 1,
+        ranAt: '2026-07-28T12:00:00.000Z',
+        durationMs: 10,
+        result: { target: 'active' }
+      }
+    ]);
   });
 
   it('preserves environment and date when provided', () => {

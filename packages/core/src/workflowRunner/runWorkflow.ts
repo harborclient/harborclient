@@ -131,12 +131,15 @@ export async function runWorkflow(options: WorkflowRunnerOptions): Promise<Workf
         workflowActionId: action.uuid,
         workflowActionIteration: index
       });
+      const stepStartedAt = Date.now();
+      const ranAt = new Date(stepStartedAt).toISOString();
       let playResult: unknown;
       try {
         playResult = await options.executor.play(action, index);
       } finally {
         endWorkflowActionScriptContext();
       }
+      const durationMs = Math.max(0, Date.now() - stepStartedAt);
 
       if (shouldStop()) {
         stoppedEarly = true;
@@ -146,7 +149,12 @@ export async function runWorkflow(options: WorkflowRunnerOptions): Promise<Workf
       const mapped = options.resolveLogResult?.(action, playResult);
       const result =
         mapped !== undefined ? mapped : (action.payload as WorkflowRunnerLogEntry['result']);
-      const entry: WorkflowRunnerLogEntry = { action: { ...action }, result };
+      const entry: WorkflowRunnerLogEntry = {
+        action: { ...action },
+        result,
+        ranAt,
+        durationMs
+      };
       entries.push(entry);
       options.onStepComplete?.(entry, index);
 
@@ -203,7 +211,12 @@ export async function runWorkflow(options: WorkflowRunnerOptions): Promise<Workf
       name: options.workflowName,
       environment: environmentUuid,
       date_created: dateCreated,
-      actions: entries.map((entry) => entry.result)
+      actions: entries.map((entry, stepIndex) => ({
+        index: stepIndex + 1,
+        ranAt: entry.ranAt,
+        durationMs: entry.durationMs,
+        result: entry.result
+      }))
     }),
     entries
   };

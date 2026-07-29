@@ -39,14 +39,14 @@ export function TimelineTextThumbnail({
   const showSubtitle = !compact && subtitle != null && subtitle.length > 0;
 
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <FaIcon icon={icon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-      <span className="flex min-w-0 flex-col">
+    <span className="flex min-w-0 flex-col">
+      <span className="flex min-w-0 items-start gap-1.5">
+        <FaIcon icon={icon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         <span className="truncate font-medium leading-tight">{title}</span>
-        {showSubtitle ? (
-          <span className="truncate text-[14px] leading-tight text-muted">{subtitle}</span>
-        ) : null}
       </span>
+      {showSubtitle ? (
+        <span className="truncate text-[14px] leading-tight text-muted">{subtitle}</span>
+      ) : null}
     </span>
   );
 }

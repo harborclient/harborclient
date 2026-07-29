@@ -90,6 +90,11 @@ interface Props {
    * HTML element for the row container. Use `li` inside {@link SidebarListbox}.
    */
   as?: 'div' | 'li';
+
+  /**
+   * Additional class names merged onto the row container (e.g. to drop sidebar inset).
+   */
+  className?: string;
 }
 
 /**
@@ -116,7 +121,8 @@ export function SidebarRequestItem({
   onContextMenu,
   onClick,
   actions,
-  as = 'li'
+  as = 'li',
+  className
 }: Props): JSX.Element {
   const useListboxOption = as === 'li';
 
@@ -127,6 +133,7 @@ export function SidebarRequestItem({
       onContextMenu={onContextMenu}
       actions={actions}
       as={as}
+      className={className}
       listboxOption={
         useListboxOption
           ? {
