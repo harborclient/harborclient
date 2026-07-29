@@ -1,4 +1,4 @@
-import { EmptyState, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
+import { EmptySectionLabel, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import type { Collection } from '@harborclient/core/types';
 import { formatArchivedCollectionLabel } from '@harborclient/core/search/sidebar';
@@ -122,9 +122,9 @@ export function Archive(): JSX.Element {
 
   if (allCollections.length === 0) {
     return (
-      <EmptyState variant="inline" className="pr-2 py-1.5 text-center">
-        No archived collections.
-      </EmptyState>
+      <div className="flex flex-col gap-0.5">
+        <EmptySectionLabel label="No archived collections" />
+      </div>
     );
   }
 

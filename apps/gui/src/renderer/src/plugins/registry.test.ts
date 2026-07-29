@@ -5,11 +5,13 @@ import {
   getRegisteredRequestTabs,
   getRegisteredSettingsSections,
   getRegisteredSidebarPanels,
+  getRegisteredSidebarRailItems,
   getRegisteredWorkflowActionBlocks,
   getRegisteredWorkflowToolbarActions,
   registerRequestTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
+  registerSidebarRailItemContribution,
   registerThemeContribution,
   registerWorkflowActionBlockContribution,
   registerWorkflowToolbarActionContribution,
@@ -127,6 +129,35 @@ describe('plugin registry', () => {
 
     disposable.dispose();
     expect(getRegisteredSidebarPanels()).toHaveLength(0);
+  });
+
+  it('registers, sorts, and clears sidebar rail items', () => {
+    registerSidebarRailItemContribution('com.example.rail', {
+      id: 'plugin:com.example.rail:later',
+      title: 'Later',
+      icon: 'flask',
+      contributionId: 'later',
+      order: 50
+    });
+    registerSidebarRailItemContribution('com.example.rail', {
+      id: 'plugin:com.example.rail:first',
+      title: 'First',
+      icon: 'bolt',
+      contributionId: 'first',
+      order: 5
+    });
+
+    expect(getRegisteredSidebarRailItems().map((item) => item.contributionId)).toEqual([
+      'first',
+      'later'
+    ]);
+
+    unregisterContribution('com.example.rail', 'sidebarRailItems', 'first');
+    expect(getRegisteredSidebarRailItems()).toHaveLength(1);
+    expect(getRegisteredSidebarRailItems()[0]?.contributionId).toBe('later');
+
+    clearPluginContributions('com.example.rail');
+    expect(getRegisteredSidebarRailItems()).toHaveLength(0);
   });
 
   it('registers and unregisters workflow toolbar actions and action blocks', () => {

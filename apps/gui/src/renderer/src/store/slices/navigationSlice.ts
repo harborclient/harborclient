@@ -72,6 +72,13 @@ export interface SidebarFooterLayoutSnapshot {
   activeSidebarPanelId: string | null;
 
   /**
+   * Active plugin activity-rail item id when recorded
+   * (`plugin:<pluginId>:<contributionId>`), or null when a built-in rail mode
+   * or switcher panel is selected.
+   */
+  activeSidebarRailItemId: string | null;
+
+  /**
    * Whether the footer console panel was open when recorded.
    */
   showConsole: boolean;
@@ -122,6 +129,12 @@ export interface NavigationState {
    */
   activeSidebarPanelId: string | null;
   /**
+   * Active plugin activity-rail item id (`plugin:<pluginId>:<contributionId>`),
+   * or `null` when a built-in rail mode (or switcher sidebar panel) is selected.
+   * Distinct from {@link NavigationState.activeSidebarPanelId}.
+   */
+  activeSidebarRailItemId: string | null;
+  /**
    * Last sidebar/footer layout captured by Hide sidebars; null until the first hide.
    */
   sidebarFooterLayoutSnapshot: SidebarFooterLayoutSnapshot | null;
@@ -152,6 +165,7 @@ const initialState: NavigationState = {
   showTerminal: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
+  activeSidebarRailItemId: null,
   sidebarFooterLayoutSnapshot: null,
   pendingPluginInstallId: null,
   pendingMarketplaceSearch: null,
@@ -168,9 +182,21 @@ const navigationSlice = createSlice({
   reducers: {
     /**
      * Sets the active switchable sidebar panel id, or null for the default sidebar.
+     * Clears any active activity-rail plugin item so the two nav models do not compete.
      */
     setActiveSidebarPanel(state, action: PayloadAction<string | null>) {
       state.activeSidebarPanelId = action.payload;
+      state.activeSidebarRailItemId = null;
+    },
+    /**
+     * Sets the active plugin activity-rail item id, or null for built-in rail modes.
+     * Clears any active switcher sidebar panel so the two nav models do not compete.
+     */
+    setActiveSidebarRailItem(state, action: PayloadAction<string | null>) {
+      state.activeSidebarRailItemId = action.payload;
+      if (action.payload != null) {
+        state.activeSidebarPanelId = null;
+      }
     },
     /**
      * Stores or clears the session-only Hide sidebars layout snapshot.
@@ -498,6 +524,7 @@ const navigationSlice = createSlice({
 
 export const {
   setActiveSidebarPanel,
+  setActiveSidebarRailItem,
   setSidebarFooterLayoutSnapshot,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
@@ -638,6 +665,11 @@ export const selectActivePluginFooterPanelId = (state: RootState): string | null
  */
 export const selectActiveSidebarPanelId = (state: RootState): string | null =>
   state.navigation.activeSidebarPanelId;
+/**
+ * Returns the active plugin activity-rail item id, or null for built-in modes.
+ */
+export const selectActiveSidebarRailItemId = (state: RootState): string | null =>
+  state.navigation.activeSidebarRailItemId;
 /**
  * Returns the session-only Hide sidebars layout snapshot, if one was recorded.
  */

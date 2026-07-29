@@ -28,4 +28,12 @@ export interface ApiWorkflows {
    * Deletes a workflow (moves it to trash) and returns the refreshed list.
    */
   deleteWorkflow: (id: number) => Promise<Workflow[]>;
+
+  /**
+   * Marks or unmarks a workflow as archived and returns the refreshed list.
+   *
+   * @param id - Workflow id.
+   * @param archived - When true, hide the workflow from the Workflows list.
+   */
+  setWorkflowArchived: (id: number, archived: boolean) => Promise<Workflow[]>;
 }

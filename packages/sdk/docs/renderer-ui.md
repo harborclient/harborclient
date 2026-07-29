@@ -79,6 +79,51 @@ hc.ui.registerSidebarPanel({
 }
 ```
 
+For activity-rail icons that open a sidebar while keeping the rail visible, use
+[hc.ui.registerSidebarRailItem](#hcuiregistersidebarrailitemitem) instead.
+
+## hc.ui.registerSidebarRailItem(item)
+
+**Signature:** `(item: SidebarRailItemContribution) => Disposable`
+
+**Manifest:** `contributes.sidebarRailItems`
+
+| Parameter   | Type                  | Description                                                                                                  |
+| ----------- | --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `id`        | `string`              | Rail item id                                                                                                 |
+| `title`     | `string`              | Label / accessible name on the activity rail                                                                 |
+| `icon`      | `string`              | Required curated icon name (`server`, `database`, `globe`, `code`, `robot`, `puzzle-piece`, `bolt`, `flask`) |
+| `Component` | `React.ComponentType` | Full sidebar content                                                                                         |
+| `order`     | `number`              | Sort order among plugin rail items (appended after built-in modes)                                           |
+
+Registers an activity-rail button. Selecting it mounts the panel with `resizeMode="fill"` and **keeps the activity rail visible** (unlike `registerSidebarPanel`, which uses a horizontal switcher and hides the rail). Panel bodies should scroll via `Scrollbars` from `@harborclient/sdk/components`.
+
+The host pushes `{ sidebarSelection }` as surface context (same shape as sidebar panels). Prefer `hc.host.onSidebarSelectionChanged` for live updates.
+
+```typescript
+hc.ui.registerSidebarRailItem({
+  id: 'myPlugin.tools',
+  title: 'My Tools',
+  icon: 'bolt',
+  Component: MyToolsSidebar,
+  order: 10
+});
+```
+
+```json
+{
+  "contributes": {
+    "sidebarRailItems": [
+      {
+        "id": "myPlugin.tools",
+        "title": "My Tools",
+        "icon": "bolt"
+      }
+    ]
+  }
+}
+```
+
 ## hc.ui.registerSidebarSection(section)
 
 **Signature:** `(section: SidebarSectionContribution) => Disposable`

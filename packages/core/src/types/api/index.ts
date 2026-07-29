@@ -19,6 +19,7 @@ import type { ApiMcp } from './mcp';
 import type { ApiRequestHistory } from './requestHistory';
 import type { ApiWorkspaces } from './workspace';
 import type { ApiWorkflows } from './workflow';
+import type { ApiWorkflowRunHistory } from './workflowRunHistory';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
 
@@ -47,6 +48,7 @@ export interface Api
     ApiRequestHistory,
     ApiWorkspaces,
     ApiWorkflows,
+    ApiWorkflowRunHistory,
     ApiTrash,
     ApiTerminal,
     ApiCustomThemes {}

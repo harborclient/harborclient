@@ -20,7 +20,7 @@ const railItems: SidebarRailItemData[] = [
 
 /**
  * Stateful wrapper so Storybook demos can toggle expand/collapse and selection.
- * Renders the five default rail modes with separators between each item.
+ * Renders the five default rail modes with a separator after each item.
  *
  * @param props - Initial expanded/active state and optional select spy.
  * @returns Interactive SidebarRail for stories.
@@ -64,7 +64,7 @@ const meta = {
     expanded: false,
     onSelect: fn(),
     onExpandedChange: fn(),
-    ariaLabel: 'Sidebar'
+    ariaLabel: 'Sidebar modes'
   }
 } satisfies Meta<typeof SidebarRail>;
 
@@ -81,4 +81,33 @@ export const Expanded: Story = {
 
 export const ActiveWorkflows: Story = {
   render: () => <InteractiveRail initialExpanded initialActiveId="workflows" />
+};
+
+export const WithBadge: Story = {
+  render: () => {
+    const itemsWithBadge: SidebarRailItemData[] = railItems.map((item) =>
+      item.id === 'collections' ? { ...item, badge: true } : item
+    );
+
+    return (
+      <div className="flex h-[420px] border border-separator bg-sidebar">
+        <SidebarRail
+          items={itemsWithBadge}
+          activeId="collections"
+          expanded={false}
+          onExpandedChange={fn()}
+          onSelect={fn()}
+          ariaLabel="Sidebar modes"
+          panelId="story-sidebar-rail-panel"
+        />
+        <div
+          id="story-sidebar-rail-panel"
+          role="tabpanel"
+          className="flex flex-1 items-center justify-center text-muted"
+        >
+          Sidebar body
+        </div>
+      </div>
+    );
+  }
 };

@@ -1,0 +1,117 @@
+import { RowActionsMenu, type MenuItem } from '@harborclient/sdk/components';
+import type { WorkflowRunHistoryEntry } from '@harborclient/core/types/workflowRunHistory';
+import { type JSX, useMemo } from 'react';
+
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled,
+  type InspectPoint
+} from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
+
+interface Props {
+  /**
+   * History entry this menu acts on.
+   */
+  entry: WorkflowRunHistoryEntry;
+
+  /**
+   * Whether to show the multi-select bulk delete menu instead of single-item delete.
+   */
+  showBulkMenu: boolean;
+
+  /**
+   * Id of the currently open row actions menu, if any.
+   */
+  openMenuId: string | null;
+
+  /**
+   * Called when this menu opens or closes.
+   */
+  onOpenChange: (menuId: string | null) => void;
+
+  /**
+   * Cursor position captured when the row context menu opened, for DevTools inspect.
+   */
+  inspectPoint: InspectPoint | undefined;
+
+  /**
+   * Deletes this history entry after confirmation in the parent.
+   */
+  onDeleteEntry: (entry: WorkflowRunHistoryEntry) => void;
+
+  /**
+   * Deletes every history entry in the current multi-selection.
+   */
+  onDeleteSelected: () => void;
+}
+
+/**
+ * Builds and renders the workflow history row actions menu.
+ */
+export function WorkflowHistoryActionsMenu({
+  entry,
+  showBulkMenu,
+  openMenuId,
+  onOpenChange,
+  inspectPoint,
+  onDeleteEntry,
+  onDeleteSelected
+}: Props): JSX.Element {
+  const developerToolsEnabled = useDeveloperToolsEnabled();
+  const menuId = `workflow-history-entry-${entry.id}`;
+
+  /**
+   * Assembles Copy ID, delete, and inspect groups for bulk or single-item history menus.
+   */
+  const menuGroups = useMemo((): MenuItem[][] => {
+    const groups: MenuItem[][] = showBulkMenu
+      ? [
+          [
+            {
+              label: 'Delete',
+              variant: 'danger' as const,
+              onSelect: () => {
+                onDeleteSelected();
+              }
+            }
+          ]
+        ]
+      : [
+          [buildCopyIdMenuItem(String(entry.id))],
+          [
+            {
+              label: 'Delete',
+              variant: 'danger',
+              onSelect: () => {
+                onDeleteEntry(entry);
+              }
+            }
+          ]
+        ];
+
+    const inspectGroups = buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled);
+    for (const group of inspectGroups) {
+      groups.push(group);
+    }
+
+    return groups;
+  }, [
+    developerToolsEnabled,
+    entry,
+    inspectPoint,
+    menuId,
+    onDeleteEntry,
+    onDeleteSelected,
+    showBulkMenu
+  ]);
+
+  return (
+    <RowActionsMenu
+      menuId={menuId}
+      openMenuId={openMenuId}
+      onOpenChange={onOpenChange}
+      groups={menuGroups}
+    />
+  );
+}

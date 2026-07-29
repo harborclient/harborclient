@@ -210,6 +210,9 @@ export interface SettingsSectionContribution extends UiContributionBase {
  * To replace the built-in Collections sidebar, set `replaces: "collections"` on
  * the matching manifest entry (not on this runtime object). The host copies that
  * field into the registry when the panel is registered.
+ *
+ * For activity-rail icons that open a sidebar body while keeping the rail
+ * visible, use {@link SidebarRailItemContribution} instead.
  */
 export interface SidebarPanelContribution extends UiContributionBase {
   /**
@@ -225,6 +228,38 @@ export interface SidebarPanelContribution extends UiContributionBase {
   /**
    * Sort order among plugin sidebar panels. Lower values appear first.
    * Also used as a tie-breaker when choosing among multiple `replaces: "collections"` panels.
+   */
+  order?: number;
+}
+
+/**
+ * Registers an activity-rail button that opens a full sidebar body when selected.
+ *
+ * Distinct from {@link SidebarPanelContribution} (horizontal switcher; hides the
+ * rail). Manifest: `contributes.sidebarRailItems`. Requires the `ui` permission.
+ *
+ * The host mounts the body with `resizeMode="fill"` and keeps the activity rail
+ * visible. Use {@link SidebarPanelViewContext} via the host surface context for
+ * the current sidebar selection.
+ */
+export interface SidebarRailItemContribution extends UiContributionBase {
+  /**
+   * Curated icon name shown on the activity rail. The host maps this to a
+   * built-in Font Awesome icon. Supported names: `server`, `database`, `globe`,
+   * `code`, `robot`, `puzzle-piece`, `bolt`, `flask`. Unknown names fall back to
+   * `puzzle-piece`.
+   */
+  icon: string;
+
+  /**
+   * Full sidebar content for this rail destination. Use {@link PluginContext.react}
+   * — do not bundle React.
+   */
+  Component: React.ComponentType;
+
+  /**
+   * Sort order among plugin rail items (appended after built-in modes). Lower
+   * values appear first.
    */
   order?: number;
 }
@@ -987,6 +1022,9 @@ export interface StatusBarItemContribution {
  * - `surface` — main content background
  * - `sidebar` — left sidebar background
  * - `sidebar-toolbar` — sidebar/footer toolbar strip background
+ * - `sidebar-rail` — activity rail background
+ * - `sidebar-rail-active` — active/hover activity rail section fill
+ * - `sidebar-rail-text` — activity rail icons and labels
  * - `sidebar-section` — sidebar section headers
  * - `sidebar-section-text` — sidebar section header labels and chevrons
  * - `footer` — footer status bar background
@@ -1024,6 +1062,9 @@ export type ThemeColorToken =
   | 'surface'
   | 'sidebar'
   | 'sidebar-toolbar'
+  | 'sidebar-rail'
+  | 'sidebar-rail-active'
+  | 'sidebar-rail-text'
   | 'sidebar-section'
   | 'sidebar-section-text'
   | 'footer'
@@ -1741,6 +1782,17 @@ export interface PluginUi {
    * @returns A {@link Disposable} that unregisters the panel when disposed.
    */
   registerSidebarPanel(panel: SidebarPanelContribution): Disposable;
+
+  /**
+   * Registers an activity-rail icon that opens a sidebar body when selected.
+   *
+   * Manifest: `contributes.sidebarRailItems` — `item.id` must match an entry there.
+   * Distinct from {@link PluginUi.registerSidebarPanel} (horizontal switcher).
+   *
+   * @param item - Sidebar rail item contribution.
+   * @returns A {@link Disposable} that unregisters the rail item when disposed.
+   */
+  registerSidebarRailItem(item: SidebarRailItemContribution): Disposable;
 
   /**
    * Adds a collapsible block inside the scrollable sidebar.

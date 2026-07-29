@@ -13,6 +13,7 @@ import {
 import { refreshEnvironments } from './environments';
 import { refreshRunResults } from './runResults';
 import { refreshRequestHistory } from './requestHistory';
+import { refreshWorkflowRunHistory } from './workflowRunHistory';
 import { refreshWorkspaces } from './workspaces';
 import { refreshWorkflows } from './workflows';
 import { refreshTrash } from './trash';
@@ -97,6 +98,7 @@ export function startBackgroundRefresh(dispatch: AppDispatch): void {
   void dispatch(refreshSnippets());
   void dispatch(refreshRunResults());
   void dispatch(refreshRequestHistory());
+  void dispatch(refreshWorkflowRunHistory());
   void dispatch(refreshWorkspaces());
   void dispatch(refreshWorkflows());
   void dispatch(refreshTrash());

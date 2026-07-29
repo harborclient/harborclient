@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Implement workflow run history management and UI enhancements. (`c87feda3`)
 - Enhance development and testing workflow in AGENTS.md and CONTRIBUTING.md. (`181dc04a`)
 - Refactor styling in WorkflowRecordingDialog and TimelineBlock components. (`3f0b9348`)
 

@@ -5,6 +5,7 @@ export const HARBOR_PLUGIN_PROTOCOL = 'harbor-plugin';
 export type PluginContributionKind =
   | 'settingsSections'
   | 'sidebarPanels'
+  | 'sidebarRailItems'
   | 'sidebarSections'
   | 'mainViews'
   | 'requestTabs'

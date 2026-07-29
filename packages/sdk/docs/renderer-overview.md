@@ -136,6 +136,9 @@ export type ThemeColorToken =
   | 'surface'
   | 'sidebar'
   | 'sidebar-toolbar'
+  | 'sidebar-rail'
+  | 'sidebar-rail-active'
+  | 'sidebar-rail-text'
   | 'sidebar-section'
   | 'sidebar-section-text'
   | 'footer'
@@ -263,6 +266,7 @@ export interface PluginActions {
 export interface PluginUi {
   registerSettingsSection(section: SettingsSectionContribution): Disposable;
   registerSidebarPanel(panel: SidebarPanelContribution): Disposable;
+  registerSidebarRailItem(item: SidebarRailItemContribution): Disposable;
   registerSidebarSection(section: SidebarSectionContribution): Disposable;
   registerMainView(view: MainViewContribution): Disposable;
   registerRequestTab(tab: RequestTabContribution): Disposable;

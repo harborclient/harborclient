@@ -7,7 +7,10 @@ import {
   selectionFromState,
   selectionsEqual
 } from '#/renderer/src/plugins/sidebarSelectionMapping';
-import { usePluginSidebarSections } from '#/renderer/src/plugins/pluginHooks';
+import {
+  usePluginSidebarRailItems,
+  usePluginSidebarSections
+} from '#/renderer/src/plugins/pluginHooks';
 import {
   faDiagramProject,
   faFolder,
@@ -28,20 +31,35 @@ import {
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
 import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  selectActiveSidebarRailItemId,
+  setActiveSidebarPanel,
+  setActiveSidebarRailItem
+} from '#/renderer/src/store/slices/navigationSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
 import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
+import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
 import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
+import { WorkflowHistory } from '../History/WorkflowHistory';
+import { WorkflowHistoryHeaderActions } from '../History/WorkflowHistoryHeaderActions';
 import { RunResults, RunsHeaderActions } from '../RunResults';
 import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
 import { Workflows } from '../Workflows';
 import { Archive, ArchiveHeaderActions } from '../Archive';
+import { WorkflowArchive } from '../Archive/WorkflowArchive';
+import { WorkflowArchiveHeaderActions } from '../Archive/WorkflowArchiveHeaderActions';
 import { Trash, TrashHeaderActions } from '../Trash';
 import { SidebarSearch } from '../search/SidebarSearch';
 import { SidebarPanelSwitcher } from './SidebarPanelSwitcher';
 import { useResolvedSidebarPanels } from './useResolvedSidebarPanels';
+import {
+  mergeSidebarRailItems,
+  resolveActiveSidebarRailItem,
+  resolveSidebarChromeVisibility
+} from './sidebarRailResolution';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
 import { hasExpandedSidebarTreesForMode } from '../expansion/hasExpandedSidebarTrees';
@@ -57,6 +75,11 @@ const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
   { id: 'workflows', icon: faDiagramProject, label: 'Workflows' },
   { id: 'trash', icon: faTrash, label: 'Trash' }
 ];
+
+/**
+ * Stable id for the sidebar body panel controlled by rail tabs (`aria-controls`).
+ */
+const SIDEBAR_RAIL_PANEL_ID = 'hc-sidebar-rail-panel';
 
 /**
  * Returns whether a value is a known {@link SidebarMode}.
@@ -75,20 +98,23 @@ function isSidebarMode(value: string): value is SidebarMode {
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
- * search above a vertical activity rail and the section accordion, with a
- * collapse-all header row aligned to section action buttons.
+ * optional search, then a full-width collapse-all header above the vertical
+ * activity rail and section accordion (collapse aligned to section action buttons).
  * Sections source their own data and actions; this shell wires layout and mode state.
  *
  * When a registered panel declares `replaces: "collections"`, that panel becomes
  * the default body (primary collections surface) and the built-in tree is hidden.
+ * Plugin `sidebarRailItems` append to the activity rail and open a HostedSurface
+ * while keeping the rail visible (distinct from switcher `sidebarPanels`).
  */
 export function SidebarContent(): JSX.Element {
   const dispatch = useAppDispatch();
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+  const activeSidebarRailItemId = useAppSelector(selectActiveSidebarRailItemId);
   const sidebarSelection = useAppSelector(selectionFromState, selectionsEqual);
   /**
-   * Stable view context for sidebar panel HostedSurface mounts.
+   * Stable view context for sidebar panel and rail-item HostedSurface mounts.
    * Recreates only when the derived selection identity changes.
    */
   const sidebarPanelContext = useMemo(
@@ -96,6 +122,7 @@ export function SidebarContent(): JSX.Element {
     [sidebarSelection]
   );
   const pluginSidebarSections = usePluginSidebarSections();
+  const pluginSidebarRailItems = usePluginSidebarRailItems();
   const { activePanelId, collectionsReplacement, displayedPanel, switcherPanels, showSwitcher } =
     useResolvedSidebarPanels();
 
@@ -132,17 +159,49 @@ export function SidebarContent(): JSX.Element {
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
 
   /**
-   * Selects an activity-rail mode from a rail item id.
+   * Active plugin rail contribution, or null when a built-in mode / switcher panel is shown.
+   * Stale ids (unregistered contributions) resolve to null and fall through to the
+   * switcher panel or built-in accordion without writing Redux.
+   */
+  const activeRailItem = useMemo(
+    () => resolveActiveSidebarRailItem(pluginSidebarRailItems, activeSidebarRailItemId),
+    [pluginSidebarRailItems, activeSidebarRailItemId]
+  );
+
+  /**
+   * Built-in modes plus registered plugin rail destinations.
+   */
+  const railItems = useMemo(
+    () => mergeSidebarRailItems(SIDEBAR_RAIL_ITEMS, pluginSidebarRailItems, resolvePluginTabIcon),
+    [pluginSidebarRailItems]
+  );
+
+  const { showSearch, showRail } = resolveSidebarChromeVisibility(
+    displayedPanel != null && activeRailItem == null,
+    activeRailItem != null
+  );
+
+  /**
+   * Highlighted rail destination: plugin item when selected, otherwise the built-in mode.
+   */
+  const railActiveId = activeRailItem?.id ?? activeSidebarMode;
+
+  /**
+   * Selects a built-in mode or plugin rail destination from a rail item id.
    *
-   * @param id - Rail item id matching a {@link SidebarMode}.
+   * @param id - Built-in {@link SidebarMode} or namespaced plugin rail item id.
    */
   const handleRailSelect = useCallback(
     (id: string): void => {
       if (isSidebarMode(id)) {
         setActiveSidebarMode(id);
+        dispatch(setActiveSidebarRailItem(null));
+        dispatch(setActiveSidebarPanel(null));
+        return;
       }
+      dispatch(setActiveSidebarRailItem(id));
     },
-    [setActiveSidebarMode]
+    [dispatch, setActiveSidebarMode]
   );
 
   /**
@@ -186,12 +245,15 @@ export function SidebarContent(): JSX.Element {
 
   /**
    * Collapsible section config for the sidebar body driven by rail mode / search.
+   *
+   * Built-in sections follow {@link mountedSectionKeys} order (from
+   * {@link SIDEBAR_MODE_SECTIONS}) so Workflows mode renders workflows → history → archive.
    */
   const sections = useMemo((): SidebarSectionConfig[] => {
-    const result: SidebarSectionConfig[] = [];
+    const byKey: Partial<Record<SidebarSectionKey, SidebarSectionConfig>> = {};
 
     if (isSectionMounted('collections')) {
-      result.push({
+      byKey.collections = {
         key: 'collections',
         title: 'Collections',
         ariaLabel: 'Collections',
@@ -200,33 +262,38 @@ export function SidebarContent(): JSX.Element {
         addLabel: 'Add Collection',
         headerActions: <CollectionsHeaderActions />,
         children: <Collections key={searchActive ? 'search' : 'browse'} />
-      });
+      };
     }
 
     if (isSectionMounted('runResults')) {
-      result.push({
+      byKey.runResults = {
         key: 'runResults',
         title: 'Runs',
         ariaLabel: 'Runs',
         initialEntered: runResultsSectionExpanded,
         headerActions: <RunsHeaderActions />,
         children: <RunResults />
-      });
+      };
     }
 
     if (isSectionMounted('history')) {
-      result.push({
+      byKey.history = {
         key: 'history',
         title: 'History',
         ariaLabel: 'History',
         initialEntered: historySectionExpanded,
-        headerActions: <HistoryHeaderActions />,
-        children: <History />
-      });
+        headerActions:
+          activeSidebarMode === 'workflows' ? (
+            <WorkflowHistoryHeaderActions />
+          ) : (
+            <HistoryHeaderActions />
+          ),
+        children: activeSidebarMode === 'workflows' ? <WorkflowHistory /> : <History />
+      };
     }
 
     if (isSectionMounted('environments')) {
-      result.push({
+      byKey.environments = {
         key: 'environments',
         title: 'Environments',
         ariaLabel: 'Environments',
@@ -235,11 +302,11 @@ export function SidebarContent(): JSX.Element {
         addLabel: 'Add Environment',
         headerActions: <EnvironmentsHeaderActions />,
         children: <Environments />
-      });
+      };
     }
 
     if (isSectionMounted('workspaces')) {
-      result.push({
+      byKey.workspaces = {
         key: 'workspaces',
         title: 'Workspaces',
         ariaLabel: 'Workspaces',
@@ -248,11 +315,11 @@ export function SidebarContent(): JSX.Element {
         addLabel: 'Add Workspace',
         headerActions: <WorkspacesHeaderActions />,
         children: <Workspaces />
-      });
+      };
     }
 
     if (isSectionMounted('workflows')) {
-      result.push({
+      byKey.workflows = {
         key: 'workflows',
         title: 'Workflows',
         ariaLabel: 'Workflows',
@@ -264,29 +331,42 @@ export function SidebarContent(): JSX.Element {
         },
         addLabel: 'Record workflow',
         children: <Workflows />
-      });
+      };
     }
 
     if (isSectionMounted('archive')) {
-      result.push({
+      byKey.archive = {
         key: 'archive',
         title: 'Archive',
         ariaLabel: 'Archive',
         initialEntered: archiveSectionExpanded,
-        headerActions: <ArchiveHeaderActions />,
-        children: <Archive />
-      });
+        headerActions:
+          activeSidebarMode === 'workflows' ? (
+            <WorkflowArchiveHeaderActions />
+          ) : (
+            <ArchiveHeaderActions />
+          ),
+        children: activeSidebarMode === 'workflows' ? <WorkflowArchive /> : <Archive />
+      };
     }
 
     if (isSectionMounted('trash')) {
-      result.push({
+      byKey.trash = {
         key: 'trash',
         title: 'Trash',
         ariaLabel: 'Trash',
         initialEntered: trashSectionExpanded,
         headerActions: <TrashHeaderActions />,
         children: <Trash />
-      });
+      };
+    }
+
+    const result: SidebarSectionConfig[] = [];
+    for (const key of mountedSectionKeys) {
+      const config = byKey[key];
+      if (config != null) {
+        result.push(config);
+      }
     }
 
     if (activeSidebarMode === 'collections' && !searchActive) {
@@ -326,6 +406,7 @@ export function SidebarContent(): JSX.Element {
     environmentsSectionExpanded,
     historySectionExpanded,
     isSectionMounted,
+    mountedSectionKeys,
     openAddEnvironment,
     pluginSectionExpanded,
     pluginSidebarSections,
@@ -364,24 +445,26 @@ export function SidebarContent(): JSX.Element {
     sections
   ]);
 
-  const showChrome = !displayedPanel;
+  const showPluginBody = activeRailItem != null || displayedPanel != null;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar">
-      {showChrome ? (
+      {showSearch ? (
         <div className="shrink-0 border-b border-separator">
           <SidebarSearch value={searchQuery} onChange={setSearchQuery} loading={searchLoading} />
         </div>
       ) : null}
+      {!showPluginBody ? <SidebarCollapseAllHeader onClick={handleCollapseAll} /> : null}
       <div className="flex min-h-0 min-w-0 flex-1">
-        {showChrome ? (
+        {showRail ? (
           <SidebarRail
-            items={SIDEBAR_RAIL_ITEMS}
-            activeId={activeSidebarMode}
+            items={railItems}
+            activeId={railActiveId}
             expanded={sidebarRailExpanded}
             onExpandedChange={setSidebarRailExpanded}
             onSelect={handleRailSelect}
-            ariaLabel="Sidebar"
+            ariaLabel="Sidebar modes"
+            panelId={SIDEBAR_RAIL_PANEL_ID}
           />
         ) : null}
         <Sidebar
@@ -392,19 +475,32 @@ export function SidebarContent(): JSX.Element {
           minSize={240}
           getMaxSize={() => 640}
           resizeAriaLabel="Resize sidebar"
-          scroll={!displayedPanel}
+          scroll={!showPluginBody}
           asideClassName="h-full min-h-0"
+          bodyId={showRail ? SIDEBAR_RAIL_PANEL_ID : undefined}
+          bodyRole={showRail ? 'tabpanel' : undefined}
           header={
-            <SidebarPanelSwitcher
-              panels={switcherPanels}
-              activePanelId={activePanelId}
-              collectionsReplacement={collectionsReplacement}
-              showSwitcher={showSwitcher}
-            />
+            activeRailItem == null ? (
+              <SidebarPanelSwitcher
+                panels={switcherPanels}
+                activePanelId={activePanelId}
+                collectionsReplacement={collectionsReplacement}
+                showSwitcher={showSwitcher}
+              />
+            ) : undefined
           }
-          bodyClassName={displayedPanel ? 'px-2 py-2' : 'pr-2 pb-3'}
+          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pr-2 pb-3'}
         >
-          {displayedPanel ? (
+          {activeRailItem != null ? (
+            <HostedSurface
+              pluginId={activeRailItem.pluginId}
+              contributionId={activeRailItem.contributionId}
+              kind="sidebarRailItems"
+              resizeMode="fill"
+              className="h-full"
+              context={sidebarPanelContext}
+            />
+          ) : displayedPanel != null ? (
             <HostedSurface
               pluginId={displayedPanel.pluginId}
               contributionId={displayedPanel.contributionId}
@@ -414,10 +510,7 @@ export function SidebarContent(): JSX.Element {
               context={sidebarPanelContext}
             />
           ) : (
-            <>
-              <SidebarCollapseAllHeader onClick={handleCollapseAll} />
-              <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
-            </>
+            <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
           )}
         </Sidebar>
       </div>

@@ -616,6 +616,24 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
           panel.Component
         );
       },
+      registerSidebarRailItem: (item) => {
+        assertManifestContribution('sidebarRailItems', item.id);
+        if (!canRegisterUi()) {
+          return noopDisposable();
+        }
+        return registerUiContribution(
+          'sidebarRailItems',
+          item.id,
+          {
+            id: `plugin:${pluginId}:${item.id}`,
+            title: item.title,
+            icon: item.icon,
+            order: item.order,
+            contributionId: item.id
+          },
+          item.Component
+        );
+      },
       registerSidebarSection: (section) => {
         assertManifestContribution('sidebarSections', section.id);
         if (!canRegisterUi()) {
@@ -1305,7 +1323,8 @@ export function mountContributionView({
     'collectionSettingsTabs',
     'modals',
     'mainViews',
-    'sidebarPanels'
+    'sidebarPanels',
+    'sidebarRailItems'
   ]);
 
   if (FILL_SURFACE_KINDS.has(kind) && slot === 'content') {

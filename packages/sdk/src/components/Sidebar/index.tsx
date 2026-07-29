@@ -50,6 +50,16 @@ interface Props {
   bodyClassName?: string;
 
   /**
+   * Optional id for the body wrapper (e.g. rail `aria-controls` target).
+   */
+  bodyId?: string;
+
+  /**
+   * Optional ARIA role for the body wrapper (e.g. `tabpanel` with a rail tablist).
+   */
+  bodyRole?: string;
+
+  /**
    * Additional classes for the resizable aside element.
    */
   asideClassName?: string;
@@ -99,6 +109,8 @@ export function Sidebar({
   scrollAxis = 'vertical',
   scrollbarAutoHide = true,
   bodyClassName,
+  bodyId,
+  bodyRole,
   asideClassName,
   resizeHandleClassName,
   resizeAriaLabel,
@@ -148,6 +160,8 @@ export function Sidebar({
 
   const body = scroll ? (
     <Scrollbars
+      id={bodyId}
+      role={bodyRole}
       axis={scrollAxis}
       autoHide={scrollbarAutoHide}
       className={cn('min-h-0 flex-1', bodyClassName)}
@@ -155,7 +169,9 @@ export function Sidebar({
       {scrollBody}
     </Scrollbars>
   ) : (
-    <div className={cn('flex min-h-0 flex-1 flex-col', bodyClassName)}>{children}</div>
+    <div id={bodyId} role={bodyRole} className={cn('flex min-h-0 flex-1 flex-col', bodyClassName)}>
+      {children}
+    </div>
   );
 
   const aside = (

@@ -70,8 +70,10 @@ const DEFAULT_SHOW_SORTING = false;
 /**
  * Sections mounted for each activity-rail mode.
  *
- * History and Archive appear under both Collections and Workflows; they are the
- * same shared section components, not mode-scoped variants.
+ * History and Archive appear under both Collections and Workflows. The shell
+ * mounts mode-scoped content: Collections mode shows request history and
+ * archived collections; Workflows mode shows workflow run history and archived
+ * workflows. Array order is the visual accordion order.
  */
 export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionKey[]> = {
   collections: ['collections', 'runResults', 'history', 'archive'],

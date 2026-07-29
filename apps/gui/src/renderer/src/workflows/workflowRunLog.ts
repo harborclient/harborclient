@@ -196,6 +196,40 @@ export function getWorkflowRunExportForEntry(index: number): WorkflowRunExport |
 }
 
 /**
+ * Replaces the in-memory run log with a previously persisted workflow run.
+ *
+ * Used when opening a Workflows History row so the results page can render that run.
+ *
+ * @param input - Run metadata and ordered steps with original actions.
+ */
+export function loadWorkflowRunLogFromHistory(input: {
+  workflowUuid: string;
+  name: string;
+  environment: string;
+  date_created: string;
+  steps: ReadonlyArray<{
+    action: WorkflowAction;
+    result: WorkflowRunActionResult;
+    ranAt: string;
+    durationMs: number;
+  }>;
+}): void {
+  meta = {
+    workflowUuid: input.workflowUuid,
+    name: input.name,
+    environment: input.environment,
+    date_created: input.date_created
+  };
+  entries = input.steps.map((step) => ({
+    action: { ...step.action },
+    result: step.result,
+    ranAt: step.ranAt,
+    durationMs: step.durationMs
+  }));
+  notifyRunLogListeners();
+}
+
+/**
  * Subscribes to run-log changes (append, clear, begin).
  *
  * @param listener - Called when the log changes.

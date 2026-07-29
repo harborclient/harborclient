@@ -7,11 +7,17 @@ import {
   useRef
 } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
-import { cn } from '../utils.js';
+import { cn, resolveTabListKeyAction } from '../utils.js';
 import { SidebarRailItem, type SidebarRailItemData } from './SidebarRailItem.js';
 import { SidebarRailSeparator } from './SidebarRailSeparator.js';
 
 export type { SidebarRailItemData };
+
+/**
+ * Shared focus-visible outline for the expand/collapse control.
+ */
+const railExpandFocusVisible =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 
 interface Props extends Omit<
   ComponentPropsWithoutRef<'div'>,
@@ -47,19 +53,25 @@ interface Props extends Omit<
   onExpandedChange: (expanded: boolean) => void;
 
   /**
-   * Accessible name for the vertical toolbar landmark.
+   * Accessible name for the vertical tablist of sidebar modes.
    */
   ariaLabel?: string;
+
+  /**
+   * Id of the sidebar panel controlled by each rail tab (`aria-controls`).
+   */
+  panelId?: string;
 }
 
 /**
  * Vertical activity rail for switching sidebar modes.
  *
  * Collapsed shows icons only; expanded shows icons with labels. Each item is a
- * full-width section with edge-to-edge separators between them; selection chrome
- * fills the active section. The footer expand control is divided by a top
- * border. Arrow keys move focus between items; Home/End jump to the first/last
- * item.
+ * full-width tab section with an edge-to-edge separator after it (including the
+ * last item, so the list has a bottom border before the footer); active chrome
+ * uses the sidebar-rail-active token. Items form a vertical tablist with
+ * roving tabindex; Arrow keys move focus and selection; Home/End jump to the
+ * first/last item. Expand/collapse sits outside the tablist as its own Tab stop.
  */
 export function SidebarRail({
   items,
@@ -67,7 +79,8 @@ export function SidebarRail({
   onSelect,
   expanded,
   onExpandedChange,
-  ariaLabel = 'Sidebar',
+  ariaLabel = 'Sidebar modes',
+  panelId,
   className,
   ...props
 }: Props): JSX.Element {
@@ -84,40 +97,28 @@ export function SidebarRail({
   }, []);
 
   /**
-   * Handles toolbar keyboard navigation for a rail item button.
+   * Handles tablist keyboard navigation: arrows/Home/End move focus and select.
    *
    * @param event - Keyboard event from the focused item.
    * @param index - Index of the item that received the event.
    */
   const handleItemKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-      const lastIndex = items.length - 1;
-      if (lastIndex < 0) {
+      const nextIndex = resolveTabListKeyAction(event.key, index, items.length);
+      if (nextIndex === null) {
         return;
       }
 
-      switch (event.key) {
-        case 'ArrowDown':
-          event.preventDefault();
-          focusItemAt(index === lastIndex ? 0 : index + 1);
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          focusItemAt(index === 0 ? lastIndex : index - 1);
-          break;
-        case 'Home':
-          event.preventDefault();
-          focusItemAt(0);
-          break;
-        case 'End':
-          event.preventDefault();
-          focusItemAt(lastIndex);
-          break;
-        default:
-          break;
+      event.preventDefault();
+      const nextItem = items[nextIndex];
+      if (nextItem == null) {
+        return;
       }
+
+      onSelect(nextItem.id);
+      focusItemAt(nextIndex);
     },
-    [focusItemAt, items.length]
+    [focusItemAt, items, onSelect]
   );
 
   /**
@@ -127,59 +128,62 @@ export function SidebarRail({
     onExpandedChange(!expanded);
   }, [expanded, onExpandedChange]);
 
+  const expandLabel = expanded ? 'Collapse' : 'Expand';
+  const expandAriaLabel = expanded ? 'Collapse sidebar rail' : 'Expand sidebar rail';
+
   return (
     <div
       {...props}
-      role="toolbar"
-      aria-orientation="vertical"
-      aria-label={ariaLabel}
       className={cn(
-        'hc-sidebar-rail app-no-drag flex h-full shrink-0 flex-col border-r border-separator bg-sidebar-toolbar',
+        'hc-sidebar-rail app-no-drag flex h-full shrink-0 flex-col bg-sidebar-rail text-sidebar-rail-text',
         expanded ? 'w-[168px]' : 'w-18',
         'transition-[width] duration-200 ease-out motion-reduce:transition-none',
         className
       )}
     >
-      <div className="hc-sidebar-rail-items flex min-h-0 flex-1 flex-col items-stretch overflow-x-hidden overflow-y-auto">
-        {items.flatMap((item, index) => {
-          const nodes: JSX.Element[] = [
-            <SidebarRailItem
-              key={item.id}
-              item={item}
-              active={item.id === activeId}
-              expanded={expanded}
-              onSelect={() => onSelect(item.id)}
-              onKeyDown={(event) => handleItemKeyDown(event, index)}
-              buttonRef={(node) => {
-                itemRefs.current[index] = node;
-              }}
-            />
-          ];
-          if (index < items.length - 1) {
-            nodes.push(<SidebarRailSeparator key={`${item.id}-separator`} />);
-          }
-          return nodes;
-        })}
+      <div
+        role="tablist"
+        aria-orientation="vertical"
+        aria-label={ariaLabel}
+        className="hc-sidebar-rail-items flex min-h-0 flex-1 flex-col items-stretch overflow-x-hidden overflow-y-auto"
+      >
+        {items.flatMap((item, index) => [
+          <SidebarRailItem
+            key={item.id}
+            item={item}
+            active={item.id === activeId}
+            expanded={expanded}
+            tabIndex={item.id === activeId ? 0 : -1}
+            panelId={panelId}
+            onSelect={() => onSelect(item.id)}
+            onKeyDown={(event) => handleItemKeyDown(event, index)}
+            buttonRef={(node) => {
+              itemRefs.current[index] = node;
+            }}
+          />,
+          <SidebarRailSeparator key={`${item.id}-separator`} />
+        ])}
       </div>
-      <div className="hc-sidebar-rail-footer shrink-0 border-t border-separator">
+      <div className="hc-sidebar-rail-footer shrink-0">
         <button
           type="button"
           className={cn(
-            'hc-sidebar-rail-expand app-no-drag inline-flex h-10 w-full cursor-pointer items-center rounded-none border-none bg-transparent text-text',
+            'hc-sidebar-rail-expand app-no-drag inline-flex min-h-12 w-full cursor-pointer items-center rounded-none border-none bg-transparent py-3 text-sidebar-rail-text',
             expanded ? 'gap-2 px-3' : 'justify-center',
-            'hover:bg-selection focus-visible:bg-selection'
+            'hover:bg-sidebar-rail-active',
+            railExpandFocusVisible
           )}
-          aria-label={expanded ? 'Collapse sidebar rail' : 'Expand sidebar rail'}
+          aria-label={expanded ? undefined : expandAriaLabel}
           aria-expanded={expanded}
-          title={expanded ? 'Collapse' : 'Expand'}
+          title={expandLabel}
           onClick={handleToggleExpanded}
         >
           <FaIcon
             icon={expanded ? faAnglesLeft : faAnglesRight}
-            className="h-[18px]! w-[18px]! opacity-50"
+            className="h-[18px]! w-[18px]!"
             aria-hidden
           />
-          {expanded ? <span className="min-w-0 truncate text-left">Collapse</span> : null}
+          {expanded ? <span className="min-w-0 truncate text-left">{expandLabel}</span> : null}
         </button>
       </div>
     </div>

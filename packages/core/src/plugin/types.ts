@@ -89,6 +89,11 @@ export interface PluginManifest {
   contributes?: {
     settingsSections?: ManifestContributionEntry[];
     sidebarPanels?: SidebarPanelManifestEntry[];
+    /**
+     * Activity-rail destinations that open a full sidebar body when selected.
+     * Distinct from switcher-based `sidebarPanels` (horizontal tab strip).
+     */
+    sidebarRailItems?: ManifestContributionEntry[];
     sidebarSections?: ManifestContributionEntry[];
     mainViews?: ManifestContributionEntry[];
     modals?: ManifestContributionEntry[];
@@ -273,6 +278,23 @@ export interface RegisteredSidebarPanel {
    * surface (see `selectCollectionsReplacementPanel`).
    */
   replaces?: 'collections';
+}
+
+/**
+ * Registered activity-rail item that opens a plugin sidebar body when selected.
+ *
+ * Distinct from {@link RegisteredSidebarPanel} (horizontal switcher destinations).
+ */
+export interface RegisteredSidebarRailItem {
+  pluginId: string;
+  id: string;
+  title: string;
+  /**
+   * Curated icon name resolved by the host (for example `bolt`).
+   */
+  icon: string;
+  order?: number;
+  contributionId: string;
 }
 
 /**

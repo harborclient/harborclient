@@ -4,17 +4,22 @@ import {
   SidebarWorkspaceItem
 } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
+import toast from 'react-hot-toast';
 import type { Workflow } from '@harborclient/core/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectActiveWorkflows } from '#/renderer/src/store/selectors';
 import {
   openWorkflowEditDialog,
   openWorkflowPlayDialog,
   selectPlaybackWorkflowId,
-  selectWorkflowDialogMode,
-  selectWorkflows
+  selectWorkflowDialogMode
 } from '#/renderer/src/store/slices/workflowsSlice';
-import { deleteWorkflow, exportWorkflow } from '#/renderer/src/store/thunks/workflows';
+import {
+  deleteWorkflow,
+  exportWorkflow,
+  setWorkflowArchived
+} from '#/renderer/src/store/thunks/workflows';
 import { faDiagramProject } from '#/renderer/src/fontawesome';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
@@ -33,12 +38,12 @@ import {
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 
 /**
- * Workflows sidebar section listing saved recordings with play, edit, copy-id, export, and delete actions.
+ * Workflows sidebar section listing saved recordings with play, edit, copy-id, export, archive, and delete actions.
  */
 export function Workflows(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
-  const allWorkflows = useAppSelector(selectWorkflows);
+  const allWorkflows = useAppSelector(selectActiveWorkflows);
   const playbackWorkflowId = useAppSelector(selectPlaybackWorkflowId);
   const dialogMode = useAppSelector(selectWorkflowDialogMode);
   const { sectionSort } = useSidebarExpansion();
@@ -78,6 +83,23 @@ export function Workflows(): JSX.Element {
       }
     },
     [confirm, dispatch]
+  );
+
+  /**
+   * Archives one workflow after confirmation.
+   *
+   * @param workflow - Workflow to archive.
+   */
+  const handleArchive = useCallback(
+    async (workflow: Workflow): Promise<void> => {
+      try {
+        await dispatch(setWorkflowArchived({ id: workflow.id, archived: true })).unwrap();
+        toast.success(`Archived workflow “${workflow.name}”`);
+      } catch (error) {
+        showAlert(dispatch, formatErrorMessage(error, 'Failed to archive workflow'));
+      }
+    },
+    [dispatch]
   );
 
   /**
@@ -170,6 +192,12 @@ export function Workflows(): JSX.Element {
                       label: 'Export',
                       onSelect: () => {
                         void dispatch(exportWorkflow(workflow.id));
+                      }
+                    },
+                    {
+                      label: 'Archive',
+                      onSelect: () => {
+                        void handleArchive(workflow);
                       }
                     }
                   ],

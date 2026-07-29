@@ -46,6 +46,26 @@ export const selectArchivedCollections = createSelector([selectCollections], (co
 );
 
 /**
+ * Returns all workflows loaded in the store.
+ */
+export const selectAllWorkflows = (state: RootState): RootState['workflows']['items'] =>
+  state.workflows.items;
+
+/**
+ * Returns workflows that are not archived (shown in the Workflows list).
+ */
+export const selectActiveWorkflows = createSelector([selectAllWorkflows], (workflows) =>
+  workflows.filter((workflow) => !workflow.archived)
+);
+
+/**
+ * Returns workflows marked archived (shown in the Archive sidebar under Workflows mode).
+ */
+export const selectArchivedWorkflows = createSelector([selectAllWorkflows], (workflows) =>
+  workflows.filter((workflow) => Boolean(workflow.archived))
+);
+
+/**
  * Returns all saved run result summaries loaded in the store.
  */
 export const selectRunResults = (state: RootState): RootState['runResults']['items'] =>

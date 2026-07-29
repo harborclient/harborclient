@@ -15,6 +15,7 @@ import {
 import { buildWorkflowRunRequestResultFromSend } from './buildWorkflowRunRequestResultFromSend';
 import { enrichWorkflowSendDisplayFields } from './enrichWorkflowSendDisplayFields';
 import { exportCompletedWorkflowRunIfConfigured } from './exportCompletedWorkflowRunIfConfigured';
+import { recordCurrentWorkflowRunHistory } from '#/renderer/src/store/thunks/workflowRunHistory';
 import type { RequestRunOutcome } from '#/renderer/src/store/thunks/requests';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
@@ -631,6 +632,7 @@ export async function startPlayback(ctx: WorkflowPlayCtx): Promise<void> {
       stopPlayback();
       if (completedFullRun) {
         await exportCompletedWorkflowRunIfConfigured(ctx.getState);
+        await ctx.dispatch(recordCurrentWorkflowRunHistory());
       }
     }
   } catch (error) {

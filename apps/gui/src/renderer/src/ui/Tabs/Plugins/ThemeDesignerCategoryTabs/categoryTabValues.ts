@@ -27,11 +27,11 @@ export interface ThemeDesignerCategoryTab {
  */
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'Layout':
-    'Main surfaces: app background, sidebar, sidebar toolbar and sections, footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
+    'Main surfaces: app background, sidebar, sidebar toolbar, activity rail, sidebar sections, footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
   'Breadcrumb':
     'Path breadcrumbs above the editor: background, segment chips, and breadcrumb typography.',
   'Text':
-    'Primary, secondary, and muted text across the app, including sidebar section labels and footer copy — plus body, small, large, and monospace fonts.',
+    'Primary, secondary, and muted text across the app, including sidebar section labels, activity rail labels, and footer copy — plus body, small, large, and monospace fonts.',
   'Interactive':
     'Accent for primary actions and focus, text selection, and documentation markdown links — plus interactive control typography, borders, radius, and focus ring.',
   'Chrome':

@@ -29,4 +29,8 @@ export function registerWorkflowHandlers(): void {
     getTrashService().moveWorkflowToTrash(id);
     return getLocalDatabase().listWorkflows();
   });
+
+  handle('workflows:setArchived', ipcArgSchemas.workflowsSetArchived, (_event, id, archived) =>
+    getLocalDatabase().setWorkflowArchived(id, archived)
+  );
 }

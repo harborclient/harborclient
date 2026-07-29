@@ -38,6 +38,11 @@ import {
 } from '@harborclient/core/types/workspace';
 import type { InsertTrashItemInput, TrashItem } from '@harborclient/core/types/trash';
 import { REQUEST_HISTORY_CAP } from '@harborclient/core/types/requestHistory';
+import {
+  WORKFLOW_RUN_HISTORY_CAP,
+  type WorkflowRunHistoryEntry,
+  type WorkflowRunHistoryPayload
+} from '@harborclient/core/types/workflowRunHistory';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
@@ -45,7 +50,8 @@ import type { ScriptStage } from '@harborclient/sdk';
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
 const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
-const WORKFLOW_COLUMNS = 'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at';
+const WORKFLOW_COLUMNS =
+  'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at, archived';
 
 /**
  * Stored JSON payload for a workflow row.
@@ -506,8 +512,20 @@ export class LocalDatabase {
         duration_ms INTEGER NOT NULL DEFAULT 0,
         sort_order  INTEGER NOT NULL DEFAULT 0,
         created_at  INTEGER NOT NULL,
-        updated_at  INTEGER NOT NULL
+        updated_at  INTEGER NOT NULL,
+        archived    INTEGER NOT NULL DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS workflow_run_history (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        workflow_uuid TEXT    NOT NULL,
+        name          TEXT    NOT NULL,
+        environment   TEXT    NOT NULL DEFAULT '',
+        date_created  TEXT    NOT NULL,
+        ts            INTEGER NOT NULL,
+        payload       TEXT    NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_workflow_run_history_ts ON workflow_run_history (ts DESC);
 
       CREATE TABLE IF NOT EXISTS trash_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -538,6 +556,8 @@ export class LocalDatabase {
     this.migrateRequestHistoryTable();
     this.migrateWorkspacesTable();
     this.migrateWorkflowsTable();
+    this.migrateWorkflowsArchived();
+    this.migrateWorkflowRunHistoryTable();
     this.migrateTrashTable();
     this.migrateLegacyTabGroupTrashItems();
     migrateSidebarMarkerColumn(this.getDb(), 'environments');
@@ -710,8 +730,40 @@ export class LocalDatabase {
         duration_ms INTEGER NOT NULL DEFAULT 0,
         sort_order  INTEGER NOT NULL DEFAULT 0,
         created_at  INTEGER NOT NULL,
-        updated_at  INTEGER NOT NULL
+        updated_at  INTEGER NOT NULL,
+        archived    INTEGER NOT NULL DEFAULT 0
       );
+    `);
+  }
+
+  /**
+   * Adds archived to legacy workflow databases when missing.
+   */
+  private migrateWorkflowsArchived(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(workflows)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.length === 0 || columns.some((col) => col.name === 'archived')) {
+      return;
+    }
+    this.getDb().exec('ALTER TABLE workflows ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+  }
+
+  /**
+   * Ensures the workflow run history table exists on legacy databases.
+   */
+  private migrateWorkflowRunHistoryTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS workflow_run_history (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        workflow_uuid TEXT    NOT NULL,
+        name          TEXT    NOT NULL,
+        environment   TEXT    NOT NULL DEFAULT '',
+        date_created  TEXT    NOT NULL,
+        ts            INTEGER NOT NULL,
+        payload       TEXT    NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_workflow_run_history_ts ON workflow_run_history (ts DESC);
     `);
   }
 
@@ -2617,6 +2669,7 @@ export class LocalDatabase {
       sort_order: number;
       created_at: number;
       updated_at: number;
+      archived: number;
     }>;
 
     return rows.map((row) => {
@@ -2630,7 +2683,8 @@ export class LocalDatabase {
         variables: payload.variables,
         actions: payload.actions,
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
+        archived: Boolean(row.archived)
       };
     });
   }
@@ -2739,6 +2793,114 @@ export class LocalDatabase {
   deleteWorkflow(id: number): Workflow[] {
     this.getDb().prepare('DELETE FROM workflows WHERE id = ?').run(id);
     return this.listWorkflows();
+  }
+
+  /**
+   * Marks or unmarks a workflow as archived and returns the refreshed list.
+   *
+   * @param id - Workflow id.
+   * @param archived - When true, hide the workflow from the Workflows list.
+   * @returns Updated workflow list.
+   */
+  setWorkflowArchived(id: number, archived: boolean): Workflow[] {
+    this.getDb()
+      .prepare('UPDATE workflows SET archived = ?, updated_at = ? WHERE id = ?')
+      .run(archived ? 1 : 0, Date.now(), id);
+    return this.listWorkflows();
+  }
+
+  /**
+   * Loads persisted workflow run history entries, newest first.
+   *
+   * @param cap - Maximum number of entries to return.
+   * @returns Workflow run history entries ordered newest-first.
+   */
+  listWorkflowRunHistory(cap = WORKFLOW_RUN_HISTORY_CAP): WorkflowRunHistoryEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT id, workflow_uuid, name, environment, date_created, ts, payload
+         FROM workflow_run_history
+         ORDER BY ts DESC
+         LIMIT ?`
+      )
+      .all(cap) as Array<{
+      id: number;
+      workflow_uuid: string;
+      name: string;
+      environment: string;
+      date_created: string;
+      ts: number;
+      payload: string;
+    }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      workflowUuid: row.workflow_uuid,
+      name: row.name,
+      environment: row.environment,
+      dateCreated: row.date_created,
+      ts: row.ts,
+      payload: JSON.parse(row.payload) as WorkflowRunHistoryPayload
+    }));
+  }
+
+  /**
+   * Inserts a workflow run history entry and prunes older rows beyond the cap.
+   *
+   * @param entry - Captured run to persist (id is assigned by the database when omitted).
+   * @param cap - Maximum number of entries to retain.
+   * @returns Updated workflow run history list ordered newest-first.
+   */
+  addWorkflowRunHistory(
+    entry: Omit<WorkflowRunHistoryEntry, 'id'> & { id?: number },
+    cap = WORKFLOW_RUN_HISTORY_CAP
+  ): WorkflowRunHistoryEntry[] {
+    const db = this.getDb();
+    const insert = db.prepare(
+      `INSERT INTO workflow_run_history
+        (workflow_uuid, name, environment, date_created, ts, payload)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    );
+    const prune = db.prepare(
+      `DELETE FROM workflow_run_history
+       WHERE id NOT IN (
+         SELECT id FROM workflow_run_history ORDER BY ts DESC LIMIT ?
+       )`
+    );
+
+    const transaction = db.transaction(() => {
+      insert.run(
+        entry.workflowUuid,
+        entry.name,
+        entry.environment,
+        entry.dateCreated,
+        entry.ts,
+        JSON.stringify(entry.payload)
+      );
+      prune.run(cap);
+    });
+
+    transaction();
+    return this.listWorkflowRunHistory(cap);
+  }
+
+  /**
+   * Removes all persisted workflow run history entries.
+   */
+  clearWorkflowRunHistory(): void {
+    this.getDb().prepare('DELETE FROM workflow_run_history').run();
+  }
+
+  /**
+   * Removes one persisted workflow run history entry by id.
+   *
+   * @param id - History entry id to delete.
+   * @param cap - Maximum number of entries to return after deletion.
+   * @returns Updated workflow run history list ordered newest-first.
+   */
+  deleteWorkflowRunHistory(id: number, cap = WORKFLOW_RUN_HISTORY_CAP): WorkflowRunHistoryEntry[] {
+    this.getDb().prepare('DELETE FROM workflow_run_history WHERE id = ?').run(id);
+    return this.listWorkflowRunHistory(cap);
   }
 
   /**

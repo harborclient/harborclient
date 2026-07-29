@@ -14,6 +14,7 @@ import type {
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
+  RegisteredSidebarRailItem,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
   RegisteredWorkflowActionBlock,
@@ -34,6 +35,7 @@ import {
   getRegisteredResponseTabs,
   getRegisteredSettingsSections,
   getRegisteredSidebarPanels,
+  getRegisteredSidebarRailItems,
   getRegisteredSidebarSections,
   getRegisteredStatusBarItems,
   getRegisteredWorkflowActionBlocks,
@@ -67,6 +69,13 @@ export function usePluginSidebarSections(): RegisteredSidebarSection[] {
  */
 export function usePluginSidebarPanels(): RegisteredSidebarPanel[] {
   return useSyncExternalStore(subscribePluginRegistry, getRegisteredSidebarPanels, () => []);
+}
+
+/**
+ * Subscribes to plugin activity-rail item contributions.
+ */
+export function usePluginSidebarRailItems(): RegisteredSidebarRailItem[] {
+  return useSyncExternalStore(subscribePluginRegistry, getRegisteredSidebarRailItems, () => []);
 }
 
 /**

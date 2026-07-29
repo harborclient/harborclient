@@ -13,6 +13,7 @@ import type {
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
+  RegisteredSidebarRailItem,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
   RegisteredWorkflowActionBlock,
@@ -30,6 +31,7 @@ interface MutableRegistryState {
   themes: RegisteredPluginTheme[];
   sidebarSections: RegisteredSidebarSection[];
   sidebarPanels: RegisteredSidebarPanel[];
+  sidebarRailItems: RegisteredSidebarRailItem[];
   mainViews: RegisteredMainView[];
   modals: RegisteredModal[];
   requestTabs: RegisteredRequestTab[];
@@ -56,6 +58,7 @@ interface CachedRegistrySnapshot {
   themes: RegisteredPluginTheme[];
   sidebarSections: RegisteredSidebarSection[];
   sidebarPanels: RegisteredSidebarPanel[];
+  sidebarRailItems: RegisteredSidebarRailItem[];
   mainViews: RegisteredMainView[];
   modals: RegisteredModal[];
   requestTabs: RegisteredRequestTab[];
@@ -78,6 +81,7 @@ const state: MutableRegistryState = {
   themes: [],
   sidebarSections: [],
   sidebarPanels: [],
+  sidebarRailItems: [],
   mainViews: [],
   modals: [],
   requestTabs: [],
@@ -108,6 +112,7 @@ function emptySnapshot(): CachedRegistrySnapshot {
     themes: [],
     sidebarSections: [],
     sidebarPanels: [],
+    sidebarRailItems: [],
     mainViews: [],
     modals: [],
     requestTabs: [],
@@ -216,6 +221,7 @@ function rebuildCachedSnapshots(): void {
     themes: [...state.themes].sort((left, right) => left.title.localeCompare(right.title)),
     sidebarSections: sortByOrderThenTitle(state.sidebarSections),
     sidebarPanels: sortByOrderThenTitle(state.sidebarPanels),
+    sidebarRailItems: sortByOrderThenTitle(state.sidebarRailItems),
     mainViews: [...state.mainViews].sort((left, right) => left.title.localeCompare(right.title)),
     modals: [...state.modals].sort((left, right) => left.title.localeCompare(right.title)),
     requestTabs: sortByOrderThenTitle(state.requestTabs),
@@ -390,6 +396,26 @@ export function registerSidebarPanelContribution(
     panel.id,
     entry,
     (item) => item.pluginId === pluginId && item.id === panel.id
+  );
+}
+
+/**
+ * Registers an activity-rail item that opens a plugin sidebar body when selected.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param item - Sidebar rail item contribution metadata.
+ */
+export function registerSidebarRailItemContribution(
+  pluginId: string,
+  item: Omit<RegisteredSidebarRailItem, 'pluginId'>
+): Disposable {
+  const entry: RegisteredSidebarRailItem = { pluginId, ...item };
+  return registerContribution(
+    state.sidebarRailItems,
+    pluginId,
+    item.id,
+    entry,
+    (railItem) => railItem.pluginId === pluginId && railItem.id === item.id
   );
 }
 
@@ -734,6 +760,7 @@ export function unregisterContribution(
     | 'settingsSections'
     | 'themes'
     | 'sidebarPanels'
+    | 'sidebarRailItems'
     | 'sidebarSections'
     | 'mainViews'
     | 'modals'
@@ -773,6 +800,12 @@ export function unregisterContribution(
     case 'sidebarPanels':
       filter(
         state.sidebarPanels,
+        (item) => item.pluginId === pluginId && item.contributionId === contributionId
+      );
+      break;
+    case 'sidebarRailItems':
+      filter(
+        state.sidebarRailItems,
         (item) => item.pluginId === pluginId && item.contributionId === contributionId
       );
       break;
@@ -887,6 +920,7 @@ export function clearPluginContributions(pluginId: string): void {
   state.themes = state.themes.filter((item) => item.pluginId !== pluginId);
   state.sidebarSections = state.sidebarSections.filter((item) => item.pluginId !== pluginId);
   state.sidebarPanels = state.sidebarPanels.filter((item) => item.pluginId !== pluginId);
+  state.sidebarRailItems = state.sidebarRailItems.filter((item) => item.pluginId !== pluginId);
   state.mainViews = state.mainViews.filter((item) => item.pluginId !== pluginId);
   state.modals = state.modals.filter((item) => item.pluginId !== pluginId);
   state.requestTabs = state.requestTabs.filter((item) => item.pluginId !== pluginId);
@@ -927,6 +961,8 @@ export const getRegisteredSidebarSections = (): RegisteredSidebarSection[] =>
   cachedSnapshot.sidebarSections;
 export const getRegisteredSidebarPanels = (): RegisteredSidebarPanel[] =>
   cachedSnapshot.sidebarPanels;
+export const getRegisteredSidebarRailItems = (): RegisteredSidebarRailItem[] =>
+  cachedSnapshot.sidebarRailItems;
 export const getRegisteredMainViews = (): RegisteredMainView[] => cachedSnapshot.mainViews;
 export const getRegisteredModals = (): RegisteredModal[] => cachedSnapshot.modals;
 export const getRegisteredRequestTabs = (): RegisteredRequestTab[] => cachedSnapshot.requestTabs;

@@ -106,6 +106,7 @@ import type {
   CreateWorkspaceInput,
   UpdateWorkflowInput,
   Workflow,
+  WorkflowRunHistoryEntry,
   Workspace,
   TrashEntityType,
   TrashItem,
@@ -518,6 +519,50 @@ function updateWorkflow(input: UpdateWorkflowInput): Promise<Workflow[]> {
  */
 function deleteWorkflow(id: number): Promise<Workflow[]> {
   return ipcRenderer.invoke('workflows:delete', id);
+}
+
+/**
+ * Marks or unmarks a workflow as archived and returns the refreshed list.
+ *
+ * @param id - Workflow id.
+ * @param archived - When true, hide the workflow from the Workflows list.
+ */
+function setWorkflowArchived(id: number, archived: boolean): Promise<Workflow[]> {
+  return ipcRenderer.invoke('workflows:setArchived', id, archived);
+}
+
+/**
+ * Lists persisted workflow run history entries via IPC.
+ */
+function listWorkflowRunHistory(): Promise<WorkflowRunHistoryEntry[]> {
+  return ipcRenderer.invoke('workflowRunHistory:list');
+}
+
+/**
+ * Persists a completed workflow run and prunes entries beyond the configured cap.
+ *
+ * @param entry - Captured run metadata and export payload to store.
+ */
+function addWorkflowRunHistory(
+  entry: Omit<WorkflowRunHistoryEntry, 'id'> & { id?: number }
+): Promise<WorkflowRunHistoryEntry[]> {
+  return ipcRenderer.invoke('workflowRunHistory:add', entry);
+}
+
+/**
+ * Removes all persisted workflow run history entries via IPC.
+ */
+function clearWorkflowRunHistory(): Promise<void> {
+  return ipcRenderer.invoke('workflowRunHistory:clear');
+}
+
+/**
+ * Removes one persisted workflow run history entry via IPC.
+ *
+ * @param id - History entry id to delete.
+ */
+function deleteWorkflowRunHistory(id: number): Promise<WorkflowRunHistoryEntry[]> {
+  return ipcRenderer.invoke('workflowRunHistory:delete', id);
 }
 
 /**
@@ -4169,6 +4214,11 @@ const api: Api = {
   renameWorkflow,
   updateWorkflow,
   deleteWorkflow,
+  setWorkflowArchived,
+  listWorkflowRunHistory,
+  addWorkflowRunHistory,
+  clearWorkflowRunHistory,
+  deleteWorkflowRunHistory,
   listTrashItems,
   restoreTrashItem,
   permanentlyDeleteTrashItem,

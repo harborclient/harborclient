@@ -158,6 +158,9 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'surface': 'Surface',
   'sidebar': 'Sidebar',
   'sidebar-toolbar': 'Sidebar toolbar',
+  'sidebar-rail': 'Sidebar rail',
+  'sidebar-rail-active': 'Sidebar rail active',
+  'sidebar-rail-text': 'Sidebar rail text',
   'sidebar-section': 'Sidebar section',
   'sidebar-section-text': 'Sidebar section text',
   'footer': 'Footer',
@@ -268,6 +271,8 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'surface',
       'sidebar',
       'sidebar-toolbar',
+      'sidebar-rail',
+      'sidebar-rail-active',
       'sidebar-section',
       'footer',
       'control',
@@ -287,6 +292,7 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'text-secondary',
       'muted',
       'sidebar-section-text',
+      'sidebar-rail-text',
       'footer-text',
       'footer-muted'
     ]

@@ -13,6 +13,7 @@ import type {
   RegisteredResponseTab,
   RegisteredSettingsSection,
   RegisteredSidebarPanel,
+  RegisteredSidebarRailItem,
   RegisteredSidebarSection,
   RegisteredStatusBarItem,
   RegisteredWorkflowActionBlock,
@@ -35,6 +36,7 @@ import {
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
+  registerSidebarRailItemContribution,
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
   registerThemeContribution,
@@ -148,6 +150,7 @@ type ContributionKind =
   | 'settingsSections'
   | 'themes'
   | 'sidebarPanels'
+  | 'sidebarRailItems'
   | 'sidebarSections'
   | 'mainViews'
   | 'modals'
@@ -227,6 +230,12 @@ export function applyContributionMessage(message: ContributionMessage): void {
       registerSidebarPanelContribution(
         message.pluginId,
         contribution as Omit<RegisteredSidebarPanel, 'pluginId'>
+      );
+      break;
+    case 'sidebarRailItems':
+      registerSidebarRailItemContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredSidebarRailItem, 'pluginId'>
       );
       break;
     case 'sidebarSections':

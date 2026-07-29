@@ -748,6 +748,56 @@ export const updateWorkflowInput = z.object({
   )
 }) satisfies z.ZodType<UpdateWorkflowInput>;
 
+/**
+ * Workflow run export envelope stored inside workflow run history rows.
+ */
+export const workflowRunExport = z.object({
+  harborclientVersion: z.literal(1),
+  harborclientExport: z.literal('workflow-run'),
+  name: z.string(),
+  environment: z.string(),
+  date_created: z.string(),
+  actions: z.array(
+    z.object({
+      index: z.number().int().positive(),
+      ranAt: z.string(),
+      durationMs: z.number().finite().nonnegative(),
+      result: z.unknown()
+    })
+  )
+});
+
+/**
+ * Action-bearing step stored with a workflow run history entry.
+ */
+export const workflowRunHistoryStep = z.object({
+  action: z.object({
+    uuid: z.string().trim().min(1),
+    type: z.string().trim().min(1),
+    at: z.number().finite().optional(),
+    payload: z.unknown()
+  }),
+  result: z.unknown(),
+  ranAt: z.string(),
+  durationMs: z.number().finite().nonnegative()
+});
+
+/**
+ * Input for adding a workflow run history entry (id assigned by the database).
+ */
+export const workflowRunHistoryAddInput = z.object({
+  id: z.number().int().positive().optional(),
+  workflowUuid: z.string().trim().min(1),
+  name: z.string().min(1),
+  environment: z.string(),
+  dateCreated: z.string().min(1),
+  ts: z.number().int(),
+  payload: z.object({
+    export: workflowRunExport,
+    steps: z.array(workflowRunHistoryStep)
+  })
+});
+
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
   showAiSidebar: z.boolean(),
@@ -1276,6 +1326,9 @@ export const ipcArgSchemas = {
   workflowsRename: z.tuple([z.number().int().positive(), z.string().trim().min(1)]),
   workflowsUpdate: z.tuple([updateWorkflowInput]),
   workflowsDelete: z.tuple([z.number().int().positive()]),
+  workflowsSetArchived: z.tuple([z.number().int().positive(), z.boolean()]),
+  workflowRunHistoryAdd: z.tuple([workflowRunHistoryAddInput]),
+  workflowRunHistoryDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),
   collectionsSetArchived: z.tuple([dbId, z.boolean()]),
   foldersSetMarker: z.tuple([dbId, sidebarMarker]),

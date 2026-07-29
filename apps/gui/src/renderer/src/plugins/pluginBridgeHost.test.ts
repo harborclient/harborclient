@@ -9,7 +9,11 @@ import * as hostRequestCommands from './hostRequestCommands';
 import * as hostLibraryCommands from './hostLibraryCommands';
 import * as hostLibraryMutations from './hostLibraryMutations';
 import * as hostEntityContextMenu from './hostEntityContextMenu';
-import { clearPluginContributions, getRegisteredPluginThemes } from './registry';
+import {
+  clearPluginContributions,
+  getRegisteredPluginThemes,
+  getRegisteredSidebarRailItems
+} from './registry';
 
 describe('handlePluginHostBridgeInvoke', () => {
   it('returns sendHttpRequestForPlugin result for host.sendHttpRequest', async () => {
@@ -269,5 +273,33 @@ describe('applyContributionMessage', () => {
     ]);
 
     clearPluginContributions('com.example.theme');
+  });
+
+  it('registers sidebar rail items from agent webview contribution messages', () => {
+    applyContributionMessage({
+      pluginId: 'com.example.rail',
+      op: 'registerContribution',
+      kind: 'sidebarRailItems',
+      contribution: {
+        id: 'plugin:com.example.rail:tools',
+        title: 'Tools',
+        icon: 'bolt',
+        order: 10,
+        contributionId: 'tools'
+      }
+    });
+
+    expect(getRegisteredSidebarRailItems()).toEqual([
+      expect.objectContaining({
+        pluginId: 'com.example.rail',
+        id: 'plugin:com.example.rail:tools',
+        title: 'Tools',
+        icon: 'bolt',
+        contributionId: 'tools',
+        order: 10
+      })
+    ]);
+
+    clearPluginContributions('com.example.rail');
   });
 });

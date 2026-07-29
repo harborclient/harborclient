@@ -4,6 +4,12 @@ import { FaIcon } from '../FaIcon/index.js';
 import { cn } from '../utils.js';
 
 /**
+ * Shared focus-visible outline for rail tabs (matches TabBar / segment chrome).
+ */
+const railItemFocusVisible =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
+
+/**
  * One entry in a {@link SidebarRail} navigation list.
  */
 export interface SidebarRailItemData {
@@ -45,12 +51,22 @@ interface Props {
   expanded: boolean;
 
   /**
+   * Roving tabindex value: `0` for the selected tab, `-1` for others.
+   */
+  tabIndex: number;
+
+  /**
+   * Optional id of the sidebar panel this tab controls.
+   */
+  panelId?: string;
+
+  /**
    * Called when the user activates this item.
    */
   onSelect: () => void;
 
   /**
-   * Keyboard handler for toolbar arrow-key navigation.
+   * Keyboard handler for tablist arrow-key navigation.
    */
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
 
@@ -58,6 +74,17 @@ interface Props {
    * Ref attached to the item button for focus management.
    */
   buttonRef?: Ref<HTMLButtonElement>;
+}
+
+/**
+ * Builds the accessible name for a rail tab, including badge status when present.
+ *
+ * @param label - Visible item label.
+ * @param badge - Whether the item shows a notification badge.
+ * @returns Accessible name string for `aria-label` or visually hidden text.
+ */
+function railItemAccessibleName(label: string, badge: boolean | undefined): string {
+  return badge === true ? `${label}, notification` : label;
 }
 
 /**
@@ -71,8 +98,8 @@ interface Props {
  */
 function railItemSectionClasses(active: boolean): string {
   return cn(
-    'hc-sidebar-rail-item-section w-full shrink-0',
-    active ? 'bg-sidebar-section text-toolbar-action-active' : 'bg-transparent text-text'
+    'hc-sidebar-rail-item-section w-full shrink-0 text-sidebar-rail-text',
+    active ? 'bg-sidebar-rail-active' : 'bg-transparent'
   );
 }
 
@@ -80,6 +107,8 @@ function railItemSectionClasses(active: boolean): string {
  * Tailwind classes for the interactive control inside a rail section.
  *
  * Kept visually flat so selection chrome lives on the section, not the button.
+ * Focus outline always applies (including when active) so keyboard users can
+ * see focus on the current mode.
  *
  * @param active - Whether this item is the current selection.
  * @param expanded - Whether the rail shows labels.
@@ -87,14 +116,15 @@ function railItemSectionClasses(active: boolean): string {
  */
 function railItemButtonClasses(active: boolean, expanded: boolean): string {
   return cn(
-    'hc-sidebar-rail-item app-no-drag relative inline-flex h-10 w-full shrink-0 cursor-pointer items-center rounded-none border-none bg-transparent',
+    'hc-sidebar-rail-item app-no-drag relative inline-flex min-h-12 w-full shrink-0 cursor-pointer items-center rounded-none border-none bg-transparent py-5',
     expanded ? 'gap-2 px-3' : 'justify-center',
-    !active && 'hover:bg-selection focus-visible:bg-selection'
+    !active && 'hover:bg-sidebar-rail-active',
+    railItemFocusVisible
   );
 }
 
 /**
- * Single rail navigation section: full-width active chrome with an icon button.
+ * Single rail navigation tab: full-width active chrome with an icon button.
  *
  * @param props - Item identity, active/expanded chrome, and activation handlers.
  * @returns Rail section with decorative icon and optional badge.
@@ -103,29 +133,39 @@ export function SidebarRailItem({
   item,
   active,
   expanded,
+  tabIndex,
+  panelId,
   onSelect,
   onKeyDown,
   buttonRef
 }: Props): JSX.Element {
+  const accessibleName = railItemAccessibleName(item.label, item.badge);
+  /**
+   * Icon-only (collapsed) uses aria-label. Expanded uses visible text (plus
+   * optional visually hidden badge status) as the accessible name so AT is not
+   * left with a color-only cue and is not announced twice via aria-label.
+   */
+  const ariaLabel = expanded ? undefined : accessibleName;
+
   return (
     <div className={railItemSectionClasses(active)}>
       <button
         type="button"
+        role="tab"
         ref={buttonRef}
         className={railItemButtonClasses(active, expanded)}
         title={item.label}
-        aria-label={item.label}
-        aria-current={active ? 'true' : undefined}
+        tabIndex={tabIndex}
+        aria-label={ariaLabel}
+        aria-selected={active}
+        aria-controls={panelId}
         onClick={onSelect}
         onKeyDown={onKeyDown}
       >
         <span className="relative inline-flex shrink-0 items-center justify-center">
           <FaIcon
             icon={item.icon}
-            className={cn(
-              'hc-sidebar-rail-item-icon h-[22.5px]! w-[22.5px]!',
-              active ? 'opacity-100' : 'opacity-50'
-            )}
+            className="hc-sidebar-rail-item-icon h-[22.5px]! w-[22.5px]!"
             aria-hidden
           />
           {item.badge ? (
@@ -136,8 +176,11 @@ export function SidebarRailItem({
           ) : null}
         </span>
         {expanded ? (
-          <span className="hc-sidebar-rail-item-label min-w-0 truncate text-left">{item.label}</span>
+          <span className="hc-sidebar-rail-item-label min-w-0 truncate text-left">
+            {item.label}
+          </span>
         ) : null}
+        {expanded && item.badge === true ? <span className="sr-only">, notification</span> : null}
       </button>
     </div>
   );

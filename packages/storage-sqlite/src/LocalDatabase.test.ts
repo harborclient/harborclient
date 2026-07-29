@@ -874,6 +874,179 @@ describeSqlite('LocalDatabase workflows', () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     );
   });
+
+  it('defaults new workflows to not archived and round-trips the archived flag', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createWorkflow({
+      name: 'Archive me',
+      uuid: 'wf-archive-1',
+      durationMs: 100,
+      variables: {},
+      actions: [{ uuid: 'action-1', type: 'wait', at: 0, payload: { ms: 10 } }]
+    });
+
+    expect(created[0]?.archived).toBe(false);
+
+    const archived = database.setWorkflowArchived(created[0]!.id, true);
+    expect(archived.find((item) => item.id === created[0]!.id)?.archived).toBe(true);
+
+    const restored = database.setWorkflowArchived(created[0]!.id, false);
+    expect(restored.find((item) => item.id === created[0]!.id)?.archived).toBe(false);
+  });
+
+  it('migrates legacy workflow databases missing the archived column', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'hc-wf-archived-'));
+    const legacy = new Database(join(rootDir, 'harborclient-registry.db'));
+    legacy.exec(`
+      CREATE TABLE workflows (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid        TEXT    NOT NULL UNIQUE,
+        name        TEXT    NOT NULL,
+        payload     TEXT    NOT NULL,
+        duration_ms INTEGER NOT NULL DEFAULT 0,
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        created_at  INTEGER NOT NULL,
+        updated_at  INTEGER NOT NULL
+      );
+    `);
+    legacy
+      .prepare(
+        `INSERT INTO workflows (uuid, name, payload, duration_ms, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        'wf-legacy',
+        'Legacy',
+        JSON.stringify({ variables: {}, actions: [] }),
+        0,
+        0,
+        Date.now(),
+        Date.now()
+      );
+    legacy.close();
+
+    const database = new LocalDatabase(rootDir);
+    await database.init();
+    cleanups.push(async () => {
+      await database.close();
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    const listed = database.listWorkflows();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.archived).toBe(false);
+
+    const updated = database.setWorkflowArchived(listed[0]!.id, true);
+    expect(updated[0]?.archived).toBe(true);
+  });
+});
+
+describeSqlite('LocalDatabase workflow run history', () => {
+  /**
+   * Builds a minimal history payload for insert tests.
+   *
+   * @param name - Workflow display name for the payload.
+   * @returns History payload with one wait step.
+   */
+  function makeHistoryPayload(name: string): {
+    export: {
+      harborclientVersion: 1;
+      harborclientExport: 'workflow-run';
+      name: string;
+      environment: string;
+      date_created: string;
+      actions: Array<{
+        index: number;
+        ranAt: string;
+        durationMs: number;
+        result: { ok: boolean };
+      }>;
+    };
+    steps: Array<{
+      action: { uuid: string; type: string; at: number; payload: { ms: number } };
+      result: { ok: boolean };
+      ranAt: string;
+      durationMs: number;
+    }>;
+  } {
+    return {
+      export: {
+        harborclientVersion: 1 as const,
+        harborclientExport: 'workflow-run' as const,
+        name,
+        environment: '',
+        date_created: '2026-07-29T12:00:00.000Z',
+        actions: [
+          {
+            index: 1,
+            ranAt: '2026-07-29T12:00:00.000Z',
+            durationMs: 5,
+            result: { ok: true }
+          }
+        ]
+      },
+      steps: [
+        {
+          action: { uuid: 'a1', type: 'wait', at: 0, payload: { ms: 5 } },
+          result: { ok: true },
+          ranAt: '2026-07-29T12:00:00.000Z',
+          durationMs: 5
+        }
+      ]
+    };
+  }
+
+  it('adds, lists, and prunes workflow run history to the cap', async () => {
+    const { database } = await createRegistry();
+
+    for (let i = 0; i < 3; i += 1) {
+      database.addWorkflowRunHistory(
+        {
+          workflowUuid: `wf-${i}`,
+          name: `Run ${i}`,
+          environment: '',
+          dateCreated: '2026-07-29T12:00:00.000Z',
+          ts: 1_000 + i,
+          payload: makeHistoryPayload(`Run ${i}`)
+        },
+        2
+      );
+    }
+
+    const listed = database.listWorkflowRunHistory(2);
+    expect(listed).toHaveLength(2);
+    expect(listed[0]?.name).toBe('Run 2');
+    expect(listed[1]?.name).toBe('Run 1');
+    expect(listed[0]?.payload.steps).toHaveLength(1);
+  });
+
+  it('deletes one entry and clears all workflow run history', async () => {
+    const { database } = await createRegistry();
+    database.addWorkflowRunHistory({
+      workflowUuid: 'wf-1',
+      name: 'First',
+      environment: '',
+      dateCreated: '2026-07-29T12:00:00.000Z',
+      ts: 100,
+      payload: makeHistoryPayload('First')
+    });
+    database.addWorkflowRunHistory({
+      workflowUuid: 'wf-2',
+      name: 'Second',
+      environment: '',
+      dateCreated: '2026-07-29T12:00:00.000Z',
+      ts: 200,
+      payload: makeHistoryPayload('Second')
+    });
+
+    const afterDelete = database.deleteWorkflowRunHistory(database.listWorkflowRunHistory()[0]!.id);
+    expect(afterDelete).toHaveLength(1);
+    expect(afterDelete[0]?.name).toBe('First');
+
+    database.clearWorkflowRunHistory();
+    expect(database.listWorkflowRunHistory()).toEqual([]);
+  });
 });
 
 describeSqlite('LocalDatabase trash items', () => {

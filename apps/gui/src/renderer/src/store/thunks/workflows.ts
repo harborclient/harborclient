@@ -110,6 +110,38 @@ export const deleteWorkflow = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
+ * Marks or unmarks a workflow as archived and refreshes the list.
+ */
+export const setWorkflowArchived = createAsyncThunk<
+  void,
+  { id: number; archived: boolean },
+  ThunkApiConfig
+>('workflows/setArchived', async ({ id, archived }, { dispatch, getState }) => {
+  const items = await window.api.setWorkflowArchived(id, archived);
+  dispatch(setWorkflows(items));
+  emitPluginWorkflowsChanged({ reason: 'updated', workflowId: id });
+  if (archived && getState().workflows.playbackWorkflowId === id) {
+    dispatch(closeWorkflowDialog());
+  }
+});
+
+/**
+ * Moves every archived workflow to trash and refreshes lists.
+ */
+export const emptyWorkflowArchive = createAsyncThunk<void, void, ThunkApiConfig>(
+  'workflows/emptyArchive',
+  async (_arg, { dispatch, getState }) => {
+    const archived = getState().workflows.items.filter((workflow) => Boolean(workflow.archived));
+    for (const workflow of archived) {
+      await window.api.deleteWorkflow(workflow.id);
+      emitPluginWorkflowsChanged({ reason: 'deleted', workflowId: workflow.id });
+    }
+    await dispatch(refreshWorkflows());
+    await syncTrash(dispatch);
+  }
+);
+
+/**
  * Persists edited workflow actions and refreshes the list.
  */
 export const updateWorkflowActions = createAsyncThunk<

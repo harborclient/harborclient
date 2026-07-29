@@ -45,6 +45,7 @@ Every plugin requires a manifest at the root of the `.hcp` archive. The example 
         "replaces": "collections"
       }
     ],
+    "sidebarRailItems": [{ "id": "myPlugin.tools", "title": "My Tools", "icon": "bolt" }],
     "sidebarSections": [{ "id": "myPlugin.section", "title": "My Plugin" }],
     "mainViews": [{ "id": "myPlugin.view", "title": "My Plugin" }],
     "requestTabs": [{ "id": "myPlugin.requestTab", "title": "Audit" }],
@@ -201,6 +202,7 @@ The `contributes` block declares where your plugin can appear. Each entry's `id`
 | ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `settingsSections`       | `registerSettingsSection`        | Settings sidebar and panel                                                                             |
 | `sidebarPanels`          | `registerSidebarPanel`           | Switchable left sidebar destination, or primary Collections replacement when `replaces: "collections"` |
+| `sidebarRailItems`       | `registerSidebarRailItem`        | Activity-rail icon that opens a full sidebar body while keeping the rail visible                       |
 | `sidebarSections`        | `registerSidebarSection`         | Collapsible block inside the scrollable sidebar                                                        |
 | `mainViews`              | `registerMainView`               | Full main-area overlay (Team Hubs pattern)                                                             |
 | `modals`                 | `registerModal`                  | Application-root modal overlay                                                                         |
@@ -231,5 +233,13 @@ A `sidebarPanels` entry may include optional `replaces: "collections"`. That fie
 **Conflict rule:** If more than one registered panel declares `replaces: "collections"`, the host picks a single winner: lowest `order` (default `100`), then lowest `pluginId`, then lowest contribution `id`. A warning is logged for the ignored candidates.
 
 See [hc.ui.registerSidebarPanel](/renderer-ui#hcuiregistersidebarpanelpanel) for runtime registration.
+
+### Activity-rail sidebar destinations
+
+A `sidebarRailItems` entry adds an icon to the vertical activity rail (alongside Collections, Environments, and so on). Selecting it opens the plugin's sidebar body in a HostedSurface while **keeping the rail visible**. This is distinct from `sidebarPanels`, which use a horizontal switcher and hide the rail.
+
+Declare `icon` on the manifest entry (curated names such as `bolt`, `server`, `flask`). Runtime registration requires the same `icon` on `hc.ui.registerSidebarRailItem`.
+
+See [hc.ui.registerSidebarRailItem](/renderer-ui#hcuiregistersidebarrailitemitem) for runtime registration.
 
 See [UI contributions](/renderer-ui) for registration method reference.

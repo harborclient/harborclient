@@ -16,6 +16,7 @@ import { registerOAuthHandlers } from '#/main/ipc/handlers/oauth';
 import { registerRequestHistoryHandlers } from '#/main/ipc/handlers/requestHistory';
 import { registerWorkspaceHandlers } from '#/main/ipc/handlers/workspaces';
 import { registerWorkflowHandlers } from '#/main/ipc/handlers/workflows';
+import { registerWorkflowRunHistoryHandlers } from '#/main/ipc/handlers/workflowRunHistory';
 import { registerRunResultHandlers } from '#/main/ipc/handlers/runResults';
 import { registerDocumentHandlers } from '#/main/ipc/handlers/documents';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
@@ -50,6 +51,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerRequestHistoryHandlers();
   registerWorkspaceHandlers();
   registerWorkflowHandlers();
+  registerWorkflowRunHistoryHandlers();
   registerRequestHandlers(db);
   registerDocumentHandlers(db);
   registerNetworkHandlers(cookieJar);

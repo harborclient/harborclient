@@ -30,6 +30,7 @@ import {
   registerResponseTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
+  registerSidebarRailItemContribution,
   registerSidebarSectionContribution,
   registerStatusBarItemContribution,
   registerThemeContribution,
@@ -448,6 +449,19 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
             order: panel.order,
             contributionId: panel.id,
             ...(replaces ? { replaces } : {})
+          })
+        );
+      },
+      registerSidebarRailItem: (item) => {
+        assertUi();
+        assertManifestContribution(manifest, 'sidebarRailItems', item.id);
+        return track(
+          registerSidebarRailItemContribution(pluginId, {
+            id: pluginContributionId(pluginId, item.id),
+            title: item.title,
+            icon: item.icon,
+            order: item.order,
+            contributionId: item.id
           })
         );
       },

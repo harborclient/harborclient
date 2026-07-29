@@ -159,6 +159,9 @@ Override any of these keys in `colors`. Each maps to `--mac-<token>` on the docu
 | `surface`                                              | Main content background                                  |
 | `sidebar`                                              | Left sidebar background                                  |
 | `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                  |
+| `sidebar-rail`                                         | Activity rail background                                 |
+| `sidebar-rail-active`                                  | Active/hover activity rail section fill                  |
+| `sidebar-rail-text`                                    | Activity rail icons and labels                           |
 | `sidebar-section`                                      | Sidebar section headers                                  |
 | `sidebar-section-text`                                 | Sidebar section header labels and chevrons               |
 | `footer`                                               | Footer status bar background                             |
@@ -722,8 +725,8 @@ await hc.host.setSidebarSelection({
 
 ### Sidebar panel view context
 
-When a `sidebarPanels` contribution is mounted (including
-`replaces: "collections"`), `HostedSurface` pushes:
+When a `sidebarPanels` or `sidebarRailItems` contribution is mounted (including
+`replaces: "collections"` for panels), `HostedSurface` pushes:
 
 ```typescript
 interface SidebarPanelViewContext {
@@ -733,6 +736,9 @@ interface SidebarPanelViewContext {
 
 Read it on mount with `hc.view.getContext()` (same pattern as request-tab
 surfaces). Live updates use `onSidebarSelectionChanged`.
+
+`sidebarRailItems` keep the activity rail visible; `sidebarPanels` use the
+horizontal switcher and hide the rail.
 
 ### Replacement-panel keyboard shortcuts
 

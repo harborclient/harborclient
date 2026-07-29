@@ -8,6 +8,10 @@
   --color-surface: #2c2c2e;
   --color-sidebar: #252526;
   --color-sidebar-toolbar: color-mix(in srgb, #252526 80%, black);
+  --color-sidebar-rail: #19344f;
+  --color-sidebar-rail-active: #0f1f30;
+  --color-sidebar-rail-text: #ffffff;
+  --color-sidebar-rail-separator: color-mix(in srgb, #ffffff 16%, #19344f);
   --color-sidebar-section: #48484a;
   --color-sidebar-section-text: #98989d;
   --color-footer: #252526;

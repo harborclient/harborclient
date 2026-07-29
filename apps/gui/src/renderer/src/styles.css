@@ -41,6 +41,10 @@
   --color-surface: var(--mac-surface);
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
+  --color-sidebar-rail: var(--mac-sidebar-rail);
+  --color-sidebar-rail-active: var(--mac-sidebar-rail-active);
+  --color-sidebar-rail-text: var(--mac-sidebar-rail-text);
+  --color-sidebar-rail-separator: var(--mac-sidebar-rail-separator);
   --color-sidebar-section: var(--mac-sidebar-section);
   --color-sidebar-section-text: var(--mac-sidebar-section-text, var(--mac-muted));
   --color-footer: var(--mac-footer, var(--mac-sidebar));
@@ -113,6 +117,15 @@
     --mac-surface: #f5f5f7;
     --mac-sidebar: #ececee;
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 88%, black);
+    --mac-sidebar-rail: color-mix(in srgb, #007acc 18%, var(--mac-sidebar));
+    --mac-sidebar-rail-active: color-mix(in srgb, #007acc 32%, var(--mac-sidebar));
+    --mac-sidebar-rail-text: rgba(0, 0, 0, 0.85);
+    /* Soft hairline: mostly rail fill, lightly tinted by rail text so themes stay in sync. */
+    --mac-sidebar-rail-separator: color-mix(
+      in srgb,
+      var(--mac-sidebar-rail-text) 16%,
+      var(--mac-sidebar-rail)
+    );
     --mac-sidebar-section: var(--mac-selection);
     --mac-sidebar-section-text: var(--mac-muted);
     --mac-footer: var(--mac-sidebar);
@@ -225,6 +238,9 @@
       --mac-sidebar: #252526;
       /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
+      --mac-sidebar-rail: #19344f;
+      --mac-sidebar-rail-active: #0f1f30;
+      --mac-sidebar-rail-text: #ffffff;
       --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 93%, white);
       --mac-sidebar-section-text: var(--mac-muted);
       --mac-footer: var(--mac-sidebar);
@@ -277,6 +293,9 @@
     --mac-sidebar: #252526;
     /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
+    --mac-sidebar-rail: #19344f;
+    --mac-sidebar-rail-active: #0f1f30;
+    --mac-sidebar-rail-text: #ffffff;
     --mac-sidebar-section: color-mix(in srgb, var(--mac-sidebar) 93%, white);
     --mac-sidebar-section-text: var(--mac-muted);
     --mac-footer: var(--mac-sidebar);
@@ -337,6 +356,9 @@
     --mac-surface: #000000;
     --mac-sidebar: #000000;
     --mac-sidebar-toolbar: #141414;
+    --mac-sidebar-rail: #ffd60a;
+    --mac-sidebar-rail-active: #c9a008;
+    --mac-sidebar-rail-text: #000000;
     --mac-sidebar-section: #000000;
     --mac-sidebar-section-text: #ffffff;
     --mac-footer: #000000;
@@ -399,6 +421,10 @@
       --mac-surface: Canvas;
       --mac-sidebar: Canvas;
       --mac-sidebar-toolbar: Canvas;
+      --mac-sidebar-rail: Canvas;
+      --mac-sidebar-rail-active: Highlight;
+      --mac-sidebar-rail-text: CanvasText;
+      --mac-sidebar-rail-separator: GrayText;
       --mac-sidebar-section: Canvas;
       --mac-sidebar-section-text: GrayText;
       --mac-footer: Canvas;

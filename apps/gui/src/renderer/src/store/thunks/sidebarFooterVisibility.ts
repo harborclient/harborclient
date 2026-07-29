@@ -3,6 +3,7 @@ import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   setActivePluginFooterPanelId,
   setActiveSidebarPanel,
+  setActiveSidebarRailItem,
   setShowAiSidebar,
   setShowConsole,
   setShowGitSidebar,
@@ -31,6 +32,7 @@ export function captureSidebarFooterSnapshot(
     showGitSidebar: navigation.showGitSidebar,
     showShortcutsSidebar: navigation.showShortcutsSidebar,
     activeSidebarPanelId: navigation.activeSidebarPanelId,
+    activeSidebarRailItemId: navigation.activeSidebarRailItemId,
     showConsole: navigation.showConsole,
     showVariables: navigation.showVariables,
     showMcp: navigation.showMcp,
@@ -67,6 +69,9 @@ export function applySidebarFooterSnapshot(
   }
 
   dispatch(setActiveSidebarPanel(snapshot.showSidebar ? snapshot.activeSidebarPanelId : null));
+  dispatch(
+    setActiveSidebarRailItem(snapshot.showSidebar ? snapshot.activeSidebarRailItemId : null)
+  );
 
   dispatch(setShowConsole(snapshot.showConsole));
   dispatch(setShowVariables(snapshot.showVariables));
@@ -89,6 +94,7 @@ export const hideSidebarsAndFooterPanels = createAsyncThunk<void, void, ThunkApi
     dispatch(setShowGitSidebar(false));
     dispatch(setShowShortcutsSidebar(false));
     dispatch(setActiveSidebarPanel(null));
+    dispatch(setActiveSidebarRailItem(null));
     dispatch(setShowConsole(false));
     dispatch(setShowVariables(false));
     dispatch(setShowMcp(false));

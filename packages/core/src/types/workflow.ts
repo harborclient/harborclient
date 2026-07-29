@@ -76,6 +76,11 @@ export interface Workflow {
    * Last update timestamp in milliseconds since epoch.
    */
   updatedAt: number;
+
+  /**
+   * When true, the workflow is hidden from the Workflows list and shown in Archive.
+   */
+  archived?: boolean;
 }
 
 /**
