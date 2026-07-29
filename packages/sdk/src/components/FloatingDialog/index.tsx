@@ -152,10 +152,6 @@ function clampFloatingDialogSize(
  * `onPositionChange` / `onSizeChange`. If the panel would open or remain
  * off-screen after a window resize, it relocates to the default corner.
  *
- * Uses the elevated `bg-control` fill (not `bg-surface`) with a stronger border
- * and theme-aware shadow so the panel stays readable against the app chrome in
- * both light and dark themes.
- *
  * @param props - Dialog labelling, geometry, and content props.
  * @returns Floating dialog element.
  */
@@ -487,7 +483,7 @@ export function FloatingDialog({
       aria-label={labelledBy ? undefined : label}
       aria-labelledby={labelledBy}
       className={cn(
-        'hc-floating-dialog fixed z-[60] flex min-w-[240px] flex-col overflow-hidden rounded-lg border border-text/15 bg-control shadow-[0_8px_28px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.55)]',
+        'hc-floating-dialog fixed z-[60] flex min-w-[240px] flex-col overflow-hidden rounded-lg border border-separator bg-surface shadow-xl',
         className
       )}
       style={{

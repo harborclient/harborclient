@@ -128,8 +128,8 @@ export function TimelineBlock({
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         fillWidth ? 'w-full min-w-0' : 'shrink-0',
         selected
-          ? 'border-accent bg-accent/10 text-text'
-          : 'border-separator bg-surface text-text hover:border-accent/60',
+          ? 'border-accent bg-accent/10 text-fg'
+          : 'border-separator bg-surface-raised text-fg hover:border-accent/60',
         disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
       ].join(' ')}
       style={fillWidth ? { width: '100%' } : { width: widthPx }}
