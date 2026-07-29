@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.3.7 - 2026-07-29
+
 - Implement workflow run history management and UI enhancements. (`c87feda3`)
 - Enhance development and testing workflow in AGENTS.md and CONTRIBUTING.md. (`181dc04a`)
 - Refactor styling in WorkflowRecordingDialog and TimelineBlock components. (`3f0b9348`)
