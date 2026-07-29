@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.8 - 2026-07-29
+
 - Implement workflow run history management and UI enhancements. (`c87feda3`)
 - Enhance development and testing workflow in AGENTS.md and CONTRIBUTING.md. (`181dc04a`)
 
