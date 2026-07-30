@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.8.9 - 2026-07-30
+
 - Add browser-related features and tests. (`2f8eb307`)
 
 ## 2.8.8 - 2026-07-29
