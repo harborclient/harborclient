@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## 0.2.10 - 2026-07-30
+
 - Implement "Copy to chat" feature in browser context menu. (`617b273f`)
 - Enhance browser functionality and introduce webpage scripting support. (`e4be8c89`)
+
 ## 0.2.9 - 2026-07-30
 
 - Add browser-related features and tests. (`2f8eb307`)
