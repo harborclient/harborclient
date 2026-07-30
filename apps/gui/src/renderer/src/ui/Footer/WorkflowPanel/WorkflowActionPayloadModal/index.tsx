@@ -2,6 +2,7 @@ import type { WorkflowAction } from '@harborclient/core/types';
 import {
   Button,
   CodeEditor,
+  FaIcon,
   FieldError,
   FormGroup,
   Input,
@@ -10,6 +11,7 @@ import {
 } from '@harborclient/sdk/components';
 import { useCallback, useId, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
+import { faTrash } from '#/renderer/src/fontawesome';
 
 interface Props {
   /**
@@ -28,6 +30,11 @@ interface Props {
    * @param payload - Parsed JSON value for the action payload.
    */
   onUpdate: (payload: unknown) => void;
+
+  /**
+   * Prompts to delete this action from the workflow timeline.
+   */
+  onDelete: () => void;
 }
 
 /**
@@ -51,12 +58,18 @@ function parsePayloadDraft(
  *
  * Shows a readonly action uuid (with copy) and a payload CodeEditor. Update
  * applies the parsed payload to the parent timeline buffer only; it does not
- * persist until the workflow Save control runs.
+ * persist until the workflow Save control runs. Delete removes the action from
+ * the timeline after confirmation in the parent.
  *
- * @param props - Action to edit and close/update handlers.
- * @returns Modal with uuid field, JSON CodeEditor, and Update/Cancel actions.
+ * @param props - Action to edit and close/update/delete handlers.
+ * @returns Modal with uuid field, JSON CodeEditor, and Delete/Update/Cancel actions.
  */
-export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props): JSX.Element {
+export function WorkflowActionPayloadModal({
+  action,
+  onClose,
+  onUpdate,
+  onDelete
+}: Props): JSX.Element {
   const titleId = 'workflow-action-payload-title';
   const uuidId = useId();
   const editorId = useId();
@@ -170,6 +183,18 @@ export function WorkflowActionPayloadModal({ action, onClose, onUpdate }: Props)
       ) : null}
 
       <ModalFooter spaced>
+        <Button
+          type="button"
+          variant="secondaryDanger"
+          className="mr-auto"
+          aria-label="Delete action"
+          onClick={onDelete}
+        >
+          <span className="inline-flex items-center justify-center gap-2">
+            <FaIcon icon={faTrash} className="h-3.5 w-3.5" aria-hidden />
+            Delete
+          </span>
+        </Button>
         <Button type="button" variant="secondary" onClick={onClose}>
           Cancel
         </Button>

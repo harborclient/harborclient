@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Add browser-related features and tests. (`2f8eb307`)
+
 ## 1.3.7 - 2026-07-29
 
 - Implement workflow run history management and UI enhancements. (`c87feda3`)

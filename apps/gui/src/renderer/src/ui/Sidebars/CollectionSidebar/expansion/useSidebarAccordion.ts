@@ -48,6 +48,7 @@ export function useSidebarAccordion(): Result {
     historySectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
+    websitesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
@@ -56,6 +57,7 @@ export function useSidebarAccordion(): Result {
     setHistorySectionExpanded,
     setWorkspacesSectionExpanded,
     setWorkflowsSectionExpanded,
+    setWebsitesSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
     activeSidebarMode
@@ -99,6 +101,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'websites') {
+        setWebsitesSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       if (key === 'archive') {
         setArchiveSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
@@ -124,6 +131,7 @@ export function useSidebarAccordion(): Result {
       setHistorySectionExpanded,
       setWorkspacesSectionExpanded,
       setWorkflowsSectionExpanded,
+      setWebsitesSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
@@ -145,6 +153,7 @@ export function useSidebarAccordion(): Result {
       history: historySectionExpanded,
       workspaces: workspacesSectionExpanded,
       workflows: workflowsSectionExpanded,
+      websites: websitesSectionExpanded,
       archive: archiveSectionExpanded,
       trash: trashSectionExpanded
     } as const;
@@ -174,6 +183,7 @@ export function useSidebarAccordion(): Result {
     historySectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
+    websitesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     pluginSectionExpanded,
@@ -198,6 +208,7 @@ export function useSidebarAccordion(): Result {
         history: setHistorySectionExpanded,
         workspaces: setWorkspacesSectionExpanded,
         workflows: setWorkflowsSectionExpanded,
+        websites: setWebsitesSectionExpanded,
         archive: setArchiveSectionExpanded,
         trash: setTrashSectionExpanded
       };
@@ -217,6 +228,7 @@ export function useSidebarAccordion(): Result {
       setHistorySectionExpanded,
       setWorkspacesSectionExpanded,
       setWorkflowsSectionExpanded,
+      setWebsitesSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]

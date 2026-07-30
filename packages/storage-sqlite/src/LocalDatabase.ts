@@ -19,11 +19,16 @@ import type {
   ChatMessage,
   ChatRole,
   ChatSummary,
+  CreateWebsiteInput,
   CreateWorkflowInput,
   CreateWorkspaceInput,
   Environment,
   RequestHistoryEntry,
+  ScriptRef,
   Snippet,
+  UpdateWebsiteInput,
+  Website,
+  WebsiteInjectionScript,
   Workflow,
   WorkflowAction,
   Workspace,
@@ -52,6 +57,7 @@ const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, pare
 const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
 const WORKFLOW_COLUMNS =
   'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at, archived';
+const WEBSITE_COLUMNS = 'id, uuid, name, payload, sort_order, created_at, updated_at';
 
 /**
  * Stored JSON payload for a workflow row.
@@ -63,6 +69,18 @@ interface WorkflowPayloadJson {
    * Pause between consecutive actions during playback, in milliseconds.
    */
   delayMs?: number;
+}
+
+/**
+ * Stored JSON payload for a website row.
+ */
+interface WebsitePayloadJson {
+  url: string;
+  homeUrl: string;
+  faviconDataUrl: string | null;
+  scripts: WebsiteInjectionScript[];
+  preRequestScripts: ScriptRef[];
+  postRequestScripts: ScriptRef[];
 }
 
 /**
@@ -516,6 +534,16 @@ export class LocalDatabase {
         archived    INTEGER NOT NULL DEFAULT 0
       );
 
+      CREATE TABLE IF NOT EXISTS websites (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid       TEXT    NOT NULL UNIQUE,
+        name       TEXT    NOT NULL,
+        payload    TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS workflow_run_history (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         workflow_uuid TEXT    NOT NULL,
@@ -557,6 +585,7 @@ export class LocalDatabase {
     this.migrateWorkspacesTable();
     this.migrateWorkflowsTable();
     this.migrateWorkflowsArchived();
+    this.migrateWebsitesTable();
     this.migrateWorkflowRunHistoryTable();
     this.migrateTrashTable();
     this.migrateLegacyTabGroupTrashItems();
@@ -747,6 +776,23 @@ export class LocalDatabase {
       return;
     }
     this.getDb().exec('ALTER TABLE workflows ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+  }
+
+  /**
+   * Ensures the websites table exists on legacy databases.
+   */
+  private migrateWebsitesTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS websites (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid       TEXT    NOT NULL UNIQUE,
+        name       TEXT    NOT NULL,
+        payload    TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
   }
 
   /**
@@ -2807,6 +2853,188 @@ export class LocalDatabase {
       .prepare('UPDATE workflows SET archived = ?, updated_at = ? WHERE id = ?')
       .run(archived ? 1 : 0, Date.now(), id);
     return this.listWorkflows();
+  }
+
+  /**
+   * Parses a website payload JSON string from the registry database.
+   *
+   * @param raw - Serialized payload column.
+   * @returns Normalized website payload fields.
+   */
+  private parseWebsitePayload(raw: string): WebsitePayloadJson {
+    try {
+      const parsed = JSON.parse(raw) as Partial<WebsitePayloadJson>;
+      return {
+        url: typeof parsed.url === 'string' ? parsed.url : 'about:blank',
+        homeUrl: typeof parsed.homeUrl === 'string' ? parsed.homeUrl : 'about:blank',
+        faviconDataUrl:
+          typeof parsed.faviconDataUrl === 'string' && parsed.faviconDataUrl.length > 0
+            ? parsed.faviconDataUrl
+            : null,
+        scripts: Array.isArray(parsed.scripts)
+          ? parsed.scripts.flatMap((script): WebsiteInjectionScript[] => {
+              if (!script || typeof script !== 'object') {
+                return [];
+              }
+              const candidate = script as Partial<WebsiteInjectionScript>;
+              if (
+                typeof candidate.id !== 'string' ||
+                candidate.id.length === 0 ||
+                typeof candidate.name !== 'string' ||
+                typeof candidate.source !== 'string' ||
+                (candidate.runAt !== 'document-start' &&
+                  candidate.runAt !== 'dom-ready' &&
+                  candidate.runAt !== 'did-finish-load')
+              ) {
+                return [];
+              }
+              return [
+                {
+                  id: candidate.id,
+                  name: candidate.name,
+                  enabled: candidate.enabled !== false,
+                  runAt: candidate.runAt,
+                  source: candidate.source
+                }
+              ];
+            })
+          : [],
+        preRequestScripts: Array.isArray(parsed.preRequestScripts)
+          ? (parsed.preRequestScripts as ScriptRef[])
+          : [],
+        postRequestScripts: Array.isArray(parsed.postRequestScripts)
+          ? (parsed.postRequestScripts as ScriptRef[])
+          : []
+      };
+    } catch {
+      return {
+        url: 'about:blank',
+        homeUrl: 'about:blank',
+        faviconDataUrl: null,
+        scripts: [],
+        preRequestScripts: [],
+        postRequestScripts: []
+      };
+    }
+  }
+
+  /**
+   * Loads all websites from the local registry.
+   *
+   * @returns Websites ordered by sort order then name.
+   */
+  listWebsites(): Website[] {
+    const rows = this.getDb()
+      .prepare(`SELECT ${WEBSITE_COLUMNS} FROM websites ORDER BY sort_order ASC, name ASC`)
+      .all() as Array<{
+      id: number;
+      uuid: string;
+      name: string;
+      payload: string;
+      sort_order: number;
+      created_at: number;
+      updated_at: number;
+    }>;
+
+    return rows.map((row) => {
+      const payload = this.parseWebsitePayload(row.payload);
+      return {
+        id: row.id,
+        uuid: row.uuid,
+        name: row.name,
+        url: payload.url,
+        homeUrl: payload.homeUrl,
+        faviconDataUrl: payload.faviconDataUrl,
+        scripts: payload.scripts,
+        preRequestScripts: payload.preRequestScripts,
+        postRequestScripts: payload.postRequestScripts,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  /**
+   * Returns the next sort order for a new website.
+   *
+   * @returns Next sort order index.
+   */
+  private nextWebsiteSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM websites')
+      .get() as { next_order: number };
+    return row.next_order;
+  }
+
+  /**
+   * Creates a website and returns the refreshed list.
+   *
+   * @param input - Website name, URL, and scripts.
+   * @returns Updated website list.
+   */
+  createWebsite(input: CreateWebsiteInput): Website[] {
+    const trimmedName = trimRequiredName(input.name, 'Website name');
+    const now = Date.now();
+    const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
+    const payload = JSON.stringify({
+      url: input.url,
+      homeUrl: input.homeUrl,
+      faviconDataUrl: input.faviconDataUrl ?? null,
+      scripts: input.scripts ?? [],
+      preRequestScripts: input.preRequestScripts ?? [],
+      postRequestScripts: input.postRequestScripts ?? []
+    } satisfies WebsitePayloadJson);
+
+    this.getDb()
+      .prepare(
+        `INSERT INTO websites (uuid, name, payload, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(uuid, trimmedName, payload, this.nextWebsiteSortOrder(), now, now);
+
+    return this.listWebsites();
+  }
+
+  /**
+   * Updates a website and returns the refreshed list.
+   *
+   * @param input - Website id and fields to persist.
+   * @returns Updated website list.
+   * @throws When the website id does not exist.
+   */
+  updateWebsite(input: UpdateWebsiteInput): Website[] {
+    const existing = this.listWebsites().find((website) => website.id === input.id);
+    if (!existing) {
+      throw new Error(`Website not found: ${input.id}`);
+    }
+
+    const trimmedName = trimRequiredName(input.name, 'Website name');
+    const now = Date.now();
+    const payload = JSON.stringify({
+      url: input.url,
+      homeUrl: input.homeUrl,
+      faviconDataUrl: input.faviconDataUrl ?? null,
+      scripts: input.scripts,
+      preRequestScripts: input.preRequestScripts,
+      postRequestScripts: input.postRequestScripts
+    } satisfies WebsitePayloadJson);
+
+    this.getDb()
+      .prepare(`UPDATE websites SET name = ?, payload = ?, updated_at = ? WHERE id = ?`)
+      .run(trimmedName, payload, now, input.id);
+
+    return this.listWebsites();
+  }
+
+  /**
+   * Deletes a website and returns the refreshed list.
+   *
+   * @param id - Website id.
+   * @returns Updated website list.
+   */
+  deleteWebsite(id: number): Website[] {
+    this.getDb().prepare('DELETE FROM websites WHERE id = ?').run(id);
+    return this.listWebsites();
   }
 
   /**

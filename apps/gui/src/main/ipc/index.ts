@@ -17,6 +17,7 @@ import { registerRequestHistoryHandlers } from '#/main/ipc/handlers/requestHisto
 import { registerWorkspaceHandlers } from '#/main/ipc/handlers/workspaces';
 import { registerWorkflowHandlers } from '#/main/ipc/handlers/workflows';
 import { registerWorkflowRunHistoryHandlers } from '#/main/ipc/handlers/workflowRunHistory';
+import { registerWebsiteHandlers } from '#/main/ipc/handlers/websites';
 import { registerRunResultHandlers } from '#/main/ipc/handlers/runResults';
 import { registerDocumentHandlers } from '#/main/ipc/handlers/documents';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
@@ -29,6 +30,7 @@ import { registerDocsHandlers } from '#/main/ipc/handlers/docs';
 import { registerMcpHandlers } from '#/main/ipc/handlers/mcp';
 import { registerTerminalHandlers } from '#/main/ipc/handlers/terminal';
 import { registerTrashHandlers } from '#/main/ipc/handlers/trash';
+import { registerBrowserHandlers } from '#/main/ipc/handlers/browser';
 import { initTrashService } from '#/main/storage/trashServiceInstance';
 import type { PluginManager } from '#/main/plugins/PluginManager';
 
@@ -52,6 +54,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerWorkspaceHandlers();
   registerWorkflowHandlers();
   registerWorkflowRunHistoryHandlers();
+  registerWebsiteHandlers();
   registerRequestHandlers(db);
   registerDocumentHandlers(db);
   registerNetworkHandlers(cookieJar);
@@ -70,4 +73,5 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerTerminalHandlers();
   registerCustomThemeHandlers();
   registerTrashHandlers();
+  registerBrowserHandlers();
 }

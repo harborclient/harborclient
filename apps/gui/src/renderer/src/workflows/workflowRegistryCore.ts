@@ -17,16 +17,23 @@ import {
 import { takePendingTabCloseIdentity } from './workflowTabCloseBridge';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
+  browserGoBack,
+  browserGoForward,
+  browserGoHome,
+  browserNavigate,
+  browserReload,
   closeAllRequestAndMarkdownTabs,
   closeTab,
   loadRequest,
+  newBrowserTab,
   newTab,
   openPageTab,
   setActiveDraft,
   setActiveTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import type { PageRef } from '#/renderer/src/store/tabs';
-import { isRequestTab } from '#/renderer/src/store/tabs';
+import { isBrowserTab, isRequestTab } from '#/renderer/src/store/tabs';
+import type { RootState } from '#/renderer/src/store/redux';
 import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import { CANCEL_REQUEST_PENDING_TYPE } from '#/renderer/src/store/thunks/cancelRequestType';
@@ -644,8 +651,304 @@ export const WORKFLOW_REGISTRY_CORE: readonly WorkflowRegistryCoreEntry[] = [
     play: (_action, ctx) => {
       ctx.dispatch(closeAllRequestAndMarkdownTabs());
     }
+  },
+  {
+    eventType: 'browser.tab.new',
+    match: newBrowserTab.type,
+    /**
+     * Records opening a browser tab using the post-reducer active browser tab.
+     *
+     * @param _action - Redux newBrowserTab action.
+     * @param ctx - Record context for reading the new tab.
+     * @returns browser.tab.new event, or null when no browser tab is active.
+     */
+    record: (_action, ctx) => {
+      const tab = findActiveBrowserTab(ctx.getState());
+      if (tab == null) {
+        return null;
+      }
+      return event('browser.tab.new', {
+        tabId: tab.tabId,
+        url: tab.url,
+        homeUrl: tab.homeUrl
+      });
+    },
+    /**
+     * Opens a browser tab, reusing the recorded tabId when present.
+     *
+     * @param action - Recorded browser.tab.new action.
+     * @param ctx - Playback Redux context.
+     */
+    play: (action, ctx) => {
+      const payload = action.payload as
+        | { tabId?: unknown; url?: unknown; homeUrl?: unknown }
+        | undefined;
+      const tabId = typeof payload?.tabId === 'string' ? payload.tabId : undefined;
+      const url = typeof payload?.url === 'string' ? payload.url : undefined;
+      const homeUrl = typeof payload?.homeUrl === 'string' ? payload.homeUrl : undefined;
+      ctx.dispatch(newBrowserTab({ tabId, url, homeUrl }));
+    }
+  },
+  {
+    eventType: 'browser.navigate',
+    match: browserNavigate.type,
+    /**
+     * Records address-bar navigation for a browser tab.
+     *
+     * @param action - Redux browserNavigate action.
+     * @returns browser.navigate event, or null when payload is invalid.
+     */
+    record: (action) => {
+      const payload = action.payload as { tabId?: unknown; url?: unknown } | undefined;
+      if (typeof payload?.tabId !== 'string' || typeof payload?.url !== 'string') {
+        return null;
+      }
+      return event('browser.navigate', { tabId: payload.tabId, url: payload.url });
+    },
+    /**
+     * Loads a URL in the recorded browser tab guest.
+     *
+     * @param action - Recorded browser.navigate action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const { tabId, url } = requireBrowserNavigatePayload(action.payload);
+      requireOpenBrowserTab(ctx.getState(), tabId);
+      await requireBrowserApi().browserLoadURL(tabId, url);
+    },
+    /**
+     * Coalesces rapid navigates to the same tab.
+     *
+     * @param workflowEvent - Candidate browser.navigate event.
+     * @returns Key scoped to tab id.
+     */
+    coalesceKey: (workflowEvent) => {
+      const tabId = (workflowEvent.payload as { tabId?: string }).tabId;
+      return `browser.navigate:${tabId ?? 'unknown'}`;
+    }
+  },
+  {
+    eventType: 'browser.back',
+    match: browserGoBack.type,
+    /**
+     * Records back-button navigation for a browser tab.
+     *
+     * @param action - Redux browserGoBack action.
+     * @returns browser.back event, or null when payload is invalid.
+     */
+    record: (action) => {
+      const tabId = requireBrowserTabIdPayload(action.payload);
+      return tabId == null ? null : event('browser.back', { tabId });
+    },
+    /**
+     * Navigates the recorded browser tab guest backward.
+     *
+     * @param action - Recorded browser.back action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const tabId = requireBrowserTabIdForPlay(action.payload);
+      requireOpenBrowserTab(ctx.getState(), tabId);
+      await requireBrowserApi().browserGoBack(tabId);
+    }
+  },
+  {
+    eventType: 'browser.forward',
+    match: browserGoForward.type,
+    /**
+     * Records forward-button navigation for a browser tab.
+     *
+     * @param action - Redux browserGoForward action.
+     * @returns browser.forward event, or null when payload is invalid.
+     */
+    record: (action) => {
+      const tabId = requireBrowserTabIdPayload(action.payload);
+      return tabId == null ? null : event('browser.forward', { tabId });
+    },
+    /**
+     * Navigates the recorded browser tab guest forward.
+     *
+     * @param action - Recorded browser.forward action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const tabId = requireBrowserTabIdForPlay(action.payload);
+      requireOpenBrowserTab(ctx.getState(), tabId);
+      await requireBrowserApi().browserGoForward(tabId);
+    }
+  },
+  {
+    eventType: 'browser.reload',
+    match: browserReload.type,
+    /**
+     * Records reload-button action for a browser tab.
+     *
+     * @param action - Redux browserReload action.
+     * @returns browser.reload event, or null when payload is invalid.
+     */
+    record: (action) => {
+      const tabId = requireBrowserTabIdPayload(action.payload);
+      return tabId == null ? null : event('browser.reload', { tabId });
+    },
+    /**
+     * Reloads the recorded browser tab guest.
+     *
+     * @param action - Recorded browser.reload action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const tabId = requireBrowserTabIdForPlay(action.payload);
+      requireOpenBrowserTab(ctx.getState(), tabId);
+      await requireBrowserApi().browserReload(tabId);
+    }
+  },
+  {
+    eventType: 'browser.home',
+    match: browserGoHome.type,
+    /**
+     * Records home-button navigation for a browser tab.
+     *
+     * @param action - Redux browserGoHome action.
+     * @returns browser.home event, or null when payload is invalid.
+     */
+    record: (action) => {
+      const tabId = requireBrowserTabIdPayload(action.payload);
+      return tabId == null ? null : event('browser.home', { tabId });
+    },
+    /**
+     * Navigates the recorded browser tab guest to its home URL.
+     *
+     * @param action - Recorded browser.home action.
+     * @param ctx - Playback Redux context.
+     */
+    play: async (action, ctx) => {
+      const tabId = requireBrowserTabIdForPlay(action.payload);
+      requireOpenBrowserTab(ctx.getState(), tabId);
+      await requireBrowserApi().browserGoHome(tabId);
+    }
   }
 ];
+
+/**
+ * Returns the active browser tab when the active tab is a browser tab.
+ *
+ * @param state - Root Redux state.
+ * @returns Active browser tab, or null.
+ */
+function findActiveBrowserTab(
+  state: RootState
+): { tabId: string; url: string; homeUrl: string } | null {
+  const tab = state.tabs.tabs.find((entry) => entry.tabId === state.tabs.activeTabId);
+  if (tab == null || !isBrowserTab(tab)) {
+    return null;
+  }
+  return tab;
+}
+
+/**
+ * Reads a tabId from a chrome intent payload.
+ *
+ * @param payload - Unknown action payload.
+ * @returns tabId when valid, otherwise null.
+ */
+function requireBrowserTabIdPayload(payload: unknown): string | null {
+  if (payload == null || typeof payload !== 'object') {
+    return null;
+  }
+  const tabId = (payload as { tabId?: unknown }).tabId;
+  return typeof tabId === 'string' && tabId.length > 0 ? tabId : null;
+}
+
+/**
+ * Reads a tabId from a recorded browser chrome action, throwing when missing.
+ *
+ * @param payload - Recorded action payload.
+ * @returns Browser tab id.
+ * @throws When tabId is missing or invalid.
+ */
+function requireBrowserTabIdForPlay(payload: unknown): string {
+  const tabId = requireBrowserTabIdPayload(payload);
+  if (tabId == null) {
+    throw new Error('Invalid browser chrome payload for playback.');
+  }
+  return tabId;
+}
+
+/**
+ * Reads navigate payload fields for playback.
+ *
+ * @param payload - Recorded browser.navigate payload.
+ * @returns tabId and url.
+ * @throws When fields are missing or invalid.
+ */
+function requireBrowserNavigatePayload(payload: unknown): { tabId: string; url: string } {
+  if (payload == null || typeof payload !== 'object') {
+    throw new Error('Invalid browser.navigate payload for playback.');
+  }
+  const { tabId, url } = payload as { tabId?: unknown; url?: unknown };
+  if (typeof tabId !== 'string' || tabId.length === 0 || typeof url !== 'string') {
+    throw new Error('Invalid browser.navigate payload for playback.');
+  }
+  return { tabId, url };
+}
+
+/**
+ * Ensures a browser tab with the recorded id is open.
+ *
+ * @param state - Root Redux state.
+ * @param tabId - Recorded browser tab id.
+ * @throws When the tab is not open.
+ */
+function requireOpenBrowserTab(state: RootState, tabId: string): void {
+  const tab = state.tabs.tabs.find((entry) => entry.tabId === tabId);
+  if (tab == null || !isBrowserTab(tab)) {
+    throw new Error(`Browser tab not found for playback (${tabId}).`);
+  }
+}
+
+/**
+ * Returns the preload browser API, throwing when unavailable (non-Electron).
+ *
+ * @returns Window browser API surface.
+ * @throws When `window.api` is missing.
+ */
+function requireBrowserApi(): {
+  browserLoadURL: (tabId: string, url: string) => Promise<void>;
+  browserGoBack: (tabId: string) => Promise<void>;
+  browserGoForward: (tabId: string) => Promise<void>;
+  browserReload: (tabId: string) => Promise<void>;
+  browserGoHome: (tabId: string) => Promise<void>;
+} {
+  const api = (
+    globalThis as {
+      window?: {
+        api?: {
+          browserLoadURL?: (tabId: string, url: string) => Promise<void>;
+          browserGoBack?: (tabId: string) => Promise<void>;
+          browserGoForward?: (tabId: string) => Promise<void>;
+          browserReload?: (tabId: string) => Promise<void>;
+          browserGoHome?: (tabId: string) => Promise<void>;
+        };
+      };
+    }
+  ).window?.api;
+  if (
+    api?.browserLoadURL == null ||
+    api.browserGoBack == null ||
+    api.browserGoForward == null ||
+    api.browserReload == null ||
+    api.browserGoHome == null
+  ) {
+    throw new Error('Browser API unavailable for workflow playback.');
+  }
+  return {
+    browserLoadURL: api.browserLoadURL,
+    browserGoBack: api.browserGoBack,
+    browserGoForward: api.browserGoForward,
+    browserReload: api.browserReload,
+    browserGoHome: api.browserGoHome
+  };
+}
 
 /**
  * Loose identity shape used only for coalesce key formatting.
@@ -655,6 +958,7 @@ interface WorkflowTabIdentityLike {
   requestUuid?: string;
   documentId?: number;
   documentUuid?: string;
+  tabId?: string;
   page?: PageRef;
 }
 
@@ -673,6 +977,9 @@ function tabIdentityKey(identity: WorkflowTabIdentityLike | undefined): string {
   }
   if (identity.kind === 'markdown') {
     return `markdown:${identity.documentUuid ?? identity.documentId ?? 'unknown'}`;
+  }
+  if (identity.kind === 'browser') {
+    return `browser:${identity.tabId ?? 'unknown'}`;
   }
   if (identity.kind === 'page' && identity.page != null) {
     return `page:${identity.page.type}`;

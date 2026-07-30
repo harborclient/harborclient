@@ -20,8 +20,21 @@ import type { ApiRequestHistory } from './requestHistory';
 import type { ApiWorkspaces } from './workspace';
 import type { ApiWorkflows } from './workflow';
 import type { ApiWorkflowRunHistory } from './workflowRunHistory';
+import type { ApiWebsites } from './website';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
+import type { ApiBrowser } from './browser';
+
+export type {
+  ApiBrowser,
+  BrowserHcScriptSourcePayload,
+  BrowserHcScriptsPayload,
+  BrowserInjectionScriptPayload,
+  BrowserNavigationState,
+  BrowserOpenTabRequest,
+  BrowserScriptRunAt,
+  BrowserViewBounds
+} from './browser';
 
 /**
  * IPC bridge API exposed to the renderer via contextBridge.
@@ -49,6 +62,8 @@ export interface Api
     ApiWorkspaces,
     ApiWorkflows,
     ApiWorkflowRunHistory,
+    ApiWebsites,
     ApiTrash,
     ApiTerminal,
-    ApiCustomThemes {}
+    ApiCustomThemes,
+    ApiBrowser {}

@@ -1,6 +1,7 @@
 import { type TabBarItem } from '@harborclient/sdk/components';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
@@ -41,6 +42,21 @@ function markdownTabAccessibleName(tab: Tab): string {
 }
 
 /**
+ * Builds the accessible name for an embedded browser tab.
+ *
+ * @param tab - Browser tab whose label is composed for screen readers.
+ * @returns Title and optional unsaved suffix.
+ */
+function browserTabAccessibleName(tab: Tab): string {
+  if (!isBrowserTab(tab)) {
+    return '';
+  }
+  const parts = [tab.title || 'Browser'];
+  if (isTabDirty(tab)) parts.push('unsaved');
+  return parts.join(', ');
+}
+
+/**
  * Builds the accessible name for a page tab.
  *
  * @param title - Resolved page tab title.
@@ -69,6 +85,9 @@ function documentTabTitle(tab: Tab, pageTitle?: string): string {
   if (isMarkdownTab(tab)) {
     return tab.name;
   }
+  if (isBrowserTab(tab)) {
+    return tab.title || 'Browser';
+  }
   if (isRequestTab(tab)) {
     return tab.draft.name;
   }
@@ -84,6 +103,12 @@ function documentTabTitle(tab: Tab, pageTitle?: string): string {
 function requestTabDragLabel(tab: Tab, pageTitle?: string): string {
   if (isPageTab(tab)) {
     return pageTitle ?? 'Page';
+  }
+  if (isBrowserTab(tab)) {
+    return tab.title || 'Browser';
+  }
+  if (isMarkdownTab(tab)) {
+    return tab.name;
   }
   if (isRequestTab(tab)) {
     return `${tab.draft.method} ${tab.draft.name}`;
@@ -130,12 +155,15 @@ export function buildRequestTabBarItems({
     const pageTitle = pageDisplay?.title;
     const isPage = isPageTab(tab);
     const isMarkdown = isMarkdownTab(tab);
+    const isBrowser = isBrowserTab(tab);
     const dirty = isPage ? tab.page.type === 'themes' && themeDesignerDirty : isTabDirty(tab);
     const ariaLabel = isPage
       ? pageTabAccessibleName(pageTitle ?? 'Page', dirty)
       : isMarkdown
         ? markdownTabAccessibleName(tab)
-        : requestTabAccessibleName(tab);
+        : isBrowser
+          ? browserTabAccessibleName(tab)
+          : requestTabAccessibleName(tab);
 
     return {
       id: tab.tabId,

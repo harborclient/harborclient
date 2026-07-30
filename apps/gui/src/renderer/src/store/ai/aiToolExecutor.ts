@@ -44,7 +44,9 @@ import {
 } from '@harborclient/core/ai/chatContext';
 import { isMcpPrefixedToolName } from '@harborclient/core/mcpToolNames';
 import { hostFromUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/cookieHost';
+import { normalizeBrowserAddressInput, browserUrlsMatch } from '#/browser/browserUrl';
 import {
+  isBrowserTab,
   isMarkdownTab,
   isRequestTab,
   isTabDirty,
@@ -53,8 +55,9 @@ import {
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '@harborclient/core/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
-import { updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { newBrowserTab, setActiveTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
+  selectActiveBrowserTab,
   selectActiveEnvironmentId,
   selectConsoleEntries,
   selectEffectiveActiveRequestTab,
@@ -67,6 +70,18 @@ import {
   selectSnippets,
   selectTabs
 } from '#/renderer/src/store/selectors';
+import {
+  hasBrowserGuest,
+  markBrowserGuestCreated
+} from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserGuestRegistry';
+import {
+  capWebpageEvalResult,
+  formatWebpageTabInfo,
+  readOptionalBooleanArg,
+  readOptionalNumberArg,
+  readOptionalStringArg,
+  readRequiredStringArg
+} from '#/renderer/src/store/ai/webpageTools';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
@@ -266,6 +281,16 @@ export async function executeAiTool(
         return JSON.stringify(getActiveTerminalLines(ctx.getState(), args));
       case 'terminal_exec':
         return JSON.stringify(terminalExec(ctx.getState(), args));
+      case 'webpage_tab':
+        return JSON.stringify(await webpageTab(args, ctx));
+      case 'webpage_query':
+        return JSON.stringify(await webpageQuery(args, ctx.getState()));
+      case 'webpage_evaluate':
+        return JSON.stringify(await webpageEvaluate(args, ctx.getState()));
+      case 'webpage_inject_script':
+        return JSON.stringify(await webpageInjectScript(args, ctx.getState()));
+      case 'webpage_inject_stylesheet':
+        return JSON.stringify(await webpageInjectStylesheet(args, ctx.getState()));
       case 'get_markdown_document':
         return JSON.stringify(await getMarkdownDocument(args, ctx.getState()));
       default: {
@@ -1051,6 +1076,234 @@ function terminalExec(state: RootState, args: unknown): { ok: true } | { error: 
 
   window.api.writeTerminal(activeTerminal.id, parsed.input);
   return { ok: true };
+}
+
+/**
+ * Resolves a browser tab by id from Redux state.
+ *
+ * @param state - Current Redux root state.
+ * @param tabId - Browser tab id.
+ * @returns Browser tab, or null when missing / not a browser tab.
+ */
+function findBrowserTabById(
+  state: RootState,
+  tabId: string
+): ReturnType<typeof selectActiveBrowserTab> {
+  const tab = selectTabs(state).find((candidate) => candidate.tabId === tabId);
+  if (!tab || !isBrowserTab(tab)) {
+    return null;
+  }
+  return tab;
+}
+
+/**
+ * Opens a new browser tab, reuses a matching open tab, or returns the active browser tab.
+ *
+ * @param args - Optional url: match an open tab by URL, otherwise open a new tab.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Tab info with dom descriptor, or an error object.
+ */
+async function webpageTab(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<ReturnType<typeof formatWebpageTabInfo> | { error: string }> {
+  const urlArg = readOptionalStringArg(args, 'url');
+  if (urlArg === null) {
+    return { error: 'url must be a non-empty string when provided.' };
+  }
+
+  if (urlArg === undefined) {
+    const active = selectActiveBrowserTab(ctx.getState());
+    if (!active) {
+      return { error: 'No active browser tab.' };
+    }
+    return formatWebpageTabInfo(active);
+  }
+
+  const normalized = normalizeBrowserAddressInput(urlArg);
+  if (!normalized) {
+    return {
+      error: 'Invalid or disallowed URL. Use http, https, or about:blank.'
+    };
+  }
+
+  const existing = selectTabs(ctx.getState()).find(
+    (tab) => isBrowserTab(tab) && browserUrlsMatch(tab.url, normalized)
+  );
+  if (existing && isBrowserTab(existing)) {
+    ctx.dispatch(setActiveTab(existing.tabId));
+    return formatWebpageTabInfo(existing);
+  }
+
+  const tabId = crypto.randomUUID();
+  ctx.dispatch(newBrowserTab({ tabId, url: normalized, homeUrl: normalized }));
+
+  try {
+    if (!hasBrowserGuest(tabId)) {
+      await window.api.browserCreate(tabId, normalized, normalized, []);
+      markBrowserGuestCreated(tabId);
+    }
+    const navigation = await window.api.browserWaitForLoad(tabId);
+    const tab = findBrowserTabById(ctx.getState(), tabId);
+    if (!tab) {
+      return {
+        error: 'Browser tab was closed before load completed.'
+      };
+    }
+    return formatWebpageTabInfo(tab, {
+      url: navigation.url,
+      title: navigation.title,
+      canGoBack: navigation.canGoBack,
+      canGoForward: navigation.canGoForward
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to open browser tab.';
+    return { error: message };
+  }
+}
+
+/**
+ * Queries the live DOM of a browser tab with a CSS selector.
+ *
+ * @param args - tabId, selector, optional all/maxElements.
+ * @param state - Current Redux root state.
+ * @returns Query result or error.
+ */
+async function webpageQuery(
+  args: unknown,
+  state: RootState
+): Promise<
+  | {
+      selector: string;
+      matchCount: number;
+      elements: unknown[];
+    }
+  | { error: string }
+> {
+  const tabId = readRequiredStringArg(args, 'tabId');
+  const selector = readRequiredStringArg(args, 'selector');
+  if (!tabId) {
+    return { error: 'tabId is required.' };
+  }
+  if (!selector) {
+    return { error: 'selector is required.' };
+  }
+
+  const all = readOptionalBooleanArg(args, 'all');
+  if (all === null) {
+    return { error: 'all must be a boolean when provided.' };
+  }
+  const maxElements = readOptionalNumberArg(args, 'maxElements');
+  if (maxElements === null) {
+    return { error: 'maxElements must be a finite number when provided.' };
+  }
+
+  if (!findBrowserTabById(state, tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    return await window.api.browserQuerySelector(tabId, selector, all, maxElements);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'DOM query failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Evaluates JavaScript in a browser tab page and returns a capped result.
+ *
+ * @param args - tabId and expression.
+ * @param state - Current Redux root state.
+ * @returns Capped evaluate result or error.
+ */
+async function webpageEvaluate(
+  args: unknown,
+  state: RootState
+): Promise<ReturnType<typeof capWebpageEvalResult> | { error: string }> {
+  const tabId = readRequiredStringArg(args, 'tabId');
+  const expression = readRequiredStringArg(args, 'expression');
+  if (!tabId) {
+    return { error: 'tabId is required.' };
+  }
+  if (!expression) {
+    return { error: 'expression is required.' };
+  }
+  if (!findBrowserTabById(state, tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    const value = await window.api.browserExecuteJavaScript(tabId, expression);
+    return capWebpageEvalResult(value);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Evaluate failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Injects JavaScript source into a browser tab page.
+ *
+ * @param args - tabId and source.
+ * @param state - Current Redux root state.
+ * @returns Success / capped result or error.
+ */
+async function webpageInjectScript(
+  args: unknown,
+  state: RootState
+): Promise<({ ok: true } & ReturnType<typeof capWebpageEvalResult>) | { error: string }> {
+  const tabId = readRequiredStringArg(args, 'tabId');
+  const source = readRequiredStringArg(args, 'source');
+  if (!tabId) {
+    return { error: 'tabId is required.' };
+  }
+  if (!source) {
+    return { error: 'source is required.' };
+  }
+  if (!findBrowserTabById(state, tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    const value = await window.api.browserExecuteJavaScript(tabId, source);
+    return { ok: true, ...capWebpageEvalResult(value) };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Script injection failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Injects a CSS stylesheet into a browser tab page.
+ *
+ * @param args - tabId and css.
+ * @param state - Current Redux root state.
+ * @returns Success with insertion key, or error.
+ */
+async function webpageInjectStylesheet(
+  args: unknown,
+  state: RootState
+): Promise<{ ok: true; key: string } | { error: string }> {
+  const tabId = readRequiredStringArg(args, 'tabId');
+  const css = readRequiredStringArg(args, 'css');
+  if (!tabId) {
+    return { error: 'tabId is required.' };
+  }
+  if (!css) {
+    return { error: 'css is required.' };
+  }
+  if (!findBrowserTabById(state, tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    const key = await window.api.browserInsertCSS(tabId, css);
+    return { ok: true, key };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Stylesheet injection failed.';
+    return { error: message };
+  }
 }
 
 /**

@@ -46,6 +46,11 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(prompt, options?) => Promise<string | null> — AI one-shot ask'
   },
   {
+    label: 'sleep',
+    type: 'function',
+    detail: '(ms) => Promise<void> — delay before continuing'
+  },
+  {
     label: 'fs',
     type: 'property',
     detail: 'Read/write files under the script root — requires Settings → General'

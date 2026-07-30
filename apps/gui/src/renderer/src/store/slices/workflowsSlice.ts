@@ -32,6 +32,11 @@ export interface WorkflowsState {
   playbackWorkflowId: number | null;
 
   /**
+   * True when edit mode was entered from play so a successful save returns to play.
+   */
+  editEnteredFromPlay: boolean;
+
+  /**
    * True when the save-name modal is open.
    */
   saveNameModalOpen: boolean;
@@ -51,6 +56,7 @@ const initialState: WorkflowsState = {
   items: [],
   dialogMode: 'closed',
   playbackWorkflowId: null,
+  editEnteredFromPlay: false,
   saveNameModalOpen: false,
   saveError: null,
   saving: false
@@ -73,6 +79,7 @@ const workflowsSlice = createSlice({
     openWorkflowRecordDialog(state) {
       state.dialogMode = 'record';
       state.playbackWorkflowId = null;
+      state.editEnteredFromPlay = false;
     },
 
     /**
@@ -84,6 +91,7 @@ const workflowsSlice = createSlice({
     openWorkflowPlayDialog(state, action: PayloadAction<number>) {
       state.dialogMode = 'play';
       state.playbackWorkflowId = action.payload;
+      state.editEnteredFromPlay = false;
       state.saveNameModalOpen = false;
       state.saveError = null;
       state.saving = false;
@@ -98,9 +106,25 @@ const workflowsSlice = createSlice({
     openWorkflowEditDialog(state, action: PayloadAction<number>) {
       state.dialogMode = 'edit';
       state.playbackWorkflowId = action.payload;
+      state.editEnteredFromPlay = false;
       state.saveNameModalOpen = false;
       state.saveError = null;
       state.saving = false;
+    },
+
+    /**
+     * Switches an open play session into edit mode so save can return to play.
+     *
+     * No-ops unless the panel is already in play mode with a loaded workflow.
+     *
+     * @param state - Workflows slice state.
+     */
+    enterWorkflowEditFromPlay(state) {
+      if (state.dialogMode !== 'play' || state.playbackWorkflowId == null) {
+        return;
+      }
+      state.dialogMode = 'edit';
+      state.editEnteredFromPlay = true;
     },
 
     /**
@@ -109,6 +133,7 @@ const workflowsSlice = createSlice({
     closeWorkflowDialog(state) {
       state.dialogMode = 'closed';
       state.playbackWorkflowId = null;
+      state.editEnteredFromPlay = false;
       state.saveNameModalOpen = false;
       state.saveError = null;
       state.saving = false;
@@ -146,6 +171,7 @@ export const {
   openWorkflowRecordDialog,
   openWorkflowPlayDialog,
   openWorkflowEditDialog,
+  enterWorkflowEditFromPlay,
   closeWorkflowDialog,
   setWorkflowSaveNameModalOpen,
   setWorkflowSaveError,
@@ -180,6 +206,18 @@ export function selectWorkflowDialogMode(state: RootState): WorkflowDialogMode {
  */
 export function selectPlaybackWorkflowId(state: RootState): number | null {
   return state.workflows.playbackWorkflowId;
+}
+
+/**
+ * Selects whether edit mode was entered from an open play session.
+ *
+ * Used so a successful timeline save can return the panel to play mode.
+ *
+ * @param state - Root Redux state.
+ * @returns True when save should switch back to play.
+ */
+export function selectEditEnteredFromPlay(state: RootState): boolean {
+  return state.workflows.editEnteredFromPlay;
 }
 
 /**

@@ -112,4 +112,37 @@ describeSqlite('TrashService registry entities', () => {
     ]);
     expect(trash.listTrashItems()).toEqual([]);
   });
+
+  it('moves a website to trash and restores it', async () => {
+    const { database } = await createRegistry();
+    const websites = database.createWebsite({
+      name: 'Example',
+      uuid: 'web-trash-1',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      faviconDataUrl: null,
+      scripts: [],
+      preRequestScripts: [],
+      postRequestScripts: []
+    });
+    const websiteId = websites[0]!.id;
+
+    const trash = new TrashService({} as IStorage, database);
+    trash.moveWebsiteToTrash(websiteId);
+
+    expect(database.listWebsites()).toEqual([]);
+    expect(trash.listTrashItems()[0]?.entityType).toBe('website');
+
+    const restoredType = await trash.restoreTrashItem(trash.listTrashItems()[0]!.id);
+    expect(restoredType).toBe('website');
+    expect(database.listWebsites()).toEqual([
+      expect.objectContaining({
+        name: 'Example',
+        uuid: 'web-trash-1',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    ]);
+    expect(trash.listTrashItems()).toEqual([]);
+  });
 });

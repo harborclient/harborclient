@@ -1,5 +1,11 @@
 import type { PageRef } from '#/renderer/src/store/tabs';
-import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/tabs';
+import {
+  isBrowserTab,
+  isMarkdownTab,
+  isPageTab,
+  isRequestTab,
+  type Tab
+} from '#/renderer/src/store/tabs';
 import type { RootState } from '#/renderer/src/store/redux';
 import { selectDocumentsByCollection, selectEnvironments } from '#/renderer/src/store/selectors';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
@@ -13,6 +19,7 @@ export type WorkflowTabIdentity =
   | { kind: 'request'; requestUuid: string; requestId?: number }
   | { kind: 'page'; page: PageRef }
   | { kind: 'markdown'; documentId: number; documentUuid?: string }
+  | { kind: 'browser'; tabId: string }
   | { kind: 'blank' };
 
 /**
@@ -82,6 +89,10 @@ export function resolveTabIdentityFromTab(state: RootState, tab: Tab): WorkflowT
     };
   }
 
+  if (isBrowserTab(tab)) {
+    return { kind: 'browser', tabId: tab.tabId };
+  }
+
   if (!isRequestTab(tab)) {
     return null;
   }
@@ -136,6 +147,10 @@ export function findTabByIdentity(
     return tabs.find((tab) => isPageTab(tab) && routePageRefKey(tab.page) === key)?.tabId;
   }
 
+  if (identity.kind === 'browser') {
+    return tabs.find((tab) => isBrowserTab(tab) && tab.tabId === identity.tabId)?.tabId;
+  }
+
   if (identity.kind === 'markdown') {
     if (typeof identity.documentUuid === 'string' && identity.documentUuid.length > 0) {
       for (const tab of tabs) {
@@ -182,6 +197,13 @@ export function parseWorkflowTabIdentity(value: unknown): WorkflowTabIdentity | 
   }
   if (identity.kind === 'page' && identity.page != null && typeof identity.page === 'object') {
     return { kind: 'page', page: identity.page };
+  }
+  if (
+    identity.kind === 'browser' &&
+    typeof identity.tabId === 'string' &&
+    identity.tabId.length > 0
+  ) {
+    return { kind: 'browser', tabId: identity.tabId };
   }
   if (identity.kind === 'markdown' && typeof identity.documentId === 'number') {
     return {

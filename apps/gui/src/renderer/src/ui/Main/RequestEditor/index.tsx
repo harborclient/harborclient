@@ -4,6 +4,7 @@ import type { RequestTabContext, ResponseTabContext } from '@harborclient/core/p
 import type { Variable } from '@harborclient/core/types';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
 import {
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
@@ -23,6 +24,7 @@ import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import {
+  selectActiveBrowserTab,
   selectActiveEnvironmentId,
   selectActiveMarkdownTab,
   selectActivePage,
@@ -62,7 +64,9 @@ import {
   setActiveTab,
   closeTab,
   closeAllRequestAndMarkdownTabs,
-  reorderTabs
+  reorderTabs,
+  updateBrowserNavigation,
+  openInheritedBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import {
   sendRequest,
@@ -81,6 +85,12 @@ import { Button, Checkbox, Modal, ModalFooter } from '@harborclient/sdk/componen
 import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
 import { Editor } from './Editor';
 import { NoOpenRequests } from './NoOpenRequests';
+import { BrowserTabContent } from './BrowserTab';
+import {
+  clearBrowserGuest,
+  hasBrowserGuest,
+  syncDestroyedBrowserGuests
+} from './BrowserTab/browserGuestRegistry';
 import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
@@ -133,9 +143,14 @@ function isDirtyForClose(
   folderSettingsDirty: boolean,
   workspaceSettingsDirty: boolean,
   warnWhenClosingUnsavedRequests: boolean,
-  themeDesignerDirty: boolean
+  themeDesignerDirty: boolean,
+  browserSettingsDirty = false
 ): boolean {
   if (isMarkdownTab(tab)) {
+    return warnWhenClosingUnsavedRequests && isTabDirty(tab);
+  }
+
+  if (isBrowserTab(tab)) {
     return warnWhenClosingUnsavedRequests && isTabDirty(tab);
   }
 
@@ -153,7 +168,8 @@ function isDirtyForClose(
       collectionSettingsDirty,
       environmentSettingsDirty,
       folderSettingsDirty,
-      workspaceSettingsDirty
+      workspaceSettingsDirty,
+      browserSettingsDirty
     );
   }
 
@@ -183,10 +199,12 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const activeTabId = useAppSelector(selectActiveTabId);
   const activePage = useAppSelector(selectActivePage);
   const activeMarkdownTab = useAppSelector(selectActiveMarkdownTab);
+  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
   const activeTab = tabs.find((tab) => tab.tabId === activeTabId);
   const isActivePageTab = activeTab != null && isPageTab(activeTab);
 
   const isActiveMarkdownTab = activeTab != null && isMarkdownTab(activeTab);
+  const isActiveBrowserTab = activeTab != null && isBrowserTab(activeTab);
   const draft = useAppSelector(selectDraft);
   const response = useAppSelector(selectResponse);
   const sending = useAppSelector(selectSending);
@@ -222,6 +240,32 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   }, [tabs]);
 
   /**
+   * Forwards guest navigation/title updates into browser tab Redux state.
+   */
+  useEffect(() => {
+    return window.api.onBrowserNavigation((state) => {
+      dispatch(updateBrowserNavigation(state));
+    });
+  }, [dispatch]);
+
+  /**
+   * Opens a HarborClient browser tab when a guest requests a popup / new window.
+   */
+  useEffect(() => {
+    return window.api.onBrowserOpenTab((request) => {
+      dispatch(openInheritedBrowserTab(request));
+    });
+  }, [dispatch]);
+
+  /**
+   * Destroys main-process guests when their browser tabs are closed.
+   */
+  useEffect(() => {
+    const openIds = new Set(tabs.filter((tab) => isBrowserTab(tab)).map((tab) => tab.tabId));
+    syncDestroyedBrowserGuests(openIds);
+  }, [tabs]);
+
+  /**
    * Whether a Themes page tab is currently open in the tab bar.
    */
   const themesTabOpen = useMemo(
@@ -249,6 +293,23 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const splitRef = useRef<HTMLElement>(null);
   const [savingRequest, setSavingRequest] = useState(false);
   const savingRequestRef = useRef(false);
+
+  /**
+   * Hides native browser guests while unsaved-close modals are open so the HTML
+   * overlay is not covered by WebContentsView, then restores the active guest on dismiss.
+   */
+  useEffect(() => {
+    if (!closeTabPrompt && !closeManyPrompt) {
+      return;
+    }
+    void window.api.browserHideAll();
+    return () => {
+      const active = tabs.find((tab) => tab.tabId === activeTabId);
+      if (active && isBrowserTab(active) && hasBrowserGuest(active.tabId)) {
+        void window.api.browserSetVisible(active.tabId, true);
+      }
+    };
+  }, [closeTabPrompt, closeManyPrompt, activeTabId, tabs]);
 
   /**
    * Reads the split container height so max-size clamping tracks the live layout.
@@ -302,6 +363,17 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const warnWhenClosingUnsavedRequests = useAppSelector(
     (state) => state.settings.general.warnWhenClosingUnsavedRequests
   );
+
+  /**
+   * Dirty flag for the linked browser tab when browser-settings is active.
+   */
+  const browserSettingsDirty = useMemo(() => {
+    if (!activePage || activePage.type !== 'browser-settings') {
+      return false;
+    }
+    const owner = tabs.find((tab) => isBrowserTab(tab) && tab.tabId === activePage.browserTabId);
+    return owner != null && isTabDirty(owner);
+  }, [activePage, tabs]);
 
   /**
    * Whether the active request tab has unsaved edits or has never been persisted.
@@ -396,15 +468,34 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const activeFolderName = activeFolder?.name;
 
   /**
+   * Closes one browser tab after the guest accepts unload (or has no leave prompt).
+   *
+   * @param tabId - Browser tab id to close.
+   * @returns True when Redux closed the tab; false when the user stayed on the page.
+   */
+  const closeBrowserTab = useCallback(
+    async (tabId: string): Promise<boolean> => {
+      const closed = await window.api.browserRequestClose(tabId);
+      if (!closed) {
+        return false;
+      }
+      clearBrowserGuest(tabId);
+      dispatch(closeTab(tabId));
+      return true;
+    },
+    [dispatch]
+  );
+
+  /**
    * Closes tabs immediately without prompting, including collection-runner cleanup.
    *
    * When every open tab is included, request/markdown tabs are closed via a single
    * `closeAllRequestAndMarkdownTabs` intent (one workflow event), then remaining
-   * page tabs are closed individually.
+   * browser and page tabs are closed individually.
    *
    * @param tabIds - Tabs to close.
    */
-  const closeTabsImmediately = (tabIds: string[]): void => {
+  const closeTabsImmediately = async (tabIds: string[]): Promise<void> => {
     const uniqueTabIds = [...new Set(tabIds)];
     const closingAll =
       uniqueTabIds.length > 0 &&
@@ -415,6 +506,10 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     if (closingAll) {
       dispatch(closeAllRequestAndMarkdownTabs());
       for (const tab of tabs) {
+        if (isBrowserTab(tab)) {
+          await closeBrowserTab(tab.tabId);
+          continue;
+        }
         if (!isPageTab(tab)) {
           continue;
         }
@@ -443,7 +538,12 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       }
 
       if (isMarkdownTab(tab)) {
-        dispatch(closeTab(tabId));
+        void dispatch(closeMarkdownTab(tabId));
+        continue;
+      }
+
+      if (isBrowserTab(tab)) {
+        await closeBrowserTab(tabId);
         continue;
       }
 
@@ -475,7 +575,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         folderSettingsDirty,
         workspaceSettingsDirty,
         warnWhenClosingUnsavedRequests,
-        themeDesignerDirty
+        themeDesignerDirty,
+        browserSettingsDirty
       )
     ).length;
 
@@ -484,7 +585,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       return;
     }
 
-    closeTabsImmediately(uniqueTabIds);
+    void closeTabsImmediately(uniqueTabIds);
   };
 
   /**
@@ -502,7 +603,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             folderSettingsDirty,
             workspaceSettingsDirty,
             warnWhenClosingUnsavedRequests,
-            themeDesignerDirty
+            themeDesignerDirty,
+            browserSettingsDirty
           )
       )
       .map((tab) => tab.tabId);
@@ -524,6 +626,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       return;
     }
 
+    if (isBrowserTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
+      setCloseTabPrompt({ tabId, name: tab.title || 'Browser' });
+      return;
+    }
+
     if (isRequestTab(tab) && warnWhenClosingUnsavedRequests && isTabDirty(tab)) {
       setCloseTabPrompt({ tabId, name: tab.draft.name });
       return;
@@ -542,7 +649,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         collectionSettingsDirty,
         environmentSettingsDirty,
         folderSettingsDirty,
-        workspaceSettingsDirty
+        workspaceSettingsDirty,
+        browserSettingsDirty
       )
     ) {
       setCloseTabPrompt({
@@ -563,6 +671,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
     if (isMarkdownTab(tab)) {
       void dispatch(closeMarkdownTab(tabId));
+      return;
+    }
+
+    if (isBrowserTab(tab)) {
+      void closeBrowserTab(tabId);
       return;
     }
 
@@ -605,6 +718,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                 variables={activeVariables}
                 onEditVariables={onEditVariables}
               />
+            </div>
+          ) : isActiveBrowserTab && activeBrowserTab ? (
+            <div
+              key={`browser-${activeTabId}`}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <BrowserTabContent tab={activeBrowserTab} />
             </div>
           ) : (
             <>
@@ -735,15 +855,18 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                   }
 
                   const tab = tabs.find((entry) => entry.tabId === closeTabPrompt.tabId);
-                  if (tab && isPageTab(tab)) {
-                    dispatch(closeTab(closeTabPrompt.tabId));
-                  } else if (tab && isMarkdownTab(tab)) {
-                    void dispatch(closeMarkdownTab(closeTabPrompt.tabId));
-                  } else {
-                    void dispatch(closeRequestTab(closeTabPrompt.tabId));
-                  }
+                  const tabIdToClose = closeTabPrompt.tabId;
                   setCloseTabPrompt(null);
                   setCloseTabDontAskAgain(false);
+                  if (tab && isPageTab(tab)) {
+                    dispatch(closeTab(tabIdToClose));
+                  } else if (tab && isMarkdownTab(tab)) {
+                    void dispatch(closeMarkdownTab(tabIdToClose));
+                  } else if (tab && isBrowserTab(tab)) {
+                    await closeBrowserTab(tabIdToClose);
+                  } else {
+                    void dispatch(closeRequestTab(tabIdToClose));
+                  }
                 })();
               }}
             >
@@ -787,9 +910,10 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     await dispatch(patchGeneralSettings({ warnWhenClosingUnsavedRequests: false }));
                   }
 
-                  closeTabsImmediately(closeManyPrompt.tabIds);
+                  const tabIds = closeManyPrompt.tabIds;
                   setCloseManyPrompt(null);
                   setCloseManyDontAskAgain(false);
+                  await closeTabsImmediately(tabIds);
                 })();
               }}
             >

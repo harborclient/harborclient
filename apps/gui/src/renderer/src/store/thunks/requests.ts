@@ -57,6 +57,7 @@ import {
   draftFromSaved,
   getDirtyTabsInCollection,
   getDirtyTabsInFolder,
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
@@ -98,6 +99,7 @@ import {
   updateCollection,
   updateFolder
 } from './collections';
+import { saveOrUpdateBrowserWebsite } from './websites';
 import { updateEnvironment } from './environments';
 import { tryInvokeTabSave } from '#/renderer/src/hooks/tabSaveRegistry';
 import { saveMarkdownTab } from './documents';
@@ -1326,7 +1328,8 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
 
 /**
  * Saves the active tab from the menu: registered form handlers first, then
- * markdown or request persistence. No-ops when the active tab has nothing to save.
+ * markdown, browser website, or request persistence. No-ops when the active
+ * tab has nothing to save.
  */
 export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
   'requests/saveFromMenu',
@@ -1346,6 +1349,11 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
 
       await dispatch(saveMarkdownTab(activeTab.tabId)).unwrap();
       toast.success('Document saved');
+      return;
+    }
+
+    if (activeTab && isBrowserTab(activeTab)) {
+      await dispatch(saveOrUpdateBrowserWebsite(activeTab.tabId));
       return;
     }
 

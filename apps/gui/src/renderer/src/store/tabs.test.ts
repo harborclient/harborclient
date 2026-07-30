@@ -4,6 +4,7 @@ import type { SavedRequest } from '@harborclient/core/types';
 import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import {
   cloneDraft,
+  createBrowserTab,
   createMarkdownTab,
   createTab,
   defaultDraft,
@@ -12,6 +13,7 @@ import {
   getDirtyTabs,
   getDirtyTabsInCollection,
   getDirtyTabsInFolder,
+  hasBrowserPendingSave,
   isDraftDirty,
   isTabDirty,
   normalizeDraft,
@@ -196,6 +198,86 @@ describe('isTabDirty', () => {
 
     tab.draft.url = 'https://changed.example';
     expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('never marks browser tabs as editor-dirty', () => {
+    const tab = createBrowserTab({
+      websiteId: 1,
+      url: 'https://example.com/page',
+      savedUrl: 'https://example.com/',
+      title: 'Live title',
+      savedTitle: 'Saved name',
+      scripts: [
+        {
+          id: 's1',
+          name: 'A',
+          enabled: true,
+          runAt: 'did-finish-load',
+          source: '1'
+        }
+      ],
+      savedScripts: []
+    });
+    expect(isTabDirty(tab)).toBe(false);
+  });
+});
+
+describe('hasBrowserPendingSave', () => {
+  it('is false when scripts and website fields match baselines', () => {
+    const tab = createBrowserTab({
+      websiteId: 1,
+      url: 'https://example.com/',
+      savedUrl: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      savedHomeUrl: 'https://example.com/',
+      title: 'Example',
+      savedTitle: 'Example',
+      faviconDataUrl: null,
+      savedFaviconDataUrl: null
+    });
+    expect(hasBrowserPendingSave(tab)).toBe(false);
+  });
+
+  it('is true when linked website navigation fields drift', () => {
+    const tab = createBrowserTab({
+      websiteId: 1,
+      url: 'https://example.com/page',
+      savedUrl: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      savedHomeUrl: 'https://example.com/',
+      title: 'Example',
+      savedTitle: 'Example'
+    });
+    expect(hasBrowserPendingSave(tab)).toBe(true);
+    expect(isTabDirty(tab)).toBe(false);
+  });
+
+  it('is true when injection scripts diverge from saved', () => {
+    const tab = createBrowserTab({
+      scripts: [
+        {
+          id: 's1',
+          name: 'A',
+          enabled: true,
+          runAt: 'did-finish-load',
+          source: '1'
+        }
+      ],
+      savedScripts: []
+    });
+    expect(hasBrowserPendingSave(tab)).toBe(true);
+    expect(isTabDirty(tab)).toBe(false);
+  });
+
+  it('ignores website field drift when the tab is not linked', () => {
+    const tab = createBrowserTab({
+      websiteId: null,
+      url: 'https://example.com/page',
+      savedUrl: 'https://example.com/',
+      title: 'Live',
+      savedTitle: 'Saved'
+    });
+    expect(hasBrowserPendingSave(tab)).toBe(false);
   });
 });
 
@@ -428,6 +510,51 @@ describe('createTab', () => {
 
     tabA.draft.url = 'https://changed.example';
     expect(tabA.savedDraft.url).toBe('https://example.com');
+  });
+});
+
+describe('createBrowserTab', () => {
+  it('defaults to about:blank with empty scripts', () => {
+    const tab = createBrowserTab();
+    expect(tab.kind).toBe('browser');
+    expect(tab.url).toBe('about:blank');
+    expect(tab.homeUrl).toBe('about:blank');
+    expect(tab.scripts).toEqual([]);
+    expect(tab.savedScripts).toEqual([]);
+    expect(tab.pre_request_scripts).toEqual([]);
+    expect(tab.post_request_scripts).toEqual([]);
+    expect(tab.savedPreRequestScripts).toEqual([]);
+    expect(tab.savedPostRequestScripts).toEqual([]);
+  });
+
+  it('applies init fields and clones script arrays', () => {
+    const script = {
+      id: 's1',
+      name: 'A',
+      enabled: true,
+      runAt: 'document-start' as const,
+      source: 'void 0'
+    };
+    const pre = createInlineScriptRef('hc.log("pre");', 'Pre');
+    const tab = createBrowserTab({
+      url: 'https://example.com',
+      homeUrl: 'https://home.example',
+      scripts: [script],
+      savedScripts: [script],
+      pre_request_scripts: [pre],
+      savedPreRequestScripts: [pre]
+    });
+
+    expect(tab.url).toBe('https://example.com');
+    expect(tab.homeUrl).toBe('https://home.example');
+    expect(tab.scripts).toEqual([script]);
+    expect(tab.savedScripts).toEqual([script]);
+    expect(tab.scripts[0]).not.toBe(script);
+    expect(tab.savedScripts[0]).not.toBe(script);
+    expect(tab.scripts[0]).not.toBe(tab.savedScripts[0]);
+    expect(tab.pre_request_scripts).toEqual([pre]);
+    expect(tab.pre_request_scripts[0]).not.toBe(pre);
+    expect(tab.savedPreRequestScripts[0]).not.toBe(pre);
   });
 });
 

@@ -17,11 +17,14 @@ import {
   useSyncExternalStore,
   type JSX
 } from 'react';
-import { faEraser, faFloppyDisk, faList, faXmark } from '#/renderer/src/fontawesome';
+import { faEraser, faFloppyDisk, faList, faPenToSquare, faXmark } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector, useAppStore } from '#/renderer/src/store/hooks';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import {
   closeWorkflowDialog,
+  enterWorkflowEditFromPlay,
+  openWorkflowPlayDialog,
+  selectEditEnteredFromPlay,
   selectPlaybackWorkflowId,
   selectWorkflowDialogMode,
   selectWorkflows,
@@ -48,6 +51,8 @@ import {
   getSessionEvents,
   getWorkflowLogApi,
   isRecording as getIsRecording,
+  replaceSessionActions,
+  seekRecordingTo,
   startRecording,
   stopRecording,
   subscribeRecordingSession
@@ -133,6 +138,7 @@ export function WorkflowPanel(): JSX.Element | null {
   const confirm = useConfirm();
   const dialogMode = useAppSelector(selectWorkflowDialogMode);
   const playbackWorkflowId = useAppSelector(selectPlaybackWorkflowId);
+  const editEnteredFromPlay = useAppSelector(selectEditEnteredFromPlay);
   const workflows = useAppSelector(selectWorkflows);
   const open = dialogMode !== 'closed';
   const panelMode = toPanelMode(dialogMode);
@@ -140,7 +146,11 @@ export function WorkflowPanel(): JSX.Element | null {
   const isPlayMode = dialogMode === 'play';
   const isEditMode = dialogMode === 'edit';
   const isPlaybackSession = isPlayMode || isEditMode;
-  const editable = isEditMode;
+  /**
+   * Timeline context-menu / payload edits are available in edit mode and while
+   * a recording is paused (blocks are disabled while actively recording).
+   */
+  const editable = isEditMode || isRecordMode;
   /**
    * Stable id for the dialog title heading (aria-labelledby).
    */
@@ -221,7 +231,7 @@ export function WorkflowPanel(): JSX.Element | null {
   /**
    * Resolves initial dialog geometry once when the panel mounts.
    *
-   * @returns Saved or default full-width geometry.
+   * @returns Saved or default geometry (60vw when no saved size).
    */
   const [playGeometry] = useState(() => {
     const defaults = defaultWorkflowPlayDialogGeometry();
@@ -386,14 +396,17 @@ export function WorkflowPanel(): JSX.Element | null {
     }
 
     /**
-     * Refreshes recorded actions and keeps the playhead on the latest step.
+     * Refreshes recorded actions. While recording, keeps the playhead on the
+     * latest step; while paused, leaves selection to seek / edit handlers.
      */
     const syncActions = (): void => {
       const events = enrichWorkflowSendDisplayFields([...getSessionEvents()], {
         getState: store.getState
       });
       setRecordedActions(events);
-      setRecordSelectedIndex(events.length === 0 ? 0 : events.length - 1);
+      if (getIsRecording()) {
+        setRecordSelectedIndex(events.length === 0 ? 0 : events.length - 1);
+      }
     };
 
     /**
@@ -530,7 +543,18 @@ export function WorkflowPanel(): JSX.Element | null {
   }, []);
 
   /**
-   * Seeks the playback or recording cursor to a timeline block without dispatching.
+   * Switches the open play session into edit mode so a later save can return to play.
+   */
+  const handleEnterEditFromPlay = useCallback((): void => {
+    if (getIsPlaying()) {
+      return;
+    }
+    dispatch(enterWorkflowEditFromPlay());
+  }, [dispatch]);
+
+  /**
+   * Seeks the playback cursor, or while a recording is paused restores app state
+   * at the playhead without deleting later blocks (resume truncates).
    *
    * @param index - Target action index.
    */
@@ -540,13 +564,20 @@ export function WorkflowPanel(): JSX.Element | null {
         if (getIsRecording()) {
           return;
         }
-        setRecordSelectedIndex(index);
+        const playheadIndex = seekRecordingTo(index, { dispatch: store.dispatch });
+        if (playheadIndex >= 0) {
+          setRecordSelectedIndex(playheadIndex);
+        }
+        setRecordingElapsedMs(getRecordingElapsedMs());
+        setRecordedActions(
+          enrichWorkflowSendDisplayFields([...getSessionEvents()], { getState: store.getState })
+        );
         return;
       }
       seekPlaybackTo(index);
       setPlaybackTick((tick) => tick + 1);
     },
-    [isRecordMode]
+    [isRecordMode, store]
   );
 
   /**
@@ -592,13 +623,52 @@ export function WorkflowPanel(): JSX.Element | null {
   );
 
   /**
+   * Applies a timeline edit to the paused recording session buffer.
+   *
+   * @param nextActions - Actions after the edit.
+   * @param nextIndex - Selection index after the edit.
+   */
+  const applyRecordEdit = useCallback(
+    (nextActions: WorkflowAction[], nextIndex: number): void => {
+      const clamped =
+        nextActions.length === 0 ? 0 : Math.min(Math.max(0, nextIndex), nextActions.length - 1);
+      replaceSessionActions(nextActions, store.getState, clamped);
+      setRecordSelectedIndex(clamped);
+      setRecordedActions(
+        enrichWorkflowSendDisplayFields([...getSessionEvents()], { getState: store.getState })
+      );
+      setRecordingElapsedMs(getRecordingElapsedMs());
+    },
+    [store]
+  );
+
+  /**
    * Seeks to an action and opens the payload JSON editor when edits are allowed.
    *
    * @param index - Action index to edit.
    */
   const handleEditPayload = useCallback(
     (index: number): void => {
-      if (!editable || getIsPlaying() || playbackWorkflowId == null) {
+      if (!editable) {
+        return;
+      }
+      if (isRecordMode) {
+        if (getIsRecording()) {
+          return;
+        }
+        const playheadIndex = seekRecordingTo(index, { dispatch: store.dispatch });
+        if (playheadIndex < 0) {
+          return;
+        }
+        setRecordSelectedIndex(playheadIndex);
+        setRecordingElapsedMs(getRecordingElapsedMs());
+        setRecordedActions(
+          enrichWorkflowSendDisplayFields([...getSessionEvents()], { getState: store.getState })
+        );
+        setPayloadEditIndex(playheadIndex);
+        return;
+      }
+      if (getIsPlaying() || playbackWorkflowId == null) {
         return;
       }
       const currentActions = getPlaybackActions();
@@ -609,7 +679,7 @@ export function WorkflowPanel(): JSX.Element | null {
       setPlaybackTick((tick) => tick + 1);
       setPayloadEditIndex(index);
     },
-    [editable, playbackWorkflowId]
+    [editable, isRecordMode, playbackWorkflowId, store]
   );
 
   /**
@@ -626,7 +696,26 @@ export function WorkflowPanel(): JSX.Element | null {
    */
   const handleUpdatePayload = useCallback(
     (payload: unknown): void => {
-      if (payloadEditIndex == null || playbackWorkflowId == null) {
+      if (payloadEditIndex == null) {
+        return;
+      }
+      if (isRecordMode) {
+        if (getIsRecording()) {
+          return;
+        }
+        const nextActions = updateWorkflowActionPayloadAt(
+          getSessionEvents(),
+          payloadEditIndex,
+          payload
+        );
+        if (nextActions == null) {
+          return;
+        }
+        applyRecordEdit(nextActions, payloadEditIndex);
+        setPayloadEditIndex(null);
+        return;
+      }
+      if (playbackWorkflowId == null) {
         return;
       }
       const nextActions = updateWorkflowActionPayloadAt(
@@ -640,11 +729,13 @@ export function WorkflowPanel(): JSX.Element | null {
       applyLocalEdit(nextActions, payloadEditIndex);
       setPayloadEditIndex(null);
     },
-    [applyLocalEdit, payloadEditIndex, playbackWorkflowId]
+    [applyLocalEdit, applyRecordEdit, isRecordMode, payloadEditIndex, playbackWorkflowId]
   );
 
   /**
    * Persists the current playback buffer when there are unsaved edits.
+   *
+   * When edit was entered from play, a successful save returns the panel to play mode.
    */
   const handleSaveWorkflowEdits = useCallback(async (): Promise<void> => {
     if (playbackWorkflowId == null || !dirty || savingRef.current || getIsPlaying()) {
@@ -666,13 +757,41 @@ export function WorkflowPanel(): JSX.Element | null {
         })
       ).unwrap();
       setDirty(false);
+      if (editEnteredFromPlay) {
+        dispatch(openWorkflowPlayDialog(playbackWorkflowId));
+      }
     } catch (error) {
       showAlert(dispatch, formatErrorMessage(error, 'Failed to update workflow'));
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [dirty, dispatch, playbackWorkflow?.durationMs, playbackWorkflowId]);
+  }, [dirty, dispatch, editEnteredFromPlay, playbackWorkflow?.durationMs, playbackWorkflowId]);
+
+  /**
+   * Discards edit-from-play changes (after confirm when dirty) and returns to play.
+   */
+  const handleCancelEditFromPlay = useCallback(async (): Promise<void> => {
+    if (!editEnteredFromPlay || playbackWorkflowId == null || getIsPlaying() || savingRef.current) {
+      return;
+    }
+
+    if (dirty) {
+      const confirmed = await confirm({
+        title: 'Discard unsaved changes?',
+        message: 'Return to play without saving? Timeline edits will be lost.',
+        confirmLabel: 'Discard',
+        variant: 'danger'
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setDirty(false);
+    setPayloadEditIndex(null);
+    dispatch(openWorkflowPlayDialog(playbackWorkflowId));
+  }, [confirm, dirty, dispatch, editEnteredFromPlay, playbackWorkflowId]);
 
   /**
    * Moves the active (or explicitly targeted) action ahead or behind its neighbor.
@@ -682,7 +801,26 @@ export function WorkflowPanel(): JSX.Element | null {
    */
   const handleMoveAction = useCallback(
     (direction: WorkflowActionMoveDirection, indexOverride?: number): void => {
-      if (!editable || getIsPlaying() || playbackWorkflowId == null) {
+      if (!editable) {
+        return;
+      }
+      if (isRecordMode) {
+        if (getIsRecording()) {
+          return;
+        }
+        const currentActions = getSessionEvents();
+        const index = indexOverride ?? recordSelectedIndex;
+        if (!canMoveWorkflowAction(index, currentActions.length, direction)) {
+          return;
+        }
+        const nextActions = swapWorkflowActions(currentActions, index, direction);
+        if (nextActions == null) {
+          return;
+        }
+        applyRecordEdit(nextActions, cursorAfterMove(index, direction));
+        return;
+      }
+      if (getIsPlaying() || playbackWorkflowId == null) {
         return;
       }
       const currentActions = getPlaybackActions();
@@ -696,27 +834,76 @@ export function WorkflowPanel(): JSX.Element | null {
       }
       applyLocalEdit(nextActions, cursorAfterMove(index, direction));
     },
-    [applyLocalEdit, editable, playbackWorkflowId]
+    [
+      applyLocalEdit,
+      applyRecordEdit,
+      editable,
+      isRecordMode,
+      playbackWorkflowId,
+      recordSelectedIndex
+    ]
   );
 
   /**
    * Prompts to delete the active (or explicitly targeted) action locally.
    *
-   * @param indexOverride - Optional index from the context menu; defaults to the cursor.
+   * @param indexOverride - Optional index from the context menu or payload modal;
+   *   defaults to the cursor.
+   * @returns True when the action was removed from the local buffer.
    */
   const handleDeleteAction = useCallback(
-    async (indexOverride?: number): Promise<void> => {
-      if (!editable || getIsPlaying() || playbackWorkflowId == null) {
-        return;
+    async (indexOverride?: number): Promise<boolean> => {
+      if (!editable) {
+        return false;
+      }
+      if (isRecordMode) {
+        if (getIsRecording()) {
+          return false;
+        }
+        const currentActions = getSessionEvents();
+        const index = indexOverride ?? recordSelectedIndex;
+        if (index < 0 || index >= currentActions.length) {
+          return false;
+        }
+        const action = currentActions[index];
+        if (action == null) {
+          return false;
+        }
+        const described = describeWorkflowAction(action, {
+          selected: true,
+          compact: false,
+          getState: store.getState
+        });
+        const confirmed = await confirm({
+          title: 'Delete action?',
+          message: `Delete “${described.title}” from this recording?`,
+          confirmLabel: 'Delete',
+          variant: 'danger'
+        });
+        if (!confirmed) {
+          return false;
+        }
+        const nextActions = deleteWorkflowActionAt(currentActions, index);
+        if (nextActions == null) {
+          return false;
+        }
+        applyRecordEdit(
+          nextActions,
+          cursorAfterDelete(recordSelectedIndex, index, nextActions.length)
+        );
+        return true;
+      }
+      if (getIsPlaying() || playbackWorkflowId == null) {
+        return false;
       }
       const currentActions = getPlaybackActions();
       const index = indexOverride ?? getPlaybackIndex();
       if (index < 0 || index >= currentActions.length) {
-        return;
+        return false;
       }
       const action = currentActions[index];
       if (action == null) {
-        return;
+        return false;
       }
       const described = describeWorkflowAction(action, {
         selected: true,
@@ -730,17 +917,40 @@ export function WorkflowPanel(): JSX.Element | null {
         variant: 'danger'
       });
       if (!confirmed) {
-        return;
+        return false;
       }
       const nextActions = deleteWorkflowActionAt(currentActions, index);
       if (nextActions == null) {
-        return;
+        return false;
       }
       const nextIndex = cursorAfterDelete(getPlaybackIndex(), index, nextActions.length);
       applyLocalEdit(nextActions, nextIndex);
+      return true;
     },
-    [applyLocalEdit, confirm, editable, playbackWorkflowId, store]
+    [
+      applyLocalEdit,
+      applyRecordEdit,
+      confirm,
+      editable,
+      isRecordMode,
+      playbackWorkflowId,
+      recordSelectedIndex,
+      store
+    ]
   );
+
+  /**
+   * Deletes the action open in the payload editor and closes the modal on success.
+   */
+  const handleDeletePayloadAction = useCallback(async (): Promise<void> => {
+    if (payloadEditIndex == null) {
+      return;
+    }
+    const deleted = await handleDeleteAction(payloadEditIndex);
+    if (deleted) {
+      setPayloadEditIndex(null);
+    }
+  }, [handleDeleteAction, payloadEditIndex]);
 
   /**
    * Wires the configured save shortcut while edit mode is open and dirty.
@@ -872,12 +1082,13 @@ export function WorkflowPanel(): JSX.Element | null {
 
   const runComplete =
     isPlayMode && !playing && playbackIndex >= playbackActionCount && playbackActionCount > 0;
+  const payloadSourceActions = isRecordMode ? recordedActions : playbackActionsList;
   const payloadEditAction =
-    isEditMode &&
+    editable &&
     payloadEditIndex != null &&
     payloadEditIndex >= 0 &&
-    payloadEditIndex < playbackActionsList.length
-      ? playbackActionsList[payloadEditIndex]
+    payloadEditIndex < payloadSourceActions.length
+      ? payloadSourceActions[payloadEditIndex]
       : null;
 
   /**
@@ -985,11 +1196,10 @@ export function WorkflowPanel(): JSX.Element | null {
             />
             <WorkflowEditControls
               playing={timelineBusy}
-              actionIndex={timelineSelectedIndex}
-              actionCount={timelineActions.length}
               dirty={dirty}
               saving={saving}
               showHostEditButtons={isEditMode}
+              showCancel={editEnteredFromPlay}
               toolbarContext={{
                 workflowId: playbackWorkflowId ?? -1,
                 mode: pluginMode,
@@ -1007,11 +1217,11 @@ export function WorkflowPanel(): JSX.Element | null {
                     : null,
                 dirty
               }}
-              onDelete={() => {
-                void handleDeleteAction();
-              }}
               onSave={() => {
                 void handleSaveWorkflowEdits();
+              }}
+              onCancel={() => {
+                void handleCancelEditFromPlay();
               }}
             />
             {isPlayMode ? (
@@ -1040,6 +1250,19 @@ export function WorkflowPanel(): JSX.Element | null {
                   <span className="inline-flex items-center justify-center gap-2">
                     <FaIcon icon={faEraser} className="h-3.5 w-3.5" aria-hidden />
                     Reset
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="shrink-0"
+                  disabled={playing}
+                  aria-label="Edit workflow"
+                  onClick={handleEnterEditFromPlay}
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <FaIcon icon={faPenToSquare} className="h-3.5 w-3.5" aria-hidden />
+                    Edit
                   </span>
                 </Button>
               </>
@@ -1116,6 +1339,9 @@ export function WorkflowPanel(): JSX.Element | null {
           action={payloadEditAction}
           onClose={handleClosePayloadEditor}
           onUpdate={handleUpdatePayload}
+          onDelete={() => {
+            void handleDeletePayloadAction();
+          }}
         />
       ) : null}
     </>

@@ -10,7 +10,8 @@ export type TrashEntityType =
   | 'history'
   | 'environment'
   | 'workspace'
-  | 'workflow';
+  | 'workflow'
+  | 'website';
 
 /**
  * A snapshot row stored in the registry trash table.

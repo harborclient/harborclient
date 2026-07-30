@@ -35,12 +35,41 @@ export class WorkflowEventSink {
    * Appends an event, evicting the oldest entry when over capacity.
    *
    * @param event - Flushed workflow event to retain.
+   * @returns Number of oldest events dropped to stay within capacity.
    */
-  append(event: WorkflowEvent): void {
+  append(event: WorkflowEvent): number {
     this.#events.push(event);
+    let dropped = 0;
     if (this.#events.length > this.#capacity) {
-      this.#events = this.#events.slice(this.#events.length - this.#capacity);
+      dropped = this.#events.length - this.#capacity;
+      this.#events = this.#events.slice(dropped);
     }
+    this.#notify();
+    return dropped;
+  }
+
+  /**
+   * Keeps events through `indexInclusive` and drops everything after.
+   *
+   * @param indexInclusive - Last index to retain; negative clears the sink.
+   */
+  truncateTo(indexInclusive: number): void {
+    const next = indexInclusive < 0 ? [] : this.#events.slice(0, Math.floor(indexInclusive) + 1);
+    if (next.length === this.#events.length) {
+      return;
+    }
+    this.#events = next;
+    this.#notify();
+  }
+
+  /**
+   * Replaces the entire event list, trimming to capacity from the end.
+   *
+   * @param events - New ordered events to retain.
+   */
+  replaceAll(events: readonly WorkflowEvent[]): void {
+    const copy = [...events];
+    this.#events = copy.length > this.#capacity ? copy.slice(copy.length - this.#capacity) : copy;
     this.#notify();
   }
 

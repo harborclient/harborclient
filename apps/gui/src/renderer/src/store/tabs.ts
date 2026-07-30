@@ -20,6 +20,8 @@ import {
 } from '@harborclient/core/scriptRefs';
 import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { routePageRefKey } from '#/renderer/src/store/routing';
+import { areBrowserScriptsDirty, type BrowserInjectionScript } from '#/browser/browserScripts';
+import { areBrowserHcScriptsDirty } from '#/browser/browserHcScripts';
 
 /**
  * Editable request state in the UI before or during save.
@@ -352,6 +354,17 @@ export type PageRef =
         | { kind: 'path'; path: string }
         | { kind: 'url'; url: string }
         | { kind: 'data'; dataUrl: string };
+    }
+  | {
+      type: 'browser-settings';
+      /**
+       * Browser tab whose injection scripts this settings page edits.
+       */
+      browserTabId: string;
+      /**
+       * Tab bar title for the settings page.
+       */
+      label: string;
     };
 
 /**
@@ -420,9 +433,114 @@ export interface MarkdownTab {
 }
 
 /**
+ * Open embedded browser tab with navigation state and injection scripts.
+ */
+export interface BrowserTab {
+  /**
+   * Stable client-side id for this open tab instance.
+   */
+  tabId: string;
+
+  /**
+   * Discriminator that marks this tab as an embedded browser.
+   */
+  kind: 'browser';
+
+  /**
+   * Document title shown in the tab bar (falls back to hostname).
+   */
+  title: string;
+
+  /**
+   * Address bar / last committed URL.
+   */
+  url: string;
+
+  /**
+   * URL loaded by the Home control.
+   */
+  homeUrl: string;
+
+  /**
+   * Editable injection scripts (draft until Save in browser settings).
+   */
+  scripts: BrowserInjectionScript[];
+
+  /**
+   * Last-saved scripts used for injection and dirty comparison.
+   */
+  savedScripts: BrowserInjectionScript[];
+
+  /**
+   * Editable pre-request hc.* scripts (draft until Save).
+   */
+  pre_request_scripts: ScriptRef[];
+
+  /**
+   * Editable post-request hc.* scripts (draft until Save).
+   */
+  post_request_scripts: ScriptRef[];
+
+  /**
+   * Last-saved pre-request scripts applied on navigation.
+   */
+  savedPreRequestScripts: ScriptRef[];
+
+  /**
+   * Last-saved post-request scripts applied after load.
+   */
+  savedPostRequestScripts: ScriptRef[];
+
+  /**
+   * Whether the guest history can go back.
+   */
+  canGoBack: boolean;
+
+  /**
+   * Whether the guest history can go forward.
+   */
+  canGoForward: boolean;
+
+  /**
+   * Site favicon as a data URL for the tab bar and sidebar.
+   */
+  faviconDataUrl: string | null;
+
+  /**
+   * Linked saved website database id when this tab was opened from or saved as a Website.
+   */
+  websiteId: number | null;
+
+  /**
+   * Linked saved website portable uuid when bound to a Website entity.
+   */
+  websiteUuid: string | null;
+
+  /**
+   * Last-saved URL baseline for dirty comparison when linked to a website.
+   */
+  savedUrl: string;
+
+  /**
+   * Last-saved home URL baseline for dirty comparison when linked to a website.
+   */
+  savedHomeUrl: string;
+
+  /**
+   * Last-saved title baseline for dirty comparison when linked to a website.
+   */
+  savedTitle: string;
+
+  /**
+   * Last-saved favicon baseline for dirty comparison when linked to a website.
+   */
+  savedFaviconDataUrl: string | null;
+}
+
+/**
  * Discriminated union of open request editor tabs.
  */
-export type Tab = RequestTab | PageTab | MarkdownTab;
+export type Tab = RequestTab | PageTab | MarkdownTab | BrowserTab;
 
 /**
  * Returns whether a tab hosts a configuration page rather than a request.
@@ -445,13 +563,23 @@ export function isMarkdownTab(tab: Tab): tab is MarkdownTab {
 }
 
 /**
+ * Returns whether a tab hosts an embedded browser guest.
+ *
+ * @param tab - Open tab from the tab bar.
+ * @returns True when the tab is a browser tab.
+ */
+export function isBrowserTab(tab: Tab): tab is BrowserTab {
+  return 'kind' in tab && tab.kind === 'browser';
+}
+
+/**
  * Returns whether a tab hosts an HTTP request editor.
  *
  * @param tab - Open tab from the tab bar.
  * @returns True when the tab is a request tab (including legacy persisted tabs without kind).
  */
 export function isRequestTab(tab: Tab): tab is RequestTab {
-  return !isPageTab(tab) && !isMarkdownTab(tab);
+  return !isPageTab(tab) && !isMarkdownTab(tab) && !isBrowserTab(tab);
 }
 
 /**
@@ -642,7 +770,208 @@ export function createMarkdownTab(doc: CollectionDocument): MarkdownTab {
 }
 
 /**
- * Returns whether a tab has unsaved changes.
+ * Optional fields used when opening a browser tab with a known URL or inherited settings.
+ */
+export interface CreateBrowserTabInit {
+  /**
+   * Stable client-side id; when omitted a new UUID is generated.
+   * Playback reuses recorded ids so later browser.* steps can target the same tab.
+   */
+  tabId?: string;
+
+  /**
+   * Initial address-bar / load URL.
+   */
+  url?: string;
+
+  /**
+   * Home control URL.
+   */
+  homeUrl?: string;
+
+  /**
+   * Editable injection scripts (draft).
+   */
+  scripts?: BrowserInjectionScript[];
+
+  /**
+   * Last-saved scripts used for injection and dirty comparison.
+   */
+  savedScripts?: BrowserInjectionScript[];
+
+  /**
+   * Editable pre-request hc.* scripts (draft).
+   */
+  pre_request_scripts?: ScriptRef[];
+
+  /**
+   * Editable post-request hc.* scripts (draft).
+   */
+  post_request_scripts?: ScriptRef[];
+
+  /**
+   * Last-saved pre-request scripts.
+   */
+  savedPreRequestScripts?: ScriptRef[];
+
+  /**
+   * Last-saved post-request scripts.
+   */
+  savedPostRequestScripts?: ScriptRef[];
+
+  /**
+   * Linked saved website database id.
+   */
+  websiteId?: number | null;
+
+  /**
+   * Linked saved website portable uuid.
+   */
+  websiteUuid?: string | null;
+
+  /**
+   * Display title for the tab bar.
+   */
+  title?: string;
+
+  /**
+   * Favicon data URL.
+   */
+  faviconDataUrl?: string | null;
+
+  /**
+   * Last-saved URL baseline when linked to a website.
+   */
+  savedUrl?: string;
+
+  /**
+   * Last-saved home URL baseline when linked to a website.
+   */
+  savedHomeUrl?: string;
+
+  /**
+   * Last-saved title baseline when linked to a website.
+   */
+  savedTitle?: string;
+
+  /**
+   * Last-saved favicon baseline when linked to a website.
+   */
+  savedFaviconDataUrl?: string | null;
+}
+
+/**
+ * Deep-clones a browser injection script list so tabs do not share mutable state.
+ *
+ * @param scripts - Scripts to clone.
+ * @returns Independent copy of each script.
+ */
+function cloneBrowserScripts(scripts: BrowserInjectionScript[]): BrowserInjectionScript[] {
+  return scripts.map((script) => ({ ...script }));
+}
+
+/**
+ * Deep-clones ScriptRef lists so tabs do not share mutable state.
+ *
+ * @param scripts - Script references to clone.
+ * @returns Independent copy of each reference.
+ */
+function cloneScriptRefs(scripts: ScriptRef[]): ScriptRef[] {
+  return scripts.map((script) => ({ ...script }));
+}
+
+/**
+ * Creates a new embedded browser tab.
+ *
+ * Defaults to about:blank with empty scripts. Callers may pass an initial URL and/or
+ * inherited home/scripts from an opener tab (for example guest `window.open()`).
+ * Optional `tabId` reuses a recorded id during workflow playback.
+ *
+ * @param init - Optional tab id, initial URL, home URL, and script lists.
+ * @returns New BrowserTab with a unique tabId (or the provided one).
+ */
+export function createBrowserTab(init?: CreateBrowserTabInit): BrowserTab {
+  const scripts = cloneBrowserScripts(init?.scripts ?? []);
+  const savedScripts = cloneBrowserScripts(init?.savedScripts ?? scripts);
+  const pre_request_scripts = cloneScriptRefs(init?.pre_request_scripts ?? []);
+  const post_request_scripts = cloneScriptRefs(init?.post_request_scripts ?? []);
+  const savedPreRequestScripts = cloneScriptRefs(
+    init?.savedPreRequestScripts ?? pre_request_scripts
+  );
+  const savedPostRequestScripts = cloneScriptRefs(
+    init?.savedPostRequestScripts ?? post_request_scripts
+  );
+  const url = init?.url ?? 'about:blank';
+  const homeUrl = init?.homeUrl ?? 'about:blank';
+  const title = init?.title ?? 'New Browser';
+  const faviconDataUrl = init?.faviconDataUrl ?? null;
+  return {
+    tabId: init?.tabId ?? crypto.randomUUID(),
+    kind: 'browser',
+    title,
+    url,
+    homeUrl,
+    scripts,
+    savedScripts,
+    pre_request_scripts,
+    post_request_scripts,
+    savedPreRequestScripts,
+    savedPostRequestScripts,
+    canGoBack: false,
+    canGoForward: false,
+    faviconDataUrl,
+    websiteId: init?.websiteId ?? null,
+    websiteUuid: init?.websiteUuid ?? null,
+    savedUrl: init?.savedUrl ?? url,
+    savedHomeUrl: init?.savedHomeUrl ?? homeUrl,
+    savedTitle: init?.savedTitle ?? title,
+    savedFaviconDataUrl:
+      init?.savedFaviconDataUrl !== undefined ? init.savedFaviconDataUrl : faviconDataUrl
+  };
+}
+
+/**
+ * Returns whether a linked browser tab's navigation chrome differs from its saved website baseline.
+ *
+ * @param tab - Browser tab to compare.
+ * @returns True when url, home, title, or favicon drifted from the last save.
+ */
+export function areBrowserWebsiteFieldsDirty(tab: BrowserTab): boolean {
+  if (tab.websiteId == null) {
+    return false;
+  }
+  return (
+    tab.url !== tab.savedUrl ||
+    tab.homeUrl !== tab.savedHomeUrl ||
+    tab.title !== tab.savedTitle ||
+    tab.faviconDataUrl !== tab.savedFaviconDataUrl
+  );
+}
+
+/**
+ * Returns whether a browser tab has website or script changes worth persisting.
+ *
+ * Used by Update website / browser settings affordances. Browser tabs never
+ * participate in editor unsaved state ({@link isTabDirty}); browsing and
+ * script drafts must not amber the tab or prompt on close.
+ *
+ * @param tab - Browser tab to compare against its last-saved baselines.
+ * @returns True when scripts or linked website fields differ from the last save.
+ */
+export function hasBrowserPendingSave(tab: BrowserTab): boolean {
+  return (
+    areBrowserScriptsDirty(tab.scripts, tab.savedScripts) ||
+    areBrowserHcScriptsDirty(tab.pre_request_scripts, tab.savedPreRequestScripts) ||
+    areBrowserHcScriptsDirty(tab.post_request_scripts, tab.savedPostRequestScripts) ||
+    areBrowserWebsiteFieldsDirty(tab)
+  );
+}
+
+/**
+ * Returns whether a tab has unsaved changes for editor chrome and close/quit prompts.
+ *
+ * Browser tabs always return false — webpage sessions have no editor unsaved state.
+ * Use {@link hasBrowserPendingSave} for Update website / settings save affordances.
  *
  * @param tab - Open tab from the tab bar.
  * @returns True when a request or markdown tab differs from its saved baseline.
@@ -650,6 +979,9 @@ export function createMarkdownTab(doc: CollectionDocument): MarkdownTab {
 export function isTabDirty(tab: Tab): boolean {
   if (isMarkdownTab(tab)) {
     return tab.content !== tab.savedContent;
+  }
+  if (isBrowserTab(tab)) {
+    return false;
   }
   if (!isRequestTab(tab)) {
     return false;

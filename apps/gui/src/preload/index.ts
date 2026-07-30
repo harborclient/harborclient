@@ -103,9 +103,12 @@ import type {
   KeyValue,
   RequestHistoryEntry,
   CreateWorkflowInput,
+  CreateWebsiteInput,
   CreateWorkspaceInput,
   UpdateWorkflowInput,
+  UpdateWebsiteInput,
   Workflow,
+  Website,
   WorkflowRunHistoryEntry,
   Workspace,
   TrashEntityType,
@@ -116,6 +119,13 @@ import type {
 import type { ApisIoCollection, ApisIoCollectionList } from '@harborclient/core/apisio/catalog';
 import type { PublicCollectionPreview } from '@harborclient/core/types/api/collections';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
+import type {
+  BrowserInjectionScriptPayload,
+  BrowserHcScriptsPayload,
+  BrowserNavigationState,
+  BrowserOpenTabRequest,
+  BrowserViewBounds
+} from '@harborclient/core/types/api/browser';
 import type {
   CreateTerminalInput,
   CreateTerminalResult,
@@ -519,6 +529,40 @@ function updateWorkflow(input: UpdateWorkflowInput): Promise<Workflow[]> {
  */
 function deleteWorkflow(id: number): Promise<Workflow[]> {
   return ipcRenderer.invoke('workflows:delete', id);
+}
+
+/**
+ * Lists persisted websites via IPC.
+ */
+function listWebsites(): Promise<Website[]> {
+  return ipcRenderer.invoke('websites:list');
+}
+
+/**
+ * Creates a website and returns the refreshed list.
+ *
+ * @param input - Website name, URL, and scripts.
+ */
+function createWebsite(input: CreateWebsiteInput): Promise<Website[]> {
+  return ipcRenderer.invoke('websites:create', input);
+}
+
+/**
+ * Updates a website and returns the refreshed list.
+ *
+ * @param input - Website id and fields to persist.
+ */
+function updateWebsite(input: UpdateWebsiteInput): Promise<Website[]> {
+  return ipcRenderer.invoke('websites:update', input);
+}
+
+/**
+ * Deletes a website (moves it to trash) and returns the refreshed list.
+ *
+ * @param id - Website id.
+ */
+function deleteWebsite(id: number): Promise<Website[]> {
+  return ipcRenderer.invoke('websites:delete', id);
 }
 
 /**
@@ -3222,6 +3266,233 @@ function setOpenTabsPayload(payload: string): Promise<void> {
 }
 
 /**
+ * Creates a WebContentsView guest for an embedded browser tab.
+ *
+ * @param tabId - Browser tab id.
+ * @param url - Initial URL.
+ * @param homeUrl - Home control URL.
+ * @param scripts - Saved injection scripts.
+ * @param hcScripts - Optional resolved pre/post scripts and snippet modules.
+ */
+function browserCreate(
+  tabId: string,
+  url: string,
+  homeUrl: string,
+  scripts: BrowserInjectionScriptPayload[],
+  hcScripts?: BrowserHcScriptsPayload
+): Promise<void> {
+  return ipcRenderer.invoke('browser:create', tabId, url, homeUrl, scripts, hcScripts);
+}
+
+/**
+ * Force-destroys the WebContentsView for a closed browser tab (skips beforeunload).
+ *
+ * @param tabId - Browser tab id.
+ */
+function browserDestroy(tabId: string): Promise<void> {
+  return ipcRenderer.invoke('browser:destroy', tabId);
+}
+
+/**
+ * Closes a browser guest for a user-initiated tab close, honoring page leave prompts.
+ *
+ * @param tabId - Browser tab id.
+ * @returns True when the guest closed; false when the user chose to stay.
+ */
+function browserRequestClose(tabId: string): Promise<boolean> {
+  return ipcRenderer.invoke('browser:requestClose', tabId);
+}
+
+/**
+ * Hides every browser guest so HTML modals are not covered by the native view.
+ */
+function browserHideAll(): Promise<void> {
+  return ipcRenderer.invoke('browser:hideAll');
+}
+
+/**
+ * Updates the on-screen bounds of a browser guest.
+ *
+ * @param tabId - Browser tab id.
+ * @param bounds - Rectangle in window content coordinates.
+ */
+function browserSetBounds(tabId: string, bounds: BrowserViewBounds): Promise<void> {
+  return ipcRenderer.invoke('browser:setBounds', tabId, bounds);
+}
+
+/**
+ * Shows or hides a browser guest.
+ *
+ * @param tabId - Browser tab id.
+ * @param visible - Whether the guest should be visible.
+ */
+function browserSetVisible(tabId: string, visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('browser:setVisible', tabId, visible);
+}
+
+/**
+ * Navigates a browser guest to a URL.
+ *
+ * @param tabId - Browser tab id.
+ * @param url - Allowed target URL.
+ */
+function browserLoadURL(tabId: string, url: string): Promise<void> {
+  return ipcRenderer.invoke('browser:loadURL', tabId, url);
+}
+
+/**
+ * Navigates back in browser guest history.
+ *
+ * @param tabId - Browser tab id.
+ */
+function browserGoBack(tabId: string): Promise<void> {
+  return ipcRenderer.invoke('browser:goBack', tabId);
+}
+
+/**
+ * Navigates forward in browser guest history.
+ *
+ * @param tabId - Browser tab id.
+ */
+function browserGoForward(tabId: string): Promise<void> {
+  return ipcRenderer.invoke('browser:goForward', tabId);
+}
+
+/**
+ * Reloads the current browser guest page.
+ *
+ * @param tabId - Browser tab id.
+ */
+function browserReload(tabId: string): Promise<void> {
+  return ipcRenderer.invoke('browser:reload', tabId);
+}
+
+/**
+ * Navigates the browser guest to its home URL.
+ *
+ * @param tabId - Browser tab id.
+ */
+function browserGoHome(tabId: string): Promise<void> {
+  return ipcRenderer.invoke('browser:goHome', tabId);
+}
+
+/**
+ * Replaces saved injection and optional pre/post scripts for a browser guest.
+ *
+ * @param tabId - Browser tab id.
+ * @param scripts - Applied injection script set.
+ * @param hcScripts - Optional resolved pre/post scripts and snippet modules.
+ */
+function browserSetScripts(
+  tabId: string,
+  scripts: BrowserInjectionScriptPayload[],
+  hcScripts?: BrowserHcScriptsPayload
+): Promise<void> {
+  return ipcRenderer.invoke('browser:setScripts', tabId, scripts, hcScripts);
+}
+
+/**
+ * Updates the home URL for a browser guest.
+ *
+ * @param tabId - Browser tab id.
+ * @param homeUrl - Allowed home URL.
+ */
+function browserSetHomeUrl(tabId: string, homeUrl: string): Promise<void> {
+  return ipcRenderer.invoke('browser:setHomeUrl', tabId, homeUrl);
+}
+
+/**
+ * Runs JavaScript in the guest page main world and returns the result.
+ *
+ * @param tabId - Browser tab id.
+ * @param code - JavaScript source to evaluate.
+ */
+function browserExecuteJavaScript(tabId: string, code: string): Promise<unknown> {
+  return ipcRenderer.invoke('browser:executeJavaScript', tabId, code);
+}
+
+/**
+ * Inserts a CSS stylesheet into the guest page.
+ *
+ * @param tabId - Browser tab id.
+ * @param css - Stylesheet source.
+ * @returns Electron insertion key.
+ */
+function browserInsertCSS(tabId: string, css: string): Promise<string> {
+  return ipcRenderer.invoke('browser:insertCSS', tabId, css);
+}
+
+/**
+ * Queries the live guest DOM with a CSS selector.
+ *
+ * @param tabId - Browser tab id.
+ * @param selector - CSS selector.
+ * @param all - When true, return every match up to maxElements.
+ * @param maxElements - Maximum elements to return.
+ */
+function browserQuerySelector(
+  tabId: string,
+  selector: string,
+  all?: boolean,
+  maxElements?: number
+): Promise<{
+  selector: string;
+  matchCount: number;
+  elements: Array<{
+    tagName: string;
+    id: string;
+    className: string;
+    textContent: string;
+    outerHTML: string;
+    attributes: Record<string, string>;
+  }>;
+}> {
+  return ipcRenderer.invoke('browser:querySelector', tabId, selector, all, maxElements);
+}
+
+/**
+ * Waits until the guest finishes loading and returns a navigation snapshot.
+ *
+ * @param tabId - Browser tab id.
+ * @param timeoutMs - Optional max wait in milliseconds.
+ */
+function browserWaitForLoad(tabId: string, timeoutMs?: number): Promise<BrowserNavigationState> {
+  return ipcRenderer.invoke('browser:waitForLoad', tabId, timeoutMs);
+}
+
+/**
+ * Subscribes to browser guest navigation and title updates.
+ *
+ * @param callback - Handler invoked with navigation state.
+ * @returns Unsubscribe function.
+ */
+function onBrowserNavigation(callback: (state: BrowserNavigationState) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, state: BrowserNavigationState): void => {
+    callback(state);
+  };
+  ipcRenderer.on('browser:navigation', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:navigation', listener);
+  };
+}
+
+/**
+ * Subscribes to guest popup / new-tab requests from the embedded browser.
+ *
+ * @param callback - Handler invoked when a guest wants a HarborClient tab opened.
+ * @returns Unsubscribe function.
+ */
+function onBrowserOpenTab(callback: (request: BrowserOpenTabRequest) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, request: BrowserOpenTabRequest): void => {
+    callback(request);
+  };
+  ipcRenderer.on('browser:open-tab', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:open-tab', listener);
+  };
+}
+
+/**
  * Returns persisted collection runner configuration.
  */
 function getCollectionRunnerConfig(): Promise<CollectionRunnerConfig> {
@@ -4215,6 +4486,10 @@ const api: Api = {
   updateWorkflow,
   deleteWorkflow,
   setWorkflowArchived,
+  listWebsites,
+  createWebsite,
+  updateWebsite,
+  deleteWebsite,
   listWorkflowRunHistory,
   addWorkflowRunHistory,
   clearWorkflowRunHistory,
@@ -4470,6 +4745,25 @@ const api: Api = {
   setAiChatSession,
   getOpenTabsPayload,
   setOpenTabsPayload,
+  browserCreate,
+  browserDestroy,
+  browserRequestClose,
+  browserHideAll,
+  browserSetBounds,
+  browserSetVisible,
+  browserLoadURL,
+  browserGoBack,
+  browserGoForward,
+  browserReload,
+  browserGoHome,
+  browserSetScripts,
+  browserSetHomeUrl,
+  browserExecuteJavaScript,
+  browserInsertCSS,
+  browserQuerySelector,
+  browserWaitForLoad,
+  onBrowserNavigation,
+  onBrowserOpenTab,
   getCollectionRunnerConfig,
   setCollectionRunnerConfig,
   getShortcuts,

@@ -72,6 +72,11 @@ interface Result {
   workflowsSectionExpanded: boolean;
 
   /**
+   * Whether the Websites section body is visible.
+   */
+  websitesSectionExpanded: boolean;
+
+  /**
    * Whether the Trash section body is visible.
    */
   trashSectionExpanded: boolean;
@@ -112,6 +117,11 @@ interface Result {
   toggleWorkflowsSection: () => void;
 
   /**
+   * Toggles the Websites section expanded state.
+   */
+  toggleWebsitesSection: () => void;
+
+  /**
    * Toggles the Trash section expanded state.
    */
   toggleTrashSection: () => void;
@@ -150,6 +160,11 @@ interface Result {
    * Sets the Workflows section expanded state explicitly.
    */
   setWorkflowsSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Websites section expanded state explicitly.
+   */
+  setWebsitesSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Sets the Trash section expanded state explicitly.
@@ -444,6 +459,9 @@ export function usePersistedSidebarExpansion({
   const [workflowsSectionExpanded, setWorkflowsSectionExpanded] = useState(
     defaults.sections.workflows
   );
+  const [websitesSectionExpanded, setWebsitesSectionExpanded] = useState(
+    defaults.sections.websites
+  );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
   const [activeSidebarMode, setActiveSidebarMode] = useState<SidebarMode>(
@@ -493,6 +511,7 @@ export function usePersistedSidebarExpansion({
       setHistorySectionExpanded(stored.sections.history);
       setWorkspacesSectionExpanded(stored.sections.workspaces);
       setWorkflowsSectionExpanded(stored.sections.workflows);
+      setWebsitesSectionExpanded(stored.sections.websites);
       setTrashSectionExpanded(stored.sections.trash);
       setArchiveSectionExpanded(stored.sections.archive);
       setActiveSidebarMode(stored.activeSidebarMode);
@@ -575,6 +594,7 @@ export function usePersistedSidebarExpansion({
         history: historySectionExpanded,
         workspaces: workspacesSectionExpanded,
         workflows: workflowsSectionExpanded,
+        websites: websitesSectionExpanded,
         archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
@@ -601,6 +621,7 @@ export function usePersistedSidebarExpansion({
     historySectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
+    websitesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     activeSidebarMode,
@@ -723,6 +744,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Websites section expanded state.
+   */
+  const toggleWebsitesSection = useCallback(() => {
+    setWebsitesSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Trash section expanded state.
    */
   const toggleTrashSection = useCallback(() => {
@@ -829,6 +857,7 @@ export function usePersistedSidebarExpansion({
     historySectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
+    websitesSectionExpanded,
     trashSectionExpanded,
     archiveSectionExpanded,
     toggleCollectionsSection,
@@ -837,6 +866,7 @@ export function usePersistedSidebarExpansion({
     toggleHistorySection,
     toggleWorkspacesSection,
     toggleWorkflowsSection,
+    toggleWebsitesSection,
     toggleTrashSection,
     toggleArchiveSection,
     setCollectionsSectionExpanded,
@@ -845,6 +875,7 @@ export function usePersistedSidebarExpansion({
     setHistorySectionExpanded,
     setWorkspacesSectionExpanded,
     setWorkflowsSectionExpanded,
+    setWebsitesSectionExpanded,
     setTrashSectionExpanded,
     setArchiveSectionExpanded,
     activeSidebarMode,

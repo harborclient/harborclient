@@ -2,9 +2,11 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from './redux';
 import {
   defaultDraft,
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
+  type BrowserTab,
   type MarkdownTab,
   type PageRef,
   type RequestDraft,
@@ -57,6 +59,12 @@ export const selectAllWorkflows = (state: RootState): RootState['workflows']['it
 export const selectActiveWorkflows = createSelector([selectAllWorkflows], (workflows) =>
   workflows.filter((workflow) => !workflow.archived)
 );
+
+/**
+ * Returns all websites loaded in the store.
+ */
+export const selectAllWebsites = (state: RootState): RootState['websites']['items'] =>
+  state.websites.items;
 
 /**
  * Returns workflows marked archived (shown in the Archive sidebar under Workflows mode).
@@ -227,6 +235,17 @@ export const selectActivePage = (state: RootState): PageRef | null => {
 export const selectActiveMarkdownTab = (state: RootState): MarkdownTab | null => {
   const tab = selectActiveTab(state);
   if (tab && isMarkdownTab(tab)) {
+    return tab;
+  }
+  return null;
+};
+
+/**
+ * Returns the active embedded browser tab, when selected.
+ */
+export const selectActiveBrowserTab = (state: RootState): BrowserTab | null => {
+  const tab = selectActiveTab(state);
+  if (tab && isBrowserTab(tab)) {
     return tab;
   }
   return null;

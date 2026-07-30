@@ -276,6 +276,7 @@ export {
   SidebarHistoryItem,
   SidebarEnvironmentItem,
   SidebarWorkspaceItem,
+  SidebarWebsiteItem,
   SidebarCommitItem,
   type SidebarItemSortableConfig,
   type SidebarBadgeVariant,

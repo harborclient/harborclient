@@ -2,6 +2,12 @@ import type { WorkflowRegistryEntry, WorkflowThumbnailCtx } from './workflowEven
 import type { ReactNode } from 'react';
 import { WORKFLOW_REGISTRY_CORE } from './workflowRegistryCore';
 import {
+  browserBackThumbnail,
+  browserForwardThumbnail,
+  browserHomeThumbnail,
+  browserNavigateThumbnail,
+  browserReloadThumbnail,
+  browserTabNewThumbnail,
   environmentActivateThumbnail,
   pageOpenThumbnail,
   requestCancelThumbnail,
@@ -38,7 +44,13 @@ const WORKFLOW_THUMBNAILS: Record<string, ThumbnailFn> = {
   'tab.activate': tabActivateThumbnail,
   'tab.new': tabNewThumbnail,
   'tab.close': tabCloseThumbnail,
-  'tab.closeAll': tabCloseAllThumbnail
+  'tab.closeAll': tabCloseAllThumbnail,
+  'browser.tab.new': browserTabNewThumbnail,
+  'browser.navigate': browserNavigateThumbnail,
+  'browser.back': browserBackThumbnail,
+  'browser.forward': browserForwardThumbnail,
+  'browser.reload': browserReloadThumbnail,
+  'browser.home': browserHomeThumbnail
 };
 
 /**

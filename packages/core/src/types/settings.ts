@@ -15,6 +15,7 @@ export type SidebarSectionKey =
   | 'history'
   | 'workspaces'
   | 'workflows'
+  | 'websites'
   | 'archive'
   | 'trash';
 
@@ -73,6 +74,11 @@ export interface SidebarExpansionState {
      * Whether the Workflows section body is visible.
      */
     workflows: boolean;
+
+    /**
+     * Whether the Websites section body is visible.
+     */
+    websites: boolean;
 
     /**
      * Whether the Archive section body is visible.

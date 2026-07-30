@@ -14,6 +14,7 @@ import requestHistoryReducer from '#/renderer/src/store/slices/requestHistorySli
 import workflowRunHistoryReducer from '#/renderer/src/store/slices/workflowRunHistorySlice';
 import workspacesReducer from '#/renderer/src/store/slices/workspaceSlice';
 import workflowsReducer from '#/renderer/src/store/slices/workflowsSlice';
+import websitesReducer from '#/renderer/src/store/slices/websitesSlice';
 import trashReducer from '#/renderer/src/store/slices/trashSlice';
 import snippetsReducer from '#/renderer/src/store/slices/snippetsSlice';
 import scriptClipboardReducer from '#/renderer/src/store/slices/scriptClipboardSlice';
@@ -46,6 +47,7 @@ export const store = configureStore({
     workflowRunHistory: workflowRunHistoryReducer,
     workspaces: workspacesReducer,
     workflows: workflowsReducer,
+    websites: websitesReducer,
     trash: trashReducer,
     aiChat: aiChatReducer,
     terminals: terminalsReducer,

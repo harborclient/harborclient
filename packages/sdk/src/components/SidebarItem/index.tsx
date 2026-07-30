@@ -36,4 +36,5 @@ export { SidebarRunItem } from './SidebarRunItem.js';
 export { SidebarHistoryItem } from './SidebarHistoryItem.js';
 export { SidebarEnvironmentItem } from './SidebarEnvironmentItem.js';
 export { SidebarWorkspaceItem } from './SidebarWorkspaceItem.js';
+export { SidebarWebsiteItem } from './SidebarWebsiteItem.js';
 export { SidebarCommitItem, type SidebarCommitPushStatus } from './SidebarCommitItem.js';

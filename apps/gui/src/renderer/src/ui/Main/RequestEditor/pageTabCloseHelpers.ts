@@ -5,13 +5,14 @@ import { resolveTeamHubAdminTabLabel } from '#/renderer/src/ui/Tabs/TeamHub/team
 
 /**
  * Returns whether the active page tab has unsaved collection, environment,
- * folder, or workspace edits.
+ * folder, workspace, or browser-settings edits.
  *
  * @param page - Active page reference.
  * @param collectionDirty - Collection settings dirty flag from navigation state.
  * @param environmentDirty - Environment settings dirty flag from navigation state.
  * @param folderDirty - Folder settings dirty flag from navigation state.
  * @param workspaceDirty - Workspace settings dirty flag from navigation state.
+ * @param browserSettingsDirty - Whether the linked browser tab has unsaved script edits.
  * @returns True when closing the tab should prompt for unsaved changes.
  */
 export function isActivePageTabDirty(
@@ -19,10 +20,14 @@ export function isActivePageTabDirty(
   collectionDirty: boolean,
   environmentDirty: boolean,
   folderDirty: boolean,
-  workspaceDirty = false
+  workspaceDirty = false,
+  browserSettingsDirty = false
 ): boolean {
   if (!page) {
     return false;
+  }
+  if (page.type === 'browser-settings') {
+    return browserSettingsDirty;
   }
   const dirtyFlag = getPageRoute(page.type).dirtyFlag;
   if (dirtyFlag === 'collection') {

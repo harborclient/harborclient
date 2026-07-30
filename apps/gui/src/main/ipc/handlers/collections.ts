@@ -40,6 +40,7 @@ import { importEnvironmentData } from './environments';
 import { importWorkspaceData } from './workspaces';
 import { importCustomThemeData } from './customThemeImport';
 import { importSnippetData } from './snippetImport';
+import { importWebsiteData } from './websiteImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
@@ -684,6 +685,19 @@ export function registerCollectionHandlers(db: IStorage): void {
             kind: 'workspace',
             workspaces,
             action: 'created'
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'website') {
+          logImportVerbose('imports:auto classified', { kind: 'website' });
+          const websiteResult = importWebsiteData(parsed);
+          if (!websiteResult) {
+            return null;
+          }
+          return {
+            kind: 'website',
+            website: websiteResult.website,
+            action: websiteResult.action
           } satisfies ImportEntityResult;
         }
       }

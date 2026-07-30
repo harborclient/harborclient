@@ -50,6 +50,8 @@ import type {
   RequestHistoryEntry,
   CreateWorkflowInput,
   UpdateWorkflowInput,
+  CreateWebsiteInput,
+  UpdateWebsiteInput,
   CreateWorkspaceInput,
   McpClientServer,
   McpServerSettings
@@ -623,6 +625,7 @@ export const sidebarExpansion = z.object({
     history: z.boolean(),
     workspaces: z.boolean(),
     workflows: z.boolean(),
+    websites: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -670,6 +673,7 @@ export const sidebarExpansion = z.object({
       'created-desc',
       'marker'
     ]),
+    websites: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
     archive: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
     trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker'])
   }),
@@ -747,6 +751,39 @@ export const updateWorkflowInput = z.object({
     })
   )
 }) satisfies z.ZodType<UpdateWorkflowInput>;
+
+/**
+ * Injection script persisted with a website.
+ */
+export const websiteInjectionScript = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  enabled: z.boolean(),
+  runAt: z.enum(['document-start', 'dom-ready', 'did-finish-load']),
+  source: z.string()
+});
+
+export const createWebsiteInput = z.object({
+  name: z.string().trim().min(1),
+  uuid: z.string().trim().min(1).optional(),
+  url: z.string(),
+  homeUrl: z.string(),
+  faviconDataUrl: z.union([z.string(), z.null()]).optional(),
+  scripts: z.array(websiteInjectionScript).optional(),
+  preRequestScripts: ipcScriptRefArray.optional(),
+  postRequestScripts: ipcScriptRefArray.optional()
+}) satisfies z.ZodType<CreateWebsiteInput>;
+
+export const updateWebsiteInput = z.object({
+  id: z.number().int().positive(),
+  name: z.string().trim().min(1),
+  url: z.string(),
+  homeUrl: z.string(),
+  faviconDataUrl: z.union([z.string(), z.null()]).optional(),
+  scripts: z.array(websiteInjectionScript),
+  preRequestScripts: ipcScriptRefArray,
+  postRequestScripts: ipcScriptRefArray
+}) satisfies z.ZodType<UpdateWebsiteInput>;
 
 /**
  * Workflow run export envelope stored inside workflow run history rows.
@@ -948,6 +985,102 @@ export const ipcArgSchemas = {
   sidebarExpansionSet: z.tuple([sidebarExpansion]),
   panelLayoutSet: z.tuple([panelLayout]),
   openTabsPayloadSet: z.tuple([z.string().min(1)]),
+  browserTabId: z.tuple([z.string().min(1)]),
+  browserCreate: z.tuple([
+    z.string().min(1),
+    z.string().min(1),
+    z.string().min(1),
+    z.array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        enabled: z.boolean(),
+        runAt: z.enum(['document-start', 'dom-ready', 'did-finish-load']),
+        source: z.string()
+      })
+    ),
+    z
+      .object({
+        preRequestScripts: z
+          .array(
+            z.object({
+              id: z.string().min(1),
+              name: z.string(),
+              source: z.string()
+            })
+          )
+          .optional(),
+        postRequestScripts: z
+          .array(
+            z.object({
+              id: z.string().min(1),
+              name: z.string(),
+              source: z.string()
+            })
+          )
+          .optional(),
+        snippetModules: z.record(z.string(), z.string()).optional(),
+        snippetModuleConflicts: z.array(z.string()).optional()
+      })
+      .optional()
+  ]),
+  browserSetBounds: z.tuple([
+    z.string().min(1),
+    z.object({
+      x: z.number(),
+      y: z.number(),
+      width: z.number(),
+      height: z.number()
+    })
+  ]),
+  browserSetVisible: z.tuple([z.string().min(1), z.boolean()]),
+  browserLoadURL: z.tuple([z.string().min(1), z.string().min(1)]),
+  browserSetScripts: z.tuple([
+    z.string().min(1),
+    z.array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string(),
+        enabled: z.boolean(),
+        runAt: z.enum(['document-start', 'dom-ready', 'did-finish-load']),
+        source: z.string()
+      })
+    ),
+    z
+      .object({
+        preRequestScripts: z
+          .array(
+            z.object({
+              id: z.string().min(1),
+              name: z.string(),
+              source: z.string()
+            })
+          )
+          .optional(),
+        postRequestScripts: z
+          .array(
+            z.object({
+              id: z.string().min(1),
+              name: z.string(),
+              source: z.string()
+            })
+          )
+          .optional(),
+        snippetModules: z.record(z.string(), z.string()).optional(),
+        snippetModuleConflicts: z.array(z.string()).optional()
+      })
+      .optional()
+  ]),
+  browserSetHomeUrl: z.tuple([z.string().min(1), z.string().min(1)]),
+  browserExecuteJavaScript: z.tuple([z.string().min(1), z.string()]),
+  browserInsertCSS: z.tuple([z.string().min(1), z.string()]),
+  browserQuerySelector: z.tuple([
+    z.string().min(1),
+    z.string().min(1),
+    z.boolean().optional(),
+    z.number().optional()
+  ]),
+  browserWaitForLoad: z.tuple([z.string().min(1), z.number().optional()]),
   autocompleteList: z.tuple([z.string().min(1)]),
   autocompleteAdd: z.tuple([z.string().min(1), z.string()]),
   aiChatSessionSet: z.tuple([aiChatSession]),
@@ -1327,6 +1460,9 @@ export const ipcArgSchemas = {
   workflowsUpdate: z.tuple([updateWorkflowInput]),
   workflowsDelete: z.tuple([z.number().int().positive()]),
   workflowsSetArchived: z.tuple([z.number().int().positive(), z.boolean()]),
+  websitesCreate: z.tuple([createWebsiteInput]),
+  websitesUpdate: z.tuple([updateWebsiteInput]),
+  websitesDelete: z.tuple([z.number().int().positive()]),
   workflowRunHistoryAdd: z.tuple([workflowRunHistoryAddInput]),
   workflowRunHistoryDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),

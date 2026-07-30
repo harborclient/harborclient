@@ -2,20 +2,28 @@ import {
   cloneDraft,
   createTab,
   defaultDraft,
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
   normalizeDraft,
   syncDraftUrlWithParams,
+  type BrowserTab,
   type MarkdownTab,
   type PageRef,
   type RequestDraft,
   type RequestTab,
   type Tab
 } from './tabs';
-import type { BodyType, HttpMethod, KeyValue } from '@harborclient/core/types';
+import type { BodyType, HttpMethod, KeyValue, ScriptRef } from '@harborclient/core/types';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 import { normalizePersistedPageRef } from '#/renderer/src/store/routing';
+import {
+  normalizeBrowserInjectionScripts,
+  type BrowserInjectionScript
+} from '#/browser/browserScripts';
+import { normalizeBrowserHcScriptRefs } from '#/browser/browserHcScripts';
+import { isAllowedBrowserUrl } from '#/browser/browserUrl';
 
 /** When false, persistTabs is a no-op so the default startup tab does not clobber electron-store. */
 let tabsHydrated = false;
@@ -58,9 +66,37 @@ export interface PersistedMarkdownTab {
 }
 
 /**
+ * Persisted embedded browser tab shape.
+ */
+export interface PersistedBrowserTab {
+  tabId: string;
+  kind: 'browser';
+  title: string;
+  url: string;
+  homeUrl: string;
+  scripts: BrowserInjectionScript[];
+  savedScripts: BrowserInjectionScript[];
+  pre_request_scripts: ScriptRef[];
+  post_request_scripts: ScriptRef[];
+  savedPreRequestScripts: ScriptRef[];
+  savedPostRequestScripts: ScriptRef[];
+  faviconDataUrl?: string | null;
+  websiteId?: number | null;
+  websiteUuid?: string | null;
+  savedUrl?: string;
+  savedHomeUrl?: string;
+  savedTitle?: string;
+  savedFaviconDataUrl?: string | null;
+}
+
+/**
  * Persisted tab entry — request tabs omit kind for backward compatibility.
  */
-export type PersistedTab = PersistedRequestTab | PersistedPageTab | PersistedMarkdownTab;
+export type PersistedTab =
+  | PersistedRequestTab
+  | PersistedPageTab
+  | PersistedMarkdownTab
+  | PersistedBrowserTab;
 
 export interface PersistedOpenTabs {
   tabs: PersistedTab[];
@@ -297,12 +333,101 @@ function salvagePersistedMarkdownTab(value: unknown): PersistedMarkdownTab | nul
 }
 
 /**
- * Salvages a persisted tab entry as either a request, page, or markdown tab.
+ * Salvages a persisted browser tab entry.
+ *
+ * @param value - Candidate tab entry from persisted storage.
+ * @returns Salvaged browser tab or null when required fields are invalid.
+ */
+function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null {
+  if (!isRecord(value)) return null;
+  if (value.kind !== 'browser') return null;
+  if (typeof value.tabId !== 'string' || value.tabId.length === 0) return null;
+  if (typeof value.title !== 'string') return null;
+
+  const url =
+    typeof value.url === 'string' && isAllowedBrowserUrl(value.url) ? value.url : 'about:blank';
+  const homeUrl =
+    typeof value.homeUrl === 'string' && isAllowedBrowserUrl(value.homeUrl)
+      ? value.homeUrl
+      : 'about:blank';
+  const scripts = normalizeBrowserInjectionScripts(value.scripts);
+  const savedScripts =
+    value.savedScripts !== undefined
+      ? normalizeBrowserInjectionScripts(value.savedScripts)
+      : scripts;
+  const pre_request_scripts = normalizeBrowserHcScriptRefs(value.pre_request_scripts);
+  const post_request_scripts = normalizeBrowserHcScriptRefs(value.post_request_scripts);
+  const savedPreRequestScripts =
+    value.savedPreRequestScripts !== undefined
+      ? normalizeBrowserHcScriptRefs(value.savedPreRequestScripts)
+      : pre_request_scripts;
+  const savedPostRequestScripts =
+    value.savedPostRequestScripts !== undefined
+      ? normalizeBrowserHcScriptRefs(value.savedPostRequestScripts)
+      : post_request_scripts;
+
+  const faviconDataUrl =
+    typeof value.faviconDataUrl === 'string' && value.faviconDataUrl.length > 0
+      ? value.faviconDataUrl
+      : null;
+  const websiteId =
+    typeof value.websiteId === 'number' && Number.isFinite(value.websiteId)
+      ? value.websiteId
+      : null;
+  const websiteUuid =
+    typeof value.websiteUuid === 'string' && value.websiteUuid.length > 0
+      ? value.websiteUuid
+      : null;
+  const savedUrl =
+    typeof value.savedUrl === 'string' && isAllowedBrowserUrl(value.savedUrl)
+      ? value.savedUrl
+      : url;
+  const savedHomeUrl =
+    typeof value.savedHomeUrl === 'string' && isAllowedBrowserUrl(value.savedHomeUrl)
+      ? value.savedHomeUrl
+      : homeUrl;
+  const savedTitle =
+    typeof value.savedTitle === 'string' ? value.savedTitle : value.title || 'Browser';
+  const savedFaviconDataUrl =
+    value.savedFaviconDataUrl === null
+      ? null
+      : typeof value.savedFaviconDataUrl === 'string' && value.savedFaviconDataUrl.length > 0
+        ? value.savedFaviconDataUrl
+        : faviconDataUrl;
+
+  return {
+    tabId: value.tabId,
+    kind: 'browser',
+    title: value.title || 'Browser',
+    url,
+    homeUrl,
+    scripts,
+    savedScripts,
+    pre_request_scripts,
+    post_request_scripts,
+    savedPreRequestScripts,
+    savedPostRequestScripts,
+    faviconDataUrl,
+    websiteId,
+    websiteUuid,
+    savedUrl,
+    savedHomeUrl,
+    savedTitle,
+    savedFaviconDataUrl
+  };
+}
+
+/**
+ * Salvages a persisted tab entry as either a request, page, markdown, or browser tab.
  *
  * @param value - Candidate tab entry from persisted storage.
  * @returns Salvaged tab or null when the entry cannot be recovered.
  */
 function salvagePersistedTab(value: unknown): PersistedTab | null {
+  const browserTab = salvagePersistedBrowserTab(value);
+  if (browserTab) {
+    return browserTab;
+  }
   const markdownTab = salvagePersistedMarkdownTab(value);
   if (markdownTab) {
     return markdownTab;
@@ -357,6 +482,38 @@ function persistedMarkdownTabToMarkdownTab(tab: PersistedMarkdownTab): MarkdownT
 }
 
 /**
+ * Converts a validated persisted browser tab into runtime BrowserTab state.
+ *
+ * @param tab - Validated persisted browser tab entry.
+ * @returns BrowserTab ready for Redux state.
+ */
+function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
+  return {
+    tabId: tab.tabId,
+    kind: 'browser',
+    title: tab.title,
+    url: tab.url,
+    homeUrl: tab.homeUrl,
+    scripts: tab.scripts,
+    savedScripts: tab.savedScripts,
+    pre_request_scripts: tab.pre_request_scripts,
+    post_request_scripts: tab.post_request_scripts,
+    savedPreRequestScripts: tab.savedPreRequestScripts,
+    savedPostRequestScripts: tab.savedPostRequestScripts,
+    canGoBack: false,
+    canGoForward: false,
+    faviconDataUrl: tab.faviconDataUrl ?? null,
+    websiteId: tab.websiteId ?? null,
+    websiteUuid: tab.websiteUuid ?? null,
+    savedUrl: tab.savedUrl ?? tab.url,
+    savedHomeUrl: tab.savedHomeUrl ?? tab.homeUrl,
+    savedTitle: tab.savedTitle ?? tab.title,
+    savedFaviconDataUrl:
+      tab.savedFaviconDataUrl !== undefined ? tab.savedFaviconDataUrl : (tab.faviconDataUrl ?? null)
+  };
+}
+
+/**
  * Converts a validated persisted tab into runtime tab state.
  *
  * @param tab - Validated persisted tab entry.
@@ -368,6 +525,9 @@ function persistedTabToTab(tab: PersistedTab): Tab {
   }
   if ('kind' in tab && tab.kind === 'markdown') {
     return persistedMarkdownTabToMarkdownTab(tab);
+  }
+  if ('kind' in tab && tab.kind === 'browser') {
+    return persistedBrowserTabToBrowserTab(tab);
   }
   return persistedRequestTabToRequestTab(tab as PersistedRequestTab);
 }
@@ -562,6 +722,28 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
             name: tab.name,
             content: tab.content,
             savedContent: tab.savedContent
+          };
+        }
+        if (isBrowserTab(tab)) {
+          return {
+            tabId: tab.tabId,
+            kind: 'browser' as const,
+            title: tab.title,
+            url: tab.url,
+            homeUrl: tab.homeUrl,
+            scripts: tab.scripts,
+            savedScripts: tab.savedScripts,
+            pre_request_scripts: tab.pre_request_scripts,
+            post_request_scripts: tab.post_request_scripts,
+            savedPreRequestScripts: tab.savedPreRequestScripts,
+            savedPostRequestScripts: tab.savedPostRequestScripts,
+            faviconDataUrl: tab.faviconDataUrl,
+            websiteId: tab.websiteId,
+            websiteUuid: tab.websiteUuid,
+            savedUrl: tab.savedUrl,
+            savedHomeUrl: tab.savedHomeUrl,
+            savedTitle: tab.savedTitle,
+            savedFaviconDataUrl: tab.savedFaviconDataUrl
           };
         }
         if (isRequestTab(tab)) {

@@ -867,3 +867,73 @@ describe('IPC size limits', () => {
     ).toBe(true);
   });
 });
+
+describe('browser IPC schemas', () => {
+  it('accepts browserCreate with scripts', () => {
+    expect(
+      ipcArgSchemas.browserCreate.safeParse([
+        'tab-1',
+        'https://example.com/',
+        'about:blank',
+        [
+          {
+            id: 's1',
+            name: 'Script',
+            enabled: true,
+            runAt: 'dom-ready',
+            source: 'console.log(1)'
+          }
+        ]
+      ]).success
+    ).toBe(true);
+  });
+
+  it('rejects browserCreate with a disallowed runAt', () => {
+    expect(
+      ipcArgSchemas.browserCreate.safeParse([
+        'tab-1',
+        'https://example.com/',
+        'about:blank',
+        [{ id: 's1', name: 'Script', enabled: true, runAt: 'onload', source: '' }]
+      ]).success
+    ).toBe(false);
+  });
+
+  it('accepts browserSetBounds', () => {
+    expect(
+      ipcArgSchemas.browserSetBounds.safeParse(['tab-1', { x: 0, y: 40, width: 800, height: 600 }])
+        .success
+    ).toBe(true);
+  });
+
+  it('accepts browserExecuteJavaScript', () => {
+    expect(ipcArgSchemas.browserExecuteJavaScript.safeParse(['tab-1', '1 + 1']).success).toBe(true);
+  });
+
+  it('accepts browserInsertCSS', () => {
+    expect(
+      ipcArgSchemas.browserInsertCSS.safeParse(['tab-1', 'body { color: red; }']).success
+    ).toBe(true);
+  });
+
+  it('accepts browserQuerySelector with optional args', () => {
+    expect(ipcArgSchemas.browserQuerySelector.safeParse(['tab-1', 'h1']).success).toBe(true);
+    expect(ipcArgSchemas.browserQuerySelector.safeParse(['tab-1', 'a', true, 10]).success).toBe(
+      true
+    );
+  });
+
+  it('accepts browserWaitForLoad with optional timeout', () => {
+    expect(ipcArgSchemas.browserWaitForLoad.safeParse(['tab-1']).success).toBe(true);
+    expect(ipcArgSchemas.browserWaitForLoad.safeParse(['tab-1', 5000]).success).toBe(true);
+  });
+
+  it('accepts browserTabId for requestClose', () => {
+    expect(ipcArgSchemas.browserTabId.safeParse(['tab-1']).success).toBe(true);
+    expect(ipcArgSchemas.browserTabId.safeParse(['']).success).toBe(false);
+  });
+
+  it('accepts empty args for hideAll', () => {
+    expect(ipcArgSchemas.none.safeParse([]).success).toBe(true);
+  });
+});

@@ -64,6 +64,9 @@ async function refreshAfterRestore(
     case 'workflow':
       await dispatch((await import('#/renderer/src/store/thunks/workflows')).refreshWorkflows());
       break;
+    case 'website':
+      await dispatch((await import('#/renderer/src/store/thunks/websites')).refreshWebsites());
+      break;
     default:
       break;
   }

@@ -910,6 +910,23 @@ export function createScriptApi(
     expect: scriptExpect
   };
 
+  /**
+   * Resolves after the given delay. Use for pacing between script steps.
+   *
+   * @param milliseconds - Non-negative finite delay in milliseconds.
+   * @returns Promise that resolves when the delay elapses.
+   * @throws When `milliseconds` is not a non-negative finite number.
+   */
+  hc.sleep = (milliseconds: unknown): Promise<void> => {
+    const ms = Number(milliseconds);
+    if (!Number.isFinite(ms) || ms < 0) {
+      throw new Error('hc.sleep requires a non-negative finite number of milliseconds');
+    }
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  };
+
   if (options?.sendRequest) {
     const transport = options.sendRequest;
     hc.sendRequest = async (req: unknown) => {

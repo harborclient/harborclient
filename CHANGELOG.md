@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add browser-related features and tests. (`2f8eb307`)
+
 ## 2.8.8 - 2026-07-29
 
 - Implement workflow run history management and UI enhancements. (`c87feda3`)

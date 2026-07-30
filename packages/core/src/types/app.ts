@@ -3,6 +3,7 @@
  */
 export type MenuActionId =
   | 'new-request'
+  | 'new-browser'
   | 'new-collection'
   | 'new-environment'
   | 'import'

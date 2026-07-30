@@ -6,6 +6,8 @@ describe('trash sidebar utils', () => {
     expect(trashEntityTypeLabel('collection')).toBe('Collection');
     expect(trashEntityTypeLabel('runResult')).toBe('Run');
     expect(trashEntityTypeLabel('workspace')).toBe('Workspace');
+    expect(trashEntityTypeLabel('website')).toBe('Website');
+    expect(trashEntityTypeLabel('workflow')).toBe('Workflow');
   });
 
   it('formats deleted timestamps for display', () => {

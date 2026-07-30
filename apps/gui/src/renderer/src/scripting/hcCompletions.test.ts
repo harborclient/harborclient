@@ -137,6 +137,7 @@ describe('createHcCompletionSource', () => {
       'parse',
       'request',
       'sendRequest',
+      'sleep',
       'stringify',
       'test'
     ]);
@@ -161,6 +162,7 @@ describe('createHcCompletionSource', () => {
       'request',
       'response',
       'sendRequest',
+      'sleep',
       'stringify',
       'test'
     ]);

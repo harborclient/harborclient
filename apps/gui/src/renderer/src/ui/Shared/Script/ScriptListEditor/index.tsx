@@ -82,6 +82,7 @@ import {
   mergeScriptRefGroups,
   normalizeScriptStage,
   readScriptRefStage,
+  SCRIPT_STAGE_OPTIONS,
   scriptStageBorderColor,
   scriptStageGroup,
   shouldShowScriptSectionHeadings,
@@ -206,6 +207,13 @@ interface Props {
    * squiggles at the mapped throw/compile location.
    */
   scriptErrors?: readonly ScriptRunError[];
+
+  /**
+   * Stages the user may assign when adding or editing scripts.
+   * Defaults to the full before-all … after-all set. Pass `['main']` to hide
+   * stage picking (browser settings).
+   */
+  allowedStages?: ScriptStage[];
 }
 
 /**
@@ -229,7 +237,8 @@ export function ScriptListEditor({
   revealSource,
   revealNonce,
   testResults,
-  scriptErrors
+  scriptErrors,
+  allowedStages
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
@@ -248,7 +257,34 @@ export function ScriptListEditor({
   const activeChatId = useAppSelector(selectActiveChatId);
   const scriptEditorActions = usePluginScriptEditorActions(phase);
   const copiedScript = useAppSelector(selectCopiedScriptRef);
-  const normalized = useMemo(() => normalizeScriptRefs(scripts), [scripts]);
+  /**
+   * Stages available for add/edit; a single stage skips the picker modal and
+   * hides stage items in the row hamburger menu.
+   */
+  const resolvedAllowedStages = useMemo(
+    () =>
+      allowedStages && allowedStages.length > 0
+        ? allowedStages
+        : SCRIPT_STAGE_OPTIONS.map((option) => option.value),
+    [allowedStages]
+  );
+  const stagesEditable = resolvedAllowedStages.length > 1;
+  const defaultAddStage = resolvedAllowedStages[0] ?? DEFAULT_SCRIPT_STAGE;
+  /**
+   * Normalizes script refs and, when stages are restricted to one value, coerces
+   * every row to that stage so the editor never shows disallowed stage labels.
+   */
+  const normalized = useMemo(() => {
+    const refs = normalizeScriptRefs(scripts);
+    if (stagesEditable) {
+      return refs;
+    }
+    return refs.map((script) =>
+      normalizeScriptStage(script.stage) === defaultAddStage
+        ? script
+        : { ...script, stage: defaultAddStage }
+    );
+  }, [defaultAddStage, scripts, stagesEditable]);
   const scriptGroups = useMemo(() => splitScriptRefsByGroup(normalized), [normalized]);
 
   /**
@@ -396,9 +432,14 @@ export function ScriptListEditor({
   };
 
   /**
-   * Opens the stage picker before adding a blank inline script.
+   * Opens the stage picker before adding a blank inline script, or adds with
+   * the only allowed stage when stage picking is disabled.
    */
   const handleOpenAddScriptModal = (): void => {
+    if (!stagesEditable) {
+      handleConfirmAddInline(defaultAddStage);
+      return;
+    }
     setAddScriptStageModalOpen(true);
   };
 
@@ -435,12 +476,9 @@ export function ScriptListEditor({
         return;
       }
       const snippet = snippets.find((entry) => entry.uuid === trimmedUuid);
+      const stage = stagesEditable ? (snippet?.stage ?? DEFAULT_SCRIPT_STAGE) : defaultAddStage;
       const created = {
-        ...createSnippetScriptRef(
-          trimmedUuid,
-          snippet?.name,
-          snippet?.stage ?? DEFAULT_SCRIPT_STAGE
-        ),
+        ...createSnippetScriptRef(trimmedUuid, snippet?.name, stage),
         expanded: true
       };
       const groups = splitScriptRefsByGroup(normalized);
@@ -454,7 +492,7 @@ export function ScriptListEditor({
         )
       );
     },
-    [normalized, onChange, snippets]
+    [defaultAddStage, normalized, onChange, snippets, stagesEditable]
   );
 
   /**
@@ -1053,8 +1091,13 @@ export function ScriptListEditor({
     sortable: rowOptions?.sortable ?? false,
     onEnabledChange: (enabled) => patchScript(script.id, { enabled }),
     onNameChange: (name) => patchScript(script.id, { name }),
-    stageEditable: isScriptStageEditable(script, snippets),
-    onStageSelect: (stage) => handleStageChange(script.id, stage),
+    stageEditable: stagesEditable && isScriptStageEditable(script, snippets),
+    onStageSelect: (stage) => {
+      if (!resolvedAllowedStages.includes(stage)) {
+        return;
+      }
+      handleStageChange(script.id, stage);
+    },
     openRowMenuId,
     onOpenRowMenuChange: setOpenRowMenuId,
     onRemove: () => void handleRemoveScript(script.id, label),
@@ -1372,8 +1415,9 @@ export function ScriptListEditor({
         />
       ) : null}
 
-      {addScriptStageModalOpen ? (
+      {addScriptStageModalOpen && stagesEditable ? (
         <AddScriptStageModal
+          stages={resolvedAllowedStages}
           onCancel={() => setAddScriptStageModalOpen(false)}
           onConfirm={handleConfirmAddInline}
         />

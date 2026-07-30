@@ -942,6 +942,62 @@ describeSqlite('LocalDatabase workflows', () => {
   });
 });
 
+describeSqlite('LocalDatabase websites', () => {
+  it('creates, lists, updates, and deletes websites', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createWebsite({
+      name: 'Example',
+      uuid: 'web-1',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      faviconDataUrl: 'data:image/png;base64,abc',
+      scripts: [
+        {
+          id: 's1',
+          name: 'Inject',
+          enabled: true,
+          runAt: 'dom-ready',
+          source: 'console.log(1)'
+        }
+      ],
+      preRequestScripts: [],
+      postRequestScripts: []
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      uuid: 'web-1',
+      name: 'Example',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      faviconDataUrl: 'data:image/png;base64,abc'
+    });
+    expect(created[0]?.scripts).toHaveLength(1);
+
+    const updated = database.updateWebsite({
+      id: created[0]!.id,
+      name: 'Example Updated',
+      url: 'https://example.com/docs',
+      homeUrl: 'https://example.com/',
+      faviconDataUrl: null,
+      scripts: [],
+      preRequestScripts: [],
+      postRequestScripts: []
+    });
+
+    expect(updated[0]).toMatchObject({
+      name: 'Example Updated',
+      url: 'https://example.com/docs',
+      faviconDataUrl: null
+    });
+    expect(updated[0]?.scripts).toEqual([]);
+
+    const remaining = database.deleteWebsite(created[0]!.id);
+    expect(remaining).toEqual([]);
+  });
+});
+
 describeSqlite('LocalDatabase workflow run history', () => {
   /**
    * Builds a minimal history payload for insert tests.

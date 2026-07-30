@@ -1,4 +1,5 @@
 import {
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
@@ -22,6 +23,10 @@ export function tabCloseAccessibleName(tab: Tab, pageTitle?: string, dirty = fal
   if (isMarkdownTab(tab)) {
     const suffix = isTabDirty(tab) ? ', unsaved' : '';
     return `Close ${tab.name}${suffix}`;
+  }
+  if (isBrowserTab(tab)) {
+    const suffix = isTabDirty(tab) ? ', unsaved' : '';
+    return `Close ${tab.title || 'Browser'}${suffix}`;
   }
   if (!isRequestTab(tab)) {
     return 'Close tab';

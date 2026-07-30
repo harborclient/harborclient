@@ -12,6 +12,7 @@ const DEFAULT_SECTIONS = {
   history: true,
   workspaces: true,
   workflows: true,
+  websites: true,
   archive: true,
   trash: true
 } as const;
@@ -23,6 +24,7 @@ const DEFAULT_SECTION_SORT: Record<SidebarSectionKey, SidebarSortMode> = {
   history: 'default',
   workspaces: 'default',
   workflows: 'default',
+  websites: 'default',
   archive: 'default',
   trash: 'default'
 };
@@ -34,6 +36,7 @@ const SIDEBAR_SECTION_KEYS: readonly SidebarSectionKey[] = [
   'history',
   'workspaces',
   'workflows',
+  'websites',
   'archive',
   'trash'
 ];
@@ -76,7 +79,7 @@ const DEFAULT_SHOW_SORTING = false;
  * workflows. Array order is the visual accordion order.
  */
 export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionKey[]> = {
-  collections: ['collections', 'runResults', 'history', 'archive'],
+  collections: ['collections', 'websites', 'runResults', 'history', 'archive'],
   environments: ['environments'],
   workspaces: ['workspaces'],
   workflows: ['workflows', 'history', 'archive'],
@@ -288,6 +291,10 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
         sectionsRaw && typeof sectionsRaw.workflows === 'boolean'
           ? sectionsRaw.workflows
           : DEFAULT_SECTIONS.workflows,
+      websites:
+        sectionsRaw && typeof sectionsRaw.websites === 'boolean'
+          ? sectionsRaw.websites
+          : DEFAULT_SECTIONS.websites,
       archive:
         sectionsRaw && typeof sectionsRaw.archive === 'boolean'
           ? sectionsRaw.archive

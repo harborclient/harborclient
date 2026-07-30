@@ -85,6 +85,7 @@ interface Props {
  * Uses a `div` with `role="option"` (not a `<button>`) so plugin HostedSurface
  * webviews can nest inside without invalid interactive nesting. Seek / edit /
  * context menu stay on the thumbnail chrome; plugin surfaces stop propagation.
+ * When {@link onEditPayload} is provided, double-click opens the payload editor.
  *
  * @param props - Label, selection, width, flexGrow, fitContent, handlers, thumbnail, and optional plugin surface.
  * @returns Timeline block option wrapping thumbnail and plugin surface children.

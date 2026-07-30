@@ -647,6 +647,111 @@ describe('redux open-tab round trip', () => {
       expect(tab.page).toEqual({ type: 'snippets' });
     }
   });
+
+  it('round-trips browser tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'browser-1',
+          kind: 'browser',
+          title: 'Example',
+          url: 'https://example.com/',
+          homeUrl: 'about:blank',
+          scripts: [
+            {
+              id: 's1',
+              name: 'Hi',
+              enabled: true,
+              runAt: 'did-finish-load',
+              source: 'console.log(1)'
+            }
+          ],
+          savedScripts: [],
+          pre_request_scripts: [
+            {
+              id: 'pre-1',
+              enabled: true,
+              kind: 'inline',
+              code: 'hc.log("pre")',
+              stage: 'before-each',
+              name: 'Pre'
+            }
+          ],
+          post_request_scripts: [],
+          savedPreRequestScripts: [],
+          savedPostRequestScripts: []
+        }
+      ],
+      activeTabId: 'browser-1'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+    expect(restored.tabs).toHaveLength(1);
+    const tab = restored.tabs[0];
+    expect(tab && 'kind' in tab && tab.kind === 'browser').toBe(true);
+    if (tab && 'kind' in tab && tab.kind === 'browser') {
+      expect(tab.url).toBe('https://example.com/');
+      expect(tab.scripts).toHaveLength(1);
+      expect(tab.savedScripts).toEqual([]);
+      expect(tab.pre_request_scripts).toHaveLength(1);
+      expect(tab.pre_request_scripts[0]?.stage).toBe('main');
+      expect(tab.savedPreRequestScripts).toEqual([]);
+      expect(tab.canGoBack).toBe(false);
+      expect(tab.faviconDataUrl).toBeNull();
+    }
+  });
+
+  it('salvages missing browser hc script fields as empty lists', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'browser-legacy',
+          kind: 'browser',
+          title: 'Legacy',
+          url: 'https://example.com/',
+          homeUrl: 'about:blank',
+          scripts: [],
+          savedScripts: []
+        }
+      ],
+      activeTabId: 'browser-legacy'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+    const tab = restored.tabs[0];
+    expect(tab && 'kind' in tab && tab.kind === 'browser').toBe(true);
+    if (tab && 'kind' in tab && tab.kind === 'browser') {
+      expect(tab.pre_request_scripts).toEqual([]);
+      expect(tab.post_request_scripts).toEqual([]);
+      expect(tab.savedPreRequestScripts).toEqual([]);
+      expect(tab.savedPostRequestScripts).toEqual([]);
+    }
+  });
+
+  it('drops file: URLs when salvaging browser tabs', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'browser-bad',
+          kind: 'browser',
+          title: 'Bad',
+          url: 'file:///etc/passwd',
+          homeUrl: 'file:///tmp',
+          scripts: [],
+          savedScripts: []
+        }
+      ],
+      activeTabId: 'browser-bad'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+    const tab = restored.tabs[0];
+    expect(tab && 'kind' in tab && tab.kind === 'browser').toBe(true);
+    if (tab && 'kind' in tab && tab.kind === 'browser') {
+      expect(tab.url).toBe('about:blank');
+      expect(tab.homeUrl).toBe('about:blank');
+    }
+  });
 });
 
 describe('persistActiveEnvironmentId', () => {

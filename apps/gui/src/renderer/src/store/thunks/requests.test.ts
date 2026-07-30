@@ -1002,4 +1002,121 @@ describe('saveFromMenu', () => {
     expect(saveDocumentMock).toHaveBeenCalledTimes(1);
     expect(saveDocumentMock.mock.calls[0]?.[0].content).toBe('# Edited');
   });
+
+  it('saves the active browser tab as a website', async () => {
+    const createWebsiteMock = vi
+      .fn()
+      .mockImplementation(
+        async (input: { uuid?: string; name: string; url: string; homeUrl: string }) => [
+          {
+            id: 42,
+            uuid: input.uuid ?? 'website-uuid',
+            name: input.name,
+            url: input.url,
+            homeUrl: input.homeUrl,
+            faviconDataUrl: null,
+            scripts: [],
+            preRequestScripts: [],
+            postRequestScripts: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          }
+        ]
+      );
+    vi.stubGlobal('window', {
+      api: {
+        saveRequest: saveRequestMock,
+        listRequests: listRequestsMock,
+        listFolders: listFoldersMock,
+        cancelRequest: cancelRequestMock,
+        createWebsite: createWebsiteMock,
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newBrowserTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      newBrowserTab({
+        tabId: 'browser-save-menu',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    );
+
+    await store.dispatch(saveFromMenu());
+
+    expect(createWebsiteMock).toHaveBeenCalledTimes(1);
+    expect(createWebsiteMock.mock.calls[0]?.[0].url).toBe('https://example.com/');
+    expect(saveRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('updates a linked browser website when pending changes exist', async () => {
+    const updateWebsiteMock = vi
+      .fn()
+      .mockImplementation(
+        async (input: { id: number; name: string; url: string; homeUrl: string }) => [
+          {
+            id: input.id,
+            uuid: 'linked-website-uuid',
+            name: input.name,
+            url: input.url,
+            homeUrl: input.homeUrl,
+            faviconDataUrl: null,
+            scripts: [],
+            preRequestScripts: [],
+            postRequestScripts: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          }
+        ]
+      );
+    vi.stubGlobal('window', {
+      api: {
+        saveRequest: saveRequestMock,
+        listRequests: listRequestsMock,
+        listFolders: listFoldersMock,
+        cancelRequest: cancelRequestMock,
+        updateWebsite: updateWebsiteMock,
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { openBrowserTabFromWebsite, updateBrowserTab } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      openBrowserTabFromWebsite({
+        websiteId: 7,
+        websiteUuid: 'linked-website-uuid',
+        title: 'Example',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/',
+        faviconDataUrl: null,
+        scripts: [],
+        pre_request_scripts: [],
+        post_request_scripts: []
+      })
+    );
+    const tabId = store.getState().tabs.activeTabId!;
+    store.dispatch(
+      updateBrowserTab({
+        tabId,
+        updates: { url: 'https://example.com/updated', title: 'Updated' }
+      })
+    );
+
+    await store.dispatch(saveFromMenu());
+
+    expect(updateWebsiteMock).toHaveBeenCalledTimes(1);
+    expect(updateWebsiteMock.mock.calls[0]?.[0]).toMatchObject({
+      id: 7,
+      url: 'https://example.com/updated'
+    });
+    expect(saveRequestMock).not.toHaveBeenCalled();
+  });
 });

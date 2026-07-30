@@ -12,7 +12,9 @@ import {
   isPageTab,
   isRequestTab,
   isTabDirty,
-  isMarkdownTab
+  hasBrowserPendingSave,
+  isMarkdownTab,
+  isBrowserTab
 } from '#/renderer/src/store/tabs';
 import tabsReducer, {
   activateNextTab,
@@ -25,16 +27,22 @@ import tabsReducer, {
   closeTabsForRequest,
   loadDocument,
   loadRequest,
+  newBrowserTab,
   newTab,
+  openInheritedBrowserTab,
   openMarkdownTab,
   openPageTab,
   openTabWithDraft,
   reconcileMarkdownTabsFromDocuments,
   reconcileRequestTabsFromRequests,
   reorderTabs,
+  saveBrowserScripts,
   setActiveDraft,
   setActiveTab,
+  setBrowserPreRequestScripts,
+  setBrowserScripts,
   setResponseViewerTab,
+  updateBrowserNavigation,
   updateMarkdownContent
 } from './tabsSlice';
 
@@ -964,5 +972,249 @@ describe('tabsSlice setResponseViewerTab', () => {
     const initial = tabsReducer(undefined, { type: 'unknown' });
     const next = tabsReducer(initial, setResponseViewerTab({ tabId: 'missing', tab: 'tests' }));
     expect(next).toEqual(initial);
+  });
+});
+
+describe('browser tabs', () => {
+  it('opens a browser tab with empty scripts', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const tab = state.tabs.find((entry) => entry.tabId === state.activeTabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isBrowserTab(tab)) {
+      throw new Error('Expected browser tab');
+    }
+    expect(tab.url).toBe('about:blank');
+    expect(tab.scripts).toEqual([]);
+    expect(isTabDirty(tab)).toBe(false);
+  });
+
+  it('opens a browser tab with an explicit tabId and urls for playback', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(
+      state,
+      newBrowserTab({
+        tabId: 'recorded-browser-id',
+        url: 'https://example.com/start',
+        homeUrl: 'https://example.com'
+      })
+    );
+    const tab = state.tabs.find((entry) => entry.tabId === state.activeTabId);
+    expect(tab).toBeDefined();
+    if (!tab || !isBrowserTab(tab)) {
+      throw new Error('Expected browser tab');
+    }
+    expect(tab.tabId).toBe('recorded-browser-id');
+    expect(tab.url).toBe('https://example.com/start');
+    expect(tab.homeUrl).toBe('https://example.com');
+  });
+
+  it('marks browser tabs pending save when pre/post scripts diverge from saved', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const tabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      setBrowserPreRequestScripts({
+        tabId,
+        scripts: [
+          {
+            id: 'pre-1',
+            enabled: true,
+            kind: 'inline',
+            code: 'hc.log("pre")',
+            stage: 'main',
+            name: 'Pre'
+          }
+        ]
+      })
+    );
+    const dirtyTab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(
+      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && !isTabDirty(dirtyTab)
+    ).toBe(true);
+
+    state = tabsReducer(state, saveBrowserScripts(tabId));
+    const cleanTab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(cleanTab && isBrowserTab(cleanTab) && !hasBrowserPendingSave(cleanTab)).toBe(true);
+    if (cleanTab && isBrowserTab(cleanTab)) {
+      expect(cleanTab.savedPreRequestScripts).toHaveLength(1);
+    }
+  });
+
+  it('marks browser tabs pending save when scripts diverge from saved', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const tabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      setBrowserScripts({
+        tabId,
+        scripts: [
+          {
+            id: 's1',
+            name: 'A',
+            enabled: true,
+            runAt: 'did-finish-load',
+            source: '1'
+          }
+        ]
+      })
+    );
+    const dirtyTab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(
+      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && !isTabDirty(dirtyTab)
+    ).toBe(true);
+
+    state = tabsReducer(state, saveBrowserScripts(tabId));
+    const cleanTab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(cleanTab && isBrowserTab(cleanTab) && !hasBrowserPendingSave(cleanTab)).toBe(true);
+  });
+
+  it('closes linked browser-settings when closing a browser tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const browserTabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      openPageTab({
+        type: 'browser-settings',
+        browserTabId,
+        label: 'Browser Settings'
+      })
+    );
+    expect(state.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'browser-settings')).toBe(
+      true
+    );
+
+    state = tabsReducer(state, closeTab(browserTabId));
+    expect(state.tabs.some((tab) => isBrowserTab(tab) && tab.tabId === browserTabId)).toBe(false);
+    expect(state.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'browser-settings')).toBe(
+      false
+    );
+  });
+
+  it('updates browser navigation including favicon clear and set', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      updateBrowserNavigation({
+        tabId,
+        url: 'https://example.com/',
+        title: 'Example',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: 'data:image/png;base64,abc'
+      })
+    );
+    let tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab && isBrowserTab(tab) && tab.faviconDataUrl).toBe('data:image/png;base64,abc');
+    expect(tab && isBrowserTab(tab) && tab.title).toBe('Example');
+
+    state = tabsReducer(
+      state,
+      updateBrowserNavigation({
+        tabId,
+        url: 'https://other.example/',
+        title: 'Other',
+        canGoBack: true,
+        canGoForward: false,
+        faviconDataUrl: null
+      })
+    );
+    tab = state.tabs.find((entry) => entry.tabId === tabId);
+    expect(tab && isBrowserTab(tab) && tab.faviconDataUrl).toBeNull();
+    expect(tab && isBrowserTab(tab) && tab.canGoBack).toBe(true);
+  });
+
+  it('opens an inherited browser tab and activates it by default', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const sourceTabId = state.activeTabId;
+    const script = {
+      id: 's1',
+      name: 'Inject',
+      enabled: true,
+      runAt: 'dom-ready' as const,
+      source: 'console.log(1)'
+    };
+    state = tabsReducer(state, setBrowserScripts({ tabId: sourceTabId, scripts: [script] }));
+    state = tabsReducer(state, saveBrowserScripts(sourceTabId));
+    state = tabsReducer(
+      state,
+      openInheritedBrowserTab({
+        url: 'https://example.com/popup',
+        sourceTabId,
+        activate: true
+      })
+    );
+
+    const opened = state.tabs.find((entry) => entry.tabId === state.activeTabId);
+    expect(opened).toBeDefined();
+    if (!opened || !isBrowserTab(opened)) {
+      throw new Error('Expected activated inherited browser tab');
+    }
+    expect(opened.tabId).not.toBe(sourceTabId);
+    expect(opened.url).toBe('https://example.com/popup');
+    expect(opened.scripts).toEqual([script]);
+    expect(opened.savedScripts).toEqual([script]);
+    expect(opened.scripts[0]).not.toBe(script);
+
+    const source = state.tabs.find((entry) => entry.tabId === sourceTabId);
+    if (source && isBrowserTab(source) && opened.scripts[0] && source.scripts[0]) {
+      expect(opened.scripts[0]).not.toBe(source.scripts[0]);
+    }
+  });
+
+  it('opens an inherited browser tab in the background when activate is false', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const sourceTabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      openInheritedBrowserTab({
+        url: 'https://example.com/bg',
+        sourceTabId,
+        activate: false
+      })
+    );
+
+    expect(state.activeTabId).toBe(sourceTabId);
+    const opened = state.tabs.find(
+      (entry) => isBrowserTab(entry) && entry.url === 'https://example.com/bg'
+    );
+    expect(opened).toBeDefined();
+  });
+
+  it('falls back to blank home and scripts when the opener tab is missing', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newTab());
+    const previousActive = state.activeTabId;
+    state = tabsReducer(
+      state,
+      openInheritedBrowserTab({
+        url: 'https://example.com/orphan',
+        sourceTabId: 'missing-opener',
+        activate: true
+      })
+    );
+
+    const opened = state.tabs.find((entry) => entry.tabId === state.activeTabId);
+    expect(opened).toBeDefined();
+    if (!opened || !isBrowserTab(opened)) {
+      throw new Error('Expected orphan popup browser tab');
+    }
+    expect(opened.url).toBe('https://example.com/orphan');
+    expect(opened.homeUrl).toBe('about:blank');
+    expect(opened.scripts).toEqual([]);
+    expect(opened.savedScripts).toEqual([]);
+    expect(opened.pre_request_scripts).toEqual([]);
+    expect(opened.post_request_scripts).toEqual([]);
+    expect(opened.savedPreRequestScripts).toEqual([]);
+    expect(opened.savedPostRequestScripts).toEqual([]);
+    expect(state.activeTabId).not.toBe(previousActive);
   });
 });

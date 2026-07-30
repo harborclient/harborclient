@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import {
+  faAngleLeft,
+  faAngleRight,
+  faArrowsRotate,
   faFileLines,
   faFolder,
   faGlobe,
+  faHouse,
   faLayerGroup,
   faPaperPlane,
   faPlus,
@@ -126,6 +130,7 @@ function describeTabIdentity(identity: unknown): string | undefined {
     requestUuid?: string;
     documentId?: number;
     documentUuid?: string;
+    tabId?: string;
     page?: PageRef;
   };
   if (value.kind === 'request') {
@@ -140,6 +145,9 @@ function describeTabIdentity(identity: unknown): string | undefined {
   }
   if (value.kind === 'page' && value.page != null) {
     return describePage(value.page).title;
+  }
+  if (value.kind === 'browser') {
+    return value.tabId != null ? `Browser ${value.tabId.slice(0, 8)}` : 'Browser tab';
   }
   if (value.kind === 'blank') {
     return 'Blank tab';
@@ -247,6 +255,23 @@ export function describeWorkflowAction(
     }
     case 'tab.closeAll':
       return { title: 'Close all tabs' };
+    case 'browser.tab.new': {
+      const url = payloadString(payload, 'url');
+      return {
+        title: 'New browser',
+        subtitle: url != null && url !== 'about:blank' ? url : undefined
+      };
+    }
+    case 'browser.navigate':
+      return { title: 'Navigate', subtitle: payloadString(payload, 'url') };
+    case 'browser.back':
+      return { title: 'Back' };
+    case 'browser.forward':
+      return { title: 'Forward' };
+    case 'browser.reload':
+      return { title: 'Reload' };
+    case 'browser.home':
+      return { title: 'Home' };
     default:
       return { title: action.type };
   }
@@ -516,4 +541,112 @@ export function tabCloseAllThumbnail(
   ctx: WorkflowThumbnailCtx
 ): ReactNode {
   return <TimelineTextThumbnail icon={faLayerGroup} title="Close all tabs" compact={ctx.compact} />;
+}
+
+/**
+ * Timeline thumbnail for `browser.tab.new`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserTabNewThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return (
+    <TimelineTextThumbnail
+      icon={faGlobe}
+      title={described.title}
+      subtitle={described.subtitle}
+      compact={ctx.compact}
+    />
+  );
+}
+
+/**
+ * Timeline thumbnail for `browser.navigate`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserNavigateThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return (
+    <TimelineTextThumbnail
+      icon={faGlobe}
+      title={described.title}
+      subtitle={described.subtitle}
+      compact={ctx.compact}
+    />
+  );
+}
+
+/**
+ * Timeline thumbnail for `browser.back`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserBackThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return <TimelineTextThumbnail icon={faAngleLeft} title={described.title} compact={ctx.compact} />;
+}
+
+/**
+ * Timeline thumbnail for `browser.forward`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserForwardThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return (
+    <TimelineTextThumbnail icon={faAngleRight} title={described.title} compact={ctx.compact} />
+  );
+}
+
+/**
+ * Timeline thumbnail for `browser.reload`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserReloadThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return (
+    <TimelineTextThumbnail icon={faArrowsRotate} title={described.title} compact={ctx.compact} />
+  );
+}
+
+/**
+ * Timeline thumbnail for `browser.home`.
+ *
+ * @param action - Recorded action.
+ * @param ctx - Thumbnail context.
+ * @returns Thumbnail content.
+ */
+export function browserHomeThumbnail(
+  action: { type: string; at?: number; payload: unknown },
+  ctx: WorkflowThumbnailCtx
+): ReactNode {
+  const described = describeWorkflowAction(action, ctx);
+  return <TimelineTextThumbnail icon={faHouse} title={described.title} compact={ctx.compact} />;
 }

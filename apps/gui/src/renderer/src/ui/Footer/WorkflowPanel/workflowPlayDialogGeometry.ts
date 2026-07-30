@@ -46,7 +46,16 @@ export interface WorkflowPlayDialogGeometry {
 }
 
 /**
- * Computes the default full-width play dialog geometry for the current viewport.
+ * Default play dialog width as a fraction of the viewport (`60vw`).
+ */
+export const DEFAULT_WORKFLOW_PLAY_DIALOG_WIDTH_VW = 0.6;
+
+/**
+ * Computes the default play dialog geometry for the current viewport.
+ *
+ * Opens at {@link DEFAULT_WORKFLOW_PLAY_DIALOG_WIDTH_VW} of the viewport width
+ * (floored by {@link WORKFLOW_PLAY_DIALOG_ABSOLUTE_MIN_WIDTH_PX}), centered
+ * horizontally and anchored near the bottom.
  *
  * @param viewportWidth - Optional viewport width (defaults to `window.innerWidth`).
  * @param viewportHeight - Optional viewport height (defaults to `window.innerHeight`).
@@ -57,13 +66,20 @@ export function defaultWorkflowPlayDialogGeometry(
   viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800
 ): WorkflowPlayDialogGeometry {
   const margin = FLOATING_DIALOG_VIEWPORT_MARGIN_PX;
-  const width = Math.max(WORKFLOW_PLAY_DIALOG_ABSOLUTE_MIN_WIDTH_PX, viewportWidth - margin * 2);
+  const maxWidth = Math.max(WORKFLOW_PLAY_DIALOG_ABSOLUTE_MIN_WIDTH_PX, viewportWidth - margin * 2);
+  const width = Math.min(
+    maxWidth,
+    Math.max(
+      WORKFLOW_PLAY_DIALOG_ABSOLUTE_MIN_WIDTH_PX,
+      Math.round(viewportWidth * DEFAULT_WORKFLOW_PLAY_DIALOG_WIDTH_VW)
+    )
+  );
   const height = Math.min(
     DEFAULT_WORKFLOW_PLAY_DIALOG_HEIGHT_PX,
     Math.max(WORKFLOW_PLAY_DIALOG_MIN_HEIGHT_PX, viewportHeight - margin * 2)
   );
   return {
-    left: margin,
+    left: Math.max(margin, Math.round((viewportWidth - width) / 2)),
     top: Math.max(margin, viewportHeight - height - margin),
     width,
     height

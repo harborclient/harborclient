@@ -12,6 +12,7 @@ describe('scriptingApiReference', () => {
     expect(text).toContain('pm.test');
     expect(text).toContain('hc.response');
     expect(text).toContain('hc.ask');
+    expect(text).toContain('hc.sleep');
   });
 
   it('documents replace_range edits that preserve surrounding script code', () => {

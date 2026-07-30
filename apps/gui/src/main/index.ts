@@ -65,6 +65,7 @@ import {
 import { disposePluginRunner, markPluginRunnerAppQuitting } from '#/main/plugins/pluginRunnerHost';
 import { getPluginUiBroker, initPluginUiBroker } from '#/main/plugins/PluginUiBroker';
 import { setPluginMcpRegistryMainWindow } from '#/main/plugins/pluginMcpRegistry';
+import { getBrowserViewManager } from '#/main/browser/BrowserViewManager';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
 import { disposeMcpHost, getMcpToolBridge } from './mcp';
 import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
@@ -759,6 +760,7 @@ function createWindow(): BrowserWindow {
 
   window.on('closed', () => {
     clearMainWindowReveal();
+    getBrowserViewManager().destroyAll();
   });
 
   if (isVerbose) {

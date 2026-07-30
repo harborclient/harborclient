@@ -137,6 +137,21 @@ if (sizeAnswer == null) {
 
 Do not invent tool-calling loops or Postman AI APIs; use \`await hc.ask(...)\`.
 
+## hc.sleep(milliseconds)
+
+Pauses the script for the given number of milliseconds, then continues. Returns a
+Promise — always \`await\` it. Useful for pacing retries or waiting before a
+follow-up \`hc.sendRequest\`.
+
+\`\`\`js
+await hc.sleep(2000);
+\`\`\`
+
+- \`milliseconds\` — non-negative finite number of milliseconds to wait
+- Throws when the argument is negative, \`NaN\`, or otherwise not a finite number
+
+Do not invent \`setTimeout\` / \`setInterval\` in the sandbox; use \`await hc.sleep(...)\`.
+
 ## AI script edits (update_request_script)
 
 The \`replace_range\` mode performs a literal splice:

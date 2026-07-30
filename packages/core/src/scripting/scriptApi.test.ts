@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createScriptApi } from './scriptApi';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { SendResult } from '@harborclient/core/types';
@@ -780,6 +780,48 @@ describe('createScriptApi hc.ask', () => {
 
     await expect(ask('', { model: 'gpt-4o' })).rejects.toThrow('hc.ask requires a prompt');
     await expect(ask('Hi', 'gpt-4o')).rejects.toThrow('hc.ask options must be an object');
+  });
+});
+
+describe('createScriptApi hc.sleep', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('resolves after the given delay', async () => {
+    const api = createScriptApi(baseInput);
+    const sleep = api.hc.sleep as (milliseconds: number) => Promise<void>;
+    let resolved = false;
+
+    const pending = sleep(2000).then(() => {
+      resolved = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(resolved).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(resolved).toBe(true);
+  });
+
+  it('throws when milliseconds is not a non-negative finite number', () => {
+    const api = createScriptApi(baseInput);
+    const sleep = api.hc.sleep as (milliseconds: unknown) => Promise<void>;
+
+    expect(() => sleep(-1)).toThrow(
+      'hc.sleep requires a non-negative finite number of milliseconds'
+    );
+    expect(() => sleep(Number.NaN)).toThrow(
+      'hc.sleep requires a non-negative finite number of milliseconds'
+    );
+    expect(() => sleep('nope')).toThrow(
+      'hc.sleep requires a non-negative finite number of milliseconds'
+    );
   });
 });
 

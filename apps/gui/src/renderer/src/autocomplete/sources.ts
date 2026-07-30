@@ -27,6 +27,9 @@ export const AUTOCOMPLETE_CATEGORY_URLENCODED_KEY = 'urlencoded.key';
 /** Autocomplete pool for form-urlencoded field values. */
 export const AUTOCOMPLETE_CATEGORY_URLENCODED_VALUE = 'urlencoded.value';
 
+/** Autocomplete pool for embedded browser address-bar URLs (shared across browser tabs). */
+export const AUTOCOMPLETE_CATEGORY_BROWSER_URL = 'browser.url';
+
 /**
  * Builds an {@link AutocompleteSource} backed by main-process persistence for a category.
  *
@@ -83,3 +86,6 @@ export const urlencodedKeySource = createAutocompleteSource(AUTOCOMPLETE_CATEGOR
 export const urlencodedValueSource = createAutocompleteSource(
   AUTOCOMPLETE_CATEGORY_URLENCODED_VALUE
 );
+
+/** Autocomplete source for the embedded browser address bar. */
+export const browserUrlSource = createAutocompleteSource(AUTOCOMPLETE_CATEGORY_BROWSER_URL);

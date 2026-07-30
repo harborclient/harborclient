@@ -13,6 +13,7 @@ import type {
   SaveRequestInput,
   SavedRequest,
   Workflow,
+  Website,
   Workspace
 } from '@harborclient/core/types';
 import type {
@@ -215,6 +216,9 @@ export class TrashService {
         break;
       case 'workflow':
         this.restoreWorkflow(item);
+        break;
+      case 'website':
+        this.restoreWebsite(item);
         break;
       default:
         throw new Error(`Unsupported trash entity type: ${String(item.entityType)}`);
@@ -473,6 +477,27 @@ export class TrashService {
   }
 
   /**
+   * Snapshots a website and deletes it.
+   *
+   * @param id - Website id.
+   */
+  moveWebsiteToTrash(id: number): void {
+    const website = this.database.listWebsites().find((item) => item.id === id);
+    if (!website) {
+      throw new Error(`Website ${id} not found`);
+    }
+
+    this.database.deleteWebsite(id);
+
+    this.database.insertTrashItem({
+      entityType: 'website',
+      label: website.name,
+      originalIds: { websiteId: id },
+      payload: { website }
+    });
+  }
+
+  /**
    * Restores a collection from export data on its original connection.
    *
    * @param item - Trash snapshot row.
@@ -668,6 +693,25 @@ export class TrashService {
       delayMs: payload.workflow.delayMs ?? 0,
       variables: payload.workflow.variables,
       actions: payload.workflow.actions
+    });
+  }
+
+  /**
+   * Restores a website from its trash snapshot.
+   *
+   * @param item - Trash snapshot row.
+   */
+  private restoreWebsite(item: TrashItem): void {
+    const payload = item.payload as { website: Website };
+    this.database.createWebsite({
+      name: payload.website.name,
+      uuid: payload.website.uuid,
+      url: payload.website.url,
+      homeUrl: payload.website.homeUrl,
+      faviconDataUrl: payload.website.faviconDataUrl,
+      scripts: payload.website.scripts,
+      preRequestScripts: payload.website.preRequestScripts,
+      postRequestScripts: payload.website.postRequestScripts
     });
   }
 

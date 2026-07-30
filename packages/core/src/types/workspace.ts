@@ -216,6 +216,7 @@ const workspaceSidebarExpansionSchema = z.object({
     history: z.boolean(),
     workspaces: z.boolean(),
     workflows: z.boolean(),
+    websites: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -228,6 +229,7 @@ const workspaceSidebarExpansionSchema = z.object({
     history: workspaceSidebarSortMode,
     workspaces: workspaceSidebarSortMode,
     workflows: workspaceSidebarSortMode,
+    websites: workspaceSidebarSortMode,
     archive: workspaceSidebarSortMode,
     trash: workspaceSidebarSortMode
   }),

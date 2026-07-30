@@ -33,6 +33,11 @@ import { setActiveEnvironmentTool } from './setActiveEnvironment';
 import { terminalExecTool } from './terminalExec';
 import { updateActiveRequestTool } from './updateActiveRequest';
 import { updateRequestScriptTool } from './updateRequestScript';
+import { webpageEvaluateTool } from './webpageEvaluate';
+import { webpageInjectScriptTool } from './webpageInjectScript';
+import { webpageInjectStylesheetTool } from './webpageInjectStylesheet';
+import { webpageQueryTool } from './webpageQuery';
+import { webpageTabTool } from './webpageTab';
 
 export type { UpdateActiveRequestToolArgs };
 export type { ITool } from './ITool';
@@ -61,6 +66,11 @@ export type { SendActiveRequestToolArgs } from './sendActiveRequest';
 export type { SetActiveEnvironmentToolArgs } from './setActiveEnvironment';
 export type { TerminalExecToolArgs } from './terminalExec';
 export type { UpdateRequestScriptToolArgs } from './updateRequestScript';
+export type { WebpageEvaluateToolArgs } from './webpageEvaluate';
+export type { WebpageInjectScriptToolArgs } from './webpageInjectScript';
+export type { WebpageInjectStylesheetToolArgs } from './webpageInjectStylesheet';
+export type { WebpageQueryToolArgs } from './webpageQuery';
+export type { WebpageTabToolArgs } from './webpageTab';
 
 /**
  * Ordered registry of every Harbor AI agent tool.
@@ -95,6 +105,11 @@ export const AI_TOOLS = [
   getActiveTerminalTool,
   getActiveTerminalLinesTool,
   terminalExecTool,
+  webpageTabTool,
+  webpageQueryTool,
+  webpageEvaluateTool,
+  webpageInjectScriptTool,
+  webpageInjectStylesheetTool,
   getMarkdownDocumentTool,
   gitDiffTool,
   gitRepoInfoTool,

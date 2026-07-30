@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AUTOCOMPLETE_CATEGORY_HEADER_KEY, headerKeySource } from './sources';
+import {
+  AUTOCOMPLETE_CATEGORY_BROWSER_URL,
+  AUTOCOMPLETE_CATEGORY_HEADER_KEY,
+  browserUrlSource,
+  headerKeySource
+} from './sources';
 
 describe('autocomplete sources', () => {
   const getAutocompleteValues = vi.fn<(category: string) => Promise<string[]>>();
@@ -39,6 +44,19 @@ describe('autocomplete sources', () => {
     expect(addAutocompleteValue).toHaveBeenCalledWith(
       AUTOCOMPLETE_CATEGORY_HEADER_KEY,
       'Authorization'
+    );
+  });
+
+  it('uses a browser-only url category for the address bar', async () => {
+    getAutocompleteValues.mockResolvedValue(['https://example.com/']);
+
+    await expect(browserUrlSource.list()).resolves.toEqual(['https://example.com/']);
+    expect(getAutocompleteValues).toHaveBeenCalledWith(AUTOCOMPLETE_CATEGORY_BROWSER_URL);
+
+    await browserUrlSource.add('https://harborclient.com/');
+    expect(addAutocompleteValue).toHaveBeenCalledWith(
+      AUTOCOMPLETE_CATEGORY_BROWSER_URL,
+      'https://harborclient.com/'
     );
   });
 });

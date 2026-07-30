@@ -1,8 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { SavedRequest } from '@harborclient/core/types';
-import { loadRequest, setActiveDraft } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  browserGoBack,
+  browserGoForward,
+  browserGoHome,
+  browserNavigate,
+  browserReload,
+  loadRequest,
+  newBrowserTab,
+  newTab,
+  restoreTabsState,
+  setActiveDraft
+} from '#/renderer/src/store/slices/tabsSlice';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
+import { createBrowserTab, createTab } from '#/renderer/src/store/tabs';
 import { SEND_REQUEST_PENDING_TYPE } from '#/renderer/src/store/thunks/sendRequestType';
 import {
   OPEN_WORKSPACE_FULFILLED_TYPE,
@@ -11,18 +23,22 @@ import {
 import { SAVE_REQUEST_FULFILLED_TYPE } from '#/renderer/src/store/thunks/saveRequestType';
 import { CANCEL_REQUEST_PENDING_TYPE } from '#/renderer/src/store/thunks/cancelRequestType';
 import { NEW_REQUEST_IN_COLLECTION_FULFILLED_TYPE } from '#/renderer/src/store/thunks/createRequestType';
-import type { RootState } from '#/renderer/src/store/redux';
+import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import {
   clearSession,
   getRecordingElapsedMs,
+  getSessionEvents,
   getWorkflowLogApi,
   isRecording,
   isWorkspaceFanOutSuppressed,
   processWorkflowAction,
   resetWorkflowRecorderForTests,
+  seekRecordingTo,
   startRecording,
-  stopRecording
+  stopRecording,
+  replaceSessionActions
 } from './workflowRecorder';
+import { WorkflowEventSink } from './workflowEventSink';
 
 /**
  * Builds a minimal saved request for loadRequest recording tests.
@@ -387,5 +403,270 @@ describe('processWorkflowAction', () => {
     expect(api.events).toEqual([]);
     expect(getRecordingElapsedMs()).toBe(0);
     expect(isRecording()).toBe(false);
+  });
+});
+
+describe('WorkflowEventSink.truncateTo', () => {
+  it('drops events after the inclusive index', () => {
+    const sink = new WorkflowEventSink(10);
+    sink.append({ uuid: 'a', type: 'a', at: 1, payload: {} });
+    sink.append({ uuid: 'b', type: 'b', at: 2, payload: {} });
+    sink.append({ uuid: 'c', type: 'c', at: 3, payload: {} });
+    sink.truncateTo(0);
+    expect(sink.getEvents().map((event) => event.uuid)).toEqual(['a']);
+  });
+});
+
+describe('seekRecordingTo', () => {
+  /**
+   * Builds getState with a fixed tab list for checkpoint capture.
+   *
+   * @param tabs - Open tabs to expose.
+   * @param activeTabId - Active tab id.
+   * @returns getState stub.
+   */
+  function getStateWithTabs(
+    tabs: ReturnType<typeof createTab>[],
+    activeTabId: string
+  ): () => RootState {
+    return () =>
+      ({
+        ...emptyGetState(),
+        tabs: { tabs, activeTabId },
+        environments: { environments: [], activeEnvironmentId: null }
+      }) as unknown as RootState;
+  }
+
+  it('rewinds tabs while paused without deleting later actions', () => {
+    const tabA = { ...createTab(), tabId: 'tab-a' };
+    const tabB = { ...createTab(), tabId: 'tab-b' };
+
+    startRecording();
+    record(
+      {
+        type: loadRequest.type,
+        payload: { req: sampleRequest(), activate: true }
+      },
+      getStateWithTabs([tabA], 'tab-a')
+    );
+    vi.advanceTimersByTime(400);
+    record({ type: newTab.type }, getStateWithTabs([tabA, tabB], 'tab-b'));
+    stopRecording();
+
+    expect(getSessionEvents().map((event) => event.type)).toEqual(['request.load', 'tab.new']);
+
+    const dispatch = vi.fn();
+    const playhead = seekRecordingTo(0, { dispatch: dispatch as unknown as AppDispatch });
+
+    expect(playhead).toBe(0);
+    expect(getSessionEvents().map((event) => event.type)).toEqual(['request.load', 'tab.new']);
+    expect(dispatch).toHaveBeenCalledWith(
+      restoreTabsState({
+        tabs: [tabA],
+        activeTabId: 'tab-a'
+      })
+    );
+    expect(dispatch).toHaveBeenCalledWith(setActiveEnvironmentId(null));
+  });
+
+  it('scrubs forward again and restores the later checkpoint', () => {
+    const tabA = { ...createTab(), tabId: 'tab-a' };
+    const tabB = { ...createTab(), tabId: 'tab-b' };
+
+    startRecording();
+    record(
+      {
+        type: loadRequest.type,
+        payload: { req: sampleRequest(), activate: true }
+      },
+      getStateWithTabs([tabA], 'tab-a')
+    );
+    record({ type: newTab.type }, getStateWithTabs([tabA, tabB], 'tab-b'));
+    stopRecording();
+
+    seekRecordingTo(0, { dispatch: vi.fn() as unknown as AppDispatch });
+    const dispatch = vi.fn();
+    const playhead = seekRecordingTo(1, { dispatch: dispatch as unknown as AppDispatch });
+
+    expect(playhead).toBe(1);
+    expect(getSessionEvents()).toHaveLength(2);
+    expect(dispatch).toHaveBeenCalledWith(
+      restoreTabsState({
+        tabs: [tabA, tabB],
+        activeTabId: 'tab-b'
+      })
+    );
+  });
+
+  it('is a no-op while recording is active', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    record({ type: newTab.type });
+    getWorkflowLogApi().flush();
+
+    const dispatch = vi.fn();
+    const tip = seekRecordingTo(0, { dispatch: dispatch as unknown as AppDispatch });
+
+    expect(tip).toBe(1);
+    expect(getSessionEvents()).toHaveLength(2);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('does not restore when already at the tip after pause', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    record({ type: newTab.type });
+    stopRecording();
+
+    const dispatch = vi.fn();
+    const tip = seekRecordingTo(1, { dispatch: dispatch as unknown as AppDispatch });
+
+    expect(tip).toBe(1);
+    expect(getSessionEvents()).toHaveLength(2);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('keeps full elapsed time while scrubbing so the timeline stays intact', () => {
+    startRecording();
+    vi.advanceTimersByTime(1_000);
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    vi.advanceTimersByTime(500);
+    record({ type: newTab.type });
+    stopRecording();
+    expect(getRecordingElapsedMs()).toBe(1_500);
+
+    seekRecordingTo(0, { dispatch: vi.fn() as unknown as AppDispatch });
+    expect(getRecordingElapsedMs()).toBe(1_500);
+  });
+
+  it('truncates later actions when resuming from a mid-timeline playhead', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    record({ type: newTab.type });
+    stopRecording();
+
+    seekRecordingTo(0, { dispatch: vi.fn() as unknown as AppDispatch });
+    startRecording();
+    expect(getSessionEvents().map((event) => event.type)).toEqual(['request.load']);
+    expect(getRecordingElapsedMs()).toBe(0);
+
+    record({ type: SEND_REQUEST_PENDING_TYPE, meta: { requestId: 'after-rewind' } });
+    stopRecording();
+
+    expect(getSessionEvents().map((event) => event.type)).toEqual(['request.load', 'request.send']);
+  });
+});
+
+describe('replaceSessionActions', () => {
+  it('replaces paused session events and preserves an intact uuid prefix', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    record({ type: newTab.type });
+    record({ type: SEND_REQUEST_PENDING_TYPE, meta: { requestId: 'r1' } });
+    stopRecording();
+
+    const events = getSessionEvents();
+    const reordered = [events[0]!, events[2]!, events[1]!];
+    replaceSessionActions(reordered, emptyGetState);
+
+    expect(getSessionEvents().map((event) => event.uuid)).toEqual([
+      events[0]!.uuid,
+      events[2]!.uuid,
+      events[1]!.uuid
+    ]);
+  });
+
+  it('is a no-op while recording is active', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    getWorkflowLogApi().flush();
+    const before = getSessionEvents();
+    replaceSessionActions([], emptyGetState);
+    expect(getSessionEvents()).toEqual(before);
+  });
+
+  it('supports delete and payload update for the recording buffer', () => {
+    startRecording();
+    record({
+      type: loadRequest.type,
+      payload: { req: sampleRequest(), activate: true }
+    });
+    record({ type: newTab.type });
+    stopRecording();
+
+    const [first, second] = getSessionEvents();
+    replaceSessionActions([first!], emptyGetState);
+    expect(getSessionEvents()).toHaveLength(1);
+    expect(getSessionEvents()[0]!.uuid).toBe(first!.uuid);
+
+    replaceSessionActions([{ ...first!, payload: { edited: true } }], emptyGetState);
+    expect(getSessionEvents()[0]!.payload).toEqual({ edited: true });
+    expect(second).toBeDefined();
+  });
+
+  it('records browser tab open and chrome navigation intents', () => {
+    const browserTab = createBrowserTab({
+      tabId: 'browser-1',
+      url: 'about:blank',
+      homeUrl: 'https://example.com'
+    });
+    const getBrowserState = (): RootState =>
+      ({
+        ...emptyGetState(),
+        tabs: { tabs: [browserTab], activeTabId: browserTab.tabId }
+      }) as unknown as RootState;
+
+    startRecording();
+    record({ type: newBrowserTab.type }, getBrowserState);
+    record(
+      {
+        type: browserNavigate.type,
+        payload: { tabId: 'browser-1', url: 'https://example.com/page' }
+      },
+      getBrowserState
+    );
+    record({ type: browserGoBack.type, payload: { tabId: 'browser-1' } }, getBrowserState);
+    record({ type: browserGoForward.type, payload: { tabId: 'browser-1' } }, getBrowserState);
+    record({ type: browserReload.type, payload: { tabId: 'browser-1' } }, getBrowserState);
+    record({ type: browserGoHome.type, payload: { tabId: 'browser-1' } }, getBrowserState);
+    stopRecording();
+
+    const events = getSessionEvents();
+    expect(events.map((entry) => entry.type)).toEqual([
+      'browser.tab.new',
+      'browser.navigate',
+      'browser.back',
+      'browser.forward',
+      'browser.reload',
+      'browser.home'
+    ]);
+    expect(events[0]?.payload).toEqual({
+      tabId: 'browser-1',
+      url: 'about:blank',
+      homeUrl: 'https://example.com'
+    });
+    expect(events[1]?.payload).toEqual({
+      tabId: 'browser-1',
+      url: 'https://example.com/page'
+    });
+    expect(events[2]?.payload).toEqual({ tabId: 'browser-1' });
   });
 });

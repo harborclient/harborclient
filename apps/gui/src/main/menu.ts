@@ -341,6 +341,10 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-request')
         },
         {
+          label: 'New Browser',
+          click: () => sendMenuAction(window, 'new-browser')
+        },
+        {
           label: 'New Environment',
           click: () => sendMenuAction(window, 'new-environment')
         },

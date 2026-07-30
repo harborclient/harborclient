@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { RootState } from '#/renderer/src/store/redux';
-import { createTab, createPageTab, type RequestTab } from '#/renderer/src/store/tabs';
+import {
+  createTab,
+  createPageTab,
+  createBrowserTab,
+  type RequestTab
+} from '#/renderer/src/store/tabs';
 import {
   findTabByIdentity,
+  parseWorkflowTabIdentity,
   resolveEnvironmentIdByUuid,
   resolveEnvironmentUuid,
   resolveTabIdentity,
@@ -89,6 +95,21 @@ describe('workflowIdentity', () => {
     const identity = resolveTabIdentity(state, tab.tabId);
     expect(identity).toEqual({ kind: 'page', page: { type: 'cookies' } });
     expect(findTabByIdentity(state, identity!)).toBe(tab.tabId);
+  });
+
+  it('resolves browser tab identity by tabId and parses it', () => {
+    const tab = createBrowserTab({ tabId: 'browser-tab-1', url: 'https://example.com' });
+    const state = stateWith({
+      tabs: { tabs: [tab], activeTabId: tab.tabId }
+    });
+    const identity = resolveTabIdentity(state, tab.tabId);
+    expect(identity).toEqual({ kind: 'browser', tabId: 'browser-tab-1' });
+    expect(findTabByIdentity(state, identity!)).toBe(tab.tabId);
+    expect(parseWorkflowTabIdentity({ kind: 'browser', tabId: 'browser-tab-1' })).toEqual({
+      kind: 'browser',
+      tabId: 'browser-tab-1'
+    });
+    expect(parseWorkflowTabIdentity({ kind: 'browser', tabId: '' })).toBeNull();
   });
 
   it('resolves environment uuid and id', () => {

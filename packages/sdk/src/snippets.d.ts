@@ -403,6 +403,12 @@ interface HcScriptApi {
    *   Omit model (or options) to use the first available model.
    */
   ask(prompt: string, options?: HcAskOptions): Promise<string | null>;
+  /**
+   * Resolves after the given delay. Use for pacing between script steps.
+   *
+   * @param milliseconds - Non-negative finite delay in milliseconds.
+   */
+  sleep(milliseconds: number): Promise<void>;
   test(name: string, fn: () => void): void;
   /** Chai BDD expect; see https://www.chaijs.com/api/bdd/ */
   expect: HcExpectStatic;

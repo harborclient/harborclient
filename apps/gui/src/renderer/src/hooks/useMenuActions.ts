@@ -36,6 +36,7 @@ import {
 import {
   activateNextTab,
   activatePreviousTab,
+  newBrowserTab,
   openPageTab,
   setActiveDraft
 } from '#/renderer/src/store/slices/tabsSlice';
@@ -194,6 +195,9 @@ export function useMenuActions(): void {
       switch (action) {
         case 'new-request':
           dispatchNewRequest(dispatch);
+          break;
+        case 'new-browser':
+          dispatch(newBrowserTab());
           break;
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));

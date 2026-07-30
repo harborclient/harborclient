@@ -701,6 +701,11 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         toast.success('Workspace imported');
         break;
       }
+      case 'website': {
+        await dispatch((await import('#/renderer/src/store/thunks/websites')).refreshWebsites());
+        toast.success(result.action === 'updated' ? 'Website updated' : 'Website imported');
+        break;
+      }
     }
 
     return result;

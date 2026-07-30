@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { ScriptRef, Variable } from '@harborclient/core/types';
+import type { ScriptStage } from '@harborclient/sdk';
 import { FormSection } from '@harborclient/sdk/components';
 import { ScriptListEditor } from '#/renderer/src/ui/Shared/Script/ScriptListEditor';
 import { useAppSelector } from '#/renderer/src/store/hooks';
@@ -35,6 +36,11 @@ interface Props {
    * Collection-scoped variables for editor highlighting.
    */
   variables: Variable[];
+
+  /**
+   * Stages the user may assign; forwarded to ScriptListEditor.
+   */
+  allowedStages?: ScriptStage[];
 }
 
 /**
@@ -46,7 +52,8 @@ export function ScriptSection({
   placeholder,
   scripts,
   onChange,
-  variables
+  variables,
+  allowedStages
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
 
@@ -61,6 +68,7 @@ export function ScriptSection({
         variables={variables}
         snippets={snippets}
         placeholder={placeholder}
+        allowedStages={allowedStages}
       />
     </FormSection>
   );

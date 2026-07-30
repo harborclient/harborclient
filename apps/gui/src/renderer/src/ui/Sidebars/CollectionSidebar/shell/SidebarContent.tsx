@@ -37,6 +37,7 @@ import {
   setActiveSidebarRailItem
 } from '#/renderer/src/store/slices/navigationSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
+import { newBrowserTab } from '#/renderer/src/store/slices/tabsSlice';
 import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
@@ -48,6 +49,7 @@ import { WorkflowHistoryHeaderActions } from '../History/WorkflowHistoryHeaderAc
 import { RunResults, RunsHeaderActions } from '../RunResults';
 import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
 import { Workflows } from '../Workflows';
+import { Websites } from '../Websites';
 import { Archive, ArchiveHeaderActions } from '../Archive';
 import { WorkflowArchive } from '../Archive/WorkflowArchive';
 import { WorkflowArchiveHeaderActions } from '../Archive/WorkflowArchiveHeaderActions';
@@ -62,11 +64,9 @@ import {
 } from './sidebarRailResolution';
 import { useSidebarSearchContext } from '../search/sidebarSearchContext';
 import { useSidebarModals } from '../modals/sidebarModalsContext';
-import { hasExpandedSidebarTreesForMode } from '../expansion/hasExpandedSidebarTrees';
 import { useSidebarExpansion } from '../expansion/useSidebarExpansion';
 import { useSidebarListNavigation } from '../navigation/useSidebarListNavigation';
 import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
-import { SidebarCollapseAllHeader } from './SidebarCollapseAllHeader';
 
 const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
@@ -98,8 +98,7 @@ function isSidebarMode(value: string): value is SidebarMode {
 
 /**
  * Inner sidebar body rendered inside the sidebar context providers. Composes
- * optional search, then a full-width collapse-all header above the vertical
- * activity rail and section accordion (collapse aligned to section action buttons).
+ * optional search, then the vertical activity rail and section accordion.
  * Sections source their own data and actions; this shell wires layout and mode state.
  *
  * When a registered panel declares `replaces: "collections"`, that panel becomes
@@ -133,15 +132,13 @@ export function SidebarContent(): JSX.Element {
     historySectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
+    websitesSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     activeSidebarMode,
     setActiveSidebarMode,
     sidebarRailExpanded,
-    setSidebarRailExpanded,
-    expandedCollectionIds,
-    expandedFolderIds,
-    expandedEnvironmentIds
+    setSidebarRailExpanded
   } = useSidebarExpansion();
 
   const {
@@ -150,11 +147,10 @@ export function SidebarContent(): JSX.Element {
     activeSearchFilter,
     archivedSearchFilter,
     searchActive,
-    searchLoading,
-    collapseSidebarTreesForMode
+    searchLoading
   } = useSidebarSearchContext();
   const { openAddEnvironment } = useSidebarModals();
-  const { expanded, onToggle, pluginSectionExpanded, collapseSections } = useSidebarAccordion();
+  const { expanded, onToggle, pluginSectionExpanded } = useSidebarAccordion();
 
   useSidebarListNavigation(selectedCollectionId, activeEnvironmentId);
 
@@ -334,6 +330,20 @@ export function SidebarContent(): JSX.Element {
       };
     }
 
+    if (isSectionMounted('websites')) {
+      byKey.websites = {
+        key: 'websites',
+        title: 'Websites',
+        ariaLabel: 'Websites',
+        initialEntered: websitesSectionExpanded,
+        onAdd: () => {
+          dispatch(newBrowserTab());
+        },
+        addLabel: 'New website',
+        children: <Websites />
+      };
+    }
+
     if (isSectionMounted('archive')) {
       byKey.archive = {
         key: 'archive',
@@ -414,35 +424,8 @@ export function SidebarContent(): JSX.Element {
     searchActive,
     trashSectionExpanded,
     workspacesSectionExpanded,
-    workflowsSectionExpanded
-  ]);
-
-  /**
-   * Collapses trees for the active rail mode first; when none remain expanded for that
-   * mode, collapses only the section headers currently visible in the sidebar body.
-   */
-  const handleCollapseAll = useCallback((): void => {
-    if (
-      hasExpandedSidebarTreesForMode(
-        activeSidebarMode,
-        expandedCollectionIds,
-        expandedFolderIds,
-        expandedEnvironmentIds
-      )
-    ) {
-      collapseSidebarTreesForMode(activeSidebarMode);
-      return;
-    }
-
-    collapseSections(sections.map((section) => section.key));
-  }, [
-    activeSidebarMode,
-    collapseSections,
-    collapseSidebarTreesForMode,
-    expandedCollectionIds,
-    expandedEnvironmentIds,
-    expandedFolderIds,
-    sections
+    workflowsSectionExpanded,
+    websitesSectionExpanded
   ]);
 
   const showPluginBody = activeRailItem != null || displayedPanel != null;
@@ -454,7 +437,6 @@ export function SidebarContent(): JSX.Element {
           <SidebarSearch value={searchQuery} onChange={setSearchQuery} loading={searchLoading} />
         </div>
       ) : null}
-      {!showPluginBody ? <SidebarCollapseAllHeader onClick={handleCollapseAll} /> : null}
       <div className="flex min-h-0 min-w-0 flex-1">
         {showRail ? (
           <SidebarRail

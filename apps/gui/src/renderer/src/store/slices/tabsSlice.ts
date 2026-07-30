@@ -1,11 +1,13 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CollectionDocument, SavedRequest } from '@harborclient/core/types';
+import type { CollectionDocument, SavedRequest, ScriptRef } from '@harborclient/core/types';
 import {
   cloneDraft,
+  createBrowserTab,
   createMarkdownTab,
   createPageTab,
   createTab,
   draftFromSaved,
+  isBrowserTab,
   isMarkdownTab,
   isPageTab,
   isRequestTab,
@@ -14,11 +16,13 @@ import {
   pageRefsEqual,
   reconcileMarkdownTab,
   reconcileRequestTab,
+  type BrowserTab,
   type PageRef,
   type RequestDraft,
   type RequestTab,
   type Tab
 } from '#/renderer/src/store/tabs';
+import type { BrowserInjectionScript } from '#/browser/browserScripts';
 import { getPageRoute } from '#/renderer/src/store/routing';
 import { defaultTabState } from '#/renderer/src/store/persistence';
 
@@ -200,6 +204,158 @@ const tabsSlice = createSlice({
       state.activeTabId = tab.tabId;
     },
     /**
+     * Opens a new embedded browser tab and selects it.
+     *
+     * Optional payload lets workflow playback recreate a recorded tab id / URLs.
+     */
+    newBrowserTab: {
+      /**
+       * Pushes a browser tab and selects it.
+       *
+       * @param state - Tabs slice draft.
+       * @param action - Optional tabId / url / homeUrl for playback.
+       */
+      reducer(
+        state,
+        action: PayloadAction<{ tabId?: string; url?: string; homeUrl?: string } | undefined>
+      ) {
+        const tab = createBrowserTab(action.payload ?? undefined);
+        state.tabs.push(tab);
+        state.activeTabId = tab.tabId;
+      },
+      /**
+       * Allows `newBrowserTab()` with no args while still accepting an optional init payload.
+       *
+       * @param init - Optional tab identity and URLs for playback.
+       * @returns Action payload (may be undefined).
+       */
+      prepare(init?: { tabId?: string; url?: string; homeUrl?: string }) {
+        return { payload: init };
+      }
+    },
+    /**
+     * Records address-bar navigation intent for workflow recording (IPC runs in the UI).
+     */
+    browserNavigate: {
+      /**
+       * No-op reducer; guest load is performed by BrowserTabContent / playback.
+       */
+      reducer() {
+        // Intent-only action for the workflow recorder.
+      },
+      /**
+       * @param payload - Tab and target URL.
+       * @returns Action payload.
+       */
+      prepare(payload: { tabId: string; url: string }) {
+        return { payload };
+      }
+    },
+    /**
+     * Records back-button intent for workflow recording (IPC runs in the UI).
+     */
+    browserGoBack: {
+      /**
+       * No-op reducer; guest history is performed by BrowserTabContent / playback.
+       */
+      reducer() {
+        // Intent-only action for the workflow recorder.
+      },
+      /**
+       * @param payload - Browser tab id.
+       * @returns Action payload.
+       */
+      prepare(payload: { tabId: string }) {
+        return { payload };
+      }
+    },
+    /**
+     * Records forward-button intent for workflow recording (IPC runs in the UI).
+     */
+    browserGoForward: {
+      /**
+       * No-op reducer; guest history is performed by BrowserTabContent / playback.
+       */
+      reducer() {
+        // Intent-only action for the workflow recorder.
+      },
+      /**
+       * @param payload - Browser tab id.
+       * @returns Action payload.
+       */
+      prepare(payload: { tabId: string }) {
+        return { payload };
+      }
+    },
+    /**
+     * Records reload-button intent for workflow recording (IPC runs in the UI).
+     */
+    browserReload: {
+      /**
+       * No-op reducer; guest reload is performed by BrowserTabContent / playback.
+       */
+      reducer() {
+        // Intent-only action for the workflow recorder.
+      },
+      /**
+       * @param payload - Browser tab id.
+       * @returns Action payload.
+       */
+      prepare(payload: { tabId: string }) {
+        return { payload };
+      }
+    },
+    /**
+     * Records home-button intent for workflow recording (IPC runs in the UI).
+     */
+    browserGoHome: {
+      /**
+       * No-op reducer; guest home navigation is performed by BrowserTabContent / playback.
+       */
+      reducer() {
+        // Intent-only action for the workflow recorder.
+      },
+      /**
+       * @param payload - Browser tab id.
+       * @returns Action payload.
+       */
+      prepare(payload: { tabId: string }) {
+        return { payload };
+      }
+    },
+    /**
+     * Opens a browser tab for a guest popup, inheriting home/scripts from the opener.
+     *
+     * When the opener tab is missing, opens with blank home/scripts and the requested URL.
+     * Activates the new tab only when `activate` is true (background-tab disposition stays
+     * on the current tab).
+     */
+    openInheritedBrowserTab(
+      state,
+      action: PayloadAction<{ url: string; sourceTabId: string; activate: boolean }>
+    ) {
+      const { url, sourceTabId, activate } = action.payload;
+      const source = state.tabs.find((t) => t.tabId === sourceTabId);
+      const inherited =
+        source && isBrowserTab(source)
+          ? {
+              url,
+              homeUrl: source.homeUrl,
+              scripts: source.scripts,
+              savedScripts: source.savedScripts,
+              pre_request_scripts: source.pre_request_scripts,
+              post_request_scripts: source.post_request_scripts,
+              savedPreRequestScripts: source.savedPreRequestScripts,
+              savedPostRequestScripts: source.savedPostRequestScripts
+            }
+          : { url };
+      const tab = createBrowserTab(inherited);
+      state.tabs.push(tab);
+      if (activate) {
+        state.activeTabId = tab.tabId;
+      }
+    },
+    /**
      * Opens or focuses a configuration page tab.
      */
     openPageTab(state, action: PayloadAction<PageRef>) {
@@ -219,24 +375,213 @@ const tabsSlice = createSlice({
     },
     /**
      * Closes a tab by id, leaving zero tabs open when the last tab is closed.
+     * Closing a browser tab also closes its linked browser-settings page tab.
      */
     closeTab(state, action: PayloadAction<string>) {
       const tabId = action.payload;
       const index = state.tabs.findIndex((t) => t.tabId === tabId);
       if (index === -1) return;
 
-      const next = state.tabs.filter((t) => t.tabId !== tabId);
+      const closing = state.tabs[index];
+      const removeIds = new Set<string>([tabId]);
+      if (isBrowserTab(closing)) {
+        for (const tab of state.tabs) {
+          if (
+            isPageTab(tab) &&
+            tab.page.type === 'browser-settings' &&
+            tab.page.browserTabId === tabId
+          ) {
+            removeIds.add(tab.tabId);
+          }
+        }
+      }
+
+      const next = state.tabs.filter((t) => !removeIds.has(t.tabId));
       if (next.length === 0) {
         state.tabs = [];
         state.activeTabId = '';
         return;
       }
 
-      if (state.activeTabId === tabId) {
+      if (removeIds.has(state.activeTabId)) {
         const neighbor = next[Math.min(index, next.length - 1)];
         state.activeTabId = neighbor.tabId;
       }
       state.tabs = next;
+    },
+    /**
+     * Patches navigation chrome fields on a browser tab from the main process.
+     */
+    updateBrowserNavigation(
+      state,
+      action: PayloadAction<{
+        tabId: string;
+        url: string;
+        title: string;
+        canGoBack: boolean;
+        canGoForward: boolean;
+        faviconDataUrl: string | null;
+      }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.url = action.payload.url;
+      tab.title = action.payload.title || tab.title;
+      tab.canGoBack = action.payload.canGoBack;
+      tab.canGoForward = action.payload.canGoForward;
+      tab.faviconDataUrl = action.payload.faviconDataUrl;
+    },
+    /**
+     * Replaces the draft injection scripts on a browser tab (unsaved until Save).
+     */
+    setBrowserScripts(
+      state,
+      action: PayloadAction<{ tabId: string; scripts: BrowserInjectionScript[] }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.scripts = action.payload.scripts;
+    },
+    /**
+     * Replaces draft pre-request hc.* scripts on a browser tab.
+     */
+    setBrowserPreRequestScripts(
+      state,
+      action: PayloadAction<{ tabId: string; scripts: ScriptRef[] }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.pre_request_scripts = action.payload.scripts;
+    },
+    /**
+     * Replaces draft post-request hc.* scripts on a browser tab.
+     */
+    setBrowserPostRequestScripts(
+      state,
+      action: PayloadAction<{ tabId: string; scripts: ScriptRef[] }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.post_request_scripts = action.payload.scripts;
+    },
+    /**
+     * Commits draft injection and hc.* scripts to the saved baselines used at runtime.
+     */
+    saveBrowserScripts(state, action: PayloadAction<string>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.savedScripts = tab.scripts.map((script) => ({ ...script }));
+      tab.savedPreRequestScripts = tab.pre_request_scripts.map((script) => ({ ...script }));
+      tab.savedPostRequestScripts = tab.post_request_scripts.map((script) => ({ ...script }));
+    },
+    /**
+     * Binds a browser tab to a saved website and refreshes saved baselines from current state.
+     */
+    bindBrowserTabToWebsite(
+      state,
+      action: PayloadAction<{
+        tabId: string;
+        websiteId: number;
+        websiteUuid: string;
+      }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.websiteId = action.payload.websiteId;
+      tab.websiteUuid = action.payload.websiteUuid;
+      tab.savedUrl = tab.url;
+      tab.savedHomeUrl = tab.homeUrl;
+      tab.savedTitle = tab.title;
+      tab.savedFaviconDataUrl = tab.faviconDataUrl;
+      tab.savedScripts = tab.scripts.map((script) => ({ ...script }));
+      tab.savedPreRequestScripts = tab.pre_request_scripts.map((script) => ({ ...script }));
+      tab.savedPostRequestScripts = tab.post_request_scripts.map((script) => ({ ...script }));
+    },
+    /**
+     * Opens a browser tab hydrated from a saved website entity and selects it.
+     */
+    openBrowserTabFromWebsite(
+      state,
+      action: PayloadAction<{
+        websiteId: number;
+        websiteUuid: string;
+        title: string;
+        url: string;
+        homeUrl: string;
+        faviconDataUrl: string | null;
+        scripts: BrowserInjectionScript[];
+        pre_request_scripts: ScriptRef[];
+        post_request_scripts: ScriptRef[];
+      }>
+    ) {
+      const existing = state.tabs.find(
+        (t) => isBrowserTab(t) && t.websiteId === action.payload.websiteId
+      );
+      if (existing && isBrowserTab(existing)) {
+        state.activeTabId = existing.tabId;
+        return;
+      }
+
+      const scripts = action.payload.scripts.map((script) => ({ ...script }));
+      const pre = action.payload.pre_request_scripts.map((script) => ({ ...script }));
+      const post = action.payload.post_request_scripts.map((script) => ({ ...script }));
+      const tab = createBrowserTab({
+        title: action.payload.title,
+        url: action.payload.url,
+        homeUrl: action.payload.homeUrl,
+        faviconDataUrl: action.payload.faviconDataUrl,
+        scripts,
+        savedScripts: scripts.map((script) => ({ ...script })),
+        pre_request_scripts: pre,
+        post_request_scripts: post,
+        savedPreRequestScripts: pre.map((script) => ({ ...script })),
+        savedPostRequestScripts: post.map((script) => ({ ...script })),
+        websiteId: action.payload.websiteId,
+        websiteUuid: action.payload.websiteUuid,
+        savedUrl: action.payload.url,
+        savedHomeUrl: action.payload.homeUrl,
+        savedTitle: action.payload.title,
+        savedFaviconDataUrl: action.payload.faviconDataUrl
+      });
+      state.tabs.push(tab);
+      state.activeTabId = tab.tabId;
+    },
+    /**
+     * Discards draft injection and hc.* script edits and restores the last saved baselines.
+     */
+    discardBrowserScripts(state, action: PayloadAction<string>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.scripts = tab.savedScripts.map((script) => ({ ...script }));
+      tab.pre_request_scripts = tab.savedPreRequestScripts.map((script) => ({ ...script }));
+      tab.post_request_scripts = tab.savedPostRequestScripts.map((script) => ({ ...script }));
+    },
+    /**
+     * Patches arbitrary browser tab fields (for example homeUrl).
+     */
+    updateBrowserTab(
+      state,
+      action: PayloadAction<{ tabId: string; updates: Partial<Omit<BrowserTab, 'tabId' | 'kind'>> }>
+    ) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      Object.assign(tab, action.payload.updates);
     },
     /**
      * Opens or focuses a markdown document tab, deduped by document id.
@@ -570,8 +915,24 @@ export const {
   activatePreviousTab,
   setActiveDraft,
   newTab,
+  newBrowserTab,
+  browserNavigate,
+  browserGoBack,
+  browserGoForward,
+  browserReload,
+  browserGoHome,
+  openInheritedBrowserTab,
   openPageTab,
   closeTab,
+  updateBrowserNavigation,
+  setBrowserScripts,
+  setBrowserPreRequestScripts,
+  setBrowserPostRequestScripts,
+  saveBrowserScripts,
+  bindBrowserTabToWebsite,
+  openBrowserTabFromWebsite,
+  discardBrowserScripts,
+  updateBrowserTab,
   loadRequest,
   openMarkdownTab,
   loadDocument,
