@@ -17,7 +17,8 @@ import { patchGeneralSettings } from './settings';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildAiScriptReferenceValidationContext,
-  buildSidebarItemNameMapsFromState
+  buildSidebarItemNameMapsFromState,
+  buildWebpageTabsByIdFromState
 } from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
@@ -412,7 +413,8 @@ export const sendChatMessage = createAsyncThunk<
     selectRequestBodySelections(getState()),
     selectScriptSelections(getState()),
     selectResponseSelections(getState()),
-    selectPluginSelections(getState())
+    selectPluginSelections(getState()),
+    buildWebpageTabsByIdFromState(getState())
   );
   const referenceSnapshots = collectChatReferenceSnapshots(trimmed, validationContext);
 

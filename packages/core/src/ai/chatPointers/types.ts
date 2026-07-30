@@ -175,6 +175,23 @@ export interface ParsedWebpageReference extends ParsedAiScriptReferenceBase {
    * Browser tab id (UUID) passed to webpage_* tools.
    */
   tabId: string;
+
+  /**
+   * Viewport CSS pixel click point from `@webpage.<tabId>#x.y` (for `document.elementFromPoint`).
+   *
+   * Distinct from {@link ParsedAiScriptReferenceBase.selection}, which is a character/line range.
+   */
+  click?: {
+    /**
+     * Horizontal viewport coordinate in CSS pixels.
+     */
+    x: number;
+
+    /**
+     * Vertical viewport coordinate in CSS pixels.
+     */
+    y: number;
+  };
 }
 
 /**

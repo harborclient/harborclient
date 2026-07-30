@@ -9,6 +9,14 @@ import { toViewSourceUrl } from '#/browser/browserUrl';
 import { isDeveloperToolsEnabled } from '#/main/devMode';
 
 /**
+ * Visible label for the guest context-menu Copy to chat item.
+ *
+ * Kept as a local string so the main process does not import SDK UI/icon modules.
+ * Must stay in sync with `COPY_TO_CHAT_LABEL` in `@harborclient/sdk`.
+ */
+export const BROWSER_GUEST_COPY_TO_CHAT_LABEL = 'Copy to chat';
+
+/**
  * Callbacks that perform guest navigation and page actions from context-menu items.
  */
 export interface BrowserGuestContextMenuActions {
@@ -31,6 +39,14 @@ export interface BrowserGuestContextMenuActions {
    * Opens a view-source tab for the current guest page.
    */
   onViewSource: () => void;
+
+  /**
+   * Inserts an `@webpage.<tabId>#x.y` chat pointer for the click point.
+   *
+   * @param x - Pointer X in guest viewport CSS pixels.
+   * @param y - Pointer Y in guest viewport CSS pixels.
+   */
+  onCopyToChat?: (x: number, y: number) => void;
 
   /**
    * Opens guest DevTools and inspects the element at the given viewport point.
@@ -69,21 +85,22 @@ export interface BrowserGuestContextMenuNavigationState {
  *
  * Navigation items (Back, Forward, Home) match the browser chrome toolbar.
  * View Source opens a Chromium view-source tab when the page is http(s).
+ * Copy to chat inserts an `@webpage.<tabId>#x.y` pointer for the click point.
  * Inspect Element is appended only when developer tooling is enabled.
  *
  * @param navigation - History and View Source enablement.
  * @param actions - Click handlers for each menu item.
  * @param includeInspectElement - Whether to append Inspect Element.
- * @param inspectX - Viewport X for Inspect Element (used when included).
- * @param inspectY - Viewport Y for Inspect Element (used when included).
+ * @param clickX - Viewport X for Copy to chat / Inspect Element.
+ * @param clickY - Viewport Y for Copy to chat / Inspect Element.
  * @returns Menu template consumed by {@link Menu.buildFromTemplate}.
  */
 export function buildBrowserGuestContextMenuTemplate(
   navigation: BrowserGuestContextMenuNavigationState,
   actions: BrowserGuestContextMenuActions,
   includeInspectElement = false,
-  inspectX = 0,
-  inspectY = 0
+  clickX = 0,
+  clickY = 0
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = [
     {
@@ -114,6 +131,13 @@ export function buildBrowserGuestContextMenuTemplate(
       click: () => {
         actions.onViewSource();
       }
+    },
+    {
+      label: BROWSER_GUEST_COPY_TO_CHAT_LABEL,
+      enabled: true,
+      click: () => {
+        actions.onCopyToChat?.(clickX, clickY);
+      }
     }
   ];
 
@@ -123,7 +147,7 @@ export function buildBrowserGuestContextMenuTemplate(
       {
         label: 'Inspect Element',
         click: () => {
-          actions.onInspectElement?.(inspectX, inspectY);
+          actions.onInspectElement?.(clickX, clickY);
         }
       }
     );
@@ -137,8 +161,9 @@ export function buildBrowserGuestContextMenuTemplate(
  *
  * Enablement for Back / Forward / View Source is read from the guest at popup
  * time. Navigation actions are provided by the caller so they can reuse
- * BrowserViewManager methods (including pre-request scripts). Inspect Element
- * opens detached DevTools on the guest webContents when developer tooling is on.
+ * BrowserViewManager methods (including pre-request scripts). Copy to chat
+ * reports the click coordinates to the renderer. Inspect Element opens detached
+ * DevTools on the guest webContents when developer tooling is on.
  *
  * @param view - Guest WebContentsView that receives right-clicks.
  * @param getWindow - Resolves the main window used as the menu popup parent.

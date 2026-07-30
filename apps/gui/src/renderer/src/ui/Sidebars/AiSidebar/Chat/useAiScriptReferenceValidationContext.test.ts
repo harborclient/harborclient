@@ -8,13 +8,20 @@ import {
   resolveAiScriptReferenceLabel
 } from '@harborclient/core/ai/scriptReferences';
 import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
-import { openPageTab, openTabWithDraft } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  newBrowserTab,
+  openPageTab,
+  openTabWithDraft
+} from '#/renderer/src/store/slices/tabsSlice';
 import {
   selectScriptSelections,
   setScriptSelection
 } from '#/renderer/src/store/slices/scriptSelectionsSlice';
-import { selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
-import { buildAiScriptReferenceValidationContext } from './useAiScriptReferenceValidationContext';
+import { selectEffectiveActiveRequestTab, selectTabs } from '#/renderer/src/store/selectors';
+import {
+  buildAiScriptReferenceValidationContext,
+  buildWebpageTabsById
+} from './useAiScriptReferenceValidationContext';
 
 /**
  * Builds a minimal saved request draft for validation-context tests.
@@ -144,5 +151,44 @@ describe('buildAiScriptReferenceValidationContext', () => {
     expect(message).not.toBeNull();
     expect(message).toContain(source);
     expect(message).toContain('script "Assert ok"');
+  });
+
+  it('resolves webpage references from open browser tabs', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    store.dispatch(
+      newBrowserTab({
+        tabId: '55555555-5555-5555-5555-555555555555',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    );
+
+    const state = store.getState();
+    const webpageTabsById = buildWebpageTabsById(selectTabs(state));
+    const context = buildAiScriptReferenceValidationContext(
+      selectEffectiveActiveRequestTab(state),
+      [],
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      webpageTabsById
+    );
+    const token = '@webpage.55555555-5555-5555-5555-555555555555';
+    const reference = findAiScriptReferenceCandidates(token)[0];
+    const message = buildAiScriptSelectionContextMessage(`Inspect ${token}`, context);
+
+    expect(webpageTabsById['55555555-5555-5555-5555-555555555555']).toEqual({
+      title: 'New Browser',
+      url: 'https://example.com/'
+    });
+    expect(isValidAiScriptReference(reference, context)).toBe(true);
+    expect(resolveAiScriptReferenceLabel(reference, context)).toBe('New Browser');
+    expect(message).toContain('https://example.com/');
+    expect(message).toContain('webpage_tab');
   });
 });

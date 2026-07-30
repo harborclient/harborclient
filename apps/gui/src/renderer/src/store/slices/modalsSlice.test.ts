@@ -31,6 +31,7 @@ import modalsReducer, {
   setAlertModal,
   setConfirmModal,
   setHostedModal,
+  setOpenExternalLinkModal,
   setSyncProviderStatus,
   setSyncProviders,
   skipRemainingCollectionRunnerRequests,
@@ -504,6 +505,14 @@ describe('selectHasBlockingModal', () => {
 
   it('returns true when the about modal is open', () => {
     const state = modalsReducer(undefined, openAboutModal());
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
+  });
+
+  it('returns true when the open-external-link modal is open', () => {
+    const state = modalsReducer(
+      undefined,
+      setOpenExternalLinkModal({ url: 'https://example.com/' })
+    );
     expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
   });
 });

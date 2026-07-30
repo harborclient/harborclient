@@ -10,6 +10,7 @@ import {
   type ParsedRequestScriptReference,
   type ParsedResponseSectionReference,
   type ParsedTerminalReference,
+  type ParsedWebpageReference,
   type PersistedChatReferenceSnapshotEntry,
   type PersistedChatReferenceSnapshots,
   type ScriptSelectionLastRunFailure,
@@ -47,6 +48,7 @@ export {
   type ParsedResponseSectionReference,
   type ParsedSnippetReference,
   type ParsedTerminalReference,
+  type ParsedWebpageReference,
   type PersistedChatReferenceSnapshotEntry,
   type PersistedChatReferenceSnapshots,
   type PluginChatPointerSnapshot,
@@ -55,7 +57,8 @@ export {
   type ScriptSelectionLastRunFailure,
   type ScriptSelectionSnapshot,
   type TerminalSelectionSnapshot,
-  type MarkdownSelectionSnapshot
+  type MarkdownSelectionSnapshot,
+  type WebpageTabReferenceInfo
 } from './chatPointers/types.js';
 
 export {
@@ -82,7 +85,7 @@ export {
  *
  * Composed from registered chat-pointer definitions after builtins load.
  * Includes request scripts, snippets, terminals, collections, folders, requests,
- * markdown, response sections, raw body, and plugin pointers.
+ * webpages, markdown, response sections, raw body, and plugin pointers.
  */
 export let AI_SCRIPT_REFERENCE_PATTERN = /@(?!)/g;
 
@@ -130,6 +133,29 @@ export function buildResponseBodySelectionReferenceToken(
   endOffset: number
 ): string {
   return `${buildResponseSectionReferenceToken(requestTabId, 'body')}#${startOffset}.${endOffset}`;
+}
+
+/**
+ * Builds the compact `@webpage` token for an embedded browser tab.
+ *
+ * When `click` is provided, appends `#x.y` viewport CSS pixel coordinates for
+ * `document.elementFromPoint(x, y)` resolution.
+ *
+ * @param tabId - Browser tab UUID.
+ * @param click - Optional viewport click point from the guest context menu.
+ * @returns Token such as `@webpage.<uuid>` or `@webpage.<uuid>#120.80`.
+ */
+export function buildWebpageReferenceToken(
+  tabId: string,
+  click?: { x: number; y: number }
+): string {
+  if (click == null) {
+    return `@webpage.${tabId}`;
+  }
+
+  const x = Math.max(0, Math.round(click.x));
+  const y = Math.max(0, Math.round(click.y));
+  return `@webpage.${tabId}#${x}.${y}`;
 }
 
 /**
@@ -293,6 +319,10 @@ export function isValidAiScriptReference(
     return context.requestNamesByUuid?.[reference.requestUuid] != null;
   }
 
+  if (reference.kind === 'webpage') {
+    return context.webpageTabsById?.[reference.tabId] != null;
+  }
+
   // request-script kind below — snapshots satisfy both selection and whole-script refs
   if (context.scriptSelections?.[reference.text] != null) {
     return true;
@@ -385,6 +415,15 @@ export function resolveAiScriptReferenceName(
     return name != null ? `Request: ${name}` : null;
   }
 
+  if (reference.kind === 'webpage') {
+    const tab = context.webpageTabsById?.[reference.tabId];
+    if (tab == null) {
+      return null;
+    }
+    const title = tab.title.trim();
+    return title.length > 0 ? title : tab.url;
+  }
+
   if (reference.kind === 'request-script') {
     const snapshot = context.scriptSelections?.[reference.text];
     if (snapshot != null) {
@@ -446,6 +485,7 @@ function resolveReferenceSourceCode(
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request' ||
+    reference.kind === 'webpage' ||
     reference.kind === 'plugin'
   ) {
     return null;
@@ -540,6 +580,10 @@ export function resolveAiScriptReferenceLabel(
   const name = resolveAiScriptReferenceName(reference, context);
   if (name == null) {
     return null;
+  }
+
+  if (reference.kind === 'webpage' && reference.click != null) {
+    return `${name} (${reference.click.x}, ${reference.click.y})`;
   }
 
   if (reference.kind === 'plugin') {
@@ -1049,6 +1093,7 @@ function formatWholeScriptReferenceContextBlock(
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
     reference.kind === 'request' ||
+    reference.kind === 'webpage' ||
     reference.kind === 'plugin'
   ) {
     return null;
@@ -1092,6 +1137,49 @@ function formatWholeScriptReferenceContextBlock(
     source,
     '```'
   ].join('\n');
+}
+
+/**
+ * Formats one resolved `@webpage` reference for the agent context block.
+ *
+ * @param reference - Parsed `@webpage.<tabId>` reference (optional `#x.y` click).
+ * @param context - Open browser tabs keyed by tab id.
+ * @returns Context block for one webpage reference, or null when not resolvable.
+ */
+function formatWebpageReferenceContextBlock(
+  reference: ParsedWebpageReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const tab = context.webpageTabsById?.[reference.tabId];
+  if (tab == null) {
+    return null;
+  }
+
+  const title = tab.title.trim().length > 0 ? tab.title.trim() : '(untitled)';
+
+  const lines = [
+    `Reference ${reference.text} — embedded browser tab "${title}".`,
+    `tabId: ${reference.tabId}`,
+    `url: ${tab.url}`
+  ];
+
+  if (reference.click != null) {
+    const { x, y } = reference.click;
+    lines.push(
+      `click: ${x},${y} (viewport CSS pixels)`,
+      `Resolve the user's focus with webpage_evaluate on this tabId using document.elementFromPoint(${x}, ${y}). Summarize the element's tag, id, className, attributes, textContent, and outerHTML (cap large HTML), then use other webpage_* tools as needed.`
+    );
+  } else {
+    lines.push(
+      'Call webpage_tab (and webpage_query / webpage_evaluate / webpage_inject_script / webpage_inject_stylesheet) with this exact tabId for live page operations.'
+    );
+  }
+
+  return lines.join('\n');
 }
 
 /**
@@ -1143,6 +1231,10 @@ function formatScriptReferenceContextBlock(
 ): string | null {
   if (reference.kind === 'plugin') {
     return formatPluginChatPointerContextBlock(reference, context);
+  }
+
+  if (reference.kind === 'webpage') {
+    return formatWebpageReferenceContextBlock(reference, context);
   }
 
   if (reference.kind === 'response-section') {

@@ -31,11 +31,11 @@ export function SidebarCollapseAllHeader({
   title = 'Collapse all collections, folders, and sections'
 }: Props): JSX.Element {
   return (
-    <div className="hc-sidebar-section-header flex min-h-8 shrink-0 items-center justify-end gap-2 bg-sidebar-section py-1 pl-0.5 pr-2.5">
+    <div className="hc-sidebar-section-header flex min-h-8 shrink-0 items-center justify-end gap-2 border-y border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5">
       <div className="hc-sidebar-section-header-actions flex shrink-0 items-center gap-1">
         <button
           type="button"
-          className="hc-sidebar-add-button app-no-drag inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text me-1"
+          className="hc-sidebar-add-button app-no-drag inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
           aria-label={ariaLabel}
           title={title}
           onClick={onClick}

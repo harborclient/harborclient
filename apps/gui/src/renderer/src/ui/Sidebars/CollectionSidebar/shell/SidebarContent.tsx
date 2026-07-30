@@ -471,7 +471,7 @@ export function SidebarContent(): JSX.Element {
               />
             ) : undefined
           }
-          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pr-2.5 pb-3'}
+          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pb-3'}
         >
           {activeRailItem != null ? (
             <HostedSurface

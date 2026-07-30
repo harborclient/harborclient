@@ -122,6 +122,7 @@ import type { PublicCollectionPreview } from '@harborclient/core/types/api/colle
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
 import type {
   BrowserConsoleEntryPayload,
+  BrowserCopyToChatPayload,
   BrowserDownloadEntry,
   BrowserDownloadsChangedPayload,
   BrowserInjectionScriptPayload,
@@ -3587,6 +3588,22 @@ function onBrowserOpenTab(callback: (request: BrowserOpenTabRequest) => void): (
 }
 
 /**
+ * Subscribes to guest context-menu Copy to chat requests.
+ *
+ * @param callback - Handler invoked with tab id and viewport click coordinates.
+ * @returns Unsubscribe function.
+ */
+function onBrowserCopyToChat(callback: (payload: BrowserCopyToChatPayload) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: BrowserCopyToChatPayload): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('browser:copy-to-chat', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:copy-to-chat', listener);
+  };
+}
+
+/**
  * Subscribes to updates of the recent browser downloads list.
  *
  * @param callback - Handler invoked with the newest-first list and whether to auto-open the menu.
@@ -4907,6 +4924,7 @@ const api: Api = {
   onBrowserNavigation,
   onBrowserConsoleEntry,
   onBrowserOpenTab,
+  onBrowserCopyToChat,
   onBrowserDownloadsChanged,
   getCollectionRunnerConfig,
   setCollectionRunnerConfig,

@@ -83,9 +83,9 @@ const SectionItem = memo(function SectionItem({
   const { status, isMounted, isEnter } = state;
 
   return (
-    <div ref={itemElementRef} className="-mr-2.5 mb-1">
+    <div ref={itemElementRef} className="mb-1">
       <div
-        className={`hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 bg-sidebar-section py-1 pr-2.5 pl-0.5 ${flushBody ? 'mb-0' : 'mb-1'}`}
+        className={`hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 border-y border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5 ${flushBody ? 'mb-0' : 'mb-1'}`}
       >
         <button
           {...buttonProps}

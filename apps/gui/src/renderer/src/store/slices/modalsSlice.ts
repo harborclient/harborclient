@@ -1166,6 +1166,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.quitPrompt != null ||
     modals.alertModal != null ||
     modals.confirmModal != null ||
+    modals.openExternalLinkModal != null ||
     modals.pluginThemePrompt != null ||
     modals.themePicker != null ||
     modals.acceptTeamHubInvite != null ||

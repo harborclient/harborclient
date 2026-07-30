@@ -266,6 +266,28 @@ export interface BrowserDownloadsChangedPayload {
 }
 
 /**
+ * Payload pushed when the guest context menu requests Copy to chat.
+ *
+ * Coordinates are viewport CSS pixels suitable for `document.elementFromPoint(x, y)`.
+ */
+export interface BrowserCopyToChatPayload {
+  /**
+   * Browser tab id that received the right-click.
+   */
+  tabId: string;
+
+  /**
+   * Horizontal viewport coordinate in CSS pixels.
+   */
+  x: number;
+
+  /**
+   * Vertical viewport coordinate in CSS pixels.
+   */
+  y: number;
+}
+
+/**
  * Footer console entry produced after a live-page navigation finishes loading.
  *
  * Mirrors the fields written by collection request sends so the Console panel
@@ -511,6 +533,14 @@ export interface ApiBrowser {
    * @returns Unsubscribe function.
    */
   onBrowserOpenTab: (callback: (request: BrowserOpenTabRequest) => void) => () => void;
+
+  /**
+   * Subscribes to guest context-menu Copy to chat requests.
+   *
+   * @param callback - Handler invoked with tab id and viewport click coordinates.
+   * @returns Unsubscribe function.
+   */
+  onBrowserCopyToChat: (callback: (payload: BrowserCopyToChatPayload) => void) => () => void;
 
   /**
    * Returns the newest completed browser downloads for this app session (up to 5).

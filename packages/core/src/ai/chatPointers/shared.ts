@@ -22,6 +22,33 @@ export function isScriptReferenceBoundary(text: string, index: number): boolean 
 }
 
 /**
+ * Parses `@webpage.<tabId>#x.y` viewport click coordinates from regex groups.
+ *
+ * Unlike {@link parseSelectionSuffix}, allows any non-negative integers including
+ * `x === y` and `y < x` (viewport points are not a range).
+ *
+ * @param xRaw - Captured horizontal CSS pixel group.
+ * @param yRaw - Captured vertical CSS pixel group.
+ * @returns Click point, or undefined when absent/invalid.
+ */
+export function parseWebpageClickSuffix(
+  xRaw: string | undefined,
+  yRaw: string | undefined
+): { x: number; y: number } | undefined {
+  if (xRaw == null || yRaw == null) {
+    return undefined;
+  }
+
+  const x = Number(xRaw);
+  const y = Number(yRaw);
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
+    return undefined;
+  }
+
+  return { x, y };
+}
+
+/**
  * Parses selection suffix groups from a regex match.
  *
  * @param selectionStartRaw - Captured selection start group.

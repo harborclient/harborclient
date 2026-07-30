@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAiScriptSelectionContextMessage,
+  buildWebpageReferenceToken,
   collectChatReferenceSnapshots,
   findAiScriptReferenceCandidates,
   isValidAiScriptReference,
@@ -284,10 +285,55 @@ describe('findAiScriptReferenceCandidates', () => {
     ]);
   });
 
-  it('rejects malformed collection, folder, and request references', () => {
+  it('finds webpage references by browser tab uuid', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+
+    expect(findAiScriptReferenceCandidates(`@webpage.${tabId}`)).toEqual([
+      expect.objectContaining({
+        kind: 'webpage',
+        tabId,
+        text: `@webpage.${tabId}`
+      })
+    ]);
+  });
+
+  it('finds webpage click-point references with #x.y viewport coordinates', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+
+    expect(findAiScriptReferenceCandidates(`@webpage.${tabId}#100.200`)).toEqual([
+      expect.objectContaining({
+        kind: 'webpage',
+        tabId,
+        click: { x: 100, y: 200 },
+        text: `@webpage.${tabId}#100.200`
+      })
+    ]);
+
+    expect(findAiScriptReferenceCandidates(`@webpage.${tabId}#50.50`)).toEqual([
+      expect.objectContaining({
+        kind: 'webpage',
+        click: { x: 50, y: 50 }
+      })
+    ]);
+
+    expect(findAiScriptReferenceCandidates(`@webpage.${tabId}#200.100`)).toEqual([
+      expect.objectContaining({
+        kind: 'webpage',
+        click: { x: 200, y: 100 }
+      })
+    ]);
+
+    expect(buildWebpageReferenceToken(tabId)).toBe(`@webpage.${tabId}`);
+    expect(buildWebpageReferenceToken(tabId, { x: 100.4, y: 200.6 })).toBe(
+      `@webpage.${tabId}#100.201`
+    );
+  });
+
+  it('rejects malformed collection, folder, request, and webpage references', () => {
     expect(findAiScriptReferenceCandidates('@collection.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@folder.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@request.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@webpage.not-a-uuid')).toEqual([]);
   });
 
   it('finds response-section references by request tab uuid and section', () => {
@@ -567,6 +613,22 @@ describe('isValidAiScriptReference', () => {
     expect(isValidAiScriptReference(collectionRef!, nameContext)).toBe(true);
     expect(isValidAiScriptReference(folderRef!, nameContext)).toBe(true);
     expect(isValidAiScriptReference(requestRef!, nameContext)).toBe(true);
+  });
+
+  it('accepts webpage references when the browser tab is open', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+    const webpageContext = context({
+      hasActiveRequestTab: false,
+      webpageTabsById: {
+        [tabId]: { title: 'Example', url: 'https://example.com/' }
+      }
+    });
+    const missingContext = context({ hasActiveRequestTab: false, webpageTabsById: {} });
+
+    const [webpageRef] = findAiScriptReferenceCandidates(`@webpage.${tabId}`);
+
+    expect(isValidAiScriptReference(webpageRef!, webpageContext)).toBe(true);
+    expect(isValidAiScriptReference(webpageRef!, missingContext)).toBe(false);
   });
 });
 
@@ -875,6 +937,33 @@ describe('resolveAiScriptReferenceLabel', () => {
     expect(resolveAiScriptReferenceLabel(collectionRef!, nameContext)).toBe('Collection: API');
     expect(resolveAiScriptReferenceLabel(folderRef!, nameContext)).toBe('Folder: Auth');
     expect(resolveAiScriptReferenceLabel(requestRef!, nameContext)).toBe('Request: Login');
+  });
+
+  it('returns the browser tab title for webpage references', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+    const webpageContext = context({
+      hasActiveRequestTab: false,
+      webpageTabsById: {
+        [tabId]: { title: 'Example Domain', url: 'https://example.com/' }
+      }
+    });
+    const untitledContext = context({
+      hasActiveRequestTab: false,
+      webpageTabsById: {
+        [tabId]: { title: '  ', url: 'https://example.com/' }
+      }
+    });
+
+    const [webpageRef] = findAiScriptReferenceCandidates(`@webpage.${tabId}`);
+    const [clickRef] = findAiScriptReferenceCandidates(`@webpage.${tabId}#120.80`);
+
+    expect(resolveAiScriptReferenceLabel(webpageRef!, webpageContext)).toBe('Example Domain');
+    expect(resolveAiScriptReferenceLabel(webpageRef!, untitledContext)).toBe(
+      'https://example.com/'
+    );
+    expect(resolveAiScriptReferenceLabel(clickRef!, webpageContext)).toBe(
+      'Example Domain (120, 80)'
+    );
   });
 });
 
@@ -1297,6 +1386,46 @@ hc.test("Status code is 2xx", () => {
         })
       )
     ).toBeNull();
+  });
+
+  it('includes webpage title, url, and tool guidance', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+    const token = `@webpage.${tabId}`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Inspect ${token}`,
+      context({
+        hasActiveRequestTab: false,
+        webpageTabsById: {
+          [tabId]: { title: 'Example Domain', url: 'https://example.com/' }
+        }
+      })
+    );
+
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('embedded browser tab "Example Domain"');
+    expect(message).toContain(`tabId: ${tabId}`);
+    expect(message).toContain('url: https://example.com/');
+    expect(message).toContain('webpage_tab');
+    expect(message).toContain('webpage_query');
+  });
+
+  it('includes elementFromPoint guidance for webpage click-point references', () => {
+    const tabId = '44444444-4444-4444-4444-444444444444';
+    const token = `@webpage.${tabId}#100.200`;
+    const message = buildAiScriptSelectionContextMessage(
+      `What is this? ${token}`,
+      context({
+        hasActiveRequestTab: false,
+        webpageTabsById: {
+          [tabId]: { title: 'Example Domain', url: 'https://example.com/' }
+        }
+      })
+    );
+
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('click: 100,200');
+    expect(message).toContain('document.elementFromPoint(100, 200)');
+    expect(message).toContain('webpage_evaluate');
   });
 });
 

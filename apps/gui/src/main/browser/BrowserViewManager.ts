@@ -1131,9 +1131,12 @@ export class BrowserViewManager {
   }
 
   /**
-   * Attaches the guest right-click menu (Back / Forward / Home / View Source) to a browser tab.
+   * Attaches the guest right-click menu (Back / Forward / Home / View Source /
+   * Copy to chat) to a browser tab.
    *
    * Inspect Element is included by the menu helper when developer tooling is enabled.
+   * Copy to chat notifies the renderer with the click coordinates for an
+   * `@webpage.<tabId>#x.y` chat pointer.
    *
    * @param tabId - Browser tab id whose navigation methods handle menu actions.
    * @param view - Guest view that receives right-clicks.
@@ -1151,6 +1154,13 @@ export class BrowserViewManager {
       },
       onViewSource: () => {
         this.#openViewSourceTab(tabId, view);
+      },
+      onCopyToChat: (x, y) => {
+        const window = getRegisteredMainWindow();
+        if (!window || window.isDestroyed()) {
+          return;
+        }
+        window.webContents.send('browser:copy-to-chat', { tabId, x, y });
       }
     });
   }

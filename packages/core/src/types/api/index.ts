@@ -28,6 +28,7 @@ import type { ApiBrowser } from './browser';
 export type {
   ApiBrowser,
   BrowserConsoleEntryPayload,
+  BrowserCopyToChatPayload,
   BrowserDownloadEntry,
   BrowserDownloadsChangedPayload,
   BrowserHcScriptSourcePayload,

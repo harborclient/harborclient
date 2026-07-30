@@ -16,7 +16,7 @@ import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 export interface ContentProps {
   /**
    * When true, the section header breaks out of horizontal inset padding using
-   * negative margins (same technique as collection sidebar `-mr-2.5` headers).
+   * negative margins (same technique as collection sidebar section headers).
    */
   flush?: boolean;
 
@@ -54,7 +54,7 @@ export const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
 
   return (
     <section ref={itemElementRef} className={`mb-1 last:mb-0${flush ? ' -mx-3' : ''}`}>
-      <div className="hc-sidebar-section-header mb-1 flex min-h-8 items-center justify-between gap-2 bg-sidebar-section py-0.5 pr-2">
+      <div className="hc-sidebar-section-header mb-1 flex min-h-8 items-center justify-between gap-2 border-y border-sidebar-rail-separator bg-sidebar-section py-0.5 pr-2">
         <button
           {...buttonProps}
           type="button"

@@ -5,7 +5,8 @@ import type {
   RequestBodySelectionSnapshot,
   ResponseSectionSnapshot,
   ScriptSelectionSnapshot,
-  TerminalSelectionSnapshot
+  TerminalSelectionSnapshot,
+  WebpageTabReferenceInfo
 } from '@harborclient/core/ai/scriptReferences';
 import type { Collection, Folder, SavedRequest, Snippet } from '@harborclient/core/types';
 import { useMemo } from 'react';
@@ -16,8 +17,10 @@ import {
   selectCollections,
   selectFoldersByCollection,
   selectRequestsByCollection,
-  selectSnippets
+  selectSnippets,
+  selectTabs
 } from '#/renderer/src/store/selectors';
+import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
@@ -119,6 +122,35 @@ function buildValidationContext(
 }
 
 /**
+ * Builds open browser-tab summaries keyed by tab id for `@webpage` validation.
+ *
+ * @param tabs - All open editor tabs from Redux.
+ * @returns Map of browser tab id → title/url for chat-pointer resolution.
+ */
+export function buildWebpageTabsById(
+  tabs: RootState['tabs']['tabs']
+): Record<string, WebpageTabReferenceInfo> {
+  const webpageTabsById: Record<string, WebpageTabReferenceInfo> = {};
+  for (const tab of tabs) {
+    if (isBrowserTab(tab)) {
+      webpageTabsById[tab.tabId] = { title: tab.title, url: tab.url };
+    }
+  }
+  return webpageTabsById;
+}
+
+/**
+ * Builds open browser-tab summaries from the current Redux root state.
+ *
+ * @param state - Current Redux root state.
+ */
+export function buildWebpageTabsByIdFromState(
+  state: RootState
+): Record<string, WebpageTabReferenceInfo> {
+  return buildWebpageTabsById(selectTabs(state));
+}
+
+/**
  * Builds the full validation context used by chat UI and send-time script expansion.
  *
  * @param tab - Active editor tab, if any.
@@ -130,6 +162,7 @@ function buildValidationContext(
  * @param scriptSelections - Request-script selection snapshots keyed by `@` script reference token.
  * @param responseSelections - Response-section snapshots keyed by `@res` reference token.
  * @param pluginSelections - Plugin chat-pointer snapshots keyed by `@plugin…` reference token.
+ * @param webpageTabsById - Open browser tabs keyed by tab id for `@webpage` references.
  */
 export function buildAiScriptReferenceValidationContext(
   tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
@@ -140,7 +173,8 @@ export function buildAiScriptReferenceValidationContext(
   requestBodySelections: Record<string, RequestBodySelectionSnapshot> = {},
   scriptSelections: Record<string, ScriptSelectionSnapshot> = {},
   responseSelections: Record<string, ResponseSectionSnapshot> = {},
-  pluginSelections: Record<string, PluginChatPointerSnapshot> = {}
+  pluginSelections: Record<string, PluginChatPointerSnapshot> = {},
+  webpageTabsById: Record<string, WebpageTabReferenceInfo> = {}
 ): AiScriptReferenceValidationContext {
   return {
     ...buildValidationContext(tab),
@@ -151,6 +185,7 @@ export function buildAiScriptReferenceValidationContext(
     scriptSelections,
     responseSelections,
     pluginSelections,
+    webpageTabsById,
     collectionNamesByUuid: sidebarNames.collectionNamesByUuid,
     folderNamesByUuid: sidebarNames.folderNamesByUuid,
     requestNamesByUuid: sidebarNames.requestNamesByUuid
@@ -169,6 +204,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const scriptSelections = useAppSelector(selectScriptSelections);
   const responseSelections = useAppSelector(selectResponseSelections);
   const pluginSelections = useAppSelector(selectPluginSelections);
+  const tabs = useAppSelector(selectTabs);
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -181,6 +217,11 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
     [collections, foldersByCollection, requestsByCollection]
   );
 
+  /**
+   * Memoizes open browser tabs for `@webpage.<tabId>` badge and send-time context.
+   */
+  const webpageTabsById = useMemo(() => buildWebpageTabsById(tabs), [tabs]);
+
   return useMemo(
     () =>
       buildAiScriptReferenceValidationContext(
@@ -192,7 +233,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
         requestBodySelections,
         scriptSelections,
         responseSelections,
-        pluginSelections
+        pluginSelections,
+        webpageTabsById
       ),
     [
       activeTab,
@@ -203,7 +245,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
       requestBodySelections,
       scriptSelections,
       responseSelections,
-      pluginSelections
+      pluginSelections,
+      webpageTabsById
     ]
   );
 }

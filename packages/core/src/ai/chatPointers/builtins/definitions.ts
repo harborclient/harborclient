@@ -4,7 +4,7 @@ import {
   AI_SCRIPT_REFERENCE_UUID,
   type AiResponseSection
 } from '../types.js';
-import { parseSelectionSuffix } from '../shared.js';
+import { parseSelectionSuffix, parseWebpageClickSuffix } from '../shared.js';
 import {
   PLUGIN_CHAT_POINTER_ID_PATTERN,
   PLUGIN_CHAT_POINTER_KEY_PATTERN,
@@ -155,6 +155,26 @@ export const builtinChatPointerPartials: Array<
         start: atIndex,
         end: atIndex + fullToken.length,
         text: fullToken
+      };
+    }
+  },
+  {
+    id: 'webpage',
+    match: new RegExp(`^webpage\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
+    agentGuidance: `When a user message contains @webpage.<tabId> (optionally with #x.y viewport CSS pixel coordinates), that references an embedded HarborClient browser (webpage) tab. Prefer title/url already included in the system context. Call webpage_tab with no url (or inspect via the returned dom.tabId) and use webpage_query, webpage_evaluate, webpage_inject_script, or webpage_inject_stylesheet with that exact tabId. When the reference includes #x.y, immediately call webpage_evaluate with that tabId and an expression that uses document.elementFromPoint(x, y) to identify the element under the user's click — summarize tag name, id, className, relevant attributes, textContent, and outerHTML (capped if large) before answering. Then use other webpage_* tools as needed. In your reply, refer to the page by its title or URL, not the tab UUID.`,
+    parse: (match, fullToken, atIndex) => {
+      const tabId = match[1];
+      if (tabId == null) {
+        return null;
+      }
+      const click = parseWebpageClickSuffix(match[2], match[3]);
+      return {
+        kind: 'webpage',
+        tabId,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        ...(click != null ? { click } : {})
       };
     }
   },

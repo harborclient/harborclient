@@ -29,6 +29,7 @@ describe('chat pointer registry', () => {
         'collection',
         'folder',
         'request',
+        'webpage',
         'markdown',
         'response-section',
         'body',
@@ -99,6 +100,7 @@ describe('chat pointer registry', () => {
     );
     const guidance = getChatPointerAgentGuidance();
     expect(guidance).toContain('@collection.<uuid>');
+    expect(guidance).toContain('document.elementFromPoint');
     expect(guidance).toContain('Plugin script pointers include captured source.');
     dispose();
   });

@@ -71,6 +71,8 @@ import {
   openInheritedBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
+import { buildWebpageReferenceToken } from '@harborclient/core/ai/scriptReferences';
 import {
   sendRequest,
   cancelRequest,
@@ -192,6 +194,7 @@ function mergeVariables(
 export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const { revealCollection, revealFolder } = useSidebarExpansion();
+  const { aiAvailable, copyToChat } = useCopyToChat();
   const tabs = useAppSelector(selectTabs);
 
   const activeTabId = useAppSelector(selectActiveTabId);
@@ -269,6 +272,20 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
       dispatch(openInheritedBrowserTab(request));
     });
   }, [dispatch]);
+
+  /**
+   * Inserts `@webpage.<tabId>#x.y` when the guest context menu chooses Copy to chat.
+   *
+   * No-ops when AI chat is unavailable (main always shows the menu item).
+   */
+  useEffect(() => {
+    return window.api.onBrowserCopyToChat((payload) => {
+      if (!aiAvailable) {
+        return;
+      }
+      void copyToChat(buildWebpageReferenceToken(payload.tabId, { x: payload.x, y: payload.y }));
+    });
+  }, [aiAvailable, copyToChat]);
 
   /**
    * Destroys main-process guests when their browser tabs are closed.
