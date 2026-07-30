@@ -19,6 +19,11 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'children' | 'a
    * Optional tooltip text. Defaults to `ariaLabel`.
    */
   title?: string;
+
+  /**
+   * Optional Tailwind classes for the icon size. Defaults to `h-3.5 w-3.5`.
+   */
+  iconClassName?: string;
 }
 
 /**
@@ -29,6 +34,7 @@ export function RoundButton({
   ariaLabel,
   title,
   className,
+  iconClassName,
   onClick,
   ...props
 }: Props): JSX.Element {
@@ -45,7 +51,7 @@ export function RoundButton({
       aria-label={ariaLabel}
       title={title ?? ariaLabel}
     >
-      <FaIcon icon={icon} className="hc-round-button-icon h-3.5 w-3.5" />
+      <FaIcon icon={icon} className={cn('hc-round-button-icon h-3.5 w-3.5', iconClassName)} />
     </button>
   );
 }

@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it, vi } from 'vitest';
+import { defaultAuth } from '@harborclient/core/auth';
 import type { Website } from '@harborclient/core/types';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import tabsReducer, { type TabsState } from '#/renderer/src/store/slices/tabsSlice';
@@ -31,6 +32,10 @@ function sampleWebsite(): Website {
     scripts: [],
     preRequestScripts: [],
     postRequestScripts: [],
+    variables: [],
+    headers: [],
+    userAgent: '',
+    auth: defaultAuth(),
     createdAt: 1,
     updatedAt: 1
   };
@@ -96,5 +101,11 @@ describe('openWebsiteSettings', () => {
     );
     expect(settingsTab).toBeDefined();
     expect(activeTabId).toBe(settingsTab?.tabId);
+    expect(
+      settingsTab &&
+        isPageTab(settingsTab) &&
+        settingsTab.page.type === 'browser-settings' &&
+        settingsTab.page.label
+    ).toBe('Live Page Settings');
   });
 });

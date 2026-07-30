@@ -385,7 +385,7 @@ export function executeScriptFileRequest(
       assertWithinSizeLimit(bytes.byteLength);
       ensureParentDir(filePath);
       writeFileSync(filePath, bytes);
-      return undefined;
+      return filePath;
     }
     case 'writeJson': {
       const text = stringifyJsonText(request.value, request.options as ScriptJsonWriteOptions);

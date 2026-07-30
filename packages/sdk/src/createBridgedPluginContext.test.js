@@ -274,6 +274,67 @@ describe('createBridgedPluginContext ai', () => {
   });
 });
 
+describe('createBridgedPluginContext webpage', () => {
+  it('throws when the plugin lacks the browser permission', async () => {
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['ui'])
+    });
+
+    await expect(hc.webpage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
+  });
+
+  it('opens a page and bridges focus, query, and close ops', async () => {
+    bridgeInvoke
+      .mockResolvedValueOnce({
+        tabId: 'browser-2',
+        url: 'https://example.com/',
+        title: 'Example',
+        canGoBack: false,
+        canGoForward: false
+      })
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        selector: 'h1',
+        matchCount: 1,
+        elements: [{ tagName: 'H1', textContent: 'Hello' }]
+      })
+      .mockResolvedValueOnce({ closed: true });
+
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['browser'])
+    });
+
+    const page = await hc.webpage('https://example.com');
+    expect(page.tabId).toBe('browser-2');
+    await page.focus();
+    await expect(page.dom.query('h1')).resolves.toEqual({
+      selector: 'h1',
+      matchCount: 1,
+      elements: [{ tagName: 'H1', textContent: 'Hello' }]
+    });
+    await expect(page.close()).resolves.toBe(true);
+
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(1, 'webpage.open', {
+      url: 'https://example.com',
+      reuse: undefined
+    });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(2, 'webpage.focus', { tabId: 'browser-2' });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(3, 'webpage.query', {
+      tabId: 'browser-2',
+      selector: 'h1',
+      all: undefined,
+      maxElements: undefined
+    });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(4, 'webpage.close', { tabId: 'browser-2' });
+  });
+});
+
 describe('createBridgedPluginContext subscription auto-tracking', () => {
   it('auto-appends registration disposables to hc.subscriptions', () => {
     const hc = createBridgedPluginContext({

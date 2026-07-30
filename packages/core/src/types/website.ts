@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { AuthConfig } from '../auth';
+import type { KeyValue, Variable } from './common';
 import type { ScriptRef } from './script';
 
 /**
@@ -86,6 +88,26 @@ export interface Website {
   postRequestScripts: ScriptRef[];
 
   /**
+   * Website-scoped variables for address-bar and script substitution.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers sent with chrome-driven guest navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override for chrome-driven navigations; empty uses Chromium default.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization applied to chrome-driven guest navigations (Basic/Bearer).
+   */
+  auth: AuthConfig;
+
+  /**
    * Creation timestamp in milliseconds since epoch.
    */
   createdAt: number;
@@ -139,6 +161,26 @@ export interface CreateWebsiteInput {
    * Post-request hc.* scripts to persist.
    */
   postRequestScripts?: ScriptRef[];
+
+  /**
+   * Website-scoped variables to persist.
+   */
+  variables?: Variable[];
+
+  /**
+   * Headers to persist for chrome-driven navigations.
+   */
+  headers?: KeyValue[];
+
+  /**
+   * User-Agent override to persist; empty uses Chromium default.
+   */
+  userAgent?: string;
+
+  /**
+   * Authorization settings to persist.
+   */
+  auth?: AuthConfig;
 }
 
 /**
@@ -184,6 +226,26 @@ export interface UpdateWebsiteInput {
    * Post-request hc.* scripts to persist.
    */
   postRequestScripts: ScriptRef[];
+
+  /**
+   * Website-scoped variables to persist.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers to persist for chrome-driven navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override to persist; empty uses Chromium default.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization settings to persist.
+   */
+  auth: AuthConfig;
 }
 
 /**
@@ -239,6 +301,26 @@ export interface WebsiteExport {
    * Post-request hc.* scripts.
    */
   post_request_scripts?: ScriptRef[];
+
+  /**
+   * Website-scoped variables.
+   */
+  variables?: Variable[];
+
+  /**
+   * Headers for chrome-driven navigations.
+   */
+  headers?: KeyValue[];
+
+  /**
+   * User-Agent override; empty uses Chromium default.
+   */
+  userAgent?: string;
+
+  /**
+   * Authorization settings (Basic/Bearer applied on guest navigations).
+   */
+  auth?: AuthConfig;
 }
 
 const websiteScriptRunAtSchema = z.enum(['document-start', 'dom-ready', 'did-finish-load']);
@@ -274,6 +356,39 @@ const scriptRefSchema = z.discriminatedUnion('kind', [
   })
 ]) satisfies z.ZodType<ScriptRef>;
 
+const variableSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  defaultValue: z.string(),
+  enabled: z.boolean(),
+  share: z.boolean()
+}) satisfies z.ZodType<Variable>;
+
+const keyValueSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  enabled: z.boolean()
+}) satisfies z.ZodType<KeyValue>;
+
+const authConfigSchema = z.object({
+  type: z.enum(['none', 'basic', 'bearer', 'oauth2']),
+  basic: z.object({
+    username: z.string(),
+    password: z.string()
+  }),
+  bearer: z.object({
+    token: z.string()
+  }),
+  oauth2: z.object({
+    tokenUrl: z.string(),
+    clientId: z.string(),
+    clientSecret: z.string(),
+    scope: z.string(),
+    audience: z.string(),
+    clientAuth: z.enum(['body', 'header'])
+  })
+}) satisfies z.ZodType<AuthConfig>;
+
 /**
  * Zod schema for validating website export files.
  */
@@ -287,7 +402,11 @@ export const websiteExportSchema = z.object({
   faviconDataUrl: z.union([z.string(), z.null()]).optional(),
   scripts: z.array(websiteInjectionScriptSchema).optional(),
   pre_request_scripts: z.array(scriptRefSchema).optional(),
-  post_request_scripts: z.array(scriptRefSchema).optional()
+  post_request_scripts: z.array(scriptRefSchema).optional(),
+  variables: z.array(variableSchema).optional(),
+  headers: z.array(keyValueSchema).optional(),
+  userAgent: z.string().optional(),
+  auth: authConfigSchema.optional()
 }) satisfies z.ZodType<WebsiteExport>;
 
 /**
@@ -316,6 +435,10 @@ export function buildWebsiteExport(input: {
   scripts?: WebsiteInjectionScript[];
   preRequestScripts?: ScriptRef[];
   postRequestScripts?: ScriptRef[];
+  variables?: Variable[];
+  headers?: KeyValue[];
+  userAgent?: string;
+  auth?: AuthConfig;
 }): WebsiteExport {
   return {
     harborclientVersion: 1,
@@ -333,6 +456,14 @@ export function buildWebsiteExport(input: {
       : {}),
     ...(input.postRequestScripts != null && input.postRequestScripts.length > 0
       ? { post_request_scripts: input.postRequestScripts }
-      : {})
+      : {}),
+    ...(input.variables != null && input.variables.length > 0
+      ? { variables: input.variables }
+      : {}),
+    ...(input.headers != null && input.headers.length > 0 ? { headers: input.headers } : {}),
+    ...(input.userAgent != null && input.userAgent.trim() !== ''
+      ? { userAgent: input.userAgent }
+      : {}),
+    ...(input.auth != null && input.auth.type !== 'none' ? { auth: input.auth } : {})
   };
 }

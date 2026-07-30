@@ -32,6 +32,7 @@ export type {
   BrowserInjectionScriptPayload,
   BrowserNavigationState,
   BrowserOpenTabRequest,
+  BrowserRequestDefaultsPayload,
   BrowserScriptRunAt,
   BrowserViewBounds
 } from './browser';

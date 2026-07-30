@@ -2,6 +2,7 @@ import type { OAuthFetchTokenResult } from '@harborclient/core/auth';
 import type { SearchDocsToolArgs } from '@harborclient/core/ai/tools';
 import type { HarborDeepLink } from '@harborclient/core/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '@harborclient/core/themes';
+import type { ScriptWebpageRequest } from '@harborclient/core/scripting/scriptApi';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import { contextBridge, ipcRenderer } from 'electron';
 import os from 'node:os';
@@ -1892,6 +1893,33 @@ function completeMcpServerTool(message: {
 }
 
 /**
+ * Subscribes to script webpage invocations routed from the main-process script host.
+ */
+function onScriptWebpageInvoke(
+  callback: (message: { requestId: number; req: ScriptWebpageRequest }) => void
+): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, message: unknown): void => {
+    callback(message as { requestId: number; req: ScriptWebpageRequest });
+  };
+  ipcRenderer.on('scripts:webpageInvoke', listener);
+  return () => {
+    ipcRenderer.removeListener('scripts:webpageInvoke', listener);
+  };
+}
+
+/**
+ * Completes a script webpage invocation with a result or error.
+ */
+function completeScriptWebpage(message: {
+  requestId: number;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}): void {
+  ipcRenderer.send('scripts:webpageComplete', message);
+}
+
+/**
  * Spawns a shell in a pseudo-terminal owned by the calling renderer.
  *
  * @param input - Tab id, optional cwd, and initial terminal dimensions.
@@ -3461,6 +3489,23 @@ function browserWaitForLoad(tabId: string, timeoutMs?: number): Promise<BrowserN
 }
 
 /**
+ * Captures a PNG screenshot of the guest's visible viewport or full scrollable page.
+ *
+ * Full-page captures taller than the height/tile caps are truncated from the top;
+ * `truncated` is true when that happens.
+ *
+ * @param tabId - Browser tab id.
+ * @param options - Optional `{ fullPage }` (default false).
+ * @returns PNG data URL, base64 payload, and optional truncation flag.
+ */
+function browserCapturePage(
+  tabId: string,
+  options?: { fullPage?: boolean }
+): Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }> {
+  return ipcRenderer.invoke('browser:capturePage', tabId, options);
+}
+
+/**
  * Subscribes to browser guest navigation and title updates.
  *
  * @param callback - Handler invoked with navigation state.
@@ -4197,6 +4242,18 @@ function pluginFsWriteFile(pluginId: string, path: string, content: string): Pro
 }
 
 /**
+ * Writes binary bytes (base64-encoded) to an allowlisted plugin path.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param path - Relative or absolute allowlisted path.
+ * @param base64 - Base64-encoded payload.
+ * @returns Absolute path written.
+ */
+function pluginFsWriteBytes(pluginId: string, path: string, base64: string): Promise<string> {
+  return ipcRenderer.invoke('plugins:fsWriteBytes', pluginId, path, base64);
+}
+
+/**
  * Watches an allowlisted file for a plugin and invokes the callback on change.
  */
 function pluginFsWatchFile(pluginId: string, path: string, callback: () => void): () => void {
@@ -4621,6 +4678,8 @@ const api: Api = {
   searchDocs,
   onMcpServerToolInvoke,
   completeMcpServerTool,
+  onScriptWebpageInvoke,
+  completeScriptWebpage,
   createTerminal,
   writeTerminal,
   resizeTerminal,
@@ -4762,6 +4821,7 @@ const api: Api = {
   browserInsertCSS,
   browserQuerySelector,
   browserWaitForLoad,
+  browserCapturePage,
   onBrowserNavigation,
   onBrowserOpenTab,
   getCollectionRunnerConfig,
@@ -4838,6 +4898,7 @@ const api: Api = {
   pluginFsSaveFile,
   pluginFsReadFile,
   pluginFsWriteFile,
+  pluginFsWriteBytes,
   pluginFsWatchFile,
   pushPluginViewContext,
   pushPluginHttpAfterSend,

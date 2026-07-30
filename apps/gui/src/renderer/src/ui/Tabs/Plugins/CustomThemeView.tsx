@@ -217,6 +217,7 @@ export function CustomThemeView({ onSaved, tabId }: Props): JSX.Element {
             </div>
 
             <ThemeDesignerCategoryTabs
+              type={draft.type}
               colors={draft.colors}
               metrics={draft.metrics}
               onColorChange={handleColorChange}

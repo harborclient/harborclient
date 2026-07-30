@@ -26,7 +26,7 @@ export function trashEntityTypeLabel(entityType: TrashEntityType): string {
     case 'workflow':
       return 'Workflow';
     case 'website':
-      return 'Website';
+      return 'Live page';
     default:
       return 'Item';
   }

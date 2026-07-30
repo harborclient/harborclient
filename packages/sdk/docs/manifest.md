@@ -161,6 +161,7 @@ Common renderer permissions:
 | `ui`       | Register settings, themes, commands, import handlers, or other UI contributions         |
 | `mcp`      | Register remote MCP client servers with `hc.mcp.registerServer` for Harbor's chat agent |
 | `ai`       | Register `@plugin…` chat pointers and copy context into the AI sidebar with `hc.ai`     |
+| `browser`  | Open and control embedded browser tabs via `hc.webpage`                                 |
 | `storage`  | Persist plugin-scoped key-value data with `hc.storage`                                  |
 | `network`  | Send outbound HTTP from the renderer via `hc.host.sendHttpRequest`                      |
 

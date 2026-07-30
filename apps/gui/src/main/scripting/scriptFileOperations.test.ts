@@ -133,7 +133,9 @@ describe('scriptFileOperations', () => {
     expect(stat.size).toBeGreaterThan(0);
 
     const bytes = new Uint8Array([1, 2, 3]);
-    executeScriptFileRequest({ op: 'writeBytes', path: 'bin.dat', bytes });
+    const written = executeScriptFileRequest({ op: 'writeBytes', path: 'bin.dat', bytes });
+    expect(typeof written).toBe('string');
+    expect(String(written).endsWith('bin.dat')).toBe(true);
     expect(executeScriptFileRequest({ op: 'readBytes', path: 'bin.dat' })).toEqual(bytes);
   });
 

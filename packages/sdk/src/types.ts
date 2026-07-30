@@ -1025,6 +1025,7 @@ export interface StatusBarItemContribution {
  * - `sidebar-rail` — activity rail background
  * - `sidebar-rail-active` — active/hover activity rail section fill
  * - `sidebar-rail-text` — activity rail icons and labels
+ * - `sidebar-rail-separator` — activity rail hairline between item groups
  * - `sidebar-section` — sidebar section headers
  * - `sidebar-section-text` — sidebar section header labels and chevrons
  * - `footer` — footer status bar background
@@ -1065,6 +1066,7 @@ export type ThemeColorToken =
   | 'sidebar-rail'
   | 'sidebar-rail-active'
   | 'sidebar-rail-text'
+  | 'sidebar-rail-separator'
   | 'sidebar-section'
   | 'sidebar-section-text'
   | 'footer'
@@ -1611,6 +1613,86 @@ export interface PluginCopyToChatInput {
 }
 
 /**
+ * Live DOM helpers on a webpage handle from {@link PluginContext.webpage}.
+ *
+ * Requires the `browser` permission.
+ */
+export interface PluginWebpageDom {
+  /**
+   * Queries the live page DOM with a CSS selector.
+   *
+   * @param selector - CSS selector.
+   * @param options - Optional `{ all, maxElements }`.
+   * @returns Match count and element summaries.
+   */
+  query(
+    selector: string,
+    options?: { all?: boolean; maxElements?: number }
+  ): Promise<{ selector: string; matchCount: number; elements: unknown[] }>;
+
+  /**
+   * Evaluates JavaScript in the page main world and returns the result.
+   *
+   * @param expression - JavaScript source that returns a JSON-serializable value.
+   * @returns Evaluation result.
+   */
+  evaluate(expression: string): Promise<unknown>;
+
+  /**
+   * Injects and runs JavaScript source in the page main world.
+   *
+   * @param source - JavaScript source to inject.
+   * @returns Evaluation result from the injected script.
+   */
+  injectScript(source: string): Promise<unknown>;
+
+  /**
+   * Injects a CSS stylesheet into the page.
+   *
+   * @param css - Stylesheet source.
+   * @returns Electron insertion key.
+   */
+  injectStylesheet(css: string): Promise<string>;
+}
+
+/**
+ * Handle returned by {@link PluginContext.webpage} for an embedded browser tab.
+ *
+ * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+ */
+export interface PluginWebpageHandle {
+  readonly tabId: string;
+  readonly url: string;
+  readonly title: string;
+  readonly canGoBack: boolean;
+  readonly canGoForward: boolean;
+  readonly dom: PluginWebpageDom;
+
+  /**
+   * Focuses this browser tab in the tab bar.
+   */
+  focus(): Promise<void>;
+
+  /**
+   * Closes this browser tab. Returns false when the user cancels a leave prompt.
+   */
+  close(): Promise<boolean>;
+
+  /**
+   * Captures the visible viewport as PNG and writes it under an allowlisted path.
+   *
+   * Relative paths resolve against the plugin package directory. Requires the
+   * `filesystem:write` permission in addition to `browser`. Pass
+   * `{ fullPage: true }` to scroll-and-stitch the full document.
+   *
+   * @param path - Relative (plugin root) or absolute allowlisted path.
+   * @param options - Optional `{ fullPage }` (default false).
+   * @returns Absolute path of the written PNG.
+   */
+  screenshot(path: string, options?: { fullPage?: boolean }): Promise<{ path: string }>;
+}
+
+/**
  * AI chat pointer APIs available on {@link PluginContext.ai}.
  *
  * Requires the `ai` permission. Registrations are activation-scoped.
@@ -1739,6 +1821,16 @@ export interface PluginFs {
    * @param content - UTF-8 text to write.
    */
   writeFile: (path: string, content: string) => Promise<void>;
+
+  /**
+   * Writes binary bytes to an allowlisted path. Relative paths resolve under the
+   * plugin package directory. Requires the `filesystem:write` permission.
+   *
+   * @param path - Relative (plugin root) or absolute allowlisted path.
+   * @param bytes - Binary payload to write.
+   * @returns Absolute path written.
+   */
+  writeBytes: (path: string, bytes: Uint8Array) => Promise<string>;
 
   /**
    * Watches an allowlisted file for changes and invokes the listener when the file
@@ -3520,6 +3612,19 @@ export interface PluginContext {
    * AI chat pointer registration and copy-to-chat. Requires the `ai` permission.
    */
   ai: PluginAi;
+
+  /**
+   * Opens or reuses an embedded browser tab and returns a control handle.
+   *
+   * Requires the `browser` permission (granted at install/enable). Same call shape
+   * as request-script `hc.webpage`: omit `url` to bind the active browser tab;
+   * `{ reuse }` defaults to true; new tabs wait for load.
+   *
+   * @param url - Optional URL to open or reuse.
+   * @param options - Optional `{ reuse }` (default true).
+   * @returns Handle with `focus` / `close` and `dom` helpers.
+   */
+  webpage(url?: string, options?: { reuse?: boolean }): Promise<PluginWebpageHandle>;
 
   /**
    * Host-managed disposable list used for registration cleanup on deactivation.

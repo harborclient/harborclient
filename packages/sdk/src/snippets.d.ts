@@ -267,6 +267,62 @@ interface HcSendRequestResponse {
 }
 
 /**
+ * Live DOM helpers on a webpage handle from hc.webpage.
+ */
+interface HcWebpageDom {
+  /**
+   * Queries the live page DOM with a CSS selector.
+   */
+  query(
+    selector: string,
+    options?: { all?: boolean; maxElements?: number }
+  ): Promise<{ selector: string; matchCount: number; elements: unknown[] }>;
+
+  /**
+   * Evaluates JavaScript in the page main world and returns the result.
+   */
+  evaluate(expression: string): Promise<unknown>;
+
+  /**
+   * Injects and runs JavaScript source in the page main world.
+   */
+  injectScript(source: string): Promise<unknown>;
+
+  /**
+   * Injects a CSS stylesheet into the page.
+   */
+  injectStylesheet(css: string): Promise<string>;
+}
+
+/**
+ * Handle returned by hc.webpage for an embedded browser tab.
+ */
+interface HcWebpageHandle {
+  readonly tabId: string;
+  readonly url: string;
+  readonly title: string;
+  readonly canGoBack: boolean;
+  readonly canGoForward: boolean;
+  readonly dom: HcWebpageDom;
+  /**
+   * Focuses this browser tab in the tab bar.
+   */
+  focus(): Promise<void>;
+  /**
+   * Closes this browser tab. Returns false when the user cancels a leave prompt.
+   */
+  close(): Promise<boolean>;
+  /**
+   * Captures the visible viewport as PNG and writes it under the script file access root.
+   *
+   * @param path - Relative or absolute path under the script file root.
+   * @param options - Optional `{ fullPage }` (default false).
+   * @returns Absolute path of the written PNG.
+   */
+  screenshot(path: string, options?: { fullPage?: boolean }): Promise<{ path: string }>;
+}
+
+/**
  * Element surface exposed by hc.response.document() for HTML bodies.
  */
 interface HcResponseElement {
@@ -403,6 +459,15 @@ interface HcScriptApi {
    *   Omit model (or options) to use the first available model.
    */
   ask(prompt: string, options?: HcAskOptions): Promise<string | null>;
+  /**
+   * Opens or reuses an embedded browser tab and returns a control handle.
+   * Requires Settings → General → Allow script webpage access.
+   *
+   * @param url - Optional URL to open or reuse; omit to bind the active browser tab.
+   * @param options - Optional `{ reuse }` (default true).
+   * @throws When webpage access is disabled or unavailable in this context.
+   */
+  webpage(url?: string, options?: { reuse?: boolean }): Promise<HcWebpageHandle>;
   /**
    * Resolves after the given delay. Use for pacing between script steps.
    *

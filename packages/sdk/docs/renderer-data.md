@@ -162,6 +162,7 @@ Override any of these keys in `colors`. Each maps to `--mac-<token>` on the docu
 | `sidebar-rail`                                         | Activity rail background                                 |
 | `sidebar-rail-active`                                  | Active/hover activity rail section fill                  |
 | `sidebar-rail-text`                                    | Activity rail icons and labels                           |
+| `sidebar-rail-separator`                               | Activity rail hairline between item groups               |
 | `sidebar-section`                                      | Sidebar section headers                                  |
 | `sidebar-section-text`                                 | Sidebar section header labels and chevrons               |
 | `footer`                                               | Footer status bar background                             |
@@ -356,7 +357,7 @@ Plugin database files are included in HarborClient `.hcb` backups and removed wh
 
 ## hc.fs
 
-Plugin-scoped filesystem access backed by main-process permission checks and a per-plugin path allowlist. Requires `filesystem:pick` for open/save dialogs, `filesystem:read` for `readFile`, and `filesystem:write` for `writeFile`. User-selected paths from pick/save dialogs are added to the allowlist automatically; the plugin package directory is allowlisted on load. User-granted paths persist across app restarts and are restored when the plugin loads again.
+Plugin-scoped filesystem access backed by main-process permission checks and a per-plugin path allowlist. Requires `filesystem:pick` for open/save dialogs, `filesystem:read` for `readFile`, and `filesystem:write` for `writeFile` / `writeBytes`. User-selected paths from pick/save dialogs are added to the allowlist automatically; the plugin package directory is allowlisted on load. User-granted paths persist across app restarts and are restored when the plugin loads again.
 
 ### hc.fs.pickFile(options?)
 
@@ -394,6 +395,12 @@ Reads a UTF-8 text file from an allowlisted path. Requires the `filesystem:read`
 **Signature:** `(path: string, content: string) => Promise<void>`
 
 Writes UTF-8 text to an allowlisted path. Requires the `filesystem:write` permission.
+
+### hc.fs.writeBytes(path, bytes)
+
+**Signature:** `(path: string, bytes: Uint8Array) => Promise<string>`
+
+Writes binary bytes to an allowlisted path. Relative paths resolve under the plugin package directory. Returns the absolute path written. Requires the `filesystem:write` permission.
 
 ## hc.http
 
@@ -1093,6 +1100,68 @@ await hc.ai.copyToChat({
 Context longer than 100,000 characters is truncated with a clear marker. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) (or a CodeEditor `copy-to-chat` toolbar action) and call `hc.ai.copyToChat` from `onSelect`.
 
 See [Chat pointers](/examples/chat-pointers) for a full walkthrough.
+
+## hc.webpage
+
+Opens or reuses an embedded browser tab and returns a control handle (focus, close, DOM query/evaluate/inject, viewport screenshot).
+
+Requires the `browser` permission (granted at install/enable). This is independent of Settings → General → Allow script webpage access, which only gates request-script `hc.webpage`. Saving a screenshot with `page.screenshot` also requires `filesystem:write`.
+
+```ts
+export async function activate(hc: PluginContext): Promise<void> {
+  // Open or reuse a tab at this URL (reuse defaults to true). New tabs wait for load.
+  const page = await hc.webpage('https://example.com');
+
+  // Or always force a fresh tab:
+  // const page = await hc.webpage('https://example.com', { reuse: false });
+
+  // Or bind whatever browser tab is already active (no URL):
+  // const page = await hc.webpage();
+
+  console.log(page.tabId, page.url, page.title, page.canGoBack, page.canGoForward);
+
+  await page.focus();
+
+  // First matching element by default; use { all: true } for every match.
+  const heading = await page.dom.query('h1');
+  console.log(heading.matchCount, heading.elements);
+
+  const links = await page.dom.query('a[href]', { all: true, maxElements: 50 });
+  console.log(links.elements);
+
+  // Expression must return a JSON-serializable value.
+  const title = await page.dom.evaluate('document.title');
+  const meta = await page.dom.evaluate(`({
+    href: location.href,
+    readyState: document.readyState
+  })`);
+
+  // Inject and run script source in the page main world.
+  await page.dom.injectScript(`
+    document.body.dataset.harborProbe = '1';
+  `);
+
+  // Inject CSS; returns an Electron insertion key.
+  const styleKey = await page.dom.injectStylesheet(`
+    h1 { outline: 2px solid #32D2E2; }
+  `);
+  console.log(styleKey);
+
+  // Viewport PNG under the plugin package directory (requires filesystem:write).
+  const { path } = await page.screenshot('screenshot.png', {});
+  console.log(path);
+
+  // Full-page scroll-and-stitch capture.
+  const full = await page.screenshot('full.png', { fullPage: true });
+  console.log(full.path);
+
+  // false when the user cancels a leave prompt on a dirty page.
+  const closed = await page.close();
+  console.log(closed);
+}
+```
+
+Omit `url` to bind the active browser tab. Pass `{ reuse: false }` to always open a new tab (default `reuse` is `true`). New tabs wait for load before the promise resolves.
 
 ## Not extensible
 

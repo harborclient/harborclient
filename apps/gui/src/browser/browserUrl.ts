@@ -4,10 +4,30 @@
 const ALLOWED_BROWSER_PROTOCOLS = new Set(['http:', 'https:', 'about:']);
 
 /**
+ * Chromium view-source prefix used for "View Source" navigation.
+ */
+const VIEW_SOURCE_PREFIX = 'view-source:';
+
+/**
+ * Returns whether a URL uses the http or https scheme.
+ *
+ * @param url - Absolute URL candidate.
+ * @returns True when the URL parses as http or https.
+ */
+function isHttpOrHttpsUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Returns whether a URL is safe to load in an embedded browser guest.
  *
- * Allows http, https, and about:blank only. Rejects file, custom schemes,
- * javascript, and malformed URLs.
+ * Allows http, https, about:blank, and `view-source:` wrappers of http(s) only.
+ * Rejects file, custom schemes, javascript, nested view-source, and malformed URLs.
  *
  * @param url - Candidate navigation or address-bar URL.
  * @returns True when the guest may navigate to this URL.
@@ -16,6 +36,14 @@ export function isAllowedBrowserUrl(url: string): boolean {
   const trimmed = url.trim();
   if (!trimmed) {
     return false;
+  }
+
+  if (trimmed.toLowerCase().startsWith(VIEW_SOURCE_PREFIX)) {
+    const inner = trimmed.slice(VIEW_SOURCE_PREFIX.length);
+    if (inner.toLowerCase().startsWith(VIEW_SOURCE_PREFIX)) {
+      return false;
+    }
+    return isHttpOrHttpsUrl(inner);
   }
 
   let parsed: URL;
@@ -37,6 +65,29 @@ export function isAllowedBrowserUrl(url: string): boolean {
 }
 
 /**
+ * Builds a Chromium `view-source:` URL for an http(s) page.
+ *
+ * @param url - Absolute page URL to wrap.
+ * @returns `view-source:` URL, or null when the input is not http(s).
+ */
+export function toViewSourceUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return `${VIEW_SOURCE_PREFIX}${parsed.href}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Normalizes user address-bar input into a loadable URL.
  *
  * Bare hostnames get an https:// prefix. Returns null when the result is not
@@ -53,6 +104,16 @@ export function normalizeBrowserAddressInput(input: string): string | null {
 
   if (trimmed === 'about:blank') {
     return 'about:blank';
+  }
+
+  if (trimmed.toLowerCase().startsWith(VIEW_SOURCE_PREFIX)) {
+    const inner = trimmed.slice(VIEW_SOURCE_PREFIX.length);
+    try {
+      const normalizedInner = new URL(inner).href;
+      return toViewSourceUrl(normalizedInner);
+    } catch {
+      return null;
+    }
   }
 
   let candidate = trimmed;

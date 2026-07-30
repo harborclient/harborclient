@@ -15,6 +15,7 @@ import {
   clearPluginSidebarSelectionSubscribers,
   emitPluginSidebarSelectionChanged
 } from './pluginSidebarSelectionBus';
+import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
 
 const invokePluginMainMock =
   vi.fn<(pluginId: string, channel: string, args: unknown[]) => Promise<unknown>>();
@@ -226,5 +227,57 @@ describe('createPluginContext runtime surfaces', () => {
   it('rejects hc.database.get without the database permission', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['storage']));
     await expect(hc.database.get('SELECT 1')).rejects.toThrow(/lacks permission: database/);
+  });
+
+  it('rejects hc.webpage without the browser permission', async () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    await expect(hc.webpage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
+  });
+
+  it('opens, focuses, queries, and closes a webpage when browser permission is granted', async () => {
+    const execute = vi
+      .spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest')
+      .mockResolvedValueOnce({
+        tabId: 'browser-3',
+        url: 'https://example.com/',
+        title: 'Example',
+        canGoBack: false,
+        canGoForward: false
+      })
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        selector: 'h1',
+        matchCount: 1,
+        elements: [{ tagName: 'H1', textContent: 'Hello' }]
+      })
+      .mockResolvedValueOnce({ closed: true });
+
+    const hc = createPluginContext('com.example.test', createManifest(['browser']));
+    const page = await hc.webpage('https://example.com');
+
+    expect(page.tabId).toBe('browser-3');
+    expect(page.url).toBe('https://example.com/');
+    await page.focus();
+    await expect(page.dom.query('h1')).resolves.toEqual({
+      selector: 'h1',
+      matchCount: 1,
+      elements: [{ tagName: 'H1', textContent: 'Hello' }]
+    });
+    await expect(page.close()).resolves.toBe(true);
+
+    expect(execute).toHaveBeenNthCalledWith(1, {
+      op: 'open',
+      url: 'https://example.com',
+      reuse: undefined
+    });
+    expect(execute).toHaveBeenNthCalledWith(2, { op: 'focus', tabId: 'browser-3' });
+    expect(execute).toHaveBeenNthCalledWith(3, {
+      op: 'query',
+      tabId: 'browser-3',
+      selector: 'h1',
+      all: undefined,
+      maxElements: undefined
+    });
+    expect(execute).toHaveBeenNthCalledWith(4, { op: 'close', tabId: 'browser-3' });
   });
 });

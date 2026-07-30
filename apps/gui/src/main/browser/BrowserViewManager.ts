@@ -5,11 +5,20 @@ import type {
   BrowserInjectionScriptPayload,
   BrowserNavigationState,
   BrowserOpenTabRequest,
+  BrowserRequestDefaultsPayload,
   BrowserViewBounds,
+  KeyValue,
   ScriptRunInput,
   SendResult
 } from '@harborclient/core/types';
+import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
+import {
+  cropPngToHeight,
+  planFullPageCapture,
+  stitchPngBuffers
+} from '#/main/browser/stitchPngBuffers';
 import { isLeaveBrowserUnloadChoice } from '#/main/browser/browserUnloadPrompt';
+import { attachBrowserGuestContextMenu } from '#/main/browser/browserGuestContextMenu';
 import {
   selectScriptsForRunAt,
   type BrowserInjectionScript,
@@ -20,6 +29,7 @@ import {
   buildBrowserScriptRequest,
   type BrowserHcScriptSource
 } from '#/browser/browserHcScripts';
+import { buildBrowserLoadURLOptions } from '#/browser/browserLoadURLOptions';
 import {
   FAVICON_MAX_BYTES,
   FaviconCache,
@@ -32,7 +42,7 @@ import {
   isAcceptableFaviconContentType,
   isFaviconEligibleUrl
 } from '#/browser/browserFavicon';
-import { isAllowedBrowserUrl } from '#/browser/browserUrl';
+import { isAllowedBrowserUrl, toViewSourceUrl } from '#/browser/browserUrl';
 import {
   buildBrowserDomQueryScript,
   type BrowserDomQueryOptions,
@@ -94,6 +104,21 @@ interface BrowserGuestSession {
   snippetModuleConflicts: string[];
 
   /**
+   * Headers applied on chrome-driven loadURL navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Authorization applied on chrome-driven loadURL navigations.
+   */
+  auth: AuthConfig;
+
+  /**
+   * User-Agent override for chrome-driven navigations; empty keeps Chromium default.
+   */
+  userAgent: string;
+
+  /**
    * Whether the guest is currently shown.
    */
   visible: boolean;
@@ -149,6 +174,24 @@ function applyHcScriptsPayload(
   if (hcScripts.snippetModuleConflicts) {
     session.snippetModuleConflicts = [...hcScripts.snippetModuleConflicts];
   }
+  if (hcScripts.requestDefaults) {
+    applyRequestDefaults(session, hcScripts.requestDefaults);
+  }
+}
+
+/**
+ * Copies request defaults onto a guest session.
+ *
+ * @param session - Guest session to update.
+ * @param defaults - Headers, auth, and User-Agent for chrome-driven navigations.
+ */
+function applyRequestDefaults(
+  session: BrowserGuestSession,
+  defaults: BrowserRequestDefaultsPayload
+): void {
+  session.headers = defaults.headers.map((row) => ({ ...row }));
+  session.auth = normalizeAuth(defaults.auth);
+  session.userAgent = typeof defaults.userAgent === 'string' ? defaults.userAgent : '';
 }
 
 /**
@@ -217,6 +260,9 @@ export class BrowserViewManager {
       postRequestScripts: [],
       snippetModules: {},
       snippetModuleConflicts: [],
+      headers: [],
+      auth: defaultAuth(),
+      userAgent: '',
       visible: false,
       bounds: { x: 0, y: 0, width: 0, height: 0 },
       faviconDataUrl: null,
@@ -234,6 +280,7 @@ export class BrowserViewManager {
     this.#attachGuestShortcutDispatch(view);
     this.#attachNavigationEvents(tabId, view);
     this.#attachInjectionHooks(tabId, view);
+    this.#attachGuestContextMenu(tabId, view);
 
     session.pendingLoad = this.#trackPendingLoad(
       tabId,
@@ -506,16 +553,18 @@ export class BrowserViewManager {
   }
 
   /**
-   * Reloads the current guest page.
+   * Reloads the current guest page via chrome-driven navigation so request defaults apply.
    *
    * @param tabId - Browser tab id.
    */
-  reload(tabId: string): void {
+  async reload(tabId: string): Promise<void> {
     const session = this.#sessions.get(tabId);
     if (!session) {
       return;
     }
-    session.view.webContents.reload();
+    const currentUrl = session.view.webContents.getURL();
+    const target = isAllowedBrowserUrl(currentUrl) ? currentUrl : session.homeUrl;
+    await this.#navigateWithPreScripts(tabId, target || 'about:blank');
   }
 
   /**
@@ -589,6 +638,117 @@ export class BrowserViewManager {
   async insertCSS(tabId: string, css: string): Promise<string> {
     const webContents = this.#requireLiveWebContents(tabId);
     return webContents.insertCSS(css);
+  }
+
+  /**
+   * Captures a PNG screenshot of the guest viewport, or the full scrollable page.
+   *
+   * Viewport mode uses a single Electron `webContents.capturePage()`. Full-page
+   * mode scrolls in viewport-sized steps, captures each tile, stitches with jimp,
+   * then restores the original scroll position. Pages taller than the height/tile
+   * caps are truncated from the top rather than rejected.
+   *
+   * @param tabId - Browser tab id.
+   * @param options - Optional `{ fullPage }` (default false).
+   * @returns PNG data URL, base64 payload, and optional truncation flag.
+   * @throws When no guest exists or the webContents is destroyed.
+   */
+  async capturePage(
+    tabId: string,
+    options?: { fullPage?: boolean }
+  ): Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }> {
+    if (options?.fullPage === true) {
+      return this.#captureFullPage(tabId);
+    }
+    return this.#captureViewport(tabId);
+  }
+
+  /**
+   * Captures the currently visible guest viewport as PNG.
+   *
+   * @param tabId - Browser tab id.
+   * @returns PNG data URL and base64 payload.
+   */
+  async #captureViewport(
+    tabId: string
+  ): Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }> {
+    const webContents = this.#requireLiveWebContents(tabId);
+    const image = await webContents.capturePage();
+    const png = image.toPNG();
+    const pngBase64 = png.toString('base64');
+    return {
+      dataUrl: `data:image/png;base64,${pngBase64}`,
+      pngBase64
+    };
+  }
+
+  /**
+   * Scrolls the guest page in viewport steps, captures tiles, and stitches a full-page PNG.
+   *
+   * Tall pages are capped at the configured height/tile limits;
+   * the capture starts at the top of the document.
+   *
+   * @param tabId - Browser tab id.
+   * @returns Stitched PNG data URL, base64 payload, and whether height was truncated.
+   */
+  async #captureFullPage(
+    tabId: string
+  ): Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }> {
+    const webContents = this.#requireLiveWebContents(tabId);
+    const metrics = (await webContents.executeJavaScript(
+      `({
+        scrollY: window.scrollY || window.pageYOffset || 0,
+        scrollHeight: Math.max(
+          document.documentElement.scrollHeight || 0,
+          document.body ? document.body.scrollHeight : 0,
+          document.documentElement.clientHeight || 0
+        ),
+        innerHeight: window.innerHeight || document.documentElement.clientHeight || 0
+      })`,
+      true
+    )) as { scrollY: number; scrollHeight: number; innerHeight: number };
+
+    const viewportHeight = Math.max(1, Math.floor(Number(metrics.innerHeight) || 0));
+    const pageHeight = Math.max(viewportHeight, Math.floor(Number(metrics.scrollHeight) || 0));
+    const originalScrollY = Number(metrics.scrollY) || 0;
+    const { captureHeight, tileCount, truncated } = planFullPageCapture(pageHeight, viewportHeight);
+
+    const tiles: Buffer[] = [];
+    try {
+      for (let index = 0; index < tileCount; index += 1) {
+        const targetY = index * viewportHeight;
+        if (targetY >= captureHeight) {
+          break;
+        }
+        await webContents.executeJavaScript(`window.scrollTo(0, ${targetY})`, true);
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 75);
+        });
+        const image = await webContents.capturePage();
+        let png = image.toPNG();
+        const sliceHeight = Math.min(viewportHeight, captureHeight - targetY);
+        if (sliceHeight < viewportHeight) {
+          png = await cropPngToHeight(png, sliceHeight);
+        }
+        tiles.push(png);
+      }
+    } finally {
+      try {
+        if (!webContents.isDestroyed()) {
+          await webContents.executeJavaScript(`window.scrollTo(0, ${originalScrollY})`, true);
+        }
+      } catch {
+        // Best-effort scroll restore after capture failures.
+      }
+    }
+
+    const stitched = await stitchPngBuffers(tiles);
+    const pngBase64 = stitched.toString('base64');
+    return {
+      dataUrl: `data:image/png;base64,${pngBase64}`,
+      pngBase64,
+      truncated: truncated || undefined
+    };
   }
 
   /**
@@ -861,6 +1021,58 @@ export class BrowserViewManager {
   }
 
   /**
+   * Attaches the guest right-click menu (Back / Forward / Home / View Source) to a browser tab.
+   *
+   * Inspect Element is included by the menu helper when developer tooling is enabled.
+   *
+   * @param tabId - Browser tab id whose navigation methods handle menu actions.
+   * @param view - Guest view that receives right-clicks.
+   */
+  #attachGuestContextMenu(tabId: string, view: WebContentsView): void {
+    attachBrowserGuestContextMenu(view, getRegisteredMainWindow, {
+      onBack: () => {
+        void this.goBack(tabId);
+      },
+      onForward: () => {
+        void this.goForward(tabId);
+      },
+      onHome: () => {
+        void this.goHome(tabId);
+      },
+      onViewSource: () => {
+        this.#openViewSourceTab(tabId, view);
+      }
+    });
+  }
+
+  /**
+   * Opens a new browser tab showing Chromium view-source for the guest's current URL.
+   *
+   * @param tabId - Source browser tab id (for home/script inheritance).
+   * @param view - Guest whose current URL is wrapped.
+   */
+  #openViewSourceTab(tabId: string, view: WebContentsView): void {
+    const { webContents } = view;
+    if (webContents.isDestroyed()) {
+      return;
+    }
+    const viewSourceUrl = toViewSourceUrl(webContents.getURL());
+    if (!viewSourceUrl || !isAllowedBrowserUrl(viewSourceUrl)) {
+      return;
+    }
+    const window = getRegisteredMainWindow();
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+    const request: BrowserOpenTabRequest = {
+      url: viewSourceUrl,
+      sourceTabId: tabId,
+      activate: true
+    };
+    window.webContents.send('browser:open-tab', request);
+  }
+
+  /**
    * Forwards HarborClient action shortcuts (e.g. Ctrl+S Save) from a focused
    * guest to the main renderer, preventing Chromium from handling them (Save Page).
    *
@@ -961,7 +1173,12 @@ export class BrowserViewManager {
     }
     const target = navigatedUrl && isAllowedBrowserUrl(navigatedUrl) ? navigatedUrl : url;
     try {
-      await session.view.webContents.loadURL(target);
+      const loadOptions = buildBrowserLoadURLOptions(
+        session.headers,
+        session.auth,
+        session.userAgent
+      );
+      await session.view.webContents.loadURL(target, loadOptions);
     } catch (error: unknown) {
       logVerbose('browser guest loadURL failed', { tabId, url: target, error: String(error) });
     }

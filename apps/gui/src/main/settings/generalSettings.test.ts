@@ -11,6 +11,7 @@ import {
   isPluginNetworkAllowed,
   isScriptFileReadAllowed,
   isScriptFileWriteAllowed,
+  isScriptWebpageAllowed,
   normalizeGeneralSettings,
   setGeneralSettings
 } from './generalSettings';
@@ -131,6 +132,11 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().allowScriptFileWrite).toBe(false);
     expect(isScriptFileReadAllowed()).toBe(false);
     expect(isScriptFileWriteAllowed()).toBe(false);
+  });
+
+  it('defaults allowScriptWebpage to false', () => {
+    expect(getGeneralSettings().allowScriptWebpage).toBe(false);
+    expect(isScriptWebpageAllowed()).toBe(false);
   });
 
   it('persists script file access settings', () => {

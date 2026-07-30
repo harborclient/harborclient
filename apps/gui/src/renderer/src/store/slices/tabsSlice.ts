@@ -1,5 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CollectionDocument, SavedRequest, ScriptRef } from '@harborclient/core/types';
+import type {
+  KeyValue,
+  CollectionDocument,
+  SavedRequest,
+  ScriptRef,
+  Variable
+} from '@harborclient/core/types';
+import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
 import {
   cloneDraft,
   createBrowserTab,
@@ -346,7 +353,15 @@ const tabsSlice = createSlice({
               pre_request_scripts: source.pre_request_scripts,
               post_request_scripts: source.post_request_scripts,
               savedPreRequestScripts: source.savedPreRequestScripts,
-              savedPostRequestScripts: source.savedPostRequestScripts
+              savedPostRequestScripts: source.savedPostRequestScripts,
+              variables: source.variables,
+              savedVariables: source.savedVariables,
+              headers: source.headers,
+              savedHeaders: source.savedHeaders,
+              userAgent: source.userAgent,
+              savedUserAgent: source.savedUserAgent,
+              auth: source.auth,
+              savedAuth: source.savedAuth
             }
           : { url };
       const tab = createBrowserTab(inherited);
@@ -473,7 +488,47 @@ const tabsSlice = createSlice({
       tab.post_request_scripts = action.payload.scripts;
     },
     /**
-     * Commits draft injection and hc.* scripts to the saved baselines used at runtime.
+     * Replaces draft live-page variables on a browser tab.
+     */
+    setBrowserVariables(state, action: PayloadAction<{ tabId: string; variables: Variable[] }>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.variables = action.payload.variables;
+    },
+    /**
+     * Replaces draft live-page headers on a browser tab.
+     */
+    setBrowserHeaders(state, action: PayloadAction<{ tabId: string; headers: KeyValue[] }>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.headers = action.payload.headers;
+    },
+    /**
+     * Replaces draft live-page User-Agent on a browser tab.
+     */
+    setBrowserUserAgent(state, action: PayloadAction<{ tabId: string; userAgent: string }>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.userAgent = action.payload.userAgent;
+    },
+    /**
+     * Replaces draft live-page authorization on a browser tab.
+     */
+    setBrowserAuth(state, action: PayloadAction<{ tabId: string; auth: AuthConfig }>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.auth = normalizeAuth(action.payload.auth);
+    },
+    /**
+     * Commits draft live-page settings (scripts, variables, headers, auth) to saved baselines.
      */
     saveBrowserScripts(state, action: PayloadAction<string>) {
       const tab = state.tabs.find((t) => t.tabId === action.payload);
@@ -483,6 +538,15 @@ const tabsSlice = createSlice({
       tab.savedScripts = tab.scripts.map((script) => ({ ...script }));
       tab.savedPreRequestScripts = tab.pre_request_scripts.map((script) => ({ ...script }));
       tab.savedPostRequestScripts = tab.post_request_scripts.map((script) => ({ ...script }));
+      tab.savedVariables = tab.variables.map((variable) => ({ ...variable }));
+      tab.savedHeaders = tab.headers.map((header) => ({ ...header }));
+      tab.savedUserAgent = tab.userAgent;
+      tab.savedAuth = {
+        ...normalizeAuth(tab.auth),
+        basic: { ...tab.auth.basic },
+        bearer: { ...tab.auth.bearer },
+        oauth2: { ...tab.auth.oauth2 }
+      };
     },
     /**
      * Binds a browser tab to a saved website and refreshes saved baselines from current state.
@@ -508,6 +572,15 @@ const tabsSlice = createSlice({
       tab.savedScripts = tab.scripts.map((script) => ({ ...script }));
       tab.savedPreRequestScripts = tab.pre_request_scripts.map((script) => ({ ...script }));
       tab.savedPostRequestScripts = tab.post_request_scripts.map((script) => ({ ...script }));
+      tab.savedVariables = tab.variables.map((variable) => ({ ...variable }));
+      tab.savedHeaders = tab.headers.map((header) => ({ ...header }));
+      tab.savedUserAgent = tab.userAgent;
+      tab.savedAuth = {
+        ...normalizeAuth(tab.auth),
+        basic: { ...tab.auth.basic },
+        bearer: { ...tab.auth.bearer },
+        oauth2: { ...tab.auth.oauth2 }
+      };
     },
     /**
      * Opens a browser tab hydrated from a saved website entity and selects it.
@@ -524,6 +597,10 @@ const tabsSlice = createSlice({
         scripts: BrowserInjectionScript[];
         pre_request_scripts: ScriptRef[];
         post_request_scripts: ScriptRef[];
+        variables?: Variable[];
+        headers?: KeyValue[];
+        userAgent?: string;
+        auth?: AuthConfig;
       }>
     ) {
       const existing = state.tabs.find(
@@ -537,6 +614,10 @@ const tabsSlice = createSlice({
       const scripts = action.payload.scripts.map((script) => ({ ...script }));
       const pre = action.payload.pre_request_scripts.map((script) => ({ ...script }));
       const post = action.payload.post_request_scripts.map((script) => ({ ...script }));
+      const variables = (action.payload.variables ?? []).map((variable) => ({ ...variable }));
+      const headers = (action.payload.headers ?? []).map((header) => ({ ...header }));
+      const auth = normalizeAuth(action.payload.auth ?? defaultAuth());
+      const userAgent = action.payload.userAgent ?? '';
       const tab = createBrowserTab({
         title: action.payload.title,
         url: action.payload.url,
@@ -548,6 +629,19 @@ const tabsSlice = createSlice({
         post_request_scripts: post,
         savedPreRequestScripts: pre.map((script) => ({ ...script })),
         savedPostRequestScripts: post.map((script) => ({ ...script })),
+        variables,
+        savedVariables: variables.map((variable) => ({ ...variable })),
+        headers,
+        savedHeaders: headers.map((header) => ({ ...header })),
+        userAgent,
+        savedUserAgent: userAgent,
+        auth,
+        savedAuth: {
+          ...auth,
+          basic: { ...auth.basic },
+          bearer: { ...auth.bearer },
+          oauth2: { ...auth.oauth2 }
+        },
         websiteId: action.payload.websiteId,
         websiteUuid: action.payload.websiteUuid,
         savedUrl: action.payload.url,
@@ -559,7 +653,7 @@ const tabsSlice = createSlice({
       state.activeTabId = tab.tabId;
     },
     /**
-     * Discards draft injection and hc.* script edits and restores the last saved baselines.
+     * Discards draft live-page settings and restores the last saved baselines.
      */
     discardBrowserScripts(state, action: PayloadAction<string>) {
       const tab = state.tabs.find((t) => t.tabId === action.payload);
@@ -569,6 +663,15 @@ const tabsSlice = createSlice({
       tab.scripts = tab.savedScripts.map((script) => ({ ...script }));
       tab.pre_request_scripts = tab.savedPreRequestScripts.map((script) => ({ ...script }));
       tab.post_request_scripts = tab.savedPostRequestScripts.map((script) => ({ ...script }));
+      tab.variables = tab.savedVariables.map((variable) => ({ ...variable }));
+      tab.headers = tab.savedHeaders.map((header) => ({ ...header }));
+      tab.userAgent = tab.savedUserAgent;
+      tab.auth = {
+        ...normalizeAuth(tab.savedAuth),
+        basic: { ...tab.savedAuth.basic },
+        bearer: { ...tab.savedAuth.bearer },
+        oauth2: { ...tab.savedAuth.oauth2 }
+      };
     },
     /**
      * Patches arbitrary browser tab fields (for example homeUrl).
@@ -928,6 +1031,10 @@ export const {
   setBrowserScripts,
   setBrowserPreRequestScripts,
   setBrowserPostRequestScripts,
+  setBrowserVariables,
+  setBrowserHeaders,
+  setBrowserUserAgent,
+  setBrowserAuth,
   saveBrowserScripts,
   bindBrowserTabToWebsite,
   openBrowserTabFromWebsite,

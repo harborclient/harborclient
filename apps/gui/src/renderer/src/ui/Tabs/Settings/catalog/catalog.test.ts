@@ -21,6 +21,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.allowScriptNetworkRequests',
   'general.allowScriptFileRead',
   'general.allowScriptFileWrite',
+  'general.allowScriptWebpage',
   'general.scriptFileRoot',
   'general.workflowResultsDirectory',
   'general.maxResponseSizeMb',

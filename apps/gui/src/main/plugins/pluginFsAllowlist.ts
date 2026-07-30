@@ -86,6 +86,22 @@ export class PluginFsAllowlist {
   }
 
   /**
+   * Writes binary bytes when the path is allowlisted.
+   *
+   * @param pluginId - Plugin manifest id.
+   * @param targetPath - Absolute file path.
+   * @param bytes - Binary payload to write.
+   * @returns Normalized absolute path written.
+   */
+  writeBytesFile(pluginId: string, targetPath: string, bytes: Uint8Array): string {
+    this.assertAllowed(pluginId, targetPath);
+    const normalized = normalizePath(targetPath);
+    mkdirSync(dirname(normalized), { recursive: true });
+    writeFileSync(normalized, bytes);
+    return normalized;
+  }
+
+  /**
    * Throws when a path is outside the plugin allowlist.
    *
    * @param pluginId - Plugin manifest id.

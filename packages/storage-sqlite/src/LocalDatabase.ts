@@ -14,6 +14,8 @@ import { migrateSidebarMarkerColumn, serializeSidebarMarker } from './sidebarMar
 import { wouldCreateEnvironmentInheritanceCycle } from '@harborclient/core/environmentTree';
 import { readSidebarMarker } from '@harborclient/core/sidebarMarker';
 import { DEFAULT_CHAT_TITLE, normalizeChatTitle } from '@harborclient/core/ai/chatTitle';
+import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
+import { normalizeVariable } from '@harborclient/core/filestore/variables';
 import type {
   Chat,
   ChatMessage,
@@ -23,6 +25,7 @@ import type {
   CreateWorkflowInput,
   CreateWorkspaceInput,
   Environment,
+  KeyValue,
   RequestHistoryEntry,
   ScriptRef,
   Snippet,
@@ -81,6 +84,48 @@ interface WebsitePayloadJson {
   scripts: WebsiteInjectionScript[];
   preRequestScripts: ScriptRef[];
   postRequestScripts: ScriptRef[];
+  variables: Variable[];
+  headers: KeyValue[];
+  userAgent: string;
+  auth: AuthConfig;
+}
+
+/**
+ * Normalizes a partial key/value row from website payload JSON.
+ *
+ * @param row - Raw header row candidate.
+ * @returns Normalized KeyValue, or null when the row is not an object.
+ */
+function normalizeWebsiteKeyValue(row: unknown): KeyValue | null {
+  if (!row || typeof row !== 'object') {
+    return null;
+  }
+  const candidate = row as Partial<KeyValue>;
+  return {
+    key: typeof candidate.key === 'string' ? candidate.key : '',
+    value: typeof candidate.value === 'string' ? candidate.value : '',
+    enabled: candidate.enabled !== false
+  };
+}
+
+/**
+ * Empty website payload used when JSON parse fails or fields are missing.
+ *
+ * @returns Default website payload fields.
+ */
+function emptyWebsitePayload(): WebsitePayloadJson {
+  return {
+    url: 'about:blank',
+    homeUrl: 'about:blank',
+    faviconDataUrl: null,
+    scripts: [],
+    preRequestScripts: [],
+    postRequestScripts: [],
+    variables: [],
+    headers: [],
+    userAgent: '',
+    auth: defaultAuth()
+  };
 }
 
 /**
@@ -2904,17 +2949,21 @@ export class LocalDatabase {
           : [],
         postRequestScripts: Array.isArray(parsed.postRequestScripts)
           ? (parsed.postRequestScripts as ScriptRef[])
-          : []
+          : [],
+        variables: Array.isArray(parsed.variables)
+          ? parsed.variables.map((row) => normalizeVariable((row ?? {}) as Partial<Variable>))
+          : [],
+        headers: Array.isArray(parsed.headers)
+          ? parsed.headers.flatMap((row): KeyValue[] => {
+              const normalized = normalizeWebsiteKeyValue(row);
+              return normalized ? [normalized] : [];
+            })
+          : [],
+        userAgent: typeof parsed.userAgent === 'string' ? parsed.userAgent : '',
+        auth: normalizeAuth(parsed.auth ?? defaultAuth())
       };
     } catch {
-      return {
-        url: 'about:blank',
-        homeUrl: 'about:blank',
-        faviconDataUrl: null,
-        scripts: [],
-        preRequestScripts: [],
-        postRequestScripts: []
-      };
+      return emptyWebsitePayload();
     }
   }
 
@@ -2948,6 +2997,10 @@ export class LocalDatabase {
         scripts: payload.scripts,
         preRequestScripts: payload.preRequestScripts,
         postRequestScripts: payload.postRequestScripts,
+        variables: payload.variables,
+        headers: payload.headers,
+        userAgent: payload.userAgent,
+        auth: payload.auth,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       };
@@ -2982,7 +3035,11 @@ export class LocalDatabase {
       faviconDataUrl: input.faviconDataUrl ?? null,
       scripts: input.scripts ?? [],
       preRequestScripts: input.preRequestScripts ?? [],
-      postRequestScripts: input.postRequestScripts ?? []
+      postRequestScripts: input.postRequestScripts ?? [],
+      variables: input.variables ?? [],
+      headers: input.headers ?? [],
+      userAgent: input.userAgent ?? '',
+      auth: normalizeAuth(input.auth ?? defaultAuth())
     } satisfies WebsitePayloadJson);
 
     this.getDb()
@@ -3016,7 +3073,11 @@ export class LocalDatabase {
       faviconDataUrl: input.faviconDataUrl ?? null,
       scripts: input.scripts,
       preRequestScripts: input.preRequestScripts,
-      postRequestScripts: input.postRequestScripts
+      postRequestScripts: input.postRequestScripts,
+      variables: input.variables,
+      headers: input.headers,
+      userAgent: input.userAgent,
+      auth: normalizeAuth(input.auth)
     } satisfies WebsitePayloadJson);
 
     this.getDb()

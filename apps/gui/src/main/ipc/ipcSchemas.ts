@@ -288,6 +288,7 @@ export const generalSettings = z.object({
   allowedNetworkPlugins: z.array(z.string()),
   allowScriptFileRead: z.boolean(),
   allowScriptFileWrite: z.boolean(),
+  allowScriptWebpage: z.boolean(),
   scriptFileRoot: z.string(),
   workflowResultsDirectory: z.string(),
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
@@ -771,7 +772,11 @@ export const createWebsiteInput = z.object({
   faviconDataUrl: z.union([z.string(), z.null()]).optional(),
   scripts: z.array(websiteInjectionScript).optional(),
   preRequestScripts: ipcScriptRefArray.optional(),
-  postRequestScripts: ipcScriptRefArray.optional()
+  postRequestScripts: ipcScriptRefArray.optional(),
+  variables: z.array(variable).optional(),
+  headers: z.array(keyValue).optional(),
+  userAgent: z.string().optional(),
+  auth: authConfig.optional()
 }) satisfies z.ZodType<CreateWebsiteInput>;
 
 export const updateWebsiteInput = z.object({
@@ -782,7 +787,11 @@ export const updateWebsiteInput = z.object({
   faviconDataUrl: z.union([z.string(), z.null()]).optional(),
   scripts: z.array(websiteInjectionScript),
   preRequestScripts: ipcScriptRefArray,
-  postRequestScripts: ipcScriptRefArray
+  postRequestScripts: ipcScriptRefArray,
+  variables: z.array(variable),
+  headers: z.array(keyValue),
+  userAgent: z.string(),
+  auth: authConfig
 }) satisfies z.ZodType<UpdateWebsiteInput>;
 
 /**
@@ -986,6 +995,14 @@ export const ipcArgSchemas = {
   panelLayoutSet: z.tuple([panelLayout]),
   openTabsPayloadSet: z.tuple([z.string().min(1)]),
   browserTabId: z.tuple([z.string().min(1)]),
+  browserCapturePage: z.tuple([
+    z.string().min(1),
+    z
+      .object({
+        fullPage: z.boolean().optional()
+      })
+      .optional()
+  ]),
   browserCreate: z.tuple([
     z.string().min(1),
     z.string().min(1),
@@ -1020,7 +1037,14 @@ export const ipcArgSchemas = {
           )
           .optional(),
         snippetModules: z.record(z.string(), z.string()).optional(),
-        snippetModuleConflicts: z.array(z.string()).optional()
+        snippetModuleConflicts: z.array(z.string()).optional(),
+        requestDefaults: z
+          .object({
+            headers: z.array(keyValue),
+            auth: authConfig,
+            userAgent: z.string()
+          })
+          .optional()
       })
       .optional()
   ]),
@@ -1067,7 +1091,14 @@ export const ipcArgSchemas = {
           )
           .optional(),
         snippetModules: z.record(z.string(), z.string()).optional(),
-        snippetModuleConflicts: z.array(z.string()).optional()
+        snippetModuleConflicts: z.array(z.string()).optional(),
+        requestDefaults: z
+          .object({
+            headers: z.array(keyValue),
+            auth: authConfig,
+            userAgent: z.string()
+          })
+          .optional()
       })
       .optional()
   ]),
@@ -1365,6 +1396,14 @@ export const ipcArgSchemas = {
     pluginId,
     z.string().min(1),
     z.string().max(MAX_IPC_REQUEST_BODY_CHARS)
+  ]),
+  pluginFsWriteBytes: z.tuple([
+    pluginId,
+    z.string().min(1),
+    z
+      .string()
+      .min(1)
+      .max(50 * 1024 * 1024)
   ]),
   pluginFsWatchFile: z.tuple([pluginId, z.string().min(1)]),
   pluginFsUnwatchFile: z.tuple([pluginId, z.string().min(1)]),

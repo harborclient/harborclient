@@ -1,7 +1,7 @@
 import 'ses';
 import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '../types';
 import { evaluateScript } from './scriptEvaluator';
-import type { ScriptAskRequest } from './scriptApi';
+import type { ScriptAskRequest, ScriptWebpageRequest } from './scriptApi';
 import type { ScriptFileRequest } from './scriptFileOperations';
 
 // errorTaming 'unsafe' keeps Error.prototype.stack intact. The default 'safe'
@@ -74,13 +74,31 @@ interface AskErrorReply {
   error: string;
 }
 
+interface WebpageSuccessReply {
+  kind: 'webpage-reply';
+  runId: number;
+  webpageId: number;
+  ok: true;
+  result: unknown;
+}
+
+interface WebpageErrorReply {
+  kind: 'webpage-reply';
+  runId: number;
+  webpageId: number;
+  ok: false;
+  error: string;
+}
+
 type ParentReply =
   | NetSuccessReply
   | NetErrorReply
   | FileSuccessReply
   | FileErrorReply
   | AskSuccessReply
-  | AskErrorReply;
+  | AskErrorReply
+  | WebpageSuccessReply
+  | WebpageErrorReply;
 
 interface PendingNetworkCall {
   resolve: (result: SendResult) => void;
@@ -94,6 +112,11 @@ interface PendingFileCall {
 
 interface PendingAskCall {
   resolve: (result: string | null) => void;
+  reject: (error: Error) => void;
+}
+
+interface PendingWebpageCall {
+  resolve: (result: unknown) => void;
   reject: (error: Error) => void;
 }
 
@@ -126,6 +149,9 @@ const pendingFileCalls = new Map<number, PendingFileCall>();
 
 let nextAskId = 1;
 const pendingAskCalls = new Map<number, PendingAskCall>();
+
+let nextWebpageId = 1;
+const pendingWebpageCalls = new Map<number, PendingWebpageCall>();
 
 /**
  * Rejects every pending hc.sendRequest promise when the runner shuts down.
@@ -161,6 +187,18 @@ function rejectAllPendingAskCalls(message: string): void {
     pending.reject(new Error(message));
   }
   pendingAskCalls.clear();
+}
+
+/**
+ * Rejects every pending hc.webpage promise when the runner shuts down.
+ *
+ * @param message - Error message applied to each pending webpage call.
+ */
+function rejectAllPendingWebpageCalls(message: string): void {
+  for (const pending of pendingWebpageCalls.values()) {
+    pending.reject(new Error(message));
+  }
+  pendingWebpageCalls.clear();
 }
 
 /**
@@ -227,6 +265,27 @@ function createAskTransport(runId: number): (req: ScriptAskRequest) => Promise<s
 }
 
 /**
+ * Builds the hc.webpage transport that bridges to the main process runner host.
+ *
+ * @param runId - Correlation id for the active script run message.
+ * @returns Async webpage function injected into the script sandbox.
+ */
+function createWebpageTransport(runId: number): (req: ScriptWebpageRequest) => Promise<unknown> {
+  return (req) =>
+    new Promise<unknown>((resolve, reject) => {
+      const port = utilityProcess.parentPort;
+      if (!port) {
+        reject(new Error('Script webpage bridge is unavailable'));
+        return;
+      }
+
+      const webpageId = nextWebpageId++;
+      pendingWebpageCalls.set(webpageId, { resolve, reject });
+      port.postMessage({ kind: 'webpage', runId, webpageId, req });
+    });
+}
+
+/**
  * Handles a single script run request from the main process.
  *
  * @param message - Correlation id and script input payload.
@@ -241,7 +300,8 @@ async function handleRunMessage(message: RunMessage): Promise<void> {
     const result = await evaluateScript(message.input, {
       sendRequest: createNetworkTransport(message.id),
       fileBridge: createFileTransport(message.id),
-      ask: createAskTransport(message.id)
+      ask: createAskTransport(message.id),
+      webpage: createWebpageTransport(message.id)
     });
     const reply: SuccessReply = { id: message.id, ok: true, result };
     port.postMessage(reply);
@@ -302,6 +362,20 @@ if (port) {
       return;
     }
 
+    if ('kind' in message && message.kind === 'webpage-reply') {
+      const pending = pendingWebpageCalls.get(message.webpageId);
+      if (!pending) {
+        return;
+      }
+      pendingWebpageCalls.delete(message.webpageId);
+      if (message.ok) {
+        pending.resolve(message.result);
+      } else {
+        pending.reject(new Error(message.error));
+      }
+      return;
+    }
+
     void handleRunMessage(message as RunMessage);
   });
 }
@@ -310,4 +384,5 @@ process.on('exit', () => {
   rejectAllPendingNetworkCalls('Script runner exited');
   rejectAllPendingFileCalls('Script runner exited');
   rejectAllPendingAskCalls('Script runner exited');
+  rejectAllPendingWebpageCalls('Script runner exited');
 });

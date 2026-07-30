@@ -79,7 +79,7 @@ const DEFAULT_SHOW_SORTING = false;
  * workflows. Array order is the visual accordion order.
  */
 export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionKey[]> = {
-  collections: ['collections', 'websites', 'runResults', 'history', 'archive'],
+  collections: ['collections', 'runResults', 'history', 'archive', 'websites'],
   environments: ['environments'],
   workspaces: ['workspaces'],
   workflows: ['workflows', 'history', 'archive'],

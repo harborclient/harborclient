@@ -47,7 +47,7 @@ export function registerBrowserHandlers(): void {
   });
 
   handle('browser:reload', ipcArgSchemas.browserTabId, (_event, tabId) => {
-    getBrowserViewManager().reload(tabId);
+    void getBrowserViewManager().reload(tabId);
   });
 
   handle('browser:goHome', ipcArgSchemas.browserTabId, (_event, tabId) => {
@@ -85,5 +85,9 @@ export function registerBrowserHandlers(): void {
 
   handle('browser:waitForLoad', ipcArgSchemas.browserWaitForLoad, (_event, tabId, timeoutMs) =>
     getBrowserViewManager().waitForLoad(tabId, timeoutMs)
+  );
+
+  handle('browser:capturePage', ipcArgSchemas.browserCapturePage, (_event, tabId, options) =>
+    getBrowserViewManager().capturePage(tabId, options)
   );
 }

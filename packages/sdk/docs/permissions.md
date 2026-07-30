@@ -16,9 +16,14 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
 | `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar via `hc.ai`                                                                        |
+| `browser`          | Open and control embedded browser tabs via `hc.webpage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)     |
 
 Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers only; the host checks permissions and path allowlists on each call.
 
 Paths the user selects through `hc.fs.pickFile`, `hc.fs.pickDirectory`, or `hc.fs.saveFile` are added to the allowlist automatically and **persist across app restarts**. The host restores those grants when the plugin loads again; plugins do not need to re-prompt every session for the same file.
 
 Declare required permissions in [Manifest](/manifest) under `permissions`.
+
+### `browser`
+
+Grants `hc.webpage` for opening and controlling embedded browser tabs (focus, close, DOM query/evaluate/inject, viewport or full-page screenshot). Access is granted when the user installs or enables a plugin that declares `browser` — it is **not** gated by Settings → General → Allow script webpage access (that setting applies only to request scripts). `page.screenshot` also requires `filesystem:write` to save the PNG. Pass `{ fullPage: true }` for a scroll-and-stitch capture.

@@ -35,6 +35,7 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
   'general.allowScriptNetworkRequests',
   'general.allowScriptFileRead',
   'general.allowScriptFileWrite',
+  'general.allowScriptWebpage',
   'general.scriptFileRoot',
   'general.maxResponseSizeMb',
   'general.verifySsl',
@@ -117,7 +118,7 @@ function createDraftDispatch(draft: {
 
 describe('SETTING_FIELD_BINDINGS', () => {
   it('registers a binding for every SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(33);
+    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(34);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
       [...SETTINGS_FIELD_REGISTRY_IDS].sort()
     );

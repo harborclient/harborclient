@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance browser functionality and introduce webpage scripting support. (`e4be8c89`)
 - Add browser-related features and tests. (`2f8eb307`)
 
 ## 0.2.8 - 2026-07-29

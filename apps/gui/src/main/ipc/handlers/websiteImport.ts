@@ -1,4 +1,5 @@
 import type { ImportAction, Website } from '@harborclient/core/types';
+import { defaultAuth } from '@harborclient/core/auth';
 import { validateWebsiteExport } from '@harborclient/core/types/website';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 
@@ -39,6 +40,10 @@ export function importWebsiteData(parsed: unknown): WebsiteImportResult | null {
   const scripts = exportData.scripts ?? [];
   const preRequestScripts = exportData.pre_request_scripts ?? [];
   const postRequestScripts = exportData.post_request_scripts ?? [];
+  const variables = exportData.variables ?? [];
+  const headers = exportData.headers ?? [];
+  const userAgent = exportData.userAgent ?? '';
+  const auth = exportData.auth ?? defaultAuth();
 
   if (existing) {
     const items = database.updateWebsite({
@@ -49,7 +54,11 @@ export function importWebsiteData(parsed: unknown): WebsiteImportResult | null {
       faviconDataUrl: exportData.faviconDataUrl ?? null,
       scripts,
       preRequestScripts,
-      postRequestScripts
+      postRequestScripts,
+      variables,
+      headers,
+      userAgent,
+      auth
     });
     const website = items.find((item) => item.id === existing.id);
     if (!website) {
@@ -66,7 +75,11 @@ export function importWebsiteData(parsed: unknown): WebsiteImportResult | null {
     faviconDataUrl: exportData.faviconDataUrl ?? null,
     scripts,
     preRequestScripts,
-    postRequestScripts
+    postRequestScripts,
+    variables,
+    headers,
+    userAgent,
+    auth
   });
   const website = items.find((item) => item.uuid === exportData.uuid);
   if (!website) {

@@ -139,7 +139,8 @@ describe('createHcCompletionSource', () => {
       'sendRequest',
       'sleep',
       'stringify',
-      'test'
+      'test',
+      'webpage'
     ]);
   });
 
@@ -164,7 +165,8 @@ describe('createHcCompletionSource', () => {
       'sendRequest',
       'sleep',
       'stringify',
-      'test'
+      'test',
+      'webpage'
     ]);
   });
 

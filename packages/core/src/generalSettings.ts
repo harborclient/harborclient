@@ -29,6 +29,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   allowedNetworkPlugins: [],
   allowScriptFileRead: false,
   allowScriptFileWrite: false,
+  allowScriptWebpage: false,
   scriptFileRoot: '',
   workflowResultsDirectory: '',
   maxResponseSizeMb: 50,
@@ -270,6 +271,7 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     allowedNetworkPlugins: normalizeAllowedNetworkPlugins(input.allowedNetworkPlugins),
     allowScriptFileRead: input.allowScriptFileRead === true,
     allowScriptFileWrite: input.allowScriptFileWrite === true,
+    allowScriptWebpage: input.allowScriptWebpage === true,
     scriptFileRoot: typeof input.scriptFileRoot === 'string' ? input.scriptFileRoot.trim() : '',
     workflowResultsDirectory:
       typeof input.workflowResultsDirectory === 'string'

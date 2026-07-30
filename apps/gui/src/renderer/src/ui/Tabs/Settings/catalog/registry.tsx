@@ -27,6 +27,7 @@ import { GeneralScriptTimeoutField } from '../fields/GeneralScriptTimeoutField';
 import { GeneralAllowScriptNetworkRequestsField } from '../fields/GeneralAllowScriptNetworkRequestsField';
 import { GeneralAllowScriptFileReadField } from '../fields/GeneralAllowScriptFileReadField';
 import { GeneralAllowScriptFileWriteField } from '../fields/GeneralAllowScriptFileWriteField';
+import { GeneralAllowScriptWebpageField } from '../fields/GeneralAllowScriptWebpageField';
 import { GeneralScriptFileRootField } from '../fields/GeneralScriptFileRootField';
 import { GeneralWorkflowResultsDirectoryField } from '../fields/GeneralWorkflowResultsDirectoryField';
 import { GeneralVerifySslField } from '../fields/GeneralVerifySslField';
@@ -76,6 +77,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.allowScriptNetworkRequests': GeneralAllowScriptNetworkRequestsField,
   'general.allowScriptFileRead': GeneralAllowScriptFileReadField,
   'general.allowScriptFileWrite': GeneralAllowScriptFileWriteField,
+  'general.allowScriptWebpage': GeneralAllowScriptWebpageField,
   'general.scriptFileRoot': GeneralScriptFileRootField,
   'general.workflowResultsDirectory': GeneralWorkflowResultsDirectoryField,
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,

@@ -7,6 +7,7 @@ import {
 import { bridgeInvoke, bridgeOn } from './hcBridge.js';
 import { createPluginDatabaseApi } from './pluginDatabaseApi.js';
 import { setHostReact } from './reactHost.js';
+import { openWebpage } from './webpageHandle.js';
 
 /** @type {Map<string, Set<(...args: unknown[]) => void | Promise<void>>>} */
 const commandHandlers = new Map();
@@ -353,6 +354,52 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   const assertAi = () => assertPermission('ai');
 
   /**
+   * Asserts browser permission for embedded webpage control.
+   */
+  const assertBrowser = () => assertPermission('browser');
+
+  /**
+   * Invokes a webpage session op on the host renderer via the plugin bridge.
+   *
+   * @param {Record<string, unknown>} req - ScriptWebpageRequest-shaped payload.
+   * @returns {Promise<unknown>} Host session result.
+   */
+  const callWebpage = async (req) => {
+    const op = String(req.op ?? '');
+    switch (op) {
+      case 'open':
+        return bridgeInvoke('webpage.open', { url: req.url, reuse: req.reuse });
+      case 'focus':
+        return bridgeInvoke('webpage.focus', { tabId: req.tabId });
+      case 'close':
+        return bridgeInvoke('webpage.close', { tabId: req.tabId });
+      case 'query':
+        return bridgeInvoke('webpage.query', {
+          tabId: req.tabId,
+          selector: req.selector,
+          all: req.all,
+          maxElements: req.maxElements
+        });
+      case 'evaluate':
+        return bridgeInvoke('webpage.evaluate', {
+          tabId: req.tabId,
+          expression: req.expression
+        });
+      case 'injectScript':
+        return bridgeInvoke('webpage.injectScript', { tabId: req.tabId, source: req.source });
+      case 'injectStylesheet':
+        return bridgeInvoke('webpage.injectStylesheet', { tabId: req.tabId, css: req.css });
+      case 'screenshot':
+        return bridgeInvoke('webpage.screenshot', {
+          tabId: req.tabId,
+          fullPage: req.fullPage === true
+        });
+      default:
+        throw new Error(`Unsupported webpage bridge op: ${op}`);
+    }
+  };
+
+  /**
    * Asserts that a contribution id is declared in manifest.contributes.
    *
    * @param {string} key - contributes.* key.
@@ -481,6 +528,18 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
       writeFile: async (path, content) => {
         assertPermission('filesystem:write');
         await bridgeInvoke('fs.writeFile', { path, content });
+      },
+      writeBytes: async (path, bytes) => {
+        assertPermission('filesystem:write');
+        const u8 =
+          bytes instanceof Uint8Array
+            ? bytes
+            : new Uint8Array(/** @type {ArrayLike<number>} */ (bytes));
+        let binary = '';
+        for (let i = 0; i < u8.length; i += 1) {
+          binary += String.fromCharCode(u8[i] ?? 0);
+        }
+        return bridgeInvoke('fs.writeBytes', { path, base64: btoa(binary) });
       },
       watchFile: (path, listener) => {
         assertPermission('filesystem:read');
@@ -1243,6 +1302,34 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
           selection: input?.selection
         });
       }
+    },
+    /**
+     * Opens or reuses an embedded browser tab and returns a control handle.
+     *
+     * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+     *
+     * @param {string} [url] - Optional URL; omit to bind the active browser tab.
+     * @param {{ reuse?: boolean }} [options] - Optional `{ reuse }` (default true).
+     * @returns {Promise<import('../types').PluginWebpageHandle>} Webpage handle.
+     */
+    webpage: async (url, options) => {
+      assertBrowser();
+      /**
+       * Writes screenshot PNG bytes via the plugin filesystem bridge.
+       *
+       * @param {string} path - Relative or absolute allowlisted path.
+       * @param {string} pngBase64 - Base64-encoded PNG payload.
+       * @returns {Promise<string>} Absolute written path.
+       */
+      const writeScreenshotBytes = async (path, pngBase64) => {
+        assertPermission('filesystem:write');
+        const result = await bridgeInvoke('fs.writeBytes', { path, base64: pngBase64 });
+        if (typeof result !== 'string' || !result.trim()) {
+          throw new Error('hc.webpage().screenshot failed to resolve write path');
+        }
+        return result;
+      };
+      return openWebpage(callWebpage, url, options, writeScreenshotBytes);
     }
   };
 }

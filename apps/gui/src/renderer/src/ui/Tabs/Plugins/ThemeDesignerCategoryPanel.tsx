@@ -1,12 +1,13 @@
 import { useMemo, type JSX } from 'react';
 import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
+import type { CustomThemeType } from '@harborclient/core/types/customTheme';
 import {
   CUSTOM_THEME_METRIC_GROUPS,
   CUSTOM_THEME_TOKEN_GROUPS
 } from '@harborclient/core/types/customTheme';
 import { ColorTokenField } from './ColorTokenField';
 import { MetricTokenField } from './MetricTokenField';
-import { DEFAULT_CUSTOM_THEME_METRICS } from './customThemeDefaults';
+import { DEFAULT_CUSTOM_THEME_METRICS, getDefaultCustomThemePalette } from './customThemeDefaults';
 
 interface Props {
   /**
@@ -18,6 +19,11 @@ interface Props {
    * Short blurb naming the app surfaces this category restyles, shown above the grid.
    */
   description: string;
+
+  /**
+   * Base appearance used to resolve color defaults when a draft omits a token.
+   */
+  type: CustomThemeType;
 
   /**
    * Current color token values in the Designer draft.
@@ -48,6 +54,7 @@ interface Props {
 export function ThemeDesignerCategoryPanel({
   groupLabel,
   description,
+  type,
   colors,
   metrics,
   onColorChange,
@@ -70,6 +77,12 @@ export function ThemeDesignerCategoryPanel({
     [groupLabel]
   );
 
+  /**
+   * Type-matched palette used when the draft omits a token so fields never show a
+   * fake `#000000` that is not actually applied to the live preview.
+   */
+  const defaultColors = useMemo(() => getDefaultCustomThemePalette(type), [type]);
+
   return (
     <div className="flex min-w-0 flex-col gap-3 -mt-6">
       <p className="m-0 text-muted">{description}</p>
@@ -86,7 +99,7 @@ export function ThemeDesignerCategoryPanel({
           <ColorTokenField
             key={token}
             token={token}
-            value={colors[token] ?? '#000000'}
+            value={colors[token] ?? defaultColors[token]}
             onChange={onColorChange}
           />
         ))}

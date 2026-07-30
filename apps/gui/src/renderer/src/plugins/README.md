@@ -160,6 +160,10 @@ and the optional stylesheet.
 | `http`             | Subscribe to before/after send hooks                                           |
 | `ipc`              | Register main-process IPC handlers and invoke them from the renderer           |
 | `server`           | Start a loopback HTTP echo server on `127.0.0.1`                               |
+| `mcp`              | Register remote MCP client servers for Harbor's chat agent                     |
+| `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar         |
+| `browser`          | Open and control embedded browser tabs via `hc.webpage`                        |
+| `network`          | Outbound HTTP from the renderer via `hc.host.sendHttpRequest`                  |
 
 ---
 
@@ -432,6 +436,7 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 | `host.listCollections`, `host.listLibraryTree`, `host.listFolders`, …                                                        | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
 | `host.reorderContainerItems`, `host.moveRequest`, `host.reorderRequests`, …                                                  | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
 | `host.sendHttpRequest`, `host.createCollection`, …                                                                           | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
+| `webpage.open`, `webpage.focus`, `webpage.close`, `webpage.query`, `webpage.evaluate`, …                                     | `browser`                              | Host renderer via `plugins:hostBridgeInvoke` → webpage session |
 | `imports.registerHandler`, `imports.unregisterHandler`                                                                       | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)     |
 | `imports.invokeComplete`                                                                                                     | `ui`                                   | Resolves pending import handler invocations from host renderer |
 | `themes.getActive`                                                                                                           | `ui`                                   | Main process theme getter                                      |

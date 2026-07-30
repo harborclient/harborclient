@@ -58,6 +58,46 @@ export interface ScriptAskRequest {
 }
 
 /**
+ * Bridge operation for {@link ScriptApiOptions.webpage} / `hc.webpage`.
+ */
+export type ScriptWebpageRequest =
+  | {
+      op: 'open';
+      /**
+       * URL to find or open. When omitted, binds the active browser tab.
+       */
+      url?: string;
+      /**
+       * When true (default), reuse an open tab at the same URL.
+       */
+      reuse?: boolean;
+    }
+  | { op: 'focus'; tabId: string }
+  | { op: 'close'; tabId: string }
+  | {
+      op: 'query';
+      tabId: string;
+      selector: string;
+      all?: boolean;
+      maxElements?: number;
+    }
+  | { op: 'evaluate'; tabId: string; expression: string }
+  | { op: 'injectScript'; tabId: string; source: string }
+  | { op: 'injectStylesheet'; tabId: string; css: string }
+  | { op: 'screenshot'; tabId: string; fullPage?: boolean };
+
+/**
+ * Optional second argument to `hc.webpage(url, options)`.
+ */
+export interface ScriptWebpageOpenOptions {
+  /**
+   * When true (default), reuse an open browser tab whose URL matches.
+   * When false, always open a new tab.
+   */
+  reuse?: boolean;
+}
+
+/**
  * Optional runtime hooks injected when building the hc API.
  */
 export interface ScriptApiOptions {
@@ -76,6 +116,12 @@ export interface ScriptApiOptions {
    * When omitted, hc.ask resolves to null (AI not available in this context).
    */
   ask?: (req: ScriptAskRequest) => Promise<string | null>;
+
+  /**
+   * When provided, enables hc.webpage for opening and controlling embedded browser tabs.
+   * When omitted, hc.webpage throws.
+   */
+  webpage?: (req: ScriptWebpageRequest) => Promise<unknown>;
 
   /**
    * Compile sourcemap chain from {@link evaluateScript} used to remap assertion stacks
@@ -523,6 +569,252 @@ function normalizeScriptAskRequest(prompt: unknown, options?: unknown): ScriptAs
 }
 
 /**
+ * Normalizes optional `hc.webpage` open options.
+ *
+ * @param options - Optional `{ reuse }` object.
+ * @returns Normalized open options.
+ * @throws When options is provided but not a plain object, or reuse is not a boolean.
+ */
+function normalizeScriptWebpageOpenOptions(options?: unknown): ScriptWebpageOpenOptions {
+  if (options == null) {
+    return {};
+  }
+  if (typeof options !== 'object' || Array.isArray(options)) {
+    throw new Error('hc.webpage options must be an object');
+  }
+  const raw = options as Record<string, unknown>;
+  if (!('reuse' in raw) || raw.reuse === undefined) {
+    return {};
+  }
+  if (typeof raw.reuse !== 'boolean') {
+    throw new Error('hc.webpage options.reuse must be a boolean');
+  }
+  return { reuse: raw.reuse };
+}
+
+/**
+ * Throws when a webpage bridge result is an `{ error }` object.
+ *
+ * @param result - Raw bridge result.
+ * @returns The result when it is not an error.
+ * @throws When the bridge returned `{ error: string }`.
+ */
+function unwrapWebpageBridgeResult(result: unknown): unknown {
+  if (
+    result != null &&
+    typeof result === 'object' &&
+    !Array.isArray(result) &&
+    Object.keys(result).length === 1 &&
+    'error' in result &&
+    typeof (result as { error: unknown }).error === 'string'
+  ) {
+    throw new Error((result as { error: string }).error);
+  }
+  return result;
+}
+
+/**
+ * Normalizes optional `hc.webpage().screenshot` options.
+ *
+ * @param options - User-provided options (`fullPage` optional).
+ * @returns Normalized `{ fullPage }` (default false).
+ * @throws When options is present but not a plain object, or `fullPage` is not a boolean.
+ */
+function normalizeScriptWebpageScreenshotOptions(options?: unknown): { fullPage: boolean } {
+  if (options == null) {
+    return { fullPage: false };
+  }
+  if (typeof options !== 'object' || Array.isArray(options)) {
+    throw new Error('hc.webpage().screenshot options must be an object');
+  }
+  const raw = options as Record<string, unknown>;
+  if (!('fullPage' in raw) || raw.fullPage === undefined) {
+    return { fullPage: false };
+  }
+  if (typeof raw.fullPage !== 'boolean') {
+    throw new Error('hc.webpage().screenshot options.fullPage must be a boolean');
+  }
+  return { fullPage: raw.fullPage };
+}
+
+/**
+ * Decodes a base64 PNG payload into bytes for `hc.fs.writeBytes`.
+ *
+ * @param pngBase64 - Base64-encoded PNG without a data-URL prefix.
+ * @returns Raw PNG bytes.
+ */
+function decodePngBase64ToUint8Array(pngBase64: string): Uint8Array {
+  return new Uint8Array(Buffer.from(pngBase64, 'base64'));
+}
+
+/**
+ * Builds a webpage handle whose methods call the host webpage bridge.
+ *
+ * @param tab - Opened tab metadata from the bridge.
+ * @param callWebpage - Bridge transport.
+ * @param writeScreenshotBytes - Optional writer that saves PNG bytes under the script file root.
+ * @returns Plain-object handle for the script sandbox.
+ */
+function createWebpageHandle(
+  tab: {
+    tabId: string;
+    url: string;
+    title: string;
+    canGoBack?: boolean;
+    canGoForward?: boolean;
+  },
+  callWebpage: (req: ScriptWebpageRequest) => Promise<unknown>,
+  writeScreenshotBytes?: (path: string, bytes: Uint8Array) => Promise<string>
+): Record<string, unknown> {
+  const tabId = tab.tabId;
+  return {
+    tabId,
+    url: tab.url,
+    title: tab.title,
+    canGoBack: tab.canGoBack === true,
+    canGoForward: tab.canGoForward === true,
+    /**
+     * Focuses this browser tab in the HarborClient tab bar.
+     *
+     * @returns Resolves when the tab is focused.
+     */
+    focus: async (): Promise<void> => {
+      unwrapWebpageBridgeResult(await callWebpage({ op: 'focus', tabId }));
+    },
+    /**
+     * Closes this browser tab, honoring page leave prompts.
+     *
+     * @returns True when closed; false when the user chose to stay.
+     */
+    close: async (): Promise<boolean> => {
+      const result = unwrapWebpageBridgeResult(await callWebpage({ op: 'close', tabId })) as {
+        closed: boolean;
+      };
+      return result.closed === true;
+    },
+    /**
+     * Captures the visible viewport (or full page) as PNG and writes it under the script file root.
+     *
+     * @param path - Relative or absolute path under the script file access root.
+     * @param screenshotOptions - Optional `{ fullPage }` (default false).
+     * @returns Absolute path of the written file.
+     */
+    screenshot: async (path: unknown, screenshotOptions?: unknown): Promise<{ path: string }> => {
+      const { fullPage } = normalizeScriptWebpageScreenshotOptions(screenshotOptions);
+      const pathText = String(path ?? '').trim();
+      if (!pathText) {
+        throw new Error('hc.webpage().screenshot requires a path');
+      }
+      if (!writeScreenshotBytes) {
+        throw new Error('hc.webpage().screenshot requires hc.fs');
+      }
+      const capture = unwrapWebpageBridgeResult(
+        await callWebpage({ op: 'screenshot', tabId, fullPage })
+      ) as {
+        pngBase64?: string;
+      };
+      if (!capture || typeof capture.pngBase64 !== 'string' || !capture.pngBase64) {
+        throw new Error('hc.webpage().screenshot did not return image data');
+      }
+      const absolutePath = await writeScreenshotBytes(
+        pathText,
+        decodePngBase64ToUint8Array(capture.pngBase64)
+      );
+      return { path: absolutePath };
+    },
+    dom: {
+      /**
+       * Queries the live page DOM with a CSS selector.
+       *
+       * @param selector - CSS selector.
+       * @param queryOptions - Optional `{ all, maxElements }`.
+       * @returns Match count and element summaries.
+       */
+      query: async (
+        selector: unknown,
+        queryOptions?: unknown
+      ): Promise<{ selector: string; matchCount: number; elements: unknown[] }> => {
+        const selectorText = String(selector ?? '').trim();
+        if (!selectorText) {
+          throw new Error('hc.webpage().dom.query requires a selector');
+        }
+        let all: boolean | undefined;
+        let maxElements: number | undefined;
+        if (queryOptions != null) {
+          if (typeof queryOptions !== 'object' || Array.isArray(queryOptions)) {
+            throw new Error('hc.webpage().dom.query options must be an object');
+          }
+          const raw = queryOptions as Record<string, unknown>;
+          if ('all' in raw && raw.all !== undefined) {
+            if (typeof raw.all !== 'boolean') {
+              throw new Error('hc.webpage().dom.query options.all must be a boolean');
+            }
+            all = raw.all;
+          }
+          if ('maxElements' in raw && raw.maxElements !== undefined) {
+            if (typeof raw.maxElements !== 'number' || !Number.isFinite(raw.maxElements)) {
+              throw new Error('hc.webpage().dom.query options.maxElements must be a finite number');
+            }
+            maxElements = raw.maxElements;
+          }
+        }
+        return unwrapWebpageBridgeResult(
+          await callWebpage({ op: 'query', tabId, selector: selectorText, all, maxElements })
+        ) as { selector: string; matchCount: number; elements: unknown[] };
+      },
+      /**
+       * Evaluates JavaScript in the page main world and returns the result.
+       *
+       * @param expression - JavaScript source that returns a JSON-serializable value.
+       * @returns Evaluation result.
+       */
+      evaluate: async (expression: unknown): Promise<unknown> => {
+        const expressionText = String(expression ?? '').trim();
+        if (!expressionText) {
+          throw new Error('hc.webpage().dom.evaluate requires an expression');
+        }
+        const result = unwrapWebpageBridgeResult(
+          await callWebpage({ op: 'evaluate', tabId, expression: expressionText })
+        ) as { value: unknown };
+        return result.value;
+      },
+      /**
+       * Injects and runs JavaScript source in the page main world.
+       *
+       * @param source - JavaScript source to inject.
+       * @returns Evaluation result from the injected script.
+       */
+      injectScript: async (source: unknown): Promise<unknown> => {
+        const sourceText = String(source ?? '');
+        if (!sourceText.trim()) {
+          throw new Error('hc.webpage().dom.injectScript requires source');
+        }
+        const result = unwrapWebpageBridgeResult(
+          await callWebpage({ op: 'injectScript', tabId, source: sourceText })
+        ) as { value: unknown };
+        return result.value;
+      },
+      /**
+       * Injects a CSS stylesheet into the page.
+       *
+       * @param css - Stylesheet source.
+       * @returns Electron insertion key.
+       */
+      injectStylesheet: async (css: unknown): Promise<string> => {
+        const cssText = String(css ?? '');
+        if (!cssText.trim()) {
+          throw new Error('hc.webpage().dom.injectStylesheet requires css');
+        }
+        const result = unwrapWebpageBridgeResult(
+          await callWebpage({ op: 'injectStylesheet', tabId, css: cssText })
+        ) as { key: string };
+        return result.key;
+      }
+    }
+  };
+}
+
+/**
  * Normalizes a script sendRequest input from the hc API into a SendRequestInput.
  *
  * @param req - User-provided request object from hc.sendRequest.
@@ -967,6 +1259,86 @@ export function createScriptApi(
      * @returns Always null.
      */
     hc.ask = async (): Promise<string | null> => null;
+  }
+
+  if (options?.webpage) {
+    const transport = options.webpage;
+    /**
+     * Invokes the host webpage bridge or throws when the result is an error object.
+     *
+     * @param req - Webpage operation payload.
+     * @returns Operation result from the host.
+     */
+    const callWebpage = async (req: ScriptWebpageRequest): Promise<unknown> => transport(req);
+
+    /**
+     * Opens or reuses an embedded browser tab and returns a control handle.
+     *
+     * Requires Settings → General → Allow script webpage access. Page load waits
+     * count against the script timeout.
+     *
+     * @param url - Optional URL to open or reuse; omit to bind the active browser tab.
+     * @param openOptions - Optional `{ reuse }` (default true).
+     * @returns Handle with focus/close and `dom` helpers.
+     */
+    hc.webpage = async (url?: unknown, openOptions?: unknown): Promise<Record<string, unknown>> => {
+      const normalizedOptions = normalizeScriptWebpageOpenOptions(openOptions);
+      let openUrl: string | undefined;
+      if (url !== undefined && url !== null) {
+        const trimmed = String(url).trim();
+        if (!trimmed) {
+          throw new Error('hc.webpage requires a non-empty url when provided');
+        }
+        openUrl = trimmed;
+      }
+      const opened = unwrapWebpageBridgeResult(
+        await callWebpage({
+          op: 'open',
+          url: openUrl,
+          reuse: normalizedOptions.reuse
+        })
+      ) as {
+        tabId: string;
+        url: string;
+        title: string;
+        canGoBack?: boolean;
+        canGoForward?: boolean;
+      };
+      if (!opened || typeof opened.tabId !== 'string') {
+        throw new Error('hc.webpage open did not return a tab');
+      }
+      /**
+       * Writes screenshot PNG bytes via the script file bridge and returns the absolute path.
+       *
+       * @param path - Relative or absolute path under the script file root.
+       * @param bytes - PNG bytes to write.
+       * @returns Absolute written path.
+       */
+      const writeScreenshotBytes = async (path: string, bytes: Uint8Array): Promise<string> => {
+        if (!options.fileBridge) {
+          throw new Error('hc.webpage().screenshot requires hc.fs');
+        }
+        const result = await options.fileBridge({ op: 'writeBytes', path, bytes });
+        if (typeof result !== 'string' || !result.trim()) {
+          throw new Error('hc.webpage().screenshot failed to resolve write path');
+        }
+        return result;
+      };
+      return createWebpageHandle(
+        opened,
+        callWebpage,
+        options.fileBridge ? writeScreenshotBytes : undefined
+      );
+    };
+  } else {
+    /**
+     * Throws when no webpage transport is available in this script context.
+     *
+     * @throws Always — webpage control requires the GUI script bridge.
+     */
+    hc.webpage = async (): Promise<never> => {
+      throw new Error('hc.webpage is not available in this script context');
+    };
   }
 
   const fileBridge = options?.fileBridge;

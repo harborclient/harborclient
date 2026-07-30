@@ -15,7 +15,8 @@ import {
   type RequestTab,
   type Tab
 } from './tabs';
-import type { BodyType, HttpMethod, KeyValue, ScriptRef } from '@harborclient/core/types';
+import type { BodyType, HttpMethod, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
 import type { TerminalTab } from '#/renderer/src/store/slices/terminalsSlice';
 import { normalizePersistedPageRef } from '#/renderer/src/store/routing';
 import {
@@ -80,6 +81,14 @@ export interface PersistedBrowserTab {
   post_request_scripts: ScriptRef[];
   savedPreRequestScripts: ScriptRef[];
   savedPostRequestScripts: ScriptRef[];
+  variables?: Variable[];
+  savedVariables?: Variable[];
+  headers?: KeyValue[];
+  savedHeaders?: KeyValue[];
+  userAgent?: string;
+  savedUserAgent?: string;
+  auth?: AuthConfig;
+  savedAuth?: AuthConfig;
   faviconDataUrl?: string | null;
   websiteId?: number | null;
   websiteUuid?: string | null;
@@ -333,6 +342,52 @@ function salvagePersistedMarkdownTab(value: unknown): PersistedMarkdownTab | nul
 }
 
 /**
+ * Normalizes a persisted variable row.
+ *
+ * @param value - Candidate variable from persisted storage.
+ * @returns Normalized Variable or null when invalid.
+ */
+function normalizePersistedVariable(value: unknown): Variable | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.key !== 'string' || typeof value.value !== 'string') return null;
+  return {
+    key: value.key,
+    value: value.value,
+    defaultValue: typeof value.defaultValue === 'string' ? value.defaultValue : '',
+    enabled: value.enabled !== false,
+    share: value.share === true
+  };
+}
+
+/**
+ * Normalizes a persisted variable array.
+ *
+ * @param value - Candidate array from persisted storage.
+ * @returns Normalized Variable rows.
+ */
+function normalizePersistedVariables(value: unknown): Variable[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    const normalized = normalizePersistedVariable(row);
+    return normalized ? [normalized] : [];
+  });
+}
+
+/**
+ * Normalizes a persisted header array.
+ *
+ * @param value - Candidate array from persisted storage.
+ * @returns Normalized KeyValue rows.
+ */
+function normalizePersistedHeaders(value: unknown): KeyValue[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((row) => {
+    const normalized = normalizeKeyValue(row);
+    return normalized ? [normalized] : [];
+  });
+}
+
+/**
  * Salvages a persisted browser tab entry.
  *
  * @param value - Candidate tab entry from persisted storage.
@@ -365,6 +420,19 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
     value.savedPostRequestScripts !== undefined
       ? normalizeBrowserHcScriptRefs(value.savedPostRequestScripts)
       : post_request_scripts;
+  const variables = normalizePersistedVariables(value.variables);
+  const savedVariables =
+    value.savedVariables !== undefined
+      ? normalizePersistedVariables(value.savedVariables)
+      : variables;
+  const headers = normalizePersistedHeaders(value.headers);
+  const savedHeaders =
+    value.savedHeaders !== undefined ? normalizePersistedHeaders(value.savedHeaders) : headers;
+  const userAgent = typeof value.userAgent === 'string' ? value.userAgent : '';
+  const savedUserAgent =
+    typeof value.savedUserAgent === 'string' ? value.savedUserAgent : userAgent;
+  const auth = normalizeAuth(value.auth ?? defaultAuth());
+  const savedAuth = normalizeAuth(value.savedAuth ?? auth);
 
   const faviconDataUrl =
     typeof value.faviconDataUrl === 'string' && value.faviconDataUrl.length > 0
@@ -407,6 +475,14 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
     post_request_scripts,
     savedPreRequestScripts,
     savedPostRequestScripts,
+    variables,
+    savedVariables,
+    headers,
+    savedHeaders,
+    userAgent,
+    savedUserAgent,
+    auth,
+    savedAuth,
     faviconDataUrl,
     websiteId,
     websiteUuid,
@@ -488,6 +564,14 @@ function persistedMarkdownTabToMarkdownTab(tab: PersistedMarkdownTab): MarkdownT
  * @returns BrowserTab ready for Redux state.
  */
 function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
+  const variables = (tab.variables ?? []).map((row) => ({ ...row }));
+  const savedVariables = (tab.savedVariables ?? variables).map((row) => ({ ...row }));
+  const headers = (tab.headers ?? []).map((row) => ({ ...row }));
+  const savedHeaders = (tab.savedHeaders ?? headers).map((row) => ({ ...row }));
+  const userAgent = tab.userAgent ?? '';
+  const savedUserAgent = tab.savedUserAgent ?? userAgent;
+  const auth = normalizeAuth(tab.auth ?? defaultAuth());
+  const savedAuth = normalizeAuth(tab.savedAuth ?? auth);
   return {
     tabId: tab.tabId,
     kind: 'browser',
@@ -500,6 +584,14 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
     post_request_scripts: tab.post_request_scripts,
     savedPreRequestScripts: tab.savedPreRequestScripts,
     savedPostRequestScripts: tab.savedPostRequestScripts,
+    variables,
+    savedVariables,
+    headers,
+    savedHeaders,
+    userAgent,
+    savedUserAgent,
+    auth,
+    savedAuth,
     canGoBack: false,
     canGoForward: false,
     faviconDataUrl: tab.faviconDataUrl ?? null,
@@ -737,6 +829,14 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
             post_request_scripts: tab.post_request_scripts,
             savedPreRequestScripts: tab.savedPreRequestScripts,
             savedPostRequestScripts: tab.savedPostRequestScripts,
+            variables: tab.variables,
+            savedVariables: tab.savedVariables,
+            headers: tab.headers,
+            savedHeaders: tab.savedHeaders,
+            userAgent: tab.userAgent,
+            savedUserAgent: tab.savedUserAgent,
+            auth: tab.auth,
+            savedAuth: tab.savedAuth,
             faviconDataUrl: tab.faviconDataUrl,
             websiteId: tab.websiteId,
             websiteUuid: tab.websiteUuid,

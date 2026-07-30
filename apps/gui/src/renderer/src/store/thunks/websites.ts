@@ -1,48 +1,54 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { buildWebsiteExport } from '@harborclient/core/types/website';
-import type { ScriptRef, Snippet } from '@harborclient/core/types';
+import type { KeyValue, ScriptRef, Snippet, Variable } from '@harborclient/core/types';
+import type { AuthConfig } from '@harborclient/core/auth';
 import type { BrowserInjectionScript } from '#/browser/browserScripts';
-import { resolveBrowserHcScriptSources } from '#/browser/browserHcScripts';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
 import {
   bindBrowserTabToWebsite,
   openBrowserTabFromWebsite,
-  openPageTab
+  openPageTab,
+  saveBrowserScripts,
+  updateBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab, hasBrowserPendingSave } from '#/renderer/src/store/tabs';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
-import { buildScriptModuleMap } from '#/renderer/src/scripting/scriptResolution';
+import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 
 /**
- * Pushes the browser tab's current scripts to the main-process guest when it exists.
+ * Pushes the browser tab's current scripts and request defaults to the main-process guest.
  *
  * @param tabId - Browser tab id.
- * @param tab - Browser tab state with draft scripts to apply.
+ * @param tab - Browser tab state with draft scripts/defaults to apply.
  * @param snippets - Snippet library for resolving hc.* script sources.
  */
 async function pushBrowserTabScriptsToGuest(
   tabId: string,
   tab: {
     scripts: BrowserInjectionScript[];
+    savedScripts: BrowserInjectionScript[];
     pre_request_scripts: ScriptRef[];
     post_request_scripts: ScriptRef[];
+    savedPreRequestScripts: ScriptRef[];
+    savedPostRequestScripts: ScriptRef[];
+    headers: import('@harborclient/core/types').KeyValue[];
+    savedHeaders: import('@harborclient/core/types').KeyValue[];
+    auth: import('@harborclient/core/auth').AuthConfig;
+    savedAuth: import('@harborclient/core/auth').AuthConfig;
+    userAgent: string;
+    savedUserAgent: string;
   },
   snippets: Snippet[]
 ): Promise<void> {
-  const { modules, conflicts } = buildScriptModuleMap(snippets, [
-    tab.pre_request_scripts,
-    tab.post_request_scripts
-  ]);
-  await window.api.browserSetScripts(tabId, tab.scripts, {
-    preRequestScripts: resolveBrowserHcScriptSources(tab.pre_request_scripts, snippets),
-    postRequestScripts: resolveBrowserHcScriptSources(tab.post_request_scripts, snippets),
-    snippetModules: modules,
-    snippetModuleConflicts: conflicts
-  });
+  await window.api.browserSetScripts(
+    tabId,
+    tab.scripts,
+    buildBrowserHcScriptsPayload(tab, snippets, false)
+  );
 }
 
 /**
@@ -106,7 +112,11 @@ export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiCo
         faviconDataUrl: tab.faviconDataUrl,
         scripts: tab.scripts,
         preRequestScripts: tab.pre_request_scripts,
-        postRequestScripts: tab.post_request_scripts
+        postRequestScripts: tab.post_request_scripts,
+        variables: tab.variables,
+        headers: tab.headers,
+        userAgent: tab.userAgent,
+        auth: tab.auth
       });
       dispatch(setWebsites(items));
       const created = items.find((item) => item.uuid === uuid);
@@ -126,9 +136,9 @@ export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiCo
       } catch {
         // Guest may not exist yet for a background/unmounted tab.
       }
-      toast.success('Website saved');
+      toast.success('Live page saved');
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to save website'));
+      toast.error(formatErrorMessage(error, 'Failed to save live page'));
       throw error;
     }
   }
@@ -156,7 +166,11 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
         faviconDataUrl: tab.faviconDataUrl,
         scripts: tab.scripts,
         preRequestScripts: tab.pre_request_scripts,
-        postRequestScripts: tab.post_request_scripts
+        postRequestScripts: tab.post_request_scripts,
+        variables: tab.variables,
+        headers: tab.headers,
+        userAgent: tab.userAgent,
+        auth: tab.auth
       });
       dispatch(setWebsites(items));
       dispatch(
@@ -173,9 +187,9 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
       } catch {
         // Guest may not exist yet for a background/unmounted tab.
       }
-      toast.success('Website updated');
+      toast.success('Live page updated');
     } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to update website'));
+      toast.error(formatErrorMessage(error, 'Failed to update live page'));
       throw error;
     }
   }
@@ -210,7 +224,7 @@ export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
   async (id, { dispatch, getState }) => {
     const website = getState().websites.items.find((item) => item.id === id);
     if (!website) {
-      toast.error('Website not found');
+      toast.error('Live page not found');
       return;
     }
 
@@ -224,7 +238,11 @@ export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
         faviconDataUrl: website.faviconDataUrl,
         scripts: website.scripts,
         pre_request_scripts: website.preRequestScripts,
-        post_request_scripts: website.postRequestScripts
+        post_request_scripts: website.postRequestScripts,
+        variables: website.variables,
+        headers: website.headers,
+        userAgent: website.userAgent,
+        auth: website.auth
       })
     );
   }
@@ -250,11 +268,136 @@ export const openWebsiteSettings = createAsyncThunk<void, number, ThunkApiConfig
       openPageTab({
         type: 'browser-settings',
         browserTabId: tab.tabId,
-        label: 'Browser Settings'
+        label: 'Live Page Settings'
       })
     );
   }
 );
+
+/**
+ * Input for saving live page settings from the settings form.
+ */
+export interface SaveLivePageSettingsInput {
+  /**
+   * Browser tab id whose draft settings are being saved.
+   */
+  tabId: string;
+
+  /**
+   * Display name for the live page / tab title.
+   */
+  name: string;
+
+  /**
+   * Website-scoped variables.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers for chrome-driven navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization settings.
+   */
+  auth: AuthConfig;
+
+  /**
+   * Pre-request hc.* scripts.
+   */
+  preRequestScripts: ScriptRef[];
+
+  /**
+   * Post-request hc.* scripts.
+   */
+  postRequestScripts: ScriptRef[];
+
+  /**
+   * Injection scripts.
+   */
+  scripts: BrowserInjectionScript[];
+}
+
+/**
+ * Saves live page settings: syncs the browser tab + guest, and writes the Website
+ * registry when the tab is linked.
+ *
+ * @param input - Cleaned settings fields from the settings form.
+ */
+export const saveLivePageSettings = createAsyncThunk<
+  void,
+  SaveLivePageSettingsInput,
+  ThunkApiConfig
+>('websites/saveLivePageSettings', async (input, { dispatch, getState }) => {
+  const tab = getState().tabs.tabs.find((item) => item.tabId === input.tabId);
+  if (!tab || !isBrowserTab(tab)) {
+    toast.error('Browser tab not found');
+    throw new Error('Browser tab not found');
+  }
+
+  dispatch(
+    updateBrowserTab({
+      tabId: input.tabId,
+      updates: {
+        title: input.name,
+        variables: input.variables,
+        headers: input.headers,
+        userAgent: input.userAgent,
+        auth: input.auth,
+        pre_request_scripts: input.preRequestScripts,
+        post_request_scripts: input.postRequestScripts,
+        scripts: input.scripts
+      }
+    })
+  );
+  dispatch(saveBrowserScripts(input.tabId));
+
+  const updated = getState().tabs.tabs.find((item) => item.tabId === input.tabId);
+  if (!updated || !isBrowserTab(updated)) {
+    throw new Error('Browser tab not found after save');
+  }
+
+  const snippets = selectSnippets(getState());
+  try {
+    await pushBrowserTabScriptsToGuest(input.tabId, updated, snippets);
+  } catch {
+    // Guest may not exist yet for a background/unmounted tab.
+  }
+
+  if (updated.websiteId != null) {
+    const items = await window.api.updateWebsite({
+      id: updated.websiteId,
+      name: input.name,
+      url: updated.url,
+      homeUrl: updated.homeUrl,
+      faviconDataUrl: updated.faviconDataUrl,
+      scripts: updated.scripts,
+      preRequestScripts: updated.pre_request_scripts,
+      postRequestScripts: updated.post_request_scripts,
+      variables: updated.variables,
+      headers: updated.headers,
+      userAgent: updated.userAgent,
+      auth: updated.auth
+    });
+    dispatch(setWebsites(items));
+    dispatch(
+      bindBrowserTabToWebsite({
+        tabId: input.tabId,
+        websiteId: updated.websiteId,
+        websiteUuid:
+          updated.websiteUuid ?? items.find((item) => item.id === updated.websiteId)?.uuid ?? ''
+      })
+    );
+  }
+
+  toast.success('Live page settings saved');
+});
 
 /**
  * Moves a website to trash and refreshes the list.
@@ -276,7 +419,7 @@ export const exportWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
   async (id, { getState }) => {
     const website = getState().websites.items.find((item) => item.id === id);
     if (!website) {
-      toast.error('Website not found');
+      toast.error('Live page not found');
       return;
     }
 
@@ -288,14 +431,18 @@ export const exportWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
       faviconDataUrl: website.faviconDataUrl,
       scripts: website.scripts,
       preRequestScripts: website.preRequestScripts,
-      postRequestScripts: website.postRequestScripts
+      postRequestScripts: website.postRequestScripts,
+      variables: website.variables,
+      headers: website.headers,
+      userAgent: website.userAgent,
+      auth: website.auth
     });
     const saved = await window.api.saveTextFile(
       JSON.stringify(envelope, null, 2),
       `${envelope.name}.json`
     );
     if (saved) {
-      toast.success('Website exported');
+      toast.success('Live page exported');
     }
   }
 );

@@ -32,10 +32,10 @@ describe('SIDEBAR_MODE_SECTIONS', () => {
   it('maps each rail mode to its section set', () => {
     expect(SIDEBAR_MODE_SECTIONS.collections).toEqual([
       'collections',
-      'websites',
       'runResults',
       'history',
-      'archive'
+      'archive',
+      'websites'
     ]);
     expect(SIDEBAR_MODE_SECTIONS.environments).toEqual(['environments']);
     expect(SIDEBAR_MODE_SECTIONS.workspaces).toEqual(['workspaces']);

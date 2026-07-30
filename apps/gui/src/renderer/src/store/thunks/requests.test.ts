@@ -1018,6 +1018,22 @@ describe('saveFromMenu', () => {
             scripts: [],
             preRequestScripts: [],
             postRequestScripts: [],
+            variables: [],
+            headers: [],
+            userAgent: '',
+            auth: {
+              type: 'none',
+              basic: { username: '', password: '' },
+              bearer: { token: '' },
+              oauth2: {
+                tokenUrl: '',
+                clientId: '',
+                clientSecret: '',
+                scope: '',
+                audience: '',
+                clientAuth: 'body' as const
+              }
+            },
             createdAt: Date.now(),
             updatedAt: Date.now()
           }
@@ -1068,6 +1084,22 @@ describe('saveFromMenu', () => {
             scripts: [],
             preRequestScripts: [],
             postRequestScripts: [],
+            variables: [],
+            headers: [],
+            userAgent: '',
+            auth: {
+              type: 'none',
+              basic: { username: '', password: '' },
+              bearer: { token: '' },
+              oauth2: {
+                tokenUrl: '',
+                clientId: '',
+                clientSecret: '',
+                scope: '',
+                audience: '',
+                clientAuth: 'body' as const
+              }
+            },
             createdAt: Date.now(),
             updatedAt: Date.now()
           }

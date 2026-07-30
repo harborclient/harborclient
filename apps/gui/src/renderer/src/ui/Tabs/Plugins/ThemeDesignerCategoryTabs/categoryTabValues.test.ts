@@ -10,6 +10,7 @@ describe('themeDesignerCategorySlug', () => {
     expect(themeDesignerCategorySlug('HTTP methods')).toBe('http-methods');
     expect(themeDesignerCategorySlug('Script stages')).toBe('script-stages');
     expect(themeDesignerCategorySlug('Layout')).toBe('layout');
+    expect(themeDesignerCategorySlug('Rail & Sidebars')).toBe('rail-&-sidebars');
   });
 });
 

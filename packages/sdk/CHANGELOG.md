@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance browser functionality and introduce webpage scripting support. (`e4be8c89`)
 - Add browser-related features and tests. (`2f8eb307`)
 
 ## 1.3.7 - 2026-07-29

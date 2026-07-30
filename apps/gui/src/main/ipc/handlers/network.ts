@@ -4,6 +4,8 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { executeHttpSend } from '#/main/network/executeHttpSend';
 import { runScript } from '#/main/scripting/scripts';
 import { initScriptRunnerHost } from '#/main/scripting/scriptRunnerHost';
+import { getScriptWebpageBridge } from '#/main/scripting/scriptWebpageBridge';
+import { ipcMain } from 'electron';
 
 /**
  * In-flight HTTP requests keyed by client request id for cancellation.
@@ -83,4 +85,11 @@ export function registerNetworkHandlers(cookieJar: ICookieJar): void {
 
   // Runs a pre- or post-request script in the SES utilityProcess runner.
   handle('scripts:run', ipcArgSchemas.scriptRun, (_event, input) => runScript(input));
+
+  ipcMain.on(
+    'scripts:webpageComplete',
+    (_event, message: { requestId: number; ok: boolean; result?: unknown; error?: string }) => {
+      getScriptWebpageBridge().complete(message);
+    }
+  );
 }

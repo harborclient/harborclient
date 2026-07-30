@@ -1,3 +1,6 @@
+import type { AuthConfig } from '../../auth';
+import type { KeyValue } from '../common';
+
 /**
  * Page-load points at which an embedded browser injection script may run.
  */
@@ -54,6 +57,26 @@ export interface BrowserHcScriptSourcePayload {
 }
 
 /**
+ * Headers, auth, and User-Agent applied to chrome-driven guest navigations.
+ */
+export interface BrowserRequestDefaultsPayload {
+  /**
+   * Header rows sent with loadURL navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Authorization config (Basic/Bearer applied on loadURL).
+   */
+  auth: AuthConfig;
+
+  /**
+   * User-Agent override; empty keeps Chromium default.
+   */
+  userAgent: string;
+}
+
+/**
  * Optional pre/post scripts and snippet modules pushed with injection scripts.
  */
 export interface BrowserHcScriptsPayload {
@@ -76,6 +99,11 @@ export interface BrowserHcScriptsPayload {
    * Ambiguous snippet filenames that should fail import resolution.
    */
   snippetModuleConflicts?: string[];
+
+  /**
+   * Request defaults applied on chrome-driven loadURL navigations.
+   */
+  requestDefaults?: BrowserRequestDefaultsPayload;
 }
 
 /**
@@ -323,6 +351,21 @@ export interface ApiBrowser {
    * @param timeoutMs - Optional max wait in milliseconds.
    */
   browserWaitForLoad: (tabId: string, timeoutMs?: number) => Promise<BrowserNavigationState>;
+
+  /**
+   * Captures a PNG screenshot of the guest's visible viewport or full scrollable page.
+   *
+   * Full-page captures taller than the height/tile caps are truncated from the top;
+   * `truncated` is true when that happens.
+   *
+   * @param tabId - Browser tab id.
+   * @param options - Optional `{ fullPage }` (default false).
+   * @returns PNG data URL, base64 payload, and optional truncation flag.
+   */
+  browserCapturePage: (
+    tabId: string,
+    options?: { fullPage?: boolean }
+  ) => Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }>;
 
   /**
    * Subscribes to guest navigation and title updates.

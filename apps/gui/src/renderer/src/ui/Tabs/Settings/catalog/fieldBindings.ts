@@ -405,6 +405,7 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
   'general.allowScriptNetworkRequests': createGeneralBinding('allowScriptNetworkRequests'),
   'general.allowScriptFileRead': createGeneralBinding('allowScriptFileRead'),
   'general.allowScriptFileWrite': createGeneralBinding('allowScriptFileWrite'),
+  'general.allowScriptWebpage': createGeneralBinding('allowScriptWebpage'),
   'general.scriptFileRoot': createGeneralBinding('scriptFileRoot'),
   'general.workflowResultsDirectory': createGeneralBinding('workflowResultsDirectory'),
   'general.maxResponseSizeMb': createGeneralBinding('maxResponseSizeMb'),

@@ -101,3 +101,12 @@ export function isScriptFileReadAllowed(): boolean {
 export function isScriptFileWriteAllowed(): boolean {
   return getGeneralSettings().allowScriptFileWrite === true;
 }
+
+/**
+ * Returns whether script-initiated browser webpage control is allowed.
+ *
+ * @returns True when hc.webpage may open and control embedded browser tabs.
+ */
+export function isScriptWebpageAllowed(): boolean {
+  return getGeneralSettings().allowScriptWebpage === true;
+}

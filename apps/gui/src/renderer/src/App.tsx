@@ -105,6 +105,7 @@ import {
 import { SearchIndexProvider } from '#/renderer/src/search/SearchIndexProvider';
 import { PluginHost } from '#/renderer/src/plugins/PluginHost';
 import { McpHost } from '#/renderer/src/store/ai/McpHost';
+import { ScriptWebpageHost } from '#/renderer/src/scripting/ScriptWebpageHost';
 import { PluginThemePrompt } from '#/renderer/src/plugins/PluginThemePrompt';
 import { ThemePickerModal } from '#/renderer/src/ui/Modals/ThemePickerModal';
 import { ActionMenuModal } from '#/renderer/src/ui/Modals/ActionMenuModal';
@@ -369,6 +370,7 @@ export default function App(): JSX.Element {
           <SearchIndexProvider>
             <PluginHost />
             <McpHost />
+            <ScriptWebpageHost />
             <PluginThemePrompt />
             <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
               <BusyIndicator isBusy={isBusy} />

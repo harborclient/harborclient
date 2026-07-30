@@ -333,13 +333,13 @@ export function SidebarContent(): JSX.Element {
     if (isSectionMounted('websites')) {
       byKey.websites = {
         key: 'websites',
-        title: 'Websites',
-        ariaLabel: 'Websites',
+        title: 'Live pages',
+        ariaLabel: 'Live pages',
         initialEntered: websitesSectionExpanded,
         onAdd: () => {
           dispatch(newBrowserTab());
         },
-        addLabel: 'New website',
+        addLabel: 'New live page',
         children: <Websites />
       };
     }

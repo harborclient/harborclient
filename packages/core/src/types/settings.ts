@@ -315,6 +315,11 @@ export interface GeneralSettings {
   allowScriptFileWrite: boolean;
 
   /**
+   * When true, pre/post scripts may call hc.webpage to open and control browser tabs.
+   */
+  allowScriptWebpage: boolean;
+
+  /**
    * Absolute directory that confines script file access when the request is not
    * in a git-backed collection. Empty resolves to the user home directory.
    */

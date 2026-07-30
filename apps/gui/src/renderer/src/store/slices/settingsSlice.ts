@@ -14,6 +14,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   allowedNetworkPlugins: [],
   allowScriptFileRead: false,
   allowScriptFileWrite: false,
+  allowScriptWebpage: false,
   scriptFileRoot: '',
   workflowResultsDirectory: '',
   maxResponseSizeMb: 50,

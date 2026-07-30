@@ -233,6 +233,7 @@ describe('generalSettings', () => {
     allowedNetworkPlugins: [],
     allowScriptFileRead: false,
     allowScriptFileWrite: false,
+    allowScriptWebpage: false,
     scriptFileRoot: '',
     workflowResultsDirectory: '',
     maxResponseSizeMb: 50,
@@ -926,6 +927,14 @@ describe('browser IPC schemas', () => {
   it('accepts browserWaitForLoad with optional timeout', () => {
     expect(ipcArgSchemas.browserWaitForLoad.safeParse(['tab-1']).success).toBe(true);
     expect(ipcArgSchemas.browserWaitForLoad.safeParse(['tab-1', 5000]).success).toBe(true);
+  });
+
+  it('accepts browserCapturePage with optional fullPage', () => {
+    expect(ipcArgSchemas.browserCapturePage.safeParse(['tab-1']).success).toBe(true);
+    expect(ipcArgSchemas.browserCapturePage.safeParse(['tab-1', { fullPage: true }]).success).toBe(
+      true
+    );
+    expect(ipcArgSchemas.browserCapturePage.safeParse(['']).success).toBe(false);
   });
 
   it('accepts browserTabId for requestClose', () => {

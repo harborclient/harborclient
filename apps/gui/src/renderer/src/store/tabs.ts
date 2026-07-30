@@ -9,7 +9,8 @@ import type {
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult,
-  SettingsSection
+  SettingsSection,
+  Variable
 } from '@harborclient/core/types';
 import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
 import { applyParamsToUrl } from '@harborclient/core/queryParams';
@@ -492,6 +493,46 @@ export interface BrowserTab {
   savedPostRequestScripts: ScriptRef[];
 
   /**
+   * Editable website-scoped variables (draft until Save in live page settings).
+   */
+  variables: Variable[];
+
+  /**
+   * Last-saved website-scoped variables baseline.
+   */
+  savedVariables: Variable[];
+
+  /**
+   * Editable headers sent with chrome-driven navigations (draft until Save).
+   */
+  headers: KeyValue[];
+
+  /**
+   * Last-saved headers baseline.
+   */
+  savedHeaders: KeyValue[];
+
+  /**
+   * Editable User-Agent override for chrome-driven navigations (draft until Save).
+   */
+  userAgent: string;
+
+  /**
+   * Last-saved User-Agent baseline.
+   */
+  savedUserAgent: string;
+
+  /**
+   * Editable authorization for chrome-driven navigations (draft until Save).
+   */
+  auth: AuthConfig;
+
+  /**
+   * Last-saved authorization baseline.
+   */
+  savedAuth: AuthConfig;
+
+  /**
    * Whether the guest history can go back.
    */
   canGoBack: boolean;
@@ -820,6 +861,46 @@ export interface CreateBrowserTabInit {
   savedPostRequestScripts?: ScriptRef[];
 
   /**
+   * Editable website-scoped variables (draft).
+   */
+  variables?: Variable[];
+
+  /**
+   * Last-saved website-scoped variables.
+   */
+  savedVariables?: Variable[];
+
+  /**
+   * Editable headers for chrome-driven navigations (draft).
+   */
+  headers?: KeyValue[];
+
+  /**
+   * Last-saved headers.
+   */
+  savedHeaders?: KeyValue[];
+
+  /**
+   * Editable User-Agent override (draft).
+   */
+  userAgent?: string;
+
+  /**
+   * Last-saved User-Agent.
+   */
+  savedUserAgent?: string;
+
+  /**
+   * Editable authorization (draft).
+   */
+  auth?: AuthConfig;
+
+  /**
+   * Last-saved authorization.
+   */
+  savedAuth?: AuthConfig;
+
+  /**
    * Linked saved website database id.
    */
   websiteId?: number | null;
@@ -881,6 +962,80 @@ function cloneScriptRefs(scripts: ScriptRef[]): ScriptRef[] {
 }
 
 /**
+ * Deep-clones variable rows so tabs do not share mutable state.
+ *
+ * @param variables - Variables to clone.
+ * @returns Independent copy of each row.
+ */
+function cloneVariables(variables: Variable[]): Variable[] {
+  return variables.map((variable) => ({ ...variable }));
+}
+
+/**
+ * Deep-clones key/value rows so tabs do not share mutable state.
+ *
+ * @param rows - Header rows to clone.
+ * @returns Independent copy of each row.
+ */
+function cloneKeyValues(rows: KeyValue[]): KeyValue[] {
+  return rows.map((row) => ({ ...row }));
+}
+
+/**
+ * Deep-clones an auth config so tabs do not share mutable state.
+ *
+ * @param auth - Auth config to clone.
+ * @returns Independent normalized copy.
+ */
+function cloneAuth(auth: AuthConfig): AuthConfig {
+  const normalized = normalizeAuth(auth);
+  return {
+    ...normalized,
+    basic: { ...normalized.basic },
+    bearer: { ...normalized.bearer },
+    oauth2: { ...normalized.oauth2 }
+  };
+}
+
+/**
+ * Serializes variables for dirty comparison.
+ *
+ * @param variables - Variable rows.
+ * @returns Stable JSON string.
+ */
+function serializeBrowserVariables(variables: Variable[]): string {
+  return JSON.stringify(
+    variables
+      .filter((row) => row.key.trim() || row.value.trim() || row.defaultValue.trim())
+      .map((row) => ({
+        key: row.key,
+        value: row.value,
+        defaultValue: row.defaultValue,
+        enabled: row.enabled !== false,
+        share: row.share === true
+      }))
+  );
+}
+
+/**
+ * Serializes headers for dirty comparison.
+ *
+ * @param headers - Header rows.
+ * @returns Stable JSON string.
+ */
+function serializeBrowserHeaders(headers: KeyValue[]): string {
+  return JSON.stringify(
+    headers
+      .filter((row) => row.key.trim() || row.value.trim())
+      .map((row) => ({
+        key: row.key,
+        value: row.value,
+        enabled: row.enabled !== false
+      }))
+  );
+}
+
+/**
  * Creates a new embedded browser tab.
  *
  * Defaults to about:blank with empty scripts. Callers may pass an initial URL and/or
@@ -901,6 +1056,14 @@ export function createBrowserTab(init?: CreateBrowserTabInit): BrowserTab {
   const savedPostRequestScripts = cloneScriptRefs(
     init?.savedPostRequestScripts ?? post_request_scripts
   );
+  const variables = cloneVariables(init?.variables ?? []);
+  const savedVariables = cloneVariables(init?.savedVariables ?? variables);
+  const headers = cloneKeyValues(init?.headers ?? []);
+  const savedHeaders = cloneKeyValues(init?.savedHeaders ?? headers);
+  const userAgent = init?.userAgent ?? '';
+  const savedUserAgent = init?.savedUserAgent ?? userAgent;
+  const auth = cloneAuth(init?.auth ?? defaultAuth());
+  const savedAuth = cloneAuth(init?.savedAuth ?? auth);
   const url = init?.url ?? 'about:blank';
   const homeUrl = init?.homeUrl ?? 'about:blank';
   const title = init?.title ?? 'New Browser';
@@ -917,6 +1080,14 @@ export function createBrowserTab(init?: CreateBrowserTabInit): BrowserTab {
     post_request_scripts,
     savedPreRequestScripts,
     savedPostRequestScripts,
+    variables,
+    savedVariables,
+    headers,
+    savedHeaders,
+    userAgent,
+    savedUserAgent,
+    auth,
+    savedAuth,
     canGoBack: false,
     canGoForward: false,
     faviconDataUrl,
@@ -963,6 +1134,10 @@ export function hasBrowserPendingSave(tab: BrowserTab): boolean {
     areBrowserScriptsDirty(tab.scripts, tab.savedScripts) ||
     areBrowserHcScriptsDirty(tab.pre_request_scripts, tab.savedPreRequestScripts) ||
     areBrowserHcScriptsDirty(tab.post_request_scripts, tab.savedPostRequestScripts) ||
+    serializeBrowserVariables(tab.variables) !== serializeBrowserVariables(tab.savedVariables) ||
+    serializeBrowserHeaders(tab.headers) !== serializeBrowserHeaders(tab.savedHeaders) ||
+    tab.userAgent.trim() !== tab.savedUserAgent.trim() ||
+    JSON.stringify(normalizeAuth(tab.auth)) !== JSON.stringify(normalizeAuth(tab.savedAuth)) ||
     areBrowserWebsiteFieldsDirty(tab)
   );
 }

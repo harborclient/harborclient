@@ -9,6 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
 import { ensureDefaultScriptRef, hasScriptContent } from '@harborclient/core/scriptRefs';
+import type { ScriptStage } from '@harborclient/sdk';
 import { useTabSaveRegistration } from '#/renderer/src/hooks/tabSaveRegistry';
 import { VariablesSection } from '#/renderer/src/ui/Tabs/CollectionSettings/VariablesSection';
 import { ScriptSection } from '#/renderer/src/ui/Tabs/CollectionSettings/ScriptSection';
@@ -175,6 +176,11 @@ interface Props {
   postScriptDescription: string;
 
   /**
+   * Optional stage filter for pre/post ScriptSection editors (for example live pages use `main` only).
+   */
+  scriptAllowedStages?: ScriptStage[];
+
+  /**
    * Additional tabs such as Git or plugin contributions.
    */
   extraTabs?: ScopedSettingsExtraTab[];
@@ -245,6 +251,7 @@ export function ScopedSettingsForm({
   renderAuth,
   preScriptDescription,
   postScriptDescription,
+  scriptAllowedStages,
   extraTabs = [],
   visibleTabValues,
   onVisibleTabValuesChange,
@@ -502,6 +509,7 @@ export function ScopedSettingsForm({
               scripts={preRequestScripts}
               onChange={setPreRequestScripts}
               variables={variables}
+              allowedStages={scriptAllowedStages}
             />
           </SegmentedTabPanel>
           <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col">
@@ -512,6 +520,7 @@ export function ScopedSettingsForm({
               scripts={postRequestScripts}
               onChange={setPostRequestScripts}
               variables={variables}
+              allowedStages={scriptAllowedStages}
             />
           </SegmentedTabPanel>
           {tabsAfterScripts.map((entry) => (

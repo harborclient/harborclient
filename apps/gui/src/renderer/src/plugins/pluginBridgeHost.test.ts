@@ -9,6 +9,7 @@ import * as hostRequestCommands from './hostRequestCommands';
 import * as hostLibraryCommands from './hostLibraryCommands';
 import * as hostLibraryMutations from './hostLibraryMutations';
 import * as hostEntityContextMenu from './hostEntityContextMenu';
+import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
 import {
   clearPluginContributions,
   getRegisteredPluginThemes,
@@ -44,6 +45,96 @@ describe('handlePluginHostBridgeInvoke', () => {
     });
 
     expect(result).toEqual(sendResult);
+  });
+
+  it('routes webpage.* ops through executeScriptWebpageRequest', async () => {
+    const opened = {
+      tabId: 'browser-9',
+      url: 'https://example.test/',
+      title: 'Example',
+      canGoBack: false,
+      canGoForward: false
+    };
+    const execute = vi
+      .spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest')
+      .mockResolvedValueOnce(opened)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({
+        selector: 'h1',
+        matchCount: 1,
+        elements: [{ tagName: 'H1', textContent: 'Hello' }]
+      })
+      .mockResolvedValueOnce({ closed: true });
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 10,
+        pluginId: 'com.test.browser',
+        op: 'webpage.open',
+        payload: { url: 'https://example.test', reuse: true }
+      })
+    ).resolves.toEqual(opened);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 11,
+        pluginId: 'com.test.browser',
+        op: 'webpage.focus',
+        payload: { tabId: 'browser-9' }
+      })
+    ).resolves.toBeUndefined();
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 12,
+        pluginId: 'com.test.browser',
+        op: 'webpage.query',
+        payload: { tabId: 'browser-9', selector: 'h1' }
+      })
+    ).resolves.toEqual({
+      selector: 'h1',
+      matchCount: 1,
+      elements: [{ tagName: 'H1', textContent: 'Hello' }]
+    });
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 13,
+        pluginId: 'com.test.browser',
+        op: 'webpage.close',
+        payload: { tabId: 'browser-9' }
+      })
+    ).resolves.toEqual({ closed: true });
+
+    expect(execute).toHaveBeenNthCalledWith(1, {
+      op: 'open',
+      url: 'https://example.test',
+      reuse: true
+    });
+    expect(execute).toHaveBeenNthCalledWith(2, { op: 'focus', tabId: 'browser-9' });
+    expect(execute).toHaveBeenNthCalledWith(3, {
+      op: 'query',
+      tabId: 'browser-9',
+      selector: 'h1',
+      all: undefined,
+      maxElements: undefined
+    });
+    expect(execute).toHaveBeenNthCalledWith(4, { op: 'close', tabId: 'browser-9' });
+  });
+
+  it('throws when a webpage session returns an error object', async () => {
+    vi.spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest').mockResolvedValue({
+      error: 'No active browser tab'
+    });
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 14,
+        pluginId: 'com.test.browser',
+        op: 'webpage.open',
+        payload: {}
+      })
+    ).rejects.toThrow('No active browser tab');
   });
 
   it('routes host.listCollections and host.listLibraryTree to library helpers', async () => {

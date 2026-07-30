@@ -11,6 +11,7 @@ import {
   readFileForPlugin,
   saveFileForPlugin,
   watchFileForPlugin,
+  writeBytesForPlugin,
   writeFileForPlugin
 } from './pluginFsOperations';
 import type { PluginPermission } from '@harborclient/core/plugin/types';
@@ -44,6 +45,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'fs.saveFile': 'filesystem:pick',
   'fs.readFile': 'filesystem:read',
   'fs.writeFile': 'filesystem:write',
+  'fs.writeBytes': 'filesystem:write',
   'fs.watchFile': 'filesystem:read',
   'ipc.invoke': 'ipc',
   'themes.register': 'ui',
@@ -118,7 +120,15 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'mcp.unregisterServer': 'mcp',
   'ai.registerChatPointer': 'ai',
   'ai.unregisterChatPointer': 'ai',
-  'ai.copyToChat': 'ai'
+  'ai.copyToChat': 'ai',
+  'webpage.open': 'browser',
+  'webpage.focus': 'browser',
+  'webpage.close': 'browser',
+  'webpage.query': 'browser',
+  'webpage.evaluate': 'browser',
+  'webpage.injectScript': 'browser',
+  'webpage.injectStylesheet': 'browser',
+  'webpage.screenshot': 'browser'
 };
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
@@ -164,7 +174,15 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'host.getSidebarSelection',
   'host.setSidebarSelection',
   'commands.execute',
-  'ai.copyToChat'
+  'ai.copyToChat',
+  'webpage.open',
+  'webpage.focus',
+  'webpage.close',
+  'webpage.query',
+  'webpage.evaluate',
+  'webpage.injectScript',
+  'webpage.injectStylesheet',
+  'webpage.screenshot'
 ]);
 
 /** Maximum wait for the host renderer to complete a return-value host bridge call. */
@@ -642,6 +660,11 @@ export class PluginUiBroker {
         const { path, content } = payload as { path: string; content: string };
         writeFileForPlugin(this.#pluginManager, session.pluginId, path, content);
         return undefined;
+      }
+      case 'fs.writeBytes': {
+        const { path, base64 } = payload as { path: string; base64: string };
+        const bytes = new Uint8Array(Buffer.from(base64, 'base64'));
+        return writeBytesForPlugin(this.#pluginManager, session.pluginId, path, bytes);
       }
       case 'fs.watchFile': {
         const { path } = payload as { path: string };

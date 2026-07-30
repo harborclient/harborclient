@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog } from 'electron';
+import { isAbsolute, join } from 'path';
 import type { PluginFsPickFileOptions, PluginFsSaveFileOptions } from '@harborclient/sdk';
 import type { PluginManager } from './PluginManager';
 
@@ -132,6 +133,37 @@ export function writeFileForPlugin(
 ): void {
   pluginManager.reconcileFilesystemGrants(pluginId);
   pluginManager.fsAllowlist.writeTextFile(pluginId, path, content);
+}
+
+/**
+ * Writes binary bytes to one plugin's allowlisted path.
+ *
+ * Relative paths resolve under the plugin package directory. Absolute paths must
+ * already be allowlisted (plugin directory or a user-granted path).
+ *
+ * @param pluginManager - Plugin manager that owns the filesystem allowlist.
+ * @param pluginId - Plugin manifest id.
+ * @param path - Relative (to plugin root) or absolute allowlisted file path.
+ * @param bytes - Binary payload to write.
+ * @returns Absolute path written.
+ */
+export function writeBytesForPlugin(
+  pluginManager: PluginManager,
+  pluginId: string,
+  path: string,
+  bytes: Uint8Array
+): string {
+  pluginManager.reconcileFilesystemGrants(pluginId);
+  const info = pluginManager.get(pluginId);
+  if (!info) {
+    throw new Error(`Unknown plugin: ${pluginId}`);
+  }
+  const trimmed = String(path ?? '').trim();
+  if (!trimmed) {
+    throw new Error('hc.fs.writeBytes requires a path');
+  }
+  const absolute = isAbsolute(trimmed) ? trimmed : join(info.path, trimmed);
+  return pluginManager.fsAllowlist.writeBytesFile(pluginId, absolute, bytes);
 }
 
 /**

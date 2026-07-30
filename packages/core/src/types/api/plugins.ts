@@ -277,6 +277,12 @@ export interface ApiPlugins {
    */
   pluginFsWriteFile: (pluginId: string, path: string, content: string) => Promise<void>;
   /**
+   * Writes binary bytes (base64-encoded) to an allowlisted path for a plugin.
+   *
+   * Relative paths resolve under the plugin package directory. Returns the absolute path written.
+   */
+  pluginFsWriteBytes: (pluginId: string, path: string, base64: string) => Promise<string>;
+  /**
    * Watches an allowlisted file for changes and invokes the callback when it changes.
    */
   pluginFsWatchFile: (pluginId: string, path: string, callback: () => void) => () => void;

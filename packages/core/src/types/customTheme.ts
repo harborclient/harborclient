@@ -161,6 +161,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'sidebar-rail': 'Sidebar rail',
   'sidebar-rail-active': 'Sidebar rail active',
   'sidebar-rail-text': 'Sidebar rail text',
+  'sidebar-rail-separator': 'Sidebar rail separator',
   'sidebar-section': 'Sidebar section',
   'sidebar-section-text': 'Sidebar section text',
   'footer': 'Footer',
@@ -267,18 +268,19 @@ export const CUSTOM_THEME_METRIC_LABELS: Record<ThemeMetricToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
+    tokens: ['surface', 'footer', 'control', 'field', 'separator', 'terminal']
+  },
+  {
+    label: 'Rail & Sidebars',
     tokens: [
-      'surface',
-      'sidebar',
-      'sidebar-toolbar',
       'sidebar-rail',
       'sidebar-rail-active',
+      'sidebar-rail-text',
+      'sidebar-rail-separator',
+      'sidebar',
+      'sidebar-toolbar',
       'sidebar-section',
-      'footer',
-      'control',
-      'field',
-      'separator',
-      'terminal'
+      'sidebar-section-text'
     ]
   },
   {
@@ -287,15 +289,7 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   },
   {
     label: 'Text',
-    tokens: [
-      'text',
-      'text-secondary',
-      'muted',
-      'sidebar-section-text',
-      'sidebar-rail-text',
-      'footer-text',
-      'footer-muted'
-    ]
+    tokens: ['text', 'text-secondary', 'muted', 'footer-text', 'footer-muted']
   },
   {
     label: 'Interactive',

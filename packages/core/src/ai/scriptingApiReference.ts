@@ -137,6 +137,35 @@ if (sizeAnswer == null) {
 
 Do not invent tool-calling loops or Postman AI APIs; use \`await hc.ask(...)\`.
 
+## hc.webpage(url?, options?)
+
+Opens or reuses an embedded HarborClient browser tab and returns a handle.
+Requires Settings → General → Allow script webpage access. Page load waits count
+against \`scriptTimeoutMs\` — raise the script timeout for slow pages.
+
+\`\`\`js
+const page = await hc.webpage("https://example.com");
+console.log(page.title);
+await page.focus();
+const { elements } = await page.dom.query("h1");
+const title = await page.dom.evaluate("document.title");
+const { path } = await page.screenshot("screenshot.png", {});
+const { path: full } = await page.screenshot("full.png", { fullPage: true });
+await page.close();
+\`\`\`
+
+- Omit \`url\` to bind the currently active browser tab
+- \`options.reuse\` — default \`true\`; set \`false\` to always open a new tab
+- \`page.dom.query(selector, { all?, maxElements? })\` — CSS selector reads
+- \`page.dom.evaluate(expression)\` — run JS in the page and return the result
+- \`page.dom.injectScript(source)\` / \`page.dom.injectStylesheet(css)\`
+- \`page.screenshot(path, options?)\` — PNG written under the script file access
+  root; returns \`{ path }\` (absolute). Pass \`{ fullPage: true }\` to
+  scroll-and-stitch the full document (default captures the visible viewport)
+- \`page.focus()\` / \`page.close()\` — \`close\` returns \`false\` if the user cancels a leave prompt
+
+Unavailable in headless/CLI script contexts (throws).
+
 ## hc.sleep(milliseconds)
 
 Pauses the script for the given number of milliseconds, then continues. Returns a

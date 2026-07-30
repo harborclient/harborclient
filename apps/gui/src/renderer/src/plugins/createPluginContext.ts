@@ -86,6 +86,7 @@ import {
   updateCollectionForPlugin
 } from './hostLibraryMutations';
 import { openImageView } from './hostImageCommands';
+import { openPluginWebpage } from './pluginWebpageApi';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
 import { subscribePluginLibraryChanged } from './pluginLibraryChangedBus';
 import { subscribePluginWorkflowsChanged } from './pluginWorkflowsChangedBus';
@@ -343,6 +344,15 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       writeFile: async (path, content) => {
         assertPermission('filesystem:write');
         await window.api.pluginFsWriteFile(pluginId, path, content);
+      },
+      writeBytes: async (path, bytes) => {
+        assertPermission('filesystem:write');
+        const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        let binary = '';
+        for (let i = 0; i < u8.length; i += 1) {
+          binary += String.fromCharCode(u8[i] ?? 0);
+        }
+        return window.api.pluginFsWriteBytes(pluginId, path, btoa(binary));
       },
       watchFile: (path, listener) => {
         assertPermission('filesystem:read');
@@ -900,6 +910,30 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       copyToChat: async () => {
         assertPermission('ai');
       }
+    },
+    /**
+     * Opens or reuses an embedded browser tab and returns a control handle.
+     *
+     * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+     *
+     * @param url - Optional URL; omit to bind the active browser tab.
+     * @param options - Optional `{ reuse }` (default true).
+     * @returns Webpage handle with focus/close and `dom` helpers.
+     */
+    webpage: async (url, options) => {
+      assertPermission('browser');
+      /**
+       * Writes screenshot PNG bytes via the plugin filesystem IPC.
+       *
+       * @param path - Relative or absolute allowlisted path.
+       * @param pngBase64 - Base64-encoded PNG payload.
+       * @returns Absolute written path.
+       */
+      const writeScreenshotBytes = async (path: string, pngBase64: string): Promise<string> => {
+        assertPermission('filesystem:write');
+        return window.api.pluginFsWriteBytes(pluginId, path, pngBase64);
+      };
+      return openPluginWebpage(url, options, writeScreenshotBytes);
     }
   };
 }

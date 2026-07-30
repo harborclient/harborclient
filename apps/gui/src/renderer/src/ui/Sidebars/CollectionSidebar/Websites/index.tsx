@@ -63,7 +63,7 @@ export function Websites(): JSX.Element {
   const handleDelete = useCallback(
     async (website: Website): Promise<void> => {
       const confirmed = await confirm({
-        title: 'Delete website',
+        title: 'Delete live page',
         message: `Move “${website.name}” to the trash?`,
         confirmLabel: 'Delete',
         variant: 'danger'
@@ -74,7 +74,7 @@ export function Websites(): JSX.Element {
       try {
         await dispatch(deleteWebsite(website.id)).unwrap();
       } catch (error) {
-        showAlert(dispatch, formatErrorMessage(error, 'Failed to delete website'));
+        showAlert(dispatch, formatErrorMessage(error, 'Failed to delete live page'));
       }
     },
     [confirm, dispatch]
@@ -106,7 +106,7 @@ export function Websites(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-0.5 px-1 pb-1">
-      {websites.length === 0 ? <EmptySectionLabel label="No websites" /> : null}
+      {websites.length === 0 ? <EmptySectionLabel label="No live pages" /> : null}
       {websites.map((website) => {
         const menuId = `website-${website.id}`;
         const selected = activeWebsiteId === website.id;

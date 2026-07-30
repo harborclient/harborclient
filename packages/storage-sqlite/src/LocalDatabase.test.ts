@@ -983,15 +983,39 @@ describeSqlite('LocalDatabase websites', () => {
       faviconDataUrl: null,
       scripts: [],
       preRequestScripts: [],
-      postRequestScripts: []
+      postRequestScripts: [],
+      variables: [
+        { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+      ],
+      headers: [{ key: 'X-Test', value: '1', enabled: true }],
+      userAgent: 'HarborClient-Test/1.0',
+      auth: {
+        type: 'bearer',
+        basic: { username: '', password: '' },
+        bearer: { token: 'tok' },
+        oauth2: {
+          tokenUrl: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          audience: '',
+          clientAuth: 'body'
+        }
+      }
     });
 
     expect(updated[0]).toMatchObject({
       name: 'Example Updated',
       url: 'https://example.com/docs',
-      faviconDataUrl: null
+      faviconDataUrl: null,
+      userAgent: 'HarborClient-Test/1.0'
     });
     expect(updated[0]?.scripts).toEqual([]);
+    expect(updated[0]?.variables).toEqual([
+      { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+    ]);
+    expect(updated[0]?.headers).toEqual([{ key: 'X-Test', value: '1', enabled: true }]);
+    expect(updated[0]?.auth.type).toBe('bearer');
 
     const remaining = database.deleteWebsite(created[0]!.id);
     expect(remaining).toEqual([]);

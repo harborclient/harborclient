@@ -395,7 +395,7 @@ export const pageRoutes = {
   'browser-settings': defineRoute({
     key: (page) => `browser-settings:${page.browserTabId}`,
     meta: (page) => ({ title: page.label, icon: faGear }),
-    closeName: () => 'Browser Settings',
+    closeName: () => 'Live Page Settings',
     replaceOnReopen: true,
     Component: lazyNamed(
       () => import('#/renderer/src/routing/pages/BrowserSettingsPageRoute'),
@@ -408,7 +408,7 @@ export const pageRoutes = {
       return {
         type: 'browser-settings',
         browserTabId: value.browserTabId,
-        label: typeof value.label === 'string' && value.label ? value.label : 'Browser Settings'
+        label: typeof value.label === 'string' && value.label ? value.label : 'Live Page Settings'
       };
     }
   })

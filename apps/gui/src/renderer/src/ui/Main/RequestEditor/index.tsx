@@ -20,6 +20,8 @@ import {
 import { clearActiveResponse } from '#/renderer/src/plugins/hostRequestCommands';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { store } from '#/renderer/src/store/redux';
+import { closeWebpageTab } from '#/renderer/src/store/browser/webpageSession';
 import { discardThemeDesignerSession } from '#/renderer/src/store/thunks/theme';
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
@@ -86,11 +88,7 @@ import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
 import { Editor } from './Editor';
 import { NoOpenRequests } from './NoOpenRequests';
 import { BrowserTabContent } from './BrowserTab';
-import {
-  clearBrowserGuest,
-  hasBrowserGuest,
-  syncDestroyedBrowserGuests
-} from './BrowserTab/browserGuestRegistry';
+import { hasBrowserGuest, syncDestroyedBrowserGuests } from './BrowserTab/browserGuestRegistry';
 import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
 import { ResponseEditor } from '../ResponseEditor';
@@ -475,13 +473,17 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
    */
   const closeBrowserTab = useCallback(
     async (tabId: string): Promise<boolean> => {
-      const closed = await window.api.browserRequestClose(tabId);
-      if (!closed) {
+      const result = await closeWebpageTab(
+        {
+          getState: () => store.getState(),
+          dispatch
+        },
+        tabId
+      );
+      if ('error' in result) {
         return false;
       }
-      clearBrowserGuest(tabId);
-      dispatch(closeTab(tabId));
-      return true;
+      return result.closed;
     },
     [dispatch]
   );
@@ -724,7 +726,11 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
               key={`browser-${activeTabId}`}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <BrowserTabContent tab={activeBrowserTab} />
+              <BrowserTabContent
+                tab={activeBrowserTab}
+                variables={activeVariables}
+                onEditVariables={onEditVariables}
+              />
             </div>
           ) : (
             <>

@@ -231,7 +231,12 @@ export function useCustomTheme({ onSaved }: Options): UseCustomThemeResult {
         id: customTheme.id,
         title: customTheme.title,
         type: customTheme.type,
-        colors: { ...customTheme.colors },
+        // Fill newer tokens (e.g. sidebar-rail*) missing from older theme files so
+        // Designer fields show real defaults and live preview applies them.
+        colors: {
+          ...getDefaultCustomThemePalette(customTheme.type),
+          ...customTheme.colors
+        },
         metrics: {
           ...getDefaultCustomThemeMetrics(customTheme.type),
           ...(customTheme.metrics ?? {})

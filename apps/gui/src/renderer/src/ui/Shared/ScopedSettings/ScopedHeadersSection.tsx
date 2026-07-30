@@ -4,11 +4,11 @@ import type { KeyValue, Variable } from '@harborclient/core/types';
 import { headerKeySource, headerValueSource } from '#/renderer/src/autocomplete/sources';
 import { UserAgentField } from '#/renderer/src/ui/Shared/UserAgentField';
 
-type Scope = 'collection' | 'folder';
+type Scope = 'collection' | 'folder' | 'website';
 
 interface Props {
   /**
-   * Whether headers apply at collection or folder scope.
+   * Whether headers apply at collection, folder, or website (live page) scope.
    */
   scope: Scope;
 
@@ -49,10 +49,34 @@ interface Props {
 }
 
 /**
- * Headers editor for collection or folder settings tabs.
+ * Returns the Headers tab description for the given scope.
+ *
+ * @param scope - Settings scope.
+ * @returns Description content for the FormSection.
+ */
+function headersDescription(scope: Scope): JSX.Element {
+  if (scope === 'website') {
+    return (
+      <>
+        These headers are sent with chrome-driven live page navigations (open, Go, Home, Reload).
+        Header values support {'{{variable}}'} syntax. A manual Authorization header overrides the
+        Authorization tab.
+      </>
+    );
+  }
+  return (
+    <>
+      These headers are sent with every request in this {scope}. Header values support{' '}
+      {'{{variable}}'} syntax. Request-level headers override {scope} headers with the same name.
+    </>
+  );
+}
+
+/**
+ * Headers editor for collection, folder, or live page settings tabs.
  *
  * Includes a dedicated User-Agent control below the key/value table. An explicit
- * User-Agent row in the table still takes precedence at send time.
+ * User-Agent row in the table still takes precedence at send/navigation time.
  */
 export function ScopedHeadersSection({
   scope,
@@ -65,16 +89,7 @@ export function ScopedHeadersSection({
   collectionId
 }: Props): JSX.Element {
   return (
-    <FormSection
-      title="Headers"
-      description={
-        <>
-          These headers are sent with every request in this {scope}. Header values support{' '}
-          {'{{variable}}'} syntax. Request-level headers override {scope} headers with the same
-          name.
-        </>
-      }
-    >
+    <FormSection title="Headers" description={headersDescription(scope)}>
       <KeyValueEditor
         rows={headers}
         onChange={onChange}

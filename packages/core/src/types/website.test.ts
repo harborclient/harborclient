@@ -54,7 +54,43 @@ describe('buildWebsiteExport', () => {
     expect(envelope.scripts).toBeUndefined();
     expect(envelope.pre_request_scripts).toBeUndefined();
     expect(envelope.post_request_scripts).toBeUndefined();
+    expect(envelope.variables).toBeUndefined();
+    expect(envelope.headers).toBeUndefined();
+    expect(envelope.userAgent).toBeUndefined();
+    expect(envelope.auth).toBeUndefined();
     expect(envelope.faviconDataUrl).toBeNull();
+  });
+
+  it('includes variables, headers, userAgent, and auth when set', () => {
+    const envelope = buildWebsiteExport({
+      uuid: '11111111-1111-4111-8111-111111111111',
+      name: 'Configured',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      variables: [
+        { key: 'host', value: 'example.com', defaultValue: '', enabled: true, share: false }
+      ],
+      headers: [{ key: 'X-Test', value: '1', enabled: true }],
+      userAgent: 'HarborClient/1.0',
+      auth: {
+        type: 'bearer',
+        basic: { username: '', password: '' },
+        bearer: { token: 'secret' },
+        oauth2: {
+          tokenUrl: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          audience: '',
+          clientAuth: 'body'
+        }
+      }
+    });
+
+    expect(envelope.variables).toHaveLength(1);
+    expect(envelope.headers).toEqual([{ key: 'X-Test', value: '1', enabled: true }]);
+    expect(envelope.userAgent).toBe('HarborClient/1.0');
+    expect(envelope.auth?.type).toBe('bearer');
   });
 });
 

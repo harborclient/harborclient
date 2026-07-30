@@ -703,7 +703,7 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
       }
       case 'website': {
         await dispatch((await import('#/renderer/src/store/thunks/websites')).refreshWebsites());
-        toast.success(result.action === 'updated' ? 'Website updated' : 'Website imported');
+        toast.success(result.action === 'updated' ? 'Live page updated' : 'Live page imported');
         break;
       }
     }

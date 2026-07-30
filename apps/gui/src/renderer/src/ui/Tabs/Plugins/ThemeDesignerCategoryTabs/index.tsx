@@ -1,10 +1,16 @@
 import { SegmentedTabPanel, SegmentedTabs, SegmentedTabsGroup } from '@harborclient/sdk/components';
 import { useState, type JSX } from 'react';
 import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
+import type { CustomThemeType } from '@harborclient/core/types/customTheme';
 import { ThemeDesignerCategoryPanel } from '../ThemeDesignerCategoryPanel';
 import { THEME_DESIGNER_CATEGORY_TABS } from './categoryTabValues';
 
 interface Props {
+  /**
+   * Base appearance used to resolve color defaults when a draft omits a token.
+   */
+  type: CustomThemeType;
+
   /**
    * Current color token values in the Designer draft.
    */
@@ -31,6 +37,7 @@ interface Props {
  * colors and the typography and geometry fields for that category together.
  */
 export function ThemeDesignerCategoryTabs({
+  type,
   colors,
   metrics,
   onColorChange,
@@ -53,6 +60,7 @@ export function ThemeDesignerCategoryTabs({
           <ThemeDesignerCategoryPanel
             groupLabel={tab.label}
             description={tab.description}
+            type={type}
             colors={colors}
             metrics={metrics}
             onColorChange={onColorChange}

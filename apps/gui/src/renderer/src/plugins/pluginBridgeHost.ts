@@ -145,6 +145,9 @@ import {
   unregisterBridgedImportHandler
 } from './pluginImportHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
+import type { ScriptWebpageRequest } from '@harborclient/core/scripting/scriptApi';
+import { executeScriptWebpageRequest } from '#/renderer/src/scripting/scriptWebpageBridge';
+import { isWebpageSessionError } from '#/renderer/src/store/browser/webpageSession';
 
 type ContributionKind =
   | 'settingsSections'
@@ -355,6 +358,79 @@ export function applyImportHandlerMessage(message: ImportHandlerMessage): void {
     registrationId: message.registrationId,
     extensions
   });
+}
+
+/**
+ * Maps a plugin host-bridge webpage op + payload to a {@link ScriptWebpageRequest}.
+ *
+ * @param op - Bridge operation name (`webpage.open`, …).
+ * @param payload - Serializable fields for the op.
+ * @returns Request for {@link executeScriptWebpageRequest}.
+ */
+function toScriptWebpageRequest(op: string, payload: unknown): ScriptWebpageRequest {
+  const fields = (payload ?? {}) as Record<string, unknown>;
+  switch (op) {
+    case 'webpage.open':
+      return {
+        op: 'open',
+        url: typeof fields.url === 'string' ? fields.url : undefined,
+        reuse: typeof fields.reuse === 'boolean' ? fields.reuse : undefined
+      };
+    case 'webpage.focus':
+      return { op: 'focus', tabId: String(fields.tabId ?? '') };
+    case 'webpage.close':
+      return { op: 'close', tabId: String(fields.tabId ?? '') };
+    case 'webpage.query':
+      return {
+        op: 'query',
+        tabId: String(fields.tabId ?? ''),
+        selector: String(fields.selector ?? ''),
+        all: typeof fields.all === 'boolean' ? fields.all : undefined,
+        maxElements: typeof fields.maxElements === 'number' ? fields.maxElements : undefined
+      };
+    case 'webpage.evaluate':
+      return {
+        op: 'evaluate',
+        tabId: String(fields.tabId ?? ''),
+        expression: String(fields.expression ?? '')
+      };
+    case 'webpage.injectScript':
+      return {
+        op: 'injectScript',
+        tabId: String(fields.tabId ?? ''),
+        source: String(fields.source ?? '')
+      };
+    case 'webpage.injectStylesheet':
+      return {
+        op: 'injectStylesheet',
+        tabId: String(fields.tabId ?? ''),
+        css: String(fields.css ?? '')
+      };
+    case 'webpage.screenshot':
+      return {
+        op: 'screenshot',
+        tabId: String(fields.tabId ?? ''),
+        fullPage: fields.fullPage === true ? true : undefined
+      };
+    default:
+      throw new Error(`Unsupported webpage bridge operation: ${op}`);
+  }
+}
+
+/**
+ * Runs one webpage session op for a plugin host-bridge invoke.
+ *
+ * @param op - Bridge operation name.
+ * @param payload - Serializable fields for the op.
+ * @returns Session helper result.
+ * @throws When the session returns `{ error }` or an unknown op.
+ */
+async function executePluginWebpageBridge(op: string, payload: unknown): Promise<unknown> {
+  const result = await executeScriptWebpageRequest(toScriptWebpageRequest(op, payload));
+  if (isWebpageSessionError(result)) {
+    throw new Error(result.error);
+  }
+  return result;
 }
 
 /**
@@ -648,6 +724,14 @@ export async function handlePluginHostBridgeInvoke(
       logImportVerbose('hostBridge commands.execute ok', { commandId });
       return undefined;
     }
+    case 'webpage.open':
+    case 'webpage.focus':
+    case 'webpage.close':
+    case 'webpage.query':
+    case 'webpage.evaluate':
+    case 'webpage.injectScript':
+    case 'webpage.injectStylesheet':
+      return executePluginWebpageBridge(op, payload);
     default:
       throw new Error(`Unsupported plugin host bridge invoke operation: ${op}`);
   }

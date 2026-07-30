@@ -358,6 +358,70 @@ describe('PluginUiBroker host bridge invoke', () => {
     await expect(resultPromise).resolves.toEqual(sendResult);
   });
 
+  it('round-trips webpage.open through plugins:hostBridgeInvoke with browser permission', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 71 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.browser',
+      role: 'agent'
+    });
+
+    const payload = { url: 'https://example.test', reuse: true };
+    const resultPromise = broker.handleInvoke(sender, 'webpage.open', payload);
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.test.browser', 'browser');
+    expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
+      requestId: 1,
+      pluginId: 'com.test.browser',
+      op: 'webpage.open',
+      payload
+    });
+
+    const opened = {
+      tabId: 'browser-1',
+      url: 'https://example.test/',
+      title: 'Example',
+      canGoBack: false,
+      canGoForward: false
+    };
+    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: opened });
+
+    await expect(resultPromise).resolves.toEqual(opened);
+  });
+
+  it('rejects webpage.open when the plugin lacks the browser permission', async () => {
+    const manager = {
+      assertPermission: vi.fn((pluginId: string, permission: string) => {
+        if (permission === 'browser') {
+          throw new Error(`Plugin ${pluginId} lacks permission: browser`);
+        }
+      })
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 72 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.no-browser',
+      role: 'agent'
+    });
+
+    await expect(
+      broker.handleInvoke(sender, 'webpage.open', { url: 'https://example.test' })
+    ).rejects.toThrow(/lacks permission: browser/);
+  });
+
   it('rejects host.sendHttpRequest when network access is disabled for the plugin', async () => {
     const { isPluginNetworkAllowed } = await import('#/main/settings/generalSettings');
     vi.mocked(isPluginNetworkAllowed).mockReturnValue(false);

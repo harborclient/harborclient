@@ -859,3 +859,124 @@ describe('createScriptApi hc.fs', () => {
     );
   });
 });
+
+describe('createScriptApi hc.webpage', () => {
+  it('throws when no webpage transport is available', async () => {
+    const api = createScriptApi(baseInput);
+    const webpage = api.hc.webpage as (url?: string) => Promise<unknown>;
+
+    await expect(webpage('https://example.com')).rejects.toThrow(
+      'hc.webpage is not available in this script context'
+    );
+  });
+
+  it('opens a tab and forwards handle methods through the bridge', async () => {
+    const calls: unknown[] = [];
+    const fileCalls: Array<{ op: string; path?: string }> = [];
+    const api = createScriptApi(baseInput, {
+      webpage: async (req) => {
+        calls.push(req);
+        if (req.op === 'open') {
+          return {
+            tabId: 'tab-1',
+            url: 'https://example.com/',
+            title: 'Example',
+            canGoBack: false,
+            canGoForward: false
+          };
+        }
+        if (req.op === 'focus') {
+          return { ok: true };
+        }
+        if (req.op === 'close') {
+          return { closed: true };
+        }
+        if (req.op === 'query') {
+          return { selector: req.selector, matchCount: 1, elements: [{ tagName: 'H1' }] };
+        }
+        if (req.op === 'evaluate') {
+          return { value: 'Example' };
+        }
+        if (req.op === 'injectScript') {
+          return { value: undefined };
+        }
+        if (req.op === 'injectStylesheet') {
+          return { key: 'css-1' };
+        }
+        if (req.op === 'screenshot') {
+          return { pngBase64: Buffer.from('fake-png').toString('base64') };
+        }
+        return { error: `unexpected op` };
+      },
+      fileBridge: async (req) => {
+        fileCalls.push(req);
+        if (req.op === 'writeBytes') {
+          return `/tmp/script-root/${req.path}`;
+        }
+        return undefined;
+      }
+    });
+
+    const webpage = api.hc.webpage as (
+      url?: string,
+      options?: { reuse?: boolean }
+    ) => Promise<{
+      tabId: string;
+      url: string;
+      title: string;
+      focus: () => Promise<void>;
+      close: () => Promise<boolean>;
+      screenshot: (path: string, options?: object) => Promise<{ path: string }>;
+      dom: {
+        query: (selector: string) => Promise<{ matchCount: number; elements: unknown[] }>;
+        evaluate: (expression: string) => Promise<unknown>;
+        injectScript: (source: string) => Promise<unknown>;
+        injectStylesheet: (css: string) => Promise<string>;
+      };
+    }>;
+
+    const page = await webpage('https://example.com', { reuse: false });
+    expect(page.tabId).toBe('tab-1');
+    expect(page.title).toBe('Example');
+    await page.focus();
+    await expect(page.dom.query('h1')).resolves.toEqual({
+      selector: 'h1',
+      matchCount: 1,
+      elements: [{ tagName: 'H1' }]
+    });
+    await expect(page.dom.evaluate('document.title')).resolves.toBe('Example');
+    await page.dom.injectScript('1+1');
+    await expect(page.dom.injectStylesheet('body{}')).resolves.toBe('css-1');
+    await expect(page.screenshot('screenshot.png', {})).resolves.toEqual({
+      path: '/tmp/script-root/screenshot.png'
+    });
+    await expect(page.screenshot('full.png', { fullPage: true })).resolves.toEqual({
+      path: '/tmp/script-root/full.png'
+    });
+    await expect(
+      page.screenshot('bad.png', { fullPage: 'yes' as unknown as boolean })
+    ).rejects.toThrow('options.fullPage must be a boolean');
+    await expect(page.close()).resolves.toBe(true);
+
+    expect(calls[0]).toEqual({ op: 'open', url: 'https://example.com', reuse: false });
+    expect(calls).toContainEqual({ op: 'focus', tabId: 'tab-1' });
+    expect(calls).toContainEqual({ op: 'screenshot', tabId: 'tab-1', fullPage: false });
+    expect(calls).toContainEqual({ op: 'screenshot', tabId: 'tab-1', fullPage: true });
+    expect(fileCalls.some((req) => req.op === 'writeBytes')).toBe(true);
+    expect(calls).toContainEqual({
+      op: 'query',
+      tabId: 'tab-1',
+      selector: 'h1',
+      all: undefined,
+      maxElements: undefined
+    });
+  });
+
+  it('throws bridge error objects from open', async () => {
+    const api = createScriptApi(baseInput, {
+      webpage: async () => ({ error: 'No active browser tab.' })
+    });
+    const webpage = api.hc.webpage as (url?: string) => Promise<unknown>;
+    await expect(webpage()).rejects.toThrow('No active browser tab.');
+  });
+});

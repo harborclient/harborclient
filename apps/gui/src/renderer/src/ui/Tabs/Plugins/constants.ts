@@ -30,7 +30,8 @@ export const PERMISSION_NAMES: Record<PluginPermission, string> = {
   'ipc': 'IPC',
   'server': 'Server',
   'mcp': 'MCP',
-  'ai': 'AI'
+  'ai': 'AI',
+  'browser': 'Browser'
 };
 
 /**
@@ -48,7 +49,8 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
   'mcp': 'Register remote MCP client servers for the chat agent',
-  'ai': 'Chat tools, system prompt contributions, and agent hooks'
+  'ai': 'Chat tools, system prompt contributions, and agent hooks',
+  'browser': 'Open and control embedded browser tabs via hc.webpage'
 };
 
 /**
@@ -66,5 +68,6 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
   'mcp': 'Register remote MCP client servers for the chat agent',
-  'ai': 'Chat tools, system prompt contributions, and agent hooks'
+  'ai': 'Chat tools, system prompt contributions, and agent hooks',
+  'browser': 'Open and control embedded browser tabs via hc.webpage'
 };

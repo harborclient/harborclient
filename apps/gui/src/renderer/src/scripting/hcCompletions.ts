@@ -46,6 +46,11 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(prompt, options?) => Promise<string | null> — AI one-shot ask'
   },
   {
+    label: 'webpage',
+    type: 'function',
+    detail: '(url?, options?) => Promise<WebpageHandle> — requires Settings → General'
+  },
+  {
     label: 'sleep',
     type: 'function',
     detail: '(ms) => Promise<void> — delay before continuing'
@@ -74,7 +79,11 @@ const HC_FS: HcCompletionOption[] = [
   { label: 'readText', type: 'method', detail: '(path) => Promise<string>' },
   { label: 'readBytes', type: 'method', detail: '(path) => Promise<Uint8Array>' },
   { label: 'writeText', type: 'method', detail: '(path, contents) => Promise<void>' },
-  { label: 'writeBytes', type: 'method', detail: '(path, bytes) => Promise<void>' },
+  {
+    label: 'writeBytes',
+    type: 'method',
+    detail: '(path, bytes) => Promise<string> — absolute path written'
+  },
   { label: 'append', type: 'method', detail: '(path, contents) => Promise<void>' },
   { label: 'exists', type: 'method', detail: '(path) => Promise<boolean>' },
   {

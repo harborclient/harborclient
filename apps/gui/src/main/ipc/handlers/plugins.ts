@@ -6,6 +6,7 @@ import {
   readFileForPlugin,
   saveFileForPlugin,
   watchFileForPlugin,
+  writeBytesForPlugin,
   writeFileForPlugin
 } from '#/main/plugins/pluginFsOperations';
 import { fetchPluginCatalog } from '#/main/plugins/pluginCatalog';
@@ -463,6 +464,16 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
     (_event, pluginId, path, content) => {
       pluginManager.assertPermission(pluginId, 'filesystem:write');
       writeFileForPlugin(pluginManager, pluginId, path, content);
+    }
+  );
+
+  handle(
+    'plugins:fsWriteBytes',
+    ipcArgSchemas.pluginFsWriteBytes,
+    (_event, pluginId, path, base64) => {
+      pluginManager.assertPermission(pluginId, 'filesystem:write');
+      const bytes = new Uint8Array(Buffer.from(base64, 'base64'));
+      return writeBytesForPlugin(pluginManager, pluginId, path, bytes);
     }
   );
 

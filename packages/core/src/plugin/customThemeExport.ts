@@ -16,6 +16,7 @@ const themeColorTokenSchema = z.enum([
   'sidebar-rail',
   'sidebar-rail-active',
   'sidebar-rail-text',
+  'sidebar-rail-separator',
   'sidebar-section',
   'sidebar-section-text',
   'footer',

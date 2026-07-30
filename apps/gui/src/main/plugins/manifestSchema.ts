@@ -33,7 +33,9 @@ const pluginPermission = z.enum([
   'network',
   'ipc',
   'server',
-  'mcp'
+  'mcp',
+  'ai',
+  'browser'
 ]) satisfies z.ZodType<PluginPermission>;
 
 const screenshotEntry = z.union([

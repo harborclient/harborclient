@@ -17,7 +17,8 @@ import { executeHttpSend, isScriptNetworkAllowed } from '#/main/network/executeH
 import {
   getGeneralSettings,
   isScriptFileReadAllowed,
-  isScriptFileWriteAllowed
+  isScriptFileWriteAllowed,
+  isScriptWebpageAllowed
 } from '#/main/settings/generalSettings';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import { getAiSettings } from '#/main/settings/aiSettings';
@@ -33,7 +34,8 @@ import {
   scriptFileAccessForOp,
   type ScriptFileRequest
 } from '@harborclient/core/scripting/scriptFileOperations';
-import type { ScriptAskRequest } from './scriptApi';
+import type { ScriptAskRequest, ScriptWebpageRequest } from './scriptApi';
+import { getScriptWebpageBridge } from './scriptWebpageBridge';
 
 /**
  * Resolves the script execution timeout from persisted general settings.
@@ -132,7 +134,35 @@ interface AskErrorReply {
   error: string;
 }
 
-type ChildMessage = RunnerReply | NetRequestMessage | FileRequestMessage | AskRequestMessage;
+interface WebpageRequestMessage {
+  kind: 'webpage';
+  runId: number;
+  webpageId: number;
+  req: ScriptWebpageRequest;
+}
+
+interface WebpageSuccessReply {
+  kind: 'webpage-reply';
+  runId: number;
+  webpageId: number;
+  ok: true;
+  result: unknown;
+}
+
+interface WebpageErrorReply {
+  kind: 'webpage-reply';
+  runId: number;
+  webpageId: number;
+  ok: false;
+  error: string;
+}
+
+type ChildMessage =
+  | RunnerReply
+  | NetRequestMessage
+  | FileRequestMessage
+  | AskRequestMessage
+  | WebpageRequestMessage;
 
 interface PendingRun {
   input: ScriptRunInput;
@@ -446,6 +476,55 @@ async function handleScriptAskRequest(
 }
 
 /**
+ * Handles an hc.webpage bridge call from the utility process runner.
+ *
+ * @param child - Utility process that initiated the webpage call.
+ * @param message - Webpage request payload from the script sandbox.
+ */
+async function handleScriptWebpageRequest(
+  child: UtilityProcess,
+  message: WebpageRequestMessage
+): Promise<void> {
+  const reply = (payload: WebpageSuccessReply | WebpageErrorReply): void => {
+    child.postMessage(payload);
+  };
+
+  if (!isScriptWebpageAllowed()) {
+    reply({
+      kind: 'webpage-reply',
+      runId: message.runId,
+      webpageId: message.webpageId,
+      ok: false,
+      error: 'Script webpage access is disabled in Settings → General'
+    });
+    return;
+  }
+
+  try {
+    const result = await getScriptWebpageBridge().invoke(message.req);
+    reply({
+      kind: 'webpage-reply',
+      runId: message.runId,
+      webpageId: message.webpageId,
+      ok: true,
+      result
+    });
+  } catch (err) {
+    const rawMessage =
+      err && typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
+    reply({
+      kind: 'webpage-reply',
+      runId: message.runId,
+      webpageId: message.webpageId,
+      ok: false,
+      error: sanitizeScriptErrorMessage(rawMessage)
+    });
+  }
+}
+
+/**
  * Attaches lifecycle and message handlers to a newly spawned runner process.
  *
  * @param child - Utility process forked from the script runner entry.
@@ -464,6 +543,11 @@ function attachRunnerHandlers(child: UtilityProcess): void {
 
     if ('kind' in message && message.kind === 'ask') {
       void handleScriptAskRequest(child, message);
+      return;
+    }
+
+    if ('kind' in message && message.kind === 'webpage') {
+      void handleScriptWebpageRequest(child, message);
       return;
     }
 
