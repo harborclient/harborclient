@@ -12,6 +12,7 @@ export type SettingId =
   | 'general.maxResponseSizeMb'
   | 'general.verifySsl'
   | 'general.followRedirects'
+  | 'general.startWebpageUrl'
   | 'general.userAgent'
   | 'general.scrollbarAutoHide'
   | 'general.wrapTabs'
@@ -234,6 +235,15 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     label: 'Follow redirects',
     description: 'When disabled, 3xx responses are returned without following Location.',
     keywords: ['redirect', '3xx', 'location']
+  },
+  {
+    id: 'general.startWebpageUrl',
+    section: 'general',
+    kind: 'field',
+    label: 'Start webpage',
+    description:
+      'URL opened when you create a new Live Page. Also used as the Home button target for that tab. Defaults to about:blank.',
+    keywords: ['homepage', 'start', 'browser', 'url', 'live page', 'about:blank']
   },
   {
     id: 'general.userAgent',

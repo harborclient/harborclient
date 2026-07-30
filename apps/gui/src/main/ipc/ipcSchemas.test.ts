@@ -279,6 +279,7 @@ describe('generalSettings', () => {
     },
     globalVariables: [],
     logFilePath: '',
+    startWebpageUrl: 'about:blank',
     userAgent: DEFAULT_USER_AGENT,
     customUserAgents: []
   };
@@ -889,6 +890,27 @@ describe('browser IPC schemas', () => {
     ).toBe(true);
   });
 
+  it('accepts browserCreate and browserSetScripts with hcScripts.variables', () => {
+    const hcScripts = {
+      variables: { host: 'example.com', token: 'abc' },
+      requestDefaults: {
+        headers: [],
+        auth: validSaveRequest.auth,
+        userAgent: ''
+      }
+    };
+    expect(
+      ipcArgSchemas.browserCreate.safeParse([
+        'tab-1',
+        'https://example.com/',
+        'about:blank',
+        [],
+        hcScripts
+      ]).success
+    ).toBe(true);
+    expect(ipcArgSchemas.browserSetScripts.safeParse(['tab-1', [], hcScripts]).success).toBe(true);
+  });
+
   it('rejects browserCreate with a disallowed runAt', () => {
     expect(
       ipcArgSchemas.browserCreate.safeParse([
@@ -940,6 +962,20 @@ describe('browser IPC schemas', () => {
   it('accepts browserTabId for requestClose', () => {
     expect(ipcArgSchemas.browserTabId.safeParse(['tab-1']).success).toBe(true);
     expect(ipcArgSchemas.browserTabId.safeParse(['']).success).toBe(false);
+  });
+
+  it('accepts openPath for showItemInFolder', () => {
+    expect(ipcArgSchemas.openPath.safeParse(['/tmp/file.bin']).success).toBe(true);
+    expect(ipcArgSchemas.openPath.safeParse(['']).success).toBe(false);
+  });
+
+  it('accepts none for browser:listDownloads', () => {
+    expect(ipcArgSchemas.none.safeParse([]).success).toBe(true);
+  });
+
+  it('accepts openPath for browser:recordDownload', () => {
+    expect(ipcArgSchemas.openPath.safeParse(['/tmp/screenshot.png']).success).toBe(true);
+    expect(ipcArgSchemas.openPath.safeParse(['']).success).toBe(false);
   });
 
   it('accepts empty args for hideAll', () => {

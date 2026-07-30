@@ -37,7 +37,7 @@ import {
   setActiveSidebarRailItem
 } from '#/renderer/src/store/slices/navigationSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
-import { newBrowserTab } from '#/renderer/src/store/slices/tabsSlice';
+import { openNewBrowserTab } from '#/renderer/src/store/thunks/websites';
 import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
@@ -337,7 +337,7 @@ export function SidebarContent(): JSX.Element {
         ariaLabel: 'Live pages',
         initialEntered: websitesSectionExpanded,
         onAdd: () => {
-          dispatch(newBrowserTab());
+          dispatch(openNewBrowserTab());
         },
         addLabel: 'New live page',
         children: <Websites />
@@ -471,7 +471,7 @@ export function SidebarContent(): JSX.Element {
               />
             ) : undefined
           }
-          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pr-2 pb-3'}
+          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pr-2.5 pb-3'}
         >
           {activeRailItem != null ? (
             <HostedSurface

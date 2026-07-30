@@ -3,7 +3,7 @@ import { installReact } from '@harborclient/sdk';
 import { act, createElement, useState } from 'react';
 import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AutocompleteSource } from './types.js';
 import { filterAutocompleteItems, useAutocomplete } from './useAutocomplete.js';
 
@@ -144,6 +144,91 @@ describe('useAutocomplete close on select', () => {
     expect(container.querySelector('[role="listbox"]')).toBeNull();
     expect(input.value).toBe('Authorization');
     expect(input.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('awaits beforeOpen before showing suggestions', async () => {
+    let resolveBeforeOpen: () => void = () => {};
+    const beforeOpenPromise = new Promise<void>((resolve) => {
+      resolveBeforeOpen = resolve;
+    });
+    const beforeOpen = vi.fn(() => beforeOpenPromise);
+    const source: AutocompleteSource = {
+      list: async () => ['Accept', 'Authorization'],
+      add: async () => {}
+    };
+
+    /**
+     * Combobox fixture that gates open behind beforeOpen.
+     */
+    function GatedFixture(): React.ReactElement {
+      const [value, setValue] = useState('Auth');
+      const { open, items, anchorRef, onFocus, selectItem } = useAutocomplete({
+        source,
+        value,
+        onSelect: setValue,
+        beforeOpen
+      });
+
+      return createElement(
+        'div',
+        null,
+        createElement('input', {
+          ref: anchorRef,
+          value,
+          'aria-expanded': open,
+          onFocus,
+          onChange: (event: Event) => {
+            const target = event.target as HTMLInputElement;
+            setValue(target.value);
+          }
+        }),
+        open
+          ? createElement(
+              'ul',
+              { role: 'listbox' },
+              items.map((item) =>
+                createElement(
+                  'li',
+                  {
+                    key: item,
+                    role: 'option',
+                    onMouseDown: (event: MouseEvent) => {
+                      event.preventDefault();
+                      selectItem(item);
+                    }
+                  },
+                  item
+                )
+              )
+            )
+          : null
+      );
+    }
+
+    act(() => {
+      root.render(createElement(GatedFixture));
+    });
+
+    const input = container.querySelector('input');
+    if (!input) {
+      throw new Error('Expected autocomplete input to render');
+    }
+
+    await act(async () => {
+      input.focus();
+      await Promise.resolve();
+    });
+
+    expect(beforeOpen).toHaveBeenCalled();
+    expect(container.querySelector('[role="listbox"]')).toBeNull();
+
+    await act(async () => {
+      resolveBeforeOpen();
+      await beforeOpenPromise;
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="listbox"]')).not.toBeNull();
   });
 
   it('does not reopen after selection when a stale async open completes', async () => {

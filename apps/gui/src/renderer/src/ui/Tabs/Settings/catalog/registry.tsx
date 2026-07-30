@@ -14,6 +14,7 @@ import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
 import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
+import { GeneralStartWebpageUrlField } from '../fields/GeneralStartWebpageUrlField';
 import { GeneralUserAgentField } from '../fields/GeneralUserAgentField';
 import { GeneralLogFilePathField } from '../fields/GeneralLogFilePathField';
 import { GeneralTrustedDomainsField } from '../fields/GeneralTrustedDomainsField';
@@ -83,6 +84,7 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.maxResponseSizeMb': GeneralMaxResponseSizeField,
   'general.verifySsl': GeneralVerifySslField,
   'general.followRedirects': GeneralFollowRedirectsField,
+  'general.startWebpageUrl': GeneralStartWebpageUrlField,
   'general.userAgent': GeneralUserAgentField,
   'general.scrollbarAutoHide': GeneralScrollbarAutoHideField,
   'general.wrapTabs': GeneralWrapTabsField,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createInlineScriptRef } from '@harborclient/core/scriptRefs';
 import {
   areBrowserHcScriptsDirty,
+  applyBrowserScriptVariableResult,
   buildBrowserPageResponseSnapshot,
   buildBrowserScriptRequest,
   BROWSER_PAGE_HTML_MAX_CHARS,
@@ -60,6 +61,29 @@ describe('buildBrowserScriptRequest', () => {
       tags: '',
       comment: ''
     });
+  });
+});
+
+describe('applyBrowserScriptVariableResult', () => {
+  it('merges sets onto the working map', () => {
+    expect(
+      applyBrowserScriptVariableResult(
+        { host: 'example.com' },
+        { variableSets: { token: 'abc' }, variableClears: [] }
+      )
+    ).toEqual({ host: 'example.com', token: 'abc' });
+  });
+
+  it('applies exact and namespace clears before sets', () => {
+    expect(
+      applyBrowserScriptVariableResult(
+        { 'token': 'old', 'workflow_a.foo': '1', 'workflow_a.bar': '2', 'keep': 'yes' },
+        {
+          variableSets: { token: 'new' },
+          variableClears: ['token', 'workflow_a.*']
+        }
+      )
+    ).toEqual({ keep: 'yes', token: 'new' });
   });
 });
 

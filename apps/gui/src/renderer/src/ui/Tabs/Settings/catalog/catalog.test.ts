@@ -27,6 +27,7 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.maxResponseSizeMb',
   'general.verifySsl',
   'general.followRedirects',
+  'general.startWebpageUrl',
   'general.userAgent',
   'general.scrollbarAutoHide',
   'general.wrapTabs',

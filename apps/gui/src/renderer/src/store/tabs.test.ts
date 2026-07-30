@@ -200,7 +200,7 @@ describe('isTabDirty', () => {
     expect(isTabDirty(tab)).toBe(true);
   });
 
-  it('never marks browser tabs as editor-dirty', () => {
+  it('marks browser tabs dirty when settings drafts diverge', () => {
     const tab = createBrowserTab({
       websiteId: 1,
       url: 'https://example.com/page',
@@ -218,7 +218,33 @@ describe('isTabDirty', () => {
       ],
       savedScripts: []
     });
+    expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('does not mark browser tabs dirty for navigation-only drift', () => {
+    const tab = createBrowserTab({
+      websiteId: 1,
+      url: 'https://example.com/page',
+      savedUrl: 'https://example.com/',
+      title: 'Live title',
+      savedTitle: 'Saved name',
+      homeUrl: 'https://example.com/',
+      savedHomeUrl: 'https://example.com/'
+    });
     expect(isTabDirty(tab)).toBe(false);
+    expect(hasBrowserPendingSave(tab)).toBe(true);
+  });
+
+  it('marks browser tabs dirty when the settings name diverges', () => {
+    const tab = createBrowserTab({
+      websiteId: 1,
+      url: 'https://example.com/',
+      savedUrl: 'https://example.com/',
+      title: 'Document title',
+      savedTitle: 'Original',
+      settingsName: 'Renamed'
+    });
+    expect(isTabDirty(tab)).toBe(true);
   });
 });
 
@@ -266,7 +292,7 @@ describe('hasBrowserPendingSave', () => {
       savedScripts: []
     });
     expect(hasBrowserPendingSave(tab)).toBe(true);
-    expect(isTabDirty(tab)).toBe(false);
+    expect(isTabDirty(tab)).toBe(true);
   });
 
   it('ignores website field drift when the tab is not linked', () => {
@@ -525,6 +551,7 @@ describe('createBrowserTab', () => {
     expect(tab.post_request_scripts).toEqual([]);
     expect(tab.savedPreRequestScripts).toEqual([]);
     expect(tab.savedPostRequestScripts).toEqual([]);
+    expect(tab.settingsPanelOpen).toBe(false);
   });
 
   it('applies init fields and clones script arrays', () => {

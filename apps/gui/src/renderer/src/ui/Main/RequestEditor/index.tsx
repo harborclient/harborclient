@@ -70,6 +70,7 @@ import {
   updateBrowserNavigation,
   openInheritedBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
+import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import {
   sendRequest,
   cancelRequest,
@@ -88,6 +89,7 @@ import { ResizeHandle, useResizable } from '@harborclient/sdk/components';
 import { Editor } from './Editor';
 import { NoOpenRequests } from './NoOpenRequests';
 import { BrowserTabContent } from './BrowserTab';
+import { consoleEntryFromBrowserPayload } from './BrowserTab/browserConsoleEntry';
 import { hasBrowserGuest, syncDestroyedBrowserGuests } from './BrowserTab/browserGuestRegistry';
 import { isActivePageTabDirty, pageTabCloseName } from './pageTabCloseHelpers';
 import { PageTabContent } from './PageTabContent';
@@ -141,8 +143,7 @@ function isDirtyForClose(
   folderSettingsDirty: boolean,
   workspaceSettingsDirty: boolean,
   warnWhenClosingUnsavedRequests: boolean,
-  themeDesignerDirty: boolean,
-  browserSettingsDirty = false
+  themeDesignerDirty: boolean
 ): boolean {
   if (isMarkdownTab(tab)) {
     return warnWhenClosingUnsavedRequests && isTabDirty(tab);
@@ -166,8 +167,7 @@ function isDirtyForClose(
       collectionSettingsDirty,
       environmentSettingsDirty,
       folderSettingsDirty,
-      workspaceSettingsDirty,
-      browserSettingsDirty
+      workspaceSettingsDirty
     );
   }
 
@@ -243,6 +243,21 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   useEffect(() => {
     return window.api.onBrowserNavigation((state) => {
       dispatch(updateBrowserNavigation(state));
+    });
+  }, [dispatch]);
+
+  /**
+   * Appends footer console rows when a live page finishes loading.
+   */
+  useEffect(() => {
+    return window.api.onBrowserConsoleEntry((payload) => {
+      const tab = store
+        .getState()
+        .tabs.tabs.find(
+          (candidate) => isBrowserTab(candidate) && candidate.tabId === payload.tabId
+        );
+      const browserTab = tab != null && isBrowserTab(tab) ? tab : undefined;
+      dispatch(addConsoleEntry(consoleEntryFromBrowserPayload(payload, browserTab)));
     });
   }, [dispatch]);
 
@@ -361,17 +376,6 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const warnWhenClosingUnsavedRequests = useAppSelector(
     (state) => state.settings.general.warnWhenClosingUnsavedRequests
   );
-
-  /**
-   * Dirty flag for the linked browser tab when browser-settings is active.
-   */
-  const browserSettingsDirty = useMemo(() => {
-    if (!activePage || activePage.type !== 'browser-settings') {
-      return false;
-    }
-    const owner = tabs.find((tab) => isBrowserTab(tab) && tab.tabId === activePage.browserTabId);
-    return owner != null && isTabDirty(owner);
-  }, [activePage, tabs]);
 
   /**
    * Whether the active request tab has unsaved edits or has never been persisted.
@@ -577,8 +581,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         folderSettingsDirty,
         workspaceSettingsDirty,
         warnWhenClosingUnsavedRequests,
-        themeDesignerDirty,
-        browserSettingsDirty
+        themeDesignerDirty
       )
     ).length;
 
@@ -605,8 +608,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
             folderSettingsDirty,
             workspaceSettingsDirty,
             warnWhenClosingUnsavedRequests,
-            themeDesignerDirty,
-            browserSettingsDirty
+            themeDesignerDirty
           )
       )
       .map((tab) => tab.tabId);
@@ -651,8 +653,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
         collectionSettingsDirty,
         environmentSettingsDirty,
         folderSettingsDirty,
-        workspaceSettingsDirty,
-        browserSettingsDirty
+        workspaceSettingsDirty
       )
     ) {
       setCloseTabPrompt({

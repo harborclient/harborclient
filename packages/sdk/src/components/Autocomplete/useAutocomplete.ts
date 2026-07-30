@@ -24,6 +24,21 @@ interface UseAutocompleteOptions {
    * Optional ref for the anchor input; created internally when omitted.
    */
   anchorRef?: RefObject<HTMLInputElement | null>;
+
+  /**
+   * Optional async gate run after suggestions load and before the popup opens.
+   *
+   * Use this to prepare host UI (for example covering a native Electron guest)
+   * so the portaled list is not painted behind an opaque layer.
+   */
+  beforeOpen?: () => void | Promise<void>;
+
+  /**
+   * Called when the suggestion popup open state changes.
+   *
+   * @param open - Whether suggestions are open.
+   */
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface UseAutocompleteResult {
@@ -137,7 +152,9 @@ export function useAutocomplete({
   source,
   value,
   onSelect,
-  anchorRef: externalAnchorRef
+  anchorRef: externalAnchorRef,
+  beforeOpen,
+  onOpenChange
 }: UseAutocompleteOptions): UseAutocompleteResult {
   const internalAnchorRef = useRef<HTMLInputElement>(null);
   const anchorRef = externalAnchorRef ?? internalAnchorRef;
@@ -146,11 +163,21 @@ export function useAutocomplete({
   const loadPromiseRef = useRef<Promise<string[]> | null>(null);
   const openRequestRef = useRef(0);
   const mountedRef = useRef(true);
+  const beforeOpenRef = useRef(beforeOpen);
+  const onOpenChangeRef = useRef(onOpenChange);
   const listboxId = useId();
   const safeValue = value ?? '';
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+
+  /**
+   * Keeps optional open-gate and open-change callbacks current without retriggering open logic.
+   */
+  useEffect(() => {
+    beforeOpenRef.current = beforeOpen;
+    onOpenChangeRef.current = onOpenChange;
+  }, [beforeOpen, onOpenChange]);
 
   /**
    * Clears the mounted flag when the hook unmounts so async work cannot set state.
@@ -240,6 +267,9 @@ export function useAutocomplete({
 
   /**
    * Opens the suggestion list and loads items when a source is configured.
+   *
+   * Awaits {@link UseAutocompleteOptions.beforeOpen} (when provided) even if the first
+   * filter pass is empty, so hosts can reserve layout before items appear via refresh.
    */
   const openSuggestions = useCallback(async (): Promise<void> => {
     if (!source) {
@@ -254,6 +284,16 @@ export function useAutocomplete({
     }
 
     const filtered = filterAutocompleteItems(cacheRef.current, safeValue);
+    const gate = beforeOpenRef.current;
+    // Always run beforeOpen when provided — filtered may be empty on focus (exact match
+    // excluded) and then fill in via refresh while open; hosts still need layout prepared.
+    if (gate) {
+      await gate();
+      if (!mountedRef.current || requestId !== openRequestRef.current) {
+        return;
+      }
+    }
+
     setItems(filtered);
     setActiveIndex(filtered.length > 0 ? 0 : -1);
     setOpen(true);
@@ -270,6 +310,13 @@ export function useAutocomplete({
     setOpen(false);
     setActiveIndex(-1);
   }, []);
+
+  /**
+   * Notifies the host when suggestion open state changes.
+   */
+  useEffect(() => {
+    onOpenChangeRef.current?.(open);
+  }, [open]);
 
   /**
    * Applies a suggestion and closes the list without calling add().

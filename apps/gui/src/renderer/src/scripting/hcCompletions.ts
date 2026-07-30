@@ -187,6 +187,11 @@ const HC_INFO: HcCompletionOption[] = [
     label: 'workflowActionIteration',
     type: 'property',
     detail: '0-based workflow action index, or -1 outside a workflow'
+  },
+  {
+    label: 'livepageId',
+    type: 'property',
+    detail: 'Live page UUID, or empty outside a live page'
   }
 ];
 

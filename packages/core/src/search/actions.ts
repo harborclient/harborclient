@@ -49,6 +49,14 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:toggle-indicators', group: 'View', label: 'Indicators' },
   { id: 'builtin:toggle-filters', group: 'View', label: 'Filters' },
   { id: 'builtin:toggle-sorting', group: 'View', label: 'Sorting' },
+  { id: 'builtin:browser-reload', group: 'Live Page', label: 'Reload Live Page' },
+  { id: 'builtin:browser-go-back', group: 'Live Page', label: 'Back' },
+  { id: 'builtin:browser-go-forward', group: 'Live Page', label: 'Forward' },
+  {
+    id: 'builtin:focus-browser-address',
+    group: 'Live Page',
+    label: 'Focus Live Page address'
+  },
   { id: 'builtin:toggle-fullscreen', group: 'View', label: 'Toggle Fullscreen' },
   { id: 'builtin:zoom-in', group: 'View', label: 'Zoom In' },
   { id: 'builtin:zoom-out', group: 'View', label: 'Zoom Out' },

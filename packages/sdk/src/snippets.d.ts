@@ -239,6 +239,8 @@ interface HcInfoApi {
   readonly workflowActionId: string;
   /** 0-based index of the workflow action currently executing, or -1 when not in a workflow. */
   readonly workflowActionIteration: number;
+  /** UUID of the live page (website) for this script run, or empty when not a live page. */
+  readonly livepageId: string;
 }
 
 /**

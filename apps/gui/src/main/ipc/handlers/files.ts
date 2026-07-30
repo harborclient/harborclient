@@ -83,6 +83,11 @@ export function registerFileHandlers(): void {
     }
   });
 
+  // Reveals a file in its containing folder in the OS file manager.
+  handle('files:showItemInFolder', ipcArgSchemas.openPath, (_event, path) => {
+    shell.showItemInFolder(path);
+  });
+
   // Opens a native save dialog and returns the chosen absolute file path.
   handle('dialog:saveFile', ipcArgSchemas.saveFile, async (_event, defaultPath) => {
     const win = BrowserWindow.getFocusedWindow();

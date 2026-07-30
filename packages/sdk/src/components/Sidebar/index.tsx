@@ -45,7 +45,10 @@ interface Props {
   scrollbarAutoHide?: boolean;
 
   /**
-   * Additional classes for the scrollable body wrapper.
+   * Additional classes for the scrollable body content (padding, etc.).
+   * Applied to the inner content wrapper — not the OverlayScrollbars host —
+   * so section-header negative margins can cancel body padding and keep
+   * header actions aligned with row hamburgers.
    */
   bodyClassName?: string;
 
@@ -155,8 +158,12 @@ export function Sidebar({
   /**
    * Stretch wrapper so short body content (e.g. centered empty states) fills the
    * scroll viewport height while still allowing overflow scroll when content grows.
+   * Body padding lives here (not on the Scrollbars host) so OverlayScrollbars
+   * does not absorb it and section-header `-mr-*` cancel math keeps working.
    */
-  const scrollBody = <div className="flex min-h-full min-w-0 flex-col">{children}</div>;
+  const scrollBody = (
+    <div className={cn('flex min-h-full min-w-0 flex-col', bodyClassName)}>{children}</div>
+  );
 
   const body = scroll ? (
     <Scrollbars
@@ -164,7 +171,7 @@ export function Sidebar({
       role={bodyRole}
       axis={scrollAxis}
       autoHide={scrollbarAutoHide}
-      className={cn('min-h-0 flex-1', bodyClassName)}
+      className="min-h-0 flex-1"
     >
       {scrollBody}
     </Scrollbars>

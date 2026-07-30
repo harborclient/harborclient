@@ -273,7 +273,8 @@ export const scriptRunInput = z.object({
       iteration: z.number().int().nonnegative(),
       workflowId: z.string(),
       workflowActionId: z.string(),
-      workflowActionIteration: z.number().int()
+      workflowActionIteration: z.number().int(),
+      livepageId: z.string()
     })
     .optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -294,6 +295,7 @@ export const generalSettings = z.object({
   maxResponseSizeMb: z.number().min(0).max(HARD_MAX_RESPONSE_SIZE_MB),
   verifySsl: z.boolean(),
   followRedirects: z.boolean(),
+  startWebpageUrl: z.string(),
   scrollbarAutoHide: z.boolean(),
   wrapTabs: z.boolean(),
   closeToTray: z.boolean(),
@@ -1044,7 +1046,9 @@ export const ipcArgSchemas = {
             auth: authConfig,
             userAgent: z.string()
           })
-          .optional()
+          .optional(),
+        variables: z.record(z.string(), z.string()).optional(),
+        livepageId: z.string().optional()
       })
       .optional()
   ]),
@@ -1098,7 +1102,9 @@ export const ipcArgSchemas = {
             auth: authConfig,
             userAgent: z.string()
           })
-          .optional()
+          .optional(),
+        variables: z.record(z.string(), z.string()).optional(),
+        livepageId: z.string().optional()
       })
       .optional()
   ]),

@@ -28,7 +28,8 @@ describe('createScriptApi hc.info', () => {
         iteration: 0,
         workflowId: '',
         workflowActionId: '',
-        workflowActionIteration: -1
+        workflowActionIteration: -1,
+        livepageId: ''
       }
     });
     const info = api.hc.info as {
@@ -39,6 +40,7 @@ describe('createScriptApi hc.info', () => {
       workflowId: string;
       workflowActionId: string;
       workflowActionIteration: number;
+      livepageId: string;
     };
 
     expect(info.eventName).toBe('test');
@@ -48,6 +50,7 @@ describe('createScriptApi hc.info', () => {
     expect(info.workflowId).toBe('');
     expect(info.workflowActionId).toBe('');
     expect(info.workflowActionIteration).toBe(-1);
+    expect(info.livepageId).toBe('');
   });
 
   it('defaults info from phase when input.info is omitted', () => {
@@ -60,6 +63,7 @@ describe('createScriptApi hc.info', () => {
       workflowId: string;
       workflowActionId: string;
       workflowActionIteration: number;
+      livepageId: string;
     };
 
     expect(info.eventName).toBe('prerequest');
@@ -69,6 +73,7 @@ describe('createScriptApi hc.info', () => {
     expect(info.workflowId).toBe('');
     expect(info.workflowActionId).toBe('');
     expect(info.workflowActionIteration).toBe(-1);
+    expect(info.livepageId).toBe('');
   });
 
   it('exposes workflow metadata when provided on input.info', () => {
@@ -81,7 +86,8 @@ describe('createScriptApi hc.info', () => {
         iteration: 0,
         workflowId: 'wf-1',
         workflowActionId: 'act-2',
-        workflowActionIteration: 4
+        workflowActionIteration: 4,
+        livepageId: ''
       }
     });
     const info = api.hc.info as {
@@ -93,6 +99,25 @@ describe('createScriptApi hc.info', () => {
     expect(info.workflowId).toBe('wf-1');
     expect(info.workflowActionId).toBe('act-2');
     expect(info.workflowActionIteration).toBe(4);
+  });
+
+  it('exposes livepageId when provided on input.info', () => {
+    const api = createScriptApi({
+      ...baseInput,
+      info: {
+        eventName: 'prerequest',
+        requestName: '',
+        requestId: '',
+        iteration: 0,
+        workflowId: '',
+        workflowActionId: '',
+        workflowActionIteration: -1,
+        livepageId: 'website-uuid'
+      }
+    });
+    const info = api.hc.info as { livepageId: string };
+
+    expect(info.livepageId).toBe('website-uuid');
   });
 });
 
@@ -349,7 +374,8 @@ describe('createScriptApi execution', () => {
         iteration: 0,
         workflowId: 'wf-uuid',
         workflowActionId: 'act-current',
-        workflowActionIteration: 1
+        workflowActionIteration: 1,
+        livepageId: ''
       }
     });
     const hc = api.hc as {

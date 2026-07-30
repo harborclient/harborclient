@@ -53,13 +53,13 @@ export const CONFIRMATION_ROWS: ConfirmationRow[] = [
     key: 'warnWhenExitingWithUnsavedChanges',
     label: 'Exiting the app with unsaved changes',
     description:
-      'When enabled, quitting or closing the app with unsaved request tabs shows a confirmation dialog.'
+      'When enabled, quitting or closing the app with unsaved request, markdown, or live page tabs shows a confirmation dialog.'
   },
   {
     key: 'warnWhenClosingUnsavedRequests',
-    label: 'Closing unsaved request tabs',
+    label: 'Closing unsaved tabs',
     description:
-      'When enabled, closing a request tab with unsaved edits shows a confirmation dialog.'
+      'When enabled, closing a request, markdown, or live page tab with unsaved edits shows a confirmation dialog.'
   },
   {
     key: 'warnWhenEditingSnippet',

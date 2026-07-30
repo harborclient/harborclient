@@ -121,6 +121,9 @@ import type { ApisIoCollection, ApisIoCollectionList } from '@harborclient/core/
 import type { PublicCollectionPreview } from '@harborclient/core/types/api/collections';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
 import type {
+  BrowserConsoleEntryPayload,
+  BrowserDownloadEntry,
+  BrowserDownloadsChangedPayload,
   BrowserInjectionScriptPayload,
   BrowserHcScriptsPayload,
   BrowserNavigationState,
@@ -1701,6 +1704,13 @@ function inspectElement(x: number, y: number): Promise<void> {
  */
 function minimizeWindow(): Promise<void> {
   return ipcRenderer.invoke('window:minimize');
+}
+
+/**
+ * Focuses the main renderer webContents so shell UI can receive keyboard input.
+ */
+function focusRenderer(): Promise<void> {
+  return ipcRenderer.invoke('window:focusRenderer');
 }
 
 /**
@@ -3506,6 +3516,24 @@ function browserCapturePage(
 }
 
 /**
+ * Returns the newest completed browser downloads for this app session (up to 5).
+ *
+ * @returns Newest-first download list.
+ */
+function browserListDownloads(): Promise<BrowserDownloadEntry[]> {
+  return ipcRenderer.invoke('browser:listDownloads');
+}
+
+/**
+ * Records a completed file path (for example a screenshot) into the recent-downloads list.
+ *
+ * @param filePath - Absolute path of the saved file.
+ */
+function browserRecordDownload(filePath: string): Promise<void> {
+  return ipcRenderer.invoke('browser:recordDownload', filePath);
+}
+
+/**
  * Subscribes to browser guest navigation and title updates.
  *
  * @param callback - Handler invoked with navigation state.
@@ -3522,6 +3550,27 @@ function onBrowserNavigation(callback: (state: BrowserNavigationState) => void):
 }
 
 /**
+ * Subscribes to live-page footer console entries after each navigation load.
+ *
+ * @param callback - Handler invoked with the console entry payload.
+ * @returns Unsubscribe function.
+ */
+function onBrowserConsoleEntry(
+  callback: (payload: BrowserConsoleEntryPayload) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: BrowserConsoleEntryPayload
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('browser:console-entry', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:console-entry', listener);
+  };
+}
+
+/**
  * Subscribes to guest popup / new-tab requests from the embedded browser.
  *
  * @param callback - Handler invoked when a guest wants a HarborClient tab opened.
@@ -3534,6 +3583,27 @@ function onBrowserOpenTab(callback: (request: BrowserOpenTabRequest) => void): (
   ipcRenderer.on('browser:open-tab', listener);
   return () => {
     ipcRenderer.removeListener('browser:open-tab', listener);
+  };
+}
+
+/**
+ * Subscribes to updates of the recent browser downloads list.
+ *
+ * @param callback - Handler invoked with the newest-first list and whether to auto-open the menu.
+ * @returns Unsubscribe function.
+ */
+function onBrowserDownloadsChanged(
+  callback: (payload: BrowserDownloadsChangedPayload) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: BrowserDownloadsChangedPayload
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('browser:downloads-changed', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:downloads-changed', listener);
   };
 }
 
@@ -3635,6 +3705,15 @@ function selectSaveFile(defaultPath: string): Promise<string | null> {
  */
 function openPath(path: string): Promise<void> {
   return ipcRenderer.invoke('files:openPath', path);
+}
+
+/**
+ * Reveals a file in its containing folder in the OS file manager.
+ *
+ * @param path - Absolute path of the file to select in the folder view.
+ */
+function showItemInFolder(path: string): Promise<void> {
+  return ipcRenderer.invoke('files:showItemInFolder', path);
 }
 
 /**
@@ -4656,6 +4735,7 @@ const api: Api = {
   isDeveloperToolsEnabled,
   inspectElement,
   minimizeWindow,
+  focusRenderer,
   toggleMaximizeWindow,
   toggleFullscreenWindow,
   closeWindow,
@@ -4822,8 +4902,12 @@ const api: Api = {
   browserQuerySelector,
   browserWaitForLoad,
   browserCapturePage,
+  browserListDownloads,
+  browserRecordDownload,
   onBrowserNavigation,
+  onBrowserConsoleEntry,
   onBrowserOpenTab,
+  onBrowserDownloadsChanged,
   getCollectionRunnerConfig,
   setCollectionRunnerConfig,
   getShortcuts,
@@ -4835,6 +4919,7 @@ const api: Api = {
   selectDirectory,
   selectSaveFile,
   openPath,
+  showItemInFolder,
   readImageDataUrl,
   copyFileToSaveDialog,
   saveDataUrlToFile,

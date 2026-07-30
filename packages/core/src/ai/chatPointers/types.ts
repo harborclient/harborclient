@@ -163,6 +163,36 @@ export interface ParsedRequestReference extends ParsedAiScriptReferenceBase {
 }
 
 /**
+ * A parsed `@` reference to an embedded browser (webpage) tab.
+ */
+export interface ParsedWebpageReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for browser webpage-tab references.
+   */
+  kind: 'webpage';
+
+  /**
+   * Browser tab id (UUID) passed to webpage_* tools.
+   */
+  tabId: string;
+}
+
+/**
+ * Live browser tab summary used to validate and label `@webpage.<tabId>` references.
+ */
+export interface WebpageTabReferenceInfo {
+  /**
+   * Document title shown in the tab bar.
+   */
+  title: string;
+
+  /**
+   * Current page URL.
+   */
+  url: string;
+}
+
+/**
  * A parsed `@` reference to a collection markdown document or request comment.
  */
 export interface ParsedMarkdownReference extends ParsedAiScriptReferenceBase {
@@ -587,6 +617,7 @@ export type ParsedAiScriptReference =
   | ParsedCollectionReference
   | ParsedFolderReference
   | ParsedRequestReference
+  | ParsedWebpageReference
   | ParsedMarkdownReference
   | ParsedRequestBodyReference
   | ParsedResponseSectionReference
@@ -670,6 +701,11 @@ export interface AiScriptReferenceValidationContext {
    * Saved request display names keyed by uuid for `@request` badge resolution.
    */
   requestNamesByUuid?: Record<string, string>;
+
+  /**
+   * Open browser tabs keyed by tab id for `@webpage` badge and context resolution.
+   */
+  webpageTabsById?: Record<string, WebpageTabReferenceInfo>;
 
   /**
    * Plugin chat-pointer snapshots keyed by the full `@plugin...` reference token.

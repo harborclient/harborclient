@@ -223,7 +223,7 @@ export const CollectionsLeft: Story = {
               />
             </>
           }
-          bodyClassName="pr-2 pb-3"
+          bodyClassName="pr-2.5 pb-3"
         >
           <SidebarSections
             sections={collectionsSections()}

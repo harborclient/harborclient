@@ -1,5 +1,12 @@
 import { useCallback, useState, type JSX, type MouseEvent } from 'react';
 import type { AppSubmenuItemSnapshot, RootMenuLabel } from '@harborclient/core/types';
+import { useAppSelector } from '#/renderer/src/store/hooks';
+import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
+import {
+  coverBrowserGuestForOverlay,
+  uncoverBrowserGuest
+} from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserGuestCover';
+import { hasBrowserGuest } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserGuestRegistry';
 import { LinuxAppSubmenu } from './LinuxAppSubmenu';
 
 const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Team', 'Git', 'Help'];
@@ -24,6 +31,17 @@ interface OpenMenuState {
  */
 export function LinuxMenuBar(): JSX.Element {
   const [openMenu, setOpenMenu] = useState<OpenMenuState | null>(null);
+  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
+
+  /**
+   * Freezes and hides the active live-page guest so the HTML menu can paint above it.
+   */
+  const coverActiveBrowserGuest = useCallback(async (): Promise<void> => {
+    if (!activeBrowserTab || !hasBrowserGuest(activeBrowserTab.tabId)) {
+      return;
+    }
+    await coverBrowserGuestForOverlay(activeBrowserTab.tabId);
+  }, [activeBrowserTab]);
 
   /**
    * Opens a themed renderer submenu below the clicked menu bar button.
@@ -36,20 +54,26 @@ export function LinuxMenuBar(): JSX.Element {
       const rect = event.currentTarget.getBoundingClientRect();
       const items = await window.api.getAppSubmenuSnapshot(label);
 
+      // Cover before painting the menu so WebContentsView never occludes the dropdown.
+      if (openMenu === null) {
+        await coverActiveBrowserGuest();
+      }
+
       setOpenMenu({
         label,
         items,
         position: { x: rect.left, y: rect.bottom }
       });
     },
-    []
+    [coverActiveBrowserGuest, openMenu]
   );
 
   /**
-   * Closes any open renderer submenu.
+   * Closes any open renderer submenu and restores the live-page guest.
    */
   const closeSubmenu = useCallback((): void => {
     setOpenMenu(null);
+    void uncoverBrowserGuest();
   }, []);
 
   return (
@@ -67,7 +91,16 @@ export function LinuxMenuBar(): JSX.Element {
             aria-haspopup="menu"
             aria-expanded={openMenu?.label === label}
             className={menuButtonClass}
+            onMouseDown={(event) => {
+              // Keep the submenu outside-click handler from closing before this
+              // button can toggle or switch menus (avoids a WebContentsView flash).
+              event.stopPropagation();
+            }}
             onClick={(event) => {
+              if (openMenu?.label === label) {
+                closeSubmenu();
+                return;
+              }
               void openSubmenu(label, event);
             }}
           >

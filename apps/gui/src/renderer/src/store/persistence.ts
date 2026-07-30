@@ -96,6 +96,7 @@ export interface PersistedBrowserTab {
   savedHomeUrl?: string;
   savedTitle?: string;
   savedFaviconDataUrl?: string | null;
+  settingsName?: string;
 }
 
 /**
@@ -456,6 +457,10 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
       : homeUrl;
   const savedTitle =
     typeof value.savedTitle === 'string' ? value.savedTitle : value.title || 'Browser';
+  const settingsName =
+    typeof value.settingsName === 'string' && value.settingsName.length > 0
+      ? value.settingsName
+      : savedTitle;
   const savedFaviconDataUrl =
     value.savedFaviconDataUrl === null
       ? null
@@ -489,7 +494,8 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
     savedUrl,
     savedHomeUrl,
     savedTitle,
-    savedFaviconDataUrl
+    savedFaviconDataUrl,
+    settingsName
   };
 }
 
@@ -595,13 +601,18 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
     canGoBack: false,
     canGoForward: false,
     faviconDataUrl: tab.faviconDataUrl ?? null,
+    securityState: 'unknown',
     websiteId: tab.websiteId ?? null,
     websiteUuid: tab.websiteUuid ?? null,
     savedUrl: tab.savedUrl ?? tab.url,
     savedHomeUrl: tab.savedHomeUrl ?? tab.homeUrl,
     savedTitle: tab.savedTitle ?? tab.title,
     savedFaviconDataUrl:
-      tab.savedFaviconDataUrl !== undefined ? tab.savedFaviconDataUrl : (tab.faviconDataUrl ?? null)
+      tab.savedFaviconDataUrl !== undefined
+        ? tab.savedFaviconDataUrl
+        : (tab.faviconDataUrl ?? null),
+    settingsPanelOpen: false,
+    settingsName: tab.settingsName ?? tab.savedTitle ?? tab.title
   };
 }
 
@@ -843,7 +854,8 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
             savedUrl: tab.savedUrl,
             savedHomeUrl: tab.savedHomeUrl,
             savedTitle: tab.savedTitle,
-            savedFaviconDataUrl: tab.savedFaviconDataUrl
+            savedFaviconDataUrl: tab.savedFaviconDataUrl,
+            settingsName: tab.settingsName
           };
         }
         if (isRequestTab(tab)) {

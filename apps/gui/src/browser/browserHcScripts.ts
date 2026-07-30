@@ -1,6 +1,7 @@
 import type {
   ScriptRef,
   ScriptRequestContext,
+  ScriptRunResult,
   SendResult,
   Snippet
 } from '@harborclient/core/types';
@@ -10,6 +11,7 @@ import {
   resolveScriptSourceCode
 } from '@harborclient/core/scriptRefs';
 import { normalizeScriptStage } from '@harborclient/core/scriptStage';
+import { variableKeyIsCleared } from '@harborclient/core/scripting/variableClearMatch';
 
 /**
  * Maximum characters of page HTML exposed to post-request scripts via hc.response.
@@ -54,6 +56,37 @@ export function buildBrowserScriptRequest(url: string): ScriptRequestContext {
     tags: '',
     comment: ''
   };
+}
+
+/**
+ * Applies ephemeral variable sets and clears from one browser script onto a working map.
+ *
+ * Used to chain `hc.request.variables` across sequential pre/post scripts in one navigation.
+ * Does not mutate the session baseline — callers pass a per-navigation copy.
+ *
+ * @param runtimeVars - Current working variable map for this navigation.
+ * @param result - Script run result with variableSets and variableClears.
+ * @returns Updated working map for the next script in the chain.
+ */
+export function applyBrowserScriptVariableResult(
+  runtimeVars: Record<string, string>,
+  result: Pick<ScriptRunResult, 'variableSets' | 'variableClears'>
+): Record<string, string> {
+  const clears = result.variableClears ?? [];
+  let next = runtimeVars;
+  if (clears.length > 0) {
+    next = { ...runtimeVars };
+    for (const key of Object.keys(next)) {
+      if (variableKeyIsCleared(key, clears)) {
+        delete next[key];
+      }
+    }
+  }
+  const sets = result.variableSets ?? {};
+  if (Object.keys(sets).length === 0) {
+    return next;
+  }
+  return { ...next, ...sets };
 }
 
 /**

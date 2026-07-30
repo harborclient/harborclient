@@ -61,7 +61,9 @@ describe('webpageSession', () => {
           url: 'https://example.com/',
           title: 'Example',
           canGoBack: false,
-          canGoForward: false
+          canGoForward: false,
+          faviconDataUrl: null,
+          securityState: 'secure' as const
         })),
         browserRequestClose: vi.fn(async () => true),
         browserQuerySelector: vi.fn(),

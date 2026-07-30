@@ -90,4 +90,12 @@ export function registerBrowserHandlers(): void {
   handle('browser:capturePage', ipcArgSchemas.browserCapturePage, (_event, tabId, options) =>
     getBrowserViewManager().capturePage(tabId, options)
   );
+
+  handle('browser:listDownloads', ipcArgSchemas.none, () =>
+    getBrowserViewManager().listRecentDownloads()
+  );
+
+  handle('browser:recordDownload', ipcArgSchemas.openPath, (_event, filePath) => {
+    getBrowserViewManager().recordRecentDownload(filePath);
+  });
 }

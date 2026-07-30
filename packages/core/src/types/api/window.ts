@@ -279,6 +279,11 @@ export interface ApiWindow {
    */
   minimizeWindow: () => Promise<void>;
   /**
+   * Focuses the main renderer webContents so shell UI (for example the Live Page
+   * address bar) can receive keyboard input after a guest view had focus.
+   */
+  focusRenderer: () => Promise<void>;
+  /**
    * Toggles maximize on the focused application window.
    */
   toggleMaximizeWindow: () => Promise<void>;
@@ -334,6 +339,12 @@ export interface ApiWindow {
    * @param path - Absolute path to open in the system file browser or default handler.
    */
   openPath: (path: string) => Promise<void>;
+  /**
+   * Reveals a file in its containing folder in the OS file manager.
+   *
+   * @param path - Absolute path of the file to select in the folder view.
+   */
+  showItemInFolder: (path: string) => Promise<void>;
   /**
    * Reads a local image file and returns a data URL for display.
    *

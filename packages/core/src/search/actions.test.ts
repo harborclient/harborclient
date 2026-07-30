@@ -106,6 +106,19 @@ describe('matchActionSuggestions', () => {
     expect(matches.every((action) => action.group === 'View')).toBe(true);
   });
 
+  it('returns Live Page navigation actions for Live Page:', () => {
+    expect(matchInlineActionSuggestions('Live Page:', BUILTIN_ACTIONS)).toEqual([
+      { id: 'builtin:browser-reload', group: 'Live Page', label: 'Reload Live Page' },
+      { id: 'builtin:browser-go-back', group: 'Live Page', label: 'Back' },
+      { id: 'builtin:browser-go-forward', group: 'Live Page', label: 'Forward' },
+      {
+        id: 'builtin:focus-browser-address',
+        group: 'Live Page',
+        label: 'Focus Live Page address'
+      }
+    ]);
+  });
+
   it('returns sidebar section toggles for Sidebar:', () => {
     expect(matchInlineActionSuggestions('Sidebar:', BUILTIN_ACTIONS)).toEqual([
       {

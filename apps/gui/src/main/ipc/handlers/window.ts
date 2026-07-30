@@ -39,6 +39,15 @@ export function registerWindowHandlers(): void {
     BrowserWindow.getFocusedWindow()?.close();
   });
 
+  // Moves keyboard focus from a Live Page guest back to the main renderer shell.
+  handle('window:focusRenderer', ipcArgSchemas.none, () => {
+    const window = getRegisteredMainWindow() ?? BrowserWindow.getFocusedWindow();
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+    window.webContents.focus();
+  });
+
   // Reveals the main window after renderer shell bootstrap completes.
   handle('window:notifyUiReady', ipcArgSchemas.none, (event) => {
     const registered = getRegisteredMainWindow();

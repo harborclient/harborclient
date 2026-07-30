@@ -341,16 +341,19 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-request')
         },
         {
-          label: 'New Browser',
+          label: 'New Live Page',
+          accelerator: acceleratorFor(accelerators, 'new-browser'),
           click: () => sendMenuAction(window, 'new-browser')
         },
         {
           label: 'New Environment',
+          accelerator: acceleratorFor(accelerators, 'new-environment'),
           click: () => sendMenuAction(window, 'new-environment')
         },
         {
           label: 'New Workspace',
           enabled: workspaceAvailable,
+          accelerator: acceleratorFor(accelerators, 'create-workspace'),
           click: () => sendMenuAction(window, 'create-workspace')
         },
         { type: 'separator' },
@@ -438,6 +441,27 @@ export function buildMenu(
           label: 'Action menu',
           accelerator: acceleratorFor(accelerators, 'action-menu'),
           click: () => sendMenuAction(window, 'action-menu')
+        },
+        { type: 'separator' },
+        {
+          label: 'Reload Live Page',
+          accelerator: acceleratorFor(accelerators, 'browser-reload'),
+          click: () => sendMenuAction(window, 'browser-reload')
+        },
+        {
+          label: 'Back',
+          accelerator: acceleratorFor(accelerators, 'browser-go-back'),
+          click: () => sendMenuAction(window, 'browser-go-back')
+        },
+        {
+          label: 'Forward',
+          accelerator: acceleratorFor(accelerators, 'browser-go-forward'),
+          click: () => sendMenuAction(window, 'browser-go-forward')
+        },
+        {
+          label: 'Focus Live Page address',
+          accelerator: acceleratorFor(accelerators, 'focus-browser-address'),
+          click: () => sendMenuAction(window, 'focus-browser-address')
         },
         { type: 'separator' },
         buildAppearanceMenuItems(
@@ -592,7 +616,7 @@ export function buildMenu(
         {
           label: 'Documentation',
           accelerator: acceleratorFor(accelerators, 'documentation'),
-          click: () => void shell.openExternal('https://harborclient.com/')
+          click: () => sendMenuAction(window, 'documentation')
         },
         {
           label: 'Report Issue',

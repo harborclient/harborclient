@@ -48,6 +48,10 @@ export function findAdjacentEnabledIndex(
 
 /**
  * Returns the first or last enabled flat item index.
+ *
+ * @param items - Flat menu items to search.
+ * @param fromEnd - When true, returns the last enabled index; otherwise the first.
+ * @returns Enabled index, or `null` when every item is disabled / the list is empty.
  */
 export function findEdgeEnabledIndex(items: MenuItem[], fromEnd: boolean): number | null {
   if (fromEnd) {
@@ -59,7 +63,8 @@ export function findEdgeEnabledIndex(items: MenuItem[], fromEnd: boolean): numbe
     return null;
   }
 
-  return items.findIndex((item) => isMenuItemEnabled(item));
+  const index = items.findIndex((item) => isMenuItemEnabled(item));
+  return index >= 0 ? index : null;
 }
 
 /**

@@ -6,6 +6,9 @@ import type { MenuActionId } from './types/app';
 export type ShortcutId =
   | 'new-request'
   | 'new-collection'
+  | 'new-browser'
+  | 'new-environment'
+  | 'create-workspace'
   | 'sync'
   | 'save'
   | 'settings'
@@ -28,11 +31,15 @@ export type ShortcutId =
   | 'show-sidebars'
   | 'focus-sidebar-search'
   | 'focus-request-url'
+  | 'focus-browser-address'
   | 'focus-first-collection'
   | 'focus-first-environment'
   | 'focus-first-request-tab'
   | 'focus-response-editor'
   | 'focus-main-nav'
+  | 'browser-reload'
+  | 'browser-go-back'
+  | 'browser-go-forward'
   | 'next-sidebar-list-item'
   | 'previous-sidebar-list-item'
   | 'toggle-variables'
@@ -166,6 +173,27 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+N',
     kind: 'action',
     actionId: 'new-collection'
+  },
+  {
+    id: 'new-browser',
+    label: 'New live page',
+    defaultAccelerator: 'CmdOrCtrl+Alt+N',
+    kind: 'action',
+    actionId: 'new-browser'
+  },
+  {
+    id: 'new-environment',
+    label: 'New environment',
+    defaultAccelerator: 'CmdOrCtrl+Alt+E',
+    kind: 'action',
+    actionId: 'new-environment'
+  },
+  {
+    id: 'create-workspace',
+    label: 'New workspace',
+    defaultAccelerator: 'CmdOrCtrl+Alt+W',
+    kind: 'action',
+    actionId: 'create-workspace'
   },
   {
     id: 'sync',
@@ -495,6 +523,34 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'F5',
     kind: 'action',
     actionId: 'send-request'
+  },
+  {
+    id: 'browser-reload',
+    label: 'Reload Live Page',
+    defaultAccelerator: 'CmdOrCtrl+R',
+    kind: 'action',
+    actionId: 'browser-reload'
+  },
+  {
+    id: 'browser-go-back',
+    label: 'Back',
+    defaultAccelerator: 'Alt+Left',
+    kind: 'action',
+    actionId: 'browser-go-back'
+  },
+  {
+    id: 'browser-go-forward',
+    label: 'Forward',
+    defaultAccelerator: 'Alt+Right',
+    kind: 'action',
+    actionId: 'browser-go-forward'
+  },
+  {
+    id: 'focus-browser-address',
+    label: 'Focus Live Page address',
+    defaultAccelerator: 'CmdOrCtrl+L',
+    kind: 'action',
+    actionId: 'focus-browser-address'
   },
   {
     id: 'previous-request-tab',

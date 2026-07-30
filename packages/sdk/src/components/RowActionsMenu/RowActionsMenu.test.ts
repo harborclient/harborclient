@@ -63,4 +63,29 @@ describe('RowActionsMenu', () => {
     expect(button?.className).toContain('min-h-[32px]');
     expect(button?.className).not.toContain('size-[30px]');
   });
+
+  it('opens when the menu only contains a disabled empty-state item', () => {
+    const onOpenChange = vi.fn();
+
+    act(() => {
+      root.render(
+        createElement(RowActionsMenu, {
+          menuId: 'empty-snippets',
+          openMenuId: null,
+          onOpenChange,
+          triggerAriaLabel: 'Snippets',
+          groups: [[{ label: 'No snippets saved yet', disabled: true, onSelect: vi.fn() }]]
+        })
+      );
+    });
+
+    const button = container.querySelector('button.hc-row-actions-menu-trigger');
+    expect(button).not.toBeNull();
+
+    act(() => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onOpenChange).toHaveBeenCalledWith('empty-snippets');
+  });
 });

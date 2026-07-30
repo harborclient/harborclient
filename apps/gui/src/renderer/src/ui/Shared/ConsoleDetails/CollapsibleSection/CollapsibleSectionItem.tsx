@@ -16,7 +16,7 @@ import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 export interface ContentProps {
   /**
    * When true, the section header breaks out of horizontal inset padding using
-   * negative margins (same technique as collection sidebar `-mr-2` headers).
+   * negative margins (same technique as collection sidebar `-mr-2.5` headers).
    */
   flush?: boolean;
 

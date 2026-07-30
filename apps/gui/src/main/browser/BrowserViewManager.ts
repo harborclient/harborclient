@@ -1,5 +1,10 @@
-import { WebContentsView, dialog, net, shell } from 'electron';
+import { randomUUID } from 'crypto';
+import { statSync } from 'fs';
+import { basename } from 'path';
+import { WebContentsView, dialog, net, shell, type Session } from 'electron';
 import type {
+  BrowserConsoleEntryPayload,
+  BrowserDownloadEntry,
   BrowserHcScriptSourcePayload,
   BrowserHcScriptsPayload,
   BrowserInjectionScriptPayload,
@@ -11,12 +16,22 @@ import type {
   ScriptRunInput,
   SendResult
 } from '@harborclient/core/types';
+import { buildScriptRunInfo } from '@harborclient/core/types/script';
 import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
 import {
   cropPngToHeight,
   planFullPageCapture,
   stitchPngBuffers
 } from '#/main/browser/stitchPngBuffers';
+import {
+  prependRecentDownload,
+  removeRecentDownload,
+  updateRecentDownload
+} from '#/main/browser/browserRecentDownloads';
+import {
+  isCertificateFailLoadError,
+  resolveBrowserSecurityState
+} from '#/main/browser/browserSecurityState';
 import { isLeaveBrowserUnloadChoice } from '#/main/browser/browserUnloadPrompt';
 import { attachBrowserGuestContextMenu } from '#/main/browser/browserGuestContextMenu';
 import {
@@ -27,8 +42,16 @@ import {
 import {
   buildBrowserPageResponseSnapshot,
   buildBrowserScriptRequest,
+  applyBrowserScriptVariableResult,
   type BrowserHcScriptSource
 } from '#/browser/browserHcScripts';
+import {
+  appendBrowserScriptResult,
+  buildBrowserConsoleEntryPayload,
+  createBrowserConsoleAccum,
+  shouldEmitBrowserConsoleEntry,
+  type BrowserConsoleAccum
+} from '#/browser/browserConsoleEntry';
 import { buildBrowserLoadURLOptions } from '#/browser/browserLoadURLOptions';
 import {
   FAVICON_MAX_BYTES,
@@ -104,6 +127,11 @@ interface BrowserGuestSession {
   snippetModuleConflicts: string[];
 
   /**
+   * Merged runtime variables seeded into hc.request.variables for navigation scripts.
+   */
+  variables: Record<string, string>;
+
+  /**
    * Headers applied on chrome-driven loadURL navigations.
    */
   headers: KeyValue[];
@@ -134,6 +162,11 @@ interface BrowserGuestSession {
   faviconDataUrl: string | null;
 
   /**
+   * True when the in-flight or last navigation failed TLS certificate verification.
+   */
+  hasCertificateError: boolean;
+
+  /**
    * Monotonic token bumped on each main-frame navigation to discard stale favicon work.
    */
   faviconGeneration: number;
@@ -142,6 +175,19 @@ interface BrowserGuestSession {
    * Mutable object bag threaded across sequential browser scripts within one navigation.
    */
   scriptData: Record<string, unknown>;
+
+  /**
+   * UUID of the linked saved live page for hc.info.livepageId, or empty when unsaved.
+   */
+  livepageId: string;
+
+  /**
+   * Accumulates pre/post script output for the in-flight navigation console entry.
+   *
+   * Created when pre scripts start or when loading begins without prior pre scripts;
+   * cleared after the footer console payload is emitted.
+   */
+  consoleAccum: BrowserConsoleAccum | null;
 
   /**
    * Promise for the in-flight (or just-started) navigation load, if any.
@@ -176,6 +222,12 @@ function applyHcScriptsPayload(
   }
   if (hcScripts.requestDefaults) {
     applyRequestDefaults(session, hcScripts.requestDefaults);
+  }
+  if (hcScripts.variables) {
+    session.variables = { ...hcScripts.variables };
+  }
+  if (typeof hcScripts.livepageId === 'string') {
+    session.livepageId = hcScripts.livepageId.trim();
   }
 }
 
@@ -216,6 +268,16 @@ export class BrowserViewManager {
    * Active guests keyed by browser tab id.
    */
   readonly #sessions = new Map<string, BrowserGuestSession>();
+
+  /**
+   * Newest completed guest downloads for this app session (capped).
+   */
+  #recentDownloads: BrowserDownloadEntry[] = [];
+
+  /**
+   * Electron sessions that already have a `will-download` listener attached.
+   */
+  readonly #downloadTrackedSessions = new WeakSet<Session>();
 
   /**
    * Creates a guest for a browser tab, attaches it hidden, and loads the URL.
@@ -260,20 +322,25 @@ export class BrowserViewManager {
       postRequestScripts: [],
       snippetModules: {},
       snippetModuleConflicts: [],
+      variables: {},
       headers: [],
       auth: defaultAuth(),
       userAgent: '',
       visible: false,
       bounds: { x: 0, y: 0, width: 0, height: 0 },
       faviconDataUrl: null,
+      hasCertificateError: false,
       faviconGeneration: 0,
       scriptData: {},
+      livepageId: '',
+      consoleAccum: null,
       pendingLoad: null
     };
     applyHcScriptsPayload(session, hcScripts);
     this.#sessions.set(tabId, session);
 
     window.contentView.addChildView(view);
+    view.setVisible(false);
     view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
 
     this.#attachGuestGuards(tabId, view);
@@ -281,6 +348,7 @@ export class BrowserViewManager {
     this.#attachNavigationEvents(tabId, view);
     this.#attachInjectionHooks(tabId, view);
     this.#attachGuestContextMenu(tabId, view);
+    this.#attachDownloadTracking(view);
 
     session.pendingLoad = this.#trackPendingLoad(
       tabId,
@@ -312,6 +380,43 @@ export class BrowserViewManager {
     } catch {
       // Guest may already be gone.
     }
+  }
+
+  /**
+   * Returns the newest completed browser downloads for this app session.
+   *
+   * @returns Copy of the recent-downloads list (newest first, up to 5).
+   */
+  listRecentDownloads(): BrowserDownloadEntry[] {
+    return this.#recentDownloads.map((entry) => ({ ...entry }));
+  }
+
+  /**
+   * Records a completed file (for example a live-page screenshot) into the recent-downloads list.
+   *
+   * @param filePath - Absolute path of the saved file.
+   */
+  recordRecentDownload(filePath: string): void {
+    const trimmed = filePath.trim();
+    if (!trimmed) {
+      return;
+    }
+    let sizeBytes = 0;
+    try {
+      sizeBytes = statSync(trimmed).size;
+    } catch {
+      sizeBytes = 0;
+    }
+    const entry: BrowserDownloadEntry = {
+      id: randomUUID(),
+      fileName: basename(trimmed) || 'download',
+      filePath: trimmed,
+      sizeBytes,
+      completedAt: Date.now(),
+      status: 'completed'
+    };
+    this.#recentDownloads = prependRecentDownload(this.#recentDownloads, entry);
+    this.#broadcastRecentDownloads(true);
   }
 
   /**
@@ -476,9 +581,12 @@ export class BrowserViewManager {
     }
     session.visible = visible;
     if (visible) {
+      session.view.setVisible(true);
       session.view.setBounds(session.bounds);
       return;
     }
+    // Prefer View.setVisible so Linux compositing does not keep a zero-size child on top.
+    session.view.setVisible(false);
     session.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
   }
 
@@ -965,15 +1073,17 @@ export class BrowserViewManager {
       throw new Error(`No browser guest for tab "${tabId}".`);
     }
     const { webContents } = session.view;
+    const url = webContents.isDestroyed() ? 'about:blank' : webContents.getURL() || 'about:blank';
     return {
       tabId,
-      url: webContents.isDestroyed() ? 'about:blank' : webContents.getURL() || 'about:blank',
+      url,
       title: webContents.isDestroyed() ? 'Browser' : webContents.getTitle() || 'Browser',
       canGoBack: webContents.isDestroyed() ? false : webContents.navigationHistory.canGoBack(),
       canGoForward: webContents.isDestroyed()
         ? false
         : webContents.navigationHistory.canGoForward(),
-      faviconDataUrl: session.faviconDataUrl
+      faviconDataUrl: session.faviconDataUrl,
+      securityState: resolveBrowserSecurityState(url, session.hasCertificateError)
     };
   }
 
@@ -1046,6 +1156,85 @@ export class BrowserViewManager {
   }
 
   /**
+   * Records Chromium downloads from a guest session into the recent-downloads list.
+   *
+   * Attaches a single `will-download` listener per Electron session so recreating a tab
+   * with the same partition does not stack handlers. Leaves Chromium's save dialog alone
+   * (does not call `setSavePath`). Broadcasts with `autoOpen` when a download starts or
+   * completes so the renderer can open the downloads menu.
+   *
+   * @param view - Guest view whose session emits download events.
+   */
+  #attachDownloadTracking(view: WebContentsView): void {
+    const ses = view.webContents.session;
+    if (this.#downloadTrackedSessions.has(ses)) {
+      return;
+    }
+    this.#downloadTrackedSessions.add(ses);
+
+    ses.on('will-download', (_event, item) => {
+      const id = randomUUID();
+      const filePath = item.getSavePath();
+      const fileName = item.getFilename() || filePath.split(/[/\\]/).pop() || 'download';
+      const totalBytes = item.getTotalBytes();
+      const started: BrowserDownloadEntry = {
+        id,
+        fileName,
+        filePath,
+        sizeBytes: totalBytes > 0 ? totalBytes : 0,
+        completedAt: 0,
+        status: 'downloading'
+      };
+      this.#recentDownloads = prependRecentDownload(this.#recentDownloads, started);
+      this.#broadcastRecentDownloads(true);
+
+      item.once('done', (_doneEvent, state) => {
+        if (state !== 'completed') {
+          this.#recentDownloads = removeRecentDownload(this.#recentDownloads, id);
+          this.#broadcastRecentDownloads(false);
+          return;
+        }
+        const completedPath = item.getSavePath() || filePath;
+        const completedName = item.getFilename() || completedPath.split(/[/\\]/).pop() || fileName;
+        let sizeBytes = item.getTotalBytes();
+        if (sizeBytes <= 0 && completedPath) {
+          try {
+            sizeBytes = statSync(completedPath).size;
+          } catch {
+            sizeBytes = 0;
+          }
+        }
+        const completed: BrowserDownloadEntry = {
+          id,
+          fileName: completedName,
+          filePath: completedPath,
+          sizeBytes,
+          completedAt: Date.now(),
+          status: 'completed'
+        };
+        this.#recentDownloads = updateRecentDownload(this.#recentDownloads, completed);
+        this.#broadcastRecentDownloads(true);
+      });
+    });
+  }
+
+  /**
+   * Pushes the current recent-downloads list to the main window renderer.
+   *
+   * @param autoOpen - When true, the renderer should open the downloads menu.
+   */
+  #broadcastRecentDownloads(autoOpen: boolean): void {
+    const window = getRegisteredMainWindow();
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+    window.webContents.send('browser:downloads-changed', {
+      downloads: this.listRecentDownloads(),
+      autoOpen
+    });
+  }
+
+  /**
    * Opens a new browser tab showing Chromium view-source for the guest's current URL.
    *
    * @param tabId - Source browser tab id (for home/script inheritance).
@@ -1111,13 +1300,15 @@ export class BrowserViewManager {
       if (!window || window.isDestroyed()) {
         return;
       }
+      const url = webContents.getURL() || 'about:blank';
       const state: BrowserNavigationState = {
         tabId,
-        url: webContents.getURL() || 'about:blank',
+        url,
         title: webContents.getTitle() || 'Browser',
         canGoBack: webContents.navigationHistory.canGoBack(),
         canGoForward: webContents.navigationHistory.canGoForward(),
-        faviconDataUrl: session.faviconDataUrl
+        faviconDataUrl: session.faviconDataUrl,
+        securityState: resolveBrowserSecurityState(url, session.hasCertificateError)
       };
       window.webContents.send('browser:navigation', state);
     };
@@ -1135,15 +1326,57 @@ export class BrowserViewManager {
       emitState();
     };
 
+    webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+      if (!isMainFrame || isInPlace) {
+        return;
+      }
+      const session = this.#sessions.get(tabId);
+      if (!session) {
+        return;
+      }
+      session.hasCertificateError = false;
+    });
+    webContents.on('certificate-error', (event, _url, _error, _certificate, callback) => {
+      event.preventDefault();
+      const session = this.#sessions.get(tabId);
+      if (session) {
+        session.hasCertificateError = true;
+      }
+      callback(false);
+      emitState();
+    });
+    webContents.on(
+      'did-fail-load',
+      (_event, errorCode, _errorDescription, _validatedURL, isMainFrame) => {
+        if (!isMainFrame || !isCertificateFailLoadError(errorCode)) {
+          return;
+        }
+        const session = this.#sessions.get(tabId);
+        if (!session) {
+          return;
+        }
+        session.hasCertificateError = true;
+        emitState();
+      }
+    );
     webContents.on('did-navigate', () => {
       clearFavicon();
     });
     webContents.on('did-navigate-in-page', emitState);
     webContents.on('page-title-updated', emitState);
+    webContents.on('did-start-loading', () => {
+      const session = this.#sessions.get(tabId);
+      if (!session) {
+        return;
+      }
+      if (!session.consoleAccum) {
+        session.consoleAccum = createBrowserConsoleAccum();
+      }
+    });
     webContents.on('did-finish-load', () => {
       emitState();
       void this.#resolveFaviconAfterLoad(tabId);
-      void this.#runPostScripts(tabId);
+      void this.#finishNavigationConsole(tabId);
     });
     webContents.on('page-favicon-updated', (_event, favicons) => {
       void this.#resolveFaviconFromCandidates(
@@ -1193,19 +1426,27 @@ export class BrowserViewManager {
    */
   async #runPreScripts(tabId: string, url: string): Promise<string> {
     const session = this.#sessions.get(tabId);
-    if (!session || session.preRequestScripts.length === 0) {
+    if (!session) {
       return url;
     }
 
+    session.consoleAccum = createBrowserConsoleAccum();
     session.scriptData = {};
+
+    if (session.preRequestScripts.length === 0) {
+      return url;
+    }
+
     let request = buildBrowserScriptRequest(url);
+    let runtimeVars = { ...session.variables };
 
     for (const script of session.preRequestScripts) {
       const input: ScriptRunInput = {
         phase: 'pre',
         script: script.source,
         request,
-        variables: {},
+        variables: runtimeVars,
+        info: buildScriptRunInfo('pre', { livepageId: session.livepageId }),
         data: session.scriptData,
         snippetModules: session.snippetModules,
         snippetModuleConflicts: session.snippetModuleConflicts
@@ -1213,6 +1454,10 @@ export class BrowserViewManager {
       try {
         const result = await runScriptInProcess(input);
         request = result.request;
+        runtimeVars = applyBrowserScriptVariableResult(runtimeVars, result);
+        const accum: BrowserConsoleAccum = session.consoleAccum ?? createBrowserConsoleAccum();
+        session.consoleAccum = accum;
+        appendBrowserScriptResult(accum, 'pre', script.id, script.name, result);
         if (result.error) {
           logVerbose('browser pre-request script failed', {
             tabId,
@@ -1222,11 +1467,22 @@ export class BrowserViewManager {
           });
         }
       } catch (error: unknown) {
+        const message = String(error);
+        const accum: BrowserConsoleAccum = session.consoleAccum ?? createBrowserConsoleAccum();
+        session.consoleAccum = accum;
+        accum.scriptErrorLines.push(`${script.name}: ${message}`);
+        accum.scriptErrors.push({
+          message,
+          scriptName: script.name,
+          scriptId: script.id,
+          phase: 'pre',
+          scope: 'request'
+        });
         logVerbose('browser pre-request script threw', {
           tabId,
           scriptId: script.id,
           name: script.name,
-          error: String(error)
+          error: message
         });
       }
     }
@@ -1235,19 +1491,22 @@ export class BrowserViewManager {
   }
 
   /**
-   * Reads the loaded page and runs post-request hc.* scripts with hc.response.
+   * Snapshots the loaded page, runs post-request scripts, and emits a footer console entry.
    *
    * @param tabId - Browser tab id.
    */
-  async #runPostScripts(tabId: string): Promise<void> {
+  async #finishNavigationConsole(tabId: string): Promise<void> {
     const session = this.#sessions.get(tabId);
-    if (!session || session.postRequestScripts.length === 0) {
+    if (!session) {
       return;
     }
     const webContents = session.view.webContents;
     if (webContents.isDestroyed()) {
       return;
     }
+
+    const accum: BrowserConsoleAccum = session.consoleAccum ?? createBrowserConsoleAccum();
+    session.consoleAccum = accum;
 
     const pageUrl = webContents.getURL() || 'about:blank';
     const title = webContents.getTitle() || '';
@@ -1275,40 +1534,74 @@ export class BrowserViewManager {
       title,
       html
     });
-    let request = buildBrowserScriptRequest(pageUrl);
-    session.scriptData = {};
 
-    for (const script of session.postRequestScripts) {
-      const input: ScriptRunInput = {
-        phase: 'post',
-        script: script.source,
-        request,
-        response,
-        variables: {},
-        data: session.scriptData,
-        snippetModules: session.snippetModules,
-        snippetModuleConflicts: session.snippetModuleConflicts
-      };
-      try {
-        const result = await runScriptInProcess(input);
-        request = result.request;
-        if (result.error) {
-          logVerbose('browser post-request script failed', {
+    if (session.postRequestScripts.length > 0) {
+      let request = buildBrowserScriptRequest(pageUrl);
+      session.scriptData = {};
+      let runtimeVars = { ...session.variables };
+
+      for (const script of session.postRequestScripts) {
+        const input: ScriptRunInput = {
+          phase: 'post',
+          script: script.source,
+          request,
+          response,
+          variables: runtimeVars,
+          info: buildScriptRunInfo('post', { livepageId: session.livepageId }),
+          data: session.scriptData,
+          snippetModules: session.snippetModules,
+          snippetModuleConflicts: session.snippetModuleConflicts
+        };
+        try {
+          const result = await runScriptInProcess(input);
+          request = result.request;
+          runtimeVars = applyBrowserScriptVariableResult(runtimeVars, result);
+          appendBrowserScriptResult(accum, 'post', script.id, script.name, result);
+          if (result.error) {
+            logVerbose('browser post-request script failed', {
+              tabId,
+              scriptId: script.id,
+              name: script.name,
+              error: result.error
+            });
+          }
+        } catch (error: unknown) {
+          const message = String(error);
+          accum.scriptErrorLines.push(`${script.name}: ${message}`);
+          accum.scriptErrors.push({
+            message,
+            scriptName: script.name,
+            scriptId: script.id,
+            phase: 'post',
+            scope: 'request'
+          });
+          logVerbose('browser post-request script threw', {
             tabId,
             scriptId: script.id,
             name: script.name,
-            error: result.error
+            error: message
           });
         }
-      } catch (error: unknown) {
-        logVerbose('browser post-request script threw', {
-          tabId,
-          scriptId: script.id,
-          name: script.name,
-          error: String(error)
-        });
       }
     }
+
+    session.consoleAccum = null;
+
+    if (!shouldEmitBrowserConsoleEntry(pageUrl, title)) {
+      return;
+    }
+
+    const window = getRegisteredMainWindow();
+    if (!window || window.isDestroyed()) {
+      return;
+    }
+
+    const payload: BrowserConsoleEntryPayload = buildBrowserConsoleEntryPayload(
+      tabId,
+      response,
+      accum
+    );
+    window.webContents.send('browser:console-entry', payload);
   }
 
   /**
@@ -1433,13 +1726,15 @@ export class BrowserViewManager {
       return;
     }
     const webContents = session.view.webContents;
+    const url = webContents.getURL() || 'about:blank';
     const state: BrowserNavigationState = {
       tabId,
-      url: webContents.getURL() || 'about:blank',
+      url,
       title: webContents.getTitle() || 'Browser',
       canGoBack: webContents.navigationHistory.canGoBack(),
       canGoForward: webContents.navigationHistory.canGoForward(),
-      faviconDataUrl: session.faviconDataUrl
+      faviconDataUrl: session.faviconDataUrl,
+      securityState: resolveBrowserSecurityState(url, session.hasCertificateError)
     };
     window.webContents.send('browser:navigation', state);
   }

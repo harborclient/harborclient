@@ -1,15 +1,24 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
-import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
 import { saveOrUpdateBrowserWebsite } from '#/renderer/src/store/thunks/websites';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 import { BrowserChrome } from './BrowserChrome';
 import { BrowserGuestBoundsSync } from './BrowserGuestBoundsSync';
+import { BrowserGuestCoverImage } from './BrowserGuestCoverImage';
+import { BrowserLivePageSettingsPanel } from './BrowserLivePageSettingsPanel';
 import { BrowserScreenshotModeModal } from './BrowserScreenshotModeModal';
 import { browserScreenshotDefaultFileName } from './browserScreenshotFileName';
+import {
+  coverBrowserGuestForOverlay,
+  dismissBrowserGuestCover,
+  getBrowserGuestCover,
+  uncoverBrowserGuest
+} from './browserGuestCover';
 import { hasBrowserGuest, markBrowserGuestCreated } from './browserGuestRegistry';
 import { mergeLivePageVariables } from './mergeLivePageVariables';
 
@@ -61,6 +70,7 @@ interface Props {
 export function BrowserTabContent({ tab, variables, onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const snippets = useAppSelector(selectSnippets);
+  const { aiAvailable, copyToChat } = useCopyToChat();
   const hostRef = useRef<HTMLDivElement>(null);
   /**
    * When true, the screenshot mode chooser is open.
@@ -74,6 +84,10 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
    * Success/error notice shown between chrome and the guest (never behind WebContentsView).
    */
   const [screenshotNotice, setScreenshotNotice] = useState<ScreenshotNotice | null>(null);
+  /**
+   * When true, address autocomplete still owns a guest cover request (may be in-flight).
+   */
+  const wantAddressGuestCoverRef = useRef(false);
 
   /**
    * Merges collection/environment variables with this live page's variables for the address bar.
@@ -82,6 +96,34 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
     () => mergeLivePageVariables(variables, tab.variables),
     [variables, tab.variables]
   );
+
+  /**
+   * Freezes and hides the native guest before address suggestions paint (same as downloads menu).
+   *
+   * WebContentsView always composites above HTML, so the portaled list is only usable after the
+   * guest is covered with a freeze frame.
+   */
+  const prepareAddressSuggestionsOverlay = useCallback(async (): Promise<void> => {
+    wantAddressGuestCoverRef.current = true;
+    await coverBrowserGuestForOverlay(tab.tabId);
+    if (!wantAddressGuestCoverRef.current) {
+      void uncoverBrowserGuest();
+    }
+  }, [tab.tabId]);
+
+  /**
+   * Restores the guest when address suggestions close.
+   *
+   * @param open - Whether address suggestions are open.
+   */
+  const handleAddressSuggestionsOpenChange = useCallback((open: boolean): void => {
+    if (open) {
+      wantAddressGuestCoverRef.current = true;
+      return;
+    }
+    wantAddressGuestCoverRef.current = false;
+    void uncoverBrowserGuest();
+  }, []);
 
   /**
    * Creates the guest once, shows it while this panel is mounted, and hides on leave.
@@ -99,7 +141,7 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
           tab.url,
           tab.homeUrl,
           tab.savedScripts,
-          buildBrowserHcScriptsPayload(tab, snippets, true)
+          buildBrowserHcScriptsPayload(tab, snippets, variables, true)
         );
         if (cancelled) {
           return;
@@ -109,6 +151,10 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
       if (cancelled) {
         return;
       }
+      // Do not re-show a guest that an HTML overlay (address autocomplete, menu) has covered.
+      if (getBrowserGuestCover()?.tabId === tab.tabId) {
+        return;
+      }
       await window.api.browserSetVisible(tab.tabId, true);
     }
 
@@ -116,11 +162,46 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
 
     return () => {
       cancelled = true;
+      wantAddressGuestCoverRef.current = false;
+      dismissBrowserGuestCover(tab.tabId);
       void window.api.browserSetVisible(tab.tabId, false);
     };
     // Intentionally only re-run when the tab identity changes; URL/scripts sync via chrome actions.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/unmount lifecycle for one tab id
   }, [tab.tabId]);
+
+  /**
+   * Re-pushes saved live-page scripts/variables when the active collection/environment map or
+   * saved website variables change so hc.request.variables stays in sync without remounting.
+   */
+  useEffect(() => {
+    if (!hasBrowserGuest(tab.tabId)) {
+      return;
+    }
+    void window.api
+      .browserSetScripts(
+        tab.tabId,
+        tab.savedScripts,
+        buildBrowserHcScriptsPayload(tab, snippets, variables, true)
+      )
+      .catch(() => {
+        // Guest may have been destroyed between the check and the IPC call.
+      });
+    // Draft live-page variables intentionally omitted — unsaved drafts apply after Save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync on saved baselines + active vars
+  }, [
+    tab.tabId,
+    tab.websiteUuid,
+    tab.savedVariables,
+    tab.savedScripts,
+    tab.savedPreRequestScripts,
+    tab.savedPostRequestScripts,
+    tab.savedHeaders,
+    tab.savedAuth,
+    tab.savedUserAgent,
+    variables,
+    snippets
+  ]);
 
   /**
    * Hides the native WebContentsView while the screenshot mode modal is open so the
@@ -161,16 +242,22 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
   }
 
   /**
-   * Opens the per-tab live page settings page.
+   * Toggles the per-tab live page settings panel under the address bar.
    */
-  function handleOpenSettings(): void {
+  function handleToggleSettings(): void {
     dispatch(
-      openPageTab({
-        type: 'browser-settings',
-        browserTabId: tab.tabId,
-        label: 'Live Page Settings'
+      setBrowserSettingsPanelOpen({
+        tabId: tab.tabId,
+        open: !tab.settingsPanelOpen
       })
     );
+  }
+
+  /**
+   * Closes the live page settings panel.
+   */
+  function handleCloseSettings(): void {
+    dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: false }));
   }
 
   /**
@@ -188,6 +275,13 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
       return;
     }
     setScreenshotModeOpen(true);
+  }
+
+  /**
+   * Opens the AI sidebar and inserts an `@webpage.<tabId>` pointer for this browser tab.
+   */
+  function handleAskAi(): void {
+    void copyToChat(`@webpage.${tab.tabId}`);
   }
 
   /**
@@ -209,7 +303,8 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
         dataUrl,
         defaultFileName: browserScreenshotDefaultFileName(tab.title)
       });
-      if (!result.canceled) {
+      if (!result.canceled && result.path) {
+        void window.api.browserRecordDownload(result.path);
         setScreenshotNotice({
           tone: 'success',
           message: truncated
@@ -238,8 +333,19 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
         onSave={handleSave}
         onScreenshot={handleScreenshotClick}
         screenshotDisabled={screenshotBusy}
-        onOpenSettings={handleOpenSettings}
+        onAskAi={aiAvailable ? handleAskAi : undefined}
+        settingsOpen={tab.settingsPanelOpen}
+        settingsPanelId={`browser-settings-panel-${tab.tabId}`}
+        onToggleSettings={handleToggleSettings}
         onEditVariables={onEditVariables}
+        beforeSuggestionsOpen={prepareAddressSuggestionsOverlay}
+        onSuggestionsOpenChange={handleAddressSuggestionsOpenChange}
+      />
+      <BrowserLivePageSettingsPanel
+        open={tab.settingsPanelOpen}
+        panelId={`browser-settings-panel-${tab.tabId}`}
+        browserTab={tab}
+        onClose={handleCloseSettings}
       />
       {screenshotBusy ? (
         <p
@@ -272,6 +378,7 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
       <div ref={hostRef} className="relative min-h-0 flex-1">
         <BrowserGuestBoundsSync tabId={tab.tabId} hostRef={hostRef} />
         <div className="min-h-0 h-full flex-1 bg-control" aria-hidden />
+        <BrowserGuestCoverImage tabId={tab.tabId} />
       </div>
     </div>
   );

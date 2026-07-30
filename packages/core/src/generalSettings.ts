@@ -35,6 +35,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  startWebpageUrl: 'about:blank',
   userAgent: DEFAULT_USER_AGENT,
   customUserAgents: [],
   scrollbarAutoHide: false,
@@ -226,6 +227,22 @@ function normalizeDismissedRequestEditorNotices(input: unknown): EditorTab[] {
 }
 
 /**
+ * Normalizes the Start webpage URL used for new Live Pages.
+ *
+ * Trims whitespace and falls back to about:blank when empty or missing.
+ *
+ * @param input - Raw start webpage URL from storage or user input.
+ * @returns Trimmed URL, or about:blank when empty.
+ */
+function normalizeStartWebpageUrl(input: unknown): string {
+  if (typeof input !== 'string') {
+    return DEFAULT_GENERAL_SETTINGS.startWebpageUrl;
+  }
+  const trimmed = input.trim();
+  return trimmed.length > 0 ? trimmed : DEFAULT_GENERAL_SETTINGS.startWebpageUrl;
+}
+
+/**
  * Normalizes a general settings object with defaults for invalid fields.
  *
  * Accepts legacy `warnWhenCreatingTabGroup` / `warnWhenOpeningTabGroup` keys from
@@ -286,6 +303,7 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     ),
     verifySsl: input.verifySsl !== false,
     followRedirects: input.followRedirects !== false,
+    startWebpageUrl: normalizeStartWebpageUrl(input.startWebpageUrl),
     userAgent: normalizeUserAgent(input.userAgent) || DEFAULT_USER_AGENT,
     customUserAgents: normalizeCustomUserAgents(input.customUserAgents),
     scrollbarAutoHide: input.scrollbarAutoHide === true,

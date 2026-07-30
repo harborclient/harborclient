@@ -21,7 +21,8 @@ describe('buildScriptRunInfo', () => {
       iteration: 2,
       workflowId: '',
       workflowActionId: '',
-      workflowActionIteration: -1
+      workflowActionIteration: -1,
+      livepageId: ''
     });
   });
 
@@ -33,7 +34,8 @@ describe('buildScriptRunInfo', () => {
       iteration: 0,
       workflowId: '',
       workflowActionId: '',
-      workflowActionIteration: -1
+      workflowActionIteration: -1,
+      livepageId: ''
     });
   });
 
@@ -52,7 +54,25 @@ describe('buildScriptRunInfo', () => {
       iteration: 0,
       workflowId: 'wf-uuid',
       workflowActionId: 'action-uuid',
-      workflowActionIteration: 3
+      workflowActionIteration: 3,
+      livepageId: ''
+    });
+  });
+
+  it('includes livepageId when provided', () => {
+    expect(
+      buildScriptRunInfo('pre', {
+        livepageId: '  live-page-uuid  '
+      })
+    ).toEqual({
+      eventName: 'prerequest',
+      requestName: '',
+      requestId: '',
+      iteration: 0,
+      workflowId: '',
+      workflowActionId: '',
+      workflowActionIteration: -1,
+      livepageId: 'live-page-uuid'
     });
   });
 });

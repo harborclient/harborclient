@@ -98,6 +98,21 @@ export interface Props extends Omit<
    * Optional async source for value autocomplete suggestions.
    */
   source?: AutocompleteSource;
+
+  /**
+   * Optional async gate run after suggestions load and before the popup opens.
+   *
+   * Hosts can use this to cover native layers (for example Electron WebContentsView)
+   * so the portaled suggestion list is not painted behind them.
+   */
+  beforeSuggestionsOpen?: () => void | Promise<void>;
+
+  /**
+   * Called when the autocomplete suggestion popup open state changes.
+   *
+   * @param open - Whether suggestions are open.
+   */
+  onSuggestionsOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -119,6 +134,8 @@ export function VariableInput({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   source,
+  beforeSuggestionsOpen,
+  onSuggestionsOpenChange,
   ...props
 }: Props): JSX.Element {
   const safeValue = value ?? '';
@@ -154,7 +171,9 @@ export function VariableInput({
     source,
     value: safeValue,
     onSelect: onChange,
-    anchorRef: inputRef
+    anchorRef: inputRef,
+    beforeOpen: beforeSuggestionsOpen,
+    onOpenChange: onSuggestionsOpenChange
   });
 
   /**

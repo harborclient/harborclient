@@ -327,14 +327,20 @@ export function RowActionsMenu({
   }, []);
 
   /**
-   * Opens the menu and focuses the first or last item.
+   * Opens the menu and focuses the first or last enabled item.
+   * Disabled-only menus (empty-state placeholders) still open so the message is visible.
    */
   const openMenu = useCallback(
     (focusLast = false): void => {
-      if (!hasEnabledItems) return;
-      const edgeIndex = findEdgeEnabledIndex(flatItems, focusLast);
-      if (edgeIndex == null) return;
-      setFocusedIndex(edgeIndex);
+      if (flatItems.length === 0) {
+        return;
+      }
+      if (hasEnabledItems) {
+        const edgeIndex = findEdgeEnabledIndex(flatItems, focusLast);
+        if (edgeIndex != null) {
+          setFocusedIndex(edgeIndex);
+        }
+      }
       onOpenChange(menuId);
     },
     [flatItems, hasEnabledItems, menuId, onOpenChange]
@@ -367,15 +373,20 @@ export function RowActionsMenu({
 
   /**
    * Moves focus into the menu after it opens and item refs are mounted.
+   * When every item is disabled, focuses the panel so Escape / Tab still work.
    */
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       requestAnimationFrame(() => {
-        itemRefs.current[focusedIndex]?.focus();
+        if (hasEnabledItems) {
+          itemRefs.current[focusedIndex]?.focus();
+        } else {
+          panelRef.current?.focus();
+        }
       });
     }
     wasOpenRef.current = isOpen;
-  }, [focusedIndex, isOpen]);
+  }, [focusedIndex, hasEnabledItems, isOpen]);
 
   /**
    * Resets item refs and submenu state when the menu closes.
@@ -481,10 +492,12 @@ export function RowActionsMenu({
    * for the keys it handles itself.
    */
   const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (!hasEnabledItems) return;
-
     if (event.key === 'Tab') {
       closeMenu();
+      return;
+    }
+
+    if (!hasEnabledItems) {
       return;
     }
 
@@ -561,6 +574,7 @@ export function RowActionsMenu({
       ref={panelRef}
       id={menuElementId}
       role="menu"
+      tabIndex={hasEnabledItems ? undefined : -1}
       className="hc-row-actions-menu-panel app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: menuPosition.x, top: menuPosition.y }}
       onKeyDown={handleMenuKeyDown}

@@ -41,6 +41,7 @@ import tabsReducer, {
   setActiveTab,
   setBrowserPreRequestScripts,
   setBrowserScripts,
+  setBrowserSettingsPanelOpen,
   setResponseViewerTab,
   updateBrowserNavigation,
   updateMarkdownContent
@@ -1031,7 +1032,7 @@ describe('browser tabs', () => {
     );
     const dirtyTab = state.tabs.find((entry) => entry.tabId === tabId);
     expect(
-      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && !isTabDirty(dirtyTab)
+      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && isTabDirty(dirtyTab)
     ).toBe(true);
 
     state = tabsReducer(state, saveBrowserScripts(tabId));
@@ -1063,7 +1064,7 @@ describe('browser tabs', () => {
     );
     const dirtyTab = state.tabs.find((entry) => entry.tabId === tabId);
     expect(
-      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && !isTabDirty(dirtyTab)
+      dirtyTab && isBrowserTab(dirtyTab) && hasBrowserPendingSave(dirtyTab) && isTabDirty(dirtyTab)
     ).toBe(true);
 
     state = tabsReducer(state, saveBrowserScripts(tabId));
@@ -1071,27 +1072,20 @@ describe('browser tabs', () => {
     expect(cleanTab && isBrowserTab(cleanTab) && !hasBrowserPendingSave(cleanTab)).toBe(true);
   });
 
-  it('closes linked browser-settings when closing a browser tab', () => {
+  it('toggles the live page settings panel on a browser tab', () => {
     let state = tabsReducer(undefined, { type: 'unknown' });
     state = tabsReducer(state, newBrowserTab());
     const browserTabId = state.activeTabId;
-    state = tabsReducer(
-      state,
-      openPageTab({
-        type: 'browser-settings',
-        browserTabId,
-        label: 'Browser Settings'
-      })
-    );
-    expect(state.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'browser-settings')).toBe(
-      true
-    );
+    const tab = state.tabs.find((entry) => entry.tabId === browserTabId);
+    expect(tab && isBrowserTab(tab) && tab.settingsPanelOpen).toBe(false);
 
-    state = tabsReducer(state, closeTab(browserTabId));
-    expect(state.tabs.some((tab) => isBrowserTab(tab) && tab.tabId === browserTabId)).toBe(false);
-    expect(state.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'browser-settings')).toBe(
-      false
-    );
+    state = tabsReducer(state, setBrowserSettingsPanelOpen({ tabId: browserTabId, open: true }));
+    const openTab = state.tabs.find((entry) => entry.tabId === browserTabId);
+    expect(openTab && isBrowserTab(openTab) && openTab.settingsPanelOpen).toBe(true);
+
+    state = tabsReducer(state, setBrowserSettingsPanelOpen({ tabId: browserTabId, open: false }));
+    const closedTab = state.tabs.find((entry) => entry.tabId === browserTabId);
+    expect(closedTab && isBrowserTab(closedTab) && closedTab.settingsPanelOpen).toBe(false);
   });
 
   it('updates browser navigation including favicon clear and set', () => {
@@ -1107,27 +1101,31 @@ describe('browser tabs', () => {
         title: 'Example',
         canGoBack: false,
         canGoForward: false,
-        faviconDataUrl: 'data:image/png;base64,abc'
+        faviconDataUrl: 'data:image/png;base64,abc',
+        securityState: 'secure'
       })
     );
     let tab = state.tabs.find((entry) => entry.tabId === tabId);
     expect(tab && isBrowserTab(tab) && tab.faviconDataUrl).toBe('data:image/png;base64,abc');
     expect(tab && isBrowserTab(tab) && tab.title).toBe('Example');
+    expect(tab && isBrowserTab(tab) && tab.securityState).toBe('secure');
 
     state = tabsReducer(
       state,
       updateBrowserNavigation({
         tabId,
-        url: 'https://other.example/',
+        url: 'http://other.example/',
         title: 'Other',
         canGoBack: true,
         canGoForward: false,
-        faviconDataUrl: null
+        faviconDataUrl: null,
+        securityState: 'insecure'
       })
     );
     tab = state.tabs.find((entry) => entry.tabId === tabId);
     expect(tab && isBrowserTab(tab) && tab.faviconDataUrl).toBeNull();
     expect(tab && isBrowserTab(tab) && tab.canGoBack).toBe(true);
+    expect(tab && isBrowserTab(tab) && tab.securityState).toBe('insecure');
   });
 
   it('opens an inherited browser tab and activates it by default', () => {

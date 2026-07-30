@@ -391,25 +391,5 @@ export const pageRoutes = {
       'ImageViewPageRoute'
     ),
     normalize: () => null
-  }),
-  'browser-settings': defineRoute({
-    key: (page) => `browser-settings:${page.browserTabId}`,
-    meta: (page) => ({ title: page.label, icon: faGear }),
-    closeName: () => 'Live Page Settings',
-    replaceOnReopen: true,
-    Component: lazyNamed(
-      () => import('#/renderer/src/routing/pages/BrowserSettingsPageRoute'),
-      'BrowserSettingsPageRoute'
-    ),
-    normalize: (value) => {
-      if (typeof value.browserTabId !== 'string' || value.browserTabId.length === 0) {
-        return null;
-      }
-      return {
-        type: 'browser-settings',
-        browserTabId: value.browserTabId,
-        label: typeof value.label === 'string' && value.label ? value.label : 'Live Page Settings'
-      };
-    }
   })
 } as const satisfies { [T in PageRef['type']]: PageRoute<T> };

@@ -62,7 +62,7 @@ import {
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { setScriptSelection } from '#/renderer/src/store/slices/scriptSelectionsSlice';
-import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { newBrowserTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { lineNumberAtOffset } from '#/renderer/src/ui/Main/RequestEditor/Editor/markdownSelection';
 import {
   computeTestResultsRevealNonce,
@@ -387,10 +387,15 @@ export function ScriptListEditor({
   };
 
   /**
-   * Opens the request scripting documentation in the system browser.
+   * Opens the request scripting documentation in an in-app Live Page tab.
    */
   const handleOpenScriptingHelp = (): void => {
-    window.open(REQUEST_SCRIPTS_HELP_URL, '_blank', 'noopener,noreferrer');
+    dispatch(
+      newBrowserTab({
+        url: REQUEST_SCRIPTS_HELP_URL,
+        homeUrl: REQUEST_SCRIPTS_HELP_URL
+      })
+    );
   };
 
   /**

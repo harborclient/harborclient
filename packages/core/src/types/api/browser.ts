@@ -1,5 +1,7 @@
 import type { AuthConfig } from '../../auth';
 import type { KeyValue } from '../common';
+import type { ScriptExecutionEvent, ScriptRunError, ScriptTestResult } from '../script';
+import type { SendResult } from '../request';
 
 /**
  * Page-load points at which an embedded browser injection script may run.
@@ -104,6 +106,17 @@ export interface BrowserHcScriptsPayload {
    * Request defaults applied on chrome-driven loadURL navigations.
    */
   requestDefaults?: BrowserRequestDefaultsPayload;
+
+  /**
+   * Merged runtime variables (collection/environment + live-page overrides) for
+   * `hc.request.variables` during pre/post navigation scripts.
+   */
+  variables?: Record<string, string>;
+
+  /**
+   * UUID of the linked saved live page (website), or empty when the tab is unsaved.
+   */
+  livepageId?: string;
 }
 
 /**
@@ -130,6 +143,16 @@ export interface BrowserViewBounds {
    */
   height: number;
 }
+
+/**
+ * TLS / scheme security for a browser guest, used by the address-bar lock icon.
+ *
+ * - `secure` — `https:` with a valid certificate
+ * - `insecure` — `http:` (no TLS)
+ * - `invalid-cert` — `https:` navigation that failed certificate verification
+ * - `unknown` — non-http(s) URLs (`about:blank`, `file:`, etc.) or unclassified state
+ */
+export type BrowserSecurityState = 'secure' | 'insecure' | 'invalid-cert' | 'unknown';
 
 /**
  * Navigation / title update pushed from main to the renderer for one browser tab.
@@ -164,6 +187,11 @@ export interface BrowserNavigationState {
    * Resolved favicon as a data URL for the tab bar, or null when cleared / unavailable.
    */
   faviconDataUrl: string | null;
+
+  /**
+   * Address-bar TLS indicator derived from the committed URL and cert errors.
+   */
+  securityState: BrowserSecurityState;
 }
 
 /**
@@ -185,6 +213,99 @@ export interface BrowserOpenTabRequest {
    * When true, select the new tab; when false, open in the background.
    */
   activate: boolean;
+}
+
+/**
+ * One browser guest download kept in the session recent-downloads list.
+ */
+export interface BrowserDownloadEntry {
+  /**
+   * Stable id for this download within the current app session.
+   */
+  id: string;
+
+  /**
+   * Basename of the saved file.
+   */
+  fileName: string;
+
+  /**
+   * Absolute path where Chromium saved the file (may be empty while downloading).
+   */
+  filePath: string;
+
+  /**
+   * File size in bytes when known.
+   */
+  sizeBytes: number;
+
+  /**
+   * Unix epoch milliseconds when the download finished successfully, or `0` while downloading.
+   */
+  completedAt: number;
+
+  /**
+   * Whether the file is still being written or has finished successfully.
+   */
+  status: 'downloading' | 'completed';
+}
+
+/**
+ * Payload pushed when the recent-downloads list changes.
+ */
+export interface BrowserDownloadsChangedPayload {
+  /**
+   * Newest-first download list for this app session.
+   */
+  downloads: BrowserDownloadEntry[];
+
+  /**
+   * When true, the renderer should open the downloads menu to show the update.
+   */
+  autoOpen: boolean;
+}
+
+/**
+ * Footer console entry produced after a live-page navigation finishes loading.
+ *
+ * Mirrors the fields written by collection request sends so the Console panel
+ * can render the same EntryRow / ConsoleDetails UI.
+ */
+export interface BrowserConsoleEntryPayload {
+  /**
+   * Browser tab id that produced this navigation.
+   */
+  tabId: string;
+
+  /**
+   * SendResult-shaped page snapshot (URL, status, HTML body, timing).
+   */
+  result: SendResult;
+
+  /**
+   * Labeled pre/post script console output lines, when any ran.
+   */
+  logs?: string[];
+
+  /**
+   * Test assertions from pre/post scripts, when any ran.
+   */
+  tests?: ScriptTestResult[];
+
+  /**
+   * Ordered variable and flow-control activity from pre/post scripts.
+   */
+  executionEvents?: ScriptExecutionEvent[];
+
+  /**
+   * Combined script error text for the Output section.
+   */
+  scriptError?: string;
+
+  /**
+   * Structured script failures with slot metadata for jump-to-editor.
+   */
+  scriptErrors?: ScriptRunError[];
 }
 
 /**
@@ -376,10 +497,40 @@ export interface ApiBrowser {
   onBrowserNavigation: (callback: (state: BrowserNavigationState) => void) => () => void;
 
   /**
+   * Subscribes to live-page footer console entries after each navigation load.
+   *
+   * @param callback - Handler invoked with the console entry payload.
+   * @returns Unsubscribe function.
+   */
+  onBrowserConsoleEntry: (callback: (payload: BrowserConsoleEntryPayload) => void) => () => void;
+
+  /**
    * Subscribes to guest popup / new-tab requests (`target="_blank"`, `window.open()`).
    *
    * @param callback - Handler invoked with the open-tab request.
    * @returns Unsubscribe function.
    */
   onBrowserOpenTab: (callback: (request: BrowserOpenTabRequest) => void) => () => void;
+
+  /**
+   * Returns the newest completed browser downloads for this app session (up to 5).
+   */
+  browserListDownloads: () => Promise<BrowserDownloadEntry[]>;
+
+  /**
+   * Records a completed file path (for example a screenshot) into the recent-downloads list.
+   *
+   * @param filePath - Absolute path of the saved file.
+   */
+  browserRecordDownload: (filePath: string) => Promise<void>;
+
+  /**
+   * Subscribes to updates of the recent browser downloads list.
+   *
+   * @param callback - Handler invoked with the newest-first list and whether to auto-open the menu.
+   * @returns Unsubscribe function.
+   */
+  onBrowserDownloadsChanged: (
+    callback: (payload: BrowserDownloadsChangedPayload) => void
+  ) => () => void;
 }

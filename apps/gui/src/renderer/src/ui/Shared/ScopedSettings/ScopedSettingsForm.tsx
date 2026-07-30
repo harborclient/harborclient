@@ -135,9 +135,19 @@ interface Props {
   pageClassName?: string;
 
   /**
-   * Persisted snapshot used to seed state and detect dirty edits.
+   * Persisted snapshot used for dirty comparison (and as the editor seed when
+   * {@link seed} is omitted).
    */
   initial: ScopedSettingsCoreFields;
+
+  /**
+   * Optional draft values to seed the editors on mount.
+   *
+   * When omitted, editors seed from {@link initial}. Live page settings pass
+   * current tab drafts here and saved baselines as {@link initial} so remounts
+   * restore unsaved edits while dirty tracking still compares to the last save.
+   */
+  seed?: ScopedSettingsCoreFields;
 
   /**
    * When set, switches to the Variables tab and focuses the matching row.
@@ -228,6 +238,12 @@ interface Props {
   onDirtyChange?: (dirty: boolean) => void;
 
   /**
+   * Called whenever draft core fields change so parents can persist drafts (for example
+   * browser tab Redux state) across remounts.
+   */
+  onDraftChange?: (fields: ScopedSettingsCoreFields) => void;
+
+  /**
    * Hosting tab id so File → Save / Ctrl+S can persist this form.
    */
   tabId?: string;
@@ -244,6 +260,7 @@ export function ScopedSettingsForm({
   ariaLabel,
   pageClassName,
   initial,
+  seed,
   focusVariableKey,
   focusSection,
   renderGeneral,
@@ -261,6 +278,7 @@ export function ScopedSettingsForm({
   onSave,
   onClose,
   onDirtyChange,
+  onDraftChange,
   tabId
 }: Props): JSX.Element {
   const [tab, setTab] = useState<string>(
@@ -283,20 +301,22 @@ export function ScopedSettingsForm({
     }
   }
 
-  const [name, setName] = useState(initial.name);
+  const editorSeed = seed ?? initial;
+
+  const [name, setName] = useState(editorSeed.name);
   const [variables, setVariables] = useState<Variable[]>(() =>
-    seedScopedSettingsVariables(initial.variables)
+    seedScopedSettingsVariables(editorSeed.variables)
   );
   const [headers, setHeaders] = useState<KeyValue[]>(() =>
-    seedScopedSettingsHeaders(initial.headers)
+    seedScopedSettingsHeaders(editorSeed.headers)
   );
-  const [userAgent, setUserAgent] = useState(initial.userAgent);
-  const [auth, setAuth] = useState<AuthConfig>(initial.auth);
+  const [userAgent, setUserAgent] = useState(editorSeed.userAgent);
+  const [auth, setAuth] = useState<AuthConfig>(editorSeed.auth);
   const [preRequestScripts, setPreRequestScripts] = useState<ScriptRef[]>(
-    initial.preRequestScripts
+    editorSeed.preRequestScripts
   );
   const [postRequestScripts, setPostRequestScripts] = useState<ScriptRef[]>(
-    initial.postRequestScripts
+    editorSeed.postRequestScripts
   );
   const [saving, setSaving] = useState(false);
 
@@ -330,6 +350,13 @@ export function ScopedSettingsForm({
   useEffect(() => {
     onDirtyChange?.(Boolean(isDirty));
   }, [isDirty, onDirtyChange]);
+
+  /**
+   * Pushes draft core fields to the parent so remounts can restore unsaved edits.
+   */
+  useEffect(() => {
+    onDraftChange?.(currentFields);
+  }, [currentFields, onDraftChange]);
 
   /**
    * Dot indicators for tabs whose sections have content configured.

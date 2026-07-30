@@ -20,6 +20,7 @@ export const defaultGeneralSettings: GeneralSettings = {
   maxResponseSizeMb: 50,
   verifySsl: true,
   followRedirects: true,
+  startWebpageUrl: 'about:blank',
   scrollbarAutoHide: false,
   wrapTabs: true,
   closeToTray: false,

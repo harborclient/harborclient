@@ -48,6 +48,7 @@ import {
 } from '#/renderer/src/store/thunks';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
+import { runBrowserNavMenuAction } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/runBrowserNavMenuAction';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 interface UseActionCommandsResult {
@@ -286,6 +287,18 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-shortcuts-sidebar': () => {
         dispatch(toggleShortcutsSidebar());
+      },
+      'builtin:browser-reload': () => {
+        runBrowserNavMenuAction('browser-reload', store.getState);
+      },
+      'builtin:browser-go-back': () => {
+        runBrowserNavMenuAction('browser-go-back', store.getState);
+      },
+      'builtin:browser-go-forward': () => {
+        runBrowserNavMenuAction('browser-go-forward', store.getState);
+      },
+      'builtin:focus-browser-address': () => {
+        runBrowserNavMenuAction('focus-browser-address', store.getState);
       },
       'builtin:about': () => {
         dispatch(openAboutModal());

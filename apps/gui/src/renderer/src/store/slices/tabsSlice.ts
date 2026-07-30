@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
+  BrowserSecurityState,
   KeyValue,
   CollectionDocument,
   SavedRequest,
@@ -390,39 +391,34 @@ const tabsSlice = createSlice({
     },
     /**
      * Closes a tab by id, leaving zero tabs open when the last tab is closed.
-     * Closing a browser tab also closes its linked browser-settings page tab.
      */
     closeTab(state, action: PayloadAction<string>) {
       const tabId = action.payload;
       const index = state.tabs.findIndex((t) => t.tabId === tabId);
       if (index === -1) return;
 
-      const closing = state.tabs[index];
-      const removeIds = new Set<string>([tabId]);
-      if (isBrowserTab(closing)) {
-        for (const tab of state.tabs) {
-          if (
-            isPageTab(tab) &&
-            tab.page.type === 'browser-settings' &&
-            tab.page.browserTabId === tabId
-          ) {
-            removeIds.add(tab.tabId);
-          }
-        }
-      }
-
-      const next = state.tabs.filter((t) => !removeIds.has(t.tabId));
+      const next = state.tabs.filter((t) => t.tabId !== tabId);
       if (next.length === 0) {
         state.tabs = [];
         state.activeTabId = '';
         return;
       }
 
-      if (removeIds.has(state.activeTabId)) {
+      if (state.activeTabId === tabId) {
         const neighbor = next[Math.min(index, next.length - 1)];
         state.activeTabId = neighbor.tabId;
       }
       state.tabs = next;
+    },
+    /**
+     * Opens or closes the live page settings panel under the browser address bar.
+     */
+    setBrowserSettingsPanelOpen(state, action: PayloadAction<{ tabId: string; open: boolean }>) {
+      const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (!tab || !isBrowserTab(tab)) {
+        return;
+      }
+      tab.settingsPanelOpen = action.payload.open;
     },
     /**
      * Patches navigation chrome fields on a browser tab from the main process.
@@ -436,6 +432,7 @@ const tabsSlice = createSlice({
         canGoBack: boolean;
         canGoForward: boolean;
         faviconDataUrl: string | null;
+        securityState: BrowserSecurityState;
       }>
     ) {
       const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);
@@ -447,6 +444,7 @@ const tabsSlice = createSlice({
       tab.canGoBack = action.payload.canGoBack;
       tab.canGoForward = action.payload.canGoForward;
       tab.faviconDataUrl = action.payload.faviconDataUrl;
+      tab.securityState = action.payload.securityState;
     },
     /**
      * Replaces the draft injection scripts on a browser tab (unsaved until Save).
@@ -547,6 +545,8 @@ const tabsSlice = createSlice({
         bearer: { ...tab.auth.bearer },
         oauth2: { ...tab.auth.oauth2 }
       };
+      tab.savedTitle = tab.settingsName;
+      tab.title = tab.settingsName;
     },
     /**
      * Binds a browser tab to a saved website and refreshes saved baselines from current state.
@@ -567,7 +567,14 @@ const tabsSlice = createSlice({
       tab.websiteUuid = action.payload.websiteUuid;
       tab.savedUrl = tab.url;
       tab.savedHomeUrl = tab.homeUrl;
-      tab.savedTitle = tab.title;
+      // Prefer an unsaved settings rename; otherwise capture the live document title.
+      if (tab.settingsName !== tab.savedTitle) {
+        tab.savedTitle = tab.settingsName;
+        tab.title = tab.settingsName;
+      } else {
+        tab.savedTitle = tab.title;
+        tab.settingsName = tab.title;
+      }
       tab.savedFaviconDataUrl = tab.faviconDataUrl;
       tab.savedScripts = tab.scripts.map((script) => ({ ...script }));
       tab.savedPreRequestScripts = tab.pre_request_scripts.map((script) => ({ ...script }));
@@ -672,6 +679,7 @@ const tabsSlice = createSlice({
         bearer: { ...tab.savedAuth.bearer },
         oauth2: { ...tab.savedAuth.oauth2 }
       };
+      tab.settingsName = tab.savedTitle;
     },
     /**
      * Patches arbitrary browser tab fields (for example homeUrl).
@@ -1027,6 +1035,7 @@ export const {
   openInheritedBrowserTab,
   openPageTab,
   closeTab,
+  setBrowserSettingsPanelOpen,
   updateBrowserNavigation,
   setBrowserScripts,
   setBrowserPreRequestScripts,

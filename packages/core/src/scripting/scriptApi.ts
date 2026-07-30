@@ -984,6 +984,9 @@ export function createScriptApi(
       },
       get workflowActionIteration() {
         return info.workflowActionIteration;
+      },
+      get livepageId() {
+        return info.livepageId;
       }
     },
     request: {

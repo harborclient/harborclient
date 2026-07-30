@@ -5,7 +5,7 @@ import type { Website } from '@harborclient/core/types';
 import type { AppDispatch } from '#/renderer/src/store/redux';
 import tabsReducer, { type TabsState } from '#/renderer/src/store/slices/tabsSlice';
 import websitesReducer, { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
-import { isBrowserTab, isPageTab } from '#/renderer/src/store/tabs';
+import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { openWebsiteSettings, websiteNameFromTab } from './websites';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
@@ -80,7 +80,7 @@ describe('websiteNameFromTab', () => {
 });
 
 describe('openWebsiteSettings', () => {
-  it('opens the website browser tab and its browser-settings page', async () => {
+  it('opens the website browser tab with the settings panel open', async () => {
     const { dispatch, getTabs } = createTestStore();
     dispatch(setWebsites([sampleWebsite()]));
 
@@ -93,19 +93,7 @@ describe('openWebsiteSettings', () => {
       throw new Error('expected browser tab');
     }
 
-    const settingsTab = tabs.find(
-      (tab) =>
-        isPageTab(tab) &&
-        tab.page.type === 'browser-settings' &&
-        tab.page.browserTabId === browserTab.tabId
-    );
-    expect(settingsTab).toBeDefined();
-    expect(activeTabId).toBe(settingsTab?.tabId);
-    expect(
-      settingsTab &&
-        isPageTab(settingsTab) &&
-        settingsTab.page.type === 'browser-settings' &&
-        settingsTab.page.label
-    ).toBe('Live Page Settings');
+    expect(activeTabId).toBe(browserTab.tabId);
+    expect(browserTab.settingsPanelOpen).toBe(true);
   });
 });

@@ -45,6 +45,25 @@ describe('resolveShortcuts', () => {
     expect(save?.accelerator).toBe('CmdOrCtrl+Alt+S');
   });
 
+  it('includes default bindings for File menu new-item shortcuts', () => {
+    const bindings = resolveShortcuts({});
+    expect(bindings.find((binding) => binding.id === 'new-request')?.accelerator).toBe(
+      'CmdOrCtrl+N'
+    );
+    expect(bindings.find((binding) => binding.id === 'new-collection')?.accelerator).toBe(
+      'CmdOrCtrl+Shift+N'
+    );
+    expect(bindings.find((binding) => binding.id === 'new-browser')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+N'
+    );
+    expect(bindings.find((binding) => binding.id === 'new-environment')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+E'
+    );
+    expect(bindings.find((binding) => binding.id === 'create-workspace')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+W'
+    );
+  });
+
   it('includes default bindings for team shortcuts', () => {
     const bindings = resolveShortcuts({});
     expect(bindings.find((binding) => binding.id === 'sync')?.accelerator).toBe(
@@ -114,6 +133,23 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'git-settings')?.accelerator).toBe(
       'CmdOrCtrl+Alt+G'
     );
+  });
+
+  it('includes default bindings for Live Page navigation shortcuts', () => {
+    const bindings = resolveShortcuts({});
+    expect(bindings.find((binding) => binding.id === 'browser-reload')?.accelerator).toBe(
+      'CmdOrCtrl+R'
+    );
+    expect(bindings.find((binding) => binding.id === 'browser-go-back')?.accelerator).toBe(
+      'Alt+Left'
+    );
+    expect(bindings.find((binding) => binding.id === 'browser-go-forward')?.accelerator).toBe(
+      'Alt+Right'
+    );
+    expect(bindings.find((binding) => binding.id === 'focus-browser-address')?.accelerator).toBe(
+      'CmdOrCtrl+L'
+    );
+    expect(validateShortcutOverrides({}).valid).toBe(true);
   });
 
   it('includes default bindings for request shortcuts', () => {
@@ -418,5 +454,28 @@ describe('acceleratorMatchesChord', () => {
 
     expect(acceleratorMatchesChord('Alt+Shift+P', altShiftP)).toBe(true);
     expect(acceleratorMatchesChord('Alt+Shift+P', { ...altShiftP, key: 'P' })).toBe(true);
+  });
+
+  it('matches Live Page navigation arrow chords', () => {
+    const altLeft: KeyChord = {
+      key: 'ArrowLeft',
+      code: 'ArrowLeft',
+      control: false,
+      meta: false,
+      alt: true,
+      shift: false
+    };
+    const altRight: KeyChord = {
+      key: 'ArrowRight',
+      code: 'ArrowRight',
+      control: false,
+      meta: false,
+      alt: true,
+      shift: false
+    };
+
+    expect(acceleratorMatchesChord('Alt+Left', altLeft)).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Right', altRight)).toBe(true);
+    expect(acceleratorMatchesChord('Alt+Left', altRight)).toBe(false);
   });
 });

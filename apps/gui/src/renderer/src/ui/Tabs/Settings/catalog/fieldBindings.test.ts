@@ -40,6 +40,7 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
   'general.maxResponseSizeMb',
   'general.verifySsl',
   'general.followRedirects',
+  'general.startWebpageUrl',
   'general.userAgent',
   'general.scrollbarAutoHide',
   'general.wrapTabs',
@@ -118,7 +119,7 @@ function createDraftDispatch(draft: {
 
 describe('SETTING_FIELD_BINDINGS', () => {
   it('registers a binding for every SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(34);
+    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(35);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
       [...SETTINGS_FIELD_REGISTRY_IDS].sort()
     );

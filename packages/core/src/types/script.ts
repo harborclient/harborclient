@@ -193,6 +193,11 @@ export interface ScriptRunInfo {
    * 0-based index of the workflow action currently executing, or -1 when not in a workflow.
    */
   workflowActionIteration: number;
+
+  /**
+   * UUID of the live page (website) for this script run, or empty when not a live page.
+   */
+  livepageId: string;
 }
 
 /**
@@ -221,6 +226,7 @@ export function buildScriptRunInfo(
     workflowId?: string;
     workflowActionId?: string;
     workflowActionIteration?: number;
+    livepageId?: string | null;
   } = {}
 ): ScriptRunInfo {
   const requestName = typeof options.requestName === 'string' ? options.requestName.trim() : '';
@@ -243,6 +249,7 @@ export function buildScriptRunInfo(
     options.workflowActionIteration >= 0
       ? Math.floor(options.workflowActionIteration)
       : -1;
+  const livepageId = typeof options.livepageId === 'string' ? options.livepageId.trim() : '';
 
   return {
     eventName: scriptEventNameFromPhase(phase),
@@ -251,7 +258,8 @@ export function buildScriptRunInfo(
     iteration,
     workflowId,
     workflowActionId,
-    workflowActionIteration
+    workflowActionIteration,
+    livepageId
   };
 }
 

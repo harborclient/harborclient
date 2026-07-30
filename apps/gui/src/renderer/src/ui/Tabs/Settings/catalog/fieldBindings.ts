@@ -3,7 +3,7 @@
  *
  * ## Supported draft field ids (`SETTING_FIELD_BINDINGS`)
  *
- * All 32 ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, AI API keys):
+ * All 33 ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, AI API keys):
  * `general.*`, `proxy.*`, `syntax.*`, `ai.openaiApiKey`, `ai.claudeApiKey`,
  * `ai.geminiApiKey`. Values read/write `settingsDraft`.
  *
@@ -411,6 +411,7 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
   'general.maxResponseSizeMb': createGeneralBinding('maxResponseSizeMb'),
   'general.verifySsl': createGeneralBinding('verifySsl'),
   'general.followRedirects': createGeneralBinding('followRedirects'),
+  'general.startWebpageUrl': createGeneralBinding('startWebpageUrl'),
   'general.userAgent': userAgentBinding,
   'general.scrollbarAutoHide': createGeneralBinding('scrollbarAutoHide'),
   'general.wrapTabs': createGeneralBinding('wrapTabs'),

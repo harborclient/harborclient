@@ -347,6 +347,12 @@ export interface GeneralSettings {
   followRedirects: boolean;
 
   /**
+   * URL loaded when a new Live Page is opened with no explicit address.
+   * Also used as the Home button target for that new tab. Defaults to about:blank.
+   */
+  startWebpageUrl: string;
+
+  /**
    * Default User-Agent header for outbound HTTP when no scoped override or
    * key/value User-Agent header is set.
    */

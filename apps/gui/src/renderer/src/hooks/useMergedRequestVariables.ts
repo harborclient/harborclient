@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Variable } from '@harborclient/core/types';
 import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { useAppSelector } from '#/renderer/src/store/hooks';
+import type { RootState } from '#/renderer/src/store/redux';
 import {
   selectActiveEnvironmentId,
   selectCollections,
@@ -46,6 +47,57 @@ export function mergeRequestVariables(
     if (key) map.set(key, variable);
   }
   return Array.from(map.values());
+}
+
+/**
+ * Builds the active collection/environment variable list from Redux state.
+ *
+ * Matches the RequestEditor merge used for browser address-bar and live-page script seeding
+ * (selected collection, optional folder, active environment with inheritance).
+ *
+ * @param state - Root Redux state.
+ * @param collectionId - Optional collection id override (defaults to selected collection).
+ * @param folderId - Optional folder id; when omitted, folder variables are skipped.
+ * @returns Merged variable rows for runtime substitution.
+ */
+export function getActiveBaseVariables(
+  state: RootState,
+  collectionId?: number | null,
+  folderId?: number | null
+): Variable[] {
+  const resolvedCollectionId =
+    collectionId !== undefined ? collectionId : state.collections.selectedCollectionId;
+  const collection =
+    resolvedCollectionId != null
+      ? state.collections.collections.find((entry) => entry.id === resolvedCollectionId)
+      : undefined;
+  const folder =
+    resolvedCollectionId != null && folderId != null
+      ? (state.collections.foldersByCollection[resolvedCollectionId] ?? []).find(
+          (entry) => entry.id === folderId
+        )
+      : undefined;
+  const activeEnvironmentId = state.environments.activeEnvironmentId;
+  const environment =
+    activeEnvironmentId != null
+      ? state.environments.environments.find((entry) => entry.id === activeEnvironmentId)
+      : undefined;
+
+  let envVars: Variable[] = [];
+  if (environment) {
+    try {
+      envVars = resolveInheritedEnvironmentVariables(environment, state.environments.environments);
+    } catch {
+      envVars = environment.variables.filter((variable) => variable.enabled !== false);
+    }
+  }
+
+  return mergeRequestVariables(
+    state.settings.general.globalVariables,
+    collection?.variables ?? [],
+    folder?.variables ?? [],
+    envVars
+  );
 }
 
 /**

@@ -246,10 +246,17 @@ export function AnchorMenuPanel({
   }, [anchor]);
 
   /**
-   * Focuses the first enabled item after mount.
+   * Focuses the first enabled item after mount, or the panel itself when the
+   * menu only contains disabled placeholders (empty-state rows).
    */
   useEffect(() => {
+    if (flatItems.length === 0) {
+      return;
+    }
     if (!hasEnabledItems) {
+      requestAnimationFrame(() => {
+        panelRef.current?.focus();
+      });
       return;
     }
     const edgeIndex = findEdgeEnabledIndex(flatItems, false);
@@ -332,10 +339,12 @@ export function AnchorMenuPanel({
    * @param event - Keyboard event from the menu panel.
    */
   const handleMenuKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (!hasEnabledItems) return;
-
     if (event.key === 'Tab') {
       dismiss();
+      return;
+    }
+
+    if (!hasEnabledItems) {
       return;
     }
 
@@ -403,7 +412,7 @@ export function AnchorMenuPanel({
     }
   };
 
-  if (!hasEnabledItems) {
+  if (flatItems.length === 0) {
     return null;
   }
 
@@ -416,6 +425,7 @@ export function AnchorMenuPanel({
       ref={panelRef}
       id={menuElementId}
       role="menu"
+      tabIndex={hasEnabledItems ? undefined : -1}
       className={cn(
         'hc-anchor-menu-panel hc-row-actions-menu-panel app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md',
         className

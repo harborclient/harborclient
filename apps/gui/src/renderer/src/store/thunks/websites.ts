@@ -4,20 +4,22 @@ import { buildWebsiteExport } from '@harborclient/core/types/website';
 import type { KeyValue, ScriptRef, Snippet, Variable } from '@harborclient/core/types';
 import type { AuthConfig } from '@harborclient/core/auth';
 import type { BrowserInjectionScript } from '#/browser/browserScripts';
-import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
 import {
   bindBrowserTabToWebsite,
+  newBrowserTab,
   openBrowserTabFromWebsite,
-  openPageTab,
   saveBrowserScripts,
+  setBrowserSettingsPanelOpen,
   updateBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab, hasBrowserPendingSave } from '#/renderer/src/store/tabs';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
+import { getActiveBaseVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 
 /**
  * Pushes the browser tab's current scripts and request defaults to the main-process guest.
@@ -25,6 +27,7 @@ import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/brows
  * @param tabId - Browser tab id.
  * @param tab - Browser tab state with draft scripts/defaults to apply.
  * @param snippets - Snippet library for resolving hc.* script sources.
+ * @param baseVariables - Active collection/environment variables for script seeding.
  */
 async function pushBrowserTabScriptsToGuest(
   tabId: string,
@@ -35,20 +38,57 @@ async function pushBrowserTabScriptsToGuest(
     post_request_scripts: ScriptRef[];
     savedPreRequestScripts: ScriptRef[];
     savedPostRequestScripts: ScriptRef[];
-    headers: import('@harborclient/core/types').KeyValue[];
-    savedHeaders: import('@harborclient/core/types').KeyValue[];
-    auth: import('@harborclient/core/auth').AuthConfig;
-    savedAuth: import('@harborclient/core/auth').AuthConfig;
+    headers: KeyValue[];
+    savedHeaders: KeyValue[];
+    auth: AuthConfig;
+    savedAuth: AuthConfig;
     userAgent: string;
     savedUserAgent: string;
+    variables: Variable[];
+    savedVariables: Variable[];
+    websiteUuid?: string | null;
   },
-  snippets: Snippet[]
+  snippets: Snippet[],
+  baseVariables: Variable[]
 ): Promise<void> {
   await window.api.browserSetScripts(
     tabId,
     tab.scripts,
-    buildBrowserHcScriptsPayload(tab, snippets, false)
+    buildBrowserHcScriptsPayload(tab, snippets, baseVariables, false)
   );
+}
+
+/**
+ * Opens a new Live Page using the Start webpage general setting for url and home.
+ *
+ * Falls back to about:blank when the setting is empty.
+ *
+ * @returns Thunk that reads settings and dispatches {@link newBrowserTab}.
+ */
+export function openNewBrowserTab(): (dispatch: AppDispatch, getState: () => RootState) => void {
+  return (dispatch, getState) => {
+    const startWebpageUrl = getState().settings.general.startWebpageUrl || 'about:blank';
+    dispatch(newBrowserTab({ url: startWebpageUrl, homeUrl: startWebpageUrl }));
+  };
+}
+
+/**
+ * Derives a display name for a website from the browser tab title or URL.
+ *
+ * Prefers an unsaved settings rename when present; otherwise uses the live document
+ * title so Update live page can adopt the current page title.
+ *
+ * @param tab - Browser tab being saved or updated.
+ * @returns Non-empty display name for the website entity.
+ */
+export function websiteNameFromBrowserTab(tab: {
+  settingsName: string;
+  savedTitle: string;
+  title: string;
+  url: string;
+}): string {
+  const nameSource = tab.settingsName !== tab.savedTitle ? tab.settingsName : tab.title;
+  return websiteNameFromTab(nameSource, tab.url);
 }
 
 /**
@@ -103,7 +143,7 @@ export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiCo
 
     try {
       const uuid = crypto.randomUUID();
-      const name = websiteNameFromTab(tab.title, tab.url);
+      const name = websiteNameFromBrowserTab(tab);
       const items = await window.api.createWebsite({
         uuid,
         name,
@@ -132,7 +172,12 @@ export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiCo
       );
       const snippets = selectSnippets(getState());
       try {
-        await pushBrowserTabScriptsToGuest(tabId, tab, snippets);
+        await pushBrowserTabScriptsToGuest(
+          tabId,
+          tab,
+          snippets,
+          getActiveBaseVariables(getState())
+        );
       } catch {
         // Guest may not exist yet for a background/unmounted tab.
       }
@@ -157,7 +202,7 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
     }
 
     try {
-      const name = websiteNameFromTab(tab.title, tab.url);
+      const name = websiteNameFromBrowserTab(tab);
       const items = await window.api.updateWebsite({
         id: tab.websiteId,
         name,
@@ -183,7 +228,12 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
       );
       const snippets = selectSnippets(getState());
       try {
-        await pushBrowserTabScriptsToGuest(tabId, tab, snippets);
+        await pushBrowserTabScriptsToGuest(
+          tabId,
+          tab,
+          snippets,
+          getActiveBaseVariables(getState())
+        );
       } catch {
         // Guest may not exist yet for a background/unmounted tab.
       }
@@ -249,10 +299,10 @@ export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
- * Opens a saved website and shows its browser/webpage settings page.
+ * Opens a saved website and shows its live page settings panel.
  *
- * Ensures a linked browser tab exists first, then opens the settings page for
- * that tab so injection and hc.* scripts can be edited.
+ * Ensures a linked browser tab exists first, then opens the settings panel under
+ * that tab's address bar so injection and hc.* scripts can be edited.
  *
  * @param id - Saved website id.
  */
@@ -264,13 +314,7 @@ export const openWebsiteSettings = createAsyncThunk<void, number, ThunkApiConfig
     if (!tab || !isBrowserTab(tab)) {
       return;
     }
-    dispatch(
-      openPageTab({
-        type: 'browser-settings',
-        browserTabId: tab.tabId,
-        label: 'Live Page Settings'
-      })
-    );
+    dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: true }));
   }
 );
 
@@ -345,6 +389,7 @@ export const saveLivePageSettings = createAsyncThunk<
     updateBrowserTab({
       tabId: input.tabId,
       updates: {
+        settingsName: input.name,
         title: input.name,
         variables: input.variables,
         headers: input.headers,
@@ -365,7 +410,12 @@ export const saveLivePageSettings = createAsyncThunk<
 
   const snippets = selectSnippets(getState());
   try {
-    await pushBrowserTabScriptsToGuest(input.tabId, updated, snippets);
+    await pushBrowserTabScriptsToGuest(
+      input.tabId,
+      updated,
+      snippets,
+      getActiveBaseVariables(getState())
+    );
   } catch {
     // Guest may not exist yet for a background/unmounted tab.
   }

@@ -27,11 +27,15 @@ import type { ApiBrowser } from './browser';
 
 export type {
   ApiBrowser,
+  BrowserConsoleEntryPayload,
+  BrowserDownloadEntry,
+  BrowserDownloadsChangedPayload,
   BrowserHcScriptSourcePayload,
   BrowserHcScriptsPayload,
   BrowserInjectionScriptPayload,
   BrowserNavigationState,
   BrowserOpenTabRequest,
+  BrowserSecurityState,
   BrowserRequestDefaultsPayload,
   BrowserScriptRunAt,
   BrowserViewBounds

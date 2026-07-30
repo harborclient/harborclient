@@ -87,6 +87,7 @@ import {
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
 import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
+import { useBrowserGuestFooterCover } from '#/renderer/src/ui/Footer/useBrowserGuestFooterCover';
 import { WorkflowPanel } from '#/renderer/src/ui/Footer/WorkflowPanel';
 import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
@@ -152,6 +153,7 @@ export default function App(): JSX.Element {
   useDeepLinks();
   usePersistedPanelLayout();
   useBeforeClose();
+  useBrowserGuestFooterCover();
 
   /**
    * Loads folders and requests when a collection tree is expanded in the sidebar,

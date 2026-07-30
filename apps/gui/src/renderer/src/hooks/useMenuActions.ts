@@ -50,6 +50,7 @@ import {
   sendRequest,
   showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
+import { openNewBrowserTab } from '#/renderer/src/store/thunks/websites';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import { isRequestTab } from '#/renderer/src/store/tabs';
@@ -57,6 +58,7 @@ import { restoreLastFocusWithoutRing, useLastFocusedElement } from './useLastFoc
 import { focusSkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/focusSidebarSearch';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
+import { runBrowserNavMenuAction } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/runBrowserNavMenuAction';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
 import { focusResponseEditor } from '#/renderer/src/ui/Main/ResponseEditor/focusResponseEditor';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -197,7 +199,7 @@ export function useMenuActions(): void {
           dispatchNewRequest(dispatch);
           break;
         case 'new-browser':
-          dispatch(newBrowserTab());
+          dispatch(openNewBrowserTab());
           break;
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));
@@ -245,6 +247,14 @@ export function useMenuActions(): void {
         case 'getting-started':
           dispatch(openPageTab({ type: 'getting-started' }));
           break;
+        case 'documentation':
+          dispatch(
+            newBrowserTab({
+              url: 'https://harborclient.com/getting-started',
+              homeUrl: 'https://harborclient.com/getting-started'
+            })
+          );
+          break;
         case 'join-shared-collection':
           dispatch(openCollectionModal({ mode: 'create', tab: 'join' }));
           break;
@@ -268,6 +278,12 @@ export function useMenuActions(): void {
           break;
         case 'focus-request-url':
           focusRequestUrl(dispatch);
+          break;
+        case 'browser-reload':
+        case 'browser-go-back':
+        case 'browser-go-forward':
+        case 'focus-browser-address':
+          runBrowserNavMenuAction(action, store.getState);
           break;
         case 'focus-first-request-tab':
           focusFirstRequestTab(dispatch, store.getState);

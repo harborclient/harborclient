@@ -1,5 +1,6 @@
 import type {
   BodyType,
+  BrowserSecurityState,
   CollectionDocument,
   HttpMethod,
   KeyValue,
@@ -355,17 +356,6 @@ export type PageRef =
         | { kind: 'path'; path: string }
         | { kind: 'url'; url: string }
         | { kind: 'data'; dataUrl: string };
-    }
-  | {
-      type: 'browser-settings';
-      /**
-       * Browser tab whose injection scripts this settings page edits.
-       */
-      browserTabId: string;
-      /**
-       * Tab bar title for the settings page.
-       */
-      label: string;
     };
 
 /**
@@ -548,6 +538,11 @@ export interface BrowserTab {
   faviconDataUrl: string | null;
 
   /**
+   * Address-bar TLS indicator from the guest (not persisted).
+   */
+  securityState: BrowserSecurityState;
+
+  /**
    * Linked saved website database id when this tab was opened from or saved as a Website.
    */
   websiteId: number | null;
@@ -576,6 +571,20 @@ export interface BrowserTab {
    * Last-saved favicon baseline for dirty comparison when linked to a website.
    */
   savedFaviconDataUrl: string | null;
+
+  /**
+   * When true, the live page settings panel is open under the address bar chrome.
+   */
+  settingsPanelOpen: boolean;
+
+  /**
+   * Draft live page display name from settings (independent of the document title).
+   *
+   * Browsing updates {@link title} for the tab bar; renaming in live page settings
+   * updates this field so unsaved name edits survive remounts without ambering on
+   * ordinary page-title drift.
+   */
+  settingsName: string;
 }
 
 /**
@@ -939,6 +948,11 @@ export interface CreateBrowserTabInit {
    * Last-saved favicon baseline when linked to a website.
    */
   savedFaviconDataUrl?: string | null;
+
+  /**
+   * Draft live page display name from settings.
+   */
+  settingsName?: string;
 }
 
 /**
@@ -1091,13 +1105,16 @@ export function createBrowserTab(init?: CreateBrowserTabInit): BrowserTab {
     canGoBack: false,
     canGoForward: false,
     faviconDataUrl,
+    securityState: 'unknown',
     websiteId: init?.websiteId ?? null,
     websiteUuid: init?.websiteUuid ?? null,
     savedUrl: init?.savedUrl ?? url,
     savedHomeUrl: init?.savedHomeUrl ?? homeUrl,
     savedTitle: init?.savedTitle ?? title,
     savedFaviconDataUrl:
-      init?.savedFaviconDataUrl !== undefined ? init.savedFaviconDataUrl : faviconDataUrl
+      init?.savedFaviconDataUrl !== undefined ? init.savedFaviconDataUrl : faviconDataUrl,
+    settingsPanelOpen: false,
+    settingsName: init?.settingsName ?? init?.savedTitle ?? title
   };
 }
 
@@ -1120,43 +1137,56 @@ export function areBrowserWebsiteFieldsDirty(tab: BrowserTab): boolean {
 }
 
 /**
- * Returns whether a browser tab has website or script changes worth persisting.
+ * Returns whether live page settings drafts differ from their last-saved baselines.
  *
- * Used by Update website / browser settings affordances. Browser tabs never
- * participate in editor unsaved state ({@link isTabDirty}); browsing and
- * script drafts must not amber the tab or prompt on close.
+ * Covers the settings name, injection / hc.* scripts, variables, headers, user-agent,
+ * and auth. Excludes URL / document-title / favicon drift from browsing so navigation
+ * does not amber the tab — use {@link hasBrowserPendingSave} for Update live page.
  *
- * @param tab - Browser tab to compare against its last-saved baselines.
- * @returns True when scripts or linked website fields differ from the last save.
+ * @param tab - Browser tab to compare against its last-saved settings baselines.
+ * @returns True when settings drafts differ from the last save.
  */
-export function hasBrowserPendingSave(tab: BrowserTab): boolean {
+export function areBrowserSettingsDirty(tab: BrowserTab): boolean {
   return (
+    tab.settingsName !== tab.savedTitle ||
     areBrowserScriptsDirty(tab.scripts, tab.savedScripts) ||
     areBrowserHcScriptsDirty(tab.pre_request_scripts, tab.savedPreRequestScripts) ||
     areBrowserHcScriptsDirty(tab.post_request_scripts, tab.savedPostRequestScripts) ||
     serializeBrowserVariables(tab.variables) !== serializeBrowserVariables(tab.savedVariables) ||
     serializeBrowserHeaders(tab.headers) !== serializeBrowserHeaders(tab.savedHeaders) ||
     tab.userAgent.trim() !== tab.savedUserAgent.trim() ||
-    JSON.stringify(normalizeAuth(tab.auth)) !== JSON.stringify(normalizeAuth(tab.savedAuth)) ||
-    areBrowserWebsiteFieldsDirty(tab)
+    JSON.stringify(normalizeAuth(tab.auth)) !== JSON.stringify(normalizeAuth(tab.savedAuth))
   );
+}
+
+/**
+ * Returns whether a browser tab has website or script changes worth persisting.
+ *
+ * Used by Update website / browser settings affordances. Includes linked website
+ * navigation field drift (url, home, title, favicon) in addition to settings drafts.
+ *
+ * @param tab - Browser tab to compare against its last-saved baselines.
+ * @returns True when scripts, settings, or linked website fields differ from the last save.
+ */
+export function hasBrowserPendingSave(tab: BrowserTab): boolean {
+  return areBrowserSettingsDirty(tab) || areBrowserWebsiteFieldsDirty(tab);
 }
 
 /**
  * Returns whether a tab has unsaved changes for editor chrome and close/quit prompts.
  *
- * Browser tabs always return false — webpage sessions have no editor unsaved state.
- * Use {@link hasBrowserPendingSave} for Update website / settings save affordances.
+ * Browser tabs are dirty when live page settings drafts diverge (not when only
+ * browsing updates url/title). Use {@link hasBrowserPendingSave} for Update live page.
  *
  * @param tab - Open tab from the tab bar.
- * @returns True when a request or markdown tab differs from its saved baseline.
+ * @returns True when a request, markdown, or browser settings tab differs from its saved baseline.
  */
 export function isTabDirty(tab: Tab): boolean {
   if (isMarkdownTab(tab)) {
     return tab.content !== tab.savedContent;
   }
   if (isBrowserTab(tab)) {
-    return false;
+    return areBrowserSettingsDirty(tab);
   }
   if (!isRequestTab(tab)) {
     return false;
@@ -1266,7 +1296,7 @@ export function getDirtyTabs(tabs: Tab[]): RequestTab[] {
 }
 
 /**
- * Returns display names for open request and markdown tabs with unsaved changes.
+ * Returns display names for open request, markdown, and browser tabs with unsaved changes.
  *
  * @param tabs - Open tabs from the tab bar.
  * @returns Tab labels suitable for quit and bulk-close prompts.
@@ -1279,6 +1309,10 @@ export function getDirtyEditorTabNames(tabs: Tab[]): string[] {
     }
     if (isMarkdownTab(tab)) {
       names.push(tab.name);
+      continue;
+    }
+    if (isBrowserTab(tab)) {
+      names.push(tab.title || 'Browser');
       continue;
     }
     if (isRequestTab(tab)) {

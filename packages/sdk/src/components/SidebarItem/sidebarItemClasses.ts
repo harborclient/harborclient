@@ -8,7 +8,7 @@ import { statusDotVariantClass } from '../StatusDot/index.js';
 /**
  * Tailwind classes for a sidebar source row (collection, folder, request, etc.).
  * Uses left padding only so trailing hamburger menus align with section header
- * Add/Erase actions (which sit at the sidebar body's `pr-2` inset).
+ * Add/Erase actions (which sit at the sidebar body's `pr-2.5` inset).
  *
  * @param selected - Whether this row is the active selection.
  * @param compact - When true, uses tighter vertical padding for top-level list rows.
