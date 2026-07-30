@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.3.9 - 2026-07-30
+
 - Implement "Copy to chat" feature in browser context menu. (`617b273f`)
 - Enhance browser functionality and introduce webpage scripting support. (`e4be8c89`)
 
