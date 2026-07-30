@@ -13,6 +13,7 @@ const DEFAULT_SECTION_SORT = {
   workspaces: 'default',
   workflows: 'default',
   websites: 'default',
+  liveServers: 'default',
   archive: 'default',
   trash: 'default'
 } as const;
@@ -29,6 +30,7 @@ describe('serializeSidebarExpansion', () => {
           workspaces: true,
           workflows: true,
           websites: true,
+          liveServers: true,
           archive: true,
           trash: true
         },
@@ -58,6 +60,7 @@ describe('serializeSidebarExpansion', () => {
         workspaces: true,
         workflows: true,
         websites: true,
+        liveServers: true,
         archive: true,
         trash: true
       },

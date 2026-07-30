@@ -7,6 +7,8 @@ const BUILTIN_SECTION_KEYS: readonly SidebarSectionKey[] = [
   'history',
   'workspaces',
   'workflows',
+  'websites',
+  'liveServers',
   'archive',
   'trash'
 ];

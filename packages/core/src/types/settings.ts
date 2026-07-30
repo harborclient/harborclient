@@ -16,13 +16,20 @@ export type SidebarSectionKey =
   | 'workspaces'
   | 'workflows'
   | 'websites'
+  | 'liveServers'
   | 'archive'
   | 'trash';
 
 /**
  * Activity-rail mode that selects which sidebar sections are shown together.
  */
-export type SidebarMode = 'collections' | 'environments' | 'workspaces' | 'workflows' | 'trash';
+export type SidebarMode =
+  | 'collections'
+  | 'environments'
+  | 'workspaces'
+  | 'workflows'
+  | 'servers'
+  | 'trash';
 
 /**
  * Persisted sort mode for a collections sidebar section.
@@ -79,6 +86,11 @@ export interface SidebarExpansionState {
      * Whether the Websites section body is visible.
      */
     websites: boolean;
+
+    /**
+     * Whether the saved Live Servers section body is visible.
+     */
+    liveServers: boolean;
 
     /**
      * Whether the Archive section body is visible.

@@ -16,6 +16,7 @@ import {
   faFolder,
   faGlobe,
   faLayerGroup,
+  faServer,
   faTrash
 } from '#/renderer/src/fontawesome';
 import {
@@ -30,7 +31,7 @@ import {
   selectActiveEnvironmentId,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionModal, openLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectActiveSidebarRailItemId,
   setActiveSidebarPanel,
@@ -50,6 +51,7 @@ import { RunResults, RunsHeaderActions } from '../RunResults';
 import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
 import { Workflows } from '../Workflows';
 import { Websites } from '../Websites';
+import { LiveServers } from '../LiveServers';
 import { Archive, ArchiveHeaderActions } from '../Archive';
 import { WorkflowArchive } from '../Archive/WorkflowArchive';
 import { WorkflowArchiveHeaderActions } from '../Archive/WorkflowArchiveHeaderActions';
@@ -73,6 +75,7 @@ const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
   { id: 'environments', icon: faGlobe, label: 'Environments' },
   { id: 'workspaces', icon: faLayerGroup, label: 'Workspaces' },
   { id: 'workflows', icon: faDiagramProject, label: 'Workflows' },
+  { id: 'servers', icon: faServer, label: 'Servers' },
   { id: 'trash', icon: faTrash, label: 'Trash' }
 ];
 
@@ -92,6 +95,7 @@ function isSidebarMode(value: string): value is SidebarMode {
     value === 'environments' ||
     value === 'workspaces' ||
     value === 'workflows' ||
+    value === 'servers' ||
     value === 'trash'
   );
 }
@@ -133,6 +137,7 @@ export function SidebarContent(): JSX.Element {
     workspacesSectionExpanded,
     workflowsSectionExpanded,
     websitesSectionExpanded,
+    liveServersSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     activeSidebarMode,
@@ -344,6 +349,18 @@ export function SidebarContent(): JSX.Element {
       };
     }
 
+    if (isSectionMounted('liveServers')) {
+      byKey.liveServers = {
+        key: 'liveServers',
+        title: 'Live Servers',
+        ariaLabel: 'Live servers',
+        initialEntered: liveServersSectionExpanded,
+        onAdd: () => dispatch(openLiveServerModal({ mode: 'create' })),
+        addLabel: 'New Live Server',
+        children: <LiveServers />
+      };
+    }
+
     if (isSectionMounted('archive')) {
       byKey.archive = {
         key: 'archive',
@@ -425,7 +442,8 @@ export function SidebarContent(): JSX.Element {
     trashSectionExpanded,
     workspacesSectionExpanded,
     workflowsSectionExpanded,
-    websitesSectionExpanded
+    websitesSectionExpanded,
+    liveServersSectionExpanded
   ]);
 
   const showPluginBody = activeRailItem != null || displayedPanel != null;

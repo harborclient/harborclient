@@ -52,6 +52,9 @@ import type {
   UpdateWorkflowInput,
   CreateWebsiteInput,
   UpdateWebsiteInput,
+  CreateLiveServerInput,
+  UpdateLiveServerInput,
+  StartLiveServerInput,
   CreateWorkspaceInput,
   McpClientServer,
   McpServerSettings
@@ -620,6 +623,15 @@ export const chatCompleteStepInput = z.object({
   agentVariant: z.enum(['commitMessage']).optional()
 }) satisfies z.ZodType<ChatStepInput>;
 
+const sidebarSortModeEnum = z.enum([
+  'default',
+  'name-asc',
+  'name-desc',
+  'created-asc',
+  'created-desc',
+  'marker'
+]);
+
 export const sidebarExpansion = z.object({
   sections: z.object({
     collections: z.boolean(),
@@ -629,56 +641,30 @@ export const sidebarExpansion = z.object({
     workspaces: z.boolean(),
     workflows: z.boolean(),
     websites: z.boolean(),
+    liveServers: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
-  activeSidebarMode: z.enum(['collections', 'environments', 'workspaces', 'workflows', 'trash']),
+  activeSidebarMode: z.enum([
+    'collections',
+    'environments',
+    'workspaces',
+    'workflows',
+    'servers',
+    'trash'
+  ]),
   sidebarRailExpanded: z.boolean(),
   sectionSort: z.object({
-    collections: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'marker'
-    ]),
-    environments: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'marker'
-    ]),
-    runResults: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'marker'
-    ]),
-    history: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
-    workspaces: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'marker'
-    ]),
-    workflows: z.enum([
-      'default',
-      'name-asc',
-      'name-desc',
-      'created-asc',
-      'created-desc',
-      'marker'
-    ]),
-    websites: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
-    archive: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker']),
-    trash: z.enum(['default', 'name-asc', 'name-desc', 'created-asc', 'created-desc', 'marker'])
+    collections: sidebarSortModeEnum,
+    environments: sidebarSortModeEnum,
+    runResults: sidebarSortModeEnum,
+    history: sidebarSortModeEnum,
+    workspaces: sidebarSortModeEnum,
+    workflows: sidebarSortModeEnum,
+    websites: sidebarSortModeEnum,
+    liveServers: sidebarSortModeEnum,
+    archive: sidebarSortModeEnum,
+    trash: sidebarSortModeEnum
   }),
   collectionIds: z.array(dbId),
   folderIds: z.array(dbId),
@@ -795,6 +781,85 @@ export const updateWebsiteInput = z.object({
   userAgent: z.string(),
   auth: authConfig
 }) satisfies z.ZodType<UpdateWebsiteInput>;
+
+/**
+ * One URL-path-to-filesystem alias for a live server.
+ */
+export const liveServerAlias = z.object({
+  path: z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => value.startsWith('/'), {
+      message: 'Alias path must start with /'
+    }),
+  target: z.string().trim().min(1)
+});
+
+/**
+ * CORS middleware settings for a live server.
+ */
+export const liveServerCorsSettings = z.object({
+  enabled: z.boolean(),
+  origin: z.string(),
+  methods: z.string(),
+  allowedHeaders: z.string(),
+  credentials: z.boolean()
+});
+
+/**
+ * Live server configuration used when starting or saving a server.
+ */
+export const liveServerConfig = z.object({
+  name: z.string().trim().min(1),
+  root: z.string().trim().min(1),
+  port: z.number().int().positive().max(65535).nullable(),
+  aliases: z.array(liveServerAlias),
+  watch: z.boolean(),
+  cors: liveServerCorsSettings
+});
+
+/**
+ * Input for starting a live server instance.
+ */
+export const startLiveServerInput = z.object({
+  id: z.string().trim().min(1).optional(),
+  savedId: z.number().int().positive().nullable().optional(),
+  config: liveServerConfig
+}) satisfies z.ZodType<StartLiveServerInput>;
+
+/**
+ * Input for creating a saved live server.
+ */
+export const createLiveServerInput = z.object({
+  name: z.string().trim().min(1),
+  root: z.string().trim().min(1),
+  port: z.number().int().positive().max(65535).nullable().optional(),
+  aliases: z.array(liveServerAlias).optional(),
+  watch: z.boolean().optional(),
+  cors: liveServerCorsSettings.optional()
+}) satisfies z.ZodType<CreateLiveServerInput>;
+
+/**
+ * Input for updating a saved live server.
+ */
+export const updateLiveServerInput = z.object({
+  id: z.number().int().positive(),
+  name: z.string().trim().min(1),
+  root: z.string().trim().min(1),
+  port: z.number().int().positive().max(65535).nullable(),
+  aliases: z.array(liveServerAlias),
+  watch: z.boolean(),
+  cors: liveServerCorsSettings
+}) satisfies z.ZodType<UpdateLiveServerInput>;
+
+/**
+ * Query for reading or clearing buffered live-server request logs.
+ */
+export const liveServerLogsQuery = z.union([
+  z.object({ savedId: z.number().int().positive() }),
+  z.object({ id: z.string().min(1) })
+]);
 
 /**
  * Workflow run export envelope stored inside workflow run history rows.
@@ -1508,6 +1573,12 @@ export const ipcArgSchemas = {
   websitesCreate: z.tuple([createWebsiteInput]),
   websitesUpdate: z.tuple([updateWebsiteInput]),
   websitesDelete: z.tuple([z.number().int().positive()]),
+  liveServerStart: z.tuple([startLiveServerInput]),
+  liveServerStop: z.tuple([z.string().min(1)]),
+  liveServerLogsQuery: z.tuple([liveServerLogsQuery]),
+  liveServersCreate: z.tuple([createLiveServerInput]),
+  liveServersUpdate: z.tuple([updateLiveServerInput]),
+  liveServersDelete: z.tuple([z.number().int().positive()]),
   workflowRunHistoryAdd: z.tuple([workflowRunHistoryAddInput]),
   workflowRunHistoryDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),

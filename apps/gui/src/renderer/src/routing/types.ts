@@ -70,6 +70,11 @@ export interface PageMetaContext {
    * Workflow display name when the page is workflow run results.
    */
   workflowName?: string;
+
+  /**
+   * Live server display name when the page is live-server logs.
+   */
+  liveServerName?: string;
 }
 
 /**

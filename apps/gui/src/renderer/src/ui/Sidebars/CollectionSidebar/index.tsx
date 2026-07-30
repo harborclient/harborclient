@@ -6,11 +6,12 @@ import { SidebarSectionFilterProvider } from './filter/SidebarSectionFilterProvi
 import { SidebarSelectionProvider } from './selection/SidebarSelectionProvider';
 import { SidebarSelectionMenuHost } from './selection/SidebarSelectionMenuHost';
 import { HostEntityContextMenuLayer } from '#/renderer/src/plugins/HostEntityContextMenuLayer';
+import { LiveServersHost } from './LiveServersHost';
 import { SidebarContent } from './shell/SidebarContent';
 
 /**
  * Left sidebar with an activity rail and mode-driven sections (collections,
- * environments, workspaces, workflows, trash). Mounts the sidebar context
+ * environments, workspaces, workflows, trash, servers). Mounts the sidebar context
  * providers (providers, search, section filters, and selection) so each section
  * can own its own data and actions. Folder/document rename modals live in
  * SidebarModalsProvider at the app layout level so the markdown editor tab can
@@ -25,6 +26,7 @@ export function CollectionSidebar(): JSX.Element {
             <SidebarSectionFilterProvider>
               <SidebarSelectionMenuHost />
               <HostEntityContextMenuLayer />
+              <LiveServersHost />
               <SidebarContent />
             </SidebarSectionFilterProvider>
           </SidebarSelectionProvider>

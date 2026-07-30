@@ -49,6 +49,7 @@ export function useSidebarAccordion(): Result {
     workspacesSectionExpanded,
     workflowsSectionExpanded,
     websitesSectionExpanded,
+    liveServersSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
@@ -58,6 +59,7 @@ export function useSidebarAccordion(): Result {
     setWorkspacesSectionExpanded,
     setWorkflowsSectionExpanded,
     setWebsitesSectionExpanded,
+    setLiveServersSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
     activeSidebarMode
@@ -66,7 +68,7 @@ export function useSidebarAccordion(): Result {
   /**
    * Writes accordion item state into the persisted sidebar expansion booleans.
    *
-   * @param key - Accordion item key (`collections`, `environments`, `runResults`, `history`, `archive`, `trash`, or a plugin section id).
+   * @param key - Accordion item key or a plugin section id.
    * @param isEnter - Whether the section body should be expanded.
    */
   const onToggle = useCallback(
@@ -106,6 +108,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'liveServers') {
+        setLiveServersSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       if (key === 'archive') {
         setArchiveSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
@@ -132,6 +139,7 @@ export function useSidebarAccordion(): Result {
       setWorkspacesSectionExpanded,
       setWorkflowsSectionExpanded,
       setWebsitesSectionExpanded,
+      setLiveServersSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
@@ -146,7 +154,7 @@ export function useSidebarAccordion(): Result {
   const expanded = useMemo((): Record<string, boolean> => {
     const desiredExpansion: Record<string, boolean> = {};
     const modeSections = SIDEBAR_MODE_SECTIONS[activeSidebarMode];
-    const sectionExpandedByKey = {
+    const sectionExpandedByKey: Record<SidebarSectionKey, boolean> = {
       collections: collectionsSectionExpanded,
       environments: environmentsSectionExpanded,
       runResults: runResultsSectionExpanded,
@@ -154,9 +162,10 @@ export function useSidebarAccordion(): Result {
       workspaces: workspacesSectionExpanded,
       workflows: workflowsSectionExpanded,
       websites: websitesSectionExpanded,
+      liveServers: liveServersSectionExpanded,
       archive: archiveSectionExpanded,
       trash: trashSectionExpanded
-    } as const;
+    };
 
     for (const key of modeSections) {
       desiredExpansion[key] = sectionExpandedByKey[key];
@@ -184,6 +193,7 @@ export function useSidebarAccordion(): Result {
     workspacesSectionExpanded,
     workflowsSectionExpanded,
     websitesSectionExpanded,
+    liveServersSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     pluginSectionExpanded,
@@ -209,6 +219,7 @@ export function useSidebarAccordion(): Result {
         workspaces: setWorkspacesSectionExpanded,
         workflows: setWorkflowsSectionExpanded,
         websites: setWebsitesSectionExpanded,
+        liveServers: setLiveServersSectionExpanded,
         archive: setArchiveSectionExpanded,
         trash: setTrashSectionExpanded
       };
@@ -229,6 +240,7 @@ export function useSidebarAccordion(): Result {
       setWorkspacesSectionExpanded,
       setWorkflowsSectionExpanded,
       setWebsitesSectionExpanded,
+      setLiveServersSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]

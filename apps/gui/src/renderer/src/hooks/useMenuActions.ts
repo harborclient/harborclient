@@ -7,6 +7,7 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
+  openLiveServerModal,
   openActionMenuModal,
   openSyncModal,
   openUpdateModal
@@ -200,6 +201,9 @@ export function useMenuActions(): void {
           break;
         case 'new-browser':
           dispatch(openNewBrowserTab());
+          break;
+        case 'new-live-server':
+          dispatch(openLiveServerModal({ mode: 'create' }));
           break;
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));

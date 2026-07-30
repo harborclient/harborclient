@@ -70,6 +70,7 @@ import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
 import { disposeMcpHost, getMcpToolBridge } from './mcp';
 import { getScriptWebpageBridge } from './scripting/scriptWebpageBridge';
 import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
+import { stopAllLiveServers } from '#/main/liveServer/liveServerHost';
 import {
   ensureHarborPluginProtocolForSession,
   registerHarborPluginProtocol,
@@ -1097,6 +1098,7 @@ app.on('before-quit', (event) => {
 app.on('will-quit', () => {
   disposeTray();
   killAllTerminals();
+  void stopAllLiveServers();
   disposeScriptRunner();
   disposePluginRunner();
   void disposeMcpHost();

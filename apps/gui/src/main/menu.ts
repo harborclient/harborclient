@@ -346,6 +346,10 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'new-browser')
         },
         {
+          label: 'New Live Server',
+          click: () => sendMenuAction(window, 'new-live-server')
+        },
+        {
           label: 'New Environment',
           accelerator: acceleratorFor(accelerators, 'new-environment'),
           click: () => sendMenuAction(window, 'new-environment')

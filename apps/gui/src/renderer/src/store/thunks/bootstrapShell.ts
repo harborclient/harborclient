@@ -17,6 +17,7 @@ import { refreshWorkflowRunHistory } from './workflowRunHistory';
 import { refreshWorkspaces } from './workspaces';
 import { refreshWorkflows } from './workflows';
 import { refreshWebsites } from './websites';
+import { refreshLiveServers, refreshRunningLiveServers } from './liveServers';
 import { refreshTrash } from './trash';
 import { refreshSnippets } from './snippets';
 import { hydrateOpenTabs } from './tabs';
@@ -103,5 +104,7 @@ export function startBackgroundRefresh(dispatch: AppDispatch): void {
   void dispatch(refreshWorkspaces());
   void dispatch(refreshWorkflows());
   void dispatch(refreshWebsites());
+  void dispatch(refreshLiveServers());
+  void dispatch(refreshRunningLiveServers());
   void dispatch(refreshTrash());
 }

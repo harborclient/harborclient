@@ -94,4 +94,19 @@ describe('pageTabMeta', () => {
 
     expect(meta.title).toBe('screenshot…night.png');
   });
+
+  it('uses the resolved live server name for live-server logs tabs', () => {
+    const meta = pageTabMeta(
+      { type: 'live-server-logs', savedId: 3 },
+      { liveServerName: 'Docs site' }
+    );
+
+    expect(meta.title).toBe('Logs: Docs site');
+  });
+
+  it('falls back when no live server name is resolved for logs tabs', () => {
+    const meta = pageTabMeta({ type: 'live-server-logs', savedId: 3 });
+
+    expect(meta.title).toBe('Live server logs');
+  });
 });

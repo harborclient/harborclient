@@ -67,6 +67,18 @@ export const selectAllWebsites = (state: RootState): RootState['websites']['item
   state.websites.items;
 
 /**
+ * Returns all saved live servers loaded in the store.
+ */
+export const selectSavedLiveServers = (state: RootState): RootState['liveServers']['saved'] =>
+  state.liveServers.saved;
+
+/**
+ * Returns currently running live server instances.
+ */
+export const selectRunningLiveServers = (state: RootState): RootState['liveServers']['running'] =>
+  state.liveServers.running;
+
+/**
  * Returns workflows marked archived (shown in the Archive sidebar under Workflows mode).
  */
 export const selectArchivedWorkflows = createSelector([selectAllWorkflows], (workflows) =>

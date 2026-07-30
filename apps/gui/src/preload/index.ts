@@ -105,9 +105,17 @@ import type {
   RequestHistoryEntry,
   CreateWorkflowInput,
   CreateWebsiteInput,
+  CreateLiveServerInput,
   CreateWorkspaceInput,
   UpdateWorkflowInput,
   UpdateWebsiteInput,
+  UpdateLiveServerInput,
+  StartLiveServerInput,
+  LiveServer,
+  LiveServerFileChangedEvent,
+  LiveServerLogsQuery,
+  LiveServerRequestLogEntry,
+  RunningLiveServer,
   Workflow,
   Website,
   WorkflowRunHistoryEntry,
@@ -568,6 +576,134 @@ function updateWebsite(input: UpdateWebsiteInput): Promise<Website[]> {
  */
 function deleteWebsite(id: number): Promise<Website[]> {
   return ipcRenderer.invoke('websites:delete', id);
+}
+
+/**
+ * Starts a live server instance via IPC.
+ *
+ * @param input - Runtime id (optional), saved id, and server config.
+ * @returns The running instance including assigned port and origin.
+ */
+function startLiveServer(input: StartLiveServerInput): Promise<RunningLiveServer> {
+  return ipcRenderer.invoke('liveServer:start', input);
+}
+
+/**
+ * Stops one running live server via IPC.
+ *
+ * @param id - Runtime instance id.
+ */
+function stopLiveServer(id: string): Promise<void> {
+  return ipcRenderer.invoke('liveServer:stop', id);
+}
+
+/**
+ * Lists currently running live server instances via IPC.
+ */
+function listRunningLiveServers(): Promise<RunningLiveServer[]> {
+  return ipcRenderer.invoke('liveServer:listRunning');
+}
+
+/**
+ * Lists saved live servers via IPC.
+ */
+function listLiveServers(): Promise<LiveServer[]> {
+  return ipcRenderer.invoke('liveServers:list');
+}
+
+/**
+ * Creates a saved live server and returns the refreshed list.
+ *
+ * @param input - Live server name, root, and options.
+ */
+function createLiveServer(input: CreateLiveServerInput): Promise<LiveServer[]> {
+  return ipcRenderer.invoke('liveServers:create', input);
+}
+
+/**
+ * Updates a saved live server and returns the refreshed list.
+ *
+ * @param input - Live server id and fields to persist.
+ */
+function updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer[]> {
+  return ipcRenderer.invoke('liveServers:update', input);
+}
+
+/**
+ * Deletes a saved live server and returns the refreshed list.
+ *
+ * @param id - Live server id.
+ */
+function deleteLiveServer(id: number): Promise<LiveServer[]> {
+  return ipcRenderer.invoke('liveServers:delete', id);
+}
+
+/**
+ * Returns buffered Express request logs for a running live server.
+ *
+ * @param query - Saved id or runtime instance id.
+ */
+function getLiveServerLogs(query: LiveServerLogsQuery): Promise<LiveServerRequestLogEntry[]> {
+  return ipcRenderer.invoke('liveServer:getLogs', query);
+}
+
+/**
+ * Clears the in-memory request log buffer for a running live server.
+ *
+ * @param query - Saved id or runtime instance id.
+ */
+function clearLiveServerLogs(query: LiveServerLogsQuery): Promise<void> {
+  return ipcRenderer.invoke('liveServer:clearLogs', query);
+}
+
+/**
+ * Subscribes to file-change notifications from watched live servers.
+ *
+ * @param callback - Handler invoked after a debounced change is detected.
+ * @returns Unsubscribe function.
+ */
+function onLiveServerFileChanged(
+  callback: (event: LiveServerFileChangedEvent) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: LiveServerFileChangedEvent
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('liveServer:file-changed', listener);
+  return () => ipcRenderer.removeListener('liveServer:file-changed', listener);
+}
+
+/**
+ * Subscribes to running-server list changes (start/stop).
+ *
+ * @param callback - Handler invoked with the refreshed running list.
+ * @returns Unsubscribe function.
+ */
+function onLiveServersChanged(callback: (running: RunningLiveServer[]) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, running: RunningLiveServer[]): void => {
+    callback(running);
+  };
+  ipcRenderer.on('liveServers:changed', listener);
+  return () => ipcRenderer.removeListener('liveServers:changed', listener);
+}
+
+/**
+ * Subscribes to Express request log lines from running live servers.
+ *
+ * @param callback - Handler invoked for each completed request.
+ * @returns Unsubscribe function.
+ */
+function onLiveServerRequestLog(callback: (entry: LiveServerRequestLogEntry) => void): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: LiveServerRequestLogEntry
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('liveServer:request-log', listener);
+  return () => ipcRenderer.removeListener('liveServer:request-log', listener);
 }
 
 /**
@@ -4643,6 +4779,18 @@ const api: Api = {
   createWebsite,
   updateWebsite,
   deleteWebsite,
+  startLiveServer,
+  stopLiveServer,
+  listRunningLiveServers,
+  listLiveServers,
+  createLiveServer,
+  updateLiveServer,
+  deleteLiveServer,
+  getLiveServerLogs,
+  clearLiveServerLogs,
+  onLiveServerFileChanged,
+  onLiveServersChanged,
+  onLiveServerRequestLog,
   listWorkflowRunHistory,
   addWorkflowRunHistory,
   clearWorkflowRunHistory,

@@ -21,6 +21,7 @@ import type { ApiWorkspaces } from './workspace';
 import type { ApiWorkflows } from './workflow';
 import type { ApiWorkflowRunHistory } from './workflowRunHistory';
 import type { ApiWebsites } from './website';
+import type { ApiLiveServer } from './liveServer';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
 import type { ApiBrowser } from './browser';
@@ -69,6 +70,7 @@ export interface Api
     ApiWorkflows,
     ApiWorkflowRunHistory,
     ApiWebsites,
+    ApiLiveServer,
     ApiTrash,
     ApiTerminal,
     ApiCustomThemes,

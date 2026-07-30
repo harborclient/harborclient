@@ -18,6 +18,7 @@ import { registerWorkspaceHandlers } from '#/main/ipc/handlers/workspaces';
 import { registerWorkflowHandlers } from '#/main/ipc/handlers/workflows';
 import { registerWorkflowRunHistoryHandlers } from '#/main/ipc/handlers/workflowRunHistory';
 import { registerWebsiteHandlers } from '#/main/ipc/handlers/websites';
+import { registerLiveServerHandlers } from '#/main/ipc/handlers/liveServers';
 import { registerRunResultHandlers } from '#/main/ipc/handlers/runResults';
 import { registerDocumentHandlers } from '#/main/ipc/handlers/documents';
 import { registerRequestHandlers } from '#/main/ipc/handlers/requests';
@@ -55,6 +56,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerWorkflowHandlers();
   registerWorkflowRunHistoryHandlers();
   registerWebsiteHandlers();
+  registerLiveServerHandlers();
   registerRequestHandlers(db);
   registerDocumentHandlers(db);
   registerNetworkHandlers(cookieJar);

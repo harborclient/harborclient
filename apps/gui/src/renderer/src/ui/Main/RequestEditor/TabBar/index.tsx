@@ -12,7 +12,8 @@ import {
   selectCollections,
   selectEnvironments,
   selectFoldersByCollection,
-  selectRequestsByCollection
+  selectRequestsByCollection,
+  selectSavedLiveServers
 } from '#/renderer/src/store/selectors';
 import { getRegisteredMainViews } from '#/renderer/src/plugins/registry';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
@@ -97,6 +98,7 @@ export function TabBar({
   const allEnvironments = useAppSelector(selectEnvironments);
   const workspaces = useAppSelector(selectWorkspaces);
   const workflows = useAppSelector(selectWorkflows);
+  const savedLiveServers = useAppSelector(selectSavedLiveServers);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
@@ -124,6 +126,7 @@ export function TabBar({
       let teamHubName: string | undefined;
       let runnerTargetName: string | undefined;
       let workflowName: string | undefined;
+      let liveServerName: string | undefined;
 
       if (page.type === 'collection') {
         collectionName = collections.find((collection) => collection.id === page.id)?.name;
@@ -153,6 +156,8 @@ export function TabBar({
         }
       } else if (page.type === 'workflow-run-results') {
         workflowName = workflows.find((workflow) => workflow.uuid === page.workflowUuid)?.name;
+      } else if (page.type === 'live-server-logs') {
+        liveServerName = savedLiveServers.find((server) => server.id === page.savedId)?.name;
       } else if (page.type === 'hosted-main-view') {
         const view = getRegisteredMainViews().find(
           (entry) => entry.pluginId === page.pluginId && entry.contributionId === page.viewId
@@ -174,7 +179,8 @@ export function TabBar({
           pluginIcon,
           teamHubName,
           runnerTargetName,
-          workflowName
+          workflowName,
+          liveServerName
         })
       );
     }
@@ -186,6 +192,7 @@ export function TabBar({
     allEnvironments,
     workspaces,
     workflows,
+    savedLiveServers,
     foldersByCollection,
     requestsByCollection,
     teamHubs

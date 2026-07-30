@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(live-server): introduce live server management features. (`8bfa8fe7`)
+
 ## 0.2.10 - 2026-07-30
 
 - Implement "Copy to chat" feature in browser context menu. (`617b273f`)

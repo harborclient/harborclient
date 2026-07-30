@@ -21,14 +21,19 @@ import type {
   ChatMessage,
   ChatRole,
   ChatSummary,
+  CreateLiveServerInput,
   CreateWebsiteInput,
   CreateWorkflowInput,
   CreateWorkspaceInput,
   Environment,
   KeyValue,
+  LiveServer,
+  LiveServerAlias,
+  LiveServerCorsSettings,
   RequestHistoryEntry,
   ScriptRef,
   Snippet,
+  UpdateLiveServerInput,
   UpdateWebsiteInput,
   Website,
   WebsiteInjectionScript,
@@ -39,7 +44,10 @@ import type {
   WorkspaceRequest,
   Variable
 } from '@harborclient/core/types';
-import { normalizeWorkflowDelayMs } from '@harborclient/core/types';
+import {
+  normalizeLiveServerCorsSettings,
+  normalizeWorkflowDelayMs
+} from '@harborclient/core/types';
 import {
   normalizeWorkspaceLayout,
   serializeWorkspaceLayout
@@ -61,6 +69,31 @@ const WORKSPACE_COLUMNS = 'id, name, created_at, updated_at, marker, layout';
 const WORKFLOW_COLUMNS =
   'id, uuid, name, payload, duration_ms, sort_order, created_at, updated_at, archived';
 const WEBSITE_COLUMNS = 'id, uuid, name, payload, sort_order, created_at, updated_at';
+const LIVE_SERVER_COLUMNS = 'id, uuid, name, payload, sort_order, created_at, updated_at';
+
+/**
+ * Stored JSON payload for a live server row.
+ */
+interface LiveServerPayloadJson {
+  root: string;
+  port: number | null;
+  aliases: LiveServerAlias[];
+  watch: boolean;
+  cors: LiveServerCorsSettings;
+}
+
+/**
+ * Returns an empty live-server payload used when stored JSON is corrupt.
+ */
+function emptyLiveServerPayload(): LiveServerPayloadJson {
+  return {
+    root: '',
+    port: null,
+    aliases: [],
+    watch: true,
+    cors: normalizeLiveServerCorsSettings(undefined)
+  };
+}
 
 /**
  * Stored JSON payload for a workflow row.
@@ -589,6 +622,16 @@ export class LocalDatabase {
         updated_at INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS live_servers (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid       TEXT    NOT NULL UNIQUE,
+        name       TEXT    NOT NULL,
+        payload    TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS workflow_run_history (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         workflow_uuid TEXT    NOT NULL,
@@ -631,6 +674,7 @@ export class LocalDatabase {
     this.migrateWorkflowsTable();
     this.migrateWorkflowsArchived();
     this.migrateWebsitesTable();
+    this.migrateLiveServersTable();
     this.migrateWorkflowRunHistoryTable();
     this.migrateTrashTable();
     this.migrateLegacyTabGroupTrashItems();
@@ -829,6 +873,23 @@ export class LocalDatabase {
   private migrateWebsitesTable(): void {
     this.getDb().exec(`
       CREATE TABLE IF NOT EXISTS websites (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid       TEXT    NOT NULL UNIQUE,
+        name       TEXT    NOT NULL,
+        payload    TEXT    NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+  }
+
+  /**
+   * Ensures the live_servers table exists on legacy databases.
+   */
+  private migrateLiveServersTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS live_servers (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         uuid       TEXT    NOT NULL UNIQUE,
         name       TEXT    NOT NULL,
@@ -3096,6 +3157,189 @@ export class LocalDatabase {
   deleteWebsite(id: number): Website[] {
     this.getDb().prepare('DELETE FROM websites WHERE id = ?').run(id);
     return this.listWebsites();
+  }
+
+  /**
+   * Parses a live-server payload JSON string from the registry database.
+   *
+   * @param raw - Serialized payload column.
+   * @returns Normalized live-server payload fields.
+   */
+  private parseLiveServerPayload(raw: string): LiveServerPayloadJson {
+    try {
+      const parsed = JSON.parse(raw) as Partial<LiveServerPayloadJson>;
+      const aliases = Array.isArray(parsed.aliases)
+        ? parsed.aliases.flatMap((alias): LiveServerAlias[] => {
+            if (!alias || typeof alias !== 'object') {
+              return [];
+            }
+            const candidate = alias as Partial<LiveServerAlias>;
+            if (typeof candidate.path !== 'string' || typeof candidate.target !== 'string') {
+              return [];
+            }
+            const path = candidate.path.trim();
+            const target = candidate.target.trim();
+            if (path === '' || target === '') {
+              return [];
+            }
+            return [{ path, target }];
+          })
+        : [];
+      const port =
+        typeof parsed.port === 'number' && Number.isInteger(parsed.port) && parsed.port > 0
+          ? parsed.port
+          : null;
+      return {
+        root: typeof parsed.root === 'string' ? parsed.root : '',
+        port,
+        aliases,
+        watch: parsed.watch !== false,
+        cors: normalizeLiveServerCorsSettings(parsed.cors)
+      };
+    } catch {
+      return emptyLiveServerPayload();
+    }
+  }
+
+  /**
+   * Loads all saved live servers from the local registry.
+   *
+   * @returns Live servers ordered by sort order then name.
+   */
+  listLiveServers(): LiveServer[] {
+    const rows = this.getDb()
+      .prepare(`SELECT ${LIVE_SERVER_COLUMNS} FROM live_servers ORDER BY sort_order ASC, name ASC`)
+      .all() as Array<{
+      id: number;
+      uuid: string;
+      name: string;
+      payload: string;
+      sort_order: number;
+      created_at: number;
+      updated_at: number;
+    }>;
+
+    return rows.map((row) => {
+      const payload = this.parseLiveServerPayload(row.payload);
+      return {
+        id: row.id,
+        uuid: row.uuid,
+        name: row.name,
+        root: payload.root,
+        port: payload.port,
+        aliases: payload.aliases,
+        watch: payload.watch,
+        cors: payload.cors,
+        sortOrder: row.sort_order,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    });
+  }
+
+  /**
+   * Returns the next sort order for a new live server.
+   *
+   * @returns Next sort order index.
+   */
+  private nextLiveServerSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next_order FROM live_servers')
+      .get() as { next_order: number };
+    return row.next_order;
+  }
+
+  /**
+   * Creates a saved live server and returns the refreshed list.
+   *
+   * @param input - Live server name, root, and options.
+   * @returns Updated live server list.
+   */
+  createLiveServer(input: CreateLiveServerInput): LiveServer[] {
+    const trimmedName = trimRequiredName(input.name, 'Live server name');
+    const root = input.root.trim();
+    if (!root) {
+      throw new Error('Root directory is required');
+    }
+    const now = Date.now();
+    const uuid = generateDocumentUuid();
+    const payload = JSON.stringify({
+      root,
+      port:
+        typeof input.port === 'number' && Number.isInteger(input.port) && input.port > 0
+          ? input.port
+          : null,
+      aliases: (input.aliases ?? [])
+        .map((alias) => ({
+          path: alias.path.trim(),
+          target: alias.target.trim()
+        }))
+        .filter((alias) => alias.path !== '' && alias.target !== ''),
+      watch: input.watch !== false,
+      cors: normalizeLiveServerCorsSettings(input.cors)
+    } satisfies LiveServerPayloadJson);
+
+    this.getDb()
+      .prepare(
+        `INSERT INTO live_servers (uuid, name, payload, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(uuid, trimmedName, payload, this.nextLiveServerSortOrder(), now, now);
+
+    return this.listLiveServers();
+  }
+
+  /**
+   * Updates a saved live server and returns the refreshed list.
+   *
+   * @param input - Live server id and fields to persist.
+   * @returns Updated live server list.
+   * @throws When the live server id does not exist.
+   */
+  updateLiveServer(input: UpdateLiveServerInput): LiveServer[] {
+    const existing = this.listLiveServers().find((server) => server.id === input.id);
+    if (!existing) {
+      throw new Error(`Live server not found: ${input.id}`);
+    }
+
+    const trimmedName = trimRequiredName(input.name, 'Live server name');
+    const root = input.root.trim();
+    if (!root) {
+      throw new Error('Root directory is required');
+    }
+    const now = Date.now();
+    const payload = JSON.stringify({
+      root,
+      port:
+        typeof input.port === 'number' && Number.isInteger(input.port) && input.port > 0
+          ? input.port
+          : null,
+      aliases: (input.aliases ?? [])
+        .map((alias) => ({
+          path: alias.path.trim(),
+          target: alias.target.trim()
+        }))
+        .filter((alias) => alias.path !== '' && alias.target !== ''),
+      watch: input.watch !== false,
+      cors: normalizeLiveServerCorsSettings(input.cors)
+    } satisfies LiveServerPayloadJson);
+
+    this.getDb()
+      .prepare(`UPDATE live_servers SET name = ?, payload = ?, updated_at = ? WHERE id = ?`)
+      .run(trimmedName, payload, now, input.id);
+
+    return this.listLiveServers();
+  }
+
+  /**
+   * Deletes a saved live server and returns the refreshed list.
+   *
+   * @param id - Live server id.
+   * @returns Updated live server list.
+   */
+  deleteLiveServer(id: number): LiveServer[] {
+    this.getDb().prepare('DELETE FROM live_servers WHERE id = ?').run(id);
+    return this.listLiveServers();
   }
 
   /**

@@ -1,6 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   CollectionDocument,
+  LiveServerAlias,
+  LiveServerCorsSettings,
   SavedRequest,
   ScriptExecutionEvent,
   ScriptTestResult,
@@ -8,6 +10,7 @@ import type {
   TrustedSharingKey,
   UpdateCheckResult
 } from '@harborclient/core/types';
+import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
 import type {
   CollectionRunnerConfig,
   CollectionRunnerRequestResult,
@@ -298,9 +301,67 @@ export interface WorkspaceModalState {
   submitError: string | null;
 }
 
+export type LiveServerModalMode = 'create' | 'edit';
+
+/**
+ * Live server modal state for create and edit flows.
+ */
+export interface LiveServerModalState {
+  /**
+   * Whether the modal is creating a new server or editing a saved one.
+   */
+  mode: LiveServerModalMode;
+
+  /**
+   * Saved `live_servers.id` when editing or starting from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Display name for the server.
+   */
+  name: string;
+
+  /**
+   * Absolute document-root directory.
+   */
+  root: string;
+
+  /**
+   * Port input as a string so the field can be blank (auto-select).
+   */
+  port: string;
+
+  /**
+   * Path aliases mounted before the document root.
+   */
+  aliases: LiveServerAlias[];
+
+  /**
+   * When true, file watching reloads matching browser tabs on change.
+   */
+  watch: boolean;
+
+  /**
+   * CORS middleware settings edited in the modal.
+   */
+  cors: LiveServerCorsSettings;
+
+  /**
+   * Inline submit error shown in the modal footer area.
+   */
+  submitError: string | null;
+
+  /**
+   * True while start/save is in flight.
+   */
+  busy: boolean;
+}
+
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
   workspaceModal: WorkspaceModalState | null;
+  liveServerModal: LiveServerModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
   pendingLoadDocument: PendingLoadDocument | null;
@@ -322,6 +383,7 @@ export interface ModalsState {
 const initialState: ModalsState = {
   collectionModal: null,
   workspaceModal: null,
+  liveServerModal: null,
   share: null,
   pendingLoadRequest: null,
   pendingLoadDocument: null,
@@ -394,6 +456,109 @@ const modalsSlice = createSlice({
      */
     closeWorkspaceModal(state) {
       state.workspaceModal = null;
+    },
+    /**
+     * Opens the live server modal for create or edit.
+     */
+    openLiveServerModal(
+      state,
+      action: PayloadAction<{
+        mode: LiveServerModalMode;
+        savedId?: number | null;
+        name?: string;
+        root?: string;
+        port?: number | null;
+        aliases?: LiveServerAlias[];
+        watch?: boolean;
+        cors?: LiveServerCorsSettings;
+      }>
+    ) {
+      const port =
+        typeof action.payload.port === 'number' && action.payload.port > 0
+          ? String(action.payload.port)
+          : '';
+      state.liveServerModal = {
+        mode: action.payload.mode,
+        savedId: action.payload.savedId ?? null,
+        name: action.payload.name ?? '',
+        root: action.payload.root ?? '',
+        port,
+        aliases: action.payload.aliases ?? [],
+        watch: action.payload.watch !== false,
+        cors: action.payload.cors ?? defaultLiveServerCorsSettings(),
+        submitError: null,
+        busy: false
+      };
+    },
+    /**
+     * Closes the live server modal.
+     */
+    closeLiveServerModal(state) {
+      state.liveServerModal = null;
+    },
+    /**
+     * Updates the live server name field.
+     */
+    setLiveServerModalName(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.name = action.payload;
+      }
+    },
+    /**
+     * Updates the live server root directory field.
+     */
+    setLiveServerModalRoot(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.root = action.payload;
+      }
+    },
+    /**
+     * Updates the live server port field (string; blank means auto).
+     */
+    setLiveServerModalPort(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.port = action.payload;
+      }
+    },
+    /**
+     * Replaces the live server aliases list.
+     */
+    setLiveServerModalAliases(state, action: PayloadAction<LiveServerAlias[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.aliases = action.payload;
+      }
+    },
+    /**
+     * Updates the live server file-watch checkbox.
+     */
+    setLiveServerModalWatch(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.watch = action.payload;
+      }
+    },
+    /**
+     * Replaces the live server CORS settings object in the modal.
+     */
+    setLiveServerModalCors(state, action: PayloadAction<LiveServerCorsSettings>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.cors = action.payload;
+      }
+    },
+    /**
+     * Sets or clears the live server modal submit error.
+     */
+    setLiveServerModalSubmitError(state, action: PayloadAction<string | null>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.submitError = action.payload;
+      }
+    },
+    /**
+     * Sets whether the live server modal is busy with start/save.
+     */
+    setLiveServerModalBusy(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.busy = action.payload;
+      }
     },
     /**
      * Updates the workspace name field in the modal.
@@ -1057,7 +1222,17 @@ export const {
   openWorkspaceModal,
   closeWorkspaceModal,
   setWorkspaceModalName,
-  setWorkspaceModalSubmitError
+  setWorkspaceModalSubmitError,
+  openLiveServerModal,
+  closeLiveServerModal,
+  setLiveServerModalName,
+  setLiveServerModalRoot,
+  setLiveServerModalPort,
+  setLiveServerModalAliases,
+  setLiveServerModalWatch,
+  setLiveServerModalCors,
+  setLiveServerModalSubmitError,
+  setLiveServerModalBusy
 } = modalsSlice.actions;
 
 /**
@@ -1071,6 +1246,12 @@ export const selectCollectionModal = (state: RootState): CollectionModalState | 
  */
 export const selectWorkspaceModal = (state: RootState): WorkspaceModalState | null =>
   state.modals.workspaceModal;
+
+/**
+ * Returns live server modal state when open.
+ */
+export const selectLiveServerModal = (state: RootState): LiveServerModalState | null =>
+  state.modals.liveServerModal;
 
 /**
  * Returns share modal state when open.
@@ -1160,6 +1341,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   return (
     modals.collectionModal != null ||
     modals.workspaceModal != null ||
+    modals.liveServerModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||
     modals.pendingLoadDocument != null ||

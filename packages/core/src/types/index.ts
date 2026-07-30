@@ -11,6 +11,7 @@ export * from './workspace';
 export * from './workflow';
 export * from './workflowRunHistory';
 export * from './website';
+export * from './liveServer';
 export * from './trash';
 export * from './script';
 export * from './settings';

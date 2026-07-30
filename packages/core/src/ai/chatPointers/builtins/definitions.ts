@@ -27,6 +27,16 @@ export const builtinChatPointerPartials: Array<
       >
     >
 > = [
+  /**
+   * References a script row on the open request editor.
+   *
+   * @usage @<request-id>.<pre|post>.<script-index>#<start>.<end>
+   * @param request-id `active` or the numeric open-request id
+   * @param pre|post Script phase on the request
+   * @param script-index 1-based index of the script row
+   * @param start Optional character offset into the script source (selection start)
+   * @param end Optional character offset into the script source (selection end)
+   */
   {
     id: 'request-script',
     match: new RegExp(`^(active|\\d+)\\.(pre|post)\\.(\\d+)(?:#(\\d+)\\.(\\d+))?`),
@@ -66,6 +76,14 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a standalone library snippet (optionally a selected span).
+   *
+   * @usage @snippet.<uuid>#<start>.<end>
+   * @param uuid The UUID of the snippet
+   * @param start Optional character offset into the snippet source (selection start)
+   * @param end Optional character offset into the snippet source (selection end)
+   */
   {
     id: 'snippet',
     match: new RegExp(`^snippet\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
@@ -85,6 +103,14 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References footer terminal output (optionally a line range).
+   *
+   * @usage @term.<terminal-index>#<startLine>.<endLine>
+   * @param terminal-index 1-based footer terminal index
+   * @param startLine Optional 1-based start line of the selection
+   * @param endLine Optional 1-based end line of the selection
+   */
   {
     id: 'terminal',
     match: /^term\.(\d+)(?:#(\d+)\.(\d+))?/,
@@ -104,6 +130,12 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a saved collection.
+   *
+   * @usage @collection.<uuid>
+   * @param uuid The UUID of the collection
+   */
   {
     id: 'collection',
     match: new RegExp(`^collection\\.(${AI_SCRIPT_REFERENCE_UUID})`),
@@ -122,6 +154,12 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a folder in a collection.
+   *
+   * @usage @folder.<uuid>
+   * @param uuid The UUID of the folder
+   */
   {
     id: 'folder',
     match: new RegExp(`^folder\\.(${AI_SCRIPT_REFERENCE_UUID})`),
@@ -140,6 +178,12 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a saved request.
+   *
+   * @usage @request.<uuid>
+   * @param uuid The UUID of the saved request
+   */
   {
     id: 'request',
     match: new RegExp(`^request\\.(${AI_SCRIPT_REFERENCE_UUID})`),
@@ -158,6 +202,14 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References an embedded HarborClient browser (webpage) tab.
+   *
+   * @usage @webpage.<tabId>#<x>.<y>
+   * @param tabId The UUID of the webpage tab
+   * @param x Optional viewport CSS pixel X of the user's click
+   * @param y Optional viewport CSS pixel Y of the user's click
+   */
   {
     id: 'webpage',
     match: new RegExp(`^webpage\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
@@ -178,6 +230,14 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a markdown document or request comment (optionally a selected span).
+   *
+   * @usage @markdown.<uuid>#<start>.<end>
+   * @param uuid The UUID of the markdown document
+   * @param start Optional character offset into the markdown source (selection start)
+   * @param end Optional character offset into the markdown source (selection end)
+   */
   {
     id: 'markdown',
     match: new RegExp(`^markdown\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
@@ -197,6 +257,15 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a captured HTTP response section (optionally a body selection).
+   *
+   * @usage @res.<request-tab-uuid>.<section>#<start>.<end>
+   * @param request-tab-uuid The UUID of the request tab that owns the response
+   * @param section One of `body`, `headers`, `timing`, `console`, or `tests`
+   * @param start Optional character offset into the pretty-printed body viewer text
+   * @param end Optional character offset into the pretty-printed body viewer text
+   */
   {
     id: 'response-section',
     match: new RegExp(
@@ -223,6 +292,13 @@ export const builtinChatPointerPartials: Array<
       };
     }
   },
+  /**
+   * References a selection from the active request raw body editor.
+   *
+   * @usage @body#<start>.<end>
+   * @param start Optional character offset into the raw body (selection start)
+   * @param end Optional character offset into the raw body (selection end)
+   */
   {
     id: 'body',
     match: /^body(?:#(\d+)\.(\d+))?/,
@@ -235,6 +311,16 @@ export const builtinChatPointerPartials: Array<
       selection: parseSelectionSuffix(match[1], match[2])
     })
   },
+  /**
+   * References plugin-provided context (optionally a selected span).
+   *
+   * @usage @plugin.<pluginId>.<pointerId>.<key>#<start>.<end>
+   * @param pluginId The plugin id that owns the pointer
+   * @param pointerId The pointer definition id within the plugin
+   * @param key The instance key for the captured context
+   * @param start Optional character offset into the captured context text
+   * @param end Optional character offset into the captured context text
+   */
   {
     id: 'plugin',
     match: new RegExp(
