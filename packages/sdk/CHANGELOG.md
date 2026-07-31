@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.4.0 - 2026-07-31
+
 - feat(live-server): enhance live server functionality and UI integration. (`241f4525`)
 
 ## 1.3.9 - 2026-07-30
