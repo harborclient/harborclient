@@ -109,7 +109,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   dispatch(setShowVariables(layout.showVariables));
   dispatch(setShowMcp(layout.showMcp));
   dispatch(setShowTerminal(layout.showTerminal));
-  dispatch(setShowLiveServerLogs(layout.showLiveServerLogs));
+  dispatch(setShowLiveServerLogs(false));
   dispatch(setActivePluginFooterPanelId(layout.activePluginFooterPanelId));
   panelLayoutHydrated = true;
 
@@ -126,7 +126,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
       showVariables: layout.showVariables,
       showMcp: layout.showMcp,
       showTerminal: layout.showTerminal,
-      showLiveServerLogs: layout.showLiveServerLogs,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: layout.activePluginFooterPanelId
     });
     try {

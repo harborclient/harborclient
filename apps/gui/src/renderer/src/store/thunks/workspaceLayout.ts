@@ -228,7 +228,7 @@ export async function applyWorkspaceLayout(
   dispatch(setShowVariables(panels.showVariables));
   dispatch(setShowMcp(panels.showMcp));
   dispatch(setShowTerminal(panels.showTerminal));
-  dispatch(setShowLiveServerLogs(panels.showLiveServerLogs));
+  dispatch(setShowLiveServerLogs(false));
   dispatch(setActivePluginFooterPanelId(panels.activePluginFooterPanelId));
 
   const sizeEntries: Record<string, number> = {};

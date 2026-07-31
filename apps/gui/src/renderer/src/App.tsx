@@ -41,7 +41,7 @@ import {
   toggleGitSidebar,
   toggleShortcutsSidebar,
   toggleConsole,
-  toggleLiveServerLogs,
+  setShowLiveServerLogs,
   toggleMcp,
   toggleTerminal,
   toggleRequestEditor,
@@ -481,10 +481,7 @@ export default function App(): JSX.Element {
                         dispatch(toggleTerminal());
                       }}
                       liveServerLogsOpen={showLiveServerLogs}
-                      onToggleLiveServerLogs={() => {
-                        dispatch(closeLiveServerModal());
-                        dispatch(toggleLiveServerLogs());
-                      }}
+                      onCloseLiveServerLogs={() => dispatch(setShowLiveServerLogs(false))}
                       onMcpStatusChange={() => void mcpServerStatus.refresh()}
                       globalVariables={globalVariables}
                       collectionVariables={activeCollection?.variables ?? []}
@@ -543,11 +540,6 @@ export default function App(): JSX.Element {
                 onToggleTerminal={() => {
                   dispatch(closeLiveServerModal());
                   dispatch(toggleTerminal());
-                }}
-                liveServerLogsOpen={showLiveServerLogs}
-                onToggleLiveServerLogs={() => {
-                  dispatch(closeLiveServerModal());
-                  dispatch(toggleLiveServerLogs());
                 }}
                 mcpServerRunning={mcpServerStatus.running}
                 globalVariables={globalVariables}
