@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.1 - 2026-07-31
+
 - feat(dependencies): add Orama and OpenAI packages. (`1555db1b`)
 
 ## 1.0.6 - 2026-07-28
