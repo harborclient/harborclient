@@ -10,6 +10,11 @@ interface Props {
   name: string;
 
   /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable: string;
+
+  /**
    * Absolute document-root directory.
    */
   root: string;
@@ -45,6 +50,16 @@ interface Props {
   host: string;
 
   /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
    * When true, disables all controls (save/start in flight).
    */
   disabled: boolean;
@@ -55,6 +70,13 @@ interface Props {
    * @param value - Next name value.
    */
   onNameChange: (value: string) => void;
+
+  /**
+   * Called when the URL variable field changes.
+   *
+   * @param value - Next global variable name.
+   */
+  onUrlVariableChange: (value: string) => void;
 
   /**
    * Called when the root directory field changes.
@@ -109,15 +131,31 @@ interface Props {
    * @param value - Next host string.
    */
   onHostChange: (value: string) => void;
+
+  /**
+   * Called when the run-command field changes.
+   *
+   * @param value - Next command string.
+   */
+  onRunCommandChange: (value: string) => void;
+
+  /**
+   * Called when the restart-on-crash checkbox changes.
+   *
+   * @param value - Next restart flag.
+   */
+  onRestartOnCrashChange: (value: boolean) => void;
 }
 
 /**
- * General live server fields: name, host/port, root, open path, indexes, and watch.
+ * General live server fields: name, URL variable, host/port, root, run command,
+ * open path, indexes, and watch.
  *
  * @param props - Field values, disabled flag, and change handlers.
  */
 export function GeneralSettings({
   name,
+  urlVariable,
   root,
   port,
   watch,
@@ -125,8 +163,11 @@ export function GeneralSettings({
   rememberLastUrl,
   indexFiles,
   host,
+  runCommand,
+  restartOnCrash,
   disabled,
   onNameChange,
+  onUrlVariableChange,
   onRootChange,
   onBrowse,
   onPortChange,
@@ -134,30 +175,58 @@ export function GeneralSettings({
   onOpenPathChange,
   onRememberLastUrlChange,
   onIndexFilesChange,
-  onHostChange
+  onHostChange,
+  onRunCommandChange,
+  onRestartOnCrashChange
 }: Props): JSX.Element {
   const nameId = useId();
+  const urlVariableId = useId();
   const rootId = useId();
   const portId = useId();
   const openPathId = useId();
   const rememberLastUrlId = useId();
   const indexFilesId = useId();
   const hostId = useId();
+  const runCommandId = useId();
+  const restartOnCrashId = useId();
   const watchId = useId();
   const showLanWarning = !isLiveServerLoopbackHost(host);
+  const runCommandConfigured = runCommand.trim() !== '';
 
   return (
     <div className="flex flex-col gap-4">
-      <FormGroup label="Name" htmlFor={nameId}>
-        <Input
-          id={nameId}
-          autoFocus
-          value={name}
-          disabled={disabled}
-          placeholder="My site"
-          onChange={(event) => onNameChange(event.target.value)}
-        />
-      </FormGroup>
+      <div className="flex gap-4">
+        <FormGroup
+          className="min-w-0 flex-1"
+          label="Name"
+          description="An internal name for the Live Server."
+          htmlFor={nameId}
+        >
+          <Input
+            id={nameId}
+            autoFocus
+            value={name}
+            disabled={disabled}
+            placeholder="My site"
+            onChange={(event) => onNameChange(event.target.value)}
+          />
+        </FormGroup>
+
+        <FormGroup
+          className="min-w-0 flex-1"
+          label="Variable"
+          htmlFor={urlVariableId}
+          description="Global variable set to this server's full URL when it starts."
+        >
+          <Input
+            id={urlVariableId}
+            value={urlVariable}
+            disabled={disabled}
+            placeholder="server_url"
+            onChange={(event) => onUrlVariableChange(event.target.value)}
+          />
+        </FormGroup>
+      </div>
 
       <div className="flex gap-4">
         <FormGroup
@@ -217,6 +286,37 @@ export function GeneralSettings({
           </Button>
         </div>
       </FormGroup>
+
+      <FormGroup
+        label="Run command"
+        htmlFor={runCommandId}
+        description="Optional absolute binary and arguments started with the live server (for example /usr/bin/node ./server.js). cwd is the root directory. No shell — use Proxy rules to forward to the app."
+      >
+        <Input
+          id={runCommandId}
+          value={runCommand}
+          disabled={disabled}
+          placeholder="/usr/bin/node ./server.js"
+          onChange={(event) => onRunCommandChange(event.target.value)}
+        />
+      </FormGroup>
+
+      <label
+        htmlFor={restartOnCrashId}
+        className={`flex items-center gap-2 ${runCommandConfigured ? '' : 'opacity-60'}`}
+      >
+        <Checkbox
+          id={restartOnCrashId}
+          checked={restartOnCrash && runCommandConfigured}
+          disabled={disabled || !runCommandConfigured}
+          onChange={(event) => onRestartOnCrashChange(event.target.checked)}
+        />
+        <span>Restart on crash</span>
+      </label>
+      <p className="m-0 -mt-2 text-[14px] text-muted">
+        Restarts the run command after an unexpected non-zero exit or signal. Does not restart on
+        Stop or a clean exit.
+      </p>
 
       <FormGroup
         label="Open path"

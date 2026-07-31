@@ -539,7 +539,11 @@ describe('selectHasBlockingModal', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
-      ssl: { enabled: false, certPath: '', keyPath: '' }
+      proxies: [],
+      ssl: { enabled: false, certPath: '', keyPath: '' },
+      runCommand: '',
+      restartOnCrash: false,
+      urlVariable: ''
     });
     expect(state.liveServerModal?.cors).toMatchObject({
       exposedHeaders: '',
@@ -556,10 +560,21 @@ describe('selectHasBlockingModal', () => {
         openPath: '/docs/',
         rememberLastUrl: true,
         lastOpenedPath: '/docs/guide.html',
+        runCommand: '/usr/bin/node ./server.js',
+        restartOnCrash: true,
+        urlVariable: 'server_url',
         indexFiles: 'index.html, app.html',
         host: '0.0.0.0',
         headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
         routes: [{ match: '*', target: 'index.html', enabled: true }],
+        proxies: [
+          {
+            path: '/api',
+            target: 'http://127.0.0.1:3000',
+            stripPath: true,
+            enabled: true
+          }
+        ],
         ssl: {
           enabled: true,
           certPath: '/tmp/cert.pem',
@@ -576,11 +591,22 @@ describe('selectHasBlockingModal', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      proxies: [
+        {
+          path: '/api',
+          target: 'http://127.0.0.1:3000',
+          stripPath: true,
+          enabled: true
+        }
+      ],
       ssl: {
         enabled: true,
         certPath: '/tmp/cert.pem',
         keyPath: '/tmp/key.pem'
-      }
+      },
+      runCommand: '/usr/bin/node ./server.js',
+      restartOnCrash: true,
+      urlVariable: 'server_url'
     });
   });
 
@@ -594,6 +620,12 @@ describe('selectHasBlockingModal', () => {
     const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
     const state = modalsReducer(opened, setLiveServerModalTab('routing'));
     expect(state.liveServerModal?.tab).toBe('routing');
+  });
+
+  it('switches the live server modal to the Proxy tab', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const state = modalsReducer(opened, setLiveServerModalTab('proxy'));
+    expect(state.liveServerModal?.tab).toBe('proxy');
   });
 
   it('switches the live server modal to the Aliases tab', () => {

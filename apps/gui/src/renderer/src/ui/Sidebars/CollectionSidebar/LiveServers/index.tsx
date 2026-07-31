@@ -103,7 +103,11 @@ export function LiveServers(): JSX.Element {
               host: server.host,
               headers: server.headers,
               routes: server.routes,
-              ssl: server.ssl
+              proxies: server.proxies,
+              ssl: server.ssl,
+              runCommand: server.runCommand,
+              restartOnCrash: server.restartOnCrash,
+              urlVariable: server.urlVariable
             })
           })
         ).unwrap();
@@ -150,7 +154,11 @@ export function LiveServers(): JSX.Element {
           host: server.host,
           headers: server.headers,
           routes: server.routes,
-          ssl: server.ssl
+          proxies: server.proxies,
+          ssl: server.ssl,
+          runCommand: server.runCommand,
+          restartOnCrash: server.restartOnCrash,
+          urlVariable: server.urlVariable
         })
       );
     },
@@ -228,7 +236,11 @@ export function LiveServers(): JSX.Element {
               host: server.host,
               headers: server.headers,
               routes: server.routes,
-              ssl: server.ssl
+              proxies: server.proxies,
+              ssl: server.ssl,
+              runCommand: server.runCommand,
+              restartOnCrash: server.restartOnCrash,
+              urlVariable: server.urlVariable
             })
           })
         ).unwrap();

@@ -29,6 +29,7 @@ import {
   setLiveServerModalLastOpenedPath,
   type LiveServerModalMode
 } from '#/renderer/src/store/slices/modalsSlice';
+import { setGlobalVariable } from '#/renderer/src/plugins/hostGlobalsCommands';
 import {
   setActivePluginFooterPanelId,
   setShowConsole,
@@ -81,9 +82,25 @@ export type OpenLiveServerEditorInput = {
    */
   routes?: LiveServerConfig['routes'];
   /**
+   * Reverse-proxy rules for the Proxy tab.
+   */
+  proxies?: LiveServerConfig['proxies'];
+  /**
    * TLS settings for the SSL tab.
    */
   ssl?: LiveServerConfig['ssl'];
+  /**
+   * Companion process command (absolute binary + args).
+   */
+  runCommand?: string;
+  /**
+   * When true, restart the companion after an unexpected crash.
+   */
+  restartOnCrash?: boolean;
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable?: string;
 };
 
 /**
@@ -143,7 +160,11 @@ export function toLiveServerConfig(input: {
   host?: string;
   headers?: LiveServerConfig['headers'];
   routes?: LiveServerConfig['routes'];
+  proxies?: LiveServerConfig['proxies'];
   ssl?: LiveServerConfig['ssl'];
+  runCommand?: string;
+  restartOnCrash?: boolean;
+  urlVariable?: string;
 }): LiveServerConfig {
   const fields = normalizeLiveServerConfigFields(input);
   return {
@@ -245,6 +266,11 @@ export const startLiveServer = createAsyncThunk<
   const refreshed = await window.api.listRunningLiveServers();
   dispatch(setRunningLiveServers(refreshed));
 
+  const urlVariable = running.config.urlVariable.trim();
+  if (urlVariable !== '') {
+    await setGlobalVariable(urlVariable, running.origin);
+  }
+
   if (openBrowser) {
     const tabId = crypto.randomUUID();
     dispatch(
@@ -301,7 +327,10 @@ export function liveServerRuntimeConfigNeedsRestart(
     JSON.stringify(next.indexFiles) !== JSON.stringify(current.indexFiles) ||
     JSON.stringify(next.headers) !== JSON.stringify(current.headers) ||
     JSON.stringify(next.routes) !== JSON.stringify(current.routes) ||
-    JSON.stringify(next.ssl) !== JSON.stringify(current.ssl)
+    JSON.stringify(next.proxies) !== JSON.stringify(current.proxies) ||
+    JSON.stringify(next.ssl) !== JSON.stringify(current.ssl) ||
+    next.runCommand !== current.runCommand ||
+    next.restartOnCrash !== current.restartOnCrash
   );
 }
 
@@ -545,7 +574,11 @@ export const persistLiveServerLastOpenedPath = createAsyncThunk<
       host: saved.host,
       headers: saved.headers,
       routes: saved.routes,
-      ssl: saved.ssl
+      proxies: saved.proxies,
+      ssl: saved.ssl,
+      runCommand: saved.runCommand,
+      restartOnCrash: saved.restartOnCrash,
+      urlVariable: saved.urlVariable
     })
   ).unwrap();
 

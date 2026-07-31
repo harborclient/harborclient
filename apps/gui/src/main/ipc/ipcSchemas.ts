@@ -815,6 +815,16 @@ export const liveServerRoute = z.object({
 });
 
 /**
+ * One reverse-proxy rule for a live server (path prefix → upstream).
+ */
+export const liveServerProxy = z.object({
+  path: z.string(),
+  target: z.string(),
+  stripPath: z.boolean().optional(),
+  enabled: z.boolean().optional()
+});
+
+/**
  * TLS certificate settings for a live server.
  */
 export const liveServerSslSettings = z.object({
@@ -853,7 +863,11 @@ export const liveServerConfig = z.object({
   host: z.string(),
   headers: z.array(liveServerResponseHeader),
   routes: z.array(liveServerRoute),
-  ssl: liveServerSslSettings
+  proxies: z.array(liveServerProxy),
+  ssl: liveServerSslSettings,
+  runCommand: z.string(),
+  restartOnCrash: z.boolean(),
+  urlVariable: z.string()
 });
 
 /**
@@ -882,7 +896,11 @@ export const createLiveServerInput = z.object({
   host: z.string().optional(),
   headers: z.array(liveServerResponseHeader).optional(),
   routes: z.array(liveServerRoute).optional(),
-  ssl: liveServerSslSettings.optional()
+  proxies: z.array(liveServerProxy).optional(),
+  ssl: liveServerSslSettings.optional(),
+  runCommand: z.string().optional(),
+  restartOnCrash: z.boolean().optional(),
+  urlVariable: z.string().optional()
 }) satisfies z.ZodType<CreateLiveServerInput>;
 
 /**
@@ -903,7 +921,11 @@ export const updateLiveServerInput = z.object({
   host: z.string(),
   headers: z.array(liveServerResponseHeader),
   routes: z.array(liveServerRoute),
-  ssl: liveServerSslSettings
+  proxies: z.array(liveServerProxy),
+  ssl: liveServerSslSettings,
+  runCommand: z.string(),
+  restartOnCrash: z.boolean(),
+  urlVariable: z.string()
 }) satisfies z.ZodType<UpdateLiveServerInput>;
 
 /**

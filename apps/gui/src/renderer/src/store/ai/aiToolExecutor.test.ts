@@ -358,6 +358,7 @@ function runningLiveServerFixture(id: string, saved: LiveServer | null): Running
         host: saved?.host,
         headers: saved?.headers,
         routes: saved?.routes,
+        proxies: saved?.proxies,
         ssl: saved?.ssl
       })
     },

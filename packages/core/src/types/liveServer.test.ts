@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
+  defaultLiveServerProxies,
   defaultLiveServerRoutes,
   defaultLiveServerSslSettings,
   isLiveServerLoopbackHost,
+  isValidLiveServerProxyTarget,
   joinLiveServerOriginPath,
   liveServerOpenedPathFromUrl,
   normalizeLiveServerConfigFields,
@@ -14,7 +16,10 @@ import {
   normalizeLiveServerIndexFiles,
   normalizeLiveServerLastOpenedPath,
   normalizeLiveServerOpenPath,
+  normalizeLiveServerProxies,
+  normalizeLiveServerProxyPath,
   normalizeLiveServerRoutes,
+  normalizeLiveServerRunCommand,
   normalizeLiveServerSslSettings,
   resolveLiveServerHomeUrl,
   resolveLiveServerOpenUrl
@@ -145,6 +150,19 @@ describe('normalizeLiveServerOpenPath', () => {
   });
 });
 
+describe('normalizeLiveServerRunCommand', () => {
+  it('trims strings and treats non-strings as empty', () => {
+    expect(normalizeLiveServerRunCommand(undefined)).toBe('');
+    expect(normalizeLiveServerRunCommand(null)).toBe('');
+    expect(normalizeLiveServerRunCommand(42)).toBe('');
+    expect(normalizeLiveServerRunCommand('')).toBe('');
+    expect(normalizeLiveServerRunCommand('   ')).toBe('');
+    expect(normalizeLiveServerRunCommand('  /usr/bin/node server.js  ')).toBe(
+      '/usr/bin/node server.js'
+    );
+  });
+});
+
 describe('normalizeLiveServerLastOpenedPath', () => {
   it('returns null for empty/invalid and normalizes non-empty paths', () => {
     expect(normalizeLiveServerLastOpenedPath(undefined)).toBeNull();
@@ -215,6 +233,76 @@ describe('normalizeLiveServerRoutes', () => {
   });
 });
 
+describe('normalizeLiveServerProxyPath / isValidLiveServerProxyTarget', () => {
+  it('normalizes prefixes, accepts catch-all / and *, and rejects empty paths', () => {
+    expect(normalizeLiveServerProxyPath(undefined)).toBeNull();
+    expect(normalizeLiveServerProxyPath('')).toBeNull();
+    expect(normalizeLiveServerProxyPath('/')).toBe('/');
+    expect(normalizeLiveServerProxyPath('  /  ')).toBe('/');
+    expect(normalizeLiveServerProxyPath('*')).toBe('/');
+    expect(normalizeLiveServerProxyPath('  *  ')).toBe('/');
+    expect(normalizeLiveServerProxyPath('api')).toBe('/api');
+    expect(normalizeLiveServerProxyPath('  /api/  ')).toBe('/api');
+    expect(normalizeLiveServerProxyPath('/api/v1')).toBe('/api/v1');
+  });
+
+  it('accepts only http(s) absolute URLs with a host', () => {
+    expect(isValidLiveServerProxyTarget('http://127.0.0.1:3000')).toBe(true);
+    expect(isValidLiveServerProxyTarget('https://example.com/v1')).toBe(true);
+    expect(isValidLiveServerProxyTarget('ftp://example.com')).toBe(false);
+    expect(isValidLiveServerProxyTarget('/relative')).toBe(false);
+    expect(isValidLiveServerProxyTarget('not-a-url')).toBe(false);
+    expect(isValidLiveServerProxyTarget('http://')).toBe(false);
+  });
+});
+
+describe('normalizeLiveServerProxies', () => {
+  it('returns [] for non-arrays and drops invalid rows', () => {
+    expect(normalizeLiveServerProxies(undefined)).toEqual([]);
+    expect(normalizeLiveServerProxies(null)).toEqual([]);
+    expect(normalizeLiveServerProxies('nope')).toEqual([]);
+    expect(defaultLiveServerProxies()).toEqual([]);
+    expect(
+      normalizeLiveServerProxies([
+        null,
+        42,
+        { path: '/', target: 'http://127.0.0.1:3000' },
+        { path: '*', target: 'http://127.0.0.1:3001' },
+        { path: '/api', target: '' },
+        { path: '/api', target: 'not-a-url' },
+        { path: '  api/  ', target: '  http://127.0.0.1:3000/v1  ' },
+        { path: '/keep', target: 'http://localhost:9', stripPath: false, enabled: false },
+        { target: 'http://127.0.0.1:1' }
+      ])
+    ).toEqual([
+      {
+        path: '/',
+        target: 'http://127.0.0.1:3000',
+        stripPath: true,
+        enabled: true
+      },
+      {
+        path: '/',
+        target: 'http://127.0.0.1:3001',
+        stripPath: true,
+        enabled: true
+      },
+      {
+        path: '/api',
+        target: 'http://127.0.0.1:3000/v1',
+        stripPath: true,
+        enabled: true
+      },
+      {
+        path: '/keep',
+        target: 'http://localhost:9',
+        stripPath: false,
+        enabled: false
+      }
+    ]);
+  });
+});
+
 describe('isLiveServerLoopbackHost', () => {
   it('recognizes loopback hosts case-insensitively for localhost', () => {
     expect(isLiveServerLoopbackHost('127.0.0.1')).toBe(true);
@@ -237,7 +325,11 @@ describe('normalizeLiveServerConfigFields', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
-      ssl: defaultLiveServerSslSettings()
+      proxies: [],
+      ssl: defaultLiveServerSslSettings(),
+      runCommand: '',
+      restartOnCrash: false,
+      urlVariable: ''
     });
   });
 
@@ -251,7 +343,11 @@ describe('normalizeLiveServerConfigFields', () => {
         host: '0.0.0.0',
         headers: [{ name: 'COOP', value: 'same-origin' }],
         routes: [{ match: '*', target: 'index.html' }],
-        ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' }
+        proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }],
+        ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
+        runCommand: '  /usr/bin/node ./server.js  ',
+        restartOnCrash: true,
+        urlVariable: '  server_url  '
       })
     ).toEqual({
       openPath: '/app.html',
@@ -261,7 +357,18 @@ describe('normalizeLiveServerConfigFields', () => {
       host: '0.0.0.0',
       headers: [{ name: 'COOP', value: 'same-origin', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
-      ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' }
+      proxies: [
+        {
+          path: '/api',
+          target: 'http://127.0.0.1:3000',
+          stripPath: true,
+          enabled: true
+        }
+      ],
+      ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
+      runCommand: '/usr/bin/node ./server.js',
+      restartOnCrash: true,
+      urlVariable: 'server_url'
     });
   });
 });

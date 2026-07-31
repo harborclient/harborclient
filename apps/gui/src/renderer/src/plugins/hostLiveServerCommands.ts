@@ -49,7 +49,11 @@ function configFromSaved(server: LiveServer): LiveServerConfig {
     host: server.host,
     headers: server.headers,
     routes: server.routes,
-    ssl: server.ssl
+    proxies: server.proxies,
+    ssl: server.ssl,
+    runCommand: server.runCommand,
+    restartOnCrash: server.restartOnCrash,
+    urlVariable: server.urlVariable
   });
 }
 
@@ -109,7 +113,11 @@ async function resolveStartInput(input: StartLiveServerInput): Promise<{
       host: input.config.host,
       headers: input.config.headers,
       routes: input.config.routes,
-      ssl: input.config.ssl
+      proxies: input.config.proxies,
+      ssl: input.config.ssl,
+      runCommand: input.config.runCommand,
+      restartOnCrash: input.config.restartOnCrash,
+      urlVariable: input.config.urlVariable
     });
     if (!config.root.trim()) {
       throw new Error('hc.liveServers.start requires config.root when providing config.');

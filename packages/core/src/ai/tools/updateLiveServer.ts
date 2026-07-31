@@ -87,6 +87,16 @@ export interface UpdateLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Reverse-proxy rules. When omitted, the existing value is kept.
+   */
+  proxies?: Array<{
+    path: string;
+    target: string;
+    stripPath?: boolean;
+    enabled?: boolean;
+  }>;
+
+  /**
    * HTTPS settings. When omitted, the existing value is kept.
    */
   ssl?: {
@@ -94,6 +104,21 @@ export interface UpdateLiveServerToolArgs {
     certPath?: string;
     keyPath?: string;
   };
+
+  /**
+   * Companion process command. When omitted, the existing value is kept.
+   */
+  runCommand?: string;
+
+  /**
+   * Restart-on-crash flag. When omitted, the existing value is kept.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start. When omitted, kept.
+   */
+  urlVariable?: string;
 }
 
 /**
@@ -112,7 +137,11 @@ export interface UpdateLiveServerToolArgs {
  * @param {string} [host] - Listen bind host.
  * @param {object[]} [headers] - Custom response headers.
  * @param {object[]} [routes] - Path routing / SPA fallback rules.
+ * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
+ * @param {string} [runCommand] - Companion process command.
+ * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash.
+ * @param {string} [urlVariable] - Global variable name set to the server origin URL on start.
  */
 export const updateLiveServerTool = {
   name: 'update_live_server',
@@ -121,7 +150,7 @@ export const updateLiveServerTool = {
     function: {
       name: 'update_live_server',
       description:
-        'Updates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, ssl). Expanded fields (openPath, host, headers, routes, ssl, …) are optional — omit them to keep existing values. Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server. lastOpenedPath is not set by this tool.',
+        'Updates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable). Expanded fields (openPath, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable, …) are optional — omit them to keep existing values. Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server. lastOpenedPath is not set by this tool.',
       parameters: {
         type: 'object',
         properties: {

@@ -1656,6 +1656,32 @@ export interface LiveServerRoute {
 }
 
 /**
+ * One reverse-proxy rule for a Harbor Live Server (path prefix → HTTP/HTTPS upstream).
+ */
+export interface LiveServerProxy {
+  /**
+   * URL path prefix, e.g. `/api`. Use `/` or `*` for a catch-all (stored as `/`).
+   */
+  path: string;
+
+  /**
+   * Upstream absolute URL origin, optionally with a base path.
+   */
+  target: string;
+
+  /**
+   * When true (default), strip the matched prefix before appending to the
+   * upstream URL path.
+   */
+  stripPath?: boolean;
+
+  /**
+   * When false, the rule is ignored. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
  * TLS certificate settings for serving a Harbor Live Server over HTTPS.
  */
 export interface LiveServerSslSettings {
@@ -1745,9 +1771,30 @@ export interface LiveServerConfig {
   routes: LiveServerRoute[];
 
   /**
+   * Ordered reverse-proxy rules applied before static (first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings for HTTPS listen.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 }
 
 /**
@@ -1830,9 +1877,30 @@ export interface LiveServer {
   routes: LiveServerRoute[];
 
   /**
+   * Ordered reverse-proxy rules applied before static (first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings for HTTPS listen.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 
   /**
    * Sort order within the Live Servers sidebar section.
@@ -1920,9 +1988,29 @@ export interface CreateLiveServerInput {
   routes?: LiveServerRoute[];
 
   /**
+   * Reverse-proxy rules. Defaults to `[]`.
+   */
+  proxies?: LiveServerProxy[];
+
+  /**
    * TLS settings.
    */
   ssl?: LiveServerSslSettings;
+
+  /**
+   * Companion process command. Defaults to `''` (none).
+   */
+  runCommand?: string;
+
+  /**
+   * Whether to restart the companion on crash. Defaults to false.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start. Defaults to `''`.
+   */
+  urlVariable?: string;
 }
 
 /**
@@ -2002,9 +2090,30 @@ export interface UpdateLiveServerInput {
   routes: LiveServerRoute[];
 
   /**
+   * Reverse-proxy rules.
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 }
 
 /**
@@ -2069,6 +2178,16 @@ export interface RunningLiveServer {
    * When true, file watching was requested but could not be started.
    */
   watchUnavailable?: boolean;
+
+  /**
+   * Lifecycle status of the optional companion `runCommand` process.
+   */
+  runCommandStatus?: 'running' | 'exited' | 'restarting' | 'failed';
+
+  /**
+   * Short error message when the companion process failed or exhausted restarts.
+   */
+  runCommandError?: string;
 }
 
 /**

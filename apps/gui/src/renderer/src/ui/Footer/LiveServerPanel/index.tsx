@@ -20,11 +20,15 @@ import {
   setLiveServerModalHost,
   setLiveServerModalIndexFiles,
   setLiveServerModalName,
+  setLiveServerModalUrlVariable,
   setLiveServerModalOpenPath,
   setLiveServerModalPort,
+  setLiveServerModalProxies,
   setLiveServerModalRememberLastUrl,
   setLiveServerModalRoot,
   setLiveServerModalRoutes,
+  setLiveServerModalRunCommand,
+  setLiveServerModalRestartOnCrash,
   setLiveServerModalSsl,
   setLiveServerModalSubmitError,
   setLiveServerModalTab,
@@ -33,6 +37,7 @@ import {
   type LiveServerModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
 import type { LiveServerConfig } from '@harborclient/core/types';
+import { isValidLiveServerProxyTarget } from '@harborclient/core/types';
 import {
   createSavedLiveServer,
   liveServerRuntimeConfigNeedsRestart,
@@ -50,6 +55,7 @@ import { CorsSettings } from './CorsSettings';
 import { GeneralSettings } from './GeneralSettings';
 import { HeadersSettings } from './HeadersSettings';
 import { filterLiveServerHeadersForSave } from './liveServerHeaderRows';
+import { ProxySettings } from './ProxySettings';
 import { RoutingSettings } from './RoutingSettings';
 import { SslSettings } from './SslSettings';
 
@@ -114,6 +120,28 @@ function tryBuildConfigFromModal(
       return { error: 'Alias paths must start with /' };
     }
   }
+  const proxies = modal.proxies
+    .map((proxy) => {
+      const trimmedPath = proxy.path.trim();
+      return {
+        path: trimmedPath === '*' ? '/' : trimmedPath,
+        target: proxy.target.trim(),
+        stripPath: proxy.stripPath !== false,
+        enabled: proxy.enabled !== false
+      };
+    })
+    .filter((proxy) => proxy.path !== '' || proxy.target !== '');
+  for (const proxy of proxies) {
+    if (proxy.path === '' || proxy.target === '') {
+      return { error: 'Proxy rules need both a path and a target URL' };
+    }
+    if (proxy.path !== '/' && !proxy.path.startsWith('/')) {
+      return { error: 'Proxy paths must start with / (or use * for catch-all)' };
+    }
+    if (!isValidLiveServerProxyTarget(proxy.target)) {
+      return { error: 'Proxy targets must be absolute http:// or https:// URLs' };
+    }
+  }
   if (modal.ssl.enabled) {
     if (!modal.ssl.certPath.trim()) {
       return { error: 'Certificate path is required when SSL is enabled' };
@@ -137,7 +165,11 @@ function tryBuildConfigFromModal(
       host: modal.host,
       headers: filterLiveServerHeadersForSave(modal.headers),
       routes: modal.routes,
-      ssl: modal.ssl
+      proxies,
+      ssl: modal.ssl,
+      runCommand: modal.runCommand,
+      restartOnCrash: modal.restartOnCrash,
+      urlVariable: modal.urlVariable
     })
   };
 }
@@ -481,6 +513,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   { value: 'general', label: 'General' },
                   { value: 'headers', label: 'Headers' },
                   { value: 'routing', label: 'Routing' },
+                  { value: 'proxy', label: 'Proxy' },
                   { value: 'aliases', label: 'Aliases' },
                   { value: 'cors', label: 'CORS' },
                   { value: 'ssl', label: 'SSL' }
@@ -511,6 +544,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
             <SegmentedTabPanel value="general">
               <GeneralSettings
                 name={modal.name}
+                urlVariable={modal.urlVariable}
                 root={modal.root}
                 port={modal.port}
                 watch={modal.watch}
@@ -518,8 +552,11 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                 rememberLastUrl={modal.rememberLastUrl}
                 indexFiles={modal.indexFiles}
                 host={modal.host}
+                runCommand={modal.runCommand}
+                restartOnCrash={modal.restartOnCrash}
                 disabled={busy}
                 onNameChange={(value) => dispatch(setLiveServerModalName(value))}
+                onUrlVariableChange={(value) => dispatch(setLiveServerModalUrlVariable(value))}
                 onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
                 onBrowse={handleBrowse}
                 onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
@@ -530,6 +567,10 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                 }
                 onIndexFilesChange={(value) => dispatch(setLiveServerModalIndexFiles(value))}
                 onHostChange={(value) => dispatch(setLiveServerModalHost(value))}
+                onRunCommandChange={(value) => dispatch(setLiveServerModalRunCommand(value))}
+                onRestartOnCrashChange={(value) =>
+                  dispatch(setLiveServerModalRestartOnCrash(value))
+                }
               />
             </SegmentedTabPanel>
 
@@ -546,6 +587,14 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                 routes={modal.routes}
                 disabled={busy}
                 onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="proxy">
+              <ProxySettings
+                proxies={modal.proxies}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalProxies(next))}
               />
             </SegmentedTabPanel>
 

@@ -82,6 +82,16 @@ export interface CreateLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Reverse-proxy rules (path prefix → upstream HTTP/HTTPS URL).
+   */
+  proxies?: Array<{
+    path: string;
+    target: string;
+    stripPath?: boolean;
+    enabled?: boolean;
+  }>;
+
+  /**
    * HTTPS settings (certificate/key filesystem paths, not PEM contents).
    */
   ssl?: {
@@ -89,6 +99,21 @@ export interface CreateLiveServerToolArgs {
     certPath?: string;
     keyPath?: string;
   };
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand?: string;
+
+  /**
+   * When true, restart the companion after an unexpected crash.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable?: string;
 }
 
 /**
@@ -106,7 +131,11 @@ export interface CreateLiveServerToolArgs {
  * @param {string} [host] - Listen bind host.
  * @param {object[]} [headers] - Custom response headers.
  * @param {object[]} [routes] - Path routing / SPA fallback rules.
+ * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
+ * @param {string} [runCommand] - Companion process command (absolute binary + args).
+ * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash.
+ * @param {string} [urlVariable] - Global variable name set to the server origin URL on start.
  */
 export const createLiveServerTool = {
   name: 'create_live_server',
@@ -115,7 +144,7 @@ export const createLiveServerTool = {
     function: {
       name: 'create_live_server',
       description:
-        'Creates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, ssl) in the local registry. Persists immediately but does not start the server. Only call when the user explicitly asks to create or save a live server. root must be an absolute filesystem path. Routing rules run after static miss (use match `*` + target `index.html` for SPA fallback). SSL uses absolute cert/key file paths — HarborClient does not generate certificates. lastOpenedPath is not set by this tool (navigation preference state).',
+        'Creates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable) in the local registry. Persists immediately but does not start the server. Only call when the user explicitly asks to create or save a live server. root must be an absolute filesystem path. Routing rules run after static miss (use match `*` + target `index.html` for SPA fallback). Reverse proxies run before static (path prefix → http(s) upstream; WebSockets not supported). SSL uses absolute cert/key file paths — HarborClient does not generate certificates. runCommand is an optional companion process (absolute binary + args, no shell); restartOnCrash restarts it after unexpected non-zero exit. urlVariable is an optional global variable name set to the server origin URL when started. lastOpenedPath is not set by this tool (navigation preference state).',
       parameters: {
         type: 'object',
         properties: {

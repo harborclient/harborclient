@@ -3,6 +3,7 @@ import type {
   CollectionDocument,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
   LiveServerSslSettings,
@@ -323,7 +324,14 @@ export type LiveServerModalMode = 'create' | 'edit';
 /**
  * Segmented tab in the live server create/edit footer panel.
  */
-export type LiveServerModalTab = 'general' | 'headers' | 'routing' | 'aliases' | 'cors' | 'ssl';
+export type LiveServerModalTab =
+  | 'general'
+  | 'headers'
+  | 'routing'
+  | 'proxy'
+  | 'aliases'
+  | 'cors'
+  | 'ssl';
 
 /**
  * Live server editor draft state for create and edit footer-panel flows.
@@ -348,6 +356,11 @@ export interface LiveServerModalState {
    * Display name for the server.
    */
   name: string;
+
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable: string;
 
   /**
    * Absolute document-root directory.
@@ -410,9 +423,24 @@ export interface LiveServerModalState {
   routes: LiveServerRoute[];
 
   /**
+   * Reverse-proxy rules edited on the Proxy tab (ordered; first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings edited on the SSL tab (user-supplied cert/key paths).
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion after an unexpected crash.
+   */
+  restartOnCrash: boolean;
 
   /**
    * Inline submit error shown above the panel actions.
@@ -557,9 +585,25 @@ const modalsSlice = createSlice({
          */
         routes?: LiveServerRoute[];
         /**
+         * Reverse-proxy rules, or omit for an empty list.
+         */
+        proxies?: LiveServerProxy[];
+        /**
          * TLS settings, or omit for HTTPS disabled with empty paths.
          */
         ssl?: LiveServerSslSettings;
+        /**
+         * Companion process command, or omit for none.
+         */
+        runCommand?: string;
+        /**
+         * Restart-on-crash flag, or omit for false.
+         */
+        restartOnCrash?: boolean;
+        /**
+         * Global variable name for the server origin URL, or omit for none.
+         */
+        urlVariable?: string;
       }>
     ) {
       const port =
@@ -583,7 +627,11 @@ const modalsSlice = createSlice({
         host: action.payload.host ?? '127.0.0.1',
         headers: normalizeLiveServerHeaders(action.payload.headers),
         routes: action.payload.routes ?? [],
+        proxies: action.payload.proxies ?? [],
         ssl: normalizeLiveServerSslSettings(action.payload.ssl),
+        runCommand: action.payload.runCommand?.trim() ?? '',
+        restartOnCrash: action.payload.restartOnCrash === true,
+        urlVariable: action.payload.urlVariable?.trim() ?? '',
         submitError: null,
         busy: false
       };
@@ -595,7 +643,7 @@ const modalsSlice = createSlice({
       state.liveServerModal = null;
     },
     /**
-     * Switches the live server editor among General, Headers, Routing, CORS, and SSL tabs.
+     * Switches the live server editor among General, Headers, Routing, Proxy, CORS, and SSL tabs.
      */
     setLiveServerModalTab(state, action: PayloadAction<LiveServerModalTab>) {
       if (state.liveServerModal) {
@@ -608,6 +656,14 @@ const modalsSlice = createSlice({
     setLiveServerModalName(state, action: PayloadAction<string>) {
       if (state.liveServerModal) {
         state.liveServerModal.name = action.payload;
+      }
+    },
+    /**
+     * Updates the global variable name set to the server origin URL on start.
+     */
+    setLiveServerModalUrlVariable(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.urlVariable = action.payload;
       }
     },
     /**
@@ -707,11 +763,35 @@ const modalsSlice = createSlice({
       }
     },
     /**
+     * Replaces the reverse-proxy rules in the editor (order is significant).
+     */
+    setLiveServerModalProxies(state, action: PayloadAction<LiveServerProxy[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.proxies = action.payload;
+      }
+    },
+    /**
      * Replaces the TLS / SSL settings object in the editor.
      */
     setLiveServerModalSsl(state, action: PayloadAction<LiveServerSslSettings>) {
       if (state.liveServerModal) {
         state.liveServerModal.ssl = action.payload;
+      }
+    },
+    /**
+     * Updates the companion run-command field.
+     */
+    setLiveServerModalRunCommand(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.runCommand = action.payload;
+      }
+    },
+    /**
+     * Updates the restart-on-crash checkbox.
+     */
+    setLiveServerModalRestartOnCrash(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.restartOnCrash = action.payload;
       }
     },
     /**
@@ -1419,6 +1499,7 @@ export const {
   closeLiveServerModal,
   setLiveServerModalTab,
   setLiveServerModalName,
+  setLiveServerModalUrlVariable,
   setLiveServerModalRoot,
   setLiveServerModalPort,
   setLiveServerModalAliases,
@@ -1431,7 +1512,10 @@ export const {
   setLiveServerModalHost,
   setLiveServerModalHeaders,
   setLiveServerModalRoutes,
+  setLiveServerModalProxies,
   setLiveServerModalSsl,
+  setLiveServerModalRunCommand,
+  setLiveServerModalRestartOnCrash,
   setLiveServerModalSubmitError,
   setLiveServerModalBusy
 } = modalsSlice.actions;

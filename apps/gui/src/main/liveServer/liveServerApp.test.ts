@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import type { Express } from 'express';
@@ -7,9 +8,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
 import {
   assertDirectoryRoot,
+  buildLiveServerProxiedUpstreamUrl,
   createLiveServerApp,
   isPathInsideDirectory,
   normalizeAliasPath,
+  pathMatchesLiveServerProxyPrefix,
   pathMatchesLiveServerRoute,
   resolveAliasTarget,
   toCorsOptions
@@ -443,6 +446,175 @@ describe('pathMatchesLiveServerRoute / isPathInsideDirectory', () => {
     expect(isPathInsideDirectory(path.join(dir, 'a.txt'), dir)).toBe(true);
     expect(isPathInsideDirectory(dir, dir)).toBe(true);
     expect(isPathInsideDirectory(path.resolve(dir, '..', 'outside.txt'), dir)).toBe(false);
+  });
+});
+
+describe('pathMatchesLiveServerProxyPrefix / buildLiveServerProxiedUpstreamUrl', () => {
+  it('matches exact prefix and directory children only', () => {
+    expect(pathMatchesLiveServerProxyPrefix('/api', '/api')).toBe(true);
+    expect(pathMatchesLiveServerProxyPrefix('/api/users', '/api')).toBe(true);
+    expect(pathMatchesLiveServerProxyPrefix('/apiv2', '/api')).toBe(false);
+    expect(pathMatchesLiveServerProxyPrefix('/other', '/api')).toBe(false);
+  });
+
+  it('treats / as a catch-all that matches every pathname', () => {
+    expect(pathMatchesLiveServerProxyPrefix('/', '/')).toBe(true);
+    expect(pathMatchesLiveServerProxyPrefix('/foo', '/')).toBe(true);
+    expect(pathMatchesLiveServerProxyPrefix('/api/users', '/')).toBe(true);
+  });
+
+  it('strips the prefix by default and preserves query', () => {
+    const url = buildLiveServerProxiedUpstreamUrl('/api/users', '/api/users?x=1', {
+      path: '/api',
+      target: 'http://127.0.0.1:3000/v1'
+    });
+    expect(url.toString()).toBe('http://127.0.0.1:3000/v1/users?x=1');
+  });
+
+  it('preserves the full request path when stripPath is false', () => {
+    const url = buildLiveServerProxiedUpstreamUrl('/api/users', '/api/users', {
+      path: '/api',
+      target: 'http://127.0.0.1:3000',
+      stripPath: false
+    });
+    expect(url.toString()).toBe('http://127.0.0.1:3000/api/users');
+  });
+
+  it('forwards the full pathname for catch-all / even when stripPath is true', () => {
+    const stripped = buildLiveServerProxiedUpstreamUrl('/api/users', '/api/users?x=1', {
+      path: '/',
+      target: 'http://127.0.0.1:3000',
+      stripPath: true
+    });
+    expect(stripped.toString()).toBe('http://127.0.0.1:3000/api/users?x=1');
+    const kept = buildLiveServerProxiedUpstreamUrl('/api/users', '/api/users', {
+      path: '/',
+      target: 'http://127.0.0.1:3000/v1',
+      stripPath: false
+    });
+    expect(kept.toString()).toBe('http://127.0.0.1:3000/v1/api/users');
+  });
+});
+
+describe('createLiveServerApp reverse proxy', () => {
+  /**
+   * Starts a tiny upstream HTTP server and returns its origin plus a close helper.
+   *
+   * @param handler - Request listener for the upstream.
+   * @returns Upstream origin and cleanup function.
+   */
+  async function listenUpstream(
+    handler: http.RequestListener
+  ): Promise<{ origin: string; close: () => Promise<void> }> {
+    const server = http.createServer(handler);
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, '127.0.0.1', () => resolve());
+      server.on('error', reject);
+    });
+    const address = server.address();
+    if (typeof address !== 'object' || address == null) {
+      throw new Error('Expected TCP address');
+    }
+    return {
+      origin: `http://127.0.0.1:${address.port}`,
+      close: () =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        })
+    };
+  }
+
+  it('forwards matching requests with path strip, query, and POST body', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<html>static</html>');
+
+    let seenMethod = '';
+    let seenUrl = '';
+    let seenHost = '';
+    let seenBody = '';
+    const upstream = await listenUpstream((req, res) => {
+      seenMethod = req.method ?? '';
+      seenUrl = req.url ?? '';
+      seenHost = req.headers.host ?? '';
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      req.on('end', () => {
+        seenBody = Buffer.concat(chunks).toString('utf8');
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
+    });
+
+    try {
+      const app = createLiveServerApp(root, {
+        proxies: [
+          {
+            path: '/api',
+            target: `${upstream.origin}/v1`,
+            stripPath: true,
+            enabled: true
+          }
+        ]
+      });
+      const origin = await listen(app);
+      const response = await fetch(`${origin}/api/users?q=1`, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'hello'
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true });
+      expect(seenMethod).toBe('POST');
+      expect(seenUrl).toBe('/v1/users?q=1');
+      expect(seenHost).toBe(new URL(upstream.origin).host);
+      expect(seenBody).toBe('hello');
+    } finally {
+      await upstream.close();
+    }
+  });
+
+  it('returns 502 when the upstream is unreachable', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<html>static</html>');
+    const app = createLiveServerApp(root, {
+      proxies: [{ path: '/api', target: 'http://127.0.0.1:1' }]
+    });
+    const response = await get(app, '/api/ping');
+    expect(response.status).toBe(502);
+    expect(response.body).toBe('Bad gateway');
+  });
+
+  it('serves static files when the path does not match a proxy rule', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<html>home</html>');
+    const app = createLiveServerApp(root, {
+      proxies: [{ path: '/api', target: 'http://127.0.0.1:1' }]
+    });
+    const response = await get(app, '/');
+    expect(response.status).toBe(200);
+    expect(response.body).toContain('home');
+  });
+
+  it('prefers proxy over a same-path static file', async () => {
+    const root = makeTempDir();
+    fs.mkdirSync(path.join(root, 'api'));
+    fs.writeFileSync(path.join(root, 'api', 'index.html'), '<html>local-api</html>');
+
+    const upstream = await listenUpstream((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/plain' });
+      res.end('proxied');
+    });
+
+    try {
+      const app = createLiveServerApp(root, {
+        proxies: [{ path: '/api', target: upstream.origin }]
+      });
+      const response = await get(app, '/api');
+      expect(response.status).toBe(200);
+      expect(response.body).toBe('proxied');
+    } finally {
+      await upstream.close();
+    }
   });
 });
 

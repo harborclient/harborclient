@@ -1,11 +1,14 @@
 import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import fs from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
 import type { CorsOptions } from 'cors';
 import type {
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute
 } from '@harborclient/core/types';
@@ -13,6 +16,7 @@ import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
   normalizeLiveServerIndexFiles,
+  normalizeLiveServerProxies,
   normalizeLiveServerRoutes
 } from '@harborclient/core/types';
 
@@ -83,6 +87,11 @@ export interface CreateLiveServerAppOptions {
    * Custom response headers applied after CORS and before static, including 404.
    */
   headers?: LiveServerResponseHeader[];
+
+  /**
+   * Reverse-proxy rules applied after headers and before aliases/static.
+   */
+  proxies?: LiveServerProxy[];
 
   /**
    * Path routing rules applied after static miss (SPA / soft rewrite).
@@ -313,6 +322,233 @@ function mountResponseHeaderMiddleware(app: Express, headers: LiveServerResponse
 }
 
 /**
+ * Hop-by-hop headers that must not be forwarded by a reverse proxy (RFC 7230).
+ *
+ * `host` is also stripped from the inbound request so the upstream Host can be
+ * set to the target host (changeOrigin-equivalent).
+ */
+const LIVE_SERVER_PROXY_HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailers',
+  'transfer-encoding',
+  'upgrade',
+  'host'
+]);
+
+/**
+ * Returns whether a request pathname matches a reverse-proxy path prefix.
+ *
+ * `/` is a catch-all and matches every pathname. Otherwise matches the prefix
+ * exactly or as a directory prefix (`/api` matches `/api` and `/api/users`,
+ * but not `/apiv2`).
+ *
+ * @param pathname - Express `req.path` (pathname only).
+ * @param prefix - Normalized proxy path prefix (`/` catch-all, or leading `/`
+ *   with no trailing `/`).
+ * @returns True when the path is under the prefix.
+ */
+export function pathMatchesLiveServerProxyPrefix(pathname: string, prefix: string): boolean {
+  if (prefix === '/') {
+    return true;
+  }
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
+ * Joins an upstream base pathname with a request path suffix.
+ *
+ * @param basePath - Upstream URL pathname (may be `/` or `/v1`).
+ * @param suffix - Remaining request path after optional prefix strip.
+ * @returns Combined pathname (always starts with `/` when non-empty).
+ */
+function joinProxyUrlPaths(basePath: string, suffix: string): string {
+  const base = basePath === '/' ? '' : basePath.replace(/\/$/, '');
+  if (suffix === '' || suffix === '/') {
+    return base === '' ? '/' : base;
+  }
+  const rest = suffix.startsWith('/') ? suffix : `/${suffix}`;
+  return `${base}${rest}`;
+}
+
+/**
+ * Builds the absolute upstream URL for a matched reverse-proxy rule.
+ *
+ * When `stripPath` is true (default), the matched prefix is removed from the
+ * request pathname before appending to the upstream base path. Catch-all
+ * proxies (`path: '/'`) always forward the full pathname — strip is a no-op.
+ * The inbound query string is preserved.
+ *
+ * @param requestPath - Express request pathname (e.g. `/api/users`).
+ * @param requestUrl - Express `originalUrl` or `url` (may include `?query`).
+ * @param proxy - Matched proxy rule (path + target + stripPath).
+ * @returns Absolute upstream URL including path and search.
+ * @throws When `proxy.target` is not a valid absolute URL.
+ */
+export function buildLiveServerProxiedUpstreamUrl(
+  requestPath: string,
+  requestUrl: string,
+  proxy: LiveServerProxy
+): URL {
+  const target = new URL(proxy.target);
+  const stripPath = proxy.stripPath !== false && proxy.path !== '/';
+  const suffix = stripPath
+    ? requestPath === proxy.path
+      ? ''
+      : requestPath.slice(proxy.path.length)
+    : requestPath;
+  const pathname = joinProxyUrlPaths(target.pathname || '/', suffix);
+  const queryIndex = requestUrl.indexOf('?');
+  const search = queryIndex >= 0 ? requestUrl.slice(queryIndex) : '';
+  const upstream = new URL(target.origin);
+  upstream.pathname = pathname;
+  if (search !== '') {
+    upstream.search = search.startsWith('?') ? search.slice(1) : search;
+  }
+  return upstream;
+}
+
+/**
+ * Copies inbound request headers into an outbound header map, skipping hop-by-hop
+ * names so the proxy can set a fresh `Host`.
+ *
+ * @param inbound - Express request headers.
+ * @param upstreamHost - Host header value for the upstream (hostname[:port]).
+ * @returns Headers suitable for `http.request` / `https.request`.
+ */
+function buildLiveServerProxyRequestHeaders(
+  inbound: Request['headers'],
+  upstreamHost: string
+): http.OutgoingHttpHeaders {
+  const headers: http.OutgoingHttpHeaders = {};
+  for (const [name, value] of Object.entries(inbound)) {
+    if (value == null) {
+      continue;
+    }
+    if (LIVE_SERVER_PROXY_HOP_BY_HOP_HEADERS.has(name.toLowerCase())) {
+      continue;
+    }
+    headers[name] = value;
+  }
+  headers.host = upstreamHost;
+  return headers;
+}
+
+/**
+ * Writes a plaintext 502 response when the upstream cannot be reached or the
+ * target URL is invalid, unless headers were already sent.
+ *
+ * @param res - Outgoing Express response.
+ */
+function sendLiveServerBadGateway(res: Response): void {
+  if (res.headersSent) {
+    res.destroy();
+    return;
+  }
+  res.status(502).type('text/plain').send('Bad gateway');
+}
+
+/**
+ * Forwards one matched request to an upstream HTTP/HTTPS origin.
+ *
+ * Streams the request body and response body. Overwrites response headers with
+ * upstream values (after hop-by-hop filtering) so the backend controls
+ * Content-Type and similar. Aborts the upstream request when the client
+ * disconnects.
+ *
+ * @param req - Incoming Express request.
+ * @param res - Outgoing Express response.
+ * @param proxy - Matched proxy rule.
+ */
+function forwardLiveServerProxyRequest(req: Request, res: Response, proxy: LiveServerProxy): void {
+  let upstreamUrl: URL;
+  try {
+    upstreamUrl = buildLiveServerProxiedUpstreamUrl(req.path, req.originalUrl || req.url, proxy);
+  } catch {
+    sendLiveServerBadGateway(res);
+    return;
+  }
+
+  const isHttps = upstreamUrl.protocol === 'https:';
+  const transport = isHttps ? https : http;
+  const headers = buildLiveServerProxyRequestHeaders(req.headers, upstreamUrl.host);
+
+  const upstreamReq = transport.request(
+    {
+      protocol: upstreamUrl.protocol,
+      hostname: upstreamUrl.hostname,
+      port: upstreamUrl.port || (isHttps ? 443 : 80),
+      path: `${upstreamUrl.pathname}${upstreamUrl.search}`,
+      method: req.method,
+      headers
+    },
+    (upstreamRes) => {
+      res.statusCode = upstreamRes.statusCode ?? 502;
+      for (const [name, value] of Object.entries(upstreamRes.headers)) {
+        if (value == null) {
+          continue;
+        }
+        if (LIVE_SERVER_PROXY_HOP_BY_HOP_HEADERS.has(name.toLowerCase())) {
+          continue;
+        }
+        res.setHeader(name, value);
+      }
+      upstreamRes.pipe(res);
+    }
+  );
+
+  upstreamReq.on('error', () => {
+    sendLiveServerBadGateway(res);
+  });
+
+  /**
+   * Aborts the upstream request when the client goes away mid-transfer.
+   */
+  const abortUpstream = (): void => {
+    upstreamReq.destroy();
+  };
+
+  req.on('aborted', abortUpstream);
+  res.on('close', () => {
+    if (!res.writableFinished) {
+      abortUpstream();
+    }
+  });
+
+  req.pipe(upstreamReq);
+}
+
+/**
+ * Mounts reverse-proxy middleware for configured path-prefix rules.
+ *
+ * Runs after CORS/custom headers and before aliases/static. Enabled rules are
+ * tried in order; the first matching prefix is forwarded. Unmatched requests
+ * fall through to static serving. Upstream failures respond with 502.
+ *
+ * @param app - Express app to instrument.
+ * @param proxies - Normalized proxy rules.
+ */
+function mountLiveServerProxyMiddleware(app: Express, proxies: LiveServerProxy[]): void {
+  const active = proxies.filter((proxy) => proxy.enabled !== false);
+  if (active.length === 0) {
+    return;
+  }
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    for (const proxy of active) {
+      if (pathMatchesLiveServerProxyPrefix(req.path, proxy.path)) {
+        forwardLiveServerProxyRequest(req, res, proxy);
+        return;
+      }
+    }
+    next();
+  });
+}
+
+/**
  * Returns whether `candidate` is the same as or nested under `rootDir`.
  *
  * @param candidate - Absolute filesystem path to check.
@@ -495,13 +731,14 @@ function mountLiveServerRouteMiddleware(
  * Directory indexes use the configured `indexFiles` list (default `index.html`).
  * When CORS is enabled, middleware is mounted before static handlers so headers
  * apply to successful responses and the catch-all 404. Custom response headers
- * mount after CORS and before static for the same reason.
+ * mount after CORS and before reverse proxies / static for the same reason.
+ * Reverse-proxy rules run after headers and before aliases/static (Vite-style).
  * Routing rules run after static miss (history-api-fallback style).
  * When `onRequestLog` is provided, access logging runs first so every response
  * (including 404) is recorded.
  *
  * @param root - Absolute document-root directory.
- * @param options - Aliases, CORS, index files, headers, routes, and access log.
+ * @param options - Aliases, CORS, index files, headers, proxies, routes, and access log.
  * @returns Configured Express application (not yet listening).
  */
 export function createLiveServerApp(
@@ -513,6 +750,7 @@ export function createLiveServerApp(
     corsSettings = defaultLiveServerCorsSettings(),
     indexFiles: indexFilesInput,
     headers = [],
+    proxies: proxiesInput,
     routes: routesInput,
     onRequestLog
   } = options;
@@ -524,6 +762,11 @@ export function createLiveServerApp(
     indexFilesInput != null
       ? normalizeLiveServerIndexFiles(indexFilesInput)
       : defaultLiveServerIndexFiles();
+
+  const proxies =
+    proxiesInput != null
+      ? normalizeLiveServerProxies(proxiesInput)
+      : normalizeLiveServerProxies([]);
 
   const routes =
     routesInput != null ? normalizeLiveServerRoutes(routesInput) : normalizeLiveServerRoutes([]);
@@ -546,6 +789,7 @@ export function createLiveServerApp(
   }
 
   mountResponseHeaderMiddleware(app, headers);
+  mountLiveServerProxyMiddleware(app, proxies);
 
   for (const alias of aliases) {
     const mountPath = normalizeAliasPath(alias.path);

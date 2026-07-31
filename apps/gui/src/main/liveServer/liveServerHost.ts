@@ -7,6 +7,7 @@ import type {
   LiveServerFileChangedEvent,
   LiveServerLogsQuery,
   LiveServerRequestLogEntry,
+  LiveServerRunCommandStatus,
   LiveServerSslSettings,
   RunningLiveServer,
   StartLiveServerInput
@@ -18,6 +19,7 @@ import {
 import { createLiveServerApp } from './liveServerApp';
 import { pushLiveServerLog } from './liveServerLogBuffer';
 import { findFreePort, LIVE_SERVER_PORT_BASE } from './ports';
+import { startLiveServerRunCommand, type LiveServerRunCommandHandle } from './liveServerRunCommand';
 import { startLiveServerWatcher, type LiveServerWatcherHandle } from './liveServerWatcher';
 
 /** HTTP or HTTPS server returned after listen. */
@@ -27,6 +29,10 @@ interface LiveServerEntry {
   server: LiveServerListenServer;
   running: RunningLiveServer;
   watcher: LiveServerWatcherHandle | null;
+  /**
+   * Supervised companion process started from `config.runCommand`, or null.
+   */
+  runCommand: LiveServerRunCommandHandle | null;
   /**
    * Ring-buffered Express access logs for this instance.
    */
@@ -316,12 +322,59 @@ async function listenLiveServerOnPort(
 }
 
 /**
+ * Updates companion-process status on a running entry and notifies subscribers.
+ *
+ * No-op when the instance is no longer registered (stopped mid-transition).
+ *
+ * @param id - Runtime instance id.
+ * @param status - New companion status.
+ * @param error - Optional short error message for failed states.
+ */
+function setRunCommandStatus(id: string, status: LiveServerRunCommandStatus, error?: string): void {
+  const entry = servers.get(id);
+  if (entry == null) {
+    return;
+  }
+  entry.running = {
+    ...entry.running,
+    runCommandStatus: status,
+    ...(error != null && error !== ''
+      ? { runCommandError: error }
+      : status === 'running' || status === 'restarting'
+        ? { runCommandError: undefined }
+        : {})
+  };
+  // Drop stale error text when recovering to a healthy/restarting state.
+  if (status === 'running' || status === 'restarting') {
+    delete entry.running.runCommandError;
+  }
+  emitServersChanged();
+}
+
+/**
+ * Closes a listening HTTP(S) server without throwing when already closed.
+ *
+ * @param server - Server to close.
+ */
+async function closeListenServer(server: LiveServerListenServer): Promise<void> {
+  await new Promise<void>((resolve) => {
+    server.close(() => {
+      resolve();
+    });
+  });
+}
+
+/**
  * Starts a live server instance.
  *
  * Listens on `config.host` (default loopback). When SSL is enabled, serves
  * HTTPS using the configured certificate and private key files. When
  * `config.port` is null, the next free port from 5500 upward is chosen. An
  * explicit busy port rejects.
+ *
+ * When `config.runCommand` is non-empty, starts a supervised companion process
+ * with cwd set to the document root after the HTTP server is listening. Spawn
+ * failure rolls back the listen (and watcher) and rejects.
  *
  * `RunningLiveServer.origin` uses `https` when SSL is on, and substitutes
  * `127.0.0.1` when the bind host is a wildcard (`0.0.0.0` / `::`) so Live Page
@@ -346,6 +399,7 @@ export async function startLiveServer(input: StartLiveServerInput): Promise<Runn
     corsSettings: config.cors,
     indexFiles: config.indexFiles,
     headers: config.headers,
+    proxies: config.proxies,
     routes: config.routes,
     onRequestLog: (fields) => {
       const entry: LiveServerRequestLogEntry = {
@@ -386,13 +440,35 @@ export async function startLiveServer(input: StartLiveServerInput): Promise<Runn
     }
   }
 
-  servers.set(id, { server, running, watcher, logs });
+  let runCommand: LiveServerRunCommandHandle | null = null;
+  if (config.runCommand !== '') {
+    try {
+      runCommand = await startLiveServerRunCommand({
+        command: config.runCommand,
+        cwd: config.root,
+        restartOnCrash: config.restartOnCrash,
+        onStatus: (status, error) => {
+          setRunCommandStatus(id, status, error);
+        }
+      });
+      running.runCommandStatus = 'running';
+    } catch (error) {
+      watcher?.stop();
+      await closeListenServer(server);
+      throw error;
+    }
+  }
+
+  servers.set(id, { server, running, watcher, runCommand, logs });
   emitServersChanged();
   return running;
 }
 
 /**
  * Stops one running live server.
+ *
+ * Stops the companion run command (if any) before closing the HTTP server so
+ * intentional Stop never triggers restart-on-crash.
  *
  * @param id - Runtime instance id.
  */
@@ -403,6 +479,9 @@ export async function stopLiveServer(id: string): Promise<void> {
   }
   servers.delete(id);
   entry.watcher?.stop();
+  if (entry.runCommand != null) {
+    await entry.runCommand.stop();
+  }
   await new Promise<void>((resolve, reject) => {
     entry.server.close((error) => {
       if (error) {

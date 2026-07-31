@@ -68,6 +68,35 @@ export const LIVE_SERVER_ROUTE_SCHEMA = {
 } as const;
 
 /**
+ * JSON schema for one live-server reverse-proxy rule (path prefix → upstream).
+ */
+export const LIVE_SERVER_PROXY_SCHEMA = {
+  type: 'object',
+  properties: {
+    path: {
+      type: 'string',
+      description: 'URL path prefix, e.g. `/api`. Use `/` or `*` for a catch-all (stored as `/`).'
+    },
+    target: {
+      type: 'string',
+      description:
+        'Upstream absolute `http://` or `https://` URL, optionally with a base path (e.g. `http://127.0.0.1:3000/v1`).'
+    },
+    stripPath: {
+      type: 'boolean',
+      description:
+        'When true (default), strip the matched prefix before forwarding to the upstream.'
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'When false, the rule is ignored. Defaults to true.'
+    }
+  },
+  required: ['path', 'target'],
+  additionalProperties: false
+} as const;
+
+/**
  * JSON schema for live-server HTTPS certificate paths (not PEM contents).
  */
 export const LIVE_SERVER_SSL_SCHEMA = {
@@ -168,10 +197,31 @@ export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
     description:
       'Ordered path routing rules applied after static miss (first match wins). Use match `*` and target `index.html` for SPA history fallback.'
   },
+  proxies: {
+    type: 'array',
+    items: LIVE_SERVER_PROXY_SCHEMA,
+    description:
+      'Ordered reverse-proxy rules applied before static (first match wins). Path prefix e.g. `/api` → absolute `http(s)://` target. WebSockets are not forwarded.'
+  },
   ssl: {
     ...LIVE_SERVER_SSL_SCHEMA,
     description:
       'HTTPS settings. Supply absolute certPath/keyPath when enabled; HarborClient does not generate certificates.'
+  },
+  runCommand: {
+    type: 'string',
+    description:
+      'Optional companion process command: absolute binary path plus args (e.g. `/usr/bin/node ./server.js`). Spawned without a shell when the live server starts; cwd is the document root. Empty means none. Pair with proxy rules to forward to the app.'
+  },
+  restartOnCrash: {
+    type: 'boolean',
+    description:
+      'When true and runCommand is set, restart the companion after an unexpected non-zero exit or signal (not on Stop or clean exit 0). Defaults to false.'
+  },
+  urlVariable: {
+    type: 'string',
+    description:
+      'Optional global variable name set to the server origin URL (e.g. `http://localhost:5500`) when the server starts. Empty means none. Use as `{{ server_url }}` in requests.'
   }
 } as const;
 
@@ -198,6 +248,16 @@ export const liveServerHeaderShape = z.object({
 export const liveServerRouteShape = z.object({
   match: z.string(),
   target: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Zod schema for a live-server reverse-proxy rule in MCP tool arguments.
+ */
+export const liveServerProxyShape = z.object({
+  path: z.string(),
+  target: z.string(),
+  stripPath: z.boolean().optional(),
   enabled: z.boolean().optional()
 });
 
@@ -233,5 +293,9 @@ export const liveServerExpandedConfigShape = {
   host: z.string().optional(),
   headers: z.array(liveServerHeaderShape).optional(),
   routes: z.array(liveServerRouteShape).optional(),
-  ssl: liveServerSslShape.optional()
+  proxies: z.array(liveServerProxyShape).optional(),
+  ssl: liveServerSslShape.optional(),
+  runCommand: z.string().optional(),
+  restartOnCrash: z.boolean().optional(),
+  urlVariable: z.string().optional()
 } as const;

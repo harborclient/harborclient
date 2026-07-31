@@ -128,6 +128,7 @@ import {
 import {
   normalizeLiveServerCorsSettings,
   normalizeLiveServerHeaders,
+  normalizeLiveServerProxies,
   normalizeLiveServerRoutes,
   normalizeLiveServerSslSettings
 } from '@harborclient/core/types';
@@ -145,6 +146,7 @@ import type {
   LiveServerAlias,
   LiveServerCorsSettings,
   LiveServerLogsQuery,
+  LiveServerProxy,
   LiveServerRequestLogEntry,
   LiveServerResponseHeader,
   LiveServerRoute,
@@ -2069,6 +2071,7 @@ type LiveServerSummary = {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  proxies: LiveServerProxy[];
   ssl: LiveServerSslSummary;
 };
 
@@ -2093,6 +2096,7 @@ type RunningLiveServerSummary = {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  proxies: LiveServerProxy[];
   ssl: LiveServerSslSummary;
 };
 
@@ -2132,6 +2136,7 @@ function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
     host: server.host,
     headers: server.headers,
     routes: server.routes,
+    proxies: server.proxies,
     ssl: summarizeLiveServerSsl(server.ssl)
   };
 }
@@ -2161,6 +2166,7 @@ function summarizeRunningLiveServer(server: RunningLiveServer): RunningLiveServe
     host: server.config.host,
     headers: server.config.headers,
     routes: server.config.routes,
+    proxies: server.config.proxies,
     ssl: summarizeLiveServerSsl(server.config.ssl)
   };
 }
@@ -2326,6 +2332,19 @@ function parseLiveServerRoutes(value: unknown): LiveServerRoute[] | undefined {
 }
 
 /**
+ * Parses optional reverse-proxy rules for create/start/update tools.
+ *
+ * @param value - Unknown proxies argument.
+ * @returns Normalized proxies, or undefined when the argument was omitted.
+ */
+function parseLiveServerProxies(value: unknown): LiveServerProxy[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return normalizeLiveServerProxies(value);
+}
+
+/**
  * Parses optional SSL settings for create/start/update tools.
  *
  * @param value - Unknown ssl argument.
@@ -2393,7 +2412,11 @@ async function startLiveServerTool(
             host: saved.host,
             headers: saved.headers,
             routes: saved.routes,
-            ssl: saved.ssl
+            proxies: saved.proxies,
+            ssl: saved.ssl,
+            runCommand: saved.runCommand,
+            restartOnCrash: saved.restartOnCrash,
+            urlVariable: saved.urlVariable
           }),
           openBrowser
         })
@@ -2431,6 +2454,7 @@ async function startLiveServerTool(
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
 
   const running = await ctx
@@ -2450,7 +2474,11 @@ async function startLiveServerTool(
           host: parsed.host,
           headers,
           routes,
-          ssl
+          proxies,
+          ssl,
+          runCommand: parsed.runCommand,
+          restartOnCrash: parsed.restartOnCrash,
+          urlVariable: parsed.urlVariable
         }),
         openBrowser
       })
@@ -2539,6 +2567,7 @@ async function createLiveServerTool(
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
 
   const created = await ctx
@@ -2556,7 +2585,11 @@ async function createLiveServerTool(
         host: parsed.host,
         headers,
         routes,
-        ssl
+        proxies,
+        ssl,
+        runCommand: parsed.runCommand,
+        restartOnCrash: parsed.restartOnCrash,
+        urlVariable: parsed.urlVariable
       })
     )
     .unwrap();
@@ -2605,6 +2638,7 @@ async function updateLiveServerTool(
   const existing = selectSavedLiveServers(ctx.getState()).find((entry) => entry.id === parsed.id);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
   const config = toLiveServerConfig({
     name,
@@ -2620,7 +2654,11 @@ async function updateLiveServerTool(
     host: parsed.host ?? existing?.host,
     headers: headers ?? existing?.headers,
     routes: routes ?? existing?.routes,
-    ssl: ssl ?? existing?.ssl
+    proxies: proxies ?? existing?.proxies,
+    ssl: ssl ?? existing?.ssl,
+    runCommand: parsed.runCommand ?? existing?.runCommand,
+    restartOnCrash: parsed.restartOnCrash ?? existing?.restartOnCrash,
+    urlVariable: parsed.urlVariable ?? existing?.urlVariable
   });
 
   await ctx

@@ -87,6 +87,16 @@ export interface StartLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Reverse-proxy rules (ad-hoc only).
+   */
+  proxies?: Array<{
+    path: string;
+    target: string;
+    stripPath?: boolean;
+    enabled?: boolean;
+  }>;
+
+  /**
    * HTTPS settings for this run (ad-hoc only).
    */
   ssl?: {
@@ -94,6 +104,21 @@ export interface StartLiveServerToolArgs {
     certPath?: string;
     keyPath?: string;
   };
+
+  /**
+   * Companion process command for this run (ad-hoc only).
+   */
+  runCommand?: string;
+
+  /**
+   * Restart companion after unexpected crash (ad-hoc only).
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start (ad-hoc only).
+   */
+  urlVariable?: string;
 
   /**
    * When true (default), opens a browser tab at the resolved open URL after start.
@@ -117,7 +142,11 @@ export interface StartLiveServerToolArgs {
  * @param {string} [host] - Listen bind host (ad-hoc).
  * @param {object[]} [headers] - Custom response headers (ad-hoc).
  * @param {object[]} [routes] - Path routing rules (ad-hoc).
+ * @param {object[]} [proxies] - Reverse-proxy path-prefix rules (ad-hoc).
  * @param {object} [ssl] - HTTPS cert/key paths (ad-hoc).
+ * @param {string} [runCommand] - Companion process command (ad-hoc).
+ * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash (ad-hoc).
+ * @param {string} [urlVariable] - Global variable name set to the server origin URL on start (ad-hoc).
  * @param {boolean} [openBrowser] - Whether to open a browser tab (default true).
  */
 export const startLiveServerTool = {
@@ -127,7 +156,7 @@ export const startLiveServerTool = {
     function: {
       name: 'start_live_server',
       description:
-        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Ad-hoc starts accept openPath, rememberLastUrl, indexFiles, host, headers, routes, and ssl (cert/key file paths). Returns runtime id, port, and origin (loopback-friendly when bound to 0.0.0.0). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
+        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Ad-hoc starts accept openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl (cert/key file paths), runCommand, restartOnCrash, and urlVariable. Returns runtime id, port, and origin (loopback-friendly when bound to 0.0.0.0). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
       parameters: {
         type: 'object',
         properties: {

@@ -83,7 +83,11 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
       host: saved.host,
       headers: saved.headers,
       routes: saved.routes,
-      ssl: saved.ssl
+      proxies: saved.proxies,
+      ssl: saved.ssl,
+      runCommand: saved.runCommand,
+      restartOnCrash: saved.restartOnCrash,
+      urlVariable: saved.urlVariable
     },
     port: 5500,
     origin: 'http://127.0.0.1:5500',
@@ -178,7 +182,18 @@ describe('hostLiveServerCommands', () => {
           host: '0.0.0.0',
           headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
           routes: [{ match: '*', target: 'index.html', enabled: true }],
-          ssl: { enabled: false, certPath: '', keyPath: '' }
+          proxies: [
+            {
+              path: '/api',
+              target: 'http://127.0.0.1:3000',
+              stripPath: true,
+              enabled: true
+            }
+          ],
+          ssl: { enabled: false, certPath: '', keyPath: '' },
+          runCommand: '',
+          restartOnCrash: false,
+          urlVariable: ''
         }
       })
     ).resolves.toEqual(running);
@@ -192,7 +207,18 @@ describe('hostLiveServerCommands', () => {
           host: '0.0.0.0',
           headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
           routes: [{ match: '*', target: 'index.html', enabled: true }],
+          proxies: [
+            {
+              path: '/api',
+              target: 'http://127.0.0.1:3000',
+              stripPath: true,
+              enabled: true
+            }
+          ],
           ssl: { enabled: false, certPath: '', keyPath: '' },
+          runCommand: '',
+          restartOnCrash: false,
+          urlVariable: '',
           cors: expect.objectContaining({
             exposedHeaders: 'X-Request-Id',
             maxAge: '600'

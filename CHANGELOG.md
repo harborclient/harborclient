@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(live-server): add reverse proxy support and enhance server configuration. (`dc483636`)
+
 ## 2.9.1 - 2026-07-31
 
 - feat(live-server): enhance SSL and routing features. (`21c7007b`)

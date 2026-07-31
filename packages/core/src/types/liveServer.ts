@@ -38,6 +38,36 @@ export interface LiveServerRoute {
 }
 
 /**
+ * One reverse-proxy rule for a live server (path prefix → HTTP/HTTPS upstream).
+ *
+ * Rules mount before aliases and document-root static. First matching enabled
+ * prefix wins. WebSocket upgrades are not forwarded in v1.
+ */
+export interface LiveServerProxy {
+  /**
+   * URL path prefix, e.g. `/api`. Use `/` or `*` for a catch-all (stored as `/`).
+   */
+  path: string;
+
+  /**
+   * Upstream absolute URL origin, optionally with a base path, e.g.
+   * `http://127.0.0.1:3000` or `http://127.0.0.1:3000/v1`.
+   */
+  target: string;
+
+  /**
+   * When true (default), strip the matched prefix before appending to the
+   * upstream URL path.
+   */
+  stripPath?: boolean;
+
+  /**
+   * When false, the rule is ignored. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
  * One custom response header applied by a live server.
  */
 export interface LiveServerResponseHeader {
@@ -303,6 +333,36 @@ export function normalizeLiveServerHost(value: unknown): string {
 }
 
 /**
+ * Normalizes the optional companion process command string.
+ *
+ * Non-strings become `''`. Whitespace is trimmed; empty means no command.
+ *
+ * @param value - Raw command from storage or the editor.
+ * @returns Trimmed command string, or empty when unset.
+ */
+export function normalizeLiveServerRunCommand(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+}
+
+/**
+ * Normalizes the optional global-variable name that receives the server origin URL.
+ *
+ * Non-strings become `''`. Whitespace is trimmed; empty means do not set a variable.
+ *
+ * @param value - Raw variable name from storage or the editor.
+ * @returns Trimmed variable key, or empty when unset.
+ */
+export function normalizeLiveServerUrlVariable(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+}
+
+/**
  * Normalizes a response-header list from storage or IPC.
  *
  * Corrupt entries are skipped. Names and values are coerced to trimmed strings;
@@ -373,6 +433,89 @@ export function normalizeLiveServerRoutes(value: unknown): LiveServerRoute[] {
     });
   }
   return routes;
+}
+
+/**
+ * Default reverse-proxy rules for a new live server (none).
+ *
+ * @returns A fresh empty proxy list.
+ */
+export function defaultLiveServerProxies(): LiveServerProxy[] {
+  return [];
+}
+
+/**
+ * Normalizes a proxy path prefix: leading `/`, no trailing `/`.
+ *
+ * Empty strings are invalid. `/` and `*` are catch-alls and canonicalize to `/`.
+ *
+ * @param value - Raw path from storage or the editor.
+ * @returns Normalized prefix, or `null` when invalid.
+ */
+export function normalizeLiveServerProxyPath(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  if (trimmed === '/' || trimmed === '*') {
+    return '/';
+  }
+  const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  const withoutTrailing = withSlash.endsWith('/') ? withSlash.slice(0, -1) : withSlash;
+  return withoutTrailing === '' ? null : withoutTrailing;
+}
+
+/**
+ * Returns whether a proxy target string is a usable http(s) absolute URL.
+ *
+ * @param value - Trimmed target URL string.
+ * @returns True when the URL has an http or https scheme and a host.
+ */
+export function isValidLiveServerProxyTarget(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname !== '';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Normalizes a reverse-proxy rule list from storage or IPC.
+ *
+ * Corrupt entries and rows with an invalid path prefix or non-http(s) target
+ * are dropped. `stripPath` and `enabled` default to true when omitted. Order
+ * is preserved (first match wins at runtime).
+ *
+ * @param value - Array of proxy rows, or unknown legacy payload.
+ * @returns Normalized proxy rows (may be empty).
+ */
+export function normalizeLiveServerProxies(value: unknown): LiveServerProxy[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const proxies: LiveServerProxy[] = [];
+  for (const entry of value) {
+    if (entry == null || typeof entry !== 'object') {
+      continue;
+    }
+    const row = entry as Partial<LiveServerProxy>;
+    const path = normalizeLiveServerProxyPath(row.path);
+    const target = typeof row.target === 'string' ? row.target.trim() : '';
+    if (path == null || target === '' || !isValidLiveServerProxyTarget(target)) {
+      continue;
+    }
+    proxies.push({
+      path,
+      target,
+      stripPath: row.stripPath !== false,
+      enabled: row.enabled !== false
+    });
+  }
+  return proxies;
 }
 
 /**
@@ -507,9 +650,29 @@ export interface LiveServerConfigFieldInput {
   routes?: unknown;
 
   /**
+   * Reverse-proxy rules (path prefix → upstream).
+   */
+  proxies?: unknown;
+
+  /**
    * TLS certificate settings.
    */
   ssl?: unknown;
+
+  /**
+   * Optional companion process command (absolute binary + args).
+   */
+  runCommand?: unknown;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash?: unknown;
+
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable?: unknown;
 }
 
 /**
@@ -552,14 +715,37 @@ export interface LiveServerConfigFields {
   routes: LiveServerRoute[];
 
   /**
+   * Ordered reverse-proxy rules applied before static (first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings for HTTPS listen.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected non-zero exit
+   * or signal (not on intentional Stop or clean exit 0).
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 }
 
 /**
  * Normalizes the expanded live-server config fields added for open path, index
- * files, bind host, response headers, routing rules, and SSL.
+ * files, bind host, response headers, routing rules, reverse proxies, SSL,
+ * optional companion run command, and URL variable.
  *
  * Pure and dependency-free so storage, IPC, and UI can share one code path.
  * Callers still merge these onto name/root/port/aliases/watch/cors separately.
@@ -579,7 +765,11 @@ export function normalizeLiveServerConfigFields(
       host: normalizeLiveServerHost(undefined),
       headers: [],
       routes: defaultLiveServerRoutes(),
-      ssl: defaultLiveServerSslSettings()
+      proxies: defaultLiveServerProxies(),
+      ssl: defaultLiveServerSslSettings(),
+      runCommand: normalizeLiveServerRunCommand(undefined),
+      restartOnCrash: false,
+      urlVariable: normalizeLiveServerUrlVariable(undefined)
     };
   }
   return {
@@ -590,11 +780,15 @@ export function normalizeLiveServerConfigFields(
     host: normalizeLiveServerHost(value.host),
     headers: normalizeLiveServerHeaders(value.headers),
     routes: normalizeLiveServerRoutes(value.routes),
+    proxies: normalizeLiveServerProxies(value.proxies),
     ssl: normalizeLiveServerSslSettings(
       value.ssl != null && typeof value.ssl === 'object'
         ? (value.ssl as Partial<LiveServerSslSettings>)
         : undefined
-    )
+    ),
+    runCommand: normalizeLiveServerRunCommand(value.runCommand),
+    restartOnCrash: value.restartOnCrash === true,
+    urlVariable: normalizeLiveServerUrlVariable(value.urlVariable)
   };
 }
 
@@ -674,9 +868,30 @@ export interface LiveServerConfig {
   routes: LiveServerRoute[];
 
   /**
+   * Ordered reverse-proxy rules applied before static (first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings for HTTPS listen.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 }
 
 /**
@@ -762,9 +977,30 @@ export interface LiveServer {
   routes: LiveServerRoute[];
 
   /**
+   * Ordered reverse-proxy rules applied before static (first match wins).
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings for HTTPS listen.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 
   /**
    * Sort order within the Live Servers sidebar section.
@@ -855,9 +1091,29 @@ export interface CreateLiveServerInput {
   routes?: LiveServerRoute[];
 
   /**
+   * Reverse-proxy rules. Defaults to `[]`.
+   */
+  proxies?: LiveServerProxy[];
+
+  /**
    * TLS settings. Defaults to {@link defaultLiveServerSslSettings}.
    */
   ssl?: LiveServerSslSettings;
+
+  /**
+   * Companion process command. Defaults to `''` (none).
+   */
+  runCommand?: string;
+
+  /**
+   * Whether to restart the companion on crash. Defaults to false.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start. Defaults to `''`.
+   */
+  urlVariable?: string;
 }
 
 /**
@@ -938,9 +1194,30 @@ export interface UpdateLiveServerInput {
   routes: LiveServerRoute[];
 
   /**
+   * Reverse-proxy rules.
+   */
+  proxies: LiveServerProxy[];
+
+  /**
    * TLS settings.
    */
   ssl: LiveServerSslSettings;
+
+  /**
+   * Companion process command (absolute binary + args). Empty means none.
+   */
+  runCommand: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Global variable name set to the server origin URL when the server starts.
+   * Empty means do not write a variable.
+   */
+  urlVariable: string;
 }
 
 /**
@@ -1001,7 +1278,23 @@ export interface RunningLiveServer {
    * When true, file watching was requested but could not be started.
    */
   watchUnavailable?: boolean;
+
+  /**
+   * Lifecycle status of the optional companion `runCommand` process.
+   */
+  runCommandStatus?: LiveServerRunCommandStatus;
+
+  /**
+   * Short error message when the companion process failed to start or exhausted
+   * restart attempts; omitted when healthy.
+   */
+  runCommandError?: string;
 }
+
+/**
+ * Companion process lifecycle for a running live server.
+ */
+export type LiveServerRunCommandStatus = 'running' | 'exited' | 'restarting' | 'failed';
 
 /**
  * Payload pushed when a watched live server detects a file change.

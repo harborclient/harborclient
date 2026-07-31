@@ -239,7 +239,11 @@ describe('buildAiScriptReferenceValidationContext', () => {
         host: saved.host,
         headers: saved.headers,
         routes: saved.routes,
-        ssl: saved.ssl
+        proxies: saved.proxies,
+        ssl: saved.ssl,
+        runCommand: saved.runCommand,
+        restartOnCrash: saved.restartOnCrash,
+        urlVariable: saved.urlVariable
       },
       port: 5509,
       origin: 'http://127.0.0.1:5509',

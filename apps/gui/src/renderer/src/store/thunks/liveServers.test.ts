@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerSslSettings
@@ -107,6 +107,28 @@ describe('toLiveServerConfig', () => {
       keyPath: '/tmp/key.pem'
     });
   });
+
+  it('trims urlVariable and defaults to empty', () => {
+    expect(
+      toLiveServerConfig({
+        name: 'Site',
+        root: '/tmp/site',
+        port: null,
+        aliases: [],
+        watch: true
+      }).urlVariable
+    ).toBe('');
+    expect(
+      toLiveServerConfig({
+        name: 'Site',
+        root: '/tmp/site',
+        port: null,
+        aliases: [],
+        watch: true,
+        urlVariable: '  server_url  '
+      }).urlVariable
+    ).toBe('server_url');
+  });
 });
 
 /**
@@ -132,7 +154,11 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     host: '127.0.0.1',
     headers: [],
     routes: [],
+    proxies: [],
     ssl: defaultLiveServerSslSettings(),
+    runCommand: '',
+    restartOnCrash: false,
+    urlVariable: '',
     sortOrder: 0,
     createdAt: 0,
     updatedAt: 0,
@@ -203,6 +229,15 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
     expect(liveServerRuntimeConfigNeedsRestart(draft, running)).toBe(true);
   });
 
+  it('returns true when proxies differ', () => {
+    const running = baseConfig();
+    const draft = toLiveServerConfig({
+      ...running,
+      proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }]
+    });
+    expect(liveServerRuntimeConfigNeedsRestart(draft, running)).toBe(true);
+  });
+
   it('returns true when host, headers, or SSL differ', () => {
     const running = baseConfig();
     expect(
@@ -229,6 +264,29 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
         running
       )
     ).toBe(true);
+    expect(
+      liveServerRuntimeConfigNeedsRestart(
+        toLiveServerConfig({
+          ...running,
+          runCommand: '/usr/bin/node ./server.js',
+          restartOnCrash: true
+        }),
+        running
+      )
+    ).toBe(true);
+  });
+
+  it('ignores urlVariable changes for restart detection', () => {
+    const running = baseConfig();
+    expect(
+      liveServerRuntimeConfigNeedsRestart(
+        toLiveServerConfig({
+          ...running,
+          urlVariable: 'server_url'
+        }),
+        running
+      )
+    ).toBe(false);
   });
 
   it('does not false-positive on equivalent normalized defaults', () => {
@@ -241,6 +299,7 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
       watch: running.watch,
       cors: undefined,
       routes: [],
+      proxies: [],
       headers: [],
       ssl: undefined
     });
@@ -316,5 +375,115 @@ describe('resolveLiveServerLastOpenedPersist', () => {
         saved: [makeSaved()]
       })
     ).toBeNull();
+  });
+});
+
+const setGlobalVariableMock = vi.hoisted(() => vi.fn());
+
+vi.mock('#/renderer/src/plugins/hostGlobalsCommands', () => ({
+  setGlobalVariable: (...args: unknown[]) => setGlobalVariableMock(...args)
+}));
+
+vi.mock('react-hot-toast', () => ({
+  default: {
+    success: vi.fn(),
+    error: vi.fn()
+  }
+}));
+
+describe('startLiveServer urlVariable', () => {
+  const startLiveServerApiMock = vi.fn();
+  const listRunningLiveServersMock = vi.fn();
+
+  beforeEach(() => {
+    setGlobalVariableMock.mockReset();
+    setGlobalVariableMock.mockResolvedValue(undefined);
+    startLiveServerApiMock.mockReset();
+    listRunningLiveServersMock.mockReset();
+    vi.stubGlobal('window', {
+      api: {
+        startLiveServer: startLiveServerApiMock,
+        listRunningLiveServers: listRunningLiveServersMock
+      }
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sets the configured global variable to the server origin on start', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { startLiveServer } = await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 6003,
+      aliases: [],
+      watch: true,
+      urlVariable: 'server_url'
+    });
+    const running: RunningLiveServer = {
+      id: 'run-url',
+      savedId: null,
+      config,
+      port: 6003,
+      origin: 'http://localhost:6003',
+      startedAt: 1
+    };
+    startLiveServerApiMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    await store.dispatch(startLiveServer({ config, openBrowser: false }) as never);
+
+    expect(setGlobalVariableMock).toHaveBeenCalledWith('server_url', 'http://localhost:6003');
+  });
+
+  it('does not set a global when urlVariable is empty', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { startLiveServer } = await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 6003,
+      aliases: [],
+      watch: true
+    });
+    const running: RunningLiveServer = {
+      id: 'run-url',
+      savedId: null,
+      config,
+      port: 6003,
+      origin: 'http://localhost:6003',
+      startedAt: 1
+    };
+    startLiveServerApiMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    await store.dispatch(startLiveServer({ config, openBrowser: false }) as never);
+
+    expect(setGlobalVariableMock).not.toHaveBeenCalled();
   });
 });

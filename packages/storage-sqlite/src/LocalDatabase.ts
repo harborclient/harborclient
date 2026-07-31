@@ -30,6 +30,7 @@ import type {
   LiveServer,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
   LiveServerSslSettings,
@@ -95,7 +96,11 @@ interface LiveServerPayloadJson {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  proxies: LiveServerProxy[];
   ssl: LiveServerSslSettings;
+  runCommand: string;
+  restartOnCrash: boolean;
+  urlVariable: string;
 }
 
 /**
@@ -3309,7 +3314,11 @@ export class LocalDatabase {
         host: payload.host,
         headers: payload.headers,
         routes: payload.routes,
+        proxies: payload.proxies,
         ssl: payload.ssl,
+        runCommand: payload.runCommand,
+        restartOnCrash: payload.restartOnCrash,
+        urlVariable: payload.urlVariable,
         sortOrder: row.sort_order,
         createdAt: row.created_at,
         updatedAt: row.updated_at

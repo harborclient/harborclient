@@ -1125,7 +1125,11 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
+      runCommand: '',
+      restartOnCrash: false,
+      urlVariable: '',
       cors: {
         enabled: true,
         origin: '*',
@@ -1158,11 +1162,22 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      proxies: [
+        {
+          path: '/api',
+          target: 'http://127.0.0.1:3000/v1',
+          stripPath: true,
+          enabled: true
+        }
+      ],
       ssl: {
         enabled: true,
         certPath: '/tmp/cert.pem',
         keyPath: '/tmp/key.pem'
-      }
+      },
+      runCommand: '/usr/bin/node ./server.js',
+      restartOnCrash: true,
+      urlVariable: 'server_url'
     });
 
     expect(updated[0]).toMatchObject({
@@ -1178,11 +1193,22 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      proxies: [
+        {
+          path: '/api',
+          target: 'http://127.0.0.1:3000/v1',
+          stripPath: true,
+          enabled: true
+        }
+      ],
       ssl: {
         enabled: true,
         certPath: '/tmp/cert.pem',
         keyPath: '/tmp/key.pem'
       },
+      runCommand: '/usr/bin/node ./server.js',
+      restartOnCrash: true,
+      urlVariable: 'server_url',
       cors: {
         origin: 'https://example.com',
         exposedHeaders: 'X-Exposed',
@@ -1236,7 +1262,11 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
+      runCommand: '',
+      restartOnCrash: false,
+      urlVariable: '',
       cors: {
         exposedHeaders: '',
         maxAge: ''
