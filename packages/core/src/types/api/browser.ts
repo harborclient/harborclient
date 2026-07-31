@@ -1,6 +1,11 @@
 import type { AuthConfig } from '../../auth';
 import type { KeyValue } from '../common';
-import type { ScriptExecutionEvent, ScriptRunError, ScriptTestResult } from '../script';
+import type {
+  ScriptExecutionEvent,
+  ScriptLogEntry,
+  ScriptRunError,
+  ScriptTestResult
+} from '../script';
 import type { SendResult } from '../request';
 
 /**
@@ -305,9 +310,9 @@ export interface BrowserConsoleEntryPayload {
   result: SendResult;
 
   /**
-   * Labeled pre/post script console output lines, when any ran.
+   * Pre/post script console output with script ownership metadata, when any ran.
    */
-  logs?: string[];
+  logs?: ScriptLogEntry[];
 
   /**
    * Test assertions from pre/post scripts, when any ran.

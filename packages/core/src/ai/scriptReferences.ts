@@ -9,6 +9,7 @@ import {
   type ParsedMarkdownReference,
   type ParsedPluginReference,
   type ParsedRequestBodyReference,
+  type ParsedConsoleReference,
   type ParsedRequestScriptReference,
   type ParsedResponseSectionReference,
   type ParsedTerminalReference,
@@ -47,6 +48,7 @@ export {
   type ParsedMarkdownReference,
   type ParsedPluginReference,
   type ParsedRequestBodyReference,
+  type ParsedConsoleReference,
   type ParsedRequestReference,
   type ParsedRequestScriptReference,
   type ParsedResponseSectionReference,
@@ -57,6 +59,7 @@ export {
   type PersistedChatReferenceSnapshots,
   type PluginChatPointerSnapshot,
   type RequestBodySelectionSnapshot,
+  type ConsoleRowSnapshot,
   type ResponseSectionSnapshot,
   type ScriptSelectionLastRunFailure,
   type ScriptSelectionSnapshot,
@@ -77,6 +80,12 @@ export {
   getPluginChatPointerGuidance,
   resetChatPointerRegistryForTests
 } from './chatPointers/registry.js';
+
+export {
+  buildConsoleReferenceToken,
+  slugifyConsolePointerSegment,
+  CONSOLE_POINTER_SEGMENT_PATTERN
+} from './chatPointers/consolePointer.js';
 
 export {
   buildPluginChatPointerToken,
@@ -337,6 +346,14 @@ export function isValidAiScriptReference(
     return context.requestBodySelections?.[reference.text] != null;
   }
 
+  if (reference.kind === 'console') {
+    if (reference.selection == null) {
+      return false;
+    }
+
+    return context.consoleSelections?.[reference.text] != null;
+  }
+
   if (reference.kind === 'response-section') {
     return context.responseSelections?.[reference.text] != null;
   }
@@ -463,6 +480,10 @@ export function resolveAiScriptReferenceName(
     return context.requestBodySelections?.[reference.text]?.label ?? null;
   }
 
+  if (reference.kind === 'console') {
+    return context.consoleSelections?.[reference.text]?.label ?? null;
+  }
+
   if (reference.kind === 'response-section') {
     return context.responseSelections?.[reference.text]?.label ?? null;
   }
@@ -559,6 +580,7 @@ function resolveReferenceSourceCode(
     reference.kind === 'logs' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
+    reference.kind === 'console' ||
     reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
@@ -703,6 +725,10 @@ export function resolveAiScriptReferenceLabel(
     }
 
     return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+  }
+
+  if (reference.kind === 'console') {
+    return name;
   }
 
   if (reference.kind === 'response-section') {
@@ -958,6 +984,49 @@ function formatResponseSectionContextBlock(
 }
 
 /**
+ * Formats one resolved `@console` row selection for the agent context block.
+ *
+ * @param reference - Parsed `@console` reference with a character-range suffix.
+ * @param context - Console selection snapshots keyed by reference token.
+ * @returns Context block for one console reference, or null when not resolvable.
+ */
+function formatConsoleSelectionContextBlock(
+  reference: ParsedConsoleReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.consoleSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const statusLine =
+    snapshot.error != null
+      ? `Transport error: ${snapshot.error}`
+      : snapshot.status != null
+        ? `Status: ${snapshot.status}${snapshot.statusText ? ` ${snapshot.statusText}` : ''}`
+        : null;
+
+  return [
+    `Reference ${reference.text} — response console section "${snapshot.section}" row "${snapshot.rowLabel}" (${snapshot.row}).`,
+    ...(snapshot.requestName ? [`Request: ${snapshot.requestName}`] : []),
+    ...(statusLine ? [statusLine] : []),
+    `Full cell text:`,
+    '```text',
+    snapshot.fieldText,
+    '```',
+    `Selected text (characters ${snapshot.startOffset}–${snapshot.endOffset}):`,
+    '```text',
+    snapshot.selectedText,
+    '```',
+    'Answer from this captured console-row context first. Call get_active_response_console for the live inspector (general, headers, timing). Use get_active_response_summary / get_active_response for body/tests, and get_script_run_diagnostics for script logs/output. Console-row references cannot be edited via tools.'
+  ].join('\n');
+}
+
+/**
  * Formats one resolved raw-body selection reference for the agent context block.
  *
  * @param reference - Parsed `@body` reference with a character-range suffix.
@@ -1134,6 +1203,10 @@ function formatScriptSelectionContextBlock(
     return formatRequestBodySelectionContextBlock(reference, context);
   }
 
+  if (reference.kind === 'console') {
+    return formatConsoleSelectionContextBlock(reference, context);
+  }
+
   if (reference.kind === 'response-section') {
     return formatResponseSectionContextBlock(reference, context);
   }
@@ -1220,6 +1293,7 @@ function formatWholeScriptReferenceContextBlock(
     reference.kind === 'logs' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
+    reference.kind === 'console' ||
     reference.kind === 'response-section' ||
     reference.kind === 'collection' ||
     reference.kind === 'folder' ||
@@ -1533,6 +1607,9 @@ export function buildAiScriptSelectionContextMessage(
   const hasBodySelection = resolved.some(
     (entry) => entry.reference.kind === 'body' && entry.reference.selection != null
   );
+  const hasConsoleSelection = resolved.some(
+    (entry) => entry.reference.kind === 'console' && entry.reference.selection != null
+  );
   const hasResponseBodySelection = resolved.some(
     (entry) =>
       entry.reference.kind === 'response-section' &&
@@ -1581,6 +1658,11 @@ export function buildAiScriptSelectionContextMessage(
       'The user selected raw request body text and is asking specifically about the SELECTED TEXT below.'
     );
   }
+  if (hasConsoleSelection) {
+    headerParts.push(
+      'The user selected a response Console, Headers, or Timing inspector value and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
   if (hasResponseBodySelection) {
     headerParts.push(
       'The user selected part of an HTTP response body and is asking specifically about the SELECTED TEXT below.'
@@ -1618,6 +1700,10 @@ export function buildAiScriptSelectionContextMessage(
     footerParts.push(
       'Focus your answer on the selected raw body region. Call get_active_request_details when you need the full body, and use update_active_request with body_raw to edit it.'
     );
+  } else if (hasConsoleSelection) {
+    footerParts.push(
+      'Focus your answer on the selected console/header/timing cell. Call get_active_response_console for the live inspector; use get_active_response_summary / get_active_response and get_script_run_diagnostics when you need more detail.'
+    );
   } else if (hasMarkdownSelection) {
     footerParts.push(
       'Focus your answer on the selected markdown region. Call get_markdown_document when you need the full document or comment source.'
@@ -1646,6 +1732,12 @@ export function buildAiScriptSelectionContextMessage(
   if (hasBodySelection) {
     footerParts.push(
       'Raw body selections referenced with @body#start.end can be edited via update_active_request with body_raw (verbatim wire text for multipart/urlencoded). Prefer body_raw over structured body when the user is editing the Raw body drawer.'
+    );
+  }
+
+  if (hasConsoleSelection) {
+    footerParts.push(
+      'Console-row references (@console.<section>.<row>#start.end) cannot be edited via tools. Answer from the captured cell; call get_active_response_console when you need the live inspector.'
     );
   }
 
@@ -1796,6 +1888,14 @@ export function collectChatReferenceSnapshots(
       continue;
     }
 
+    if (reference.kind === 'console') {
+      const snapshot = context.consoleSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'console', snapshot };
+      }
+      continue;
+    }
+
     if (reference.kind === 'plugin') {
       const snapshot = context.pluginSelections?.[reference.text];
       if (snapshot != null) {
@@ -1889,6 +1989,10 @@ function collectSnapshotForPointer(
   if (reference.kind === 'body') {
     const snapshot = context.requestBodySelections?.[reference.text];
     return snapshot != null ? { kind: 'body', snapshot } : null;
+  }
+  if (reference.kind === 'console') {
+    const snapshot = context.consoleSelections?.[reference.text];
+    return snapshot != null ? { kind: 'console', snapshot } : null;
   }
   if (reference.kind === 'plugin') {
     const snapshot = context.pluginSelections?.[reference.text];

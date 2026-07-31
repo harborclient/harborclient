@@ -1,5 +1,6 @@
 import jmespath from 'jmespath';
 import type { ChatStepMessage, ScriptTestResult, SendResult } from '../types';
+import { slugifyConsolePointerSegment } from './chatPointers/consolePointer.js';
 
 /**
  * Character count for response body previews in summary tools.
@@ -114,6 +115,71 @@ export interface AgentHttpResponse {
    * Original body length before truncation.
    */
   bodyOriginalLength?: number;
+}
+
+/**
+ * One timing phase row returned by {@link formatActiveResponseConsole}.
+ */
+export interface AgentResponseConsoleTimingPhase {
+  /**
+   * Stable timing phase id from the waterfall.
+   */
+  id: string;
+
+  /**
+   * Human-readable phase label.
+   */
+  label: string;
+
+  /**
+   * Slugified label matching `@console.timing.<slug>` row ids.
+   */
+  slug: string;
+
+  /**
+   * Phase duration in milliseconds.
+   */
+  durationMs: number;
+
+  /**
+   * Offset from request start when this phase begins.
+   */
+  startMs: number;
+}
+
+/**
+ * Structured Console / Headers / Timing inspector payload for agent tools.
+ */
+export interface AgentResponseConsole {
+  /**
+   * General inspector rows matching the Console tab.
+   */
+  general: {
+    requestUrl: string;
+    requestMethod: string;
+    statusCode: string;
+    error?: string;
+    timeMs: number;
+    sizeBytes: number;
+  };
+
+  /**
+   * Outbound request headers from the last send.
+   */
+  requestHeaders: Record<string, string>;
+
+  /**
+   * Response headers from the last send.
+   */
+  responseHeaders: Record<string, string>;
+
+  /**
+   * Timing waterfall for the last send.
+   */
+  timing: {
+    totalMs: number;
+    phases: AgentResponseConsoleTimingPhase[];
+  };
 }
 
 /**
@@ -313,6 +379,75 @@ export function formatHttpResponseForAgent(
     ...base,
     body: body.text,
     ...(body.truncated ? { bodyTruncated: true, bodyOriginalLength: body.originalLength } : {})
+  };
+}
+
+/**
+ * Builds timing phase rows for the agent console inspector.
+ *
+ * @param response - Last send result.
+ * @returns Ordered phases with cumulative start offsets.
+ */
+function buildAgentTimingPhases(response: SendResult): AgentResponseConsoleTimingPhase[] {
+  const timing = response.timing;
+  if (timing == null) {
+    return [];
+  }
+
+  const definitions: Array<{
+    id: string;
+    label: string;
+    value: number | undefined;
+  }> = [
+    { id: 'stalled', label: 'Stalled', value: timing.stalledMs },
+    { id: 'connect', label: 'Connect', value: timing.connectMs },
+    { id: 'requestSent', label: 'Request sent', value: timing.requestSentMs },
+    { id: 'waiting', label: 'Waiting for server response', value: timing.waitingMs },
+    { id: 'download', label: 'Content download', value: timing.downloadMs }
+  ];
+
+  let startMs = 0;
+  const phases: AgentResponseConsoleTimingPhase[] = [];
+  for (const definition of definitions) {
+    if (definition.value == null) {
+      continue;
+    }
+    const durationMs = Math.max(0, Math.round(definition.value));
+    const slug = slugifyConsolePointerSegment(definition.label);
+    phases.push({
+      id: definition.id,
+      label: definition.label,
+      slug,
+      durationMs,
+      startMs
+    });
+    startMs += durationMs;
+  }
+  return phases;
+}
+
+/**
+ * Formats the Console / Headers / Timing inspector for agent tools.
+ *
+ * @param response - Last send result from the active tab.
+ * @returns Structured inspector payload matching `@console` sections.
+ */
+export function formatActiveResponseConsole(response: SendResult): AgentResponseConsole {
+  return {
+    general: {
+      requestUrl: response.request?.url ?? '-',
+      requestMethod: response.request?.method ?? '-',
+      statusCode: response.error ? 'Error' : `${response.status} ${response.statusText}`,
+      ...(response.error ? { error: response.error } : {}),
+      timeMs: response.timeMs,
+      sizeBytes: response.sizeBytes
+    },
+    requestHeaders: { ...(response.request?.headers ?? {}) },
+    responseHeaders: { ...response.headers },
+    timing: {
+      totalMs: response.timeMs,
+      phases: buildAgentTimingPhases(response)
+    }
   };
 }
 

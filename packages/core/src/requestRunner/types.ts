@@ -6,6 +6,7 @@ import type {
   GeneralSettings,
   KeyValue,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRequestContext,
   ScriptTestResult,
   SendRequestInput,
@@ -203,9 +204,9 @@ export interface RunRequestResult {
   testResults: ScriptTestResult[];
 
   /**
-   * Script console messages with their script labels.
+   * Script console messages with host-filled script ownership metadata.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered script variable and flow-control events.

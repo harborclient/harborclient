@@ -123,7 +123,7 @@ describe('buildWorkflowRunRequestResult', () => {
       timeMs: 1,
       tests: [],
       data: {},
-      scriptLogs: ['pre: hello'],
+      scriptLogs: [{ message: 'pre: hello', level: 'log', method: 'log', scriptName: 'Pre' }],
       executionEvents: [
         { type: 'variable', scope: 'environment', action: 'set', key: 'a', value: '1' }
       ],
@@ -131,7 +131,9 @@ describe('buildWorkflowRunRequestResult', () => {
       scriptErrors: [{ message: 'boom', scriptName: 'post', phase: 'post' }]
     });
 
-    expect(entry.response.scriptLogs).toEqual(['pre: hello']);
+    expect(entry.response.scriptLogs).toEqual([
+      { message: 'pre: hello', level: 'log', method: 'log', scriptName: 'Pre' }
+    ]);
     expect(entry.response.executionEvents).toEqual([
       { type: 'variable', scope: 'environment', action: 'set', key: 'a', value: '1' }
     ]);

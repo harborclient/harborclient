@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatExecutionEventKey,
+  formatExecutionEventValue,
   formatFlowExecutionDetail,
   formatFlowExecutionLabel,
   formatVariableExecutionDetail,
@@ -102,5 +104,54 @@ describe('executionEventLabels', () => {
         key: 'token'
       })
     ).toBe('token');
+  });
+
+  it('splits key and value columns for variable and flow events', () => {
+    expect(
+      formatExecutionEventKey({
+        type: 'variable',
+        scope: 'collection',
+        action: 'update',
+        key: 'refreshToken',
+        value: 'jwt'
+      })
+    ).toBe('refreshToken');
+    expect(
+      formatExecutionEventValue({
+        type: 'variable',
+        scope: 'collection',
+        action: 'update',
+        key: 'refreshToken',
+        value: 'jwt'
+      })
+    ).toBe('jwt');
+    expect(
+      formatExecutionEventValue({
+        type: 'variable',
+        scope: 'request',
+        action: 'clear',
+        key: 'token'
+      })
+    ).toBeUndefined();
+    expect(
+      formatExecutionEventKey({
+        type: 'flow',
+        action: 'set-next-request',
+        nextRequest: 'Login'
+      })
+    ).toBeUndefined();
+    expect(
+      formatExecutionEventValue({
+        type: 'flow',
+        action: 'set-next-request',
+        nextRequest: 'Login'
+      })
+    ).toBe('Login');
+    expect(
+      formatExecutionEventValue({
+        type: 'flow',
+        action: 'skip-request'
+      })
+    ).toBeUndefined();
   });
 });

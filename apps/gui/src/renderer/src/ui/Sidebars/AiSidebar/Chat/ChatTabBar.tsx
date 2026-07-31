@@ -3,7 +3,7 @@ import { FaIcon, TabBar as SdkTabBar, buildTabCloseMenuGroups } from '@harborcli
 import { useMemo, type JSX, type ReactNode } from 'react';
 import type { AiSettings } from '@harborclient/core/types';
 
-import { faComment } from '#/renderer/src/fontawesome';
+import { faComment, faSpinner } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {
@@ -11,6 +11,7 @@ import {
   selectActiveChatId,
   selectChatHistory,
   selectOpenChatTabIds,
+  selectSendingByChat,
   setActiveChat
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { closeChat, createNewChat } from '#/renderer/src/store/thunks/aiChat';
@@ -32,6 +33,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   const chatHistory = useAppSelector(selectChatHistory);
   const openTabIds = useAppSelector(selectOpenChatTabIds);
   const activeChatId = useAppSelector(selectActiveChatId);
+  const sendingByChat = useAppSelector(selectSendingByChat);
   const wrapTabs = useAppSelector(selectWrapTabs);
   const messagesByChat = useAppSelector((state) => state.aiChat.messagesByChat);
 
@@ -47,30 +49,38 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
   );
 
   /**
-   * Maps open chats into SDK tab bar rows.
+   * Maps open chats into SDK tab bar rows, with a spinner while that chat is generating.
    */
   const tabBarItems = useMemo(
     () =>
-      openTabs.map((chat) => ({
-        id: chat.id,
-        active: chat.id === activeChatId,
-        accessibleName: chat.title,
-        closeAccessibleName: `Close ${chat.title}`,
-        title: chat.title,
-        dragLabel: (
-          <>
-            <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {chat.title}
-          </>
-        ),
-        content: (
-          <>
-            <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <span className="truncate">{chat.title}</span>
-          </>
-        )
-      })),
-    [activeChatId, openTabs]
+      openTabs.map((chat) => {
+        const sending = Boolean(sendingByChat[chat.id]);
+        return {
+          id: chat.id,
+          active: chat.id === activeChatId,
+          accessibleName: sending ? `${chat.title}, Thinking…` : chat.title,
+          closeAccessibleName: `Close ${chat.title}`,
+          title: chat.title,
+          dragLabel: (
+            <>
+              <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {chat.title}
+            </>
+          ),
+          content: (
+            <>
+              <FaIcon
+                icon={sending ? faSpinner : faComment}
+                spin={sending}
+                className="h-3.5 w-3.5 shrink-0"
+                aria-hidden
+              />
+              <span className="truncate">{chat.title}</span>
+            </>
+          )
+        };
+      }),
+    [activeChatId, openTabs, sendingByChat]
   );
 
   /**

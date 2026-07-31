@@ -129,7 +129,7 @@ export function VariableTable({
       )}
 
       <div className="hc-variable-table-content flex flex-col gap-1.5">
-        <Table>
+        <Table className="mb-3">
           <TableHeader>
             <tr>
               <TableHead className="w-6 p-0">
@@ -212,12 +212,12 @@ export function VariableTable({
         </Table>
         <Button
           type="button"
-          variant="toolbar"
-          className="hc-variable-table-add inline-flex items-center gap-1 self-start"
+          variant="secondary"
+          className="hc-variable-table-add inline-flex items-center gap-1.5 self-start"
           onClick={addVariable}
         >
-          <FaIcon icon={faPlus} className="h-3 w-3" />
-          Add variable
+          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+          Add
         </Button>
       </div>
     </div>

@@ -7,9 +7,11 @@ import type {
   ExportedFolder,
   ExportedRequest,
   RequestExport,
+  ScriptLogEntry,
   ScriptTestResult,
   Variable
 } from '../types';
+import { coerceScriptLogs } from '../scripting/scriptLogs';
 import { authConfig, bodyType, exportScriptRefArray, httpMethod, keyValue } from './storageSchemas';
 import { normalizeVariable } from './variables';
 
@@ -593,6 +595,51 @@ const scriptTestResultRow = z.object({
   scriptName: z.string().optional()
 }) satisfies z.ZodType<ScriptTestResult>;
 
+const scriptConsoleTableData = z.object({
+  columns: z.array(z.string()),
+  rows: z.array(z.array(z.string()))
+});
+
+const scriptConsoleMethod = z.enum([
+  'log',
+  'error',
+  'warn',
+  'debug',
+  'assert',
+  'group',
+  'groupCollapsed',
+  'table',
+  'time',
+  'timeEnd',
+  'timeLog',
+  'trace'
+]);
+
+const scriptLogEntryRow = z.object({
+  message: z.string(),
+  level: z.enum(['log', 'error', 'warn']),
+  method: scriptConsoleMethod.optional(),
+  table: scriptConsoleTableData.optional(),
+  scriptName: z.string(),
+  scriptId: z.string().optional(),
+  phase: z.enum(['pre', 'post']).optional(),
+  scope: z.enum(['collection', 'folder', 'request']).optional()
+}) satisfies z.ZodType<Omit<ScriptLogEntry, 'method'> & { method?: ScriptLogEntry['method'] }>;
+
+/**
+ * Accepts legacy string[] script logs or structured entries and normalizes them.
+ */
+const importScriptLogs = z
+  .array(z.union([z.string(), scriptLogEntryRow]))
+  .optional()
+  .transform((rows) => {
+    if (rows == null) {
+      return undefined;
+    }
+    const entries = coerceScriptLogs(rows);
+    return entries.length > 0 ? entries : undefined;
+  });
+
 const importSendResult = z.object({
   status: z.number(),
   statusText: z.string(),
@@ -620,7 +667,7 @@ const collectionRunnerRequestResultRow = z.object({
   testsFailed: z.number().int().nonnegative(),
   response: importSendResult.nullable().optional(),
   testResults: z.array(scriptTestResultRow).optional(),
-  scriptLogs: z.array(z.string()).optional(),
+  scriptLogs: importScriptLogs,
   scriptError: z.string().optional(),
   requestUrl: z.string().optional()
 });

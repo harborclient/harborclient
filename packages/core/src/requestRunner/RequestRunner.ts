@@ -1,5 +1,12 @@
 import { buildScriptRunInfo } from '../types/script';
-import type { KeyValue, ScriptRequestContext, ScriptRunResult, SendResult } from '../types';
+import type {
+  KeyValue,
+  ScriptLogEntry,
+  ScriptRequestContext,
+  ScriptRunResult,
+  SendResult
+} from '../types';
+import { enrichScriptLogLines } from '../scripting/scriptLogs';
 import { getActiveWorkflowScriptContext } from '../workflowRunner/workflowScriptContext';
 import { buildSendInput, resolveRequestVariables, substituteRequestVariables } from './helpers';
 import type { RequestRunnerDeps, RunRequestInput, RunRequestResult } from './types';
@@ -27,7 +34,7 @@ export class RequestRunner {
   public async run(input: RunRequestInput): Promise<RunRequestResult> {
     let request = cloneRequestContext(input.request);
     let variables = resolveRequestVariables(input);
-    const scriptLogs: string[] = [];
+    const scriptLogs: ScriptLogEntry[] = [];
     const testResults: RunRequestResult['testResults'] = [];
     const executionEvents: RunRequestResult['executionEvents'] = [];
     const scriptErrors: string[] = [];
@@ -275,12 +282,14 @@ function collectScriptResult(
     scope?: 'collection' | 'folder' | 'request';
   },
   result: ScriptRunResult,
-  logs: string[],
+  logs: ScriptLogEntry[],
   tests: RunRequestResult['testResults'],
   events: RunRequestResult['executionEvents'],
   errors: string[]
 ): void {
-  if (result.logs.length) logs.push(`[${script.label}]`, ...result.logs);
+  if (result.logs.length) {
+    logs.push(...enrichScriptLogLines(result.logs, script));
+  }
   tests.push(
     ...result.tests.map((test) => ({
       ...test,
@@ -373,7 +382,7 @@ function buildResult(
   response: SendResult,
   sendInput: RunRequestResult['sendInput'],
   testResults: RunRequestResult['testResults'],
-  scriptLogs: string[],
+  scriptLogs: ScriptLogEntry[],
   executionEvents: RunRequestResult['executionEvents'],
   scriptErrors: string[],
   scriptNextRequest: string | null | undefined,

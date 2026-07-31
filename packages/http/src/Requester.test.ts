@@ -268,6 +268,20 @@ describe('Requester', () => {
       });
     });
 
+    it('unwraps undici fetch failed causes into a clearer error', async () => {
+      const cause = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5009'), {
+        code: 'ECONNREFUSED'
+      });
+      const fetchError = new TypeError('fetch failed');
+      fetchError.cause = cause;
+      const fetchMock = vi.fn().mockRejectedValue(fetchError);
+      globalThis.fetch = fetchMock;
+
+      const result = await requester.executeRequest(baseInput);
+
+      expect(result.error).toBe('Connection refused (127.0.0.1:5009)');
+    });
+
     it('passes an undici dispatcher when verifySsl is false', async () => {
       const fetchMock = vi
         .fn()

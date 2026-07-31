@@ -27,12 +27,16 @@ import { maskVariablesForExport, validateCollectionExport } from './collectionDa
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
+  buildRequestFingerprintIndexes,
   buildRequestUuidIndex,
+  createEmptyFolderImportMaps,
   planImportedFolderUpsert,
   registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportRequestId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  resolveUpsertRequestFolderId,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
@@ -1499,11 +1503,7 @@ export class FirestoreStorage implements IStorage {
     const requestIds = await this.allocateIds('requests', exportData.requests.length);
     const documentIds = await this.allocateIds('documents', exportData.documents?.length ?? 0);
 
-    const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
-      folderIdByUuid: new Map(),
-      folderIdByName: new Map(),
-      folderUuidById: new Map()
-    };
+    const folderMaps = createEmptyFolderImportMaps();
     const writes: Array<{ ref: ReturnType<typeof doc>; data: Record<string, unknown> }> = [
       { ref: doc(firestore, 'collections', String(id)), data: collectionData }
     ];
@@ -1516,7 +1516,7 @@ export class FirestoreStorage implements IStorage {
         folder.parent_folder_uuid,
         folderMaps.folderIdByUuid
       );
-      registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
+      registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid, parentFolderId);
       writes.push({
         ref: doc(firestore, 'folders', String(folderId)),
         data: {
@@ -1708,11 +1708,11 @@ export class FirestoreStorage implements IStorage {
     const folderMaps = buildFolderImportMaps(existingFolders);
 
     for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
-      const plan = planImportedFolderUpsert(folder, folderMaps);
       const parentFolderId = resolveImportParentFolderId(
         folder.parent_folder_uuid,
         folderMaps.folderIdByUuid
       );
+      const plan = planImportedFolderUpsert(folder, folderMaps, parentFolderId);
       if (plan.action === 'update') {
         const folderFields = serializeImportedFolderFields(folder);
         await updateDoc(doc(firestore, 'folders', String(plan.existingId)), {
@@ -1729,7 +1729,13 @@ export class FirestoreStorage implements IStorage {
           post_request_scripts: folderFields.post_request_scripts_json,
           marker: folderFields.marker
         });
-        registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
+        registerImportedFolderInMaps(
+          folderMaps,
+          plan.existingId,
+          plan.name,
+          plan.uuid,
+          parentFolderId
+        );
         continue;
       }
 
@@ -1753,23 +1759,38 @@ export class FirestoreStorage implements IStorage {
         created_at: now,
         marker: folderFields.marker
       });
-      registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid);
+      registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid, parentFolderId);
     }
 
     const existingRequests = await this.listRequests(id);
     const requestUuidIndex = buildRequestUuidIndex(existingRequests);
+    const requestFingerprints = buildRequestFingerprintIndexes(existingRequests);
     const existingDocuments = await this.listDocuments(id);
     const documentUuidIndex = buildDocumentUuidIndex(existingDocuments);
 
     for (const request of exportData.requests) {
-      const folderId = resolveImportFolderId(
+      const importedFolderId = resolveImportFolderId(
         request.folder_uuid,
         request.folder_name,
         folderMaps.folderIdByUuid,
         folderMaps.folderIdByName
       );
       const fields = serializeImportedRequestFields(request);
-      const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
+      const existingRequestId = resolveImportRequestId(
+        fields.uuid,
+        importedFolderId,
+        fields.method,
+        fields.name,
+        fields.url,
+        requestUuidIndex,
+        requestFingerprints
+      );
+      const folderId = resolveUpsertRequestFolderId(
+        importedFolderId,
+        existingRequestId != null
+          ? requestFingerprints.folderIdByRequestId.get(existingRequestId)
+          : undefined
+      );
 
       if (existingRequestId != null) {
         await updateDoc(doc(firestore, 'requests', String(existingRequestId)), {

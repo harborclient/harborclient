@@ -376,6 +376,113 @@ export type ScriptExecutionEvent =
 export type ScriptTestScope = 'collection' | 'folder' | 'request';
 
 /**
+ * Severity of a captured script console line.
+ *
+ * - `log` — console.log, console.debug, console.trace, and similar
+ * - `error` — console.error and failed console.assert
+ * - `warn` — console.warn and timer misuse warnings
+ */
+export type ScriptLogLevel = 'log' | 'error' | 'warn';
+
+/**
+ * Console API method that produced a captured log line.
+ */
+export type ScriptConsoleMethod =
+  | 'log'
+  | 'error'
+  | 'warn'
+  | 'debug'
+  | 'assert'
+  | 'group'
+  | 'groupCollapsed'
+  | 'table'
+  | 'time'
+  | 'timeEnd'
+  | 'timeLog'
+  | 'trace';
+
+/**
+ * Renderer component id for a console method (JSX lives in the GUI; core only stores the id).
+ */
+export type ScriptConsoleComponent = 'log' | 'table' | 'trace';
+
+/**
+ * Structured tabular payload for console.table (cells already stringified).
+ */
+export interface ScriptConsoleTableData {
+  /**
+   * Column headers; typically starts with `(index)`.
+   */
+  columns: string[];
+  /**
+   * Body rows parallel to {@link columns}.
+   */
+  rows: string[][];
+}
+
+/**
+ * One console line from the sandbox before host script metadata is attached.
+ */
+export interface ScriptLogLine {
+  /**
+   * Formatted message text (objects pretty-printed at capture time).
+   * Also used as an ASCII/export fallback for table lines.
+   */
+  message: string;
+  /**
+   * Display severity for styling and export prefixes.
+   */
+  level: ScriptLogLevel;
+  /**
+   * Which console API method produced this line.
+   */
+  method: ScriptConsoleMethod;
+  /**
+   * Structured table when {@link method} is `table`.
+   */
+  table?: ScriptConsoleTableData;
+}
+
+/**
+ * Host-enriched console line with script ownership for jump-to-editor.
+ */
+export interface ScriptLogEntry {
+  /**
+   * Formatted message text (objects pretty-printed at capture time).
+   * Also used as an ASCII/export fallback for table lines.
+   */
+  message: string;
+  /**
+   * Display severity for styling and export prefixes.
+   */
+  level: ScriptLogLevel;
+  /**
+   * Which console API method produced this line.
+   */
+  method: ScriptConsoleMethod;
+  /**
+   * Structured table when {@link method} is `table`.
+   */
+  table?: ScriptConsoleTableData;
+  /**
+   * Display label of the pre/post script that produced this line.
+   */
+  scriptName: string;
+  /**
+   * Stable {@link ScriptRef.id} of the slot that produced this line (host-filled).
+   */
+  scriptId?: string;
+  /**
+   * Script phase that produced this line (host-filled).
+   */
+  phase?: ScriptPhase;
+  /**
+   * Collection / folder / request ownership of the slot (host-filled).
+   */
+  scope?: ScriptTestScope;
+}
+
+/**
  * Result of a single hc.test assertion.
  */
 export interface ScriptTestResult {
@@ -583,7 +690,10 @@ export interface ScriptRunResult {
    */
   workflowSkipAction?: boolean;
   tests: ScriptTestResult[];
-  logs: string[];
+  /**
+   * Console lines captured during this script run (no host script metadata yet).
+   */
+  logs: ScriptLogLine[];
   /**
    * Ordered variable and flow-control activity emitted during this script run.
    */

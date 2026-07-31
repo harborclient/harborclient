@@ -35,6 +35,7 @@ describe('chat pointer registry', () => {
         'markdown',
         'response-section',
         'body',
+        'console',
         'plugin'
       ])
     );

@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type {
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
   SendResult
@@ -8,6 +9,7 @@ import type {
 import { Body } from './Body';
 import { Console } from './Console';
 import { Headers } from './Headers';
+import { Logs } from './Logs';
 import { Preview } from './Preview';
 import { Redirects } from './Redirects';
 import { Tests } from './Tests';
@@ -38,7 +40,7 @@ interface Props {
   /**
    * Console output captured from scripts for the last send.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts for the last send.
@@ -101,16 +103,29 @@ export function ResponseViewerPanel({
     case 'preview':
       return <Preview response={response} requestUrl={requestUrl} />;
     case 'headers':
-      return <Headers headers={response.headers} />;
+      return (
+        <Headers
+          headers={response.headers}
+          requestName={requestName}
+          status={response.status}
+          statusText={response.statusText}
+          error={response.error}
+        />
+      );
     case 'timing':
-      return <Timing response={response} />;
+      return <Timing response={response} requestName={requestName} />;
     case 'console':
       return (
         <Console
           response={response}
-          scriptLogs={scriptLogs}
-          testResults={testResults}
           executionEvents={executionEvents}
+          requestTabId={requestTabId}
+        />
+      );
+    case 'logs':
+      return (
+        <Logs
+          scriptLogs={scriptLogs}
           scriptError={scriptError}
           scriptErrors={scriptErrors}
           requestTabId={requestTabId}

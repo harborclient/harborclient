@@ -98,7 +98,7 @@ describe('buildResponseSectionReference', () => {
       requestName: 'Echo',
       section: 'console',
       response: sampleResponse(),
-      scriptLogs: ['hello'],
+      scriptLogs: [{ message: 'hello', level: 'log', method: 'log', scriptName: 'Script' }],
       scriptError: 'boom',
       scriptErrors: [{ message: 'TypeError: x', scriptName: 'Assert', line: 3 }],
       executionEvents: [

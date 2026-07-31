@@ -5,6 +5,7 @@ import type {
   LiveServerCorsSettings,
   SavedRequest,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptTestResult,
   SendResult,
   TrustedSharingKey,
@@ -52,6 +53,14 @@ export interface CollectionModalState {
   providerId: string;
   shareTokenInput: string;
   submitError: string | null;
+  /**
+   * Whether the Import tab URL form is expanded.
+   */
+  importUrlOpen: boolean;
+  /**
+   * URL entered in the Import tab for remote collection import.
+   */
+  importUrlInput: string;
   /**
    * Git repository settings entered on the Git tab before the connection is saved.
    */
@@ -430,6 +439,8 @@ const modalsSlice = createSlice({
         providerId: '',
         shareTokenInput: '',
         submitError: null,
+        importUrlOpen: false,
+        importUrlInput: '',
         gitDraft: createCollectionModalGitDraft(),
         gitCreatedConnectionId: null,
         gitCollectionCreated: false
@@ -629,6 +640,26 @@ const modalsSlice = createSlice({
     setCollectionModalShareTokenInput(state, action: PayloadAction<string>) {
       if (state.collectionModal) {
         state.collectionModal.shareTokenInput = action.payload;
+        state.collectionModal.submitError = null;
+      }
+    },
+    /**
+     * Expands or collapses the Import tab URL form.
+     */
+    setCollectionModalImportUrlOpen(state, action: PayloadAction<boolean>) {
+      if (state.collectionModal) {
+        state.collectionModal.importUrlOpen = action.payload;
+        if (!action.payload) {
+          state.collectionModal.submitError = null;
+        }
+      }
+    },
+    /**
+     * Updates the Import tab URL field value.
+     */
+    setCollectionModalImportUrlInput(state, action: PayloadAction<string>) {
+      if (state.collectionModal) {
+        state.collectionModal.importUrlInput = action.payload;
         state.collectionModal.submitError = null;
       }
     },
@@ -974,7 +1005,7 @@ const modalsSlice = createSlice({
         testsFailed: number;
         response?: SendResult | null;
         testResults?: ScriptTestResult[];
-        scriptLogs?: string[];
+        scriptLogs?: ScriptLogEntry[];
         executionEvents?: ScriptExecutionEvent[];
         scriptError?: string;
         requestUrl?: string;
@@ -1186,6 +1217,8 @@ export const {
   setCollectionModalName,
   setCollectionModalProviderId,
   setCollectionModalShareTokenInput,
+  setCollectionModalImportUrlOpen,
+  setCollectionModalImportUrlInput,
   setCollectionModalSubmitError,
   setCollectionModalGitDraft,
   setCollectionModalGitCreatedConnectionId,

@@ -3,6 +3,7 @@ import {
   timingPercent,
   type TimingPhaseRow
 } from '#/renderer/src/ui/Main/ResponseEditor/timingDisplay';
+import { consoleCellDataAttrs } from '#/renderer/src/ui/Main/ResponseEditor/consoleSelection/captureConsoleSelection';
 
 const BAR_CLASSES: Record<TimingPhaseRow['id'], string> = {
   stalled: 'bg-muted',
@@ -29,10 +30,15 @@ interface Props {
 export function TimingPhaseRowView({ row, totalMs }: Props): JSX.Element {
   const leftPercent = timingPercent(row.startMs, totalMs);
   const widthPercent = timingPercent(row.durationMs, totalMs);
+  const labelAttrs = consoleCellDataAttrs('timing', row.label);
+  const durationText = `${row.durationMs} ms`;
+  const durationAttrs = consoleCellDataAttrs('timing', row.label);
 
   return (
     <div className="grid grid-cols-[minmax(140px,220px)_1fr_72px] items-center gap-3 py-1.5">
-      <span className="text-text">{row.label}</span>
+      <span className="text-text" {...(labelAttrs ?? {})}>
+        {row.label}
+      </span>
       <div
         className="relative h-5 rounded-sm bg-control"
         role="img"
@@ -46,7 +52,9 @@ export function TimingPhaseRowView({ row, totalMs }: Props): JSX.Element {
           }}
         />
       </div>
-      <span className="text-right font-mono text-text-secondary">{row.durationMs} ms</span>
+      <span className="text-right font-mono text-text-secondary" {...(durationAttrs ?? {})}>
+        {durationText}
+      </span>
     </div>
   );
 }

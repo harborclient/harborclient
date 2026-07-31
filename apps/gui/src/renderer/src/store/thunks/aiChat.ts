@@ -27,6 +27,7 @@ import { selectLiveServerLogsSelections } from '#/renderer/src/store/slices/live
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
+import { selectConsoleSelections } from '#/renderer/src/store/slices/consoleSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { selectPluginSelections } from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
@@ -418,7 +419,8 @@ export const sendChatMessage = createAsyncThunk<
     selectPluginSelections(getState()),
     buildWebpageTabsByIdFromState(getState()),
     buildLiveServersByUuidFromState(getState()),
-    selectLiveServerLogsSelections(getState())
+    selectLiveServerLogsSelections(getState()),
+    selectConsoleSelections(getState())
   );
   const referenceSnapshots = collectChatReferenceSnapshots(trimmed, validationContext);
 

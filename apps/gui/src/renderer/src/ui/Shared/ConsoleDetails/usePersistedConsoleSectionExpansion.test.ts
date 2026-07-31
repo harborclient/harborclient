@@ -49,7 +49,7 @@ describe('defaultConsoleSectionExpansion', () => {
       general: true,
       request: true,
       response: true,
-      output: true,
+      logs: true,
       trace: true
     });
   });
@@ -58,17 +58,39 @@ describe('defaultConsoleSectionExpansion', () => {
 describe('isConsoleSectionKey', () => {
   it('accepts known section keys', () => {
     expect(isConsoleSectionKey('general')).toBe(true);
+    expect(isConsoleSectionKey('logs')).toBe(true);
     expect(isConsoleSectionKey('trace')).toBe(true);
   });
 
   it('rejects unknown keys', () => {
     expect(isConsoleSectionKey('headers')).toBe(false);
+    expect(isConsoleSectionKey('output')).toBe(false);
     expect(isConsoleSectionKey('')).toBe(false);
   });
 });
 
 describe('parsePersistedConsoleSectionExpansion', () => {
   it('parses a complete persisted map', () => {
+    expect(
+      parsePersistedConsoleSectionExpansion(
+        JSON.stringify({
+          general: true,
+          request: false,
+          response: true,
+          logs: false,
+          trace: true
+        })
+      )
+    ).toEqual({
+      general: true,
+      request: false,
+      response: true,
+      logs: false,
+      trace: true
+    });
+  });
+
+  it('maps legacy output onto logs when logs is absent', () => {
     expect(
       parsePersistedConsoleSectionExpansion(
         JSON.stringify({
@@ -83,7 +105,7 @@ describe('parsePersistedConsoleSectionExpansion', () => {
       general: true,
       request: false,
       response: true,
-      output: false,
+      logs: false,
       trace: true
     });
   });
@@ -93,7 +115,7 @@ describe('parsePersistedConsoleSectionExpansion', () => {
       general: true,
       request: false,
       response: true,
-      output: true,
+      logs: true,
       trace: true
     });
   });
@@ -110,7 +132,7 @@ describe('parsePersistedConsoleSectionExpansion', () => {
       general: true,
       request: false,
       response: true,
-      output: true,
+      logs: true,
       trace: true
     });
   });
@@ -137,7 +159,7 @@ describe('loadPersistedConsoleSectionExpansion', () => {
         general: false,
         request: true,
         response: false,
-        output: true,
+        logs: true,
         trace: false
       })
     );
@@ -146,7 +168,7 @@ describe('loadPersistedConsoleSectionExpansion', () => {
       general: false,
       request: true,
       response: false,
-      output: true,
+      logs: true,
       trace: false
     });
   });
@@ -164,7 +186,7 @@ describe('persistConsoleSectionExpansion', () => {
       general: false,
       request: true,
       response: false,
-      output: false,
+      logs: false,
       trace: true
     };
 

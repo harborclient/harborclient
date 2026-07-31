@@ -2,12 +2,16 @@ import { Pool } from 'pg';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
+  buildRequestFingerprintIndexes,
   buildRequestUuidIndex,
+  createEmptyFolderImportMaps,
   planImportedFolderUpsert,
   registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportRequestId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  resolveUpsertRequestFolderId,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
@@ -1522,11 +1526,7 @@ export class PostgresStorage implements IStorage {
       );
 
       const collectionId = collectionResult.rows[0]?.id as number;
-      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
-        folderIdByUuid: new Map(),
-        folderIdByName: new Map(),
-        folderUuidById: new Map()
-      };
+      const folderMaps = createEmptyFolderImportMaps();
 
       for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
         const folderUuid = resolveImportedFolderUuid(folder);
@@ -1564,7 +1564,8 @@ export class PostgresStorage implements IStorage {
           folderMaps,
           folderResult.rows[0]?.id as number,
           folder.name,
-          folderUuid
+          folderUuid,
+          parentFolderId
         );
       }
 
@@ -1734,11 +1735,11 @@ export class PostgresStorage implements IStorage {
       const folderMaps = buildFolderImportMaps(existingFolderResult.rows.map(rowToFolder));
 
       for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
-        const plan = planImportedFolderUpsert(folder, folderMaps);
         const parentFolderId = resolveImportParentFolderId(
           folder.parent_folder_uuid,
           folderMaps.folderIdByUuid
         );
+        const plan = planImportedFolderUpsert(folder, folderMaps, parentFolderId);
         if (plan.action === 'update') {
           const folderFields = serializeImportedFolderFields(folder);
           await client.query(
@@ -1762,7 +1763,13 @@ export class PostgresStorage implements IStorage {
               id
             ]
           );
-          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
+          registerImportedFolderInMaps(
+            folderMaps,
+            plan.existingId,
+            plan.name,
+            plan.uuid,
+            parentFolderId
+          );
           continue;
         }
 
@@ -1796,7 +1803,8 @@ export class PostgresStorage implements IStorage {
           folderMaps,
           folderResult.rows[0]?.id as number,
           plan.name,
-          plan.uuid
+          plan.uuid,
+          parentFolderId
         );
       }
 
@@ -1804,7 +1812,9 @@ export class PostgresStorage implements IStorage {
         'SELECT * FROM requests WHERE collection_id = $1',
         [id]
       );
-      const requestUuidIndex = buildRequestUuidIndex(existingRequestResult.rows.map(rowToRequest));
+      const existingRequests = existingRequestResult.rows.map(rowToRequest);
+      const requestUuidIndex = buildRequestUuidIndex(existingRequests);
+      const requestFingerprints = buildRequestFingerprintIndexes(existingRequests);
 
       const existingDocumentResult = await client.query(
         'SELECT * FROM documents WHERE collection_id = $1',
@@ -1815,14 +1825,28 @@ export class PostgresStorage implements IStorage {
       );
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(
+        const importedFolderId = resolveImportFolderId(
           request.folder_uuid,
           request.folder_name,
           folderMaps.folderIdByUuid,
           folderMaps.folderIdByName
         );
         const fields = serializeImportedRequestFields(request);
-        const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
+        const existingRequestId = resolveImportRequestId(
+          fields.uuid,
+          importedFolderId,
+          fields.method,
+          fields.name,
+          fields.url,
+          requestUuidIndex,
+          requestFingerprints
+        );
+        const folderId = resolveUpsertRequestFolderId(
+          importedFolderId,
+          existingRequestId != null
+            ? requestFingerprints.folderIdByRequestId.get(existingRequestId)
+            : undefined
+        );
 
         if (existingRequestId != null) {
           await client.query(

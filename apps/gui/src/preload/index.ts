@@ -274,6 +274,26 @@ function importCollection(): Promise<Collection | null> {
 }
 
 /**
+ * Downloads a collection from a remote URL and imports it via IPC.
+ *
+ * @param url - Absolute http(s) URL to a HarborClient, Postman, OpenCollection, or HAR file.
+ * @returns The imported collection, or null when the user canceled a warning dialog.
+ */
+function importCollectionFromUrl(url: string): Promise<Collection | null> {
+  return ipcRenderer.invoke('collections:importFromUrl', url);
+}
+
+/**
+ * Re-downloads a URL-backed collection and merges remote changes via IPC.
+ *
+ * @param id - Global collection id that was previously imported from a URL.
+ * @returns The updated collection after the additive merge.
+ */
+function refreshCollectionFromUrl(id: number): Promise<Collection> {
+  return ipcRenderer.invoke('collections:refreshFromUrl', id);
+}
+
+/**
  * Searches the apis.io public catalog for importable collections via IPC.
  *
  * @param query - Free-text query over name and description.
@@ -4763,6 +4783,8 @@ const api: Api = {
   duplicateCollection,
   exportCollection,
   importCollection,
+  importCollectionFromUrl,
+  refreshCollectionFromUrl,
   searchPublicCollections,
   previewPublicCollection,
   importPublicCollection,

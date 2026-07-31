@@ -4,14 +4,18 @@ import { join } from 'path';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
+  buildRequestFingerprintIndexes,
   buildRequestUuidIndex,
+  createEmptyFolderImportMaps,
   orderExportedFoldersForImport,
   planImportedFolderUpsert,
   registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportRequestId,
   resolveImportedCollectionUuid,
   resolveImportedFolderParentId,
   resolveImportedFolderUuid,
+  resolveUpsertRequestFolderId,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
@@ -1729,11 +1733,7 @@ export class SqliteStorage implements IStorage {
         );
 
       const collectionId = Number(collectionResult.lastInsertRowid);
-      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
-        folderIdByUuid: new Map(),
-        folderIdByName: new Map(),
-        folderUuidById: new Map()
-      };
+      const folderMaps = createEmptyFolderImportMaps();
 
       for (const folder of orderExportedFoldersForImport(payload.folders ?? [])) {
         const folderUuid = resolveImportedFolderUuid(folder);
@@ -1763,7 +1763,7 @@ export class SqliteStorage implements IStorage {
             folderFields.marker
           );
         const folderId = Number(folderResult.lastInsertRowid);
-        registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid);
+        registerImportedFolderInMaps(folderMaps, folderId, folder.name, folderUuid, parentFolderId);
       }
 
       const insertRequest = database.prepare(
@@ -1923,8 +1923,8 @@ export class SqliteStorage implements IStorage {
       const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
       for (const folder of orderExportedFoldersForImport(payload.folders ?? [])) {
-        const plan = planImportedFolderUpsert(folder, folderMaps);
         const parentFolderId = resolveImportedFolderParentId(folder, folderMaps.folderIdByUuid);
+        const plan = planImportedFolderUpsert(folder, folderMaps, parentFolderId);
         if (plan.action === 'update') {
           const folderFields = serializeImportedFolderFields(folder);
           database
@@ -1949,7 +1949,13 @@ export class SqliteStorage implements IStorage {
               plan.existingId,
               id
             );
-          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
+          registerImportedFolderInMaps(
+            folderMaps,
+            plan.existingId,
+            plan.name,
+            plan.uuid,
+            parentFolderId
+          );
           continue;
         }
 
@@ -1981,14 +1987,17 @@ export class SqliteStorage implements IStorage {
           folderMaps,
           Number(folderResult.lastInsertRowid),
           plan.name,
-          plan.uuid
+          plan.uuid,
+          parentFolderId
         );
       }
 
       const existingRequestRows = database
         .prepare('SELECT * FROM requests WHERE collection_id = ?')
         .all(id) as Record<string, unknown>[];
-      const requestUuidIndex = buildRequestUuidIndex(existingRequestRows.map(rowToRequest));
+      const existingRequests = existingRequestRows.map(rowToRequest);
+      const requestUuidIndex = buildRequestUuidIndex(existingRequests);
+      const requestFingerprints = buildRequestFingerprintIndexes(existingRequests);
 
       const existingDocumentRows = database
         .prepare('SELECT * FROM documents WHERE collection_id = ?')
@@ -2020,14 +2029,28 @@ export class SqliteStorage implements IStorage {
       );
 
       for (const request of payload.requests) {
-        const folderId = resolveImportFolderId(
+        const importedFolderId = resolveImportFolderId(
           request.folder_uuid,
           request.folder_name,
           folderMaps.folderIdByUuid,
           folderMaps.folderIdByName
         );
         const fields = serializeImportedRequestFields(request);
-        const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
+        const existingRequestId = resolveImportRequestId(
+          fields.uuid,
+          importedFolderId,
+          fields.method,
+          fields.name,
+          fields.url,
+          requestUuidIndex,
+          requestFingerprints
+        );
+        const folderId = resolveUpsertRequestFolderId(
+          importedFolderId,
+          existingRequestId != null
+            ? requestFingerprints.folderIdByRequestId.get(existingRequestId)
+            : undefined
+        );
 
         if (existingRequestId != null) {
           updateRequest.run(

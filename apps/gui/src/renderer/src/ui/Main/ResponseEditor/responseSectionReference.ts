@@ -8,10 +8,12 @@ import {
 import { DEFAULT_RESPONSE_BODY_CHARS, truncateTextForLlm } from '@harborclient/core/ai/chatContext';
 import type {
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult
 } from '@harborclient/core/types';
 import type { SendResult } from '@harborclient/http';
+import { joinScriptLogMessages } from '@harborclient/core/scripting/scriptLogs';
 import { formatResponseHeadersForDiff } from '#/renderer/src/ui/Main/ResponseEditor/responseHistoryDiff';
 import { buildTimingRows } from '#/renderer/src/ui/Main/ResponseEditor/timingDisplay';
 import { lineNumberAtOffset } from '#/renderer/src/ui/Main/RequestEditor/Editor/markdownSelection';
@@ -54,7 +56,7 @@ export interface BuildResponseSectionReferenceInput {
   /**
    * Console log lines from scripts for the last send.
    */
-  scriptLogs?: string[];
+  scriptLogs?: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts.
@@ -215,8 +217,8 @@ function buildConsoleContent(input: BuildResponseSectionReferenceInput): string 
   const logs = input.scriptLogs ?? [];
   if (logs.length > 0) {
     lines.push('Script logs:');
-    for (const log of logs) {
-      lines.push(`- ${log}`);
+    for (const line of joinScriptLogMessages(logs).split('\n')) {
+      lines.push(`- ${line}`);
     }
   } else {
     lines.push('Script logs: (none)');

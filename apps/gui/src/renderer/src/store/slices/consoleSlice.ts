@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
   SendResult
@@ -19,7 +20,7 @@ export interface ConsoleEntry {
    */
   requestTabId?: string;
   result: SendResult;
-  logs?: string[];
+  logs?: ScriptLogEntry[];
   tests?: ScriptTestResult[];
   /**
    * Ordered variable and flow-control activity from pre/post scripts for this send.

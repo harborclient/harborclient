@@ -746,4 +746,119 @@ describe('GitStorage', () => {
     rmSync(repoPath, { recursive: true, force: true });
     rmSync(userDataPath, { recursive: true, force: true });
   });
+
+  it('updateCollectionFromImport reuses nested same-named folders when uuids regenerate', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Postman Refresh Folders');
+    const rootAuth = await db.createFolder(collection.id, 'Auth');
+    const users = await db.createFolder(collection.id, 'Users');
+    const nestedAuth = await db.createFolder(collection.id, 'Auth', users.id);
+
+    const exportData = await db.exportCollectionData(collection.id);
+    const importUsersUuid = '11111111-1111-4111-8111-111111111111';
+    const importRootAuthUuid = '22222222-2222-4222-8222-222222222222';
+    const importNestedAuthUuid = '33333333-3333-4333-8333-333333333333';
+    const payload = {
+      ...exportData,
+      folders: [
+        {
+          uuid: importRootAuthUuid,
+          name: 'Auth',
+          parent_folder_uuid: null,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: importUsersUuid,
+          name: 'Users',
+          parent_folder_uuid: null,
+          sort_order: 1,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: importNestedAuthUuid,
+          name: 'Auth',
+          parent_folder_uuid: importUsersUuid,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        }
+      ],
+      requests: []
+    };
+
+    await db.updateCollectionFromImport(collection.id, payload);
+    const folders = await db.listFolders(collection.id);
+
+    expect(folders).toHaveLength(3);
+    expect(folders.find((folder) => folder.id === rootAuth.id)?.parent_folder_id ?? null).toBe(
+      null
+    );
+    expect(folders.find((folder) => folder.id === users.id)?.name).toBe('Users');
+    expect(folders.find((folder) => folder.id === nestedAuth.id)?.parent_folder_id).toBe(users.id);
+    expect(folders.find((folder) => folder.id === rootAuth.id)?.uuid).toBe(rootAuth.uuid);
+    expect(folders.find((folder) => folder.id === nestedAuth.id)?.uuid).toBe(nestedAuth.uuid);
+  });
+
+  it('updateCollectionFromImport upserts Postman-refresh requests without duplicating at root', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Postman Refresh Requests');
+    const folder = await db.createFolder(collection.id, 'claims');
+    const existing = await db.saveRequest(
+      baseRequestInput(collection.id, {
+        name: 'Returns the claims',
+        method: 'GET',
+        url: '{{baseUrl}}/claims',
+        folder_id: folder.id
+      })
+    );
+
+    const exportData = await db.exportCollectionData(collection.id);
+    const payload = {
+      ...exportData,
+      folders: [
+        {
+          uuid: '11111111-1111-4111-8111-111111111111',
+          name: 'claims',
+          parent_folder_uuid: null,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        }
+      ],
+      requests: [
+        {
+          uuid: '22222222-2222-4222-8222-222222222222',
+          name: 'Returns the claims',
+          method: 'GET' as const,
+          url: '{{baseUrl}}/claims',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none' as const,
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 0,
+          folder_name: null,
+          folder_uuid: null
+        }
+      ]
+    };
+
+    await db.updateCollectionFromImport(collection.id, payload);
+    const requests = await db.listRequests(collection.id);
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.id).toBe(existing.id);
+    expect(requests[0]?.folder_id).toBe(folder.id);
+    expect(requests[0]?.uuid).toBe(existing.uuid);
+  });
 });

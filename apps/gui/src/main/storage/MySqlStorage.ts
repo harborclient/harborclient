@@ -2,12 +2,16 @@ import mysql, { type Pool, type ResultSetHeader, type RowDataPacket } from 'mysq
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
+  buildRequestFingerprintIndexes,
   buildRequestUuidIndex,
+  createEmptyFolderImportMaps,
   planImportedFolderUpsert,
   registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportRequestId,
   resolveImportedCollectionUuid,
   resolveImportedFolderUuid,
+  resolveUpsertRequestFolderId,
   savedDocumentToExportedDocument,
   savedRequestToExportedRequest,
   serializeImportedCollectionScriptFields,
@@ -1577,11 +1581,7 @@ export class MySqlStorage implements IStorage {
       );
 
       const collectionId = collectionResult.insertId;
-      const folderMaps: ReturnType<typeof buildFolderImportMaps> = {
-        folderIdByUuid: new Map(),
-        folderIdByName: new Map(),
-        folderUuidById: new Map()
-      };
+      const folderMaps = createEmptyFolderImportMaps();
 
       for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
         const folderUuid = resolveImportedFolderUuid(folder);
@@ -1613,7 +1613,13 @@ export class MySqlStorage implements IStorage {
             folderFields.marker
           ]
         );
-        registerImportedFolderInMaps(folderMaps, folderResult.insertId, folder.name, folderUuid);
+        registerImportedFolderInMaps(
+          folderMaps,
+          folderResult.insertId,
+          folder.name,
+          folderUuid,
+          parentFolderId
+        );
       }
 
       for (const request of exportData.requests) {
@@ -1787,11 +1793,11 @@ export class MySqlStorage implements IStorage {
       const folderMaps = buildFolderImportMaps(existingFolderRows.map(rowToFolder));
 
       for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
-        const plan = planImportedFolderUpsert(folder, folderMaps);
         const parentFolderId = resolveImportParentFolderId(
           folder.parent_folder_uuid,
           folderMaps.folderIdByUuid
         );
+        const plan = planImportedFolderUpsert(folder, folderMaps, parentFolderId);
         if (plan.action === 'update') {
           const folderFields = serializeImportedFolderFields(folder);
           await connection.execute(
@@ -1815,7 +1821,13 @@ export class MySqlStorage implements IStorage {
               id
             ]
           );
-          registerImportedFolderInMaps(folderMaps, plan.existingId, plan.name, plan.uuid);
+          registerImportedFolderInMaps(
+            folderMaps,
+            plan.existingId,
+            plan.name,
+            plan.uuid,
+            parentFolderId
+          );
           continue;
         }
 
@@ -1843,14 +1855,22 @@ export class MySqlStorage implements IStorage {
             folderFields.marker
           ]
         );
-        registerImportedFolderInMaps(folderMaps, folderResult.insertId, plan.name, plan.uuid);
+        registerImportedFolderInMaps(
+          folderMaps,
+          folderResult.insertId,
+          plan.name,
+          plan.uuid,
+          parentFolderId
+        );
       }
 
       const [existingRequestRows] = await connection.execute<RowDataPacket[]>(
         'SELECT * FROM requests WHERE collection_id = ?',
         [id]
       );
-      const requestUuidIndex = buildRequestUuidIndex(existingRequestRows.map(rowToRequest));
+      const existingRequests = existingRequestRows.map(rowToRequest);
+      const requestUuidIndex = buildRequestUuidIndex(existingRequests);
+      const requestFingerprints = buildRequestFingerprintIndexes(existingRequests);
 
       const [existingDocumentRows] = await connection.execute<RowDataPacket[]>(
         'SELECT * FROM documents WHERE collection_id = ?',
@@ -1859,14 +1879,28 @@ export class MySqlStorage implements IStorage {
       const documentUuidIndex = buildDocumentUuidIndex(existingDocumentRows.map(rowToDocument));
 
       for (const request of exportData.requests) {
-        const folderId = resolveImportFolderId(
+        const importedFolderId = resolveImportFolderId(
           request.folder_uuid,
           request.folder_name,
           folderMaps.folderIdByUuid,
           folderMaps.folderIdByName
         );
         const fields = serializeImportedRequestFields(request);
-        const existingRequestId = fields.uuid ? requestUuidIndex.get(fields.uuid) : undefined;
+        const existingRequestId = resolveImportRequestId(
+          fields.uuid,
+          importedFolderId,
+          fields.method,
+          fields.name,
+          fields.url,
+          requestUuidIndex,
+          requestFingerprints
+        );
+        const folderId = resolveUpsertRequestFolderId(
+          importedFolderId,
+          existingRequestId != null
+            ? requestFingerprints.folderIdByRequestId.get(existingRequestId)
+            : undefined
+        );
 
         if (existingRequestId != null) {
           await connection.execute(

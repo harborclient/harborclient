@@ -335,6 +335,12 @@ export interface CollectionRegistryEntry {
    * in the Archive sidebar section instead.
    */
   archived: boolean;
+
+  /**
+   * Remote URL this collection was imported from, when present.
+   * Used to re-download and merge updates via the sidebar Refresh action.
+   */
+  sourceUrl?: string | null;
 }
 
 /**
@@ -347,13 +353,20 @@ export interface AddRegistryEntryInput {
   connectionId: string;
   providerCollectionId: number;
   collectionUuid?: string;
+  /**
+   * Remote URL this collection was imported from, when present.
+   */
+  sourceUrl?: string | null;
 }
 
 /**
  * Mutable fields of a registry entry.
  */
 export type UpdateRegistryEntryInput = Partial<
-  Pick<CollectionRegistryEntry, 'name' | 'connectionId' | 'providerCollectionId' | 'collectionUuid'>
+  Pick<
+    CollectionRegistryEntry,
+    'name' | 'connectionId' | 'providerCollectionId' | 'collectionUuid' | 'sourceUrl'
+  >
 >;
 
 /**
@@ -434,6 +447,10 @@ function rowToSnippetRegistryEntry(row: Record<string, unknown>): SnippetRegistr
  * Maps a raw SQLite row to a collection registry entry.
  */
 function rowToRegistryEntry(row: Record<string, unknown>): CollectionRegistryEntry {
+  const sourceUrl =
+    typeof row.source_url === 'string' && row.source_url.trim().length > 0
+      ? row.source_url.trim()
+      : null;
   return {
     id: row.id as number,
     name: row.name as string,
@@ -441,7 +458,8 @@ function rowToRegistryEntry(row: Record<string, unknown>): CollectionRegistryEnt
     connectionId: row.connection_id as string,
     providerCollectionId: row.provider_collection_id as number,
     created_at: row.created_at as string,
-    archived: Boolean(row.archived)
+    archived: Boolean(row.archived),
+    sourceUrl
   };
 }
 
@@ -491,6 +509,7 @@ export class LocalDatabase {
         provider_collection_id INTEGER NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
         archived INTEGER NOT NULL DEFAULT 0,
+        source_url TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
@@ -659,6 +678,7 @@ export class LocalDatabase {
     this.migrateRegistrySortOrder();
     this.migrateRegistryCollectionUuid();
     this.migrateRegistryArchived();
+    this.migrateRegistrySourceUrl();
     this.migrateEnvironmentUuid();
     this.migrateEnvironmentSortOrder();
     this.migrateEnvironmentParentUuid();
@@ -1043,6 +1063,19 @@ export class LocalDatabase {
   }
 
   /**
+   * Adds source_url to legacy registry databases when missing.
+   */
+  private migrateRegistrySourceUrl(): void {
+    const columns = this.getDb().prepare('PRAGMA table_info(collection_registry)').all() as Array<{
+      name: string;
+    }>;
+    if (columns.some((col) => col.name === 'source_url')) {
+      return;
+    }
+    this.getDb().exec('ALTER TABLE collection_registry ADD COLUMN source_url TEXT');
+  }
+
+  /**
    * Adds uuid to legacy snippet rows when missing.
    */
   private migrateSnippetUuid(): void {
@@ -1337,7 +1370,7 @@ export class LocalDatabase {
   listRegistry(): CollectionRegistryEntry[] {
     const rows = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry ORDER BY sort_order ASC, name ASC'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived, source_url FROM collection_registry ORDER BY sort_order ASC, name ASC'
       )
       .all() as Record<string, unknown>[];
 
@@ -1370,7 +1403,7 @@ export class LocalDatabase {
   getRegistryEntry(id: number): CollectionRegistryEntry | undefined {
     const row = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry WHERE id = ?'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived, source_url FROM collection_registry WHERE id = ?'
       )
       .get(id) as Record<string, unknown> | undefined;
 
@@ -1385,7 +1418,7 @@ export class LocalDatabase {
 
     const row = this.getDb()
       .prepare(
-        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived FROM collection_registry WHERE collection_uuid = ?'
+        'SELECT id, name, collection_uuid, connection_id, provider_collection_id, created_at, archived, source_url FROM collection_registry WHERE collection_uuid = ?'
       )
       .get(trimmed) as Record<string, unknown> | undefined;
 
@@ -1401,11 +1434,15 @@ export class LocalDatabase {
   addRegistryEntry(input: AddRegistryEntryInput): CollectionRegistryEntry {
     const sortOrder = this.nextRegistrySortOrder();
     const collectionUuid = input.collectionUuid?.trim() ?? '';
+    const sourceUrl =
+      typeof input.sourceUrl === 'string' && input.sourceUrl.trim().length > 0
+        ? input.sourceUrl.trim()
+        : null;
 
     if (input.id != null) {
       this.getDb()
         .prepare(
-          'INSERT INTO collection_registry (id, name, collection_uuid, connection_id, provider_collection_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+          'INSERT INTO collection_registry (id, name, collection_uuid, connection_id, provider_collection_id, sort_order, source_url) VALUES (?, ?, ?, ?, ?, ?, ?)'
         )
         .run(
           input.id,
@@ -1413,7 +1450,8 @@ export class LocalDatabase {
           collectionUuid,
           input.connectionId,
           input.providerCollectionId,
-          sortOrder
+          sortOrder,
+          sourceUrl
         );
       const entry = this.getRegistryEntry(input.id);
       if (!entry) throw new Error('Registry entry not found after insert');
@@ -1422,14 +1460,15 @@ export class LocalDatabase {
 
     const result = this.getDb()
       .prepare(
-        'INSERT INTO collection_registry (name, collection_uuid, connection_id, provider_collection_id, sort_order) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO collection_registry (name, collection_uuid, connection_id, provider_collection_id, sort_order, source_url) VALUES (?, ?, ?, ?, ?, ?)'
       )
       .run(
         input.name.trim(),
         collectionUuid,
         input.connectionId,
         input.providerCollectionId,
-        sortOrder
+        sortOrder,
+        sourceUrl
       );
 
     const entry = this.getRegistryEntry(Number(result.lastInsertRowid));
@@ -1452,12 +1491,23 @@ export class LocalDatabase {
       ...current,
       ...fields
     };
+    const sourceUrl =
+      typeof next.sourceUrl === 'string' && next.sourceUrl.trim().length > 0
+        ? next.sourceUrl.trim()
+        : null;
 
     this.getDb()
       .prepare(
-        'UPDATE collection_registry SET name = ?, collection_uuid = ?, connection_id = ?, provider_collection_id = ? WHERE id = ?'
+        'UPDATE collection_registry SET name = ?, collection_uuid = ?, connection_id = ?, provider_collection_id = ?, source_url = ? WHERE id = ?'
       )
-      .run(next.name.trim(), next.collectionUuid, next.connectionId, next.providerCollectionId, id);
+      .run(
+        next.name.trim(),
+        next.collectionUuid,
+        next.connectionId,
+        next.providerCollectionId,
+        sourceUrl,
+        id
+      );
 
     const updated = this.getRegistryEntry(id);
     if (!updated) throw new Error('Registry entry not found after update');

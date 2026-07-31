@@ -149,7 +149,10 @@ describe('buildResponseExport', () => {
     const payload = buildResponseExport(
       sampleResponse(),
       [],
-      ['Hello world', 'second line'],
+      [
+        { message: 'Hello world', level: 'log', method: 'log', scriptName: 'Script' },
+        { message: 'second line', level: 'log', method: 'log', scriptName: 'Script' }
+      ],
       [
         {
           type: 'variable',

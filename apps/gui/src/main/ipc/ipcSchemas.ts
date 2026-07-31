@@ -1408,6 +1408,7 @@ export const ipcArgSchemas = {
   pluginSources: z.tuple([pluginSourcesSchema]),
   publicCollectionSearch: z.tuple([z.string().min(1), z.number().int().min(1).optional()]),
   publicCollectionRef: z.tuple([apisIoCollectionSchema]),
+  collectionImportUrl: z.tuple([z.string().min(1)]),
   pluginReadEntry: z.tuple([pluginId, pluginEntryKind]),
   pluginReadAsset: z.tuple([pluginId, z.string().min(1)]),
   pluginResolveThemeImport: z.tuple([pluginId, z.string().min(1)]),

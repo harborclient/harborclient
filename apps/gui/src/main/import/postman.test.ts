@@ -236,6 +236,19 @@ describe('convertPostmanCollection', () => {
     });
   });
 
+  it('derives stable folder and request uuids across repeated converts', () => {
+    const first = convertPostmanCollection(nestedFolderFixture);
+    const second = convertPostmanCollection(nestedFolderFixture);
+
+    expect(second.folders?.map((folder) => folder.uuid)).toEqual(
+      first.folders?.map((folder) => folder.uuid)
+    );
+    expect(second.requests.map((request) => request.uuid)).toEqual(
+      first.requests.map((request) => request.uuid)
+    );
+    expect(second.requests[0]?.folder_uuid).toBe(first.requests[0]?.folder_uuid);
+  });
+
   it('imports request scripts verbatim from Postman events', () => {
     const result = convertPostmanCollection(nestedFolderFixture);
     const apiGrant = result.requests.find((req) => req.name === 'API Grant');
@@ -342,6 +355,109 @@ describe('convertPostmanCollection', () => {
     });
 
     expect(result.name).toBe('Imported Collection');
+  });
+
+  it('rebuilds URLs from structured parts when raw is absent', () => {
+    const result = convertPostmanCollection({
+      info: { _postman_id: 'structured-url-test' },
+      item: [
+        {
+          name: 'Api Grant',
+          request: {
+            method: 'POST',
+            header: [],
+            url: {
+              host: ['{{baseUrl}}'],
+              path: ['auth', 'apiGrant'],
+              query: [],
+              variable: []
+            }
+          }
+        },
+        {
+          name: 'Campaign Claims',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              host: ['{{baseUrl}}'],
+              path: ['campaigns', ':id', 'claims'],
+              query: [
+                { key: 'export', value: '<string>', disabled: false },
+                { key: 'token', value: ' ', disabled: false },
+                { key: 'hidden', value: 'nope', disabled: true }
+              ],
+              variable: [
+                {
+                  key: 'id',
+                  value: ' ',
+                  disabled: false
+                }
+              ]
+            }
+          }
+        },
+        {
+          name: 'Pixel',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              protocol: 'https',
+              host: ['pixel', 'pintail', 'io'],
+              path: ['v1', 'tic6QBYHSJDdd55ao'],
+              query: [{ key: 'fast', value: 'true' }]
+            }
+          }
+        },
+        {
+          name: 'Substituted Path Var',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              host: ['{{baseUrl}}'],
+              path: ['campaigns', ':id', 'details'],
+              query: [],
+              variable: [{ key: 'id', value: 'camp-123' }]
+            }
+          }
+        }
+      ],
+      variable: [{ key: 'baseUrl', value: '/api/v1' }]
+    });
+
+    expect(result.requests.map((req) => ({ name: req.name, url: req.url }))).toEqual([
+      { name: 'Api Grant', url: '{{baseUrl}}/auth/apiGrant' },
+      {
+        name: 'Campaign Claims',
+        url: '{{baseUrl}}/campaigns/:id/claims?export=<string>&token= '
+      },
+      { name: 'Pixel', url: 'https://pixel.pintail.io/v1/tic6QBYHSJDdd55ao?fast=true' },
+      { name: 'Substituted Path Var', url: '{{baseUrl}}/campaigns/camp-123/details' }
+    ]);
+  });
+
+  it('prefers raw over structured URL parts when both are present', () => {
+    const result = convertPostmanCollection({
+      info: { _postman_id: 'raw-preferred-test' },
+      item: [
+        {
+          name: 'With Raw',
+          request: {
+            method: 'GET',
+            header: [],
+            url: {
+              raw: '{{baseUrl}}/from-raw',
+              host: ['{{baseUrl}}'],
+              path: ['from-parts']
+            }
+          }
+        }
+      ]
+    });
+
+    expect(result.requests[0]?.url).toBe('{{baseUrl}}/from-raw');
   });
 
   it('produces output that passes validateCollectionExport', () => {

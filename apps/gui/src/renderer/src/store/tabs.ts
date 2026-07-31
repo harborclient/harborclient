@@ -5,6 +5,7 @@ import type {
   HttpMethod,
   KeyValue,
   SavedRequest,
+  ScriptLogEntry,
   ScriptRef,
   ScriptRunError,
   ScriptTestResult,
@@ -172,7 +173,7 @@ export interface RequestTab {
   /**
    * Console output captured from scripts for the latest completed send in this tab.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts for the latest completed send.
@@ -216,6 +217,11 @@ export interface RequestTab {
    * the user's choice instead of defaulting to Body.
    */
   responseViewerTab?: string;
+
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -296,7 +302,15 @@ export type PageRef =
       /**
        * Built-in response viewer sub-tab to render full-page.
        */
-      viewerTab: 'body' | 'preview' | 'headers' | 'timing' | 'console' | 'redirects' | 'tests';
+      viewerTab:
+        | 'body'
+        | 'preview'
+        | 'headers'
+        | 'timing'
+        | 'console'
+        | 'logs'
+        | 'redirects'
+        | 'tests';
       /**
        * Tab bar title (request name plus viewer tab label).
        */
@@ -376,6 +390,11 @@ export interface PageTab {
    * Which configuration page this tab displays.
    */
   page: PageRef;
+
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -421,6 +440,11 @@ export interface MarkdownTab {
    * Last-saved markdown body used to detect unsaved changes.
    */
   savedContent: string;
+
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -585,6 +609,11 @@ export interface BrowserTab {
    * ordinary page-title drift.
    */
   settingsName: string;
+
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**

@@ -93,6 +93,12 @@ export interface Collection {
    * in the Archive sidebar section instead. Stored in the local registry.
    */
   archived?: boolean;
+
+  /**
+   * Remote URL this collection was imported from, when present.
+   * Stored in the local registry and used by the sidebar Refresh action.
+   */
+  sourceUrl?: string | null;
 }
 
 /**

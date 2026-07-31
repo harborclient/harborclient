@@ -1,5 +1,6 @@
 import type {
   AiScriptReferenceValidationContext,
+  ConsoleRowSnapshot,
   LiveServerReferenceInfo,
   LogsSelectionSnapshot,
   MarkdownSelectionSnapshot,
@@ -37,6 +38,7 @@ import { selectLiveServerLogsSelections } from '#/renderer/src/store/slices/live
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
+import { selectConsoleSelections } from '#/renderer/src/store/slices/consoleSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { selectPluginSelections } from '#/renderer/src/store/slices/pluginSelectionsSlice';
 
@@ -227,6 +229,7 @@ export function buildLiveServersByUuidFromState(
  * @param webpageTabsById - Open browser tabs keyed by tab id for `@webpage` references.
  * @param liveServersByUuid - Saved live servers keyed by uuid for `@live-server` / `@logs` references.
  * @param logsSelections - Access-log selection snapshots keyed by `@logs` reference token.
+ * @param consoleSelections - Console/header/timing row snapshots keyed by `@console` token.
  */
 export function buildAiScriptReferenceValidationContext(
   tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
@@ -240,7 +243,8 @@ export function buildAiScriptReferenceValidationContext(
   pluginSelections: Record<string, PluginChatPointerSnapshot> = {},
   webpageTabsById: Record<string, WebpageTabReferenceInfo> = {},
   liveServersByUuid: Record<string, LiveServerReferenceInfo> = {},
-  logsSelections: Record<string, LogsSelectionSnapshot> = {}
+  logsSelections: Record<string, LogsSelectionSnapshot> = {},
+  consoleSelections: Record<string, ConsoleRowSnapshot> = {}
 ): AiScriptReferenceValidationContext {
   return {
     ...buildValidationContext(tab),
@@ -250,6 +254,7 @@ export function buildAiScriptReferenceValidationContext(
     requestBodySelections,
     scriptSelections,
     responseSelections,
+    consoleSelections,
     pluginSelections,
     webpageTabsById,
     liveServersByUuid,
@@ -272,6 +277,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const requestBodySelections = useAppSelector(selectRequestBodySelections);
   const scriptSelections = useAppSelector(selectScriptSelections);
   const responseSelections = useAppSelector(selectResponseSelections);
+  const consoleSelections = useAppSelector(selectConsoleSelections);
   const pluginSelections = useAppSelector(selectPluginSelections);
   const tabs = useAppSelector(selectTabs);
   const collections = useAppSelector(selectCollections);
@@ -315,7 +321,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
         pluginSelections,
         webpageTabsById,
         liveServersByUuid,
-        logsSelections
+        logsSelections,
+        consoleSelections
       ),
     [
       activeTab,
@@ -329,7 +336,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
       pluginSelections,
       webpageTabsById,
       liveServersByUuid,
-      logsSelections
+      logsSelections,
+      consoleSelections
     ]
   );
 }

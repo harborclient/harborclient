@@ -1,12 +1,14 @@
 import type {
   BrowserConsoleEntryPayload,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptPhase,
   ScriptRunError,
   ScriptRunResult,
   ScriptTestResult,
   SendResult
 } from '@harborclient/core/types';
+import { enrichScriptLogLines } from '@harborclient/core/scripting/scriptLogs';
 
 /**
  * Accumulates pre/post script output for one live-page navigation cycle.
@@ -18,9 +20,9 @@ export interface BrowserConsoleAccum {
   startedAt: number;
 
   /**
-   * Labeled script console lines for the footer Output section.
+   * Script console lines for the footer Logs section.
    */
-  logs: string[];
+  logs: ScriptLogEntry[];
 
   /**
    * Test assertions collected from pre/post scripts.
@@ -76,7 +78,14 @@ export function appendBrowserScriptResult(
   result: Pick<ScriptRunResult, 'logs' | 'tests' | 'executionEvents' | 'error' | 'errorLocation'>
 ): void {
   if (result.logs.length) {
-    accum.logs.push(`[${label}]`, ...result.logs);
+    accum.logs.push(
+      ...enrichScriptLogLines(result.logs, {
+        label,
+        scriptId,
+        phase,
+        scope: 'request'
+      })
+    );
   }
   if (result.executionEvents.length) {
     accum.executionEvents.push(

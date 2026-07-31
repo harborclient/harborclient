@@ -2,7 +2,7 @@ import { useAccordionProvider } from '@szhsin/react-accordion';
 import { useCallback, useEffect, useState } from 'react';
 
 /** Stable accordion keys for console detail sections. */
-export const CONSOLE_SECTION_KEYS = ['general', 'request', 'response', 'output', 'trace'] as const;
+export const CONSOLE_SECTION_KEYS = ['general', 'request', 'response', 'logs', 'trace'] as const;
 
 /** Accordion item key for a console detail section. */
 export type ConsoleSectionKey = (typeof CONSOLE_SECTION_KEYS)[number];
@@ -42,7 +42,7 @@ export function defaultConsoleSectionExpansion(): ConsoleSectionExpansionState {
     general: true,
     request: true,
     response: true,
-    output: true,
+    logs: true,
     trace: true
   };
 }
@@ -51,6 +51,7 @@ export function defaultConsoleSectionExpansion(): ConsoleSectionExpansionState {
  * Parses persisted console section expansion JSON.
  *
  * Unknown keys are ignored. Missing known keys default to expanded.
+ * Legacy `output` keys map onto `logs` when `logs` is absent.
  *
  * @param raw - Stored JSON string.
  */
@@ -71,6 +72,10 @@ export function parsePersistedConsoleSectionExpansion(
       if (typeof value === 'boolean') {
         next[key] = value;
       }
+    }
+
+    if (typeof record.output === 'boolean' && record.logs === undefined) {
+      next.logs = record.output;
     }
 
     return next;
@@ -118,6 +123,9 @@ export function usePersistedConsoleSectionExpansion(): PersistedConsoleSectionEx
 
   /**
    * Updates in-memory section expansion and mirrors the change to localStorage.
+   *
+   * @param key - Accordion item key from the provider.
+   * @param expanded - Whether the section is entering/entered.
    */
   const applySectionExpanded = useCallback((key: string, expanded: boolean): void => {
     if (!isConsoleSectionKey(key)) {

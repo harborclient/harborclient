@@ -22,6 +22,7 @@ import { Headers } from './Headers.js';
 import { QueryString } from './QueryString.js';
 import { RequestTiming } from './RequestTiming.js';
 import { ResponseReader } from './ResponseReader.js';
+import { mapFetchError } from './mapFetchError.js';
 
 /** HTTP status codes treated as redirects when following manually. */
 export const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -221,25 +222,6 @@ export class Requester implements IRequester {
       return signals[0];
     }
     return AbortSignal.any(signals);
-  }
-
-  /**
-   * Maps fetch errors to user-facing messages.
-   *
-   * @param err - Thrown fetch error.
-   * @param timeoutMs - Configured request timeout in milliseconds.
-   */
-  private mapFetchError(err: unknown, timeoutMs: number): string {
-    if (err instanceof Error && err.name === 'AbortError') {
-      return 'Request canceled';
-    }
-    if (err instanceof Error && err.name === 'TimeoutError') {
-      return `Request timed out after ${timeoutMs} ms`;
-    }
-    if (err instanceof Error) {
-      return err.message;
-    }
-    return 'Unknown error';
   }
 
   /**
@@ -583,7 +565,7 @@ export class Requester implements IRequester {
     } catch (err) {
       const timeMs = Math.round(performance.now() - start);
       return this.errorResult(
-        this.mapFetchError(err, settings.requestTimeoutMs),
+        mapFetchError(err, settings.requestTimeoutMs),
         sentRequest,
         timeMs,
         lastTimingSession?.toPhases(timeMs)

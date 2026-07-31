@@ -55,9 +55,15 @@ import { generateDocumentUuid, resolveImportUuid } from './uuid';
 import {
   buildDocumentUuidIndex,
   buildFolderImportMaps,
+  buildRequestFingerprintIndexes,
   buildRequestUuidIndex,
   importedFolderToStoredRow,
+  planImportedFolderUpsert,
+  registerImportedFolderInMaps,
   resolveImportFolderId,
+  resolveImportRequestId,
+  resolveImportedFolderParentId,
+  resolveUpsertRequestFolderId,
   serializeImportedCollectionScriptFields,
   serializeImportedDocumentFields,
   serializeImportedRequestFields
@@ -1626,6 +1632,37 @@ export class GitStorage implements IStorage {
   async updateCollectionFromImport(id: number, data: CollectionExport): Promise<Collection> {
     const loaded = this.requireCollection(id);
     const exportData = validateCollectionExport(data);
+    // Snapshot so a failed persist (e.g. duplicate sibling folder names) does not
+    // leave the in-memory collection in a half-merged state that breaks retries.
+    const snapshot = {
+      manifest: structuredClone(loaded.manifest),
+      requests: structuredClone(loaded.requests),
+      documents: structuredClone(loaded.documents)
+    };
+
+    try {
+      return await this.applyCollectionImportUpdate(id, loaded, exportData);
+    } catch (error) {
+      loaded.manifest = snapshot.manifest;
+      loaded.requests = snapshot.requests;
+      loaded.documents = snapshot.documents;
+      throw error;
+    }
+  }
+
+  /**
+   * Applies an additive collection import merge and persists the result.
+   *
+   * @param id - Provider-local collection id.
+   * @param loaded - In-memory collection state to mutate.
+   * @param exportData - Validated portable collection export from the import source.
+   * @returns Updated collection entity after persist.
+   */
+  private async applyCollectionImportUpdate(
+    id: number,
+    loaded: LoadedCollection,
+    exportData: CollectionExport
+  ): Promise<Collection> {
     const folderMaps = buildFolderImportMaps(this.buildFolders(id, loaded));
 
     const collectionScripts = serializeImportedCollectionScriptFields(exportData);
@@ -1644,50 +1681,124 @@ export class GitStorage implements IStorage {
     };
 
     for (const folder of sortExportedFoldersParentFirst(exportData.folders ?? [])) {
-      const folderUuid = resolveImportUuid(folder.uuid);
-      const existingByUuid = loaded.manifest.folders.find((row) => row.uuid === folderUuid);
-      const existingByName = loaded.manifest.folders.find((row) => row.name === folder.name);
-      const existing = existingByUuid ?? existingByName;
+      const parentFolderId = resolveImportedFolderParentId(folder, folderMaps.folderIdByUuid);
+      let plan = planImportedFolderUpsert(folder, folderMaps, parentFolderId);
       const parentUuid =
-        folder.parent_folder_uuid == null || folder.parent_folder_uuid === ''
-          ? null
-          : resolveImportUuid(folder.parent_folder_uuid);
+        parentFolderId != null ? (folderMaps.folderUuidById.get(parentFolderId) ?? null) : null;
 
-      if (existing) {
-        Object.assign(existing, importedFolderToStoredRow(folder, existing.sort_order), {
-          parent_uuid: parentUuid
-        });
-        assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', existing.uuid);
+      // Safety net: never insert a sibling that would duplicate an existing name
+      // under the same parent (Postman/OpenCollection refresh regenerates uuids).
+      if (plan.action === 'insert') {
+        const existingSibling = loaded.manifest.folders.find(
+          (row) => row.name === plan.name && (row.parent_uuid ?? null) === parentUuid
+        );
+        if (existingSibling) {
+          const existingId = this.#idIndex.folderIds[existingSibling.uuid];
+          if (existingId != null) {
+            plan = {
+              action: 'update',
+              existingId,
+              name: plan.name,
+              sort_order: plan.sort_order,
+              uuid: plan.uuid,
+              marker: plan.marker
+            };
+          }
+        }
+      }
+
+      if (plan.action === 'update') {
+        const existing = loaded.manifest.folders.find(
+          (row) => this.#idIndex.folderIds[row.uuid] === plan.existingId
+        );
+        if (!existing) {
+          throw new Error('Folder not found');
+        }
+        // Keep the local uuid stable across Postman/OpenCollection refreshes that
+        // regenerate folder uuids; register the import uuid for child/request links.
+        const localUuid = existing.uuid;
+        Object.assign(
+          existing,
+          importedFolderToStoredRow({ ...folder, uuid: localUuid }, plan.sort_order),
+          {
+            parent_uuid: parentUuid
+          }
+        );
+        existing.uuid = localUuid;
+        registerImportedFolderInMaps(
+          folderMaps,
+          plan.existingId,
+          plan.name,
+          plan.uuid,
+          parentFolderId
+        );
+        folderMaps.folderIdByUuid.set(localUuid, plan.existingId);
+        folderMaps.folderUuidById.set(plan.existingId, localUuid);
         continue;
       }
 
       const stored = {
-        ...importedFolderToStoredRow(folder, loaded.manifest.folders.length),
+        ...importedFolderToStoredRow({ ...folder, uuid: plan.uuid }, plan.sort_order),
         parent_uuid: parentUuid
       };
       loaded.manifest.folders.push(stored);
-      assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', stored.uuid);
+      const folderId = assignGitId(this.#idIndex, 'folderIds', 'nextFolderId', stored.uuid);
+      registerImportedFolderInMaps(folderMaps, folderId, plan.name, plan.uuid, parentFolderId);
     }
 
-    const requestUuidIndex = buildRequestUuidIndex(await this.listRequests(id));
+    const existingSavedRequests = await this.listRequests(id);
+    const requestUuidIndex = buildRequestUuidIndex(existingSavedRequests);
+    const requestFingerprints = buildRequestFingerprintIndexes(existingSavedRequests);
     const documentUuidIndex = buildDocumentUuidIndex(await this.listDocuments(id));
 
     for (const request of exportData.requests) {
       const fields = serializeImportedRequestFields(request);
-      const folderId = resolveImportFolderId(
+      const importedFolderId = resolveImportFolderId(
         request.folder_uuid,
         request.folder_name,
         folderMaps.folderIdByUuid,
         folderMaps.folderIdByName
       );
-      const folderName =
+      const existingRequestId = resolveImportRequestId(
+        fields.uuid,
+        importedFolderId,
+        fields.method,
+        fields.name,
+        fields.url,
+        requestUuidIndex,
+        requestFingerprints
+      );
+      const folderId = resolveUpsertRequestFolderId(
+        importedFolderId,
+        existingRequestId != null
+          ? requestFingerprints.folderIdByRequestId.get(existingRequestId)
+          : undefined
+      );
+      const matchedFolder =
         folderId != null
-          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)?.name
-          : request.folder_name;
+          ? loaded.manifest.folders.find((f) => this.#idIndex.folderIds[f.uuid] === folderId)
+          : undefined;
+      const folderName = matchedFolder?.name ?? (folderId == null ? request.folder_name : null);
+      const folderUuid = matchedFolder?.uuid ?? (folderId == null ? null : request.folder_uuid);
+
+      const existingByUuidIndex = loaded.requests.findIndex(
+        (row) => resolveImportUuid(row.uuid) === fields.uuid
+      );
+      const existingByIdIndex =
+        existingRequestId != null
+          ? loaded.requests.findIndex((row) => {
+              const rowUuid = resolveImportUuid(row.uuid);
+              return this.#idIndex.requestIds[rowUuid] === existingRequestId;
+            })
+          : -1;
+      const existingIndex = existingByUuidIndex >= 0 ? existingByUuidIndex : existingByIdIndex;
+      const existingRow = existingIndex >= 0 ? loaded.requests[existingIndex] : undefined;
+      // Keep the local uuid when fingerprint-matching a Postman refresh so we do not churn ids.
+      const persistedUuid = existingRow != null ? resolveImportUuid(existingRow.uuid) : fields.uuid;
 
       const exported: ExportedRequest = {
         ...request,
-        uuid: fields.uuid,
+        uuid: persistedUuid,
         name: fields.name,
         method: fields.method,
         url: fields.url,
@@ -1707,21 +1818,16 @@ export class GitStorage implements IStorage {
         tags: fields.tags,
         sort_order: fields.sort_order,
         folder_name: folderName ?? request.folder_name ?? null,
+        folder_uuid: folderUuid ?? null,
         marker: fields.marker
       };
 
-      const existingRequestId = requestUuidIndex.get(fields.uuid);
-      const existingIndex = loaded.requests.findIndex(
-        (row) => resolveImportUuid(row.uuid) === fields.uuid
-      );
       if (existingIndex >= 0) {
         loaded.requests[existingIndex] = exported;
-      } else if (existingRequestId != null) {
-        loaded.requests.push(exported);
       } else {
         loaded.requests.push(exported);
       }
-      assignGitId(this.#idIndex, 'requestIds', 'nextRequestId', fields.uuid);
+      assignGitId(this.#idIndex, 'requestIds', 'nextRequestId', persistedUuid);
     }
 
     for (const document of exportData.documents ?? []) {

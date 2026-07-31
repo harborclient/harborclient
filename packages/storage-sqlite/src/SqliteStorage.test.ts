@@ -327,6 +327,65 @@ describeSqlite('SqliteStorage uuid import', () => {
     expect(folders[0]?.name).toBe('Renamed Folder');
   });
 
+  it('updateCollectionFromImport reuses nested same-named folders when uuids regenerate', async () => {
+    const { db } = await createTestDb();
+    const collection = await db.createCollection('Postman Refresh Folders');
+    const rootAuth = await db.createFolder(collection.id, 'Auth');
+    const users = await db.createFolder(collection.id, 'Users');
+    const nestedAuth = await db.createFolder(collection.id, 'Auth', users.id);
+
+    const exportData = await db.exportCollectionData(collection.id);
+    const importUsersUuid = '11111111-1111-4111-8111-111111111111';
+    const importRootAuthUuid = '22222222-2222-4222-8222-222222222222';
+    const importNestedAuthUuid = '33333333-3333-4333-8333-333333333333';
+    const payload: typeof exportData = {
+      ...exportData,
+      folders: [
+        {
+          uuid: importRootAuthUuid,
+          name: 'Auth',
+          parent_folder_uuid: null,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: importUsersUuid,
+          name: 'Users',
+          parent_folder_uuid: null,
+          sort_order: 1,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: importNestedAuthUuid,
+          name: 'Auth',
+          parent_folder_uuid: importUsersUuid,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        }
+      ],
+      requests: []
+    };
+
+    await db.updateCollectionFromImport(collection.id, payload);
+    const folders = await db.listFolders(collection.id);
+
+    expect(folders).toHaveLength(3);
+    expect(folders.find((folder) => folder.id === rootAuth.id)?.parent_folder_id ?? null).toBe(
+      null
+    );
+    expect(folders.find((folder) => folder.id === users.id)?.name).toBe('Users');
+    expect(folders.find((folder) => folder.id === nestedAuth.id)?.parent_folder_id).toBe(users.id);
+    // Local uuids stay stable; import uuids are only used for matching during the merge.
+    expect(folders.find((folder) => folder.id === rootAuth.id)?.uuid).toBe(rootAuth.uuid);
+    expect(folders.find((folder) => folder.id === nestedAuth.id)?.uuid).toBe(nestedAuth.uuid);
+  });
+
   it('links imported requests via folder_uuid when folder_name differs', async () => {
     const { db } = await createTestDb();
     const collection = await db.createCollection('Folder Uuid Link');
@@ -348,6 +407,158 @@ describeSqlite('SqliteStorage uuid import', () => {
     const importedRequests = await db.listRequests(imported.id);
 
     expect(importedRequests[0]?.folder_id).toBe(importedFolders[0]?.id);
+  });
+
+  it('updateCollectionFromImport keeps Postman-refresh requests in folders when uuids regenerate', async () => {
+    const { db } = await createTestDb();
+    const firstFolderUuid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const firstNestedUuid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const firstPayload = {
+      harborclientVersion: 1 as const,
+      harborclientExport: 'collection' as const,
+      name: 'Postman Refresh Requests',
+      variables: [],
+      headers: [],
+      folders: [
+        {
+          uuid: firstFolderUuid,
+          name: 'campaigns',
+          parent_folder_uuid: null,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: firstNestedUuid,
+          name: 'details',
+          parent_folder_uuid: firstFolderUuid,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        }
+      ],
+      requests: [
+        {
+          name: 'List campaigns',
+          method: 'GET' as const,
+          url: '{{baseUrl}}/campaigns',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none' as const,
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 0,
+          folder_name: 'campaigns',
+          folder_uuid: firstFolderUuid
+        },
+        {
+          name: 'Get details',
+          method: 'GET' as const,
+          url: '{{baseUrl}}/campaigns/1',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none' as const,
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 1,
+          folder_name: 'details',
+          folder_uuid: firstNestedUuid
+        }
+      ]
+    };
+
+    const collection = await db.importCollectionData(firstPayload);
+    const foldersAfterImport = await db.listFolders(collection.id);
+    const requestsAfterImport = await db.listRequests(collection.id);
+    expect(foldersAfterImport).toHaveLength(2);
+    expect(requestsAfterImport).toHaveLength(2);
+    expect(requestsAfterImport.every((request) => request.folder_id != null)).toBe(true);
+
+    // Simulate a legacy Postman refresh: new folder/request uuids, folder_uuid unresolved.
+    const refreshPayload = {
+      ...firstPayload,
+      folders: [
+        {
+          uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          name: 'campaigns',
+          parent_folder_uuid: null,
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        },
+        {
+          uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+          name: 'details',
+          parent_folder_uuid: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+          sort_order: 0,
+          variables: [],
+          headers: [],
+          marker: null
+        }
+      ],
+      requests: [
+        {
+          uuid: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+          name: 'List campaigns',
+          method: 'GET' as const,
+          url: '{{baseUrl}}/campaigns',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none' as const,
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 0,
+          // Intentionally omit folder links to mimic failed folder uuid resolution.
+          folder_name: null,
+          folder_uuid: null
+        },
+        {
+          uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          name: 'Get details',
+          method: 'GET' as const,
+          url: '{{baseUrl}}/campaigns/1',
+          headers: [],
+          params: [],
+          body: '',
+          body_type: 'none' as const,
+          pre_request_script: '',
+          post_request_script: '',
+          comment: '',
+          tags: '',
+          sort_order: 1,
+          folder_name: null,
+          folder_uuid: null
+        }
+      ]
+    };
+
+    await db.updateCollectionFromImport(collection.id, refreshPayload);
+    const foldersAfterRefresh = await db.listFolders(collection.id);
+    const requestsAfterRefresh = await db.listRequests(collection.id);
+    const campaigns = foldersAfterRefresh.find((folder) => folder.name === 'campaigns');
+    const details = foldersAfterRefresh.find((folder) => folder.name === 'details');
+
+    expect(foldersAfterRefresh).toHaveLength(2);
+    expect(requestsAfterRefresh).toHaveLength(2);
+    expect(requestsAfterRefresh.filter((request) => request.folder_id == null)).toHaveLength(0);
+    expect(
+      requestsAfterRefresh.find((request) => request.name === 'List campaigns')?.folder_id
+    ).toBe(campaigns?.id);
+    expect(requestsAfterRefresh.find((request) => request.name === 'Get details')?.folder_id).toBe(
+      details?.id
+    );
   });
 });
 

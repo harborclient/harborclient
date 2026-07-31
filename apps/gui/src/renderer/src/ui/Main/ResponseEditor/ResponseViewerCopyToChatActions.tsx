@@ -2,6 +2,7 @@ import { CopyToChatButton } from '@harborclient/sdk/components';
 import type { SendResult } from '@harborclient/http';
 import type {
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult
 } from '@harborclient/core/types';
@@ -45,7 +46,7 @@ interface Props {
   /**
    * Console log lines from scripts for the last send.
    */
-  scriptLogs?: string[];
+  scriptLogs?: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts.

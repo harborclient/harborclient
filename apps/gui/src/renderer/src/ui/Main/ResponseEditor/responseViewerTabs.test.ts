@@ -13,6 +13,7 @@ describe('responseViewerTabs', () => {
       'headers',
       'timing',
       'console',
+      'logs',
       'redirects',
       'tests'
     ]);

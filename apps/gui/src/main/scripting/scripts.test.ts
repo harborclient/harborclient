@@ -215,7 +215,7 @@ describe('evaluateScript', () => {
     expect(result.error).toBeUndefined();
     expect(result.request.url).toBe('https://api.example.com');
     expect(result.variableSets).toEqual({ token: 'abc123' });
-    expect(result.logs).toContain('pre ran');
+    expect(result.logs.map((line) => line.message)).toContain('pre ran');
   });
 
   it('sets collection variables in pre script', async () => {
@@ -244,7 +244,7 @@ describe('evaluateScript', () => {
       newKey: 'created'
     });
     expect(result.variableSets).toEqual({});
-    expect(result.logs).toContain('example.com');
+    expect(result.logs.map((line) => line.message)).toContain('example.com');
   });
 
   it('reads collection variable overrides before runtime values', async () => {
@@ -267,7 +267,7 @@ describe('evaluateScript', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.logs).toContain('override');
+    expect(result.logs.map((line) => line.message)).toContain('override');
   });
 
   it('mutates collection headers and exposes collection metadata', async () => {
@@ -298,10 +298,12 @@ describe('evaluateScript', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.logs).toContain('My API');
-    expect(result.logs).toContain('42');
-    expect(result.logs).toContain('Bearer token');
-    expect(result.logs).toContain('{"X-Api-Key":"secret","Authorization":"Bearer token"}');
+    expect(result.logs.map((line) => line.message)).toContain('My API');
+    expect(result.logs.map((line) => line.message)).toContain('42');
+    expect(result.logs.map((line) => line.message)).toContain('Bearer token');
+    expect(result.logs.map((line) => line.message)).toContain(
+      '{"X-Api-Key":"secret","Authorization":"Bearer token"}'
+    );
     expect(result.collectionHeaders).toEqual([
       { key: 'X-Api-Key', value: 'secret', enabled: true },
       { key: 'Authorization', value: 'Bearer token', enabled: true }
@@ -328,8 +330,8 @@ describe('evaluateScript', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.logs).toContain('');
-    expect(result.logs).toContain('null');
+    expect(result.logs.map((line) => line.message)).toContain('');
+    expect(result.logs.map((line) => line.message)).toContain('null');
     expect(result.collectionHeaders).toEqual([]);
   });
 
@@ -356,13 +358,13 @@ describe('evaluateScript', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.logs).toContain('Production');
+    expect(result.logs.map((line) => line.message)).toContain('Production');
     expect(result.environmentVariableSets).toEqual({
       token: 'persist-env',
       newKey: 'created'
     });
     expect(result.variableSets).toEqual({});
-    expect(result.logs).toContain('example.com');
+    expect(result.logs.map((line) => line.message)).toContain('example.com');
   });
 
   it('returns empty environment name when no environment is passed', async () => {
@@ -385,7 +387,7 @@ describe('evaluateScript', () => {
     });
 
     expect(result.error).toBeUndefined();
-    expect(result.logs).toContain('');
+    expect(result.logs.map((line) => line.message)).toContain('');
     expect(result.environmentVariableSets).toEqual({ token: 'ephemeral' });
   });
 
@@ -410,7 +412,7 @@ describe('evaluateScript', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.globalVariableSets).toEqual({ baseUrl: 'https://api.example.com' });
-    expect(result.logs).toContain('example.com');
+    expect(result.logs.map((line) => line.message)).toContain('example.com');
   });
 
   it('runs post script tests against response', async () => {
@@ -575,7 +577,7 @@ describe('evaluateScript', () => {
     expect(result.error).toBeUndefined();
     expect(result.request.url).toBe('https://api.example.com/v1/status');
     expect(result.variableSets).toEqual({ token: 'abc123', hostUpper: 'EXAMPLE.COM' });
-    expect(result.logs).toContain('modern syntax');
+    expect(result.logs.map((line) => line.message)).toContain('modern syntax');
   });
 
   it('returns compile error for invalid modern syntax', async () => {

@@ -3,6 +3,7 @@ import type {
   Folder,
   HttpMethod,
   SavedRequest,
+  ScriptLogEntry,
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult
@@ -110,7 +111,7 @@ export interface CollectionRunnerRequestResult {
   /**
    * Console output captured from scripts for the last send.
    */
-  scriptLogs?: string[];
+  scriptLogs?: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts for the last send.

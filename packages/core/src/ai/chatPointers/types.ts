@@ -310,6 +310,91 @@ export interface ParsedRequestBodyReference extends ParsedAiScriptReferenceBase 
 }
 
 /**
+ * A parsed `@` reference to a console / headers / timing inspector row selection.
+ */
+export interface ParsedConsoleReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for console-row chat pointers.
+   */
+  kind: 'console';
+
+  /**
+   * Section id (for example `general`, `headers`, or `timing`).
+   */
+  section: string;
+
+  /**
+   * Slugified row id within the section.
+   */
+  row: string;
+}
+
+/**
+ * Snapshot of a console/header/timing cell captured when the user copies a selection to chat.
+ */
+export interface ConsoleRowSnapshot {
+  /**
+   * Display label for the badge (for example `Console · Error`).
+   */
+  label: string;
+
+  /**
+   * Section id at capture time.
+   */
+  section: string;
+
+  /**
+   * Slugified row id at capture time.
+   */
+  row: string;
+
+  /**
+   * Human-readable row label (for example `Error` or `Request sent`).
+   */
+  rowLabel: string;
+
+  /**
+   * Full text of the selected cell at capture time.
+   */
+  fieldText: string;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Inclusive character offset into {@link fieldText}.
+   */
+  startOffset: number;
+
+  /**
+   * Exclusive character offset into {@link fieldText}.
+   */
+  endOffset: number;
+
+  /**
+   * Request name at capture time when available.
+   */
+  requestName?: string;
+
+  /**
+   * HTTP status code when available.
+   */
+  status?: number;
+
+  /**
+   * HTTP status text when available.
+   */
+  statusText?: string;
+
+  /**
+   * Transport error message when the send failed.
+   */
+  error?: string;
+}
+
+/**
  * A parsed `@` reference to a response-viewer section for a request tab.
  */
 export interface ParsedResponseSectionReference extends ParsedAiScriptReferenceBase {
@@ -653,6 +738,7 @@ export type PersistedChatReferenceSnapshotEntry =
   | { kind: 'logs'; snapshot: LogsSelectionSnapshot }
   | { kind: 'markdown'; snapshot: MarkdownSelectionSnapshot }
   | { kind: 'body'; snapshot: RequestBodySelectionSnapshot }
+  | { kind: 'console'; snapshot: ConsoleRowSnapshot }
   | { kind: 'plugin'; snapshot: PluginChatPointerSnapshot };
 
 /**
@@ -745,6 +831,7 @@ export type ParsedAiScriptReference =
   | ParsedLogsReference
   | ParsedMarkdownReference
   | ParsedRequestBodyReference
+  | ParsedConsoleReference
   | ParsedResponseSectionReference
   | ParsedPluginReference;
 
@@ -806,6 +893,11 @@ export interface AiScriptReferenceValidationContext {
    * Raw-body selection snapshots keyed by the full `@body` reference token.
    */
   requestBodySelections?: Record<string, RequestBodySelectionSnapshot>;
+
+  /**
+   * Console/header/timing row selection snapshots keyed by the full `@console` token.
+   */
+  consoleSelections?: Record<string, ConsoleRowSnapshot>;
 
   /**
    * Response-section snapshots keyed by the full `@res` reference token.

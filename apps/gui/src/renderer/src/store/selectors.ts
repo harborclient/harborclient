@@ -15,6 +15,7 @@ import {
 import type {
   Environment,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
   SendResult,
@@ -317,7 +318,7 @@ export const selectTestResults = (state: RootState): ScriptTestResult[] => {
 /**
  * Returns script console output for the active request tab.
  */
-export const selectScriptLogs = (state: RootState): string[] => {
+export const selectScriptLogs = (state: RootState): ScriptLogEntry[] => {
   const tab = selectActiveTab(state);
   if (tab && isRequestTab(tab)) {
     return tab.scriptLogs;

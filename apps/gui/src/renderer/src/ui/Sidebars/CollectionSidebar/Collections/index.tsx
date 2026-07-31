@@ -68,6 +68,7 @@ import { methodBadgeClass, sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/Shared/Animated/AnimatedCollapse';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { ActionsMenu } from './ActionsMenu';
+import { resolveCollectionStorageBadge } from './collectionStorageBadge';
 import { FolderActionsMenu } from './FolderActionsMenu';
 import { DropZone } from './DropZone';
 import { focusCollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings/focusCollectionSettings';
@@ -1143,21 +1144,23 @@ export function Collections(): JSX.Element {
                           label={`Color marker for ${collection.name}`}
                         />
                         {(() => {
-                          const badgeLabel =
-                            connectionType === 'git' && gitStatus?.branch != null
-                              ? gitStatus.branch
-                              : connectionName;
-                          if (!showStorageLocationBadges || badgeLabel == null) {
+                          const storageBadge = resolveCollectionStorageBadge(
+                            collection.sourceUrl,
+                            connectionType,
+                            connectionName,
+                            gitStatus?.branch
+                          );
+                          if (!showStorageLocationBadges || storageBadge == null) {
                             return null;
                           }
 
-                          if (connectionType === 'git') {
+                          if (storageBadge.isBranchSwitcher) {
                             return (
                               <SidebarBadge
                                 as="button"
                                 variant="info"
-                                title={`On branch ${badgeLabel}`}
-                                aria-label={`Switch branch (currently ${badgeLabel})`}
+                                title={storageBadge.title}
+                                aria-label={`Switch branch (currently ${storageBadge.label})`}
                                 onPointerDown={stopSortableDragPointerDown}
                                 onClick={() =>
                                   onOpenSwitchBranch(
@@ -1167,14 +1170,14 @@ export function Collections(): JSX.Element {
                                   )
                                 }
                               >
-                                {badgeLabel}
+                                {storageBadge.label}
                               </SidebarBadge>
                             );
                           }
 
                           return (
-                            <SidebarBadge variant="info" title={`Stored in ${badgeLabel}`}>
-                              {badgeLabel}
+                            <SidebarBadge variant="info" title={storageBadge.title}>
+                              {storageBadge.label}
                             </SidebarBadge>
                           );
                         })()}

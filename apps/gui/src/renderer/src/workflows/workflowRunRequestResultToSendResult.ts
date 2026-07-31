@@ -1,11 +1,13 @@
 import type {
   KeyValue,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
   SendResult,
   WorkflowRunRequestResult
 } from '@harborclient/core/types';
+import { coerceScriptLogs } from '@harborclient/core/scripting/scriptLogs';
 
 /**
  * Response Editor fields derived from a portable workflow-run request result.
@@ -24,7 +26,7 @@ export interface WorkflowRunRequestResultEditorModel {
   /**
    * Script console lines captured at send time.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control events from scripts.
@@ -171,7 +173,7 @@ export function workflowRunRequestResultToEditorModel(
   return {
     response,
     testResults: result.response.tests,
-    scriptLogs: result.response.scriptLogs ?? [],
+    scriptLogs: coerceScriptLogs(result.response.scriptLogs ?? []),
     executionEvents: result.response.executionEvents ?? [],
     scriptError: result.response.scriptError,
     scriptErrors: result.response.scriptErrors,

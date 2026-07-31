@@ -1,8 +1,13 @@
+import {
+  createScriptConsole,
+  type ScriptConsole
+} from '@harborclient/core/scripting/scriptConsoleRegistry';
 import type {
   BodyType,
   KeyValue,
   ScriptExecutionEvent,
   ScriptExecutionVariableScope,
+  ScriptLogLine,
   ScriptPhase,
   ScriptRequestContext,
   ScriptRunInfo,
@@ -154,7 +159,7 @@ interface ScriptApiState {
   folderHeaders: KeyValue[];
   folderAuth: AuthConfig;
   tests: ScriptTestResult[];
-  logs: string[];
+  logs: ScriptLogLine[];
   executionEvents: ScriptExecutionEvent[];
   phase: ScriptPhase;
   nextRequest: string | null | undefined;
@@ -175,11 +180,11 @@ export interface ScriptApi {
 
   /**
    * Capturing console that appends formatted lines to sandbox logs.
+   *
+   * Implements the common Console API methods used in request scripts
+   * (see https://developer.mozilla.org/en-US/docs/Web/API/console).
    */
-  console: {
-    log: (...args: unknown[]) => void;
-    error: (...args: unknown[]) => void;
-  };
+  console: ScriptConsole;
 
   /**
    * Snapshots the current mutable state into a {@link ScriptRunResult}.
@@ -525,16 +530,6 @@ function makeAuthApi(getAuth: () => AuthConfig): {
       auth.oauth2 = next.oauth2;
     }
   };
-}
-
-/**
- * Formats console arguments the same way as the legacy bootstrap string.
- *
- * @param args - Values passed to console.log or console.error.
- * @returns Single-line string joined with spaces.
- */
-function formatConsoleArgs(args: unknown[]): string {
-  return args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
 }
 
 /**
@@ -1439,14 +1434,7 @@ export function createScriptApi(
     };
   }
 
-  const scriptConsole = {
-    log: (...args: unknown[]) => {
-      state.logs.push(formatConsoleArgs(args));
-    },
-    error: (...args: unknown[]) => {
-      state.logs.push(`[error] ${formatConsoleArgs(args)}`);
-    }
-  };
+  const scriptConsole = createScriptConsole(state);
 
   return {
     hc,

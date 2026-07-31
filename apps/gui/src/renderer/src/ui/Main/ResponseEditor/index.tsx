@@ -6,12 +6,12 @@ import {
   SegmentedTabsGroup,
   FaIcon
 } from '@harborclient/sdk/components';
-import { focusableReadonlyClass } from '#/renderer/src/ui/Shared/classes';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '@harborclient/core/plugin/types';
 import type {
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
   SendResult
@@ -62,7 +62,7 @@ interface Props {
   /**
    * Console output captured from scripts for the last send.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts for the last send.
@@ -115,7 +115,7 @@ interface ViewerPanelProps {
   response: SendResult;
   requestUrl: string;
   testResults: ScriptTestResult[];
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
   executionEvents: ScriptExecutionEvent[];
   scriptError?: string;
   scriptErrors?: ScriptRunError[];
@@ -341,6 +341,7 @@ export function ResponseEditor({
       { value: 'headers', label: 'Headers' },
       { value: 'timing', label: 'Timing' },
       { value: 'console', label: 'Console' },
+      { value: 'logs', label: 'Logs' },
       { value: 'redirects', label: 'Redirects', hidden: !hasRedirects },
       {
         value: 'tests',
@@ -495,6 +496,9 @@ export function ResponseEditor({
       <SegmentedTabPanel value="console">
         <ResponseViewerPanel viewerTab="console" {...panelProps} />
       </SegmentedTabPanel>
+      <SegmentedTabPanel value="logs">
+        <ResponseViewerPanel viewerTab="logs" {...panelProps} />
+      </SegmentedTabPanel>
       {hasRedirects && (
         <SegmentedTabPanel value="redirects">
           <ResponseViewerPanel viewerTab="redirects" {...panelProps} />
@@ -543,16 +547,6 @@ export function ResponseEditor({
         />
       </div>
 
-      {response.error && (
-        <div
-          tabIndex={0}
-          aria-label={responseErrorLabel(response.error)}
-          className={`mb-2 rounded-md bg-danger/10 px-2.5 py-2 text-[14px] text-danger ${focusableReadonlyClass}`}
-        >
-          {response.error}
-        </div>
-      )}
-
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
           <div className="mb-4 -mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
@@ -572,14 +566,4 @@ export function ResponseEditor({
       </div>
     </div>
   );
-}
-
-/**
- * Accessible name for the response error banner tab stop.
- *
- * @param error - Network or transport error message.
- * @returns Screen-reader label for the error detail.
- */
-function responseErrorLabel(error: string): string {
-  return `Response error: ${error}`;
 }

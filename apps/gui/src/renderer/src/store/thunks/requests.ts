@@ -9,6 +9,7 @@ import type {
   ScriptRunResult,
   ScriptTestResult,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptRunError,
   SendResult,
   Variable
@@ -16,6 +17,7 @@ import type {
 import { defaultAuth } from '@harborclient/core/auth';
 import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { buildSendInput } from '@harborclient/core/requestRunner';
+import { enrichScriptLogLines } from '@harborclient/core/scripting/scriptLogs';
 import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
@@ -502,7 +504,7 @@ export interface RequestRunOutcome {
   /**
    * Console output captured from pre/post scripts.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
   /**
    * Ordered variable and flow-control activity from pre/post scripts.
    */
@@ -638,7 +640,7 @@ export async function executeRequestDraft(
     : [];
   let collectionAuthConfig = collection?.auth ? structuredClone(collection.auth) : defaultAuth();
   let folderAuthConfig = folder?.auth ? structuredClone(folder.auth) : defaultAuth();
-  const allLogs: string[] = [];
+  const allLogs: ScriptLogEntry[] = [];
   const allTests: ScriptTestResult[] = [];
   const allExecutionEvents: ScriptExecutionEvent[] = [];
   const scriptErrors: string[] = [];
@@ -741,7 +743,14 @@ export async function executeRequestDraft(
       });
 
       if (result.logs.length) {
-        allLogs.push(`[${slot.label}]`, ...result.logs);
+        allLogs.push(
+          ...enrichScriptLogLines(result.logs, {
+            label: slot.label,
+            scriptId: slot.scriptId,
+            phase: slot.phase,
+            scope: slot.scope
+          })
+        );
       }
       if (result.executionEvents.length) {
         allExecutionEvents.push(

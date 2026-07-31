@@ -1006,3 +1006,116 @@ describe('createScriptApi hc.webpage', () => {
     await expect(webpage()).rejects.toThrow('No active browser tab.');
   });
 });
+
+describe('createScriptApi console', () => {
+  it('captures log, error, warn, and debug with correct levels and methods', () => {
+    const api = createScriptApi(baseInput);
+    api.console.log('hello');
+    api.console.error('boom');
+    api.console.warn('careful');
+    api.console.debug('detail');
+    expect(api.readResult().logs).toEqual([
+      { message: 'hello', level: 'log', method: 'log' },
+      { message: 'boom', level: 'error', method: 'error' },
+      { message: 'careful', level: 'warn', method: 'warn' },
+      { message: 'detail', level: 'log', method: 'debug' }
+    ]);
+  });
+
+  it('assert emits only when the condition is falsy', () => {
+    const api = createScriptApi(baseInput);
+    api.console.assert(true, 'ok');
+    api.console.assert(false);
+    api.console.assert(0, 'zero', 'bad');
+    expect(api.readResult().logs).toEqual([
+      { message: 'Assertion failed', level: 'error', method: 'assert' },
+      { message: 'Assertion failed: zero bad', level: 'error', method: 'assert' }
+    ]);
+  });
+
+  it('clear empties logs and resets group depth', () => {
+    const api = createScriptApi(baseInput);
+    api.console.group('outer');
+    api.console.log('inside');
+    api.console.clear();
+    api.console.log('after');
+    expect(api.readResult().logs).toEqual([{ message: 'after', level: 'log', method: 'log' }]);
+  });
+
+  it('indents messages inside groups', () => {
+    const api = createScriptApi(baseInput);
+    api.console.group('First');
+    api.console.log('in first');
+    api.console.groupCollapsed('Second');
+    api.console.log('in second');
+    api.console.groupEnd();
+    api.console.log('back first');
+    api.console.groupEnd();
+    api.console.log('outer');
+    expect(api.readResult().logs).toEqual([
+      { message: 'First', level: 'log', method: 'group' },
+      { message: '  in first', level: 'log', method: 'log' },
+      { message: '  Second', level: 'log', method: 'groupCollapsed' },
+      { message: '    in second', level: 'log', method: 'log' },
+      { message: '  back first', level: 'log', method: 'log' },
+      { message: 'outer', level: 'log', method: 'log' }
+    ]);
+  });
+
+  it('table logs structured table data for object rows', () => {
+    const api = createScriptApi(baseInput);
+    api.console.table([
+      { name: 'Ada', age: 36 },
+      { name: 'Grace', age: 85 }
+    ]);
+    const logs = api.readResult().logs;
+    expect(logs).toHaveLength(1);
+    expect(logs[0]?.level).toBe('log');
+    expect(logs[0]?.method).toBe('table');
+    expect(logs[0]?.table).toEqual({
+      columns: ['(index)', 'name', 'age'],
+      rows: [
+        ['0', 'Ada', '36'],
+        ['1', 'Grace', '85']
+      ]
+    });
+    expect(logs[0]?.message).toContain('Ada');
+  });
+
+  it('time / timeLog / timeEnd emit elapsed timings', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+    const api = createScriptApi(baseInput);
+    api.console.time('work');
+    vi.setSystemTime(new Date('2024-01-01T00:00:00.050Z'));
+    api.console.timeLog('work', 'checkpoint');
+    vi.setSystemTime(new Date('2024-01-01T00:00:00.120Z'));
+    api.console.timeEnd('work');
+    expect(api.readResult().logs).toEqual([
+      { message: 'work: 50ms checkpoint', level: 'log', method: 'timeLog' },
+      { message: 'work: 120ms', level: 'log', method: 'timeEnd' }
+    ]);
+    vi.useRealTimers();
+  });
+
+  it('warns when timers are missing or duplicated', () => {
+    const api = createScriptApi(baseInput);
+    api.console.timeEnd('missing');
+    api.console.time('dup');
+    api.console.time('dup');
+    expect(api.readResult().logs).toEqual([
+      { message: "Timer 'missing' does not exist", level: 'warn', method: 'timeEnd' },
+      { message: "Timer 'dup' already exists", level: 'warn', method: 'time' }
+    ]);
+  });
+
+  it('trace emits a Trace header and stack frames', () => {
+    const api = createScriptApi(baseInput);
+    api.console.trace('here');
+    const logs = api.readResult().logs;
+    expect(logs).toHaveLength(1);
+    expect(logs[0]?.level).toBe('log');
+    expect(logs[0]?.method).toBe('trace');
+    expect(logs[0]?.message.startsWith('Trace: here')).toBe(true);
+  });
+});

@@ -1,5 +1,5 @@
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
-import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { serializeFormParts } from '@harborclient/core/formData';
 import { serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
 import type {
@@ -12,6 +12,29 @@ import type {
   Variable
 } from '@harborclient/core/types';
 import { scriptRefsFromLegacyString } from '@harborclient/core/scriptRefs';
+
+/**
+ * HarborClient UUID namespace seed for deterministic Postman import ids.
+ *
+ * Postman exports do not carry stable request/folder ids across fetch cycles, so we derive
+ * UUIDs from structural paths so URL refresh can upsert instead of duplicating rows.
+ */
+const POSTMAN_IMPORT_NAMESPACE = 'harborclient-postman-import-v1';
+
+/**
+ * Builds a deterministic UUID from a stable seed string.
+ *
+ * @param seed - Stable identity string (for example folder path or request fingerprint).
+ * @returns RFC 4122 variant UUID string suitable for export validation.
+ */
+function uuidFromSeed(seed: string): string {
+  const hash = createHash('sha256').update(`${POSTMAN_IMPORT_NAMESPACE}:${seed}`).digest();
+  const bytes = Buffer.from(hash.subarray(0, 16));
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = bytes.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 /**
  * HTTP methods HarborClient accepts for saved requests.
@@ -37,9 +60,36 @@ interface PostmanAuth {
 }
 
 /**
+ * Loose Postman query or path-variable row from a structured URL export.
+ */
+interface PostmanUrlParam {
+  key?: string;
+  value?: string;
+  disabled?: boolean;
+}
+
+/**
+ * Loose Postman URL object from a request export.
+ *
+ * Classic Collection v2.1 exports usually include `raw`. OpenAPI-derived
+ * collections often omit it and only provide structured `host` / `path` /
+ * `query` / `variable` parts.
+ */
+interface PostmanUrlObject {
+  raw?: string;
+  protocol?: string;
+  host?: string | string[];
+  port?: string;
+  path?: string | string[];
+  query?: PostmanUrlParam[];
+  variable?: PostmanUrlParam[];
+  hash?: string;
+}
+
+/**
  * Loose Postman URL object or string from a request export.
  */
-type PostmanUrl = string | { raw?: string };
+type PostmanUrl = string | PostmanUrlObject;
 
 /**
  * Loose Postman body block from a request export.
@@ -276,7 +326,152 @@ function convertVariables(
 }
 
 /**
+ * Joins Postman host segments the same way Collection v2.1 exports do.
+ *
+ * @param host - Host string or dotted segment list from a Postman URL object.
+ * @returns Hostname (or variable host) without protocol or port.
+ */
+function joinPostmanHost(host: string | string[] | undefined): string {
+  if (typeof host === 'string') {
+    return host.trim();
+  }
+
+  if (!Array.isArray(host)) {
+    return '';
+  }
+
+  return host
+    .filter((part): part is string => typeof part === 'string' && part.length > 0)
+    .join('.');
+}
+
+/**
+ * Normalizes Postman path segments, applying path-variable values when present.
+ *
+ * Segments already written as `:id` or `{{id}}` are left alone when the matching
+ * variable has no useful value, matching OpenAPI→Postman exports that keep the
+ * placeholder in `path` and document defaults under `variable`.
+ *
+ * @param path - Path string or segment list from a Postman URL object.
+ * @param variables - Path variable definitions from the same URL object.
+ * @returns Path segments ready to join with `/`.
+ */
+function resolvePostmanPathSegments(
+  path: string | string[] | undefined,
+  variables: PostmanUrlParam[] | undefined
+): string[] {
+  const segments =
+    typeof path === 'string'
+      ? path.split('/').filter((segment) => segment.length > 0)
+      : Array.isArray(path)
+        ? path.filter((segment): segment is string => typeof segment === 'string')
+        : [];
+
+  const valuesByKey = new Map<string, string>();
+  for (const variable of variables ?? []) {
+    if (variable.disabled === true) {
+      continue;
+    }
+    if (typeof variable.key !== 'string' || variable.key.trim().length === 0) {
+      continue;
+    }
+    if (typeof variable.value !== 'string') {
+      continue;
+    }
+    const trimmed = variable.value.trim();
+    // OpenAPI→Postman placeholders are often a single space or `<string>`; keep
+    // the `:name` / `{{name}}` path segment instead of substituting those.
+    if (trimmed.length === 0 || /^<[^>]+>$/.test(trimmed)) {
+      continue;
+    }
+    valuesByKey.set(variable.key.trim(), variable.value);
+  }
+
+  return segments.map((segment) => {
+    const colonMatch = /^:([A-Za-z0-9_-]+)$/.exec(segment);
+    if (colonMatch) {
+      const replacement = valuesByKey.get(colonMatch[1]!);
+      return replacement !== undefined ? replacement : segment;
+    }
+
+    const mustacheMatch = /^\{\{([A-Za-z0-9_-]+)\}\}$/.exec(segment);
+    if (mustacheMatch) {
+      const replacement = valuesByKey.get(mustacheMatch[1]!);
+      return replacement !== undefined ? replacement : segment;
+    }
+
+    return segment;
+  });
+}
+
+/**
+ * Builds a query string from Postman URL query rows.
+ *
+ * @param query - Query parameter list from a Postman URL object.
+ * @returns Query string without a leading `?`, or an empty string when none apply.
+ */
+function buildPostmanQueryString(query: PostmanUrlParam[] | undefined): string {
+  if (!query?.length) {
+    return '';
+  }
+
+  const parts: string[] = [];
+  for (const param of query) {
+    if (param.disabled === true) {
+      continue;
+    }
+    if (typeof param.key !== 'string' || param.key.length === 0) {
+      continue;
+    }
+    const value = typeof param.value === 'string' ? param.value : '';
+    parts.push(`${param.key}=${value}`);
+  }
+
+  return parts.join('&');
+}
+
+/**
+ * Rebuilds a URL string from structured Postman URL parts when `raw` is absent.
+ *
+ * @param url - Structured Postman URL object without a usable `raw` field.
+ * @returns Reconstructed URL, or an empty string when host and path are both empty.
+ */
+function buildUrlFromParts(url: PostmanUrlObject): string {
+  const host = joinPostmanHost(url.host);
+  const pathSegments = resolvePostmanPathSegments(url.path, url.variable);
+  const path = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '';
+
+  let authority = host;
+  if (typeof url.port === 'string' && url.port.trim().length > 0 && host.length > 0) {
+    authority = `${host}:${url.port.trim()}`;
+  }
+
+  let result = '';
+  if (typeof url.protocol === 'string' && url.protocol.trim().length > 0 && authority.length > 0) {
+    result = `${url.protocol.trim()}://${authority}${path}`;
+  } else {
+    result = `${authority}${path}`;
+  }
+
+  const query = buildPostmanQueryString(url.query);
+  if (query.length > 0) {
+    result = result.length > 0 ? `${result}?${query}` : `?${query}`;
+  }
+
+  if (typeof url.hash === 'string' && url.hash.length > 0) {
+    const hash = url.hash.startsWith('#') ? url.hash : `#${url.hash}`;
+    result = `${result}${hash}`;
+  }
+
+  return result;
+}
+
+/**
  * Resolves a Postman URL object or string to a raw URL string.
+ *
+ * Prefers `raw` when present. Otherwise rebuilds from `protocol`, `host`, `port`,
+ * `path`, `query`, `variable`, and `hash` so OpenAPI-derived collections that omit
+ * `raw` still import with usable request URLs.
  *
  * @param url - Postman URL field from a request.
  * @returns Raw URL string suitable for HarborClient storage.
@@ -286,11 +481,15 @@ function resolveUrl(url: PostmanUrl | undefined): string {
     return url;
   }
 
-  if (url != null && typeof url === 'object' && typeof url.raw === 'string') {
+  if (url == null || typeof url !== 'object') {
+    return '';
+  }
+
+  if (typeof url.raw === 'string' && url.raw.length > 0) {
     return url.raw;
   }
 
-  return '';
+  return buildUrlFromParts(url);
 }
 
 /**
@@ -402,12 +601,14 @@ function normalizeMethod(method: string | undefined): HttpMethod | null {
  *
  * @param item - Postman item node containing a request block.
  * @param folder - Immediate parent folder metadata, or null at collection root.
+ * @param folderPath - Slash-delimited folder path used for deterministic request uuids.
  * @param sortOrder - Position within the collection for sidebar ordering.
  * @returns Exported request row, or null when the method is unsupported.
  */
 function convertRequestItem(
   item: PostmanItem,
   folder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
+  folderPath: string,
   sortOrder: number
 ): ExportedRequest | null {
   const request = item.request;
@@ -425,11 +626,13 @@ function convertRequestItem(
   const { body, body_type } = convertBody(request.body, headers);
   const { preRequestScript, postRequestScript } = convertEvents(item.event);
   const auth = request.auth ?? item.auth;
+  const url = resolveUrl(request.url);
 
   return {
+    uuid: uuidFromSeed(`request:${folderPath}|${method}|${name}|${url}`),
     name,
     method,
-    url: resolveUrl(request.url),
+    url,
     headers,
     params: [],
     auth: convertAuth(auth),
@@ -454,12 +657,14 @@ function convertRequestItem(
  *
  * @param items - Postman item array at the current depth.
  * @param parentFolder - Immediate parent folder metadata, or null at collection root.
+ * @param parentPath - Slash-delimited path of the parent folder for deterministic uuids.
  * @param folders - Mutable list of nested folder rows in encounter order.
  * @param requests - Mutable list of converted exported requests.
  */
 function walkItems(
   items: PostmanItem[] | undefined,
   parentFolder: Pick<ExportedFolder, 'name' | 'uuid'> | null,
+  parentPath: string,
   folders: ExportedFolder[],
   requests: ExportedRequest[]
 ): void {
@@ -472,24 +677,25 @@ function walkItems(
     if (Array.isArray(item.item)) {
       const segment = typeof item.name === 'string' ? item.name.trim() : '';
       if (!segment) {
-        walkItems(item.item, parentFolder, folders, requests);
+        walkItems(item.item, parentFolder, parentPath, folders, requests);
         continue;
       }
 
+      const folderPath = parentPath ? `${parentPath}/${segment}` : segment;
       const folder: ExportedFolder = {
-        uuid: randomUUID(),
+        uuid: uuidFromSeed(`folder:${folderPath}`),
         name: segment,
         parent_folder_uuid: parentFolder?.uuid ?? null,
         sort_order: folderSortOrder
       };
       folderSortOrder += 1;
       folders.push(folder);
-      walkItems(item.item, folder, folders, requests);
+      walkItems(item.item, folder, folderPath, folders, requests);
       continue;
     }
 
     if (item.request) {
-      const converted = convertRequestItem(item, parentFolder, requests.length);
+      const converted = convertRequestItem(item, parentFolder, parentPath, requests.length);
       if (converted) {
         requests.push(converted);
       }
@@ -500,8 +706,11 @@ function walkItems(
 /**
  * Converts a Postman collection export into HarborClient's portable CollectionExport format.
  *
- * Unsupported Postman features (unsupported auth types, GraphQL/file bodies, path variables,
+ * Unsupported Postman features (unsupported auth types, GraphQL/file bodies,
  * saved responses, etc.) are omitted. Nested folders retain their parent relationships.
+ * Structured URLs without `raw` are rebuilt from host/path/query/path-variable parts.
+ * Folder and request uuids are derived deterministically from structural paths so URL
+ * refresh can upsert the same entities instead of inserting duplicates.
  *
  * @param data - Parsed Postman collection JSON.
  * @returns HarborClient collection export ready for validateCollectionExport.
@@ -521,7 +730,7 @@ export function convertPostmanCollection(data: unknown): CollectionExport {
 
   const folders: ExportedFolder[] = [];
   const requests: ExportedRequest[] = [];
-  walkItems(collection.item, null, folders, requests);
+  walkItems(collection.item, null, '', folders, requests);
 
   const { preRequestScript, postRequestScript } = convertEvents(collection.event);
 

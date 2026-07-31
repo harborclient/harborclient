@@ -1172,64 +1172,65 @@ export function ScriptListEditor({
   };
 
   /**
-   * Renders add controls above the script list, right-aligned and wrapping when
-   * the editor pane is too narrow for a single row.
+   * Renders add controls above the script list: actions on the left, expand /
+   * collapse on the right, wrapping when the editor pane is too narrow.
    */
   const addControls = (
-    <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2">
-      <Button
-        type="button"
-        variant="secondary"
-        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-        onClick={handleOpenAddScriptModal}
-      >
-        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-        Add
-      </Button>
-      <RowActionsMenu
-        menuId={SNIPPET_LIBRARY_MENU_ID}
-        openMenuId={openRowMenuId}
-        onOpenChange={setOpenRowMenuId}
-        groups={snippetMenuGroups}
-        triggerVariant="secondary"
-        triggerIcon={faCode}
-        triggerLabel="Snippets"
-        triggerAriaLabel="Snippets"
-        triggerClassName="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
-      />
-      <Button
-        type="button"
-        variant="secondary"
-        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-        aria-label="Import JavaScript snippet or snippets bundle"
-        onClick={() => void handleImportSnippet()}
-      >
-        <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
-        Import
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
-        aria-label="Export snippets bundle"
-        disabled={normalized.length === 0}
-        onClick={() => void handleExportSnippets()}
-      >
-        <FaIcon icon={faFileExport} className="h-3.5 w-3.5" />
-        Export
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        className="shrink-0"
-        aria-label="Paste script"
-        title={copiedScript ? 'Paste script' : 'Nothing copied yet'}
-        disabled={!copiedScript}
-        onClick={handlePasteScript}
-      >
-        <FaIcon icon={faPaste} className="h-3.5 w-3.5" aria-hidden />
-      </Button>
-      <div className="mr-4 flex shrink-0 flex-wrap items-center gap-2">
+    <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          onClick={handleOpenAddScriptModal}
+        >
+          <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
+          Add
+        </Button>
+        <RowActionsMenu
+          menuId={SNIPPET_LIBRARY_MENU_ID}
+          openMenuId={openRowMenuId}
+          onOpenChange={setOpenRowMenuId}
+          groups={snippetMenuGroups}
+          triggerVariant="secondary"
+          triggerIcon={faCode}
+          triggerLabel="Snippets"
+          triggerAriaLabel="Snippets"
+          triggerClassName="inline-flex shrink-0 items-center gap-2 whitespace-nowrap"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          aria-label="Import JavaScript snippet or snippets bundle"
+          onClick={() => void handleImportSnippet()}
+        >
+          <FaIcon icon={faFileImport} className="h-3.5 w-3.5" />
+          Import
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          aria-label="Export snippets bundle"
+          disabled={normalized.length === 0}
+          onClick={() => void handleExportSnippets()}
+        >
+          <FaIcon icon={faFileExport} className="h-3.5 w-3.5" />
+          Export
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          aria-label="Paste script"
+          title={copiedScript ? 'Paste script' : 'Nothing copied yet'}
+          disabled={!copiedScript}
+          onClick={handlePasteScript}
+        >
+          <FaIcon icon={faPaste} className="h-3.5 w-3.5" aria-hidden />
+          Paste
+        </Button>
         <Button
           type="button"
           variant="secondary"
@@ -1250,24 +1251,31 @@ export function ScriptListEditor({
         >
           <FaIcon icon={faCircleQuestion} className="h-4 w-4" aria-hidden />
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="shrink-0"
-          aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
-          title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
-          onClick={handleToggleExpandAll}
-        >
-          <FaIcon icon={faSquareMinus} className="h-4 w-4" aria-hidden />
-        </Button>
       </div>
+      <Button
+        type="button"
+        variant="secondary"
+        className="mr-4 shrink-0"
+        aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
+        title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
+        onClick={handleToggleExpandAll}
+      >
+        <FaIcon icon={faSquareMinus} className="h-4 w-4" aria-hidden />
+      </Button>
     </div>
   );
 
   /**
-   * Hosts the script list action toolbar.
+   * Hosts the script list action toolbar as a bordered chrome strip under the
+   * editor tabs. Top inset comes from the tab content `pt-4`; matching `pb-4`
+   * keeps equal space above and below the buttons before a full-bleed
+   * `border-separator` rule, then `mb-3` clears the script rows.
    */
-  const scriptListHeader = <div className="w-full min-w-0 shrink-0">{addControls}</div>;
+  const scriptListHeader = (
+    <div className="-mx-4 mb-3 min-w-0 shrink-0 border-b border-separator px-4 pb-4">
+      {addControls}
+    </div>
+  );
 
   /**
    * Renders one grouped script list with optional drag handles.
@@ -1501,7 +1509,7 @@ export function ScriptListEditor({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col">
       {scriptListHeader}
       <div className="hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
         {scriptListBody}

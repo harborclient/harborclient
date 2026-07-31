@@ -18,6 +18,10 @@ import {
   setResponseSelection
 } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import {
+  selectConsoleSelections,
+  setConsoleSelection
+} from '#/renderer/src/store/slices/consoleSelectionsSlice';
+import {
   selectScriptSelections,
   setScriptSelection
 } from '#/renderer/src/store/slices/scriptSelectionsSlice';
@@ -52,6 +56,7 @@ export function rehydrateChatReferenceSnapshots(
   const seenLogs = new Set(Object.keys(selectLiveServerLogsSelections(state)));
   const seenMarkdown = new Set(Object.keys(selectMarkdownSelections(state)));
   const seenBody = new Set(Object.keys(selectRequestBodySelections(state)));
+  const seenConsole = new Set(Object.keys(selectConsoleSelections(state)));
   const seenPlugin = new Set(Object.keys(selectPluginSelections(state)));
 
   for (const message of messages) {
@@ -96,6 +101,12 @@ export function rehydrateChatReferenceSnapshots(
           if (!seenBody.has(token)) {
             dispatch(setRequestBodySelection({ token, snapshot: entry.snapshot }));
             seenBody.add(token);
+          }
+          break;
+        case 'console':
+          if (!seenConsole.has(token)) {
+            dispatch(setConsoleSelection({ token, snapshot: entry.snapshot }));
+            seenConsole.add(token);
           }
           break;
         case 'plugin':

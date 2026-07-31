@@ -144,6 +144,20 @@ export interface ApiCollections {
    */
   importCollection: () => Promise<Collection | null>;
   /**
+   * Downloads a collection from a remote URL and imports it into the default data provider.
+   *
+   * @param url - Absolute http(s) URL to a HarborClient, Postman, OpenCollection, or HAR file.
+   * @returns The imported collection, or null when the user canceled a warning dialog.
+   */
+  importCollectionFromUrl: (url: string) => Promise<Collection | null>;
+  /**
+   * Re-downloads a URL-backed collection and merges remote changes into the local copy.
+   *
+   * @param id - Global collection id that was previously imported from a URL.
+   * @returns The updated collection after the additive merge.
+   */
+  refreshCollectionFromUrl: (id: number) => Promise<Collection>;
+  /**
    * Searches the apis.io public catalog for Open Collection and Postman Collection artifacts.
    *
    * @param query - Free-text query over name and description.

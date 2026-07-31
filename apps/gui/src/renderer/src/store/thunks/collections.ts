@@ -582,6 +582,35 @@ export const importCollection = createAsyncThunk<Collection | null, void, ThunkA
 );
 
 /**
+ * Downloads a collection from a remote URL, imports it, and refreshes sidebar state.
+ */
+export const importCollectionFromUrl = createAsyncThunk<Collection | null, string, ThunkApiConfig>(
+  'collections/importFromUrl',
+  async (url, { dispatch }) => {
+    const collection = await window.api.importCollectionFromUrl(url);
+    if (!collection) return null;
+
+    await dispatch(refreshCollections());
+    dispatch(setSelectedCollectionId(collection.id));
+    await dispatch(refreshCollectionContents(collection.id));
+    return collection;
+  }
+);
+
+/**
+ * Re-downloads a URL-backed collection, merges remote changes, and refreshes contents.
+ */
+export const refreshCollectionFromUrl = createAsyncThunk<Collection, number, ThunkApiConfig>(
+  'collections/refreshFromUrl',
+  async (id, { dispatch }) => {
+    const collection = await window.api.refreshCollectionFromUrl(id);
+    await dispatch(refreshCollections());
+    await dispatch(refreshCollectionContents(id));
+    return collection;
+  }
+);
+
+/**
  * Imports a public apis.io collection and refreshes sidebar state.
  */
 export const importPublicCollection = createAsyncThunk<

@@ -27,8 +27,43 @@ export interface FolderImportMaps {
   folderIdByUuid: Map<string, number>;
   /** Folder name to local folder id (legacy fallback). */
   folderIdByName: Map<string, number>;
+  /**
+   * Sibling-scoped folder name to local folder id.
+   *
+   * Keyed by {@link folderSiblingNameKey} so identically named folders under
+   * different parents do not collide during Postman/OpenCollection refresh.
+   */
+  folderIdByParentAndName: Map<string, number>;
+  /** Local folder id to its current sibling-name key for map cleanup on move/rename. */
+  folderParentAndNameById: Map<number, string>;
   /** Local folder id to folder uuid for legacy name matches. */
   folderUuidById: Map<number, string>;
+}
+
+/**
+ * Builds the map key for a folder name among siblings under one parent.
+ *
+ * @param parentFolderId - Parent folder id, or null for collection root.
+ * @param name - Folder display name.
+ * @returns Stable key for {@link FolderImportMaps.folderIdByParentAndName}.
+ */
+export function folderSiblingNameKey(parentFolderId: number | null, name: string): string {
+  return `${parentFolderId ?? ''}\0${name}`;
+}
+
+/**
+ * Creates empty folder import maps for a fresh collection import.
+ *
+ * @returns Empty uuid, name, and sibling-name indexes.
+ */
+export function createEmptyFolderImportMaps(): FolderImportMaps {
+  return {
+    folderIdByUuid: new Map(),
+    folderIdByName: new Map(),
+    folderIdByParentAndName: new Map(),
+    folderParentAndNameById: new Map(),
+    folderUuidById: new Map()
+  };
 }
 
 /**
@@ -69,16 +104,23 @@ export function resolveImportFolderId(
 export function buildFolderImportMaps(folders: Folder[]): FolderImportMaps {
   const folderIdByUuid = buildFolderUuidIndex(folders);
   const folderUuidById = new Map<number, string>();
+  const folderIdByParentAndName = new Map<string, number>();
+  const folderParentAndNameById = new Map<number, string>();
   for (const folder of folders) {
     const uuid = folder.uuid.trim();
     if (uuid) {
       folderUuidById.set(folder.id, uuid);
     }
+    const siblingKey = folderSiblingNameKey(folder.parent_folder_id ?? null, folder.name);
+    folderIdByParentAndName.set(siblingKey, folder.id);
+    folderParentAndNameById.set(folder.id, siblingKey);
   }
 
   return {
     folderIdByUuid,
     folderIdByName: buildFolderNameIndex(folders),
+    folderIdByParentAndName,
+    folderParentAndNameById,
     folderUuidById
   };
 }
@@ -98,6 +140,149 @@ export function buildRequestUuidIndex(requests: SavedRequest[]): Map<string, num
     }
   }
   return index;
+}
+
+/**
+ * Builds a fingerprint key for matching imported requests when portable uuids regenerate.
+ *
+ * Postman/OpenCollection/Bruno converters mint new request uuids on every convert, so URL
+ * refresh must fall back to folder + method + name + url identity.
+ *
+ * @param folderId - Resolved folder id, or null at collection root.
+ * @param method - HTTP method.
+ * @param name - Request display name.
+ * @param url - Request URL.
+ * @returns Stable fingerprint string for map keys.
+ */
+export function requestImportFingerprint(
+  folderId: number | null,
+  method: string,
+  name: string,
+  url: string
+): string {
+  return `${folderId ?? ''}\0${method}\0${name}\0${url}`;
+}
+
+/**
+ * Builds a fingerprint key that ignores folder placement.
+ *
+ * Used when import folder resolution fails (regenerated folder uuids) so a refresh can still
+ * update the existing row instead of inserting a duplicate at collection root.
+ *
+ * @param method - HTTP method.
+ * @param name - Request display name.
+ * @param url - Request URL.
+ * @returns Stable fingerprint string for map keys.
+ */
+export function requestImportIdentityFingerprint(
+  method: string,
+  name: string,
+  url: string
+): string {
+  return `${method}\0${name}\0${url}`;
+}
+
+/**
+ * Builds folder-scoped and collection-scoped request fingerprint indexes for import upsert.
+ *
+ * @param requests - Requests already stored in the target collection.
+ * @returns Fingerprint maps keyed for {@link resolveImportRequestId}.
+ */
+export function buildRequestFingerprintIndexes(requests: SavedRequest[]): {
+  byFolder: Map<string, number>;
+  byIdentity: Map<string, number>;
+  folderIdByRequestId: Map<number, number | null>;
+} {
+  const byFolder = new Map<string, number>();
+  const byIdentity = new Map<string, number>();
+  const folderIdByRequestId = new Map<number, number | null>();
+  for (const request of requests) {
+    const folderId = request.folder_id ?? null;
+    folderIdByRequestId.set(request.id, folderId);
+    const folderKey = requestImportFingerprint(folderId, request.method, request.name, request.url);
+    if (!byFolder.has(folderKey)) {
+      byFolder.set(folderKey, request.id);
+    }
+    const identityKey = requestImportIdentityFingerprint(request.method, request.name, request.url);
+    if (!byIdentity.has(identityKey)) {
+      byIdentity.set(identityKey, request.id);
+    }
+  }
+  return { byFolder, byIdentity, folderIdByRequestId };
+}
+
+/**
+ * Resolves which existing request an imported row should update.
+ *
+ * Match order:
+ * 1. Portable uuid
+ * 2. Folder-scoped method + name + url (same placement)
+ * 3. Collection-scoped method + name + url when folder resolution returned null
+ *    (Postman refresh lost the folder link — update in place instead of duplicating at root)
+ *
+ * @param uuid - Resolved import uuid for the request row.
+ * @param folderId - Folder id resolved from the import payload, or null.
+ * @param method - HTTP method from the import row.
+ * @param name - Display name from the import row.
+ * @param url - URL from the import row.
+ * @param requestUuidIndex - Existing uuid → id map.
+ * @param fingerprints - Fingerprint indexes from {@link buildRequestFingerprintIndexes}.
+ * @returns Local request id to update, or undefined to insert.
+ */
+export function resolveImportRequestId(
+  uuid: string,
+  folderId: number | null,
+  method: string,
+  name: string,
+  url: string,
+  requestUuidIndex: Map<string, number>,
+  fingerprints: {
+    byFolder: Map<string, number>;
+    byIdentity: Map<string, number>;
+  }
+): number | undefined {
+  const trimmedUuid = uuid.trim();
+  if (trimmedUuid) {
+    const byUuid = requestUuidIndex.get(trimmedUuid);
+    if (byUuid != null) {
+      return byUuid;
+    }
+  }
+
+  const byFolder = fingerprints.byFolder.get(requestImportFingerprint(folderId, method, name, url));
+  if (byFolder != null) {
+    return byFolder;
+  }
+
+  if (folderId == null) {
+    return fingerprints.byIdentity.get(requestImportIdentityFingerprint(method, name, url));
+  }
+
+  return undefined;
+}
+
+/**
+ * Chooses the folder id to persist when upserting an imported request.
+ *
+ * When the import resolves a folder, that placement wins (remote structure is authoritative).
+ * When resolution fails (null) but an existing row is being updated, keep the existing folder
+ * so Postman/OpenCollection refresh does not yank requests to collection root.
+ *
+ * @param importedFolderId - Folder id resolved from the import payload.
+ * @param existingFolderId - Folder id already stored on the matched request, if any.
+ * @returns Folder id to write, or null for collection root.
+ */
+export function resolveUpsertRequestFolderId(
+  importedFolderId: number | null,
+  existingFolderId: number | null | undefined
+): number | null {
+  if (importedFolderId != null) {
+    return importedFolderId;
+  }
+  if (existingFolderId != null) {
+    return existingFolderId;
+  }
+  return null;
 }
 
 /**
@@ -177,15 +362,21 @@ export type ImportedFolderUpsertPlan =
 /**
  * Determines whether an exported folder row updates an existing folder or inserts a new one.
  *
- * Matches by uuid when the export row includes one; otherwise falls back to name for legacy files.
+ * Match order:
+ * 1. Portable uuid when present and already stored
+ * 2. Sibling-scoped name under the resolved parent (covers Postman/OpenCollection
+ *    refresh, which regenerates folder uuids on every convert)
+ * 3. Legacy global name when the export row omits uuid
  *
  * @param folder - Exported folder row from a collection file.
  * @param maps - Current folder uuid and name indexes for the target collection.
+ * @param parentFolderId - Resolved parent folder id, or null at collection root.
  * @returns Upsert plan for the backend to execute.
  */
 export function planImportedFolderUpsert(
   folder: ExportedFolder,
-  maps: FolderImportMaps
+  maps: FolderImportMaps,
+  parentFolderId: number | null = null
 ): ImportedFolderUpsertPlan {
   const hasFileUuid = Boolean(folder.uuid?.trim());
   const resolvedUuid = resolveImportedFolderUuid(folder);
@@ -202,26 +393,37 @@ export function planImportedFolderUpsert(
         marker: serializeSidebarMarker(folder.marker)
       };
     }
+  }
 
+  const siblingKey = folderSiblingNameKey(parentFolderId, folder.name);
+  const existingBySiblingName = maps.folderIdByParentAndName.get(siblingKey);
+  if (existingBySiblingName != null) {
     return {
-      action: 'insert',
+      action: 'update',
+      existingId: existingBySiblingName,
       name: folder.name,
       sort_order: folder.sort_order,
-      uuid: resolvedUuid,
+      // Keep the import uuid in the plan so callers can register it for child/request
+      // resolution while still persisting the local uuid on update.
+      uuid: hasFileUuid
+        ? resolvedUuid
+        : (maps.folderUuidById.get(existingBySiblingName) ?? resolvedUuid),
       marker: serializeSidebarMarker(folder.marker)
     };
   }
 
-  const existingByName = maps.folderIdByName.get(folder.name);
-  if (existingByName != null) {
-    return {
-      action: 'update',
-      existingId: existingByName,
-      name: folder.name,
-      sort_order: folder.sort_order,
-      uuid: maps.folderUuidById.get(existingByName) ?? resolvedUuid,
-      marker: serializeSidebarMarker(folder.marker)
-    };
+  if (!hasFileUuid) {
+    const existingByName = maps.folderIdByName.get(folder.name);
+    if (existingByName != null) {
+      return {
+        action: 'update',
+        existingId: existingByName,
+        name: folder.name,
+        sort_order: folder.sort_order,
+        uuid: maps.folderUuidById.get(existingByName) ?? resolvedUuid,
+        marker: serializeSidebarMarker(folder.marker)
+      };
+    }
   }
 
   return {
@@ -239,17 +441,29 @@ export function planImportedFolderUpsert(
  * @param maps - Folder import maps to mutate.
  * @param folderId - Local folder id that was inserted or updated.
  * @param name - Folder display name.
- * @param uuid - Folder portable uuid.
+ * @param uuid - Folder portable uuid (import uuid and/or persisted local uuid).
+ * @param parentFolderId - Parent folder id, or null at collection root.
  */
 export function registerImportedFolderInMaps(
   maps: FolderImportMaps,
   folderId: number,
   name: string,
-  uuid: string
+  uuid: string,
+  parentFolderId: number | null = null
 ): void {
   maps.folderIdByUuid.set(uuid, folderId);
   maps.folderIdByName.set(name, folderId);
   maps.folderUuidById.set(folderId, uuid);
+
+  const previousSiblingKey = maps.folderParentAndNameById.get(folderId);
+  const siblingKey = folderSiblingNameKey(parentFolderId, name);
+  if (previousSiblingKey != null && previousSiblingKey !== siblingKey) {
+    if (maps.folderIdByParentAndName.get(previousSiblingKey) === folderId) {
+      maps.folderIdByParentAndName.delete(previousSiblingKey);
+    }
+  }
+  maps.folderIdByParentAndName.set(siblingKey, folderId);
+  maps.folderParentAndNameById.set(folderId, siblingKey);
 }
 
 /**

@@ -7,6 +7,7 @@ export const RESPONSE_VIEWER_TABS = [
   'headers',
   'timing',
   'console',
+  'logs',
   'redirects',
   'tests'
 ] as const;
@@ -25,6 +26,7 @@ export const RESPONSE_VIEWER_TAB_LABELS: Record<ResponseViewerTab, string> = {
   headers: 'Headers',
   timing: 'Timing',
   console: 'Console',
+  logs: 'Logs',
   redirects: 'Redirects',
   tests: 'Tests'
 };

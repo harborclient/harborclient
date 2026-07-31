@@ -66,7 +66,7 @@ interface Props {
  */
 function responseStatusLabel(response: SendResult): string {
   if (response.error) {
-    return 'Response status: Error';
+    return `Response status: Error: ${response.error}`;
   }
   return `Response status: ${response.status} ${response.statusText}`;
 }
@@ -118,10 +118,18 @@ export function ResponseSummary({
         <span
           tabIndex={0}
           aria-label={responseStatusLabel(response)}
-          className={`inline-flex items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
+          title={response.error}
+          className={`inline-flex min-w-0 max-w-[min(40vw,28rem)] items-center gap-1.5 font-medium text-text ${focusableReadonlyClass}`}
         >
           <StatusDot variant={statusDotVariant(response.status)} />
-          {response.error ? 'Error' : `${response.status} ${response.statusText}`}
+          {response.error ? (
+            <>
+              <span className="shrink-0">Error</span>
+              <span className="min-w-0 truncate font-normal text-danger">{response.error}</span>
+            </>
+          ) : (
+            `${response.status} ${response.statusText}`
+          )}
         </span>
         <span
           tabIndex={0}

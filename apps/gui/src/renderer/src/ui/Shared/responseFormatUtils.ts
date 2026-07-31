@@ -1,9 +1,11 @@
 import type {
   BodyType,
   ScriptExecutionEvent,
+  ScriptLogEntry,
   ScriptTestResult,
   SendResult
 } from '@harborclient/core/types';
+import { joinScriptLogMessages } from '@harborclient/core/scripting/scriptLogs';
 import {
   formatFlowExecutionDetail,
   formatFlowExecutionLabel,
@@ -525,12 +527,12 @@ function buildResponseExportTiming(response: SendResult): ResponseExportTiming {
  * @returns Console output, formatted traces, and optional error text.
  */
 function buildResponseExportConsole(
-  scriptLogs: readonly string[],
+  scriptLogs: readonly ScriptLogEntry[],
   executionEvents: readonly ScriptExecutionEvent[],
   scriptError?: string
 ): ResponseExportConsole {
   const console: ResponseExportConsole = {
-    output: scriptLogs.join('\n'),
+    output: joinScriptLogMessages(scriptLogs),
     traces: executionEvents.map(formatExecutionEventTrace)
   };
   if (scriptError) {
@@ -592,7 +594,7 @@ function buildResponseExportTests(testResults: readonly ScriptTestResult[]): Res
 export function buildResponseExport(
   response: SendResult,
   testResults: readonly ScriptTestResult[],
-  scriptLogs: readonly string[],
+  scriptLogs: readonly ScriptLogEntry[],
   executionEvents: readonly ScriptExecutionEvent[],
   scriptError?: string,
   requestUrlFallback?: string

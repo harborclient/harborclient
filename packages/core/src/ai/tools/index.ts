@@ -11,10 +11,12 @@ import { getActiveRequestTool } from './getActiveRequest';
 import { getActiveRequestDetailsTool } from './getActiveRequestDetails';
 import { getActiveResponseTool } from './getActiveResponse';
 import { getActiveResponseSummaryTool } from './getActiveResponseSummary';
+import { getActiveResponseConsoleTool } from './getActiveResponseConsole';
 import { getActiveTerminalTool } from './getActiveTerminal';
 import { getActiveTerminalLinesTool } from './getActiveTerminalLines';
 import { getCollectionTool } from './getCollection';
 import { getFolderTool } from './getFolder';
+import { getGeneralSettingsTool } from './getGeneralSettings';
 import { getLiveServerTool } from './getLiveServer';
 import { getLiveServerLogsTool } from './getLiveServerLogs';
 import { getMarkdownDocumentTool } from './getMarkdownDocument';
@@ -41,6 +43,7 @@ import { startLiveServerTool } from './startLiveServer';
 import { stopLiveServerTool } from './stopLiveServer';
 import { terminalExecTool } from './terminalExec';
 import { updateActiveRequestTool } from './updateActiveRequest';
+import { updateGeneralSettingsTool } from './updateGeneralSettings';
 import { updateLiveServerTool } from './updateLiveServer';
 import { updateRequestScriptTool } from './updateRequestScript';
 import { webpageEvaluateTool } from './webpageEvaluate';
@@ -82,6 +85,7 @@ export type { SetActiveEnvironmentToolArgs } from './setActiveEnvironment';
 export type { StartLiveServerToolArgs } from './startLiveServer';
 export type { StopLiveServerToolArgs } from './stopLiveServer';
 export type { TerminalExecToolArgs } from './terminalExec';
+export type { UpdateGeneralSettingsToolArgs } from './updateGeneralSettings';
 export type { UpdateLiveServerToolArgs } from './updateLiveServer';
 export type { UpdateRequestScriptToolArgs } from './updateRequestScript';
 export type { WebpageEvaluateToolArgs } from './webpageEvaluate';
@@ -109,11 +113,14 @@ export const AI_TOOLS = [
   getActiveRequestDetailsTool,
   getActiveResponseSummaryTool,
   getActiveResponseTool,
+  getActiveResponseConsoleTool,
   queryResponseBodyTool,
   sendActiveRequestTool,
   setActiveEnvironmentTool,
   updateActiveRequestTool,
   updateRequestScriptTool,
+  getGeneralSettingsTool,
+  updateGeneralSettingsTool,
   createCollectionTool,
   createFolderTool,
   createRequestTool,

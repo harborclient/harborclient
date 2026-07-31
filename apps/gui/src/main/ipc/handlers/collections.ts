@@ -23,6 +23,7 @@ import {
   previewApisIoCollection,
   searchApisIoCollections
 } from '#/main/import/apisIo';
+import { fetchCollectionFromUrl } from '#/main/import/fetchCollectionUrl';
 import { defaultAuth } from '@harborclient/core/auth';
 import { mirrorLegacyScriptString, resolveScriptRefs } from '@harborclient/core/scriptRefs';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -144,6 +145,38 @@ interface CollectionImportContext {
    * Base name of the selected import file, without extension.
    */
   fileName?: string;
+}
+
+/**
+ * Converts a parsed collection document into a validated HarborClient export.
+ *
+ * Does not show confirmation dialogs. Bruno manifests require a local directory
+ * and are rejected for URL-based imports.
+ *
+ * @param parsed - Parsed JSON/YAML document.
+ * @param context - Optional naming context (for example HAR file name).
+ * @returns Validated collection export payload.
+ * @throws When the format is unsupported or Bruno (directory-backed).
+ */
+function convertParsedToCollectionExport(
+  parsed: unknown,
+  context?: CollectionImportContext
+): CollectionExport {
+  if (isPostmanCollection(parsed)) {
+    return validateCollectionExport(convertPostmanCollection(parsed));
+  }
+  if (isBrunoCollectionManifest(parsed)) {
+    throw new Error(
+      'Bruno collections cannot be imported from a URL. Choose a HarborClient, Postman, OpenCollection, or HAR file instead.'
+    );
+  }
+  if (isHarArchive(parsed)) {
+    return validateCollectionExport(convertHarToCollection(parsed, { name: context?.fileName }));
+  }
+  if (isOpenCollection(parsed)) {
+    return validateCollectionExport(convertOpenCollection(parsed));
+  }
+  return validateCollectionExport(parsed);
 }
 
 /**
@@ -445,6 +478,47 @@ export function registerCollectionHandlers(db: IStorage): void {
       fileName: file.fileName
     });
     return result?.collection ?? null;
+  });
+
+  // Downloads a collection from a remote URL and imports it into the local database.
+  handle('collections:importFromUrl', ipcArgSchemas.collectionImportUrl, async (_event, url) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const document = await fetchCollectionFromUrl(url);
+    const result = await importCollectionFromParsed(db, win, document.parsed, {
+      fileName: document.fileName
+    });
+    if (!result) {
+      return null;
+    }
+
+    if (!(db instanceof RoutingStorage)) {
+      throw new Error('URL import requires the local collection registry.');
+    }
+
+    db.setCollectionSourceUrl(result.collection.id, document.sourceUrl);
+    return { ...result.collection, sourceUrl: document.sourceUrl };
+  });
+
+  // Re-downloads a URL-backed collection and merges remote changes into the local copy.
+  handle('collections:refreshFromUrl', ipcArgSchemas.collectionId, async (_event, id) => {
+    if (!(db instanceof RoutingStorage)) {
+      throw new Error('URL refresh requires the local collection registry.');
+    }
+
+    const collections = await db.listCollections();
+    const existing = collections.find((item) => item.id === id);
+    const sourceUrl = existing?.sourceUrl?.trim();
+    if (!sourceUrl) {
+      throw new Error('This collection was not imported from a URL.');
+    }
+
+    const document = await fetchCollectionFromUrl(sourceUrl);
+    const exportData = convertParsedToCollectionExport(document.parsed, {
+      fileName: document.fileName
+    });
+    const updated = await db.updateCollectionFromImport(id, exportData);
+    db.setCollectionSourceUrl(updated.id, sourceUrl);
+    return { ...updated, sourceUrl };
   });
 
   // Searches the apis.io public catalog for Open Collection and Postman Collection artifacts.

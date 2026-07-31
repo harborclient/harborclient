@@ -71,6 +71,8 @@ describe('modalsSlice', () => {
       providerId: '',
       shareTokenInput: '',
       submitError: null,
+      importUrlOpen: false,
+      importUrlInput: '',
       gitDraft: {
         id: '',
         name: '',

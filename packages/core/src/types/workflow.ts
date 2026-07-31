@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import type { AuthConfig } from '../auth';
 import type { HttpMethod, KeyValue } from './common';
-import type { ScriptExecutionEvent, ScriptRunError, ScriptTestResult } from './script';
+import type {
+  ScriptExecutionEvent,
+  ScriptLogEntry,
+  ScriptRunError,
+  ScriptTestResult
+} from './script';
 
 /**
  * One recorded step inside a workflow session or portable export.
@@ -241,7 +246,7 @@ export interface WorkflowRunRequestResponse {
   /**
    * Console output captured from pre/post scripts for this send.
    */
-  scriptLogs: string[];
+  scriptLogs: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts for this send.
@@ -490,7 +495,7 @@ export interface BuildWorkflowRunRequestResultInput {
   /**
    * Console output captured from pre/post scripts; defaults to `[]` when omitted.
    */
-  scriptLogs?: string[];
+  scriptLogs?: ScriptLogEntry[];
 
   /**
    * Ordered variable and flow-control activity from scripts; defaults to `[]` when omitted.
@@ -705,7 +710,7 @@ export function buildWorkflowRunRequestResult(
       timing,
       tests: input.tests.map((test) => ({ ...test })),
       data: { ...input.data },
-      scriptLogs: (input.scriptLogs ?? []).map((line) => line),
+      scriptLogs: (input.scriptLogs ?? []).map((entry) => ({ ...entry })),
       executionEvents: (input.executionEvents ?? []).map((event) => ({ ...event })),
       ...(input.scriptError != null && input.scriptError.length > 0
         ? { scriptError: input.scriptError }

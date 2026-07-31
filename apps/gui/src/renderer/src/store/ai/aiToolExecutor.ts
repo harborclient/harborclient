@@ -37,12 +37,21 @@ import {
   type StartLiveServerToolArgs,
   type StopLiveServerToolArgs,
   type TerminalExecToolArgs,
+  type UpdateGeneralSettingsToolArgs,
   type UpdateLiveServerToolArgs,
   type UpdateRequestScriptToolArgs
 } from '@harborclient/core/ai/tools';
 import { getScriptingApiReferenceText } from '@harborclient/core/ai/scriptingApiReference';
 import {
+  hasGeneralSettingsAiPatch,
+  listChangedGeneralSettingsKeys,
+  mergeGeneralSettingsAiPatch,
+  sanitizeGeneralSettingsForAi,
+  type SanitizedGeneralSettingsForAi
+} from '@harborclient/core/ai/generalSettingsForAi';
+import {
   DEFAULT_RESPONSE_BODY_CHARS,
+  formatActiveResponseConsole,
   formatHttpResponseForAgent,
   queryJsonForAgent,
   type AgentHttpResponse,
@@ -93,6 +102,7 @@ import {
 } from '#/renderer/src/store/browser/webpageSession';
 import type { RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
+import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { buildScriptRunDiagnostics } from '#/renderer/src/scripting/scriptRunDiagnostics';
 import { findJavascriptSyntaxError } from '#/renderer/src/scripting/javascriptSyntaxCheck';
@@ -123,6 +133,7 @@ import type {
   Collection,
   CollectionDocument,
   Folder,
+  GeneralSettings,
   HttpMethod,
   KeyValue,
   LiveServer,
@@ -289,6 +300,8 @@ export async function executeAiTool(
         return JSON.stringify(getActiveResponseSummary(ctx.getState()));
       case 'get_active_response':
         return JSON.stringify(getActiveResponse(ctx.getState(), args));
+      case 'get_active_response_console':
+        return JSON.stringify(getActiveResponseConsole(ctx.getState()));
       case 'query_response_body':
         return JSON.stringify(queryResponseBody(ctx.getState(), args));
       case 'send_active_request':
@@ -299,6 +312,10 @@ export async function executeAiTool(
         return JSON.stringify(await updateActiveRequest(args, ctx));
       case 'update_request_script':
         return JSON.stringify(updateRequestScript(args, ctx));
+      case 'get_general_settings':
+        return JSON.stringify(getGeneralSettings(ctx));
+      case 'update_general_settings':
+        return JSON.stringify(await updateGeneralSettings(args, ctx));
       case 'create_collection':
         return JSON.stringify(await createCollectionTool(args, ctx));
       case 'create_folder':
@@ -924,6 +941,19 @@ function getActiveResponseSummary(state: RootState): AgentHttpResponse | null {
 }
 
 /**
+ * Returns the Console / Headers / Timing inspector for the effective active request tab.
+ *
+ * @param state - Current Redux root state.
+ */
+function getActiveResponseConsole(
+  state: RootState
+): ReturnType<typeof formatActiveResponseConsole> | null {
+  const tab = selectEffectiveActiveRequestTab(state);
+  if (!tab || !tab.response) return null;
+  return formatActiveResponseConsole(tab.response);
+}
+
+/**
  * Returns script runtime diagnostics from the newest matching console entry.
  *
  * @param state - Current Redux root state.
@@ -1352,6 +1382,54 @@ function setActiveEnvironment(
   }
 
   throw new Error('Provide environmentId or name.');
+}
+
+/**
+ * Returns sanitized General Settings for the AI agent.
+ *
+ * @param ctx - Tool context with Redux getState.
+ * @returns Current general settings with proxy.password redacted when set.
+ */
+function getGeneralSettings(ctx: AiToolContext): SanitizedGeneralSettingsForAi {
+  return sanitizeGeneralSettingsForAi(ctx.getState().settings.general);
+}
+
+/**
+ * Applies a General Settings patch, persists it, and returns the updated values.
+ *
+ * @param args - Partial settings from the model.
+ * @param ctx - Tool context with Redux getState and dispatch.
+ * @returns Updated settings plus changed keys, or an error when the patch is empty.
+ */
+async function updateGeneralSettings(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | { updated: Array<keyof GeneralSettings>; settings: SanitizedGeneralSettingsForAi }
+  | { error: string }
+> {
+  const patch = (args ?? {}) as UpdateGeneralSettingsToolArgs;
+  if (!hasGeneralSettingsAiPatch(patch)) {
+    return { error: 'Provide at least one settings field to update.' };
+  }
+
+  const before = ctx.getState().settings.general;
+  const merged = mergeGeneralSettingsAiPatch(before, patch);
+  const updatedKeys = listChangedGeneralSettingsKeys(before, merged);
+
+  if (updatedKeys.length === 0) {
+    return {
+      updated: [],
+      settings: sanitizeGeneralSettingsForAi(before)
+    };
+  }
+
+  await ctx.dispatch(patchGeneralSettings(merged)).unwrap();
+
+  return {
+    updated: updatedKeys,
+    settings: sanitizeGeneralSettingsForAi(ctx.getState().settings.general)
+  };
 }
 
 /**

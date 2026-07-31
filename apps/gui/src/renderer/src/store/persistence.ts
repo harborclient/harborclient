@@ -41,6 +41,10 @@ export interface PersistedRequestTab {
   tabId: string;
   draft: RequestDraft;
   savedDraft?: RequestDraft;
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -50,6 +54,10 @@ export interface PersistedPageTab {
   tabId: string;
   kind: 'page';
   page: PageRef;
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -64,6 +72,10 @@ export interface PersistedMarkdownTab {
   name: string;
   content: string;
   savedContent?: string;
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -97,6 +109,10 @@ export interface PersistedBrowserTab {
   savedTitle?: string;
   savedFaviconDataUrl?: string | null;
   settingsName?: string;
+  /**
+   * Tab id that opened this tab; used to restore focus when this tab is closed.
+   */
+  linkedTo?: string;
 }
 
 /**
@@ -141,6 +157,28 @@ const BODY_TYPES = new Set<BodyType>(['none', 'json', 'text', 'multipart', 'urle
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reads an optional opener tab id from a persisted tab record.
+ *
+ * @param value - Persisted tab object.
+ * @returns Non-empty linkedTo string, or undefined when absent/invalid.
+ */
+function readPersistedLinkedTo(value: Record<string, unknown>): string | undefined {
+  return typeof value.linkedTo === 'string' && value.linkedTo.length > 0
+    ? value.linkedTo
+    : undefined;
+}
+
+/**
+ * Spreads an optional opener tab id onto a tab object for persistence/runtime.
+ *
+ * @param linkedTo - Optional opener tab id.
+ * @returns Object fragment with linkedTo when set; empty otherwise.
+ */
+function linkedToFields(linkedTo: string | undefined): { linkedTo?: string } {
+  return linkedTo ? { linkedTo } : {};
 }
 
 /**
@@ -291,7 +329,12 @@ function salvagePersistedPageTab(value: unknown): PersistedPageTab | null {
   const page = normalizePageRef(value.page);
   if (!page) return null;
 
-  return { tabId: value.tabId, kind: 'page', page };
+  return {
+    tabId: value.tabId,
+    kind: 'page' as const,
+    page,
+    ...linkedToFields(readPersistedLinkedTo(value))
+  };
 }
 
 /**
@@ -310,7 +353,12 @@ function salvagePersistedRequestTab(value: unknown): PersistedRequestTab | null 
   const savedDraft =
     value.savedDraft !== undefined ? (normalizePersistedDraft(value.savedDraft) ?? draft) : draft;
 
-  return { tabId: value.tabId, draft, savedDraft };
+  return {
+    tabId: value.tabId,
+    draft,
+    savedDraft,
+    ...linkedToFields(readPersistedLinkedTo(value))
+  };
 }
 
 /**
@@ -332,13 +380,14 @@ function salvagePersistedMarkdownTab(value: unknown): PersistedMarkdownTab | nul
 
   return {
     tabId: value.tabId,
-    kind: 'markdown',
+    kind: 'markdown' as const,
     docId: value.docId,
     collectionId: value.collectionId,
     folderId: value.folderId as number | null,
     name: value.name,
     content: value.content,
-    savedContent
+    savedContent,
+    ...linkedToFields(readPersistedLinkedTo(value))
   };
 }
 
@@ -470,7 +519,7 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
 
   return {
     tabId: value.tabId,
-    kind: 'browser',
+    kind: 'browser' as const,
     title: value.title || 'Browser',
     url,
     homeUrl,
@@ -495,7 +544,8 @@ function salvagePersistedBrowserTab(value: unknown): PersistedBrowserTab | null 
     savedHomeUrl,
     savedTitle,
     savedFaviconDataUrl,
-    settingsName
+    settingsName,
+    ...linkedToFields(readPersistedLinkedTo(value))
   };
 }
 
@@ -539,7 +589,8 @@ function persistedRequestTabToRequestTab(tab: PersistedRequestTab): RequestTab {
     sendingRequestId: null,
     testResults: [],
     scriptLogs: [],
-    executionEvents: []
+    executionEvents: [],
+    ...linkedToFields(tab.linkedTo)
   };
 }
 
@@ -553,13 +604,14 @@ function persistedMarkdownTabToMarkdownTab(tab: PersistedMarkdownTab): MarkdownT
   const savedContent = tab.savedContent ?? tab.content;
   return {
     tabId: tab.tabId,
-    kind: 'markdown',
+    kind: 'markdown' as const,
     docId: tab.docId,
     collectionId: tab.collectionId,
     folderId: tab.folderId,
     name: tab.name,
     content: tab.content,
-    savedContent
+    savedContent,
+    ...linkedToFields(tab.linkedTo)
   };
 }
 
@@ -580,7 +632,7 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
   const savedAuth = normalizeAuth(tab.savedAuth ?? auth);
   return {
     tabId: tab.tabId,
-    kind: 'browser',
+    kind: 'browser' as const,
     title: tab.title,
     url: tab.url,
     homeUrl: tab.homeUrl,
@@ -601,7 +653,7 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
     canGoBack: false,
     canGoForward: false,
     faviconDataUrl: tab.faviconDataUrl ?? null,
-    securityState: 'unknown',
+    securityState: 'unknown' as const,
     websiteId: tab.websiteId ?? null,
     websiteUuid: tab.websiteUuid ?? null,
     savedUrl: tab.savedUrl ?? tab.url,
@@ -612,7 +664,8 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
         ? tab.savedFaviconDataUrl
         : (tab.faviconDataUrl ?? null),
     settingsPanelOpen: false,
-    settingsName: tab.settingsName ?? tab.savedTitle ?? tab.title
+    settingsName: tab.settingsName ?? tab.savedTitle ?? tab.title,
+    ...linkedToFields(tab.linkedTo)
   };
 }
 
@@ -624,7 +677,12 @@ function persistedBrowserTabToBrowserTab(tab: PersistedBrowserTab): BrowserTab {
  */
 function persistedTabToTab(tab: PersistedTab): Tab {
   if ('kind' in tab && tab.kind === 'page') {
-    return { tabId: tab.tabId, kind: 'page', page: tab.page };
+    return {
+      tabId: tab.tabId,
+      kind: 'page' as const,
+      page: tab.page,
+      ...linkedToFields(tab.linkedTo)
+    };
   }
   if ('kind' in tab && tab.kind === 'markdown') {
     return persistedMarkdownTabToMarkdownTab(tab);
@@ -813,7 +871,12 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
     const payload: PersistedOpenTabs = {
       tabs: tabs.map((tab) => {
         if (isPageTab(tab)) {
-          return { tabId: tab.tabId, kind: 'page' as const, page: tab.page };
+          return {
+            tabId: tab.tabId,
+            kind: 'page' as const,
+            page: tab.page,
+            ...linkedToFields(tab.linkedTo)
+          };
         }
         if (isMarkdownTab(tab)) {
           return {
@@ -824,7 +887,8 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
             folderId: tab.folderId,
             name: tab.name,
             content: tab.content,
-            savedContent: tab.savedContent
+            savedContent: tab.savedContent,
+            ...linkedToFields(tab.linkedTo)
           };
         }
         if (isBrowserTab(tab)) {
@@ -855,11 +919,17 @@ export function persistTabs(tabs: Tab[], activeTabId: string): void {
             savedHomeUrl: tab.savedHomeUrl,
             savedTitle: tab.savedTitle,
             savedFaviconDataUrl: tab.savedFaviconDataUrl,
-            settingsName: tab.settingsName
+            settingsName: tab.settingsName,
+            ...linkedToFields(tab.linkedTo)
           };
         }
         if (isRequestTab(tab)) {
-          return { tabId: tab.tabId, draft: tab.draft, savedDraft: tab.savedDraft };
+          return {
+            tabId: tab.tabId,
+            draft: tab.draft,
+            savedDraft: tab.savedDraft,
+            ...linkedToFields(tab.linkedTo)
+          };
         }
         throw new Error('Unknown tab kind');
       }),

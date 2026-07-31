@@ -117,7 +117,10 @@ describe('createScriptContext', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.value).toBe('done');
-    expect(result.logs).toEqual(['hello world', '[error] oops']);
+    expect(result.logs).toEqual([
+      { message: 'hello world', level: 'log', method: 'log' },
+      { message: 'oops', level: 'error', method: 'error' }
+    ]);
   });
 
   it('allows injected globals to override console', () => {
@@ -184,7 +187,10 @@ describe('createScriptContext', () => {
       hc.test('second test', function() { hc.expect(hc.response.code).to.equal(200); });
     `);
 
-    expect(result.logs).toEqual(['first', 'second']);
+    expect(result.logs).toEqual([
+      { message: 'first', level: 'log', method: 'log' },
+      { message: 'second', level: 'log', method: 'log' }
+    ]);
     expect(result.tests).toEqual([
       expect.objectContaining({ name: 'first test', passed: true }),
       expect.objectContaining({ name: 'second test', passed: true })

@@ -1159,7 +1159,8 @@ export class RoutingStorage implements IStorage {
   async importCollectionDataToConnection(
     connectionId: string,
     data: unknown,
-    displayName?: string
+    displayName?: string,
+    sourceUrl?: string | null
   ): Promise<Collection> {
     const backend = this.requireBackendByConnectionId(connectionId);
     const imported = await backend.db.importCollectionData(data);
@@ -1168,7 +1169,8 @@ export class RoutingStorage implements IStorage {
         name: displayName?.trim() || imported.name,
         connectionId: backend.connectionId,
         providerCollectionId: imported.id,
-        collectionUuid: imported.uuid
+        collectionUuid: imported.uuid,
+        sourceUrl
       });
       return this.buildCollection(entry, imported);
     } catch (err) {
@@ -1255,6 +1257,20 @@ export class RoutingStorage implements IStorage {
       collectionUuid: updated.uuid
     });
     return this.buildCollection(updatedEntry, updated);
+  }
+
+  /**
+   * Persists the remote import URL for a registry-backed collection.
+   *
+   * @param globalCollectionId - Global collection id.
+   * @param sourceUrl - Absolute URL the collection was imported from, or null to clear.
+   * @returns The updated global collection (metadata from the registry entry).
+   */
+  setCollectionSourceUrl(globalCollectionId: number, sourceUrl: string | null): Collection {
+    const updatedEntry = this.database.updateRegistryEntry(globalCollectionId, {
+      sourceUrl
+    });
+    return this.buildCollection(updatedEntry, undefined);
   }
 
   /**
@@ -2394,7 +2410,8 @@ export class RoutingStorage implements IStorage {
       deletion_locked: record?.deletion_locked,
       marker: record?.marker ?? null,
       archived: entry.archived,
-      connectionId: entry.connectionId
+      connectionId: entry.connectionId,
+      sourceUrl: entry.sourceUrl ?? null
     };
   }
 

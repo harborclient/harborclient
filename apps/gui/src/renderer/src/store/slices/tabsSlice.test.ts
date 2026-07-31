@@ -119,6 +119,92 @@ describe('tabsSlice closeTab', () => {
     expect(state.tabs[0]?.tabId).toBe(firstTabId);
     expect(state.activeTabId).toBe(firstTabId);
   });
+
+  it('restores focus to linkedTo when closing an active page tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const firstTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, newTab());
+    expect(state.tabs).toHaveLength(5);
+
+    state = tabsReducer(state, setActiveTab(firstTabId));
+    state = tabsReducer(state, openPageTab({ type: 'plugins' }));
+
+    const pageTab = state.tabs.find((tab) => isPageTab(tab) && tab.page.type === 'plugins');
+    expect(pageTab?.linkedTo).toBe(firstTabId);
+    expect(state.activeTabId).toBe(pageTab?.tabId);
+    expect(state.tabs[state.tabs.length - 1]?.tabId).toBe(pageTab?.tabId);
+
+    state = tabsReducer(state, closeTab(pageTab!.tabId));
+
+    expect(state.activeTabId).toBe(firstTabId);
+    expect(state.tabs.some((tab) => tab.tabId === pageTab!.tabId)).toBe(false);
+  });
+
+  it('falls back to a neighbor when linkedTo is missing from remaining tabs', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const firstTabId = state.activeTabId;
+    state = tabsReducer(state, newTab());
+    const secondTabId = state.activeTabId;
+    state = tabsReducer(state, setActiveTab(firstTabId));
+    state = tabsReducer(state, openPageTab({ type: 'plugins' }));
+    const pageTabId = state.activeTabId;
+
+    const pageTab = state.tabs.find((tab) => tab.tabId === pageTabId);
+    expect(pageTab?.linkedTo).toBe(firstTabId);
+
+    state = tabsReducer(state, closeTab(firstTabId));
+    state = tabsReducer(state, setActiveTab(pageTabId));
+    state = tabsReducer(state, closeTab(pageTabId));
+
+    expect(state.activeTabId).toBe(secondTabId);
+  });
+});
+
+describe('tabsSlice linkedTo', () => {
+  it('sets linkedTo on openPageTab to the previous active tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const openerId = state.activeTabId;
+    state = tabsReducer(state, openPageTab({ type: 'cookies' }));
+
+    const pageTab = state.tabs.find((tab) => isPageTab(tab) && tab.page.type === 'cookies');
+    expect(pageTab?.linkedTo).toBe(openerId);
+  });
+
+  it('refreshes linkedTo when focusing an existing page tab from a different opener', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const firstTabId = state.activeTabId;
+    state = tabsReducer(state, openPageTab({ type: 'snippets' }));
+    const pageTabId = state.activeTabId;
+
+    state = tabsReducer(state, newTab());
+    const secondTabId = state.activeTabId;
+    state = tabsReducer(state, openPageTab({ type: 'snippets' }));
+
+    const pageTab = state.tabs.find((tab) => tab.tabId === pageTabId);
+    expect(pageTab?.linkedTo).toBe(secondTabId);
+    expect(pageTab?.linkedTo).not.toBe(firstTabId);
+    expect(state.activeTabId).toBe(pageTabId);
+  });
+
+  it('sets linkedTo on openInheritedBrowserTab to sourceTabId', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, newBrowserTab());
+    const sourceTabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      openInheritedBrowserTab({
+        url: 'https://example.com/popup',
+        sourceTabId,
+        activate: true
+      })
+    );
+
+    const opened = state.tabs.find((entry) => entry.tabId === state.activeTabId);
+    expect(opened?.linkedTo).toBe(sourceTabId);
+  });
 });
 
 describe('tabsSlice closeTabsForRequest', () => {
@@ -557,7 +643,14 @@ describe('tabsSlice loadRequest', () => {
               ...tab,
               response: { status: 200 } as SendResult,
               testResults: [{ name: 'ok', passed: true }] as ScriptTestResult[],
-              scriptLogs: ['hello'],
+              scriptLogs: [
+                {
+                  message: 'hello',
+                  level: 'log' as const,
+                  method: 'log' as const,
+                  scriptName: 'Script'
+                }
+              ],
               scriptError: 'boom'
             }
           : tab

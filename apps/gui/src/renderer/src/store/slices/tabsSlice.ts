@@ -123,7 +123,27 @@ function isRequestOrMarkdownTabInCollection(tab: Tab, collectionId: number): boo
 }
 
 /**
- * Closes matching tabs and selects a neighbor when the active tab was removed.
+ * Picks which tab becomes active after the current active tab is closed.
+ *
+ * Prefers the closed tab's {@link Tab.linkedTo} opener when it is still open;
+ * otherwise selects the neighbor at the same index (or the last remaining tab).
+ *
+ * @param remaining - Tabs that will stay open.
+ * @param closedTab - Tab being closed (must have been active).
+ * @param closedIndex - Index of the closed tab in the pre-close list.
+ * @returns Tab id to activate.
+ */
+function nextActiveTabIdAfterClose(remaining: Tab[], closedTab: Tab, closedIndex: number): string {
+  const linkedId = closedTab.linkedTo;
+  if (linkedId && remaining.some((tab) => tab.tabId === linkedId)) {
+    return linkedId;
+  }
+  return remaining[Math.min(closedIndex, remaining.length - 1)].tabId;
+}
+
+/**
+ * Closes matching tabs and restores focus to a linked opener or neighbor when
+ * the active tab was removed.
  *
  * @param state - Mutable tabs slice state.
  * @param matching - Tabs slated for removal.
@@ -145,8 +165,10 @@ function closeMatchingTabs(state: TabsState, matching: Tab[]): void {
   const closedActive = matching.some((tab) => tab.tabId === state.activeTabId);
   if (closedActive) {
     const closedIndex = state.tabs.findIndex((tab) => tab.tabId === state.activeTabId);
-    const neighbor = remaining[Math.min(closedIndex, remaining.length - 1)];
-    state.activeTabId = neighbor.tabId;
+    const closedTab = state.tabs[closedIndex];
+    if (closedTab) {
+      state.activeTabId = nextActiveTabIdAfterClose(remaining, closedTab, closedIndex);
+    }
   }
 
   state.tabs = remaining;
@@ -366,6 +388,7 @@ const tabsSlice = createSlice({
             }
           : { url };
       const tab = createBrowserTab(inherited);
+      tab.linkedTo = sourceTabId;
       state.tabs.push(tab);
       if (activate) {
         state.activeTabId = tab.tabId;
@@ -373,30 +396,44 @@ const tabsSlice = createSlice({
     },
     /**
      * Opens or focuses a configuration page tab.
+     *
+     * Records {@link Tab.linkedTo} as the then-active tab so closing the page
+     * tab can restore focus to the opener.
      */
     openPageTab(state, action: PayloadAction<PageRef>) {
       const page = action.payload;
+      const openerId = state.activeTabId;
       const existing = findPageTab(state.tabs, page);
       if (existing && isPageTab(existing)) {
         if (getPageRoute(page.type).replaceOnReopen) {
           existing.page = page;
+        }
+        if (openerId && openerId !== existing.tabId) {
+          existing.linkedTo = openerId;
         }
         state.activeTabId = existing.tabId;
         return;
       }
 
       const tab = createPageTab(page);
+      if (openerId) {
+        tab.linkedTo = openerId;
+      }
       state.tabs.push(tab);
       state.activeTabId = tab.tabId;
     },
     /**
      * Closes a tab by id, leaving zero tabs open when the last tab is closed.
+     *
+     * When the closed tab was active, prefers its {@link Tab.linkedTo} opener
+     * when still open; otherwise selects a neighbor by index.
      */
     closeTab(state, action: PayloadAction<string>) {
       const tabId = action.payload;
       const index = state.tabs.findIndex((t) => t.tabId === tabId);
       if (index === -1) return;
 
+      const closedTab = state.tabs[index];
       const next = state.tabs.filter((t) => t.tabId !== tabId);
       if (next.length === 0) {
         state.tabs = [];
@@ -404,9 +441,8 @@ const tabsSlice = createSlice({
         return;
       }
 
-      if (state.activeTabId === tabId) {
-        const neighbor = next[Math.min(index, next.length - 1)];
-        state.activeTabId = neighbor.tabId;
+      if (state.activeTabId === tabId && closedTab) {
+        state.activeTabId = nextActiveTabIdAfterClose(next, closedTab, index);
       }
       state.tabs = next;
     },

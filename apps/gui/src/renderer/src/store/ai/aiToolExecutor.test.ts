@@ -44,12 +44,16 @@ import {
 } from '#/renderer/src/store/slices/tabsSlice';
 import { addTerminal, hydrateTerminals } from '#/renderer/src/store/slices/terminalsSlice';
 import { setShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
+import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSlice';
 import { selectDraft, selectEffectiveActiveRequestTab } from '#/renderer/src/store/selectors';
 import {
   clearTerminalRegistry,
   getTerminalInstance,
   registerTerminalInstance
 } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import { REDACTED_PROXY_PASSWORD } from '@harborclient/core/ai/generalSettingsForAi';
+import type { GeneralSettings } from '@harborclient/core/types';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }
@@ -100,6 +104,7 @@ const stopLiveServerApiMock = vi.fn<(id: string) => Promise<void>>();
 const createLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
 const updateLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
 const deleteLiveServerApiMock = vi.fn<(id: number) => Promise<LiveServer[]>>();
+const setGeneralSettingsMock = vi.fn<(settings: GeneralSettings) => Promise<void>>();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -246,6 +251,7 @@ beforeEach(() => {
       createLiveServer: createLiveServerApiMock,
       updateLiveServer: updateLiveServerApiMock,
       deleteLiveServer: deleteLiveServerApiMock,
+      setGeneralSettings: setGeneralSettingsMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
@@ -297,6 +303,8 @@ beforeEach(() => {
   createLiveServerApiMock.mockReset();
   updateLiveServerApiMock.mockReset();
   deleteLiveServerApiMock.mockReset();
+  setGeneralSettingsMock.mockReset();
+  setGeneralSettingsMock.mockResolvedValue(undefined);
 });
 
 /**
@@ -485,6 +493,63 @@ describe('executeAiTool', () => {
     expect(store.getState().environments.activeEnvironmentId).toBe(3);
   });
 
+  it('returns general settings with verifySsl and redacts proxy password', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({
+        ...DEFAULT_GENERAL_SETTINGS,
+        verifySsl: true,
+        proxy: { ...DEFAULT_GENERAL_SETTINGS.proxy, password: 'secret' }
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_general_settings',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.verifySsl).toBe(true);
+    expect(result.proxy.password).toBe(REDACTED_PROXY_PASSWORD);
+  });
+
+  it('disables SSL verification via update_general_settings', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, verifySsl: true }));
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_general_settings',
+        { verifySsl: false },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.updated).toEqual(['verifySsl']);
+    expect(result.settings.verifySsl).toBe(false);
+    expect(store.getState().settings.general.verifySsl).toBe(false);
+    expect(setGeneralSettingsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ verifySsl: false })
+    );
+  });
+
+  it('rejects an empty update_general_settings patch', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_general_settings',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ error: 'Provide at least one settings field to update.' });
+    expect(setGeneralSettingsMock).not.toHaveBeenCalled();
+  });
+
   it('returns active request summary for the open tab', async () => {
     const { store } = await import('#/renderer/src/store/redux');
     store.dispatch(
@@ -638,6 +703,73 @@ describe('executeAiTool', () => {
     expect(result.bodyPreviewTruncated).toBe(true);
     expect(result.body).toBeUndefined();
     expect(result.tests).toEqual([expect.objectContaining({ name: 'ok', passed: true })]);
+  });
+
+  it('returns structured console inspector data for get_active_response_console', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      openTabWithDraft({
+        id: 91,
+        collection_id: 1,
+        folder_id: null,
+        name: 'Console tool',
+        method: 'GET',
+        url: 'https://example.com',
+        headers: [],
+        params: [],
+        body: '',
+        body_type: 'none',
+        body_raw: null,
+        body_raw_open: false,
+        pre_request_script: '',
+        post_request_script: '',
+        pre_request_scripts: [],
+        post_request_scripts: [],
+        comment: '',
+        tags: '',
+        auth: defaultAuth(),
+        userAgent: ''
+      })
+    );
+    const tabId = store.getState().tabs.activeTabId;
+    store.dispatch(
+      updateTab({
+        tabId,
+        updates: {
+          response: {
+            status: 0,
+            statusText: 'Error',
+            headers: {},
+            body: '',
+            timeMs: 4,
+            sizeBytes: 0,
+            error: 'Connection refused (127.0.0.1:5009)',
+            request: {
+              method: 'POST',
+              url: 'https://localhost:5009/api',
+              headers: { 'content-type': 'application/json' },
+              body: '{}'
+            }
+          }
+        }
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'get_active_response_console',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.general).toMatchObject({
+      requestUrl: 'https://localhost:5009/api',
+      requestMethod: 'POST',
+      statusCode: 'Error',
+      error: 'Connection refused (127.0.0.1:5009)'
+    });
+    expect(result.requestHeaders).toEqual({ 'content-type': 'application/json' });
   });
 
   it('truncates the full response body to maxBodyChars', async () => {
@@ -2319,7 +2451,7 @@ hc.test("Status code is 2xx", () => {
           timeMs: 1,
           sizeBytes: 0
         },
-        logs: ['hello from script'],
+        logs: [{ message: 'hello from script', level: 'log', method: 'log', scriptName: 'Script' }],
         scriptError: 'expected false to be truthy',
         scriptErrors: [
           {
@@ -2356,13 +2488,15 @@ hc.test("Status code is 2xx", () => {
       found: boolean;
       scriptError?: string;
       failingTests?: Array<{ name: string }>;
-      logs?: string[];
+      logs?: Array<{ message: string; level: string; scriptName: string }>;
     };
 
     expect(result.found).toBe(true);
     expect(result.scriptError).toContain('expected false to be truthy');
     expect(result.failingTests?.[0]?.name).toBe('should fail');
-    expect(result.logs).toEqual(['hello from script']);
+    expect(result.logs).toEqual([
+      { message: 'hello from script', level: 'log', method: 'log', scriptName: 'Script' }
+    ]);
   });
 
   it('delegates git_diff to window.api.gitDiff', async () => {

@@ -52,7 +52,7 @@ export interface PluginScriptRunResult {
   /**
    * Captured console output across runs on this context.
    */
-  logs: string[];
+  logs: ReturnType<ReturnType<typeof createScriptApi>['readResult']>['logs'];
 
   /**
    * Mutable object bag after hc.data mutations in this context lifetime.

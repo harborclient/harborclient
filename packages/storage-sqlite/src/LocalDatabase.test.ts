@@ -134,6 +134,85 @@ describeSqlite('LocalDatabase collection archive', () => {
     const updated = database.setRegistryArchived(entries[0]!.id, true);
     expect(updated.archived).toBe(true);
   });
+
+  it('defaults new registry entries to a null sourceUrl', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addRegistryEntry({
+      name: 'Alpha',
+      connectionId: 'conn-a',
+      providerCollectionId: 1
+    });
+
+    expect(entry.sourceUrl).toBeNull();
+    expect(database.getRegistryEntry(entry.id)?.sourceUrl).toBeNull();
+  });
+
+  it('round-trips sourceUrl through add and update registry entry', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addRegistryEntry({
+      name: 'Remote',
+      connectionId: 'conn-a',
+      providerCollectionId: 1,
+      sourceUrl: 'https://localhost:5009/assets/postman.json'
+    });
+
+    expect(entry.sourceUrl).toBe('https://localhost:5009/assets/postman.json');
+    expect(database.listRegistry().find((item) => item.id === entry.id)?.sourceUrl).toBe(
+      'https://localhost:5009/assets/postman.json'
+    );
+
+    const updated = database.updateRegistryEntry(entry.id, {
+      sourceUrl: 'https://example.com/collection.json'
+    });
+    expect(updated.sourceUrl).toBe('https://example.com/collection.json');
+    expect(database.getRegistryEntry(entry.id)?.sourceUrl).toBe(
+      'https://example.com/collection.json'
+    );
+
+    const cleared = database.updateRegistryEntry(entry.id, { sourceUrl: null });
+    expect(cleared.sourceUrl).toBeNull();
+  });
+
+  it('migrates legacy registry databases missing the source_url column', async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-registry-source-url-'));
+    const Database = (await import('better-sqlite3')).default;
+    const legacy = new Database(join(rootDir, 'harborclient-registry.db'));
+    legacy.exec(`
+      CREATE TABLE collection_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        collection_uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_collection_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        archived INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    legacy
+      .prepare(
+        `INSERT INTO collection_registry (name, collection_uuid, connection_id, provider_collection_id, sort_order)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run('Legacy', 'legacy-uuid', 'conn-a', 1, 0);
+    legacy.close();
+
+    const database = new LocalDatabase(rootDir);
+    await database.init();
+    cleanups.push(async () => {
+      await database.close();
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    const entries = database.listRegistry();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.sourceUrl).toBeNull();
+
+    const updated = database.updateRegistryEntry(entries[0]!.id, {
+      sourceUrl: 'https://example.com/postman.json'
+    });
+    expect(updated.sourceUrl).toBe('https://example.com/postman.json');
+  });
 });
 
 describeSqlite('LocalDatabase environment order', () => {

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(dependencies): add Orama and OpenAI packages. (`1555db1b`)
+
 ## 1.4.0 - 2026-07-31
 
 - feat(live-server): enhance live server functionality and UI integration. (`241f4525`)

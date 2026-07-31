@@ -6,6 +6,7 @@ export * from './types.js';
 export * from './registry.js';
 export * from './shared.js';
 export * from './pluginToken.js';
+export * from './consolePointer.js';
 export {
   registerBuiltinChatPointers,
   reinstallBuiltinChatPointersForTests,

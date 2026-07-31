@@ -25,7 +25,7 @@ interface Props {
   /**
    * Collection identity and display fields used by menu actions.
    */
-  collection: Pick<Collection, 'id' | 'name' | 'uuid' | 'marker'>;
+  collection: Pick<Collection, 'id' | 'name' | 'uuid' | 'marker' | 'sourceUrl'>;
 
   /**
    * Zero-based index of this collection among sortable sidebar collections.
@@ -183,6 +183,7 @@ export function ActionsMenu({
     onDeleteCollection,
     onArchiveCollection,
     onExportCollection,
+    onRefreshCollection,
     onDuplicateCollection,
     onShareCollection,
     onSaveAllInCollection,
@@ -310,6 +311,15 @@ export function ActionsMenu({
       }
     ]);
 
+    if (collection.sourceUrl?.trim()) {
+      groups.push([
+        {
+          label: 'Refresh',
+          onSelect: () => void onRefreshCollection(collection.id)
+        }
+      ]);
+    }
+
     if (canShare) {
       groups.push([
         {
@@ -380,6 +390,7 @@ export function ActionsMenu({
     onDeselectAll,
     onDuplicateCollection,
     onExportCollection,
+    onRefreshCollection,
     onImportRequest,
     onMove,
     onNewDocumentInCollection,

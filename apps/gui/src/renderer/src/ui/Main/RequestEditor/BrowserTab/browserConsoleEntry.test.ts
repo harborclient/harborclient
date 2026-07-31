@@ -66,7 +66,7 @@ describe('consoleEntryFromBrowserPayload', () => {
     tab.title = 'Docs';
     const entry = consoleEntryFromBrowserPayload(
       samplePayload({
-        logs: ['[Setup]', 'hi'],
+        logs: [{ message: 'hi', level: 'log', method: 'log', scriptName: 'Setup' }],
         scriptError: 'Setup: fail'
       }),
       tab
@@ -76,7 +76,7 @@ describe('consoleEntryFromBrowserPayload', () => {
       id: 'entry-id',
       requestName: 'Docs',
       requestTabId: 'browser-1',
-      logs: ['[Setup]', 'hi'],
+      logs: [{ message: 'hi', level: 'log', method: 'log', scriptName: 'Setup' }],
       scriptError: 'Setup: fail',
       result: expect.objectContaining({
         status: 200,

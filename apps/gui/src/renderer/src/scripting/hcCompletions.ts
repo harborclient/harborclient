@@ -411,7 +411,19 @@ const HC_RESPONSE_TO_BE: HcCompletionOption[] = [
 
 const CONSOLE: HcCompletionOption[] = [
   { label: 'log', type: 'method', detail: '(...args) => void' },
-  { label: 'error', type: 'method', detail: '(...args) => void' }
+  { label: 'error', type: 'method', detail: '(...args) => void' },
+  { label: 'warn', type: 'method', detail: '(...args) => void' },
+  { label: 'debug', type: 'method', detail: '(...args) => void' },
+  { label: 'assert', type: 'method', detail: '(condition, ...args) => void' },
+  { label: 'clear', type: 'method', detail: '() => void' },
+  { label: 'group', type: 'method', detail: '(...label) => void' },
+  { label: 'groupCollapsed', type: 'method', detail: '(...label) => void' },
+  { label: 'groupEnd', type: 'method', detail: '() => void' },
+  { label: 'table', type: 'method', detail: '(data, columns?) => void' },
+  { label: 'time', type: 'method', detail: '(label?) => void' },
+  { label: 'timeEnd', type: 'method', detail: '(label?) => void' },
+  { label: 'timeLog', type: 'method', detail: '(label?, ...args) => void' },
+  { label: 'trace', type: 'method', detail: '(...args) => void' }
 ];
 
 const GROUPS: Record<string, HcCompletionOption[]> = {

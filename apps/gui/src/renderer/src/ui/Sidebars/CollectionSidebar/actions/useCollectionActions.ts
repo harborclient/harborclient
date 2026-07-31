@@ -30,6 +30,7 @@ import {
   newRequestInCollection,
   newRequestInFolder,
   refreshCollectionContents,
+  refreshCollectionFromUrl,
   refreshRequests,
   reorderCollections,
   reorderDocuments,
@@ -122,6 +123,11 @@ export interface CollectionActions {
    * Exports a collection to disk.
    */
   onExportCollection: (id: number) => Promise<void>;
+
+  /**
+   * Re-downloads a URL-backed collection and merges remote changes into the local copy.
+   */
+  onRefreshCollection: (id: number) => Promise<void>;
 
   /**
    * Duplicates a collection and its contents.
@@ -428,6 +434,14 @@ export function useCollectionActions(): CollectionActions {
       const result = await dispatch(exportCollection(id)).unwrap();
       if (!result.canceled) {
         toast.success('Collection exported');
+      }
+    },
+    onRefreshCollection: async (id) => {
+      try {
+        await dispatch(refreshCollectionFromUrl(id)).unwrap();
+        toast.success('Collection refreshed');
+      } catch (err) {
+        showAlert(dispatch, formatErrorMessage(err, 'Failed to refresh collection'));
       }
     },
     onDuplicateCollection: async (id) => {

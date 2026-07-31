@@ -7,6 +7,8 @@ import {
   setCollectionModalGitCollectionCreated,
   setCollectionModalGitCreatedConnectionId,
   setCollectionModalGitDraft,
+  setCollectionModalImportUrlInput,
+  setCollectionModalImportUrlOpen,
   setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalProviderId,
@@ -20,6 +22,7 @@ import {
   createGitConnectionForCollection,
   deleteOrphanGitConnection,
   importCollection,
+  importCollectionFromUrl,
   saveRequest
 } from '#/renderer/src/store/thunks';
 import { SegmentedTabs, SegmentedTabPanel, SegmentedTabsGroup } from '@harborclient/sdk/components';
@@ -190,6 +193,28 @@ export function CollectionModal(): JSX.Element | null {
   }, [dispatch]);
 
   /**
+   * Downloads a collection from the Import tab URL and imports it locally.
+   */
+  const handleImportUrl = useCallback(async (): Promise<void> => {
+    if (!collectionModal) return;
+    const url = collectionModal.importUrlInput.trim();
+    if (!url) return;
+    dispatch(setCollectionModalSubmitError(null));
+    try {
+      const collection = await dispatch(importCollectionFromUrl(url)).unwrap();
+      if (!collection) return;
+      toast.success('Collection imported');
+      dispatch(closeCollectionModal());
+    } catch (err) {
+      dispatch(
+        setCollectionModalSubmitError(
+          formatErrorMessage(err, 'Failed to import collection from URL')
+        )
+      );
+    }
+  }, [collectionModal, dispatch]);
+
+  /**
    * Joins a shared collection from a share JWT and adds the embedded database connection.
    */
   const handleJoinSharedCollection = useCallback(async (): Promise<void> => {
@@ -353,9 +378,58 @@ export function CollectionModal(): JSX.Element | null {
             <p className="mb-4 text-muted">
               Choose a HarborClient or Postman collection export (.json), a Bruno collection
               manifest (bruno.json), a bundled OpenCollection file (.json or .yaml), or a browser
-              HAR capture (.har) to import all saved requests.
+              HAR capture (.har) to import all saved requests. You can also import from a remote
+              URL.
             </p>
-            <ModalFooter>
+            <div
+              className={[
+                'overflow-hidden motion-safe:transition-[max-height,opacity] motion-safe:duration-200 motion-safe:ease-out',
+                collectionModal.importUrlOpen ? 'mb-4 max-h-40 opacity-100' : 'max-h-0 opacity-0'
+              ].join(' ')}
+              aria-hidden={!collectionModal.importUrlOpen}
+            >
+              {collectionModal.importUrlOpen ? (
+                <>
+                  <FormGroup
+                    label="Collection URL"
+                    htmlFor="collection-import-url"
+                    labelTone="muted"
+                  >
+                    <Input
+                      id="collection-import-url"
+                      className="w-full"
+                      type="url"
+                      autoFocus
+                      placeholder="https://example.com/collection.json"
+                      value={collectionModal.importUrlInput}
+                      onChange={(e) => dispatch(setCollectionModalImportUrlInput(e.target.value))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleImportUrl();
+                      }}
+                    />
+                  </FormGroup>
+                  <ModalFooter spaced>
+                    <Button
+                      onClick={() => void handleImportUrl()}
+                      disabled={!collectionModal.importUrlInput.trim()}
+                    >
+                      Import
+                    </Button>
+                  </ModalFooter>
+                </>
+              ) : null}
+            </div>
+            <ModalFooter spaced>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  dispatch(setCollectionModalImportUrlOpen(!collectionModal.importUrlOpen))
+                }
+                aria-expanded={collectionModal.importUrlOpen}
+              >
+                Import URL
+              </Button>
               <Button onClick={() => void handleImport()}>Import file</Button>
             </ModalFooter>
           </SegmentedTabPanel>

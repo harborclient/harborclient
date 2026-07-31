@@ -55,6 +55,8 @@ const listSnippetsMock = vi.fn<() => Promise<unknown[]>>();
 const moveRequestMock =
   vi.fn<(requestId: number, folderId: number | null, index: number) => Promise<void>>();
 const importEntityMock = vi.fn();
+const importCollectionFromUrlMock = vi.fn<(url: string) => Promise<Collection | null>>();
+const refreshCollectionFromUrlMock = vi.fn<(id: number) => Promise<Collection>>();
 
 /**
  * Builds a minimal collection row for listCollections mocks.
@@ -126,7 +128,9 @@ beforeEach(() => {
       listEnvironments: listEnvironmentsMock,
       listSnippets: listSnippetsMock,
       moveRequest: moveRequestMock,
-      importEntity: importEntityMock
+      importEntity: importEntityMock,
+      importCollectionFromUrl: importCollectionFromUrlMock,
+      refreshCollectionFromUrl: refreshCollectionFromUrlMock
     }
   });
   deleteCollectionMock.mockReset();
@@ -153,6 +157,8 @@ beforeEach(() => {
   moveRequestMock.mockReset();
   moveRequestMock.mockResolvedValue(undefined);
   importEntityMock.mockReset();
+  importCollectionFromUrlMock.mockReset();
+  refreshCollectionFromUrlMock.mockReset();
 });
 
 afterEach(() => {
@@ -444,5 +450,71 @@ describe('importFromMenu', () => {
     expect(
       store.getState().tabs.tabs.some((tab) => isPageTab(tab) && tab.page.type === 'openapi-import')
     ).toBe(true);
+  });
+});
+
+describe('importCollectionFromUrl', () => {
+  it('imports from a URL, selects the collection, and refreshes contents', async () => {
+    const imported = {
+      ...sampleCollection(9, 'From URL'),
+      sourceUrl: 'https://localhost:5009/assets/postman.json'
+    };
+    importCollectionFromUrlMock.mockResolvedValue(imported);
+    listCollectionsMock.mockResolvedValue({
+      collections: [imported],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { importCollectionFromUrl } = await import('#/renderer/src/store/thunks/collections');
+
+    const result = await store
+      .dispatch(importCollectionFromUrl('https://localhost:5009/assets/postman.json'))
+      .unwrap();
+
+    expect(importCollectionFromUrlMock).toHaveBeenCalledWith(
+      'https://localhost:5009/assets/postman.json'
+    );
+    expect(result?.id).toBe(9);
+    expect(store.getState().collections.selectedCollectionId).toBe(9);
+    expect(listFoldersMock).toHaveBeenCalledWith(9);
+    expect(listRequestsMock).toHaveBeenCalledWith(9);
+  });
+
+  it('returns null when the user cancels a warning dialog', async () => {
+    importCollectionFromUrlMock.mockResolvedValue(null);
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { importCollectionFromUrl } = await import('#/renderer/src/store/thunks/collections');
+
+    const result = await store
+      .dispatch(importCollectionFromUrl('https://example.com/collection.json'))
+      .unwrap();
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('refreshCollectionFromUrl', () => {
+  it('refreshes a URL-backed collection and reloads its contents', async () => {
+    const refreshed = {
+      ...sampleCollection(9, 'From URL'),
+      sourceUrl: 'https://localhost:5009/assets/postman.json'
+    };
+    refreshCollectionFromUrlMock.mockResolvedValue(refreshed);
+    listCollectionsMock.mockResolvedValue({
+      collections: [refreshed],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { refreshCollectionFromUrl } = await import('#/renderer/src/store/thunks/collections');
+
+    const result = await store.dispatch(refreshCollectionFromUrl(9)).unwrap();
+
+    expect(refreshCollectionFromUrlMock).toHaveBeenCalledWith(9);
+    expect(result.id).toBe(9);
+    expect(listFoldersMock).toHaveBeenCalledWith(9);
+    expect(listRequestsMock).toHaveBeenCalledWith(9);
   });
 });

@@ -5,6 +5,7 @@ import {
   type AiResponseSection
 } from '../types.js';
 import { parseSelectionSuffix, parseWebpageClickSuffix } from '../shared.js';
+import { CONSOLE_POINTER_SEGMENT_PATTERN } from '../consolePointer.js';
 import {
   PLUGIN_CHAT_POINTER_ID_PATTERN,
   PLUGIN_CHAT_POINTER_KEY_PATTERN,
@@ -336,6 +337,38 @@ export const builtinChatPointerPartials: Array<
         kind: 'response-section',
         requestTabId: responseTabId,
         section: responseSectionRaw as AiResponseSection,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[3], match[4])
+      };
+    }
+  },
+  /**
+   * References a selection from a response Console, Headers, or Timing inspector row.
+   *
+   * @usage @console.<section>.<row>#<start>.<end>
+   * @param section Inspector section (`general`, `headers`, `timing`, …)
+   * @param row Slugified row label (`error`, `report-to`, `request-sent`, …)
+   * @param start Character offset into the selected cell text
+   * @param end Character offset into the selected cell text
+   */
+  {
+    id: 'console',
+    match: new RegExp(
+      `^console\\.(${CONSOLE_POINTER_SEGMENT_PATTERN})\\.(${CONSOLE_POINTER_SEGMENT_PATTERN})(?:#(\\d+)\\.(\\d+))?`
+    ),
+    agentGuidance: `When a user message contains @console.<section>.<row> (optionally with #start.end character offsets into the selected cell text), that references a captured Console, Headers, or Timing inspector value. Prefer the selected text and row snapshot in the system context. Call get_active_response_console for the live inspector (general, headers, timing). Use get_active_response_summary / get_active_response for body/tests, and get_script_run_diagnostics for script logs/output. Console-row references cannot be edited via tools.`,
+    parse: (match, fullToken, atIndex) => {
+      const section = match[1];
+      const row = match[2];
+      if (section == null || row == null) {
+        return null;
+      }
+      return {
+        kind: 'console',
+        section,
+        row,
         start: atIndex,
         end: atIndex + fullToken.length,
         text: fullToken,

@@ -1,4 +1,9 @@
-import type { ScriptPhase, ScriptRunError, ScriptTestResult } from '@harborclient/core/types';
+import type {
+  ScriptLogEntry,
+  ScriptPhase,
+  ScriptRunError,
+  ScriptTestResult
+} from '@harborclient/core/types';
 import type { ScriptSelectionLastRunFailure } from '@harborclient/core/ai/scriptReferences';
 import type { ConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import type { RequestTab } from '#/renderer/src/store/tabs';
@@ -63,9 +68,9 @@ export interface ScriptRunDiagnosticsResult {
   failingTests?: ScriptTestResult[];
 
   /**
-   * Captured console.log / console.error lines.
+   * Captured console.log / console.error lines with script ownership metadata.
    */
-  logs?: string[];
+  logs?: ScriptLogEntry[];
 }
 
 /**

@@ -47,7 +47,7 @@ describe('appendBrowserScriptResult', () => {
   it('labels logs and tags tests with script metadata', () => {
     const accum = createBrowserConsoleAccum();
     appendBrowserScriptResult(accum, 'pre', 'script-1', 'Setup', {
-      logs: ['hello'],
+      logs: [{ message: 'hello', level: 'log', method: 'log' }],
       tests: [{ name: 'ok', passed: true }],
       executionEvents: [
         { type: 'variable', scope: 'request', action: 'set', key: 'a', value: '1' }
@@ -56,7 +56,17 @@ describe('appendBrowserScriptResult', () => {
       errorLocation: undefined
     });
 
-    expect(accum.logs).toEqual(['[Setup]', 'hello']);
+    expect(accum.logs).toEqual([
+      {
+        message: 'hello',
+        level: 'log',
+        method: 'log',
+        scriptName: 'Setup',
+        scriptId: 'script-1',
+        phase: 'pre',
+        scope: 'request'
+      }
+    ]);
     expect(accum.tests[0]).toMatchObject({
       name: 'ok',
       scriptName: 'Setup',
@@ -120,11 +130,29 @@ describe('buildBrowserConsoleEntryPayload', () => {
 
   it('includes collected script fields', () => {
     const accum = createBrowserConsoleAccum();
-    accum.logs.push('[Setup]', 'hi');
+    accum.logs.push({
+      message: 'hi',
+      level: 'log',
+      method: 'log',
+      scriptName: 'Setup',
+      scriptId: 'script-1',
+      phase: 'pre',
+      scope: 'request'
+    });
     accum.scriptErrorLines.push('Setup: fail');
     const payload = buildBrowserConsoleEntryPayload('tab-1', sampleResult(), accum);
 
-    expect(payload.logs).toEqual(['[Setup]', 'hi']);
+    expect(payload.logs).toEqual([
+      {
+        message: 'hi',
+        level: 'log',
+        method: 'log',
+        scriptName: 'Setup',
+        scriptId: 'script-1',
+        phase: 'pre',
+        scope: 'request'
+      }
+    ]);
     expect(payload.scriptError).toBe('Setup: fail');
   });
 });

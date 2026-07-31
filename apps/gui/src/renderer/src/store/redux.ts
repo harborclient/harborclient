@@ -24,6 +24,7 @@ import terminalsReducer from '#/renderer/src/store/slices/terminalsSlice';
 import markdownSelectionsReducer from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import requestBodySelectionsReducer from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import responseSelectionsReducer from '#/renderer/src/store/slices/responseSelectionsSlice';
+import consoleSelectionsReducer from '#/renderer/src/store/slices/consoleSelectionsSlice';
 import scriptSelectionsReducer from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import pluginSelectionsReducer from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import themeDesignerReducer from '#/renderer/src/store/slices/themeDesignerSlice';
@@ -56,6 +57,7 @@ export const store = configureStore({
     markdownSelections: markdownSelectionsReducer,
     requestBodySelections: requestBodySelectionsReducer,
     responseSelections: responseSelectionsReducer,
+    consoleSelections: consoleSelectionsReducer,
     scriptSelections: scriptSelectionsReducer,
     pluginSelections: pluginSelectionsReducer,
     themeDesigner: themeDesignerReducer,

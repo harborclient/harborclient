@@ -16,7 +16,7 @@ function buildResult(
   overrides: {
     responseBody?: string;
     responseHeaders?: Record<string, string>;
-    scriptLogs?: string[];
+    scriptLogs?: import('@harborclient/core/types').ScriptLogEntry[];
     scriptError?: string;
   } = {}
 ): WorkflowRunRequestResult {
@@ -48,12 +48,17 @@ function buildResult(
 describe('workflowRunRequestResultToEditorModel', () => {
   it('maps portable response fields into a SendResult for the Response Editor', () => {
     const model = workflowRunRequestResultToEditorModel(
-      buildResult({ scriptLogs: ['hello'], scriptError: 'oops' })
+      buildResult({
+        scriptLogs: [{ message: 'hello', level: 'log', method: 'log', scriptName: 'Script' }],
+        scriptError: 'oops'
+      })
     );
 
     expect(model.requestUrl).toBe('https://echo.example/get');
     expect(model.testResults).toEqual([{ name: 'status is 200', passed: true }]);
-    expect(model.scriptLogs).toEqual(['hello']);
+    expect(model.scriptLogs).toEqual([
+      { message: 'hello', level: 'log', method: 'log', scriptName: 'Script' }
+    ]);
     expect(model.scriptError).toBe('oops');
     expect(model.response).toMatchObject({
       status: 200,

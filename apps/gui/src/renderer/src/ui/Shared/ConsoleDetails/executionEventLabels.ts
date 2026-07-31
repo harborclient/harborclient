@@ -82,3 +82,32 @@ export function formatFlowExecutionDetail(
   }
   return undefined;
 }
+
+/**
+ * Returns the Key column text for a TRACE table row.
+ *
+ * @param event - Variable or flow-control activity from a script run.
+ * @returns Variable key, or undefined for flow events (no key).
+ */
+export function formatExecutionEventKey(event: ScriptExecutionEvent): string | undefined {
+  if (event.type === 'variable') {
+    return event.key;
+  }
+  return undefined;
+}
+
+/**
+ * Returns the Value column text for a TRACE table row.
+ *
+ * @param event - Variable or flow-control activity from a script run.
+ * @returns Variable value (omitted for clear), flow target when present, or undefined.
+ */
+export function formatExecutionEventValue(event: ScriptExecutionEvent): string | undefined {
+  if (event.type === 'variable') {
+    if (event.action === 'clear') {
+      return undefined;
+    }
+    return event.value ?? '';
+  }
+  return formatFlowExecutionDetail(event);
+}

@@ -5,6 +5,7 @@ import {
   DEFAULT_QUERY_RESULT_CHARS,
   DEFAULT_RESPONSE_BODY_CHARS,
   RESPONSE_BODY_PREVIEW_CHARS,
+  formatActiveResponseConsole,
   formatHttpResponseForAgent,
   queryJsonForAgent,
   truncateChatStepMessages,
@@ -187,5 +188,69 @@ describe('queryJsonForAgent', () => {
     });
     expect('resultPreview' in result && result.resultPreview).toHaveLength(200);
     expect('result' in result ? result.result : undefined).toBeUndefined();
+  });
+});
+
+describe('formatActiveResponseConsole', () => {
+  it('maps general, headers, and timing for a successful send', () => {
+    const result = formatActiveResponseConsole({
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+      timeMs: 153,
+      sizeBytes: 2,
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: { accept: 'application/json' },
+        body: ''
+      },
+      timing: {
+        stalledMs: 0,
+        connectMs: 100,
+        requestSentMs: 0,
+        waitingMs: 45,
+        downloadMs: 1
+      }
+    });
+
+    expect(result.general).toMatchObject({
+      requestUrl: 'https://example.com',
+      requestMethod: 'GET',
+      statusCode: '200 OK',
+      timeMs: 153,
+      sizeBytes: 2
+    });
+    expect(result.requestHeaders).toEqual({ accept: 'application/json' });
+    expect(result.responseHeaders).toEqual({ 'content-type': 'application/json' });
+    expect(result.timing.phases.map((phase) => phase.slug)).toEqual([
+      'stalled',
+      'connect',
+      'request-sent',
+      'waiting-for-server-response',
+      'content-download'
+    ]);
+  });
+
+  it('includes transport error in general when present', () => {
+    const result = formatActiveResponseConsole({
+      status: 0,
+      statusText: 'Error',
+      headers: {},
+      body: '',
+      timeMs: 4,
+      sizeBytes: 0,
+      error: 'Connection refused (127.0.0.1:5009)',
+      request: {
+        method: 'POST',
+        url: 'https://localhost:5009/api',
+        headers: {},
+        body: ''
+      }
+    });
+
+    expect(result.general.statusCode).toBe('Error');
+    expect(result.general.error).toBe('Connection refused (127.0.0.1:5009)');
   });
 });

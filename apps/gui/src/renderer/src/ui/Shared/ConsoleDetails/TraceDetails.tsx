@@ -1,11 +1,18 @@
 import type { JSX } from 'react';
 import type { ScriptExecutionEvent } from '@harborclient/core/types';
-import { StatusDot } from '@harborclient/sdk/components';
+import {
+  StatusDot,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader
+} from '@harborclient/sdk/components';
 
 import {
-  formatFlowExecutionDetail,
+  formatExecutionEventKey,
+  formatExecutionEventValue,
   formatFlowExecutionLabel,
-  formatVariableExecutionDetail,
   formatVariableExecutionLabel
 } from './executionEventLabels';
 
@@ -17,7 +24,7 @@ interface Props {
 }
 
 /**
- * Renders ordered variable and flow-control trace rows for a single send.
+ * Renders ordered variable and flow-control trace rows as a bordered table.
  */
 export function TraceDetails({ executionEvents }: Props): JSX.Element {
   if (executionEvents.length === 0) {
@@ -25,46 +32,54 @@ export function TraceDetails({ executionEvents }: Props): JSX.Element {
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-separator">
-      {executionEvents.map((event, index) => {
-        const label =
-          event.type === 'variable'
-            ? formatVariableExecutionLabel(event)
-            : formatFlowExecutionLabel(event);
-        const detail =
-          event.type === 'variable'
-            ? formatVariableExecutionDetail(event)
-            : formatFlowExecutionDetail(event);
+    <Table aria-label="Script execution trace">
+      <TableHeader>
+        <tr>
+          <TableHead>Source</TableHead>
+          <TableHead>Action</TableHead>
+          <TableHead>Key</TableHead>
+          <TableHead>Value</TableHead>
+        </tr>
+      </TableHeader>
+      <TableBody>
+        {executionEvents.map((event, index) => {
+          const label =
+            event.type === 'variable'
+              ? formatVariableExecutionLabel(event)
+              : formatFlowExecutionLabel(event);
+          const key = formatExecutionEventKey(event);
+          const value = formatExecutionEventValue(event);
 
-        return (
-          <div
-            key={`${event.type}-${event.scriptName ?? 'script'}-${index}`}
-            className={`flex items-center gap-2 px-2.5 py-1.5 ${index > 0 ? 'border-t border-separator' : ''}`}
-          >
-            <StatusDot
-              variant={event.type === 'variable' ? 'accent' : 'warning'}
-              label={event.type === 'variable' ? 'Variable change' : 'Flow change'}
-            />
-            {event.scriptName && (
-              <>
-                <span className="text-[14px] text-muted">{event.scriptName}</span>
-                <span className="text-[14px] text-muted" aria-hidden="true">
-                  -
-                </span>
-              </>
-            )}
-            <span className="text-[14px] text-text">{label}</span>
-            {detail && (
-              <>
-                <span className="text-[14px] text-muted" aria-hidden="true">
-                  -
-                </span>
-                <span className="min-w-0 truncate font-mono text-[14px] text-text">{detail}</span>
-              </>
-            )}
-          </div>
-        );
-      })}
-    </div>
+          return (
+            <tr key={`${event.type}-${event.scriptName ?? 'script'}-${index}`}>
+              <TableCell className="whitespace-nowrap align-top">
+                <div className="flex items-center gap-2">
+                  <StatusDot
+                    variant={event.type === 'variable' ? 'accent' : 'warning'}
+                    label={event.type === 'variable' ? 'Variable change' : 'Flow change'}
+                  />
+                  <span className="text-muted">{event.scriptName ?? '—'}</span>
+                </div>
+              </TableCell>
+              <TableCell className="whitespace-nowrap align-top">{label}</TableCell>
+              <TableCell className="whitespace-nowrap align-top font-mono">
+                {key ?? (
+                  <span className="text-muted" aria-hidden="true">
+                    —
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="break-all align-top font-mono">
+                {value ?? (
+                  <span className="text-muted" aria-hidden="true">
+                    —
+                  </span>
+                )}
+              </TableCell>
+            </tr>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

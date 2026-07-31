@@ -488,6 +488,50 @@ describe('redux open-tab round trip', () => {
     expect('kind' in tab! && tab.kind === 'page' && tab.page.type).toBe('plugins');
   });
 
+  it('round-trips linkedTo on page tabs through parseOpenTabsFromRaw', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'request-1',
+          draft: {
+            id: null,
+            collection_id: null,
+            folder_id: null,
+            name: 'Untitled',
+            method: 'GET',
+            url: '',
+            headers: [],
+            params: [],
+            auth: { type: 'none' },
+            userAgent: '',
+            body: '',
+            body_type: 'none',
+            body_raw: null,
+            body_raw_open: false,
+            pre_request_script: '',
+            post_request_script: '',
+            pre_request_scripts: [],
+            post_request_scripts: [],
+            comment: '',
+            tags: ''
+          }
+        },
+        {
+          tabId: 'page-tab-linked',
+          kind: 'page',
+          page: { type: 'plugins' },
+          linkedTo: 'request-1'
+        }
+      ],
+      activeTabId: 'page-tab-linked'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    const pageTab = restored.tabs.find((tab) => tab.tabId === 'page-tab-linked');
+    expect(pageTab?.linkedTo).toBe('request-1');
+  });
+
   it('round-trips themes page tabs through parseOpenTabsFromRaw', () => {
     const payload = JSON.stringify({
       tabs: [
