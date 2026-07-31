@@ -118,15 +118,7 @@ single component (`SidebarRequestItem.tsx`, `SidebarTreeGroup.tsx`, and so on).
 ## HarborClient style
 
 When creating blog featured images, marketing visuals, or other brand-adjacent
-assets, use the "HarborClient style": a vintage nautical badge or poster look
-inspired by the HarborClient logo. Prefer a lighthouse, ocean waves, signal
-beams, anchors, ropes, ribbons, buoys, and framed maritime emblem shapes. Use a
-navy, white, and slate-blue palette with crisp vector illustration, strong
-contrast, bold editorial composition, and minimal red/orange accents only when
-useful. The primary brand color is `#0f2e56`, the secondary color is `#92a8b8`,
-and the variable accent color is `#32D2E2`. Avoid photorealism, clutter, people,
-third-party logos, and tiny paragraphs of text. Keep any image text short,
-high-contrast, and legible.
+assets, use the "HarborClient style": See BRANDING.md.
 
 ## Architecture
 
