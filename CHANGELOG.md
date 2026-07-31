@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.9.2 - 2026-07-31
+
 - refactor(live-server): update live server logs handling. (`70ce1e9a`)
 - feat(live-server): add reverse proxy support and enhance server configuration. (`dc483636`)
 
