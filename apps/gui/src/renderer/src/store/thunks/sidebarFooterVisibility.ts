@@ -1,5 +1,6 @@
 import { createAsyncThunk, type Dispatch, type UnknownAction } from '@reduxjs/toolkit';
 import type { ThunkApiConfig } from '#/renderer/src/store/redux';
+import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   setActivePluginFooterPanelId,
   setActiveSidebarPanel,
@@ -10,6 +11,7 @@ import {
   setShowMcp,
   setShowShortcutsSidebar,
   setShowSidebar,
+  setShowLiveServerLogs,
   setShowTerminal,
   setShowVariables,
   setSidebarFooterLayoutSnapshot,
@@ -37,6 +39,7 @@ export function captureSidebarFooterSnapshot(
     showVariables: navigation.showVariables,
     showMcp: navigation.showMcp,
     showTerminal: navigation.showTerminal,
+    showLiveServerLogs: navigation.showLiveServerLogs,
     activePluginFooterPanelId: navigation.activePluginFooterPanelId
   };
 }
@@ -77,6 +80,7 @@ export function applySidebarFooterSnapshot(
   dispatch(setShowVariables(snapshot.showVariables));
   dispatch(setShowMcp(snapshot.showMcp));
   dispatch(setShowTerminal(snapshot.showTerminal));
+  dispatch(setShowLiveServerLogs(snapshot.showLiveServerLogs));
   dispatch(setActivePluginFooterPanelId(snapshot.activePluginFooterPanelId));
 }
 
@@ -99,7 +103,9 @@ export const hideSidebarsAndFooterPanels = createAsyncThunk<void, void, ThunkApi
     dispatch(setShowVariables(false));
     dispatch(setShowMcp(false));
     dispatch(setShowTerminal(false));
+    dispatch(setShowLiveServerLogs(false));
     dispatch(setActivePluginFooterPanelId(null));
+    dispatch(closeLiveServerModal());
   }
 );
 

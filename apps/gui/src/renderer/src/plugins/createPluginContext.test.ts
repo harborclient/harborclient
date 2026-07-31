@@ -15,6 +15,10 @@ import {
   clearPluginSidebarSelectionSubscribers,
   emitPluginSidebarSelectionChanged
 } from './pluginSidebarSelectionBus';
+import {
+  clearPluginLiveServersSubscribers,
+  emitPluginLiveServersRunningChanged
+} from './pluginLiveServersBus';
 import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
 
 const invokePluginMainMock =
@@ -44,6 +48,7 @@ beforeEach(() => {
   clearPluginLibraryChangedSubscribers();
   clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
+  clearPluginLiveServersSubscribers();
 
   vi.stubGlobal('window', {
     api: {
@@ -53,11 +58,16 @@ beforeEach(() => {
       pushPluginLibraryChanged: vi.fn().mockResolvedValue(undefined),
       pushPluginWorkflowsChanged: vi.fn().mockResolvedValue(undefined),
       pushPluginSidebarSelectionChanged: vi.fn().mockResolvedValue(undefined),
+      pushPluginLiveServersRunningChanged: vi.fn().mockResolvedValue(undefined),
+      pushPluginLiveServerRequestLog: vi.fn().mockResolvedValue(undefined),
       listCollections: vi.fn().mockResolvedValue({ collections: [], warnings: [] }),
       listFolders: vi.fn().mockResolvedValue([]),
       listRequests: vi.fn().mockResolvedValue([]),
       listDocuments: vi.fn().mockResolvedValue([]),
-      listWorkflows: vi.fn().mockResolvedValue([])
+      listWorkflows: vi.fn().mockResolvedValue([]),
+      listLiveServers: vi.fn().mockResolvedValue([]),
+      listRunningLiveServers: vi.fn().mockResolvedValue([]),
+      getLiveServerLogs: vi.fn().mockResolvedValue([])
     }
   });
 });
@@ -67,6 +77,7 @@ afterEach(() => {
   clearPluginLibraryChangedSubscribers();
   clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
+  clearPluginLiveServersSubscribers();
   vi.unstubAllGlobals();
 });
 
@@ -232,6 +243,50 @@ describe('createPluginContext runtime surfaces', () => {
   it('rejects hc.webpage without the browser permission', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
     await expect(hc.webpage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
+  });
+
+  it('rejects hc.liveServers without the live-server permission', async () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    await expect(hc.liveServers.list()).rejects.toThrow(/lacks permission: live-server/);
+  });
+
+  it('lists live servers and tracks onRunningChanged when live-server is granted', async () => {
+    const listLiveServers = vi.fn().mockResolvedValue([
+      {
+        id: 1,
+        uuid: 'ls-1',
+        name: 'Preview',
+        root: '/tmp/site',
+        port: null,
+        aliases: [],
+        watch: true,
+        cors: {
+          enabled: true,
+          origin: '*',
+          methods: 'GET',
+          allowedHeaders: '*',
+          credentials: false
+        },
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ]);
+    vi.stubGlobal('window', {
+      api: {
+        ...window.api,
+        listLiveServers
+      }
+    });
+
+    const hc = createPluginContext('com.example.test', createManifest(['live-server']));
+    await expect(hc.liveServers.list()).resolves.toHaveLength(1);
+
+    const listener = vi.fn();
+    const disposable = hc.liveServers.onRunningChanged(listener);
+    emitPluginLiveServersRunningChanged([]);
+    expect(listener).toHaveBeenCalledWith([]);
+    disposable.dispose();
   });
 
   it('opens, focuses, queries, and closes a webpage when browser permission is granted', async () => {

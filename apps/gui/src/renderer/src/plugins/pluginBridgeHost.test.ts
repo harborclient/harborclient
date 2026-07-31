@@ -9,6 +9,7 @@ import * as hostRequestCommands from './hostRequestCommands';
 import * as hostLibraryCommands from './hostLibraryCommands';
 import * as hostLibraryMutations from './hostLibraryMutations';
 import * as hostEntityContextMenu from './hostEntityContextMenu';
+import * as hostLiveServerCommands from './hostLiveServerCommands';
 import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
 import {
   clearPluginContributions,
@@ -135,6 +136,85 @@ describe('handlePluginHostBridgeInvoke', () => {
         payload: {}
       })
     ).rejects.toThrow('No active browser tab');
+  });
+
+  it('routes liveServers.* ops through host live-server helpers', async () => {
+    const saved = [
+      {
+        id: 1,
+        uuid: 'ls-1',
+        name: 'Preview',
+        root: '/tmp/site',
+        port: null,
+        aliases: [],
+        watch: true,
+        cors: {
+          enabled: true,
+          origin: '*',
+          methods: 'GET',
+          allowedHeaders: '*',
+          credentials: false
+        },
+        sortOrder: 0,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ];
+    const running = {
+      id: 'run-1',
+      savedId: 1,
+      config: {
+        name: 'Preview',
+        root: '/tmp/site',
+        port: null,
+        aliases: [],
+        watch: true,
+        cors: saved[0].cors
+      },
+      port: 5500,
+      origin: 'http://127.0.0.1:5500',
+      startedAt: 2
+    };
+    vi.spyOn(hostLiveServerCommands, 'listLiveServersForPlugin').mockResolvedValue(saved);
+    vi.spyOn(hostLiveServerCommands, 'startLiveServerForPlugin').mockResolvedValue(running);
+    vi.spyOn(hostLiveServerCommands, 'getLiveServerStatusForPlugin').mockResolvedValue(running);
+    vi.spyOn(hostLiveServerCommands, 'getLiveServerLogsForPlugin').mockResolvedValue([]);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 20,
+        pluginId: 'com.test.live',
+        op: 'liveServers.list',
+        payload: {}
+      })
+    ).resolves.toEqual(saved);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 21,
+        pluginId: 'com.test.live',
+        op: 'liveServers.start',
+        payload: { input: { savedId: 1 } }
+      })
+    ).resolves.toEqual(running);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 22,
+        pluginId: 'com.test.live',
+        op: 'liveServers.getStatus',
+        payload: { query: { savedId: 1 } }
+      })
+    ).resolves.toEqual(running);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 23,
+        pluginId: 'com.test.live',
+        op: 'liveServers.getLogs',
+        payload: { query: { savedId: 1, limit: 10 } }
+      })
+    ).resolves.toEqual([]);
   });
 
   it('routes host.listCollections and host.listLibraryTree to library helpers', async () => {

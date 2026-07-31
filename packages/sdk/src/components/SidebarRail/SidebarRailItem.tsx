@@ -29,9 +29,15 @@ export interface SidebarRailItemData {
   label: string;
 
   /**
-   * When true, shows a small notification badge on the icon.
+   * When true, shows a small corner badge on the icon.
    */
   badge?: boolean;
+
+  /**
+   * Visual style for the corner badge. Defaults to `accent` (notification).
+   * Use `success` for a running/active status indicator.
+   */
+  badgeVariant?: 'accent' | 'success';
 }
 
 interface Props {
@@ -77,14 +83,39 @@ interface Props {
 }
 
 /**
+ * Suffix appended to the rail item accessible name when a badge is shown.
+ *
+ * @param badgeVariant - Badge visual style; defaults to accent/notification.
+ * @returns Screen-reader suffix without the leading comma.
+ */
+function railItemBadgeStatusLabel(badgeVariant: 'accent' | 'success' | undefined): string {
+  return badgeVariant === 'success' ? 'running' : 'notification';
+}
+
+/**
  * Builds the accessible name for a rail tab, including badge status when present.
  *
  * @param label - Visible item label.
- * @param badge - Whether the item shows a notification badge.
+ * @param badge - Whether the item shows a corner badge.
+ * @param badgeVariant - Badge visual style; controls the status phrase.
  * @returns Accessible name string for `aria-label` or visually hidden text.
  */
-function railItemAccessibleName(label: string, badge: boolean | undefined): string {
-  return badge === true ? `${label}, notification` : label;
+function railItemAccessibleName(
+  label: string,
+  badge: boolean | undefined,
+  badgeVariant: 'accent' | 'success' | undefined
+): string {
+  return badge === true ? `${label}, ${railItemBadgeStatusLabel(badgeVariant)}` : label;
+}
+
+/**
+ * Tailwind background class for a rail icon corner badge.
+ *
+ * @param badgeVariant - Badge visual style; defaults to accent.
+ * @returns Background utility class.
+ */
+function railItemBadgeBackgroundClass(badgeVariant: 'accent' | 'success' | undefined): string {
+  return badgeVariant === 'success' ? 'bg-success' : 'bg-accent';
 }
 
 /**
@@ -139,7 +170,8 @@ export function SidebarRailItem({
   onKeyDown,
   buttonRef
 }: Props): JSX.Element {
-  const accessibleName = railItemAccessibleName(item.label, item.badge);
+  const accessibleName = railItemAccessibleName(item.label, item.badge, item.badgeVariant);
+  const badgeStatusLabel = railItemBadgeStatusLabel(item.badgeVariant);
   /**
    * Icon-only (collapsed) uses aria-label. Expanded uses visible text (plus
    * optional visually hidden badge status) as the accessible name so AT is not
@@ -170,7 +202,10 @@ export function SidebarRailItem({
           />
           {item.badge ? (
             <span
-              className="hc-sidebar-rail-item-badge absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-accent"
+              className={cn(
+                'hc-sidebar-rail-item-badge absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full',
+                railItemBadgeBackgroundClass(item.badgeVariant)
+              )}
               aria-hidden
             />
           ) : null}
@@ -180,7 +215,9 @@ export function SidebarRailItem({
             {item.label}
           </span>
         ) : null}
-        {expanded && item.badge === true ? <span className="sr-only">, notification</span> : null}
+        {expanded && item.badge === true ? (
+          <span className="sr-only">, {badgeStatusLabel}</span>
+        ) : null}
       </button>
     </div>
   );

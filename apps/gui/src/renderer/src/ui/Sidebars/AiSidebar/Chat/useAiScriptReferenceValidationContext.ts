@@ -1,5 +1,7 @@
 import type {
   AiScriptReferenceValidationContext,
+  LiveServerReferenceInfo,
+  LogsSelectionSnapshot,
   MarkdownSelectionSnapshot,
   PluginChatPointerSnapshot,
   RequestBodySelectionSnapshot,
@@ -8,7 +10,14 @@ import type {
   TerminalSelectionSnapshot,
   WebpageTabReferenceInfo
 } from '@harborclient/core/ai/scriptReferences';
-import type { Collection, Folder, SavedRequest, Snippet } from '@harborclient/core/types';
+import type {
+  Collection,
+  Folder,
+  LiveServer,
+  RunningLiveServer,
+  SavedRequest,
+  Snippet
+} from '@harborclient/core/types';
 import { useMemo } from 'react';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import type { RootState } from '#/renderer/src/store/redux';
@@ -17,11 +26,14 @@ import {
   selectCollections,
   selectFoldersByCollection,
   selectRequestsByCollection,
+  selectRunningLiveServers,
+  selectSavedLiveServers,
   selectSnippets,
   selectTabs
 } from '#/renderer/src/store/selectors';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
+import { selectLiveServerLogsSelections } from '#/renderer/src/store/slices/liveServersSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
@@ -151,6 +163,56 @@ export function buildWebpageTabsByIdFromState(
 }
 
 /**
+ * Builds saved live-server summaries keyed by uuid for `@live-server` validation.
+ *
+ * @param saved - Saved live servers from Redux.
+ * @param running - Currently running live server instances.
+ * @returns Map of saved uuid → config plus optional running origin.
+ */
+export function buildLiveServersByUuid(
+  saved: LiveServer[],
+  running: RunningLiveServer[]
+): Record<string, LiveServerReferenceInfo> {
+  const runningBySavedId = new Map<number, RunningLiveServer>();
+  for (const instance of running) {
+    if (instance.savedId != null) {
+      runningBySavedId.set(instance.savedId, instance);
+    }
+  }
+
+  const liveServersByUuid: Record<string, LiveServerReferenceInfo> = {};
+  for (const server of saved) {
+    const instance = runningBySavedId.get(server.id);
+    liveServersByUuid[server.uuid] = {
+      id: server.id,
+      name: server.name,
+      root: server.root,
+      port: server.port,
+      watch: server.watch,
+      ...(instance != null
+        ? {
+            runtimeId: instance.id,
+            origin: instance.origin,
+            runningPort: instance.port
+          }
+        : {})
+    };
+  }
+  return liveServersByUuid;
+}
+
+/**
+ * Builds saved live-server summaries from the current Redux root state.
+ *
+ * @param state - Current Redux root state.
+ */
+export function buildLiveServersByUuidFromState(
+  state: RootState
+): Record<string, LiveServerReferenceInfo> {
+  return buildLiveServersByUuid(selectSavedLiveServers(state), selectRunningLiveServers(state));
+}
+
+/**
  * Builds the full validation context used by chat UI and send-time script expansion.
  *
  * @param tab - Active editor tab, if any.
@@ -163,6 +225,8 @@ export function buildWebpageTabsByIdFromState(
  * @param responseSelections - Response-section snapshots keyed by `@res` reference token.
  * @param pluginSelections - Plugin chat-pointer snapshots keyed by `@plugin…` reference token.
  * @param webpageTabsById - Open browser tabs keyed by tab id for `@webpage` references.
+ * @param liveServersByUuid - Saved live servers keyed by uuid for `@live-server` / `@logs` references.
+ * @param logsSelections - Access-log selection snapshots keyed by `@logs` reference token.
  */
 export function buildAiScriptReferenceValidationContext(
   tab: ReturnType<typeof selectEffectiveActiveRequestTab>,
@@ -174,7 +238,9 @@ export function buildAiScriptReferenceValidationContext(
   scriptSelections: Record<string, ScriptSelectionSnapshot> = {},
   responseSelections: Record<string, ResponseSectionSnapshot> = {},
   pluginSelections: Record<string, PluginChatPointerSnapshot> = {},
-  webpageTabsById: Record<string, WebpageTabReferenceInfo> = {}
+  webpageTabsById: Record<string, WebpageTabReferenceInfo> = {},
+  liveServersByUuid: Record<string, LiveServerReferenceInfo> = {},
+  logsSelections: Record<string, LogsSelectionSnapshot> = {}
 ): AiScriptReferenceValidationContext {
   return {
     ...buildValidationContext(tab),
@@ -186,6 +252,8 @@ export function buildAiScriptReferenceValidationContext(
     responseSelections,
     pluginSelections,
     webpageTabsById,
+    liveServersByUuid,
+    logsSelections,
     collectionNamesByUuid: sidebarNames.collectionNamesByUuid,
     folderNamesByUuid: sidebarNames.folderNamesByUuid,
     requestNamesByUuid: sidebarNames.requestNamesByUuid
@@ -199,6 +267,7 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const activeTab = useAppSelector(selectEffectiveActiveRequestTab);
   const snippets = useAppSelector(selectSnippets);
   const terminalSelections = useAppSelector(selectTerminalSelections);
+  const logsSelections = useAppSelector(selectLiveServerLogsSelections);
   const markdownSelections = useAppSelector(selectMarkdownSelections);
   const requestBodySelections = useAppSelector(selectRequestBodySelections);
   const scriptSelections = useAppSelector(selectScriptSelections);
@@ -208,6 +277,8 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
   const collections = useAppSelector(selectCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
+  const savedLiveServers = useAppSelector(selectSavedLiveServers);
+  const runningLiveServers = useAppSelector(selectRunningLiveServers);
 
   /**
    * Memoizes script counts, script rows, snippet lookup data, terminal snapshots, and sidebar names.
@@ -222,6 +293,14 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
    */
   const webpageTabsById = useMemo(() => buildWebpageTabsById(tabs), [tabs]);
 
+  /**
+   * Memoizes saved live servers for `@live-server.<uuid>` badge and send-time context.
+   */
+  const liveServersByUuid = useMemo(
+    () => buildLiveServersByUuid(savedLiveServers, runningLiveServers),
+    [savedLiveServers, runningLiveServers]
+  );
+
   return useMemo(
     () =>
       buildAiScriptReferenceValidationContext(
@@ -234,7 +313,9 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
         scriptSelections,
         responseSelections,
         pluginSelections,
-        webpageTabsById
+        webpageTabsById,
+        liveServersByUuid,
+        logsSelections
       ),
     [
       activeTab,
@@ -246,7 +327,9 @@ export function useAiScriptReferenceValidationContext(): AiScriptReferenceValida
       scriptSelections,
       responseSelections,
       pluginSelections,
-      webpageTabsById
+      webpageTabsById,
+      liveServersByUuid,
+      logsSelections
     ]
   );
 }

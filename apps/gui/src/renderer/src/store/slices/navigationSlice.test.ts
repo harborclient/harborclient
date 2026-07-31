@@ -9,6 +9,7 @@ import navigationReducer, {
   toggleShortcutsSidebar,
   openGitSidebar,
   toggleConsole,
+  toggleLiveServerLogs,
   toggleMcp,
   toggleTerminal,
   toggleRequestEditor,
@@ -32,6 +33,7 @@ describe('navigationSlice', () => {
     expect(state.showVariables).toBe(false);
     expect(state.showMcp).toBe(false);
     expect(state.showTerminal).toBe(false);
+    expect(state.showLiveServerLogs).toBe(false);
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
   });
@@ -42,12 +44,14 @@ describe('navigationSlice', () => {
     expect(state.showVariables).toBe(false);
     expect(state.showMcp).toBe(false);
     expect(state.showTerminal).toBe(false);
+    expect(state.showLiveServerLogs).toBe(false);
 
     state = navigationReducer(state, toggleVariables());
     expect(state.showConsole).toBe(false);
     expect(state.showVariables).toBe(true);
     expect(state.showMcp).toBe(false);
     expect(state.showTerminal).toBe(false);
+    expect(state.showLiveServerLogs).toBe(false);
   });
 
   it('toggles terminal panel exclusively with other footer panels', () => {
@@ -57,9 +61,22 @@ describe('navigationSlice', () => {
     state = navigationReducer(state, toggleTerminal());
     expect(state.showConsole).toBe(false);
     expect(state.showTerminal).toBe(true);
+    expect(state.showLiveServerLogs).toBe(false);
 
     state = navigationReducer(state, toggleTerminal());
     expect(state.showTerminal).toBe(false);
+  });
+
+  it('toggles live-server logs panel exclusively with other footer panels', () => {
+    let state = navigationReducer(undefined, toggleTerminal());
+    expect(state.showTerminal).toBe(true);
+
+    state = navigationReducer(state, toggleLiveServerLogs());
+    expect(state.showTerminal).toBe(false);
+    expect(state.showLiveServerLogs).toBe(true);
+
+    state = navigationReducer(state, toggleLiveServerLogs());
+    expect(state.showLiveServerLogs).toBe(false);
   });
 
   it('toggles MCP panel exclusively with console', () => {

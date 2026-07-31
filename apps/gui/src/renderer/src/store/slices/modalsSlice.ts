@@ -304,13 +304,23 @@ export interface WorkspaceModalState {
 export type LiveServerModalMode = 'create' | 'edit';
 
 /**
- * Live server modal state for create and edit flows.
+ * Segmented tab in the live server create/edit footer panel.
+ */
+export type LiveServerModalTab = 'general' | 'cors';
+
+/**
+ * Live server editor draft state for create and edit footer-panel flows.
  */
 export interface LiveServerModalState {
   /**
-   * Whether the modal is creating a new server or editing a saved one.
+   * Whether the editor is creating a new server or editing a saved one.
    */
   mode: LiveServerModalMode;
+
+  /**
+   * Active settings tab in the footer panel.
+   */
+  tab: LiveServerModalTab;
 
   /**
    * Saved `live_servers.id` when editing or starting from a saved config.
@@ -343,12 +353,12 @@ export interface LiveServerModalState {
   watch: boolean;
 
   /**
-   * CORS middleware settings edited in the modal.
+   * CORS middleware settings edited in the panel.
    */
   cors: LiveServerCorsSettings;
 
   /**
-   * Inline submit error shown in the modal footer area.
+   * Inline submit error shown above the panel actions.
    */
   submitError: string | null;
 
@@ -458,7 +468,7 @@ const modalsSlice = createSlice({
       state.workspaceModal = null;
     },
     /**
-     * Opens the live server modal for create or edit.
+     * Opens the live server create/edit footer panel draft.
      */
     openLiveServerModal(
       state,
@@ -479,6 +489,7 @@ const modalsSlice = createSlice({
           : '';
       state.liveServerModal = {
         mode: action.payload.mode,
+        tab: 'general',
         savedId: action.payload.savedId ?? null,
         name: action.payload.name ?? '',
         root: action.payload.root ?? '',
@@ -491,10 +502,18 @@ const modalsSlice = createSlice({
       };
     },
     /**
-     * Closes the live server modal.
+     * Closes the live server create/edit footer panel.
      */
     closeLiveServerModal(state) {
       state.liveServerModal = null;
+    },
+    /**
+     * Switches the live server editor between General and CORS tabs.
+     */
+    setLiveServerModalTab(state, action: PayloadAction<LiveServerModalTab>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.tab = action.payload;
+      }
     },
     /**
      * Updates the live server name field.
@@ -537,7 +556,7 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Replaces the live server CORS settings object in the modal.
+     * Replaces the live server CORS settings object in the editor.
      */
     setLiveServerModalCors(state, action: PayloadAction<LiveServerCorsSettings>) {
       if (state.liveServerModal) {
@@ -545,7 +564,7 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Sets or clears the live server modal submit error.
+     * Sets or clears the live server editor submit error.
      */
     setLiveServerModalSubmitError(state, action: PayloadAction<string | null>) {
       if (state.liveServerModal) {
@@ -553,7 +572,7 @@ const modalsSlice = createSlice({
       }
     },
     /**
-     * Sets whether the live server modal is busy with start/save.
+     * Sets whether the live server editor is busy with start/save.
      */
     setLiveServerModalBusy(state, action: PayloadAction<boolean>) {
       if (state.liveServerModal) {
@@ -1225,6 +1244,7 @@ export const {
   setWorkspaceModalSubmitError,
   openLiveServerModal,
   closeLiveServerModal,
+  setLiveServerModalTab,
   setLiveServerModalName,
   setLiveServerModalRoot,
   setLiveServerModalPort,
@@ -1248,7 +1268,7 @@ export const selectWorkspaceModal = (state: RootState): WorkspaceModalState | nu
   state.modals.workspaceModal;
 
 /**
- * Returns live server modal state when open.
+ * Returns live server create/edit footer panel draft when open.
  */
 export const selectLiveServerModal = (state: RootState): LiveServerModalState | null =>
   state.modals.liveServerModal;
@@ -1341,7 +1361,6 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   return (
     modals.collectionModal != null ||
     modals.workspaceModal != null ||
-    modals.liveServerModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||
     modals.pendingLoadDocument != null ||

@@ -30,6 +30,7 @@ import {
   selectGitSidebarVisible,
   selectShortcutsSidebarVisible,
   selectShowConsole,
+  selectShowLiveServerLogs,
   selectShowMcp,
   selectShowTerminal,
   selectShowRequestEditor,
@@ -40,6 +41,7 @@ import {
   toggleGitSidebar,
   toggleShortcutsSidebar,
   toggleConsole,
+  toggleLiveServerLogs,
   toggleMcp,
   toggleTerminal,
   toggleRequestEditor,
@@ -47,7 +49,7 @@ import {
   toggleSidebar,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
+import { closeLiveServerModal, openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
 import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   bootstrapShellForReveal,
@@ -61,7 +63,6 @@ import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
-import { LiveServerModal } from '#/renderer/src/ui/Modals/LiveServerModal';
 import { SaveWorkflowNameModal } from '#/renderer/src/ui/Modals/SaveWorkflowNameModal';
 import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
 import { OpenExternalLinkModal } from '#/renderer/src/ui/Modals/OpenExternalLinkModal';
@@ -142,6 +143,7 @@ export default function App(): JSX.Element {
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
+  const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
   const mcpServerStatus = useMcpServerStatus();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -457,15 +459,32 @@ export default function App(): JSX.Element {
                     />
                     <FooterPanels
                       consoleOpen={showConsole}
-                      onToggleConsole={() => dispatch(toggleConsole())}
+                      onToggleConsole={() => {
+                        dispatch(closeLiveServerModal());
+                        dispatch(toggleConsole());
+                      }}
                       entries={consoleEntries}
                       onClear={() => dispatch(clearConsole())}
                       variablesOpen={showVariables}
-                      onToggleVariables={() => dispatch(toggleVariables())}
+                      onToggleVariables={() => {
+                        dispatch(closeLiveServerModal());
+                        dispatch(toggleVariables());
+                      }}
                       mcpOpen={showMcp}
-                      onToggleMcp={() => dispatch(toggleMcp())}
+                      onToggleMcp={() => {
+                        dispatch(closeLiveServerModal());
+                        dispatch(toggleMcp());
+                      }}
                       terminalOpen={showTerminal}
-                      onToggleTerminal={() => dispatch(toggleTerminal())}
+                      onToggleTerminal={() => {
+                        dispatch(closeLiveServerModal());
+                        dispatch(toggleTerminal());
+                      }}
+                      liveServerLogsOpen={showLiveServerLogs}
+                      onToggleLiveServerLogs={() => {
+                        dispatch(closeLiveServerModal());
+                        dispatch(toggleLiveServerLogs());
+                      }}
                       onMcpStatusChange={() => void mcpServerStatus.refresh()}
                       globalVariables={globalVariables}
                       collectionVariables={activeCollection?.variables ?? []}
@@ -506,13 +525,30 @@ export default function App(): JSX.Element {
               <Footer
                 consoleOpen={showConsole}
                 entryCount={consoleEntries.length}
-                onToggleConsole={() => dispatch(toggleConsole())}
+                onToggleConsole={() => {
+                  dispatch(closeLiveServerModal());
+                  dispatch(toggleConsole());
+                }}
                 variablesOpen={showVariables}
-                onToggleVariables={() => dispatch(toggleVariables())}
+                onToggleVariables={() => {
+                  dispatch(closeLiveServerModal());
+                  dispatch(toggleVariables());
+                }}
                 mcpOpen={showMcp}
-                onToggleMcp={() => dispatch(toggleMcp())}
+                onToggleMcp={() => {
+                  dispatch(closeLiveServerModal());
+                  dispatch(toggleMcp());
+                }}
                 terminalOpen={showTerminal}
-                onToggleTerminal={() => dispatch(toggleTerminal())}
+                onToggleTerminal={() => {
+                  dispatch(closeLiveServerModal());
+                  dispatch(toggleTerminal());
+                }}
+                liveServerLogsOpen={showLiveServerLogs}
+                onToggleLiveServerLogs={() => {
+                  dispatch(closeLiveServerModal());
+                  dispatch(toggleLiveServerLogs());
+                }}
                 mcpServerRunning={mcpServerStatus.running}
                 globalVariables={globalVariables}
                 collectionVariables={activeCollection?.variables ?? []}
@@ -534,7 +570,6 @@ export default function App(): JSX.Element {
 
               <CollectionModal />
               <WorkspaceModal />
-              <LiveServerModal />
               <WorkflowPanel />
               <SaveWorkflowNameModal />
               <ShareModal />

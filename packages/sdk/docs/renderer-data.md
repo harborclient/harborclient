@@ -1065,6 +1065,116 @@ hc.mcp.registerServer({
 
 Discovered tools are prefixed with `mcp__` in the chat agent tool list, using the same naming scheme as user-configured MCP client servers.
 
+## hc.liveServers
+
+Create, start, stop, and inspect Harbor Live Servers (loopback static file servers with optional CORS, path aliases, and file watching).
+
+Requires the `live-server` permission. This is separate from [`hc.server`](/main-api#hcserver) (plugin echo server under the `server` permission).
+
+Saved-config `update` / `delete` do **not** restart or stop a running instance. `start` returns the running instance and does **not** open a browser tab — call `hc.webpage(origin)` when you also have the `browser` permission.
+
+```ts
+export async function activate(hc: PluginContext): Promise<void> {
+  const saved = await hc.liveServers.create({
+    name: 'Docs preview',
+    root: '/absolute/path/to/site',
+    port: null,
+    watch: true
+  });
+
+  const running = await hc.liveServers.start({ savedId: saved.id });
+  console.log(running.origin, running.port);
+
+  const status = await hc.liveServers.getStatus({ savedId: saved.id });
+  const logs = await hc.liveServers.getLogs({ savedId: saved.id, limit: 50 });
+
+  hc.liveServers.onRunningChanged((list) => {
+    console.log('running count', list.length);
+  });
+  hc.liveServers.onRequestLog((entry) => {
+    console.log(entry.method, entry.url, entry.statusCode);
+  });
+}
+```
+
+### hc.liveServers.list()
+
+**Signature:** `() => Promise<LiveServer[]>`
+
+Lists saved live servers from the local registry.
+
+### hc.liveServers.get(idOrUuid)
+
+**Signature:** `(idOrUuid: number | string) => Promise<LiveServer | null>`
+
+Returns one saved server by database id or uuid, or `null` when not found.
+
+### hc.liveServers.create(input)
+
+**Signature:** `(input: CreateLiveServerInput) => Promise<LiveServer>`
+
+Persists a new saved server and returns the created row.
+
+### hc.liveServers.update(input)
+
+**Signature:** `(input: UpdateLiveServerInput) => Promise<LiveServer>`
+
+Updates a saved server. Does not restart a running instance.
+
+### hc.liveServers.delete(id)
+
+**Signature:** `(id: number) => Promise<void>`
+
+Deletes a saved server. Does not stop a running instance started from that saved id.
+
+### hc.liveServers.start(input)
+
+**Signature:** `(input: StartLiveServerInput) => Promise<RunningLiveServer>`
+
+Starts from `savedId` (loads config from the registry when `config` is omitted) and/or an ad-hoc `config`. Returns the running instance with assigned port and `http://127.0.0.1:<port>` origin.
+
+### hc.liveServers.stop(query)
+
+**Signature:** `(query: { id: string } | { savedId: number }) => Promise<void>`
+
+Stops one running instance by runtime id or saved id.
+
+### hc.liveServers.listRunning()
+
+**Signature:** `() => Promise<RunningLiveServer[]>`
+
+Lists currently running instances.
+
+### hc.liveServers.getStatus(query)
+
+**Signature:** `(query: { id: string } | { savedId: number }) => Promise<RunningLiveServer | null>`
+
+Returns the running instance for the query, or `null` when not running.
+
+### hc.liveServers.getLogs(query)
+
+**Signature:** `(query: LiveServerLogsQuery & { limit?: number }) => Promise<LiveServerRequestLogEntry[]>`
+
+Returns trailing buffered Express access-log lines (default `limit` 100, max 1000). Empty when the instance is not running.
+
+### hc.liveServers.clearLogs(query)
+
+**Signature:** `(query: LiveServerLogsQuery) => Promise<void>`
+
+Clears the in-memory request log buffer for a running instance.
+
+### hc.liveServers.onRunningChanged(listener)
+
+**Signature:** `(listener: (running: RunningLiveServer[]) => void) => Disposable`
+
+Subscribes to start/stop list changes (including changes from the Harbor UI).
+
+### hc.liveServers.onRequestLog(listener)
+
+**Signature:** `(listener: (entry: LiveServerRequestLogEntry) => void) => Disposable`
+
+Subscribes to Express access-log lines from running live servers.
+
 ## hc.ai
 
 Chat pointer registration and copy-to-chat for the AI sidebar.

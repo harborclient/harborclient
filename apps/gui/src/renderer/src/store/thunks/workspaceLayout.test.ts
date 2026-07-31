@@ -44,6 +44,7 @@ function buildState(overrides?: {
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     },
     environments: {
@@ -80,6 +81,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     },
     panelSizes: { 'hc.sidebarWidth': 500 },

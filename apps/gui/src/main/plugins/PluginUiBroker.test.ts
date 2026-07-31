@@ -422,6 +422,61 @@ describe('PluginUiBroker host bridge invoke', () => {
     ).rejects.toThrow(/lacks permission: browser/);
   });
 
+  it('round-trips liveServers.list through plugins:hostBridgeInvoke with live-server permission', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 73 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.live-server',
+      role: 'agent'
+    });
+
+    const resultPromise = broker.handleInvoke(sender, 'liveServers.list', {});
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.test.live-server', 'live-server');
+    expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
+      requestId: 1,
+      pluginId: 'com.test.live-server',
+      op: 'liveServers.list',
+      payload: {}
+    });
+
+    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: [] });
+    await expect(resultPromise).resolves.toEqual([]);
+  });
+
+  it('rejects liveServers.list when the plugin lacks the live-server permission', async () => {
+    const manager = {
+      assertPermission: vi.fn((pluginId: string, permission: string) => {
+        if (permission === 'live-server') {
+          throw new Error(`Plugin ${pluginId} lacks permission: live-server`);
+        }
+      })
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 74 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.no-live-server',
+      role: 'agent'
+    });
+
+    await expect(broker.handleInvoke(sender, 'liveServers.list', {})).rejects.toThrow(
+      /lacks permission: live-server/
+    );
+  });
+
   it('rejects host.sendHttpRequest when network access is disabled for the plugin', async () => {
     const { isPluginNetworkAllowed } = await import('#/main/settings/generalSettings');
     vi.mocked(isPluginNetworkAllowed).mockReturnValue(false);
@@ -647,6 +702,63 @@ describe('PluginUiBroker pushLibraryChanged', () => {
       payload: event
     });
     expect(getPluginPermissions).toHaveBeenCalledWith('com.harborclient.plugins.sidebar');
+  });
+});
+
+describe('PluginUiBroker pushLiveServersRunningChanged', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delivers liveServers.runningChanged only to plugins with live-server permission', () => {
+    const otherSend = vi.fn();
+    const liveSend = vi.fn();
+    const getPluginPermissions = vi.fn((pluginId: string) => {
+      if (pluginId === 'com.test.live') {
+        return ['live-server'];
+      }
+      if (pluginId === 'com.test.ui') {
+        return ['ui'];
+      }
+      throw new Error(`Unknown plugin: ${pluginId}`);
+    });
+    const manager = {
+      get: vi.fn((pluginId: string) =>
+        pluginId === 'com.test.live' || pluginId === 'com.test.ui' ? { id: pluginId } : undefined
+      ),
+      getPluginPermissions
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const otherSender = { id: 1 } as WebContents;
+    const liveSender = { id: 2 } as WebContents;
+    registerSession(otherSender, {
+      pluginId: 'com.test.ui',
+      role: 'agent'
+    });
+    registerSession(liveSender, {
+      pluginId: 'com.test.live',
+      role: 'agent'
+    });
+
+    vi.mocked(webContents.fromId).mockImplementation((id: number) => {
+      if (id === 1) {
+        return { send: otherSend } as never;
+      }
+      if (id === 2) {
+        return { send: liveSend } as never;
+      }
+      return undefined;
+    });
+
+    broker.pushLiveServersRunningChanged([]);
+
+    expect(otherSend).not.toHaveBeenCalled();
+    expect(liveSend).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'liveServers.runningChanged',
+      payload: []
+    });
   });
 });
 

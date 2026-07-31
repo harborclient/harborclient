@@ -5,6 +5,7 @@ import {
   setResponseSelection
 } from '#/renderer/src/store/slices/responseSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
+import { selectLiveServerLogsSelections } from '#/renderer/src/store/slices/liveServersSlice';
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 
 /**
@@ -68,6 +69,35 @@ describe('rehydrateChatReferenceSnapshots', () => {
 
     expect(selectResponseSelections(store.getState())[responseToken]?.label).toBe('Response body');
     expect(selectScriptSelections(store.getState())[scriptToken]?.scriptLabel).toBe('SendSuccess');
+  });
+
+  it('restores logs selection snapshots into the live servers slice', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const logsToken = '@logs.55555555-5555-5555-5555-555555555555#1.40';
+
+    rehydrateChatReferenceSnapshots(
+      [
+        sampleMessage({
+          content: `Explain ${logsToken}`,
+          referenceSnapshots: {
+            [logsToken]: {
+              kind: 'logs',
+              snapshot: {
+                label: 'Logs: Docs',
+                startLine: 1,
+                endLine: 40,
+                selectedText: 'GET /missing 404',
+                contextText: 'GET / 200\nGET /missing 404'
+              }
+            }
+          }
+        })
+      ],
+      store.dispatch,
+      store.getState
+    );
+
+    expect(selectLiveServerLogsSelections(store.getState())[logsToken]?.label).toBe('Logs: Docs');
   });
 
   it('does not overwrite an existing in-session response snapshot', async () => {

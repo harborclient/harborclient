@@ -20,7 +20,8 @@ export const WORKSPACE_PANEL_SIZE_KEYS = [
   'hc.variablesHeight',
   'hc.mcpPanelHeight',
   'hc.terminalPanelHeight',
-  'hc.terminalTabListWidth'
+  'hc.terminalTabListWidth',
+  'hc.liveServerLogsHeight'
 ] as const;
 
 /**
@@ -43,6 +44,7 @@ const DEFAULT_WORKSPACE_PANELS: PanelLayoutState = {
   showVariables: false,
   showMcp: false,
   showTerminal: false,
+  showLiveServerLogs: false,
   activePluginFooterPanelId: null
 };
 
@@ -202,6 +204,7 @@ const workspacePanelsSchema = z.object({
   showVariables: z.boolean(),
   showMcp: z.boolean(),
   showTerminal: z.boolean(),
+  showLiveServerLogs: z.boolean(),
   activePluginFooterPanelId: z.string().nullable()
 }) satisfies z.ZodType<PanelLayoutState>;
 
@@ -377,7 +380,12 @@ function normalizeFooterPanels(
   input: Partial<PanelLayoutState>
 ): Pick<
   PanelLayoutState,
-  'showConsole' | 'showVariables' | 'showMcp' | 'showTerminal' | 'activePluginFooterPanelId'
+  | 'showConsole'
+  | 'showVariables'
+  | 'showMcp'
+  | 'showTerminal'
+  | 'showLiveServerLogs'
+  | 'activePluginFooterPanelId'
 > {
   const activePluginFooterPanelId =
     typeof input.activePluginFooterPanelId === 'string' &&
@@ -388,6 +396,7 @@ function normalizeFooterPanels(
   const showVariables = input.showVariables === true;
   const showMcp = input.showMcp === true;
   const showTerminal = input.showTerminal === true;
+  const showLiveServerLogs = input.showLiveServerLogs === true;
 
   if (activePluginFooterPanelId) {
     return {
@@ -395,6 +404,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId
     };
   }
@@ -404,6 +414,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -413,6 +424,7 @@ function normalizeFooterPanels(
       showVariables: true,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -422,6 +434,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: true,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -431,6 +444,17 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
+      activePluginFooterPanelId: null
+    };
+  }
+  if (showLiveServerLogs) {
+    return {
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: true,
       activePluginFooterPanelId: null
     };
   }
@@ -440,6 +464,7 @@ function normalizeFooterPanels(
     showVariables: false,
     showMcp: false,
     showTerminal: false,
+    showLiveServerLogs: false,
     activePluginFooterPanelId: null
   };
 }

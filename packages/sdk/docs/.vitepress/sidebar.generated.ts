@@ -106,7 +106,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       },
       {
         "text": "Contribution types",
-        "link": "/manifest#contribution-types"
+        "link": "/manifest#contribution-types",
+        "items": [
+          {
+            "text": "Replacing the Collections sidebar",
+            "link": "/manifest#replacing-the-collections-sidebar"
+          },
+          {
+            "text": "Activity-rail sidebar destinations",
+            "link": "/manifest#activity-rail-sidebar-destinations"
+          }
+        ],
+        "collapsed": false
       }
     ],
     "collapsed": false
@@ -304,6 +315,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/renderer-ui#hcuiregistersidebarpanelpanel"
       },
       {
+        "text": "hc.ui.registerSidebarRailItem(item)",
+        "link": "/renderer-ui#hcuiregistersidebarrailitemitem"
+      },
+      {
         "text": "hc.ui.registerSidebarSection(section)",
         "link": "/renderer-ui#hcuiregistersidebarsectionsection"
       },
@@ -358,6 +373,14 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       {
         "text": "hc.ui.registerScriptEditorAction(action)",
         "link": "/renderer-ui#hcuiregisterscripteditoractionaction"
+      },
+      {
+        "text": "hc.ui.registerWorkflowToolbarAction(action)",
+        "link": "/renderer-ui#hcuiregisterworkflowtoolbaractionaction"
+      },
+      {
+        "text": "hc.ui.registerWorkflowActionBlock(block)",
+        "link": "/renderer-ui#hcuiregisterworkflowactionblockblock"
       },
       {
         "text": "hc.ui.registerContextMenuItem(item)",
@@ -493,6 +516,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "hc.fs.writeFile(path, content)",
             "link": "/renderer-data#hcfswritefilepath-content"
+          },
+          {
+            "text": "hc.fs.writeBytes(path, bytes)",
+            "link": "/renderer-data#hcfswritebytespath-bytes"
           }
         ],
         "collapsed": false
@@ -524,6 +551,38 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "hc.host.createCollection(payload)",
             "link": "/renderer-data#hchostcreatecollectionpayload"
+          },
+          {
+            "text": "Library read APIs",
+            "link": "/renderer-data#library-read-apis"
+          },
+          {
+            "text": "Workflow CRUD",
+            "link": "/renderer-data#workflow-crud"
+          },
+          {
+            "text": "Navigation and open APIs",
+            "link": "/renderer-data#navigation-and-open-apis"
+          },
+          {
+            "text": "Sidebar selection bridge",
+            "link": "/renderer-data#sidebar-selection-bridge"
+          },
+          {
+            "text": "Sidebar panel view context",
+            "link": "/renderer-data#sidebar-panel-view-context"
+          },
+          {
+            "text": "Replacement-panel keyboard shortcuts",
+            "link": "/renderer-data#replacement-panel-keyboard-shortcuts"
+          },
+          {
+            "text": "Library write APIs",
+            "link": "/renderer-data#library-write-apis"
+          },
+          {
+            "text": "Reorder / move pattern",
+            "link": "/renderer-data#reorder--move-pattern"
           },
           {
             "text": "hc.host.openImageView(payload)",
@@ -576,6 +635,84 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           }
         ],
         "collapsed": false
+      },
+      {
+        "text": "hc.liveServers",
+        "link": "/renderer-data#hcliveservers",
+        "items": [
+          {
+            "text": "hc.liveServers.list()",
+            "link": "/renderer-data#hcliveserverslist"
+          },
+          {
+            "text": "hc.liveServers.get(idOrUuid)",
+            "link": "/renderer-data#hcliveserversgetidoruuid"
+          },
+          {
+            "text": "hc.liveServers.create(input)",
+            "link": "/renderer-data#hcliveserverscreateinput"
+          },
+          {
+            "text": "hc.liveServers.update(input)",
+            "link": "/renderer-data#hcliveserversupdateinput"
+          },
+          {
+            "text": "hc.liveServers.delete(id)",
+            "link": "/renderer-data#hcliveserversdeleteid"
+          },
+          {
+            "text": "hc.liveServers.start(input)",
+            "link": "/renderer-data#hcliveserversstartinput"
+          },
+          {
+            "text": "hc.liveServers.stop(query)",
+            "link": "/renderer-data#hcliveserversstopquery"
+          },
+          {
+            "text": "hc.liveServers.listRunning()",
+            "link": "/renderer-data#hcliveserverslistrunning"
+          },
+          {
+            "text": "hc.liveServers.getStatus(query)",
+            "link": "/renderer-data#hcliveserversgetstatusquery"
+          },
+          {
+            "text": "hc.liveServers.getLogs(query)",
+            "link": "/renderer-data#hcliveserversgetlogsquery"
+          },
+          {
+            "text": "hc.liveServers.clearLogs(query)",
+            "link": "/renderer-data#hcliveserversclearlogsquery"
+          },
+          {
+            "text": "hc.liveServers.onRunningChanged(listener)",
+            "link": "/renderer-data#hcliveserversonrunningchangedlistener"
+          },
+          {
+            "text": "hc.liveServers.onRequestLog(listener)",
+            "link": "/renderer-data#hcliveserversonrequestloglistener"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "hc.ai",
+        "link": "/renderer-data#hcai",
+        "items": [
+          {
+            "text": "hc.ai.registerChatPointer(config)",
+            "link": "/renderer-data#hcairegisterchatpointerconfig"
+          },
+          {
+            "text": "hc.ai.copyToChat(input)",
+            "link": "/renderer-data#hcaicopytochatinput"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "hc.webpage",
+        "link": "/renderer-data#hcwebpage"
       },
       {
         "text": "Not extensible",

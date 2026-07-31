@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
-import type { HttpMethod } from '@harborclient/core/types';
+import type { HttpMethod, LiveServer, RunningLiveServer } from '@harborclient/core/types';
+import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
 import {
   buildAiScriptSelectionContextMessage,
   findAiScriptReferenceCandidates,
@@ -17,9 +18,19 @@ import {
   selectScriptSelections,
   setScriptSelection
 } from '#/renderer/src/store/slices/scriptSelectionsSlice';
-import { selectEffectiveActiveRequestTab, selectTabs } from '#/renderer/src/store/selectors';
+import {
+  selectEffectiveActiveRequestTab,
+  selectRunningLiveServers,
+  selectSavedLiveServers,
+  selectTabs
+} from '#/renderer/src/store/selectors';
+import {
+  setRunningLiveServers,
+  setSavedLiveServers
+} from '#/renderer/src/store/slices/liveServersSlice';
 import {
   buildAiScriptReferenceValidationContext,
+  buildLiveServersByUuid,
   buildWebpageTabsById
 } from './useAiScriptReferenceValidationContext';
 
@@ -190,5 +201,75 @@ describe('buildAiScriptReferenceValidationContext', () => {
     expect(resolveAiScriptReferenceLabel(reference, context)).toBe('New Browser');
     expect(message).toContain('https://example.com/');
     expect(message).toContain('webpage_tab');
+  });
+
+  it('resolves live-server references from saved and running state', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const saved: LiveServer = {
+      id: 9,
+      uuid: '66666666-6666-6666-6666-666666666666',
+      name: 'Static',
+      root: '/tmp/static',
+      port: 5509,
+      aliases: [],
+      watch: true,
+      cors: defaultLiveServerCorsSettings(),
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1
+    };
+    const running: RunningLiveServer = {
+      id: 'runtime-9',
+      savedId: 9,
+      config: {
+        name: saved.name,
+        root: saved.root,
+        port: saved.port,
+        aliases: saved.aliases,
+        watch: saved.watch,
+        cors: saved.cors
+      },
+      port: 5509,
+      origin: 'http://127.0.0.1:5509',
+      startedAt: 1000
+    };
+
+    store.dispatch(setSavedLiveServers([saved]));
+    store.dispatch(setRunningLiveServers([running]));
+
+    const state = store.getState();
+    const liveServersByUuid = buildLiveServersByUuid(
+      selectSavedLiveServers(state),
+      selectRunningLiveServers(state)
+    );
+    const context = buildAiScriptReferenceValidationContext(
+      selectEffectiveActiveRequestTab(state),
+      [],
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      liveServersByUuid
+    );
+    const token = '@live-server.66666666-6666-6666-6666-666666666666';
+    const reference = findAiScriptReferenceCandidates(token)[0];
+    const message = buildAiScriptSelectionContextMessage(`Check ${token}`, context);
+
+    expect(liveServersByUuid[saved.uuid]).toEqual(
+      expect.objectContaining({
+        id: 9,
+        name: 'Static',
+        origin: 'http://127.0.0.1:5509',
+        runtimeId: 'runtime-9'
+      })
+    );
+    expect(isValidAiScriptReference(reference, context)).toBe(true);
+    expect(resolveAiScriptReferenceLabel(reference, context)).toBe('Live Server: Static');
+    expect(message).toContain('status: running');
+    expect(message).toContain('http://127.0.0.1:5509');
   });
 });

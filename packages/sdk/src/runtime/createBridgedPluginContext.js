@@ -359,6 +359,11 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   const assertBrowser = () => assertPermission('browser');
 
   /**
+   * Asserts live-server permission for Harbor Live Server APIs.
+   */
+  const assertLiveServer = () => assertPermission('live-server');
+
+  /**
    * Invokes a webpage session op on the host renderer via the plugin bridge.
    *
    * @param {Record<string, unknown>} req - ScriptWebpageRequest-shaped payload.
@@ -1269,6 +1274,70 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         });
         return track(() => {
           void bridgeInvoke('mcp.unregisterServer', { registrationId });
+        });
+      }
+    },
+    liveServers: {
+      list: async () => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.list');
+      },
+      get: async (idOrUuid) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.get', { idOrUuid });
+      },
+      create: async (input) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.create', { input });
+      },
+      update: async (input) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.update', { input });
+      },
+      delete: async (id) => {
+        assertLiveServer();
+        await bridgeInvoke('liveServers.delete', { id });
+      },
+      start: async (input) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.start', { input });
+      },
+      stop: async (query) => {
+        assertLiveServer();
+        await bridgeInvoke('liveServers.stop', { query });
+      },
+      listRunning: async () => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.listRunning');
+      },
+      getStatus: async (query) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.getStatus', { query });
+      },
+      getLogs: async (query) => {
+        assertLiveServer();
+        return bridgeInvoke('liveServers.getLogs', { query });
+      },
+      clearLogs: async (query) => {
+        assertLiveServer();
+        await bridgeInvoke('liveServers.clearLogs', { query });
+      },
+      onRunningChanged: (listener) => {
+        assertLiveServer();
+        const unsubscribe = bridgeOn('liveServers.runningChanged', listener);
+        return track({
+          dispose: () => {
+            unsubscribe();
+          }
+        });
+      },
+      onRequestLog: (listener) => {
+        assertLiveServer();
+        const unsubscribe = bridgeOn('liveServers.requestLog', listener);
+        return track({
+          dispose: () => {
+            unsubscribe();
+          }
         });
       }
     },

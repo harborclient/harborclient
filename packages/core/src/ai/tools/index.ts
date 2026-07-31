@@ -1,9 +1,12 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { z } from 'zod';
 import type { UpdateActiveRequestToolArgs } from '../requestUpdate';
+import { clearLiveServerLogsTool } from './clearLiveServerLogs';
 import { createCollectionTool } from './createCollection';
 import { createFolderTool } from './createFolder';
+import { createLiveServerTool } from './createLiveServer';
 import { createRequestTool } from './createRequest';
+import { deleteLiveServerTool } from './deleteLiveServer';
 import { getActiveRequestTool } from './getActiveRequest';
 import { getActiveRequestDetailsTool } from './getActiveRequestDetails';
 import { getActiveResponseTool } from './getActiveResponse';
@@ -12,6 +15,8 @@ import { getActiveTerminalTool } from './getActiveTerminal';
 import { getActiveTerminalLinesTool } from './getActiveTerminalLines';
 import { getCollectionTool } from './getCollection';
 import { getFolderTool } from './getFolder';
+import { getLiveServerTool } from './getLiveServer';
+import { getLiveServerLogsTool } from './getLiveServerLogs';
 import { getMarkdownDocumentTool } from './getMarkdownDocument';
 import { getRequestTool } from './getRequest';
 import { getScriptRunDiagnosticsTool } from './getScriptRunDiagnostics';
@@ -25,13 +30,18 @@ import { gitFileInfoTool } from './gitFileInfo';
 import { gitRepoInfoTool } from './gitRepoInfo';
 import { listCollectionsTool } from './listCollections';
 import { listEnvironmentsTool } from './listEnvironments';
+import { listLiveServersTool } from './listLiveServers';
 import { listRequestsTool } from './listRequests';
+import { listRunningLiveServersTool } from './listRunningLiveServers';
 import { queryResponseBodyTool } from './queryResponseBody';
 import { searchDocsTool } from './searchDocs';
 import { sendActiveRequestTool } from './sendActiveRequest';
 import { setActiveEnvironmentTool } from './setActiveEnvironment';
+import { startLiveServerTool } from './startLiveServer';
+import { stopLiveServerTool } from './stopLiveServer';
 import { terminalExecTool } from './terminalExec';
 import { updateActiveRequestTool } from './updateActiveRequest';
+import { updateLiveServerTool } from './updateLiveServer';
 import { updateRequestScriptTool } from './updateRequestScript';
 import { webpageEvaluateTool } from './webpageEvaluate';
 import { webpageInjectScriptTool } from './webpageInjectScript';
@@ -47,11 +57,16 @@ export type {
   CreateSavedRequestKeyValue,
   GetSidebarItemByUuidToolArgs
 } from './types';
+export type { ClearLiveServerLogsToolArgs } from './clearLiveServerLogs';
 export type { CreateCollectionToolArgs } from './createCollection';
 export type { CreateFolderToolArgs } from './createFolder';
+export type { CreateLiveServerToolArgs } from './createLiveServer';
 export type { CreateRequestToolArgs } from './createRequest';
+export type { DeleteLiveServerToolArgs } from './deleteLiveServer';
 export type { GetActiveResponseToolArgs } from './getActiveResponse';
 export type { GetActiveTerminalLinesToolArgs } from './getActiveTerminalLines';
+export type { GetLiveServerToolArgs } from './getLiveServer';
+export type { GetLiveServerLogsToolArgs } from './getLiveServerLogs';
 export type { GetMarkdownDocumentToolArgs } from './getMarkdownDocument';
 export type { GetScriptRunDiagnosticsToolArgs } from './getScriptRunDiagnostics';
 export type { GitCommitsToolArgs } from './gitCommits';
@@ -64,7 +79,10 @@ export type { QueryResponseBodyToolArgs } from './queryResponseBody';
 export type { SearchDocsToolArgs } from './searchDocs';
 export type { SendActiveRequestToolArgs } from './sendActiveRequest';
 export type { SetActiveEnvironmentToolArgs } from './setActiveEnvironment';
+export type { StartLiveServerToolArgs } from './startLiveServer';
+export type { StopLiveServerToolArgs } from './stopLiveServer';
 export type { TerminalExecToolArgs } from './terminalExec';
+export type { UpdateLiveServerToolArgs } from './updateLiveServer';
 export type { UpdateRequestScriptToolArgs } from './updateRequestScript';
 export type { WebpageEvaluateToolArgs } from './webpageEvaluate';
 export type { WebpageInjectScriptToolArgs } from './webpageInjectScript';
@@ -115,7 +133,17 @@ export const AI_TOOLS = [
   gitRepoInfoTool,
   gitCommitsTool,
   gitFileInfoTool,
-  gitFileDiffTool
+  gitFileDiffTool,
+  listLiveServersTool,
+  listRunningLiveServersTool,
+  getLiveServerTool,
+  getLiveServerLogsTool,
+  startLiveServerTool,
+  stopLiveServerTool,
+  createLiveServerTool,
+  updateLiveServerTool,
+  deleteLiveServerTool,
+  clearLiveServerLogsTool
 ] as const;
 
 /**

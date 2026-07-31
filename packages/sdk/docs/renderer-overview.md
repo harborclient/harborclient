@@ -612,5 +612,5 @@ await hc.host.openImageView({
 ## Related reference
 
 - [UI contributions](/renderer-ui) — `hc.ui.register*` methods and `hc.actions.register`
-- [Themes and storage](/renderer-data) — themes, commands, storage, filesystem, [File → Import handlers](/renderer-data#hcimports), [MCP client servers](/renderer-data#hcmcp), and [AI chat pointers](/renderer-data#hcai)
+- [Themes and storage](/renderer-data) — themes, commands, storage, filesystem, [File → Import handlers](/renderer-data#hcimports), [MCP client servers](/renderer-data#hcmcp), [Harbor Live Servers](/renderer-data#hcliveservers), and [AI chat pointers](/renderer-data#hcai)
 - [Main API](/main-api) — HTTP hooks and IPC in the main entry

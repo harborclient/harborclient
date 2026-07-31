@@ -17,6 +17,7 @@ import {
   faCodeBranch,
   faSun,
   faTableColumns,
+  faServer,
   faTerminal,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -192,6 +193,16 @@ interface Props {
   onToggleTerminal: () => void;
 
   /**
+   * Whether the live-server logs panel is currently open.
+   */
+  liveServerLogsOpen: boolean;
+
+  /**
+   * Toggles the live-server logs panel open/closed.
+   */
+  onToggleLiveServerLogs: () => void;
+
+  /**
    * Whether the local MCP HTTP server is listening.
    */
   mcpServerRunning: boolean;
@@ -226,6 +237,8 @@ export function Footer({
   onToggleMcp,
   terminalOpen,
   onToggleTerminal,
+  liveServerLogsOpen,
+  onToggleLiveServerLogs,
   mcpServerRunning
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -419,6 +432,16 @@ export function Footer({
               <span className="inline-flex items-center gap-1">
                 <FaIcon icon={faTerminal} className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Terminal
+              </span>
+            </FooterButton>
+            <FooterButton
+              active={liveServerLogsOpen}
+              onClick={onToggleLiveServerLogs}
+              controlsId="footer-live-server-logs-panel"
+            >
+              <span className="inline-flex items-center gap-1">
+                <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Logs
               </span>
             </FooterButton>
 

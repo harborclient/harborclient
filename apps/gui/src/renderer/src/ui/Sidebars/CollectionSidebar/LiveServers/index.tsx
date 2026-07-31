@@ -14,14 +14,18 @@ import {
   type KeyboardEvent,
   type MouseEvent
 } from 'react';
+import { buildLiveServerReferenceToken } from '@harborclient/core/ai/scriptReferences';
 import type { LiveServer, RunningLiveServer } from '@harborclient/core/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunningLiveServers, selectSavedLiveServers } from '#/renderer/src/store/selectors';
-import { openLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
-import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { setLiveServerLogsSavedId } from '#/renderer/src/store/slices/liveServersSlice';
+import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openLiveServerLogs } from '#/renderer/src/store/slices/navigationSlice';
 import {
   deleteSavedLiveServer,
+  openLiveServerEditor,
   openLiveServerInBrowser,
   reportLiveServerError,
   startLiveServer,
@@ -42,6 +46,7 @@ import {
 export function LiveServers(): JSX.Element {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
+  const { aiAvailable, copyToChat } = useCopyToChat();
   const allSaved = useAppSelector(selectSavedLiveServers);
   const running = useAppSelector(selectRunningLiveServers);
   const { sectionSort } = useSidebarExpansion();
@@ -112,14 +117,14 @@ export function LiveServers(): JSX.Element {
   );
 
   /**
-   * Opens the edit modal for a saved live server.
+   * Opens the edit footer panel for a saved live server.
    *
    * @param server - Saved config to edit.
    */
   const handleEdit = useCallback(
     (server: LiveServer): void => {
-      dispatch(
-        openLiveServerModal({
+      void dispatch(
+        openLiveServerEditor({
           mode: 'edit',
           savedId: server.id,
           name: server.name,
@@ -269,15 +274,22 @@ export function LiveServers(): JSX.Element {
                     {
                       label: 'Logs',
                       onSelect: () => {
-                        dispatch(
-                          openPageTab({
-                            type: 'live-server-logs',
-                            savedId: server.id
-                          })
-                        );
+                        dispatch(closeLiveServerModal());
+                        dispatch(setLiveServerLogsSavedId(server.id));
+                        dispatch(openLiveServerLogs());
                       }
                     },
-                    buildCopyIdMenuItem(server.uuid)
+                    buildCopyIdMenuItem(server.uuid),
+                    ...(aiAvailable
+                      ? [
+                          {
+                            label: 'Copy to chat',
+                            onSelect: () => {
+                              void copyToChat(buildLiveServerReferenceToken(server.uuid));
+                            }
+                          }
+                        ]
+                      : [])
                   ],
                   [
                     ...(isRunning
@@ -306,16 +318,16 @@ export function LiveServers(): JSX.Element {
             }
           >
             <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} gap-2 rounded-md px-2 py-1`}>
+              <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+              <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                <span className="min-w-0 shrink truncate">{server.name}</span>
+                <span className="min-w-0 flex-1 truncate text-[14px] text-muted">{subtitle}</span>
+              </span>
               <SidebarStatusDot
-                className={isRunning ? 'bg-success' : 'bg-danger'}
+                className={isRunning ? 'bg-success -mr-2' : 'bg-danger -mr-2'}
                 title={statusLabel}
                 srOnlyLabel={statusLabel}
               />
-              <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-              <span className="min-w-0 flex-1 truncate">
-                <span className="block truncate">{server.name}</span>
-                <span className="text-muted block truncate text-[14px]">{subtitle}</span>
-              </span>
             </span>
           </SidebarItem>
         );

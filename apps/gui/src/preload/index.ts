@@ -4564,6 +4564,24 @@ function pushPluginSidebarSelectionChanged(
 }
 
 /**
+ * Pushes running live-server list changes to plugin webviews with the `live-server` permission.
+ *
+ * @param running - Current running live server instances.
+ */
+function pushPluginLiveServersRunningChanged(running: unknown[]): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushLiveServersRunningChanged', running);
+}
+
+/**
+ * Pushes a live-server access-log line to plugin webviews with the `live-server` permission.
+ *
+ * @param entry - Access-log entry from a running live server.
+ */
+function pushPluginLiveServerRequestLog(entry: unknown): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushLiveServerRequestLog', entry);
+}
+
+/**
  * Executes a plugin command in the plugin agent webview.
  */
 function executePluginAgentCommand(
@@ -5156,6 +5174,8 @@ const api: Api = {
   pushPluginLibraryChanged,
   pushPluginWorkflowsChanged,
   pushPluginSidebarSelectionChanged,
+  pushPluginLiveServersRunningChanged,
+  pushPluginLiveServerRequestLog,
   executePluginAgentCommand,
   invokePluginImportHandler,
   onPluginsContributions,

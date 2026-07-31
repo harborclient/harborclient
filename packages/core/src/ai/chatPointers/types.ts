@@ -210,6 +210,81 @@ export interface WebpageTabReferenceInfo {
 }
 
 /**
+ * A parsed `@` reference to a saved live server.
+ */
+export interface ParsedLiveServerReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for live-server references.
+   */
+  kind: 'live-server';
+
+  /**
+   * Saved live server uuid from the `@live-server` token.
+   */
+  liveServerUuid: string;
+}
+
+/**
+ * A parsed `@` reference to live-server Express access logs.
+ */
+export interface ParsedLogsReference extends ParsedAiScriptReferenceBase {
+  /**
+   * Discriminator for live-server access-log references.
+   */
+  kind: 'logs';
+
+  /**
+   * Saved live server uuid from the `@logs` token.
+   */
+  liveServerUuid: string;
+}
+
+/**
+ * Saved (and optionally running) live server summary for `@live-server.<uuid>` badges and context.
+ */
+export interface LiveServerReferenceInfo {
+  /**
+   * Database primary key.
+   */
+  id: number;
+
+  /**
+   * Display name shown in the sidebar.
+   */
+  name: string;
+
+  /**
+   * Absolute document root path.
+   */
+  root: string;
+
+  /**
+   * Configured listen port, or null when auto-selected at start.
+   */
+  port: number | null;
+
+  /**
+   * Whether file watching is enabled when started.
+   */
+  watch: boolean;
+
+  /**
+   * Runtime instance id when this saved server is currently running.
+   */
+  runtimeId?: string;
+
+  /**
+   * Assigned origin when running (for example `http://127.0.0.1:5500`).
+   */
+  origin?: string;
+
+  /**
+   * Assigned listen port when running.
+   */
+  runningPort?: number;
+}
+
+/**
  * A parsed `@` reference to a collection markdown document or request comment.
  */
 export interface ParsedMarkdownReference extends ParsedAiScriptReferenceBase {
@@ -353,6 +428,36 @@ export interface TerminalSelectionSnapshot {
 
   /**
    * Surrounding terminal lines included for agent context.
+   */
+  contextText: string;
+}
+
+/**
+ * Snapshot of live-server access-log lines captured when the user copies a selection to chat.
+ */
+export interface LogsSelectionSnapshot {
+  /**
+   * Display label of the live server at capture time (for example `Logs: Docs`).
+   */
+  label: string;
+
+  /**
+   * 1-based start line of the selection in the log buffer.
+   */
+  startLine: number;
+
+  /**
+   * 1-based end line of the selection in the log buffer.
+   */
+  endLine: number;
+
+  /**
+   * Plain-text content of the user's selection.
+   */
+  selectedText: string;
+
+  /**
+   * Surrounding log lines included for agent context.
    */
   contextText: string;
 }
@@ -545,6 +650,7 @@ export type PersistedChatReferenceSnapshotEntry =
   | { kind: 'response-section'; snapshot: ResponseSectionSnapshot }
   | { kind: 'script-selection'; snapshot: ScriptSelectionSnapshot }
   | { kind: 'terminal'; snapshot: TerminalSelectionSnapshot }
+  | { kind: 'logs'; snapshot: LogsSelectionSnapshot }
   | { kind: 'markdown'; snapshot: MarkdownSelectionSnapshot }
   | { kind: 'body'; snapshot: RequestBodySelectionSnapshot }
   | { kind: 'plugin'; snapshot: PluginChatPointerSnapshot };
@@ -635,6 +741,8 @@ export type ParsedAiScriptReference =
   | ParsedFolderReference
   | ParsedRequestReference
   | ParsedWebpageReference
+  | ParsedLiveServerReference
+  | ParsedLogsReference
   | ParsedMarkdownReference
   | ParsedRequestBodyReference
   | ParsedResponseSectionReference
@@ -685,6 +793,11 @@ export interface AiScriptReferenceValidationContext {
   terminalSelections?: Record<string, TerminalSelectionSnapshot>;
 
   /**
+   * Live-server access-log selection snapshots keyed by the full `@logs` reference token.
+   */
+  logsSelections?: Record<string, LogsSelectionSnapshot>;
+
+  /**
    * Markdown selection snapshots keyed by the full `@markdown` reference token.
    */
   markdownSelections?: Record<string, MarkdownSelectionSnapshot>;
@@ -723,6 +836,11 @@ export interface AiScriptReferenceValidationContext {
    * Open browser tabs keyed by tab id for `@webpage` badge and context resolution.
    */
   webpageTabsById?: Record<string, WebpageTabReferenceInfo>;
+
+  /**
+   * Saved live servers keyed by uuid for `@live-server` badge and context resolution.
+   */
+  liveServersByUuid?: Record<string, LiveServerReferenceInfo>;
 
   /**
    * Plugin chat-pointer snapshots keyed by the full `@plugin...` reference token.

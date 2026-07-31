@@ -4,6 +4,8 @@ import {
   type AiScriptReferenceValidationContext,
   type ChatComposerTextToken,
   type ParsedAiScriptReference,
+  type ParsedLiveServerReference,
+  type ParsedLogsReference,
   type ParsedMarkdownReference,
   type ParsedPluginReference,
   type ParsedRequestBodyReference,
@@ -40,6 +42,8 @@ export {
   type ParsedChatPointer,
   type ParsedCollectionReference,
   type ParsedFolderReference,
+  type ParsedLiveServerReference,
+  type ParsedLogsReference,
   type ParsedMarkdownReference,
   type ParsedPluginReference,
   type ParsedRequestBodyReference,
@@ -57,7 +61,9 @@ export {
   type ScriptSelectionLastRunFailure,
   type ScriptSelectionSnapshot,
   type TerminalSelectionSnapshot,
+  type LogsSelectionSnapshot,
   type MarkdownSelectionSnapshot,
+  type LiveServerReferenceInfo,
   type WebpageTabReferenceInfo
 } from './chatPointers/types.js';
 
@@ -85,7 +91,7 @@ export {
  *
  * Composed from registered chat-pointer definitions after builtins load.
  * Includes request scripts, snippets, terminals, collections, folders, requests,
- * webpages, markdown, response sections, raw body, and plugin pointers.
+ * webpages, live servers, markdown, response sections, raw body, and plugin pointers.
  */
 export let AI_SCRIPT_REFERENCE_PATTERN = /@(?!)/g;
 
@@ -156,6 +162,46 @@ export function buildWebpageReferenceToken(
   const x = Math.max(0, Math.round(click.x));
   const y = Math.max(0, Math.round(click.y));
   return `@webpage.${tabId}#${x}.${y}`;
+}
+
+/**
+ * Builds the compact `@live-server` token for a saved live server.
+ *
+ * @param uuid - Saved live server UUID.
+ * @returns Token such as `@live-server.<uuid>`.
+ */
+export function buildLiveServerReferenceToken(uuid: string): string {
+  return `@live-server.${uuid}`;
+}
+
+/**
+ * Builds the compact `@logs` token for a saved live server's access logs.
+ *
+ * When `startLine` and `endLine` are provided, appends a 1-based line-range suffix
+ * matching the displayed log buffer (same semantics as `@term.N#start.end`).
+ *
+ * @param uuid - Saved live server UUID.
+ * @param startLine - Optional 1-based start line of the selection.
+ * @param endLine - Optional 1-based end line of the selection.
+ * @returns Token such as `@logs.<uuid>` or `@logs.<uuid>#1.40`.
+ */
+export function buildLogsReferenceToken(
+  uuid: string,
+  startLine?: number,
+  endLine?: number
+): string {
+  if (
+    startLine != null &&
+    endLine != null &&
+    Number.isInteger(startLine) &&
+    Number.isInteger(endLine) &&
+    startLine >= 1 &&
+    endLine >= startLine
+  ) {
+    return `@logs.${uuid}#${startLine}.${endLine}`;
+  }
+
+  return `@logs.${uuid}`;
 }
 
 /**
@@ -303,6 +349,18 @@ export function isValidAiScriptReference(
     return context.terminalSelections?.[reference.text] != null;
   }
 
+  if (reference.kind === 'logs') {
+    if (context.liveServersByUuid?.[reference.liveServerUuid] == null) {
+      return false;
+    }
+
+    if (reference.selection != null) {
+      return context.logsSelections?.[reference.text] != null;
+    }
+
+    return true;
+  }
+
   if (reference.kind === 'snippet') {
     return (context.snippets ?? []).some((entry) => entry.uuid === reference.snippetUuid);
   }
@@ -321,6 +379,10 @@ export function isValidAiScriptReference(
 
   if (reference.kind === 'webpage') {
     return context.webpageTabsById?.[reference.tabId] != null;
+  }
+
+  if (reference.kind === 'live-server') {
+    return context.liveServersByUuid?.[reference.liveServerUuid] != null;
   }
 
   // request-script kind below — snapshots satisfy both selection and whole-script refs
@@ -383,6 +445,16 @@ export function resolveAiScriptReferenceName(
     return context.terminalSelections?.[reference.text]?.terminalLabel ?? null;
   }
 
+  if (reference.kind === 'logs') {
+    const snapshot = context.logsSelections?.[reference.text];
+    if (snapshot != null) {
+      return snapshot.label;
+    }
+
+    const server = context.liveServersByUuid?.[reference.liveServerUuid];
+    return server != null ? `Logs: ${server.name}` : null;
+  }
+
   if (reference.kind === 'markdown') {
     return context.markdownSelections?.[reference.text]?.label ?? null;
   }
@@ -422,6 +494,11 @@ export function resolveAiScriptReferenceName(
     }
     const title = tab.title.trim();
     return title.length > 0 ? title : tab.url;
+  }
+
+  if (reference.kind === 'live-server') {
+    const server = context.liveServersByUuid?.[reference.liveServerUuid];
+    return server != null ? `Live Server: ${server.name}` : null;
   }
 
   if (reference.kind === 'request-script') {
@@ -479,6 +556,7 @@ function resolveReferenceSourceCode(
 ): string | null {
   if (
     reference.kind === 'terminal' ||
+    reference.kind === 'logs' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
     reference.kind === 'response-section' ||
@@ -486,6 +564,7 @@ function resolveReferenceSourceCode(
     reference.kind === 'folder' ||
     reference.kind === 'request' ||
     reference.kind === 'webpage' ||
+    reference.kind === 'live-server' ||
     reference.kind === 'plugin'
   ) {
     return null;
@@ -592,6 +671,15 @@ export function resolveAiScriptReferenceLabel(
 
   if (reference.kind === 'terminal') {
     const snapshot = context.terminalSelections?.[reference.text];
+    if (snapshot == null) {
+      return name;
+    }
+
+    return `${name} ${formatTerminalSelectionLineRange(snapshot.startLine, snapshot.endLine)}`;
+  }
+
+  if (reference.kind === 'logs') {
+    const snapshot = context.logsSelections?.[reference.text];
     if (snapshot == null) {
       return name;
     }
@@ -715,6 +803,44 @@ function formatTerminalSelectionContextBlock(
     snapshot.selectedText,
     '```',
     'Surrounding terminal context (includes lines before and after the selection):',
+    '```text',
+    snapshot.contextText,
+    '```'
+  ].join('\n');
+}
+
+/**
+ * Formats one resolved live-server access-log selection reference for the agent context block.
+ *
+ * @param reference - Parsed `@logs` reference with a line-range suffix.
+ * @param context - Log selection snapshots keyed by reference token.
+ * @returns Context block for one logs reference, or null when not resolvable.
+ */
+function formatLogsSelectionContextBlock(
+  reference: ParsedLogsReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (reference.selection == null || !isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const snapshot = context.logsSelections?.[reference.text];
+  if (snapshot == null) {
+    return null;
+  }
+
+  const lineSpan =
+    snapshot.startLine === snapshot.endLine
+      ? `line ${snapshot.startLine}`
+      : `lines ${snapshot.startLine}-${snapshot.endLine}`;
+
+  return [
+    `Reference ${reference.text} — live server access logs "${snapshot.label}".`,
+    `Selected access-log output (${lineSpan}):`,
+    '```text',
+    snapshot.selectedText,
+    '```',
+    'Surrounding access-log context (includes lines before and after the selection):',
     '```text',
     snapshot.contextText,
     '```'
@@ -996,6 +1122,10 @@ function formatScriptSelectionContextBlock(
     return formatTerminalSelectionContextBlock(reference, context);
   }
 
+  if (reference.kind === 'logs') {
+    return formatLogsSelectionContextBlock(reference, context);
+  }
+
   if (reference.kind === 'markdown') {
     return formatMarkdownSelectionContextBlock(reference, context);
   }
@@ -1087,6 +1217,7 @@ function formatWholeScriptReferenceContextBlock(
   if (
     reference.selection != null ||
     reference.kind === 'terminal' ||
+    reference.kind === 'logs' ||
     reference.kind === 'markdown' ||
     reference.kind === 'body' ||
     reference.kind === 'response-section' ||
@@ -1094,6 +1225,7 @@ function formatWholeScriptReferenceContextBlock(
     reference.kind === 'folder' ||
     reference.kind === 'request' ||
     reference.kind === 'webpage' ||
+    reference.kind === 'live-server' ||
     reference.kind === 'plugin'
   ) {
     return null;
@@ -1183,6 +1315,103 @@ function formatWebpageReferenceContextBlock(
 }
 
 /**
+ * Formats one resolved `@live-server` reference for the agent context block.
+ *
+ * @param reference - Parsed `@live-server.<uuid>` reference.
+ * @param context - Saved live servers keyed by uuid.
+ * @returns Context block for one live-server reference, or null when not resolvable.
+ */
+function formatLiveServerReferenceContextBlock(
+  reference: ParsedLiveServerReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  const server = context.liveServersByUuid?.[reference.liveServerUuid];
+  if (server == null) {
+    return null;
+  }
+
+  const lines = [
+    `Reference ${reference.text} — live server "${server.name}".`,
+    `uuid: ${reference.liveServerUuid}`,
+    `id: ${server.id}`,
+    `root: ${server.root}`,
+    `configuredPort: ${server.port == null ? 'auto' : String(server.port)}`,
+    `watch: ${server.watch ? 'true' : 'false'}`
+  ];
+
+  if (server.origin != null && server.runtimeId != null) {
+    lines.push(
+      `status: running`,
+      `runtimeId: ${server.runtimeId}`,
+      `origin: ${server.origin}`,
+      `runningPort: ${server.runningPort ?? 'unknown'}`,
+      'Call get_live_server, list_running_live_servers, and get_live_server_logs as needed. Use webpage_* with this origin to inspect the served page.'
+    );
+  } else {
+    lines.push(
+      'status: stopped',
+      'Call get_live_server and list_running_live_servers as needed. Only call start_live_server when the user explicitly asks to start it.'
+    );
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats one resolved `@logs` reference (whole buffer or selection) for the agent context block.
+ *
+ * @param reference - Parsed `@logs.<uuid>` reference.
+ * @param context - Saved live servers and optional log selection snapshots.
+ * @returns Context block for one logs reference, or null when not resolvable.
+ */
+function formatLogsReferenceContextBlock(
+  reference: ParsedLogsReference,
+  context: AiScriptReferenceValidationContext
+): string | null {
+  if (!isValidAiScriptReference(reference, context)) {
+    return null;
+  }
+
+  if (reference.selection != null) {
+    return formatLogsSelectionContextBlock(reference, context);
+  }
+
+  const server = context.liveServersByUuid?.[reference.liveServerUuid];
+  if (server == null) {
+    return null;
+  }
+
+  const lines = [
+    `Reference ${reference.text} — live server access logs for "${server.name}".`,
+    `uuid: ${reference.liveServerUuid}`,
+    `id: ${server.id}`,
+    `root: ${server.root}`,
+    `configuredPort: ${server.port == null ? 'auto' : String(server.port)}`
+  ];
+
+  if (server.origin != null && server.runtimeId != null) {
+    lines.push(
+      `status: running`,
+      `runtimeId: ${server.runtimeId}`,
+      `origin: ${server.origin}`,
+      `runningPort: ${server.runningPort ?? 'unknown'}`
+    );
+  } else {
+    lines.push('status: stopped');
+  }
+
+  lines.push(
+    'Call get_live_server with this uuid and get_live_server_logs with the saved id to read current access logs. Only call clear_live_server_logs when the user explicitly asks.'
+  );
+
+  return lines.join('\n');
+}
+
+/**
  * Formats one resolved plugin chat-pointer reference for the agent context block.
  *
  * @param reference - Parsed `@plugin…` reference.
@@ -1237,6 +1466,14 @@ function formatScriptReferenceContextBlock(
     return formatWebpageReferenceContextBlock(reference, context);
   }
 
+  if (reference.kind === 'live-server') {
+    return formatLiveServerReferenceContextBlock(reference, context);
+  }
+
+  if (reference.kind === 'logs') {
+    return formatLogsReferenceContextBlock(reference, context);
+  }
+
   if (reference.kind === 'response-section') {
     return formatResponseSectionContextBlock(reference, context);
   }
@@ -1284,6 +1521,12 @@ export function buildAiScriptSelectionContextMessage(
   const hasTerminalSelection = resolved.some(
     (entry) => entry.reference.kind === 'terminal' && entry.reference.selection != null
   );
+  const hasLogsSelection = resolved.some(
+    (entry) => entry.reference.kind === 'logs' && entry.reference.selection != null
+  );
+  const hasWholeLogsReference = resolved.some(
+    (entry) => entry.reference.kind === 'logs' && entry.reference.selection == null
+  );
   const hasMarkdownSelection = resolved.some(
     (entry) => entry.reference.kind === 'markdown' && entry.reference.selection != null
   );
@@ -1316,6 +1559,16 @@ export function buildAiScriptSelectionContextMessage(
   if (hasTerminalSelection) {
     headerParts.push(
       'The user selected terminal output and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
+  if (hasLogsSelection) {
+    headerParts.push(
+      'The user selected live-server access-log lines and is asking specifically about the SELECTED TEXT below.'
+    );
+  }
+  if (hasWholeLogsReference) {
+    headerParts.push(
+      'The user referenced live-server access logs via @logs mentions. Use the log context below and call get_live_server_logs when you need more lines.'
     );
   }
   if (hasMarkdownSelection) {
@@ -1376,6 +1629,11 @@ export function buildAiScriptSelectionContextMessage(
   if (hasTerminalSelection) {
     footerParts.push(
       'Terminal output references cannot be edited via tools. Explain, diagnose, or suggest shell commands the user can run.'
+    );
+  }
+  if (hasLogsSelection || hasWholeLogsReference) {
+    footerParts.push(
+      'Access-log references cannot be edited via tools. Explain or diagnose traffic using the captured lines and get_live_server_logs as needed.'
     );
   }
 
@@ -1514,6 +1772,14 @@ export function collectChatReferenceSnapshots(
       continue;
     }
 
+    if (reference.kind === 'logs') {
+      const snapshot = context.logsSelections?.[reference.text];
+      if (snapshot != null) {
+        snapshots[reference.text] = { kind: 'logs', snapshot };
+      }
+      continue;
+    }
+
     if (reference.kind === 'markdown') {
       const snapshot = context.markdownSelections?.[reference.text];
       if (snapshot != null) {
@@ -1611,6 +1877,10 @@ function collectSnapshotForPointer(
   if (reference.kind === 'terminal') {
     const snapshot = context.terminalSelections?.[reference.text];
     return snapshot != null ? { kind: 'terminal', snapshot } : null;
+  }
+  if (reference.kind === 'logs') {
+    const snapshot = context.logsSelections?.[reference.text];
+    return snapshot != null ? { kind: 'logs', snapshot } : null;
   }
   if (reference.kind === 'markdown') {
     const snapshot = context.markdownSelections?.[reference.text];

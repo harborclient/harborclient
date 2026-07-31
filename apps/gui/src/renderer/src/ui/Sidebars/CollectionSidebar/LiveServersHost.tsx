@@ -1,5 +1,9 @@
 import { useEffect, type JSX } from 'react';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
+import {
+  emitPluginLiveServerRequestLog,
+  emitPluginLiveServersRunningChanged
+} from '#/renderer/src/plugins/pluginLiveServersBus';
 import { setRunningLiveServers } from '#/renderer/src/store/slices/liveServersSlice';
 import {
   refreshLiveServers,
@@ -25,6 +29,11 @@ export function LiveServersHost(): JSX.Element | null {
 
     const unsubscribeChanged = window.api.onLiveServersChanged((running) => {
       dispatch(setRunningLiveServers(running));
+      emitPluginLiveServersRunningChanged(running);
+    });
+
+    const unsubscribeRequestLog = window.api.onLiveServerRequestLog((entry) => {
+      emitPluginLiveServerRequestLog(entry);
     });
 
     const unsubscribeFileChanged = window.api.onLiveServerFileChanged((event) => {
@@ -33,6 +42,7 @@ export function LiveServersHost(): JSX.Element | null {
 
     return () => {
       unsubscribeChanged();
+      unsubscribeRequestLog();
       unsubscribeFileChanged();
     };
   }, [dispatch]);

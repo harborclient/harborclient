@@ -80,6 +80,7 @@ describe('bootstrapShellForReveal', () => {
     showVariables: false,
     showMcp: false,
     showTerminal: false,
+    showLiveServerLogs: false,
     activePluginFooterPanelId: null
   }));
   const getGeneralSettings = vi.fn(async () => ({ requestTimeoutMs: 30_000 }));

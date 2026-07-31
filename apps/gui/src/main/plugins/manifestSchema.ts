@@ -33,6 +33,7 @@ const pluginPermission = z.enum([
   'network',
   'ipc',
   'server',
+  'live-server',
   'mcp',
   'ai',
   'browser'

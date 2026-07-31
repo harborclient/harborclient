@@ -12,11 +12,16 @@ import {
 import {
   AI_TOOL_NAMES,
   type AiToolName,
+  type ClearLiveServerLogsToolArgs,
   type CreateCollectionToolArgs,
   type CreateFolderToolArgs,
+  type CreateLiveServerToolArgs,
   type CreateRequestToolArgs,
+  type DeleteLiveServerToolArgs,
   type GetActiveResponseToolArgs,
   type GetActiveTerminalLinesToolArgs,
+  type GetLiveServerToolArgs,
+  type GetLiveServerLogsToolArgs,
   type GetScriptRunDiagnosticsToolArgs,
   type GetSidebarItemByUuidToolArgs,
   type GitCommitsToolArgs,
@@ -29,7 +34,10 @@ import {
   type SearchDocsToolArgs,
   type SendActiveRequestToolArgs,
   type SetActiveEnvironmentToolArgs,
+  type StartLiveServerToolArgs,
+  type StopLiveServerToolArgs,
   type TerminalExecToolArgs,
+  type UpdateLiveServerToolArgs,
   type UpdateRequestScriptToolArgs
 } from '@harborclient/core/ai/tools';
 import { getScriptingApiReferenceText } from '@harborclient/core/ai/scriptingApiReference';
@@ -63,6 +71,8 @@ import {
   selectEnvironments,
   selectFoldersByCollection,
   selectRequestsByCollection,
+  selectRunningLiveServers,
+  selectSavedLiveServers,
   selectSelectedCollectionId,
   selectSnippets,
   selectTabs
@@ -95,6 +105,17 @@ import {
 } from '#/renderer/src/plugins/hostRequestCommands';
 import type { CreateCollectionRequest } from '@harborclient/sdk';
 import { createFolder, refreshRequests } from '#/renderer/src/store/thunks/collections';
+import {
+  createSavedLiveServer,
+  deleteSavedLiveServer,
+  refreshLiveServers,
+  refreshRunningLiveServers,
+  startLiveServer,
+  stopLiveServer,
+  toLiveServerConfig,
+  updateSavedLiveServer
+} from '#/renderer/src/store/thunks/liveServers';
+import { normalizeLiveServerCorsSettings } from '@harborclient/core/types';
 import type { OperatingSystemInfo } from '@harborclient/core/types';
 import type {
   AuthConfig,
@@ -104,11 +125,37 @@ import type {
   Folder,
   HttpMethod,
   KeyValue,
+  LiveServer,
+  LiveServerAlias,
+  LiveServerCorsSettings,
+  LiveServerLogsQuery,
+  LiveServerRequestLogEntry,
+  RunningLiveServer,
   SavedRequest,
   ScriptRef,
   Snippet,
   Variable
 } from '@harborclient/core/types';
+
+/**
+ * Maximum access-log lines returned by get_live_server_logs per call.
+ */
+const MAX_LIVE_SERVER_LOG_LINES = 1000;
+
+/**
+ * Default access-log line count when maxLines is omitted.
+ */
+const DEFAULT_LIVE_SERVER_LOG_LINES = 100;
+
+/**
+ * Returns whether a path looks like an absolute filesystem root for live servers.
+ *
+ * @param root - Candidate document-root path.
+ * @returns True for POSIX absolute paths and Windows drive paths.
+ */
+function isAbsoluteLiveServerRoot(root: string): boolean {
+  return root.startsWith('/') || /^[A-Za-z]:[\\/]/.test(root);
+}
 
 /**
  * Supported HTTP methods for update_active_request validation.
@@ -292,6 +339,26 @@ export async function executeAiTool(
         return JSON.stringify(await webpageInjectStylesheet(args, ctx.getState()));
       case 'get_markdown_document':
         return JSON.stringify(await getMarkdownDocument(args, ctx.getState()));
+      case 'list_live_servers':
+        return JSON.stringify(await listLiveServersTool(ctx));
+      case 'list_running_live_servers':
+        return JSON.stringify(await listRunningLiveServersTool(ctx));
+      case 'get_live_server':
+        return JSON.stringify(await getLiveServerTool(args, ctx));
+      case 'get_live_server_logs':
+        return JSON.stringify(await getLiveServerLogsTool(args));
+      case 'start_live_server':
+        return JSON.stringify(await startLiveServerTool(args, ctx));
+      case 'stop_live_server':
+        return JSON.stringify(await stopLiveServerTool(args, ctx));
+      case 'create_live_server':
+        return JSON.stringify(await createLiveServerTool(args, ctx));
+      case 'update_live_server':
+        return JSON.stringify(await updateLiveServerTool(args, ctx));
+      case 'delete_live_server':
+        return JSON.stringify(await deleteLiveServerTool(args, ctx));
+      case 'clear_live_server_logs':
+        return JSON.stringify(await clearLiveServerLogsTool(args));
       default: {
         const exhaustive: never = name;
         return JSON.stringify({ error: `Unhandled tool: ${String(exhaustive)}` });
@@ -1884,4 +1951,503 @@ async function createRequestTool(
       folderId: saved.folder_id
     }
   };
+}
+
+/**
+ * Compact summary of a saved live server for AI tool results.
+ */
+type LiveServerSummary = {
+  id: number;
+  uuid: string;
+  name: string;
+  root: string;
+  port: number | null;
+  aliases: LiveServerAlias[];
+  watch: boolean;
+  cors: LiveServerCorsSettings;
+};
+
+/**
+ * Compact summary of a running live server for AI tool results.
+ */
+type RunningLiveServerSummary = {
+  id: string;
+  savedId: number | null;
+  name: string;
+  root: string;
+  port: number;
+  origin: string;
+  startedAt: number;
+  watch: boolean;
+  watchUnavailable?: boolean;
+  aliases: LiveServerAlias[];
+  cors: LiveServerCorsSettings;
+};
+
+/**
+ * Maps a saved live server row to a compact AI-facing summary.
+ *
+ * @param server - Saved live server from the store or API.
+ * @returns Summary fields the agent needs for inspection and follow-up calls.
+ */
+function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
+  return {
+    id: server.id,
+    uuid: server.uuid,
+    name: server.name,
+    root: server.root,
+    port: server.port,
+    aliases: server.aliases,
+    watch: server.watch,
+    cors: server.cors
+  };
+}
+
+/**
+ * Maps a running live server instance to a compact AI-facing summary.
+ *
+ * @param server - Running instance from the store or API.
+ * @returns Summary fields including origin and runtime id.
+ */
+function summarizeRunningLiveServer(server: RunningLiveServer): RunningLiveServerSummary {
+  return {
+    id: server.id,
+    savedId: server.savedId,
+    name: server.config.name,
+    root: server.config.root,
+    port: server.port,
+    origin: server.origin,
+    startedAt: server.startedAt,
+    watch: server.config.watch,
+    ...(server.watchUnavailable ? { watchUnavailable: true } : {}),
+    aliases: server.config.aliases,
+    cors: server.config.cors
+  };
+}
+
+/**
+ * Lists saved live servers, refreshing from the registry first.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @returns Compact summaries of every saved live server.
+ */
+async function listLiveServersTool(ctx: AiToolContext): Promise<LiveServerSummary[]> {
+  await ctx.dispatch(refreshLiveServers()).unwrap();
+  return selectSavedLiveServers(ctx.getState()).map(summarizeSavedLiveServer);
+}
+
+/**
+ * Lists running live servers, refreshing from the main process first.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @returns Compact summaries of every running instance.
+ */
+async function listRunningLiveServersTool(ctx: AiToolContext): Promise<RunningLiveServerSummary[]> {
+  await ctx.dispatch(refreshRunningLiveServers()).unwrap();
+  return selectRunningLiveServers(ctx.getState()).map(summarizeRunningLiveServer);
+}
+
+/**
+ * Returns one saved live server by database id or uuid.
+ *
+ * @param args - Tool arguments with id and/or uuid.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Saved server summary or an error object.
+ */
+async function getLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<LiveServerSummary | { error: string }> {
+  const parsed = args as GetLiveServerToolArgs;
+  const hasId = typeof parsed?.id === 'number' && Number.isFinite(parsed.id);
+  const uuid = typeof parsed?.uuid === 'string' ? parsed.uuid.trim() : '';
+  if (!hasId && !uuid) {
+    return { error: 'id or uuid is required.' };
+  }
+
+  await ctx.dispatch(refreshLiveServers()).unwrap();
+  const saved = selectSavedLiveServers(ctx.getState());
+  const server = hasId
+    ? saved.find((entry) => entry.id === parsed.id)
+    : saved.find((entry) => entry.uuid === uuid);
+
+  if (!server) {
+    return { error: 'Live server not found.' };
+  }
+  return summarizeSavedLiveServer(server);
+}
+
+/**
+ * Resolves a live-server logs query from tool arguments.
+ *
+ * @param args - Arguments with savedId and/or runtime id.
+ * @returns Logs query or null when neither identifier is present.
+ */
+function resolveLiveServerLogsQuery(
+  args: ClearLiveServerLogsToolArgs | GetLiveServerLogsToolArgs
+): LiveServerLogsQuery | null {
+  if (typeof args?.savedId === 'number' && Number.isFinite(args.savedId)) {
+    return { savedId: args.savedId };
+  }
+  if (typeof args?.id === 'string' && args.id.trim()) {
+    return { id: args.id.trim() };
+  }
+  return null;
+}
+
+/**
+ * Returns capped access-log lines for a running live server.
+ *
+ * @param args - Tool arguments with savedId/id and optional maxLines.
+ * @returns Log snapshot with truncation metadata, or an error object.
+ */
+async function getLiveServerLogsTool(args: unknown): Promise<
+  | {
+      query: LiveServerLogsQuery;
+      totalLines: number;
+      lines: LiveServerRequestLogEntry[];
+      truncated: boolean;
+    }
+  | { error: string }
+> {
+  const parsed = args as GetLiveServerLogsToolArgs;
+  const query = resolveLiveServerLogsQuery(parsed);
+  if (!query) {
+    return { error: 'savedId or id is required.' };
+  }
+
+  const all = await window.api.getLiveServerLogs(query);
+  const requested =
+    typeof parsed.maxLines === 'number' && Number.isFinite(parsed.maxLines)
+      ? Math.floor(parsed.maxLines)
+      : DEFAULT_LIVE_SERVER_LOG_LINES;
+  const maxLines = Math.min(Math.max(1, requested), MAX_LIVE_SERVER_LOG_LINES);
+  const lines = all.length > maxLines ? all.slice(all.length - maxLines) : all;
+
+  return {
+    query,
+    totalLines: all.length,
+    lines,
+    truncated: all.length > lines.length
+  };
+}
+
+/**
+ * Parses optional alias rows for create/start/update tools.
+ *
+ * @param value - Unknown aliases argument.
+ * @returns Validated aliases or throws.
+ */
+function parseLiveServerAliases(value: unknown): LiveServerAlias[] {
+  if (value == null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('aliases must be an array.');
+  }
+  return value.map((entry, index) => {
+    if (entry == null || typeof entry !== 'object') {
+      throw new Error(`aliases[${index}] must be an object.`);
+    }
+    const row = entry as { path?: unknown; target?: unknown };
+    const path = typeof row.path === 'string' ? row.path.trim() : '';
+    const target = typeof row.target === 'string' ? row.target.trim() : '';
+    if (!path || !target) {
+      throw new Error(`aliases[${index}] requires non-empty path and target.`);
+    }
+    return { path, target };
+  });
+}
+
+/**
+ * Starts a live server from a saved id or an ad-hoc config.
+ *
+ * @param args - Tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Started instance summary or an error object.
+ */
+async function startLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+      ok: true;
+      id: string;
+      savedId: number | null;
+      port: number;
+      origin: string;
+      watchUnavailable?: boolean;
+      openBrowser: boolean;
+    }
+  | { error: string }
+> {
+  const parsed = args as StartLiveServerToolArgs;
+  const openBrowser = parsed.openBrowser !== false;
+  const hasSavedId = typeof parsed.savedId === 'number' && Number.isFinite(parsed.savedId);
+
+  if (hasSavedId) {
+    await ctx.dispatch(refreshLiveServers()).unwrap();
+    const saved = selectSavedLiveServers(ctx.getState()).find(
+      (entry) => entry.id === parsed.savedId
+    );
+    if (!saved) {
+      return { error: 'Saved live server not found.' };
+    }
+    const running = await ctx
+      .dispatch(
+        startLiveServer({
+          savedId: saved.id,
+          config: toLiveServerConfig({
+            name: saved.name,
+            root: saved.root,
+            port: saved.port,
+            aliases: saved.aliases,
+            watch: saved.watch,
+            cors: saved.cors
+          }),
+          openBrowser
+        })
+      )
+      .unwrap();
+    return {
+      ok: true,
+      id: running.id,
+      savedId: running.savedId,
+      port: running.port,
+      origin: running.origin,
+      ...(running.watchUnavailable ? { watchUnavailable: true } : {}),
+      openBrowser
+    };
+  }
+
+  const root = typeof parsed.root === 'string' ? parsed.root.trim() : '';
+  if (!root) {
+    return { error: 'root is required when savedId is omitted.' };
+  }
+  if (!isAbsoluteLiveServerRoot(root)) {
+    return { error: 'root must be an absolute filesystem path.' };
+  }
+
+  const name =
+    typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : 'Live Server';
+  const port =
+    parsed.port === null
+      ? null
+      : typeof parsed.port === 'number' && Number.isFinite(parsed.port)
+        ? Math.floor(parsed.port)
+        : null;
+  const aliases = parseLiveServerAliases(parsed.aliases);
+  const watch = parsed.watch !== false;
+  const cors = normalizeLiveServerCorsSettings(parsed.cors);
+
+  const running = await ctx
+    .dispatch(
+      startLiveServer({
+        savedId: null,
+        config: toLiveServerConfig({ name, root, port, aliases, watch, cors }),
+        openBrowser
+      })
+    )
+    .unwrap();
+
+  return {
+    ok: true,
+    id: running.id,
+    savedId: running.savedId,
+    port: running.port,
+    origin: running.origin,
+    ...(running.watchUnavailable ? { watchUnavailable: true } : {}),
+    openBrowser
+  };
+}
+
+/**
+ * Stops a running live server by runtime id or saved id.
+ *
+ * @param args - Tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Success payload or an error object.
+ */
+async function stopLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<{ ok: true; id: string } | { error: string }> {
+  const parsed = args as StopLiveServerToolArgs;
+  await ctx.dispatch(refreshRunningLiveServers()).unwrap();
+  const running = selectRunningLiveServers(ctx.getState());
+
+  let runtimeId = typeof parsed.id === 'string' ? parsed.id.trim() : '';
+  if (!runtimeId && typeof parsed.savedId === 'number' && Number.isFinite(parsed.savedId)) {
+    const match = running.find((entry) => entry.savedId === parsed.savedId);
+    if (!match) {
+      return { error: 'No running live server matches that savedId.' };
+    }
+    runtimeId = match.id;
+  }
+  if (!runtimeId) {
+    return { error: 'id or savedId is required.' };
+  }
+  if (!running.some((entry) => entry.id === runtimeId)) {
+    return { error: 'Running live server not found.' };
+  }
+
+  await ctx.dispatch(stopLiveServer(runtimeId)).unwrap();
+  return { ok: true, id: runtimeId };
+}
+
+/**
+ * Creates a saved live server in the local registry.
+ *
+ * @param args - Tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Created server summary or an error object.
+ */
+async function createLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<{ ok: true; server: LiveServerSummary } | { error: string }> {
+  const parsed = args as CreateLiveServerToolArgs;
+  const name = typeof parsed?.name === 'string' ? parsed.name.trim() : '';
+  const root = typeof parsed?.root === 'string' ? parsed.root.trim() : '';
+  if (!name) {
+    return { error: 'name is required.' };
+  }
+  if (!root) {
+    return { error: 'root is required.' };
+  }
+  if (!isAbsoluteLiveServerRoot(root)) {
+    return { error: 'root must be an absolute filesystem path.' };
+  }
+
+  const port =
+    parsed.port === undefined
+      ? null
+      : parsed.port === null
+        ? null
+        : typeof parsed.port === 'number' && Number.isFinite(parsed.port)
+          ? Math.floor(parsed.port)
+          : null;
+  const aliases = parseLiveServerAliases(parsed.aliases);
+  const watch = parsed.watch !== false;
+  const cors = normalizeLiveServerCorsSettings(parsed.cors);
+
+  const created = await ctx
+    .dispatch(
+      createSavedLiveServer({
+        name,
+        root,
+        port,
+        aliases,
+        watch,
+        cors
+      })
+    )
+    .unwrap();
+
+  return { ok: true, server: summarizeSavedLiveServer(created) };
+}
+
+/**
+ * Updates a saved live server in the local registry.
+ *
+ * @param args - Tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Updated server summary or an error object.
+ */
+async function updateLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<{ ok: true; server: LiveServerSummary } | { error: string }> {
+  const parsed = args as UpdateLiveServerToolArgs;
+  if (typeof parsed?.id !== 'number' || !Number.isFinite(parsed.id)) {
+    return { error: 'id is required.' };
+  }
+  const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+  const root = typeof parsed.root === 'string' ? parsed.root.trim() : '';
+  if (!name) {
+    return { error: 'name is required.' };
+  }
+  if (!root) {
+    return { error: 'root is required.' };
+  }
+  if (!isAbsoluteLiveServerRoot(root)) {
+    return { error: 'root must be an absolute filesystem path.' };
+  }
+  if (parsed.port !== null && (typeof parsed.port !== 'number' || !Number.isFinite(parsed.port))) {
+    return { error: 'port must be a number or null.' };
+  }
+  if (typeof parsed.watch !== 'boolean') {
+    return { error: 'watch is required.' };
+  }
+  if (parsed.cors == null || typeof parsed.cors !== 'object') {
+    return { error: 'cors is required.' };
+  }
+
+  const aliases = parseLiveServerAliases(parsed.aliases);
+  const cors = normalizeLiveServerCorsSettings(parsed.cors);
+
+  await ctx
+    .dispatch(
+      updateSavedLiveServer({
+        id: parsed.id,
+        name,
+        root,
+        port: parsed.port === null ? null : Math.floor(parsed.port),
+        aliases,
+        watch: parsed.watch,
+        cors
+      })
+    )
+    .unwrap();
+
+  await ctx.dispatch(refreshLiveServers()).unwrap();
+  const updated = selectSavedLiveServers(ctx.getState()).find((entry) => entry.id === parsed.id);
+  if (!updated) {
+    return { error: 'Live server not found after update.' };
+  }
+  return { ok: true, server: summarizeSavedLiveServer(updated) };
+}
+
+/**
+ * Deletes a saved live server from the local registry.
+ *
+ * @param args - Tool arguments.
+ * @param ctx - Redux getState and dispatch.
+ * @returns Success payload or an error object.
+ */
+async function deleteLiveServerTool(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<{ ok: true; id: number } | { error: string }> {
+  const parsed = args as DeleteLiveServerToolArgs;
+  if (typeof parsed?.id !== 'number' || !Number.isFinite(parsed.id)) {
+    return { error: 'id is required.' };
+  }
+
+  await ctx.dispatch(refreshLiveServers()).unwrap();
+  const exists = selectSavedLiveServers(ctx.getState()).some((entry) => entry.id === parsed.id);
+  if (!exists) {
+    return { error: 'Live server not found.' };
+  }
+
+  await ctx.dispatch(deleteSavedLiveServer(parsed.id)).unwrap();
+  return { ok: true, id: parsed.id };
+}
+
+/**
+ * Clears the in-memory access-log buffer for a running live server.
+ *
+ * @param args - Tool arguments with savedId or runtime id.
+ * @returns Success payload or an error object.
+ */
+async function clearLiveServerLogsTool(
+  args: unknown
+): Promise<{ ok: true; query: LiveServerLogsQuery } | { error: string }> {
+  const parsed = args as ClearLiveServerLogsToolArgs;
+  const query = resolveLiveServerLogsQuery(parsed);
+  if (!query) {
+    return { error: 'savedId or id is required.' };
+  }
+  await window.api.clearLiveServerLogs(query);
+  return { ok: true, query };
 }

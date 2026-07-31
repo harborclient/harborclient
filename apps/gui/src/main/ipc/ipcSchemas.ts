@@ -923,6 +923,7 @@ export const panelLayout = z.object({
   showVariables: z.boolean(),
   showMcp: z.boolean(),
   showTerminal: z.boolean(),
+  showLiveServerLogs: z.boolean(),
   activePluginFooterPanelId: z.string().nullable()
 }) satisfies z.ZodType<PanelLayoutState>;
 
@@ -1518,6 +1519,8 @@ export const ipcArgSchemas = {
       workflowId: z.number().optional()
     })
   ]),
+  pluginPushLiveServersRunningChanged: z.tuple([z.array(z.unknown())]),
+  pluginPushLiveServerRequestLog: z.tuple([z.unknown()]),
   pluginPushSidebarSelectionChanged: z.tuple([
     z
       .object({

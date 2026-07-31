@@ -32,7 +32,7 @@ interface Props {
 }
 
 /**
- * One editable alias row (URL path → filesystem target) in the live server modal.
+ * One editable alias row (URL path → filesystem target) in the live server panel.
  */
 export function AliasRow({ index, alias, disabled, onChange, onRemove }: Props): JSX.Element {
   const pathId = `live-server-alias-path-${index}`;

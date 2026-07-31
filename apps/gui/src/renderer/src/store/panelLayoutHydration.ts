@@ -11,6 +11,7 @@ import {
   setShowRequestEditor,
   setShowResponseEditor,
   setShowSidebar,
+  setShowLiveServerLogs,
   setShowTerminal,
   setShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -108,6 +109,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   dispatch(setShowVariables(layout.showVariables));
   dispatch(setShowMcp(layout.showMcp));
   dispatch(setShowTerminal(layout.showTerminal));
+  dispatch(setShowLiveServerLogs(layout.showLiveServerLogs));
   dispatch(setActivePluginFooterPanelId(layout.activePluginFooterPanelId));
   panelLayoutHydrated = true;
 
@@ -124,6 +126,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
       showVariables: layout.showVariables,
       showMcp: layout.showMcp,
       showTerminal: layout.showTerminal,
+      showLiveServerLogs: layout.showLiveServerLogs,
       activePluginFooterPanelId: layout.activePluginFooterPanelId
     });
     try {

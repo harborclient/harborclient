@@ -79,6 +79,13 @@ export const selectRunningLiveServers = (state: RootState): RootState['liveServe
   state.liveServers.running;
 
 /**
+ * Returns the saved live server id whose logs the footer panel displays.
+ */
+export const selectLiveServerLogsSavedId = (
+  state: RootState
+): RootState['liveServers']['logsSavedId'] => state.liveServers.logsSavedId;
+
+/**
  * Returns workflows marked archived (shown in the Archive sidebar under Workflows mode).
  */
 export const selectArchivedWorkflows = createSelector([selectAllWorkflows], (workflows) =>

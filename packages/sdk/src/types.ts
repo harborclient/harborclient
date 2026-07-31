@@ -1556,6 +1556,465 @@ export interface PluginMcp {
 }
 
 /**
+ * URL-path-to-filesystem alias for a Harbor Live Server.
+ */
+export interface LiveServerAlias {
+  /**
+   * URL path prefix, e.g. `/assets`.
+   */
+  path: string;
+
+  /**
+   * Filesystem target, absolute or relative to the server root.
+   */
+  target: string;
+}
+
+/**
+ * CORS middleware settings for a Harbor Live Server.
+ */
+export interface LiveServerCorsSettings {
+  /**
+   * When true, CORS middleware is mounted.
+   */
+  enabled: boolean;
+
+  /**
+   * Allowed origin(s): `*` or a comma-separated list of origins.
+   */
+  origin: string;
+
+  /**
+   * Allowed methods: `*` or a comma-separated list (e.g. `GET,POST`).
+   */
+  methods: string;
+
+  /**
+   * Allowed request headers: `*`, empty (reflect request), or comma-separated names.
+   */
+  allowedHeaders: string;
+
+  /**
+   * When true, responses include `Access-Control-Allow-Credentials`.
+   */
+  credentials: boolean;
+}
+
+/**
+ * Configuration shared by saved and running Harbor Live Servers.
+ */
+export interface LiveServerConfig {
+  /**
+   * Display name shown in the sidebar and plugin APIs.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select from 5500 upward.
+   */
+  port: number | null;
+
+  /**
+   * Path aliases mounted before the document root static middleware.
+   */
+  aliases: LiveServerAlias[];
+
+  /**
+   * When true, the host watches the root (and alias targets) for changes.
+   */
+  watch: boolean;
+
+  /**
+   * CORS middleware settings applied when the server starts.
+   */
+  cors: LiveServerCorsSettings;
+}
+
+/**
+ * A saved Harbor Live Server config in the local registry.
+ */
+export interface LiveServer {
+  /**
+   * Database primary key.
+   */
+  id: number;
+
+  /**
+   * Stable portable identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display name.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select.
+   */
+  port: number | null;
+
+  /**
+   * Path aliases mounted before the document root.
+   */
+  aliases: LiveServerAlias[];
+
+  /**
+   * Whether file watching is enabled when this server is started.
+   */
+  watch: boolean;
+
+  /**
+   * CORS middleware settings applied when the server starts.
+   */
+  cors: LiveServerCorsSettings;
+
+  /**
+   * Sort order within the Live Servers sidebar section.
+   */
+  sortOrder: number;
+
+  /**
+   * Unix timestamp (ms) when the row was created.
+   */
+  createdAt: number;
+
+  /**
+   * Unix timestamp (ms) when the row was last updated.
+   */
+  updatedAt: number;
+}
+
+/**
+ * Input for creating a saved Harbor Live Server.
+ */
+export interface CreateLiveServerInput {
+  /**
+   * Display name for the saved server.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select.
+   */
+  port?: number | null;
+
+  /**
+   * Path aliases to persist.
+   */
+  aliases?: LiveServerAlias[];
+
+  /**
+   * Whether file watching is enabled when started. Defaults to true.
+   */
+  watch?: boolean;
+
+  /**
+   * CORS settings to persist.
+   */
+  cors?: LiveServerCorsSettings;
+}
+
+/**
+ * Input for updating a saved Harbor Live Server.
+ *
+ * Does not restart a running instance; stop and start again to apply changes.
+ */
+export interface UpdateLiveServerInput {
+  /**
+   * Database primary key of the server to update.
+   */
+  id: number;
+
+  /**
+   * Display name for the saved server.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select.
+   */
+  port: number | null;
+
+  /**
+   * Path aliases to persist.
+   */
+  aliases: LiveServerAlias[];
+
+  /**
+   * Whether file watching is enabled when started.
+   */
+  watch: boolean;
+
+  /**
+   * CORS settings to persist.
+   */
+  cors: LiveServerCorsSettings;
+}
+
+/**
+ * Input for starting a Harbor Live Server instance.
+ *
+ * Provide `savedId` to start from a persisted config (config optional override),
+ * or provide `config` alone for an ad-hoc run. Does not open a browser tab;
+ * use {@link PluginContext.webpage} when the `browser` permission is granted.
+ */
+export interface StartLiveServerInput {
+  /**
+   * Optional runtime instance id; generated when omitted.
+   */
+  id?: string;
+
+  /**
+   * Saved `live_servers.id` when starting from a persisted config.
+   */
+  savedId?: number | null;
+
+  /**
+   * Server configuration for this run. Required when `savedId` is omitted.
+   */
+  config?: LiveServerConfig;
+}
+
+/**
+ * A currently running Harbor Live Server instance.
+ */
+export interface RunningLiveServer {
+  /**
+   * Runtime instance id (uuid), distinct from a saved server id.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Configuration used for this run.
+   */
+  config: LiveServerConfig;
+
+  /**
+   * Assigned listen port after the server is accepting connections.
+   */
+  port: number;
+
+  /**
+   * Origin string such as `http://127.0.0.1:5500`.
+   */
+  origin: string;
+
+  /**
+   * Unix timestamp (ms) when the instance started.
+   */
+  startedAt: number;
+
+  /**
+   * When true, file watching was requested but could not be started.
+   */
+  watchUnavailable?: boolean;
+}
+
+/**
+ * One Express access-log line from a running Harbor Live Server.
+ */
+export interface LiveServerRequestLogEntry {
+  /**
+   * Runtime instance id of the server that handled the request.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when the instance was started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Unix timestamp (ms) when the request was received.
+   */
+  timestamp: number;
+
+  /**
+   * HTTP method (e.g. `GET`).
+   */
+  method: string;
+
+  /**
+   * Request URL path including query string.
+   */
+  url: string;
+
+  /**
+   * HTTP response status code.
+   */
+  statusCode: number;
+
+  /**
+   * Time from request start to response finish/close, in milliseconds.
+   */
+  durationMs: number;
+
+  /**
+   * Response `Content-Length` when present and numeric; otherwise null.
+   */
+  contentLength: number | null;
+}
+
+/**
+ * Query used to read or clear buffered request logs for one running instance.
+ */
+export type LiveServerLogsQuery = { savedId: number } | { id: string };
+
+/**
+ * Query used to stop a running Harbor Live Server or read its status.
+ */
+export type LiveServerInstanceQuery = { savedId: number } | { id: string };
+
+/**
+ * Options for {@link PluginLiveServers.getLogs}.
+ */
+export type LiveServerGetLogsQuery = LiveServerLogsQuery & {
+  /**
+   * Maximum number of trailing log lines to return (default 100, max 1000).
+   */
+  limit?: number;
+};
+
+/**
+ * Harbor Live Server APIs available on {@link PluginContext.liveServers}.
+ *
+ * Requires the `live-server` permission. Saved-config mutations do not start,
+ * stop, or restart running instances.
+ */
+export interface PluginLiveServers {
+  /**
+   * Lists all saved live servers from the local registry.
+   *
+   * @returns Saved live server rows.
+   */
+  list(): Promise<LiveServer[]>;
+
+  /**
+   * Returns one saved live server by database id or uuid.
+   *
+   * @param idOrUuid - Numeric id or uuid string.
+   * @returns The saved server, or null when not found.
+   */
+  get(idOrUuid: number | string): Promise<LiveServer | null>;
+
+  /**
+   * Creates a saved live server and returns the new row.
+   *
+   * @param input - Name, root, and optional port/aliases/watch/cors.
+   * @returns The created saved server.
+   */
+  create(input: CreateLiveServerInput): Promise<LiveServer>;
+
+  /**
+   * Updates a saved live server and returns the refreshed row.
+   *
+   * Does not restart a running instance.
+   *
+   * @param input - Full update payload including id.
+   * @returns The updated saved server.
+   */
+  update(input: UpdateLiveServerInput): Promise<LiveServer>;
+
+  /**
+   * Deletes a saved live server.
+   *
+   * Does not stop a running instance that was started from this saved id.
+   *
+   * @param id - Database primary key.
+   */
+  delete(id: number): Promise<void>;
+
+  /**
+   * Starts a live server from a saved id and/or an ad-hoc config.
+   *
+   * Does not open a browser tab. Returns the running instance (loopback only).
+   *
+   * @param input - `savedId` and/or `config` (config required without savedId).
+   * @returns The running instance with assigned port and origin.
+   */
+  start(input: StartLiveServerInput): Promise<RunningLiveServer>;
+
+  /**
+   * Stops one running live server by runtime id or saved id.
+   *
+   * @param query - Runtime `id` or `savedId`.
+   */
+  stop(query: LiveServerInstanceQuery): Promise<void>;
+
+  /**
+   * Lists currently running live server instances.
+   *
+   * @returns Running instances in start order.
+   */
+  listRunning(): Promise<RunningLiveServer[]>;
+
+  /**
+   * Returns the running status for one instance, or null when not running.
+   *
+   * @param query - Runtime `id` or `savedId`.
+   * @returns The running instance, or null.
+   */
+  getStatus(query: LiveServerInstanceQuery): Promise<RunningLiveServer | null>;
+
+  /**
+   * Returns buffered Express request logs for a running live server.
+   *
+   * @param query - Runtime `id` or `savedId`, plus optional `limit`.
+   * @returns Trailing access-log entries (empty when not running).
+   */
+  getLogs(query: LiveServerGetLogsQuery): Promise<LiveServerRequestLogEntry[]>;
+
+  /**
+   * Clears the in-memory request log buffer for a running live server.
+   *
+   * @param query - Runtime `id` or `savedId`.
+   */
+  clearLogs(query: LiveServerLogsQuery): Promise<void>;
+
+  /**
+   * Subscribes to running-server list changes (start/stop).
+   *
+   * @param listener - Called with the refreshed running list.
+   * @returns A {@link Disposable} that removes the listener.
+   */
+  onRunningChanged(listener: (running: RunningLiveServer[]) => void): Disposable;
+
+  /**
+   * Subscribes to Express request log lines from running live servers.
+   *
+   * @param listener - Called for each completed request.
+   * @returns A {@link Disposable} that removes the listener.
+   */
+  onRequestLog(listener: (entry: LiveServerRequestLogEntry) => void): Disposable;
+}
+
+/**
  * Config for {@link PluginAi.registerChatPointer}.
  */
 export interface PluginChatPointerConfig {
@@ -3607,6 +4066,12 @@ export interface PluginContext {
    * permission.
    */
   mcp: PluginMcp;
+
+  /**
+   * Harbor Live Server CRUD, start/stop, status, and logs. Requires the `live-server`
+   * permission.
+   */
+  liveServers: PluginLiveServers;
 
   /**
    * AI chat pointer registration and copy-to-chat. Requires the `ai` permission.

@@ -62,6 +62,7 @@ describe('captureSidebarFooterSnapshot', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     } satisfies SidebarFooterLayoutSnapshot);
   });
@@ -89,6 +90,7 @@ describe('hideSidebarsAndFooterPanels', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
     expect(state.showSidebar).toBe(false);
@@ -100,6 +102,7 @@ describe('hideSidebarsAndFooterPanels', () => {
     expect(state.showVariables).toBe(false);
     expect(state.showMcp).toBe(false);
     expect(state.showTerminal).toBe(false);
+    expect(state.showLiveServerLogs).toBe(false);
     expect(state.activePluginFooterPanelId).toBeNull();
   });
 
@@ -122,6 +125,7 @@ describe('hideSidebarsAndFooterPanels', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
   });
@@ -178,6 +182,7 @@ describe('showSidebarsAndFooterPanels', () => {
       showVariables: true,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
 
@@ -202,6 +207,7 @@ describe('showSidebarsAndFooterPanels', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
 

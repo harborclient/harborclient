@@ -27,6 +27,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     },
     panelSizes: {

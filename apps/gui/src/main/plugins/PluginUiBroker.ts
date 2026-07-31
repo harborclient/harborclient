@@ -128,7 +128,18 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'webpage.evaluate': 'browser',
   'webpage.injectScript': 'browser',
   'webpage.injectStylesheet': 'browser',
-  'webpage.screenshot': 'browser'
+  'webpage.screenshot': 'browser',
+  'liveServers.list': 'live-server',
+  'liveServers.get': 'live-server',
+  'liveServers.create': 'live-server',
+  'liveServers.update': 'live-server',
+  'liveServers.delete': 'live-server',
+  'liveServers.start': 'live-server',
+  'liveServers.stop': 'live-server',
+  'liveServers.listRunning': 'live-server',
+  'liveServers.getStatus': 'live-server',
+  'liveServers.getLogs': 'live-server',
+  'liveServers.clearLogs': 'live-server'
 };
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
@@ -182,7 +193,18 @@ const HOST_BRIDGE_RETURN_OPS = new Set([
   'webpage.evaluate',
   'webpage.injectScript',
   'webpage.injectStylesheet',
-  'webpage.screenshot'
+  'webpage.screenshot',
+  'liveServers.list',
+  'liveServers.get',
+  'liveServers.create',
+  'liveServers.update',
+  'liveServers.delete',
+  'liveServers.start',
+  'liveServers.stop',
+  'liveServers.listRunning',
+  'liveServers.getStatus',
+  'liveServers.getLogs',
+  'liveServers.clearLogs'
 ]);
 
 /** Maximum wait for the host renderer to complete a return-value host bridge call. */
@@ -483,6 +505,42 @@ export class PluginUiBroker {
       this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
         channel: 'sidebar.selection.changed',
         payload: selection
+      });
+    }
+  }
+
+  /**
+   * Pushes the refreshed running live-server list to plugin webviews that declare
+   * the `live-server` permission so `hc.liveServers.onRunningChanged` stays in sync.
+   *
+   * @param running - Current running live server instances.
+   */
+  pushLiveServersRunningChanged(running: unknown): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasLiveServerPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'liveServers.runningChanged',
+        payload: running
+      });
+    }
+  }
+
+  /**
+   * Pushes one Express access-log line to plugin webviews that declare the
+   * `live-server` permission so `hc.liveServers.onRequestLog` stays in sync.
+   *
+   * @param entry - Access-log entry from a running live server.
+   */
+  pushLiveServerRequestLog(entry: unknown): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasLiveServerPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'liveServers.requestLog',
+        payload: entry
       });
     }
   }
@@ -1069,6 +1127,21 @@ export class PluginUiBroker {
       return false;
     }
     return this.#pluginManager.getPluginPermissions(session.pluginId).includes('ui');
+  }
+
+  /**
+   * Returns whether a session belongs to a loaded plugin with the `live-server` permission.
+   *
+   * Stale sessions for disabled or removed plugins are pruned instead of throwing.
+   *
+   * @param webContentsId - Registered webContents id.
+   * @param session - Session metadata for the webview.
+   */
+  #sessionHasLiveServerPermission(webContentsId: number, session: PluginWebviewSession): boolean {
+    if (!this.#isKnownPluginSession(webContentsId, session)) {
+      return false;
+    }
+    return this.#pluginManager.getPluginPermissions(session.pluginId).includes('live-server');
   }
 }
 

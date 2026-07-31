@@ -3,6 +3,7 @@ import type { LiveServer, RunningLiveServer } from '@harborclient/core/types';
 import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
 import liveServersReducer, {
   bindLiveServerTab,
+  setLiveServerLogsSelection,
   setRunningLiveServers,
   setSavedLiveServers,
   unbindLiveServerTab
@@ -60,8 +61,28 @@ describe('liveServersSlice', () => {
     expect(state).toEqual({
       saved: [],
       running: [],
-      tabIdsByServerId: {}
+      tabIdsByServerId: {},
+      logsSavedId: null,
+      logsSelections: {}
     });
+  });
+
+  it('stores access-log selection snapshots by token', () => {
+    const token = '@logs.55555555-5555-5555-5555-555555555555#1.40';
+    const state = liveServersReducer(
+      undefined,
+      setLiveServerLogsSelection({
+        token,
+        snapshot: {
+          label: 'Logs: Docs',
+          startLine: 1,
+          endLine: 40,
+          selectedText: 'GET / 200',
+          contextText: 'GET / 200'
+        }
+      })
+    );
+    expect(state.logsSelections[token]?.label).toBe('Logs: Docs');
   });
 
   it('replaces saved and running lists', () => {

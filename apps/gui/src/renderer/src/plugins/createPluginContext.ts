@@ -99,6 +99,23 @@ import {
   updateWorkflowForPlugin
 } from './hostWorkflowCommands';
 import {
+  clearLiveServerLogsForPlugin,
+  createLiveServerForPlugin,
+  deleteLiveServerForPlugin,
+  getLiveServerForPlugin,
+  getLiveServerLogsForPlugin,
+  getLiveServerStatusForPlugin,
+  listLiveServersForPlugin,
+  listRunningLiveServersForPlugin,
+  startLiveServerForPlugin,
+  stopLiveServerForPlugin,
+  updateLiveServerForPlugin
+} from './hostLiveServerCommands';
+import {
+  subscribePluginLiveServerRequestLog,
+  subscribePluginLiveServersRunningChanged
+} from './pluginLiveServersBus';
+import {
   getSidebarSelection,
   setSidebarSelection,
   subscribePluginSidebarSelectionChanged
@@ -900,6 +917,60 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       registerServer: () => {
         assertPermission('mcp');
         return track({ dispose: () => undefined });
+      }
+    },
+    liveServers: {
+      list: async () => {
+        assertPermission('live-server');
+        return listLiveServersForPlugin();
+      },
+      get: async (idOrUuid) => {
+        assertPermission('live-server');
+        return getLiveServerForPlugin(idOrUuid);
+      },
+      create: async (input) => {
+        assertPermission('live-server');
+        return createLiveServerForPlugin(input);
+      },
+      update: async (input) => {
+        assertPermission('live-server');
+        return updateLiveServerForPlugin(input);
+      },
+      delete: async (id) => {
+        assertPermission('live-server');
+        await deleteLiveServerForPlugin(id);
+      },
+      start: async (input) => {
+        assertPermission('live-server');
+        return startLiveServerForPlugin(input);
+      },
+      stop: async (query) => {
+        assertPermission('live-server');
+        await stopLiveServerForPlugin(query);
+      },
+      listRunning: async () => {
+        assertPermission('live-server');
+        return listRunningLiveServersForPlugin();
+      },
+      getStatus: async (query) => {
+        assertPermission('live-server');
+        return getLiveServerStatusForPlugin(query);
+      },
+      getLogs: async (query) => {
+        assertPermission('live-server');
+        return getLiveServerLogsForPlugin(query);
+      },
+      clearLogs: async (query) => {
+        assertPermission('live-server');
+        await clearLiveServerLogsForPlugin(query);
+      },
+      onRunningChanged: (listener) => {
+        assertPermission('live-server');
+        return track(subscribePluginLiveServersRunningChanged(listener));
+      },
+      onRequestLog: (listener) => {
+        assertPermission('live-server');
+        return track(subscribePluginLiveServerRequestLog(listener));
       }
     },
     ai: {

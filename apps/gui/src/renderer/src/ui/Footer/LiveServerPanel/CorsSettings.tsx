@@ -4,7 +4,7 @@ import type { LiveServerCorsSettings } from '@harborclient/core/types';
 
 interface Props {
   /**
-   * Current CORS settings from the modal state.
+   * Current CORS settings from the editor state.
    */
   cors: LiveServerCorsSettings;
 
@@ -20,10 +20,10 @@ interface Props {
 }
 
 /**
- * Form group for enabling CORS and editing the base Express `cors` options.
+ * Form fields for enabling CORS and editing the base Express `cors` options.
  *
  * Detail fields stay visible but disabled when CORS is off so users can see
- * the defaults before enabling.
+ * the defaults before enabling. The parent tab already labels this section.
  *
  * @param props - CORS value, disabled flag, and change handler.
  */
@@ -45,9 +45,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
   }
 
   return (
-    <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
-      <legend className="mb-1 text-text">CORS</legend>
-
+    <div className="flex flex-col gap-3">
       <label htmlFor={enabledId} className="flex items-center gap-2">
         <Checkbox
           id={enabledId}
@@ -109,6 +107,6 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
         />
         <span>Allow credentials</span>
       </label>
-    </fieldset>
+    </div>
   );
 }

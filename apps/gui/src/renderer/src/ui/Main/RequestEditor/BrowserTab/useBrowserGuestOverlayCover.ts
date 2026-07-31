@@ -4,11 +4,15 @@ import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
 import {
   selectActivePluginFooterPanelId,
   selectShowConsole,
+  selectShowLiveServerLogs,
   selectShowMcp,
   selectShowTerminal,
   selectShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { selectHasBlockingModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  selectHasBlockingModal,
+  selectLiveServerModal
+} from '#/renderer/src/store/slices/modalsSlice';
 import {
   coverBrowserGuestForOverlay,
   uncoverBrowserGuest
@@ -22,6 +26,8 @@ import {
  * @param showMcp - MCP panel open.
  * @param showTerminal - Terminal panel open.
  * @param activePluginFooterPanelId - Active plugin footer panel id, if any.
+ * @param liveServerEditorOpen - Live server create/edit footer panel open.
+ * @param showLiveServerLogs - Live server logs footer panel open.
  * @returns True when at least one footer panel should cover the live page.
  */
 export function isAnyFooterPanelOpen(
@@ -29,10 +35,18 @@ export function isAnyFooterPanelOpen(
   showVariables: boolean,
   showMcp: boolean,
   showTerminal: boolean,
-  activePluginFooterPanelId: string | null
+  activePluginFooterPanelId: string | null,
+  liveServerEditorOpen = false,
+  showLiveServerLogs = false
 ): boolean {
   return (
-    showConsole || showVariables || showMcp || showTerminal || activePluginFooterPanelId != null
+    showConsole ||
+    showVariables ||
+    showMcp ||
+    showTerminal ||
+    activePluginFooterPanelId != null ||
+    liveServerEditorOpen ||
+    showLiveServerLogs
   );
 }
 
@@ -53,10 +67,10 @@ export function shouldCoverBrowserGuest(input: {
  * Covers the active live-page WebContentsView while any Redux blocking modal or
  * footer panel is open.
  *
- * Native guests paint above renderer HTML, so Confirm/Alert/Live Server modals
- * and slide-up footer panels must freeze and hide the guest to appear in front.
- * Mount once at the app root so every blocking modal is covered without
- * per-modal hooks that race on uncover.
+ * Native guests paint above renderer HTML, so Confirm/Alert modals and
+ * slide-up footer panels (including the live server editor) must freeze and
+ * hide the guest to appear in front. Mount once at the app root so every
+ * blocking modal is covered without per-modal hooks that race on uncover.
  */
 export function useBrowserGuestOverlayCover(): void {
   const hasBlockingModal = useAppSelector(selectHasBlockingModal);
@@ -64,7 +78,9 @@ export function useBrowserGuestOverlayCover(): void {
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
+  const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
+  const liveServerEditorOpen = useAppSelector(selectLiveServerModal) != null;
   const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
 
   const footerOpen = isAnyFooterPanelOpen(
@@ -72,7 +88,9 @@ export function useBrowserGuestOverlayCover(): void {
     showVariables,
     showMcp,
     showTerminal,
-    activePluginFooterPanelId
+    activePluginFooterPanelId,
+    liveServerEditorOpen,
+    showLiveServerLogs
   );
   const needsCover = shouldCoverBrowserGuest({ hasBlockingModal, footerOpen });
   const browserTabId = activeBrowserTab?.tabId ?? null;

@@ -29,6 +29,7 @@ export const PERMISSION_NAMES: Record<PluginPermission, string> = {
   'network': 'Network',
   'ipc': 'IPC',
   'server': 'Server',
+  'live-server': 'Live Server',
   'mcp': 'MCP',
   'ai': 'AI',
   'browser': 'Browser'
@@ -48,6 +49,7 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'network': 'Outbound HTTP through hc.host.sendHttpRequest',
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
+  'live-server': 'Create, start, stop, and inspect Harbor Live Servers',
   'mcp': 'Register remote MCP client servers for the chat agent',
   'ai': 'Chat tools, system prompt contributions, and agent hooks',
   'browser': 'Open and control embedded browser tabs via hc.webpage'
@@ -67,6 +69,7 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   'network': 'Outbound HTTP through hc.host.sendHttpRequest',
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
+  'live-server': 'Create, start, stop, and inspect Harbor Live Servers',
   'mcp': 'Register remote MCP client servers for the chat agent',
   'ai': 'Chat tools, system prompt contributions, and agent hooks',
   'browser': 'Open and control embedded browser tabs via hc.webpage'

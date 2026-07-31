@@ -25,6 +25,10 @@ import {
   selectTerminalSelections,
   setTerminalSelection
 } from '#/renderer/src/store/slices/terminalsSlice';
+import {
+  selectLiveServerLogsSelections,
+  setLiveServerLogsSelection
+} from '#/renderer/src/store/slices/liveServersSlice';
 
 /**
  * Restores persisted `@` reference snapshots from chat messages into Redux selection slices.
@@ -45,6 +49,7 @@ export function rehydrateChatReferenceSnapshots(
   const seenResponse = new Set(Object.keys(selectResponseSelections(state)));
   const seenScript = new Set(Object.keys(selectScriptSelections(state)));
   const seenTerminal = new Set(Object.keys(selectTerminalSelections(state)));
+  const seenLogs = new Set(Object.keys(selectLiveServerLogsSelections(state)));
   const seenMarkdown = new Set(Object.keys(selectMarkdownSelections(state)));
   const seenBody = new Set(Object.keys(selectRequestBodySelections(state)));
   const seenPlugin = new Set(Object.keys(selectPluginSelections(state)));
@@ -73,6 +78,12 @@ export function rehydrateChatReferenceSnapshots(
           if (!seenTerminal.has(token)) {
             dispatch(setTerminalSelection({ token, snapshot: entry.snapshot }));
             seenTerminal.add(token);
+          }
+          break;
+        case 'logs':
+          if (!seenLogs.has(token)) {
+            dispatch(setLiveServerLogsSelection({ token, snapshot: entry.snapshot }));
+            seenLogs.add(token);
           }
           break;
         case 'markdown':

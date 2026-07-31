@@ -100,8 +100,6 @@ function describePage(page: PageRef): WorkflowActionDescription {
       return { title: 'Collection runner' };
     case 'workflow-run-results':
       return { title: 'Workflow results', subtitle: page.workflowUuid.slice(0, 8) };
-    case 'live-server-logs':
-      return { title: 'Live server logs', subtitle: `id ${page.savedId}` };
     case 'team-hub-admin':
       return { title: page.label || 'Team hub admin' };
     case 'hosted-main-view':

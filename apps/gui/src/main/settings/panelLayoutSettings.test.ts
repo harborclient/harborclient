@@ -35,6 +35,7 @@ describe('panelLayoutSettings', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
   });
@@ -69,6 +70,7 @@ describe('panelLayoutSettings', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
 
@@ -84,6 +86,7 @@ describe('panelLayoutSettings', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     });
   });
@@ -101,6 +104,7 @@ describe('panelLayoutSettings', () => {
       showVariables: true,
       showMcp: true,
       showTerminal: true,
+      showLiveServerLogs: true,
       activePluginFooterPanelId: 'plugin-panel-1'
     });
     const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
@@ -117,6 +121,7 @@ describe('panelLayoutSettings', () => {
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: 'plugin-panel-1'
     });
   });

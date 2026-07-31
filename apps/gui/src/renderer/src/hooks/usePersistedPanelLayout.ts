@@ -15,6 +15,7 @@ import {
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowSidebar,
+  selectShowLiveServerLogs,
   selectShowTerminal,
   selectShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -35,6 +36,7 @@ export function usePersistedPanelLayout(): void {
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
+  const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const hydratedRef = useRef(isPanelLayoutHydrated());
 
@@ -79,6 +81,7 @@ export function usePersistedPanelLayout(): void {
       showVariables,
       showMcp,
       showTerminal,
+      showLiveServerLogs,
       activePluginFooterPanelId
     });
   }, [
@@ -93,6 +96,7 @@ export function usePersistedPanelLayout(): void {
     showVariables,
     showMcp,
     showTerminal,
+    showLiveServerLogs,
     activePluginFooterPanelId
   ]);
 }

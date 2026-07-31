@@ -7,7 +7,7 @@ import {
   openAboutModal,
   openAcceptTeamHubInviteModal,
   openCollectionModal,
-  openLiveServerModal,
+  closeLiveServerModal,
   openActionMenuModal,
   openSyncModal,
   openUpdateModal
@@ -51,6 +51,7 @@ import {
   sendRequest,
   showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
+import { openLiveServerEditor } from '#/renderer/src/store/thunks/liveServers';
 import { openNewBrowserTab } from '#/renderer/src/store/thunks/websites';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
@@ -203,7 +204,7 @@ export function useMenuActions(): void {
           dispatch(openNewBrowserTab());
           break;
         case 'new-live-server':
-          dispatch(openLiveServerModal({ mode: 'create' }));
+          void dispatch(openLiveServerEditor({ mode: 'create' }));
           break;
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));
@@ -299,15 +300,19 @@ export function useMenuActions(): void {
           focusSkipNavigation();
           break;
         case 'toggle-variables':
+          dispatch(closeLiveServerModal());
           dispatch(toggleVariables());
           break;
         case 'toggle-console':
+          dispatch(closeLiveServerModal());
           dispatch(toggleConsole());
           break;
         case 'toggle-mcp':
+          dispatch(closeLiveServerModal());
           dispatch(toggleMcp());
           break;
         case 'toggle-terminal':
+          dispatch(closeLiveServerModal());
           dispatch(toggleTerminal());
           break;
         case 'toggle-ai-sidebar':

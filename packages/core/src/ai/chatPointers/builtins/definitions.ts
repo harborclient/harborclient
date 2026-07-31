@@ -231,6 +231,57 @@ export const builtinChatPointerPartials: Array<
     }
   },
   /**
+   * References a saved live server.
+   *
+   * @usage @live-server.<uuid>
+   * @param uuid The UUID of the saved live server
+   */
+  {
+    id: 'live-server',
+    match: new RegExp(`^live-server\\.(${AI_SCRIPT_REFERENCE_UUID})`),
+    agentGuidance: `When a user message contains @live-server.<uuid>, prefer any live-server context already included in the system message, then call get_live_server with that uuid and list_running_live_servers (and get_live_server_logs when diagnosing traffic) as needed. Only call start_live_server, stop_live_server, create_live_server, update_live_server, delete_live_server, or clear_live_server_logs when the user explicitly asks. In your reply, refer to the server by its display name, not its uuid.`,
+    parse: (match, fullToken, atIndex) => {
+      const liveServerUuid = match[1];
+      if (liveServerUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'live-server',
+        liveServerUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken
+      };
+    }
+  },
+  /**
+   * References live-server Express access logs (optionally a line range).
+   *
+   * @usage @logs.<uuid>#<startLine>.<endLine>
+   * @param uuid The UUID of the saved live server
+   * @param startLine Optional 1-based start line of the selection
+   * @param endLine Optional 1-based end line of the selection
+   */
+  {
+    id: 'logs',
+    match: new RegExp(`^logs\\.(${AI_SCRIPT_REFERENCE_UUID})(?:#(\\d+)\\.(\\d+))?`),
+    agentGuidance: `When a user message contains @logs.<uuid> (optionally with #startLine.endLine), prefer selected and surrounding access-log text already included in the system context. Call get_live_server with that uuid and get_live_server_logs (savedId from get_live_server) when you need more lines. Only call clear_live_server_logs when the user explicitly asks. In your reply, refer to the server by its display name, not its uuid.`,
+    parse: (match, fullToken, atIndex) => {
+      const liveServerUuid = match[1];
+      if (liveServerUuid == null) {
+        return null;
+      }
+      return {
+        kind: 'logs',
+        liveServerUuid,
+        start: atIndex,
+        end: atIndex + fullToken.length,
+        text: fullToken,
+        selection: parseSelectionSuffix(match[2], match[3], true)
+      };
+    }
+  },
+  /**
    * References a markdown document or request comment (optionally a selected span).
    *
    * @usage @markdown.<uuid>#<start>.<end>

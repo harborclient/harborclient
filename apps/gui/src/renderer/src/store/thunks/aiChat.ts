@@ -17,11 +17,13 @@ import { patchGeneralSettings } from './settings';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   buildAiScriptReferenceValidationContext,
+  buildLiveServersByUuidFromState,
   buildSidebarItemNameMapsFromState,
   buildWebpageTabsByIdFromState
 } from '#/renderer/src/ui/Sidebars/AiSidebar/Chat/useAiScriptReferenceValidationContext';
 import { selectEffectiveActiveRequestTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { selectTerminalSelections } from '#/renderer/src/store/slices/terminalsSlice';
+import { selectLiveServerLogsSelections } from '#/renderer/src/store/slices/liveServersSlice';
 import { selectMarkdownSelections } from '#/renderer/src/store/slices/markdownSelectionsSlice';
 import { selectRequestBodySelections } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { selectResponseSelections } from '#/renderer/src/store/slices/responseSelectionsSlice';
@@ -414,7 +416,9 @@ export const sendChatMessage = createAsyncThunk<
     selectScriptSelections(getState()),
     selectResponseSelections(getState()),
     selectPluginSelections(getState()),
-    buildWebpageTabsByIdFromState(getState())
+    buildWebpageTabsByIdFromState(getState()),
+    buildLiveServersByUuidFromState(getState()),
+    selectLiveServerLogsSelections(getState())
   );
   const referenceSnapshots = collectChatReferenceSnapshots(trimmed, validationContext);
 

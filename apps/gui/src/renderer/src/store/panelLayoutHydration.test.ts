@@ -28,6 +28,7 @@ function panelLayout(overrides: Partial<PanelLayoutState> = {}): PanelLayoutStat
     showVariables: false,
     showMcp: false,
     showTerminal: false,
+    showLiveServerLogs: false,
     activePluginFooterPanelId: null,
     ...overrides
   };

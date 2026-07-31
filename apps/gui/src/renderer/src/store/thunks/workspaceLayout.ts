@@ -19,6 +19,7 @@ import {
   setShowResponseEditor,
   setShowShortcutsSidebar,
   setShowSidebar,
+  setShowLiveServerLogs,
   setShowTerminal,
   setShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -183,6 +184,7 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
       showVariables: navigation.showVariables,
       showMcp: navigation.showMcp,
       showTerminal: navigation.showTerminal,
+      showLiveServerLogs: navigation.showLiveServerLogs,
       activePluginFooterPanelId: navigation.activePluginFooterPanelId
     },
     panelSizes: readPanelSizes(),
@@ -226,6 +228,7 @@ export async function applyWorkspaceLayout(
   dispatch(setShowVariables(panels.showVariables));
   dispatch(setShowMcp(panels.showMcp));
   dispatch(setShowTerminal(panels.showTerminal));
+  dispatch(setShowLiveServerLogs(panels.showLiveServerLogs));
   dispatch(setActivePluginFooterPanelId(panels.activePluginFooterPanelId));
 
   const sizeEntries: Record<string, number> = {};

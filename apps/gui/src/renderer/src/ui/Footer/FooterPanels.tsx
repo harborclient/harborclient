@@ -1,13 +1,19 @@
-import { useMemo, type JSX } from 'react';
+import { useCallback, useMemo, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  closeLiveServerModal,
+  selectLiveServerModal
+} from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectActivePluginFooterPanelId,
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
 import { usePluginFooterPanels } from '#/renderer/src/plugins/pluginHooks';
 import { ConsolePanel } from './ConsolePanel';
+import { LiveServerLogsPanel } from './LiveServerLogsPanel';
+import { LiveServerPanel } from './LiveServerPanel';
 import { McpPanel } from './McpPanel';
 import { HostedFooterPanel } from './HostedFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
@@ -101,6 +107,16 @@ interface Props {
   onToggleTerminal: () => void;
 
   /**
+   * Whether the live-server logs panel is currently open.
+   */
+  liveServerLogsOpen: boolean;
+
+  /**
+   * Toggles the live-server logs panel open/closed.
+   */
+  onToggleLiveServerLogs: () => void;
+
+  /**
    * Refreshes MCP server runtime status after panel saves.
    */
   onMcpStatusChange?: () => void;
@@ -128,11 +144,15 @@ export function FooterPanels({
   onToggleMcp,
   terminalOpen,
   onToggleTerminal,
+  liveServerLogsOpen,
+  onToggleLiveServerLogs,
   onMcpStatusChange
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
+  const liveServerModal = useAppSelector(selectLiveServerModal);
+  const liveServerOpen = liveServerModal != null;
 
   /**
    * Merges scoped variables for the variables panel content.
@@ -148,24 +168,83 @@ export function FooterPanels({
     [globalVariables, collectionVariables, folderVariables, environmentVariables]
   );
 
+  /**
+   * Closes the live server editor when another footer panel is toggled open.
+   */
+  const closeLiveServerEditor = useCallback((): void => {
+    dispatch(closeLiveServerModal());
+  }, [dispatch]);
+
+  /**
+   * Closes the live server editor, then toggles the console panel.
+   */
+  const handleToggleConsole = useCallback((): void => {
+    closeLiveServerEditor();
+    onToggleConsole();
+  }, [closeLiveServerEditor, onToggleConsole]);
+
+  /**
+   * Closes the live server editor, then toggles the variables panel.
+   */
+  const handleToggleVariables = useCallback((): void => {
+    closeLiveServerEditor();
+    onToggleVariables();
+  }, [closeLiveServerEditor, onToggleVariables]);
+
+  /**
+   * Closes the live server editor, then toggles the MCP panel.
+   */
+  const handleToggleMcp = useCallback((): void => {
+    closeLiveServerEditor();
+    onToggleMcp();
+  }, [closeLiveServerEditor, onToggleMcp]);
+
+  /**
+   * Closes the live server editor, then toggles the terminal panel.
+   */
+  const handleToggleTerminal = useCallback((): void => {
+    closeLiveServerEditor();
+    onToggleTerminal();
+  }, [closeLiveServerEditor, onToggleTerminal]);
+
+  /**
+   * Closes the live server editor, then toggles the live-server logs panel.
+   */
+  const handleToggleLiveServerLogs = useCallback((): void => {
+    closeLiveServerEditor();
+    onToggleLiveServerLogs();
+  }, [closeLiveServerEditor, onToggleLiveServerLogs]);
+
+  /**
+   * Closes the live server editor panel when not busy.
+   */
+  const handleCloseLiveServer = useCallback((): void => {
+    if (liveServerModal?.busy) {
+      return;
+    }
+    closeLiveServerEditor();
+  }, [closeLiveServerEditor, liveServerModal?.busy]);
+
   return (
     <div className="absolute inset-x-0 bottom-0">
       <ConsolePanel
         entries={entries}
         open={consoleOpen}
-        onClose={onToggleConsole}
+        onClose={handleToggleConsole}
         onClear={onClear}
       />
       <VariablesPanel
         variables={resolvedVariables}
         open={variablesOpen}
-        onClose={onToggleVariables}
+        onClose={handleToggleVariables}
         collectionName={collectionName}
         folderName={folderName}
         environmentName={environmentName}
       />
-      <McpPanel open={mcpOpen} onClose={onToggleMcp} onStatusChange={onMcpStatusChange} />
-      <TerminalPanel open={terminalOpen} onClose={onToggleTerminal} />
+      <McpPanel open={mcpOpen} onClose={handleToggleMcp} onStatusChange={onMcpStatusChange} />
+      <TerminalPanel open={terminalOpen} onClose={handleToggleTerminal} />
+      <LiveServerLogsPanel open={liveServerLogsOpen} onClose={handleToggleLiveServerLogs} />
+      <LiveServerPanel open={liveServerOpen} onClose={handleCloseLiveServer} />
       {pluginFooterPanels.map((panel) => (
         <HostedFooterPanel
           key={panel.id}
@@ -174,7 +253,10 @@ export function FooterPanels({
           contributionId={panel.contributionId}
           title={panel.title}
           open={activePluginFooterPanelId === panel.id}
-          onClose={() => dispatch(togglePluginFooterPanel(panel.id))}
+          onClose={() => {
+            closeLiveServerEditor();
+            dispatch(togglePluginFooterPanel(panel.id));
+          }}
         />
       ))}
     </div>

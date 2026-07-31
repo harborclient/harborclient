@@ -29,9 +29,11 @@ import {
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveEnvironmentId,
+  selectRunningLiveServers,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { openCollectionModal, openLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
+import { openLiveServerEditor } from '#/renderer/src/store/thunks/liveServers';
 import {
   selectActiveSidebarRailItemId,
   setActiveSidebarPanel,
@@ -114,6 +116,7 @@ export function SidebarContent(): JSX.Element {
   const dispatch = useAppDispatch();
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+  const runningLiveServers = useAppSelector(selectRunningLiveServers);
   const activeSidebarRailItemId = useAppSelector(selectActiveSidebarRailItemId);
   const sidebarSelection = useAppSelector(selectionFromState, selectionsEqual);
   /**
@@ -170,12 +173,22 @@ export function SidebarContent(): JSX.Element {
   );
 
   /**
-   * Built-in modes plus registered plugin rail destinations.
+   * Whether any live server process is currently running (drives the Servers rail badge).
    */
-  const railItems = useMemo(
-    () => mergeSidebarRailItems(SIDEBAR_RAIL_ITEMS, pluginSidebarRailItems, resolvePluginTabIcon),
-    [pluginSidebarRailItems]
-  );
+  const anyLiveServerRunning = runningLiveServers.length > 0;
+
+  /**
+   * Built-in modes plus registered plugin rail destinations.
+   * When any live server is running, the Servers rail icon shows a green corner badge.
+   */
+  const railItems = useMemo(() => {
+    const builtIn = SIDEBAR_RAIL_ITEMS.map((item) =>
+      item.id === 'servers' && anyLiveServerRunning
+        ? { ...item, badge: true, badgeVariant: 'success' as const }
+        : item
+    );
+    return mergeSidebarRailItems(builtIn, pluginSidebarRailItems, resolvePluginTabIcon);
+  }, [pluginSidebarRailItems, anyLiveServerRunning]);
 
   const { showSearch, showRail } = resolveSidebarChromeVisibility(
     displayedPanel != null && activeRailItem == null,
@@ -355,7 +368,9 @@ export function SidebarContent(): JSX.Element {
         title: 'Live Servers',
         ariaLabel: 'Live servers',
         initialEntered: liveServersSectionExpanded,
-        onAdd: () => dispatch(openLiveServerModal({ mode: 'create' })),
+        onAdd: () => {
+          void dispatch(openLiveServerEditor({ mode: 'create' }));
+        },
         addLabel: 'New Live Server',
         children: <LiveServers />
       };

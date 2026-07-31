@@ -3,8 +3,10 @@ import toast from 'react-hot-toast';
 import type {
   CreateLiveServerInput,
   LiveServer,
+  LiveServerAlias,
   LiveServerConfig,
   LiveServerCorsSettings,
+  RunningLiveServer,
   StartLiveServerInput,
   UpdateLiveServerInput
 } from '@harborclient/core/types';
@@ -16,9 +18,35 @@ import {
   setSavedLiveServers,
   unbindLiveServerTab
 } from '#/renderer/src/store/slices/liveServersSlice';
+import {
+  openLiveServerModal,
+  type LiveServerModalMode
+} from '#/renderer/src/store/slices/modalsSlice';
+import {
+  setActivePluginFooterPanelId,
+  setShowConsole,
+  setShowLiveServerLogs,
+  setShowMcp,
+  setShowTerminal,
+  setShowVariables
+} from '#/renderer/src/store/slices/navigationSlice';
 import { newBrowserTab, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+
+/**
+ * Payload for opening the live server create/edit footer panel.
+ */
+export type OpenLiveServerEditorInput = {
+  mode: LiveServerModalMode;
+  savedId?: number | null;
+  name?: string;
+  root?: string;
+  port?: number | null;
+  aliases?: LiveServerAlias[];
+  watch?: boolean;
+  cors?: LiveServerCorsSettings;
+};
 
 /**
  * Reloads saved live servers from the local registry into the store.
@@ -43,7 +71,7 @@ export const refreshRunningLiveServers = createAsyncThunk<void, void, ThunkApiCo
 );
 
 /**
- * Builds a {@link LiveServerConfig} from saved or modal fields.
+ * Builds a {@link LiveServerConfig} from saved or editor fields.
  *
  * @param input - Partial config fields.
  * @returns Normalized config suitable for start/save.
@@ -65,6 +93,26 @@ export function toLiveServerConfig(input: {
     cors: normalizeLiveServerCorsSettings(input.cors)
   };
 }
+
+/**
+ * Closes other footer panels, then opens the live server create/edit editor.
+ *
+ * Mutual exclusivity matches console/variables/MCP/terminal so drafts do not
+ * stack under another slide-up panel.
+ */
+export const openLiveServerEditor = createAsyncThunk<
+  void,
+  OpenLiveServerEditorInput,
+  ThunkApiConfig
+>('liveServers/openEditor', async (payload, { dispatch }) => {
+  dispatch(setShowConsole(false));
+  dispatch(setShowVariables(false));
+  dispatch(setShowMcp(false));
+  dispatch(setShowTerminal(false));
+  dispatch(setShowLiveServerLogs(false));
+  dispatch(setActivePluginFooterPanelId(null));
+  dispatch(openLiveServerModal(payload));
+});
 
 /**
  * Creates a saved live server, refreshes the list, and returns the new row.
@@ -107,15 +155,29 @@ export const deleteSavedLiveServer = createAsyncThunk<void, number, ThunkApiConf
 );
 
 /**
- * Starts a live server, opens a browser tab at its origin, and tracks the binding.
+ * Thunk argument for starting a live server, with optional browser-tab open.
  */
-export const startLiveServer = createAsyncThunk<string, StartLiveServerInput, ThunkApiConfig>(
-  'liveServers/start',
-  async (input, { dispatch }) => {
-    const running = await window.api.startLiveServer(input);
-    const refreshed = await window.api.listRunningLiveServers();
-    dispatch(setRunningLiveServers(refreshed));
+export type StartLiveServerThunkArg = StartLiveServerInput & {
+  /**
+   * When true (default), opens a browser tab at the server origin after start.
+   */
+  openBrowser?: boolean;
+};
 
+/**
+ * Starts a live server, optionally opens a browser tab at its origin, and tracks the binding.
+ */
+export const startLiveServer = createAsyncThunk<
+  RunningLiveServer,
+  StartLiveServerThunkArg,
+  ThunkApiConfig
+>('liveServers/start', async (input, { dispatch }) => {
+  const { openBrowser = true, ...startInput } = input;
+  const running = await window.api.startLiveServer(startInput);
+  const refreshed = await window.api.listRunningLiveServers();
+  dispatch(setRunningLiveServers(refreshed));
+
+  if (openBrowser) {
     const tabId = crypto.randomUUID();
     dispatch(
       newBrowserTab({
@@ -125,9 +187,9 @@ export const startLiveServer = createAsyncThunk<string, StartLiveServerInput, Th
       })
     );
     dispatch(bindLiveServerTab({ serverId: running.id, tabId }));
-    return running.id;
   }
-);
+  return running;
+});
 
 /**
  * Stops a running live server by runtime instance id.

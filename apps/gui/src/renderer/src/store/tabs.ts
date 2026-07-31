@@ -272,13 +272,6 @@ export type PageRef =
       workflowUuid: string;
     }
   | {
-      type: 'live-server-logs';
-      /**
-       * Saved live server id whose Express request log this page displays.
-       */
-      savedId: number;
-    }
-  | {
       type: 'plugin-detail';
       kind: PluginDetailPageKind;
       source: PluginDetailPageSource;

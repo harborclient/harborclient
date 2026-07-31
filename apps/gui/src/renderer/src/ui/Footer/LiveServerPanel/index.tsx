@@ -1,14 +1,14 @@
-import { useCallback, useId, type JSX } from 'react';
+import { useCallback, useMemo, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import {
   Button,
-  Checkbox,
-  FormGroup,
-  Input,
-  Modal,
-  ModalFormLayout
+  FooterPanel,
+  SegmentedTabPanel,
+  SegmentedTabs,
+  SegmentedTabsGroup
 } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectRunningLiveServers } from '#/renderer/src/store/selectors';
 import {
   closeLiveServerModal,
   selectLiveServerModal,
@@ -19,18 +19,33 @@ import {
   setLiveServerModalPort,
   setLiveServerModalRoot,
   setLiveServerModalSubmitError,
-  setLiveServerModalWatch
+  setLiveServerModalTab,
+  setLiveServerModalWatch,
+  type LiveServerModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   createSavedLiveServer,
   startLiveServer,
+  stopLiveServer,
   toLiveServerConfig,
   updateSavedLiveServer
 } from '#/renderer/src/store/thunks/liveServers';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
-import { AliasList } from './AliasList';
 import { CorsSettings } from './CorsSettings';
+import { GeneralSettings } from './GeneralSettings';
+
+interface Props {
+  /**
+   * Whether the panel is visible (slides up when true).
+   */
+  open: boolean;
+
+  /**
+   * Closes the live server editor panel.
+   */
+  onClose: () => void;
+}
 
 /**
  * Parses the port field; blank means auto-select (`null`).
@@ -51,27 +66,33 @@ function parsePortField(value: string): { port: number | null } | { error: strin
 }
 
 /**
- * Modal for configuring, saving, and starting a live server.
+ * Slide-up footer panel for configuring, saving, and starting a live server.
  */
-export function LiveServerModal(): JSX.Element | null {
+export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const modal = useAppSelector(selectLiveServerModal);
+  const runningServers = useAppSelector(selectRunningLiveServers);
   const { setActiveSidebarMode } = useSidebarExpansion();
-  const titleId = useId();
-  const nameId = useId();
-  const rootId = useId();
-  const portId = useId();
-  const watchId = useId();
 
   /**
-   * Closes the modal when not busy.
+   * Running instance for the server being edited, when one is bound to its saved id.
+   */
+  const runningInstance = useMemo(() => {
+    if (modal?.savedId == null) {
+      return null;
+    }
+    return runningServers.find((server) => server.savedId === modal.savedId) ?? null;
+  }, [modal, runningServers]);
+
+  /**
+   * Closes the panel when not busy.
    */
   const handleClose = useCallback((): void => {
     if (modal?.busy) {
       return;
     }
-    dispatch(closeLiveServerModal());
-  }, [dispatch, modal?.busy]);
+    onClose();
+  }, [modal?.busy, onClose]);
 
   /**
    * Opens the native directory picker and updates the root field.
@@ -94,7 +115,7 @@ export function LiveServerModal(): JSX.Element | null {
   }, [dispatch, modal]);
 
   /**
-   * Builds a normalized config from the modal fields, or sets an inline error.
+   * Builds a normalized config from the editor fields, or sets an inline error.
    *
    * @returns Config when valid, otherwise null.
    */
@@ -246,26 +267,96 @@ export function LiveServerModal(): JSX.Element | null {
     }
   }, [buildConfig, dispatch, modal, setActiveSidebarMode]);
 
-  if (!modal) {
-    return null;
-  }
+  /**
+   * Stops the running instance for the server being edited.
+   */
+  const handleStop = useCallback(async (): Promise<void> => {
+    if (runningInstance == null) {
+      return;
+    }
+    dispatch(setLiveServerModalSubmitError(null));
+    dispatch(setLiveServerModalBusy(true));
+    try {
+      await dispatch(stopLiveServer(runningInstance.id)).unwrap();
+      toast.success('Live server stopped');
+    } catch (error) {
+      dispatch(
+        setLiveServerModalSubmitError(formatErrorMessage(error, 'Failed to stop live server'))
+      );
+    } finally {
+      dispatch(setLiveServerModalBusy(false));
+    }
+  }, [dispatch, runningInstance]);
 
-  const title = modal.mode === 'edit' ? 'Edit Live Server' : 'New Live Server';
-  const busy = modal.busy;
+  const title = modal?.mode === 'edit' ? 'Edit Live Server' : 'New Live Server';
+  const busy = modal?.busy ?? false;
+  const tab: LiveServerModalTab = modal?.tab ?? 'general';
+  const isRunning = runningInstance != null;
 
   return (
-    <Modal
-      className="w-[560px]"
-      overlayClassName="z-[60]"
-      labelledBy={titleId}
+    <FooterPanel
+      id="footer-live-server-panel"
+      open={open}
       onClose={handleClose}
+      closeLabel="Live server"
+      storageKey="hc.liveServerPanelHeight"
       title={title}
       description="Serve a local folder over HTTP and open it in a Live Page."
+      unmountWhenClosed
     >
-      <ModalFormLayout
-        error={modal.submitError}
-        actions={
-          <>
+      {modal ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            {modal.submitError ? (
+              <p className="m-0 mb-4 text-danger" role="alert">
+                {modal.submitError}
+              </p>
+            ) : null}
+
+            <SegmentedTabsGroup
+              value={tab}
+              onChange={(next) => dispatch(setLiveServerModalTab(next))}
+              ariaLabel="Live server settings"
+            >
+              <div className="mb-4">
+                <SegmentedTabs
+                  fullWidth
+                  editable={false}
+                  tabs={[
+                    { value: 'general', label: 'General' },
+                    { value: 'cors', label: 'CORS' }
+                  ]}
+                />
+              </div>
+
+              <SegmentedTabPanel value="general">
+                <GeneralSettings
+                  name={modal.name}
+                  root={modal.root}
+                  port={modal.port}
+                  aliases={modal.aliases}
+                  watch={modal.watch}
+                  disabled={busy}
+                  onNameChange={(value) => dispatch(setLiveServerModalName(value))}
+                  onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
+                  onBrowse={handleBrowse}
+                  onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
+                  onAliasesChange={(next) => dispatch(setLiveServerModalAliases(next))}
+                  onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
+                />
+              </SegmentedTabPanel>
+
+              <SegmentedTabPanel value="cors">
+                <CorsSettings
+                  cors={modal.cors}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalCors(next))}
+                />
+              </SegmentedTabPanel>
+            </SegmentedTabsGroup>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-separator px-4 py-3">
             <Button
               type="button"
               variant="secondary"
@@ -274,82 +365,27 @@ export function LiveServerModal(): JSX.Element | null {
             >
               Save
             </Button>
-            <Button
-              type="button"
-              disabled={busy || !modal.root.trim()}
-              onClick={() => void handleStart()}
-            >
-              Start Server
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <FormGroup label="Name" htmlFor={nameId}>
-            <Input
-              id={nameId}
-              autoFocus
-              value={modal.name}
-              disabled={busy}
-              placeholder="My site"
-              onChange={(event) => dispatch(setLiveServerModalName(event.target.value))}
-            />
-          </FormGroup>
-
-          <FormGroup label="Root directory" htmlFor={rootId}>
-            <div className="flex gap-2">
-              <Input
-                id={rootId}
-                className="min-w-0 flex-1"
-                value={modal.root}
+            {isRunning ? (
+              <Button
+                type="button"
+                variant="primaryDanger"
                 disabled={busy}
-                placeholder="/path/to/site"
-                onChange={(event) => dispatch(setLiveServerModalRoot(event.target.value))}
-              />
-              <Button type="button" variant="secondary" disabled={busy} onClick={handleBrowse}>
-                Browse
+                onClick={() => void handleStop()}
+              >
+                Stop Server
               </Button>
-            </div>
-          </FormGroup>
-
-          <FormGroup
-            label="Port"
-            htmlFor={portId}
-            description="Leave blank to use the next free port from 5500."
-          >
-            <Input
-              id={portId}
-              inputMode="numeric"
-              value={modal.port}
-              disabled={busy}
-              placeholder="Auto"
-              onChange={(event) => dispatch(setLiveServerModalPort(event.target.value))}
-            />
-          </FormGroup>
-
-          <AliasList
-            aliases={modal.aliases}
-            disabled={busy}
-            onChange={(next) => dispatch(setLiveServerModalAliases(next))}
-          />
-
-          <CorsSettings
-            cors={modal.cors}
-            disabled={busy}
-            onChange={(next) => dispatch(setLiveServerModalCors(next))}
-          />
-
-          <label htmlFor={watchId} className="flex items-center gap-2">
-            <Checkbox
-              id={watchId}
-              checked={modal.watch}
-              disabled={busy}
-              onChange={(event) => dispatch(setLiveServerModalWatch(event.target.checked))}
-            />
-            <span>Reload page when files change</span>
-          </label>
+            ) : (
+              <Button
+                type="button"
+                disabled={busy || !modal.root.trim()}
+                onClick={() => void handleStart()}
+              >
+                Start Server
+              </Button>
+            )}
+          </div>
         </div>
-      </ModalFormLayout>
-    </Modal>
+      ) : null}
+    </FooterPanel>
   );
 }

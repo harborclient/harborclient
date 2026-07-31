@@ -696,6 +696,7 @@ describeSqlite('LocalDatabase workspaces', () => {
         showVariables: true,
         showMcp: false,
         showTerminal: false,
+        showLiveServerLogs: false,
         activePluginFooterPanelId: null
       },
       panelSizes: { 'hc.sidebarWidth': 480 },

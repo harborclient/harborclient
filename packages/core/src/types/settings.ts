@@ -227,6 +227,11 @@ export interface PanelLayoutState {
   showTerminal: boolean;
 
   /**
+   * Whether the footer live-server logs panel is open.
+   */
+  showLiveServerLogs: boolean;
+
+  /**
    * Active plugin footer panel id, when a plugin panel is open.
    */
   activePluginFooterPanelId: string | null;

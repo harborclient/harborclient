@@ -25,6 +25,7 @@ export type PluginPermission =
   | 'network'
   | 'ipc'
   | 'server'
+  | 'live-server'
   | 'mcp'
   | 'ai'
   | 'browser';

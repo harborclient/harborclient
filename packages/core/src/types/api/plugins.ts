@@ -1,8 +1,10 @@
 import type { PluginCatalog, PluginSourcesSettings, ThemeCatalog } from '../../plugin/catalog';
 import type {
   LibraryChangedEvent,
+  LiveServerRequestLogEntry,
   PluginHttpRequest,
   PluginHttpResponse,
+  RunningLiveServer,
   SidebarSelection,
   WorkflowsChangedEvent
 } from '@harborclient/sdk';
@@ -314,6 +316,14 @@ export interface ApiPlugins {
    * Pushes host sidebar selection changes to plugin webviews with the `ui` permission.
    */
   pushPluginSidebarSelectionChanged: (selection: SidebarSelection | null) => Promise<void>;
+  /**
+   * Pushes running live-server list changes to plugin webviews with the `live-server` permission.
+   */
+  pushPluginLiveServersRunningChanged: (running: RunningLiveServer[]) => Promise<void>;
+  /**
+   * Pushes a live-server access-log line to plugin webviews with the `live-server` permission.
+   */
+  pushPluginLiveServerRequestLog: (entry: LiveServerRequestLogEntry) => Promise<void>;
   /**
    * Executes a plugin command in the plugin agent webview.
    */

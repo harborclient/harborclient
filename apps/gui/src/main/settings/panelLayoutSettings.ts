@@ -24,6 +24,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showVariables: false,
   showMcp: false,
   showTerminal: false,
+  showLiveServerLogs: false,
   activePluginFooterPanelId: null
 };
 
@@ -44,12 +45,6 @@ function getStore(): Store<{ panelLayout: PanelLayoutState }> {
   return store;
 }
 
-/**
- * Normalizes panel layout from storage or user input.
- *
- * @param input - Partial or raw panel layout.
- * @returns Sanitized panel layout state.
- */
 /**
  * Clamps request editor split height to supported bounds.
  *
@@ -77,7 +72,12 @@ function normalizeFooterPanels(
   input: Partial<PanelLayoutState>
 ): Pick<
   PanelLayoutState,
-  'showConsole' | 'showVariables' | 'showMcp' | 'showTerminal' | 'activePluginFooterPanelId'
+  | 'showConsole'
+  | 'showVariables'
+  | 'showMcp'
+  | 'showTerminal'
+  | 'showLiveServerLogs'
+  | 'activePluginFooterPanelId'
 > {
   const activePluginFooterPanelId =
     typeof input.activePluginFooterPanelId === 'string' &&
@@ -88,6 +88,7 @@ function normalizeFooterPanels(
   const showVariables = input.showVariables === true;
   const showMcp = input.showMcp === true;
   const showTerminal = input.showTerminal === true;
+  const showLiveServerLogs = input.showLiveServerLogs === true;
 
   if (activePluginFooterPanelId) {
     return {
@@ -95,6 +96,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId
     };
   }
@@ -105,6 +107,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -114,6 +117,7 @@ function normalizeFooterPanels(
       showVariables: true,
       showMcp: false,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -123,6 +127,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: true,
       showTerminal: false,
+      showLiveServerLogs: false,
       activePluginFooterPanelId: null
     };
   }
@@ -132,6 +137,17 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: true,
+      showLiveServerLogs: false,
+      activePluginFooterPanelId: null
+    };
+  }
+  if (showLiveServerLogs) {
+    return {
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: true,
       activePluginFooterPanelId: null
     };
   }
@@ -141,10 +157,17 @@ function normalizeFooterPanels(
     showVariables: false,
     showMcp: false,
     showTerminal: false,
+    showLiveServerLogs: false,
     activePluginFooterPanelId: null
   };
 }
 
+/**
+ * Normalizes panel layout from storage or user input.
+ *
+ * @param input - Partial or raw panel layout.
+ * @returns Sanitized panel layout state.
+ */
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
   const footerPanels = normalizeFooterPanels(input);
 

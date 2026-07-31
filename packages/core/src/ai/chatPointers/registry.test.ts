@@ -30,6 +30,8 @@ describe('chat pointer registry', () => {
         'folder',
         'request',
         'webpage',
+        'live-server',
+        'logs',
         'markdown',
         'response-section',
         'body',
@@ -100,6 +102,8 @@ describe('chat pointer registry', () => {
     );
     const guidance = getChatPointerAgentGuidance();
     expect(guidance).toContain('@collection.<uuid>');
+    expect(guidance).toContain('@live-server.<uuid>');
+    expect(guidance).toContain('@logs.<uuid>');
     expect(guidance).toContain('document.elementFromPoint');
     expect(guidance).toContain('Plugin script pointers include captured source.');
     dispose();

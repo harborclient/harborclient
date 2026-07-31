@@ -16,6 +16,7 @@ import modalsReducer, {
   openAboutModal,
   openCollectionModal,
   openCollectionRunner,
+  openLiveServerModal,
   openShareModal,
   openSyncModal,
   selectHasBlockingModal,
@@ -514,5 +515,11 @@ describe('selectHasBlockingModal', () => {
       setOpenExternalLinkModal({ url: 'https://example.com/' })
     );
     expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
+  });
+
+  it('returns false when only the live server editor is open', () => {
+    const state = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    expect(state.liveServerModal?.tab).toBe('general');
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(false);
   });
 });

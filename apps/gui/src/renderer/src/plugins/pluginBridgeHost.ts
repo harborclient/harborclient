@@ -95,6 +95,19 @@ import {
   renameWorkflowForPlugin,
   updateWorkflowForPlugin
 } from './hostWorkflowCommands';
+import {
+  clearLiveServerLogsForPlugin,
+  createLiveServerForPlugin,
+  deleteLiveServerForPlugin,
+  getLiveServerForPlugin,
+  getLiveServerLogsForPlugin,
+  getLiveServerStatusForPlugin,
+  listLiveServersForPlugin,
+  listRunningLiveServersForPlugin,
+  startLiveServerForPlugin,
+  stopLiveServerForPlugin,
+  updateLiveServerForPlugin
+} from './hostLiveServerCommands';
 import { openImageView } from './hostImageCommands';
 import {
   createEnvironmentWithVariables,
@@ -732,6 +745,48 @@ export async function handlePluginHostBridgeInvoke(
     case 'webpage.injectScript':
     case 'webpage.injectStylesheet':
       return executePluginWebpageBridge(op, payload);
+    case 'liveServers.list':
+      return listLiveServersForPlugin();
+    case 'liveServers.get':
+      return getLiveServerForPlugin((payload as { idOrUuid: number | string }).idOrUuid);
+    case 'liveServers.create':
+      return createLiveServerForPlugin(
+        (payload as { input: Parameters<typeof createLiveServerForPlugin>[0] }).input
+      );
+    case 'liveServers.update':
+      return updateLiveServerForPlugin(
+        (payload as { input: Parameters<typeof updateLiveServerForPlugin>[0] }).input
+      );
+    case 'liveServers.delete': {
+      await deleteLiveServerForPlugin((payload as { id: number }).id);
+      return undefined;
+    }
+    case 'liveServers.start':
+      return startLiveServerForPlugin(
+        (payload as { input: Parameters<typeof startLiveServerForPlugin>[0] }).input
+      );
+    case 'liveServers.stop': {
+      await stopLiveServerForPlugin(
+        (payload as { query: Parameters<typeof stopLiveServerForPlugin>[0] }).query
+      );
+      return undefined;
+    }
+    case 'liveServers.listRunning':
+      return listRunningLiveServersForPlugin();
+    case 'liveServers.getStatus':
+      return getLiveServerStatusForPlugin(
+        (payload as { query: Parameters<typeof getLiveServerStatusForPlugin>[0] }).query
+      );
+    case 'liveServers.getLogs':
+      return getLiveServerLogsForPlugin(
+        (payload as { query: Parameters<typeof getLiveServerLogsForPlugin>[0] }).query
+      );
+    case 'liveServers.clearLogs': {
+      await clearLiveServerLogsForPlugin(
+        (payload as { query: Parameters<typeof clearLiveServerLogsForPlugin>[0] }).query
+      );
+      return undefined;
+    }
     default:
       throw new Error(`Unsupported plugin host bridge invoke operation: ${op}`);
   }

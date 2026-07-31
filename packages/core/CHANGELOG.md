@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(live-server): enhance live server functionality and UI integration. (`241f4525`)
 - feat(live-server): introduce live server management features. (`8bfa8fe7`)
 
 ## 0.2.10 - 2026-07-30

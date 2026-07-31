@@ -99,6 +99,11 @@ export interface SidebarFooterLayoutSnapshot {
   showTerminal: boolean;
 
   /**
+   * Whether the footer live-server logs panel was open when recorded.
+   */
+  showLiveServerLogs: boolean;
+
+  /**
    * Active plugin footer panel id when recorded, if any.
    */
   activePluginFooterPanelId: string | null;
@@ -120,6 +125,7 @@ export interface NavigationState {
   showVariables: boolean;
   showMcp: boolean;
   showTerminal: boolean;
+  showLiveServerLogs: boolean;
   activePluginFooterPanelId: string | null;
   /**
    * Active plugin sidebar panel id (`plugin:<pluginId>:<contributionId>`), or
@@ -163,6 +169,7 @@ const initialState: NavigationState = {
   showVariables: false,
   showMcp: false,
   showTerminal: false,
+  showLiveServerLogs: false,
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
   activeSidebarRailItemId: null,
@@ -359,6 +366,7 @@ const navigationSlice = createSlice({
         state.showVariables = false;
         state.showMcp = false;
         state.showTerminal = false;
+        state.showLiveServerLogs = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -377,6 +385,7 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showMcp = false;
         state.showTerminal = false;
+        state.showLiveServerLogs = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -395,6 +404,7 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
         state.showTerminal = false;
+        state.showLiveServerLogs = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -413,6 +423,7 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
         state.showMcp = false;
+        state.showLiveServerLogs = false;
         state.activePluginFooterPanelId = null;
       }
     },
@@ -421,6 +432,36 @@ const navigationSlice = createSlice({
      */
     setShowTerminal(state, action: PayloadAction<boolean>) {
       state.showTerminal = action.payload;
+    },
+    /**
+     * Toggles the footer live-server logs panel.
+     */
+    toggleLiveServerLogs(state) {
+      state.showLiveServerLogs = !state.showLiveServerLogs;
+      if (state.showLiveServerLogs) {
+        state.showConsole = false;
+        state.showVariables = false;
+        state.showMcp = false;
+        state.showTerminal = false;
+        state.activePluginFooterPanelId = null;
+      }
+    },
+    /**
+     * Sets footer live-server logs panel visibility explicitly.
+     */
+    setShowLiveServerLogs(state, action: PayloadAction<boolean>) {
+      state.showLiveServerLogs = action.payload;
+    },
+    /**
+     * Opens the live-server logs panel and closes other footer panels.
+     */
+    openLiveServerLogs(state) {
+      state.showLiveServerLogs = true;
+      state.showConsole = false;
+      state.showVariables = false;
+      state.showMcp = false;
+      state.showTerminal = false;
+      state.activePluginFooterPanelId = null;
     },
     /**
      * Toggles one plugin footer panel and closes built-in footer panels.
@@ -433,6 +474,7 @@ const navigationSlice = createSlice({
         state.showVariables = false;
         state.showMcp = false;
         state.showTerminal = false;
+        state.showLiveServerLogs = false;
       }
     },
     /**
@@ -552,6 +594,9 @@ export const {
   setShowMcp,
   toggleTerminal,
   setShowTerminal,
+  toggleLiveServerLogs,
+  setShowLiveServerLogs,
+  openLiveServerLogs,
   togglePluginFooterPanel,
   setActivePluginFooterPanelId,
   setPendingPluginInstall,
@@ -655,6 +700,11 @@ export const selectShowMcp = (state: RootState): boolean => state.navigation.sho
  * Returns whether the terminal panel is open.
  */
 export const selectShowTerminal = (state: RootState): boolean => state.navigation.showTerminal;
+/**
+ * Returns whether the live-server logs panel is open.
+ */
+export const selectShowLiveServerLogs = (state: RootState): boolean =>
+  state.navigation.showLiveServerLogs;
 /**
  * Returns the active plugin footer panel id, if any.
  */

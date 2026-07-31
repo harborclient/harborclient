@@ -3,6 +3,7 @@ import {
   faFolder,
   faGlobe,
   faLayerGroup,
+  faServer,
   faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
@@ -15,6 +16,7 @@ const railItems: SidebarRailItemData[] = [
   { id: 'environments', icon: faGlobe, label: 'Environments' },
   { id: 'workspaces', icon: faLayerGroup, label: 'Workspaces' },
   { id: 'workflows', icon: faDiagramProject, label: 'Workflows' },
+  { id: 'servers', icon: faServer, label: 'Servers' },
   { id: 'trash', icon: faTrash, label: 'Trash' }
 ];
 
@@ -85,9 +87,15 @@ export const ActiveWorkflows: Story = {
 
 export const WithBadge: Story = {
   render: () => {
-    const itemsWithBadge: SidebarRailItemData[] = railItems.map((item) =>
-      item.id === 'collections' ? { ...item, badge: true } : item
-    );
+    const itemsWithBadge: SidebarRailItemData[] = railItems.map((item) => {
+      if (item.id === 'collections') {
+        return { ...item, badge: true };
+      }
+      if (item.id === 'servers') {
+        return { ...item, badge: true, badgeVariant: 'success' as const };
+      }
+      return item;
+    });
 
     return (
       <div className="flex h-[420px] border border-separator bg-sidebar">

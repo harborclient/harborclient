@@ -224,6 +224,39 @@ describe('SidebarRail keyboard', () => {
     const tabs = container.querySelectorAll('[role="tab"]');
     expect(tabs[1]?.getAttribute('aria-label')).toBe('Environments, notification');
     expect(tabs[1]?.querySelector('.hc-sidebar-rail-item-badge')).not.toBeNull();
+    expect(tabs[1]?.querySelector('.hc-sidebar-rail-item-badge')?.className).toContain('bg-accent');
+  });
+
+  it('announces a success badge as running with a green indicator', () => {
+    const itemsWithSuccessBadge: SidebarRailItemData[] = [
+      { id: 'collections', icon: faFolder, label: 'Collections' },
+      {
+        id: 'servers',
+        icon: faGlobe,
+        label: 'Servers',
+        badge: true,
+        badgeVariant: 'success'
+      }
+    ];
+
+    act(() => {
+      root.render(
+        createElement(SidebarRail, {
+          items: itemsWithSuccessBadge,
+          activeId: 'servers',
+          expanded: false,
+          onExpandedChange: () => undefined,
+          onSelect: () => undefined,
+          ariaLabel: 'Sidebar modes'
+        })
+      );
+    });
+
+    const tabs = container.querySelectorAll('[role="tab"]');
+    expect(tabs[1]?.getAttribute('aria-label')).toBe('Servers, running');
+    expect(tabs[1]?.querySelector('.hc-sidebar-rail-item-badge')?.className).toContain(
+      'bg-success'
+    );
   });
 
   it('uses visible labels when expanded and omits redundant aria-label', () => {

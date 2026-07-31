@@ -524,6 +524,22 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   );
 
   handle(
+    'plugins:pushLiveServersRunningChanged',
+    ipcArgSchemas.pluginPushLiveServersRunningChanged,
+    (_event, running) => {
+      getPluginUiBroker().pushLiveServersRunningChanged(running);
+    }
+  );
+
+  handle(
+    'plugins:pushLiveServerRequestLog',
+    ipcArgSchemas.pluginPushLiveServerRequestLog,
+    (_event, entry) => {
+      getPluginUiBroker().pushLiveServerRequestLog(entry);
+    }
+  );
+
+  handle(
     'plugins:executeAgentCommand',
     ipcArgSchemas.pluginExecuteAgentCommand,
     (_event, pluginId, commandId, args) => {

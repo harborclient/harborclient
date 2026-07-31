@@ -14,6 +14,7 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `network`          | Outbound HTTP from the renderer via `hc.host.sendHttpRequest` (gated by Settings → General)                                                               |
 | `ipc`              | Register custom IPC handlers via `hc.ipc.handle`                                                                                                          |
 | `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
+| `live-server`      | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                                                                                 |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
 | `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar via `hc.ai`                                                                        |
 | `browser`          | Open and control embedded browser tabs via `hc.webpage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)     |
@@ -23,6 +24,10 @@ Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers
 Paths the user selects through `hc.fs.pickFile`, `hc.fs.pickDirectory`, or `hc.fs.saveFile` are added to the allowlist automatically and **persist across app restarts**. The host restores those grants when the plugin loads again; plugins do not need to re-prompt every session for the same file.
 
 Declare required permissions in [Manifest](/manifest) under `permissions`.
+
+### `live-server`
+
+Grants `hc.liveServers` for Harbor Live Server CRUD, start/stop, status, and access logs. This is separate from the `server` permission, which only covers the plugin-owned echo server (`hc.server`). Saved-config updates and deletes do not restart or stop running instances. Start does not open a browser tab; use `hc.webpage` when the `browser` permission is also granted.
 
 ### `browser`
 

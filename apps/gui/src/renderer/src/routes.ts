@@ -12,7 +12,6 @@ import {
   faPalette,
   faPlay,
   faList,
-  faTerminal,
   faPuzzlePiece,
   faCode,
   faCodeBranch,
@@ -306,29 +305,6 @@ export const pageRoutes = {
         return null;
       }
       return { type: 'workflow-run-results', workflowUuid: value.workflowUuid.trim() };
-    }
-  }),
-  'live-server-logs': defineRoute({
-    key: (page) => `live-server-logs:${page.savedId}`,
-    meta: (_page, ctx) => ({
-      title: ctx.liveServerName ? `Logs: ${ctx.liveServerName}` : 'Live server logs',
-      icon: faTerminal
-    }),
-    closeName: () => 'Live server logs',
-    replaceOnReopen: true,
-    Component: lazyNamed(
-      () => import('#/renderer/src/routing/pages/LiveServerLogsPageRoute'),
-      'LiveServerLogsPageRoute'
-    ),
-    normalize: (value) => {
-      if (
-        typeof value.savedId !== 'number' ||
-        !Number.isInteger(value.savedId) ||
-        value.savedId < 1
-      ) {
-        return null;
-      }
-      return { type: 'live-server-logs', savedId: value.savedId };
     }
   }),
   'plugin-detail': defineRoute({

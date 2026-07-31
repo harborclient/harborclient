@@ -10,11 +10,20 @@ import type {
   Environment,
   Folder,
   KeyValue,
+  LiveServer,
+  LiveServerRequestLogEntry,
+  RunningLiveServer,
   SaveRequestInput,
   SavedRequest,
-  SendResult
+  SendResult,
+  StartLiveServerInput
 } from '@harborclient/core/types';
+import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
 import { executeAiTool } from './aiToolExecutor';
+import {
+  setRunningLiveServers,
+  setSavedLiveServers
+} from '#/renderer/src/store/slices/liveServersSlice';
 import {
   setCollections,
   setDocumentsForCollection,
@@ -80,6 +89,17 @@ const gitFileDiffMock =
 const listStorageConnectionsMock =
   vi.fn<() => Promise<Array<{ id: string; name: string; type: string }>>>();
 const writeTerminalMock = vi.fn<(id: string, data: string) => void>();
+const listLiveServersMock = vi.fn<() => Promise<LiveServer[]>>();
+const listRunningLiveServersMock = vi.fn<() => Promise<RunningLiveServer[]>>();
+const getLiveServerLogsMock =
+  vi.fn<(query: { savedId: number } | { id: string }) => Promise<LiveServerRequestLogEntry[]>>();
+const clearLiveServerLogsMock =
+  vi.fn<(query: { savedId: number } | { id: string }) => Promise<void>>();
+const startLiveServerApiMock = vi.fn<(input: StartLiveServerInput) => Promise<RunningLiveServer>>();
+const stopLiveServerApiMock = vi.fn<(id: string) => Promise<void>>();
+const createLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
+const updateLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
+const deleteLiveServerApiMock = vi.fn<(id: number) => Promise<LiveServer[]>>();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -217,6 +237,15 @@ beforeEach(() => {
       gitFileDiff: gitFileDiffMock,
       listStorageConnections: listStorageConnectionsMock,
       writeTerminal: writeTerminalMock,
+      listLiveServers: listLiveServersMock,
+      listRunningLiveServers: listRunningLiveServersMock,
+      getLiveServerLogs: getLiveServerLogsMock,
+      clearLiveServerLogs: clearLiveServerLogsMock,
+      startLiveServer: startLiveServerApiMock,
+      stopLiveServer: stopLiveServerApiMock,
+      createLiveServer: createLiveServerApiMock,
+      updateLiveServer: updateLiveServerApiMock,
+      deleteLiveServer: deleteLiveServerApiMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
@@ -254,7 +283,67 @@ beforeEach(() => {
   listStorageConnectionsMock.mockReset();
   listStorageConnectionsMock.mockResolvedValue([]);
   writeTerminalMock.mockReset();
+  listLiveServersMock.mockReset();
+  listLiveServersMock.mockResolvedValue([]);
+  listRunningLiveServersMock.mockReset();
+  listRunningLiveServersMock.mockResolvedValue([]);
+  getLiveServerLogsMock.mockReset();
+  getLiveServerLogsMock.mockResolvedValue([]);
+  clearLiveServerLogsMock.mockReset();
+  clearLiveServerLogsMock.mockResolvedValue(undefined);
+  startLiveServerApiMock.mockReset();
+  stopLiveServerApiMock.mockReset();
+  stopLiveServerApiMock.mockResolvedValue(undefined);
+  createLiveServerApiMock.mockReset();
+  updateLiveServerApiMock.mockReset();
+  deleteLiveServerApiMock.mockReset();
 });
+
+/**
+ * Builds a minimal saved live server for AI tool tests.
+ *
+ * @param id - Database id.
+ * @param name - Display name.
+ */
+function liveServerFixture(id: number, name: string): LiveServer {
+  return {
+    id,
+    uuid: `aaaaaaaa-bbbb-cccc-dddd-${String(id).padStart(12, '0')}`,
+    name,
+    root: `/tmp/live-${id}`,
+    port: 5500 + id,
+    aliases: [],
+    watch: true,
+    cors: defaultLiveServerCorsSettings(),
+    sortOrder: id,
+    createdAt: 1,
+    updatedAt: 1
+  };
+}
+
+/**
+ * Builds a minimal running live server for AI tool tests.
+ *
+ * @param id - Runtime instance id.
+ * @param saved - Saved server that was started, or null for ad-hoc.
+ */
+function runningLiveServerFixture(id: string, saved: LiveServer | null): RunningLiveServer {
+  return {
+    id,
+    savedId: saved?.id ?? null,
+    config: {
+      name: saved?.name ?? 'Ad hoc',
+      root: saved?.root ?? '/tmp/adhoc',
+      port: saved?.port ?? null,
+      aliases: saved?.aliases ?? [],
+      watch: saved?.watch ?? true,
+      cors: saved?.cors ?? defaultLiveServerCorsSettings()
+    },
+    port: saved?.port ?? 5500,
+    origin: `http://127.0.0.1:${saved?.port ?? 5500}`,
+    startedAt: 1000
+  };
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -2925,5 +3014,218 @@ hc.test("Status code is 2xx", () => {
       error: 'Folder "Missing" was not found in collection 5. Call create_folder first.'
     });
     expect(saveRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('lists saved and running live servers', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(setSavedLiveServers([]));
+    store.dispatch(setRunningLiveServers([]));
+    const saved = liveServerFixture(1, 'Docs');
+    const running = runningLiveServerFixture('runtime-1', saved);
+    listLiveServersMock.mockResolvedValue([saved]);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const listed = JSON.parse(
+      await executeAiTool(
+        'list_live_servers',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(listed).toEqual([
+      expect.objectContaining({
+        id: 1,
+        uuid: saved.uuid,
+        name: 'Docs',
+        root: '/tmp/live-1',
+        port: 5501
+      })
+    ]);
+
+    const runningListed = JSON.parse(
+      await executeAiTool(
+        'list_running_live_servers',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(runningListed).toEqual([
+      expect.objectContaining({
+        id: 'runtime-1',
+        savedId: 1,
+        origin: 'http://127.0.0.1:5501',
+        port: 5501
+      })
+    ]);
+  });
+
+  it('gets one live server by uuid and returns an error when missing', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(setSavedLiveServers([]));
+    store.dispatch(setRunningLiveServers([]));
+    const saved = liveServerFixture(2, 'App');
+    listLiveServersMock.mockResolvedValue([saved]);
+
+    const found = JSON.parse(
+      await executeAiTool(
+        'get_live_server',
+        { uuid: saved.uuid },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(found).toEqual(expect.objectContaining({ id: 2, name: 'App' }));
+
+    const missing = JSON.parse(
+      await executeAiTool(
+        'get_live_server',
+        { uuid: '99999999-9999-9999-9999-999999999999' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(missing).toEqual({ error: 'Live server not found.' });
+  });
+
+  it('returns capped live server logs and clears them', async () => {
+    const entries: LiveServerRequestLogEntry[] = Array.from({ length: 3 }, (_, index) => ({
+      id: 'runtime-1',
+      savedId: 1,
+      timestamp: index,
+      method: 'GET',
+      url: `/file-${index}`,
+      statusCode: 200,
+      durationMs: 1,
+      contentLength: 10
+    }));
+    getLiveServerLogsMock.mockResolvedValue(entries);
+
+    const logs = JSON.parse(
+      await executeAiTool(
+        'get_live_server_logs',
+        { savedId: 1, maxLines: 2 },
+        {
+          getState: () => ({}) as never,
+          dispatch: vi.fn() as never
+        }
+      )
+    );
+    expect(logs.totalLines).toBe(3);
+    expect(logs.truncated).toBe(true);
+    expect(logs.lines).toHaveLength(2);
+    expect(logs.lines[0]?.url).toBe('/file-1');
+
+    const cleared = JSON.parse(
+      await executeAiTool(
+        'clear_live_server_logs',
+        { id: 'runtime-1' },
+        {
+          getState: () => ({}) as never,
+          dispatch: vi.fn() as never
+        }
+      )
+    );
+    expect(cleared).toEqual({ ok: true, query: { id: 'runtime-1' } });
+    expect(clearLiveServerLogsMock).toHaveBeenCalledWith({ id: 'runtime-1' });
+  });
+
+  it('starts a saved live server with openBrowser false and stops by savedId', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(setSavedLiveServers([]));
+    store.dispatch(setRunningLiveServers([]));
+    const saved = liveServerFixture(3, 'Site');
+    const running = runningLiveServerFixture('runtime-3', saved);
+    listLiveServersMock.mockResolvedValue([saved]);
+    startLiveServerApiMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const tabCountBefore = store.getState().tabs.tabs.length;
+    const started = JSON.parse(
+      await executeAiTool(
+        'start_live_server',
+        { savedId: 3, openBrowser: false },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(started).toEqual(
+      expect.objectContaining({
+        ok: true,
+        id: 'runtime-3',
+        savedId: 3,
+        origin: 'http://127.0.0.1:5503',
+        openBrowser: false
+      })
+    );
+    expect(store.getState().tabs.tabs).toHaveLength(tabCountBefore);
+
+    store.dispatch(setRunningLiveServers([running]));
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const stopped = JSON.parse(
+      await executeAiTool(
+        'stop_live_server',
+        { savedId: 3 },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(stopped).toEqual({ ok: true, id: 'runtime-3' });
+    expect(stopLiveServerApiMock).toHaveBeenCalledWith('runtime-3');
+  });
+
+  it('creates, updates, and deletes a saved live server', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(setSavedLiveServers([]));
+    store.dispatch(setRunningLiveServers([]));
+    const created = liveServerFixture(4, 'New');
+    createLiveServerApiMock.mockResolvedValue([created]);
+    listLiveServersMock.mockResolvedValue([created]);
+
+    const createResult = JSON.parse(
+      await executeAiTool(
+        'create_live_server',
+        { name: 'New', root: '/tmp/live-4' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(createResult).toEqual({
+      ok: true,
+      server: expect.objectContaining({ id: 4, name: 'New' })
+    });
+
+    const updated = { ...created, name: 'Renamed', root: '/tmp/renamed' };
+    updateLiveServerApiMock.mockResolvedValue([updated]);
+    listLiveServersMock.mockResolvedValue([updated]);
+    store.dispatch(setSavedLiveServers([created]));
+
+    const updateResult = JSON.parse(
+      await executeAiTool(
+        'update_live_server',
+        {
+          id: 4,
+          name: 'Renamed',
+          root: '/tmp/renamed',
+          port: 5504,
+          aliases: [],
+          watch: true,
+          cors: defaultLiveServerCorsSettings()
+        },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(updateResult).toEqual({
+      ok: true,
+      server: expect.objectContaining({ name: 'Renamed', root: '/tmp/renamed' })
+    });
+
+    deleteLiveServerApiMock.mockResolvedValue([]);
+    listLiveServersMock.mockResolvedValue([updated]);
+    store.dispatch(setSavedLiveServers([updated]));
+
+    const deleteResult = JSON.parse(
+      await executeAiTool(
+        'delete_live_server',
+        { id: 4 },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(deleteResult).toEqual({ ok: true, id: 4 });
   });
 });

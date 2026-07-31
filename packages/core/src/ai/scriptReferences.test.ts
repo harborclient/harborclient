@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAiScriptSelectionContextMessage,
+  buildLiveServerReferenceToken,
+  buildLogsReferenceToken,
   buildWebpageReferenceToken,
   collectChatReferenceSnapshots,
   findAiScriptReferenceCandidates,
@@ -329,11 +331,57 @@ describe('findAiScriptReferenceCandidates', () => {
     );
   });
 
-  it('rejects malformed collection, folder, request, and webpage references', () => {
+  it('finds live-server references by saved uuid', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+
+    expect(findAiScriptReferenceCandidates(`@live-server.${liveServerUuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'live-server',
+        liveServerUuid,
+        text: `@live-server.${liveServerUuid}`
+      })
+    ]);
+    expect(buildLiveServerReferenceToken(liveServerUuid)).toBe(`@live-server.${liveServerUuid}`);
+  });
+
+  it('finds logs references by saved uuid with optional line-range suffixes', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+
+    expect(findAiScriptReferenceCandidates(`@logs.${liveServerUuid}`)).toEqual([
+      expect.objectContaining({
+        kind: 'logs',
+        liveServerUuid,
+        text: `@logs.${liveServerUuid}`,
+        selection: undefined
+      })
+    ]);
+    expect(findAiScriptReferenceCandidates(`@logs.${liveServerUuid}#1.40`)).toEqual([
+      expect.objectContaining({
+        kind: 'logs',
+        liveServerUuid,
+        text: `@logs.${liveServerUuid}#1.40`,
+        selection: { start: 1, end: 40 }
+      })
+    ]);
+    expect(buildLogsReferenceToken(liveServerUuid)).toBe(`@logs.${liveServerUuid}`);
+    expect(buildLogsReferenceToken(liveServerUuid, 1, 40)).toBe(`@logs.${liveServerUuid}#1.40`);
+  });
+
+  it('rejects malformed collection, folder, request, webpage, live-server, and logs references', () => {
     expect(findAiScriptReferenceCandidates('@collection.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@folder.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@request.not-a-uuid')).toEqual([]);
     expect(findAiScriptReferenceCandidates('@webpage.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@live-server.not-a-uuid')).toEqual([]);
+    expect(findAiScriptReferenceCandidates('@logs.not-a-uuid')).toEqual([]);
+    expect(
+      findAiScriptReferenceCandidates('@logs.55555555-5555-5555-5555-555555555555#1.0')
+    ).toEqual([
+      expect.objectContaining({
+        kind: 'logs',
+        selection: undefined
+      })
+    ]);
   });
 
   it('finds response-section references by request tab uuid and section', () => {
@@ -501,6 +549,85 @@ describe('isValidAiScriptReference', () => {
     const [candidate] = findAiScriptReferenceCandidates('@term.2#1.33');
     expect(candidate).toBeDefined();
     expect(isValidAiScriptReference(candidate!, context())).toBe(false);
+  });
+
+  it('accepts whole-log references when the live server exists', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const [candidate] = findAiScriptReferenceCandidates(`@logs.${liveServerUuid}`);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('accepts logs selection references when a matching snapshot exists', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const token = `@logs.${liveServerUuid}#1.40`;
+    const [candidate] = findAiScriptReferenceCandidates(token);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          },
+          logsSelections: {
+            [token]: {
+              label: 'Logs: Docs',
+              startLine: 1,
+              endLine: 40,
+              selectedText: 'GET / 200',
+              contextText: 'before\nGET / 200\nafter'
+            }
+          }
+        })
+      )
+    ).toBe(true);
+  });
+
+  it('rejects logs selection references without a stored snapshot', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const [candidate] = findAiScriptReferenceCandidates(`@logs.${liveServerUuid}#1.40`);
+    expect(candidate).toBeDefined();
+    expect(
+      isValidAiScriptReference(
+        candidate!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          }
+        })
+      )
+    ).toBe(false);
   });
 
   it('accepts markdown references when a matching snapshot exists', () => {
@@ -1426,6 +1553,243 @@ hc.test("Status code is 2xx", () => {
     expect(message).toContain('click: 100,200');
     expect(message).toContain('document.elementFromPoint(100, 200)');
     expect(message).toContain('webpage_evaluate');
+  });
+
+  it('includes live-server access-log selection context', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const token = `@logs.${liveServerUuid}#1.40`;
+    const message = buildAiScriptSelectionContextMessage(
+      `What failed here? ${token}`,
+      context({
+        hasActiveRequestTab: false,
+        liveServersByUuid: {
+          [liveServerUuid]: {
+            id: 7,
+            name: 'Docs',
+            root: '/tmp/docs',
+            port: 5500,
+            watch: true
+          }
+        },
+        logsSelections: {
+          [token]: {
+            label: 'Logs: Docs',
+            startLine: 1,
+            endLine: 40,
+            selectedText: 'GET /missing 404',
+            contextText: 'GET / 200\nGET /missing 404\nGET / 200'
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('Selected access-log output');
+    expect(message).toContain('GET /missing 404');
+    expect(message).toContain('Surrounding access-log context');
+
+    const [reference] = findAiScriptReferenceCandidates(token);
+    expect(reference).toBeDefined();
+    expect(
+      resolveAiScriptReferenceName(
+        reference!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          },
+          logsSelections: {
+            [token]: {
+              label: 'Logs: Docs',
+              startLine: 1,
+              endLine: 40,
+              selectedText: 'GET /missing 404',
+              contextText: 'GET / 200\nGET /missing 404\nGET / 200'
+            }
+          }
+        })
+      )
+    ).toBe('Logs: Docs');
+    expect(
+      resolveAiScriptReferenceLabel(
+        reference!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          },
+          logsSelections: {
+            [token]: {
+              label: 'Logs: Docs',
+              startLine: 1,
+              endLine: 40,
+              selectedText: 'GET /missing 404',
+              contextText: 'GET / 200\nGET /missing 404\nGET / 200'
+            }
+          }
+        })
+      )
+    ).toBe('Logs: Docs (lines 1-40)');
+    expect(
+      collectChatReferenceSnapshots(
+        token,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          },
+          logsSelections: {
+            [token]: {
+              label: 'Logs: Docs',
+              startLine: 1,
+              endLine: 40,
+              selectedText: 'GET /missing 404',
+              contextText: 'GET / 200\nGET /missing 404\nGET / 200'
+            }
+          }
+        })
+      )
+    ).toEqual({
+      [token]: {
+        kind: 'logs',
+        snapshot: {
+          label: 'Logs: Docs',
+          startLine: 1,
+          endLine: 40,
+          selectedText: 'GET /missing 404',
+          contextText: 'GET / 200\nGET /missing 404\nGET / 200'
+        }
+      }
+    });
+  });
+
+  it('includes whole-log live-server context', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const token = `@logs.${liveServerUuid}`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Summarize ${token}`,
+      context({
+        hasActiveRequestTab: false,
+        liveServersByUuid: {
+          [liveServerUuid]: {
+            id: 7,
+            name: 'Docs',
+            root: '/tmp/docs',
+            port: 5500,
+            watch: true,
+            runtimeId: 'runtime-7',
+            origin: 'http://127.0.0.1:5500',
+            runningPort: 5500
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('live server access logs for "Docs"');
+    expect(message).toContain('get_live_server_logs');
+    expect(
+      resolveAiScriptReferenceName(
+        findAiScriptReferenceCandidates(token)[0]!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          }
+        })
+      )
+    ).toBe('Logs: Docs');
+  });
+
+  it('includes live-server config and running status in context', () => {
+    const liveServerUuid = '55555555-5555-5555-5555-555555555555';
+    const token = `@live-server.${liveServerUuid}`;
+    const message = buildAiScriptSelectionContextMessage(
+      `Status of ${token}?`,
+      context({
+        hasActiveRequestTab: false,
+        liveServersByUuid: {
+          [liveServerUuid]: {
+            id: 7,
+            name: 'Docs',
+            root: '/tmp/docs',
+            port: 5500,
+            watch: true,
+            runtimeId: 'runtime-7',
+            origin: 'http://127.0.0.1:5500',
+            runningPort: 5500
+          }
+        }
+      })
+    );
+
+    expect(message).toContain(`Reference ${token}`);
+    expect(message).toContain('live server "Docs"');
+    expect(message).toContain('status: running');
+    expect(message).toContain('origin: http://127.0.0.1:5500');
+    expect(message).toContain('get_live_server');
+    expect(message).toContain('get_live_server_logs');
+
+    const [reference] = findAiScriptReferenceCandidates(token);
+    expect(reference).toBeDefined();
+    expect(
+      resolveAiScriptReferenceName(
+        reference!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          }
+        })
+      )
+    ).toBe('Live Server: Docs');
+    expect(
+      isValidAiScriptReference(
+        reference!,
+        context({
+          hasActiveRequestTab: false,
+          liveServersByUuid: {
+            [liveServerUuid]: {
+              id: 7,
+              name: 'Docs',
+              root: '/tmp/docs',
+              port: 5500,
+              watch: true
+            }
+          }
+        })
+      )
+    ).toBe(true);
   });
 });
 
