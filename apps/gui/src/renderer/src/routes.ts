@@ -5,10 +5,9 @@ import {
   faCookieBite,
   faFingerprint,
   faGear,
-  faGlobe,
   faDatabase,
   faFolder,
-  faLayerGroup,
+  faLeaf,
   faPalette,
   faPlay,
   faList,
@@ -18,7 +17,8 @@ import {
   faFileImport,
   faUsers,
   faExpand,
-  faImage
+  faImage,
+  faWindowRestore
 } from '#/renderer/src/fontawesome';
 import { settingsSectionMeta } from '#/renderer/src/ui/Tabs/Settings/constants';
 import type { PageRoute } from '#/renderer/src/routing/types';
@@ -214,7 +214,7 @@ export const pageRoutes = {
   }),
   'environment': defineRoute({
     key: (page) => `environment:${page.id}`,
-    meta: (_page, ctx) => ({ title: ctx.environmentName ?? 'Environment', icon: faGlobe }),
+    meta: (_page, ctx) => ({ title: ctx.environmentName ?? 'Environment', icon: faLeaf }),
     closeName: (_page, ctx) => ctx.environmentName ?? 'Environment',
     dirtyFlag: 'environment',
     replaceOnReopen: true,
@@ -231,7 +231,7 @@ export const pageRoutes = {
   }),
   'workspace': defineRoute({
     key: (page) => `workspace:${page.id}`,
-    meta: (_page, ctx) => ({ title: ctx.workspaceName ?? 'Workspace', icon: faLayerGroup }),
+    meta: (_page, ctx) => ({ title: ctx.workspaceName ?? 'Workspace', icon: faWindowRestore }),
     closeName: (_page, ctx) => ctx.workspaceName ?? 'Workspace',
     dirtyFlag: 'workspace',
     replaceOnReopen: true,

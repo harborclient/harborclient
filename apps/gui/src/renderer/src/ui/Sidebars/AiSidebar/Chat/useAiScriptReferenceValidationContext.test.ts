@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { defaultAuth, type AuthConfig } from '@harborclient/core/auth';
 import type { HttpMethod, LiveServer, RunningLiveServer } from '@harborclient/core/types';
-import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  defaultLiveServerCorsSettings,
+  normalizeLiveServerConfigFields
+} from '@harborclient/core/types';
 import {
   buildAiScriptSelectionContextMessage,
   findAiScriptReferenceCandidates,
@@ -214,6 +217,7 @@ describe('buildAiScriptReferenceValidationContext', () => {
       aliases: [],
       watch: true,
       cors: defaultLiveServerCorsSettings(),
+      ...normalizeLiveServerConfigFields(undefined),
       sortOrder: 0,
       createdAt: 1,
       updatedAt: 1
@@ -227,7 +231,15 @@ describe('buildAiScriptReferenceValidationContext', () => {
         port: saved.port,
         aliases: saved.aliases,
         watch: saved.watch,
-        cors: saved.cors
+        cors: saved.cors,
+        openPath: saved.openPath,
+        rememberLastUrl: saved.rememberLastUrl,
+        lastOpenedPath: saved.lastOpenedPath,
+        indexFiles: saved.indexFiles,
+        host: saved.host,
+        headers: saved.headers,
+        routes: saved.routes,
+        ssl: saved.ssl
       },
       port: 5509,
       origin: 'http://127.0.0.1:5509',

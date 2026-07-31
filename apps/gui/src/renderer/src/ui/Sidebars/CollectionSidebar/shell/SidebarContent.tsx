@@ -12,12 +12,12 @@ import {
   usePluginSidebarSections
 } from '#/renderer/src/plugins/pluginHooks';
 import {
-  faDiagramProject,
   faFolder,
-  faGlobe,
-  faLayerGroup,
+  faLeaf,
+  faRoute,
   faServer,
-  faTrash
+  faTrash,
+  faWindowRestore
 } from '#/renderer/src/fontawesome';
 import {
   Sidebar,
@@ -74,9 +74,9 @@ import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
 
 const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
-  { id: 'environments', icon: faGlobe, label: 'Environments' },
-  { id: 'workspaces', icon: faLayerGroup, label: 'Workspaces' },
-  { id: 'workflows', icon: faDiagramProject, label: 'Workflows' },
+  { id: 'environments', icon: faLeaf, label: 'Environments' },
+  { id: 'workspaces', icon: faWindowRestore, label: 'Workspaces' },
+  { id: 'workflows', icon: faRoute, label: 'Workflows' },
   { id: 'servers', icon: faServer, label: 'Servers' },
   { id: 'trash', icon: faTrash, label: 'Trash' }
 ];

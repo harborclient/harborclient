@@ -28,6 +28,7 @@ import {
   type PageRef,
   type RequestDraft,
   type RequestTab,
+  type ScopedSettingsDraft,
   type Tab
 } from '#/renderer/src/store/tabs';
 import type { BrowserInjectionScript } from '#/browser/browserScripts';
@@ -66,6 +67,60 @@ function pageTabMatches(tab: Tab, page: PageRef): boolean {
  */
 function findPageTab(tabs: Tab[], page: PageRef): Tab | undefined {
   return tabs.find((tab) => pageTabMatches(tab, page));
+}
+
+/**
+ * Merges a reopen payload onto an existing page tab without wiping remembered
+ * SegmentedTabs sections when the caller omits `focusSection`.
+ *
+ * Deep links that pass `focusVariableKey` force the Variables section so row
+ * focus still lands correctly when settings were left on another tab.
+ *
+ * @param existing - Page currently open in the matching tab.
+ * @param incoming - Page payload from `openPageTab`.
+ * @returns Page to store on the tab.
+ */
+function mergePageOnReopen(existing: PageRef, incoming: PageRef): PageRef {
+  if (existing.type !== incoming.type) {
+    return withImpliedFocusSection(incoming);
+  }
+
+  if (incoming.type === 'collection' && existing.type === 'collection') {
+    return withImpliedFocusSection({
+      ...incoming,
+      focusSection:
+        incoming.focusSection ??
+        (incoming.focusVariableKey != null ? 'variables' : existing.focusSection)
+    });
+  }
+
+  if (incoming.type === 'folder' && existing.type === 'folder') {
+    return withImpliedFocusSection({
+      ...incoming,
+      focusSection:
+        incoming.focusSection ??
+        (incoming.focusVariableKey != null ? 'variables' : existing.focusSection)
+    });
+  }
+
+  return withImpliedFocusSection(incoming);
+}
+
+/**
+ * Fills `focusSection` when a variable deep-link implies the Variables tab.
+ *
+ * @param page - Incoming or merged page reference.
+ * @returns Page with an implied focus section when needed.
+ */
+function withImpliedFocusSection(page: PageRef): PageRef {
+  if (
+    (page.type === 'collection' || page.type === 'folder') &&
+    page.focusSection == null &&
+    page.focusVariableKey != null
+  ) {
+    return { ...page, focusSection: 'variables' };
+  }
+  return page;
 }
 
 /**
@@ -401,12 +456,12 @@ const tabsSlice = createSlice({
      * tab can restore focus to the opener.
      */
     openPageTab(state, action: PayloadAction<PageRef>) {
-      const page = action.payload;
+      const page = withImpliedFocusSection(action.payload);
       const openerId = state.activeTabId;
       const existing = findPageTab(state.tabs, page);
       if (existing && isPageTab(existing)) {
         if (getPageRoute(page.type).replaceOnReopen) {
-          existing.page = page;
+          existing.page = mergePageOnReopen(existing.page, page);
         }
         if (openerId && openerId !== existing.tabId) {
           existing.linkedTo = openerId;
@@ -421,6 +476,75 @@ const tabsSlice = createSlice({
       }
       state.tabs.push(tab);
       state.activeTabId = tab.tabId;
+    },
+    /**
+     * Remembers the active SegmentedTabs section on a collection or folder
+     * settings page so remounts after TabBar switches restore the same tab.
+     */
+    setPageFocusSection(state, action: PayloadAction<{ tabId: string; focusSection: string }>) {
+      const { tabId, focusSection } = action.payload;
+      const tab = state.tabs.find((entry) => entry.tabId === tabId);
+      if (!tab || !isPageTab(tab)) {
+        return;
+      }
+      if (tab.page.type !== 'collection' && tab.page.type !== 'folder') {
+        return;
+      }
+      tab.page = { ...tab.page, focusSection };
+    },
+    /**
+     * Stores unsaved collection/folder settings fields on the open page tab.
+     */
+    setPageScopedSettingsDraft(
+      state,
+      action: PayloadAction<{ tabId: string; draft: ScopedSettingsDraft }>
+    ) {
+      const tab = state.tabs.find((entry) => entry.tabId === action.payload.tabId);
+      if (!tab || !isPageTab(tab)) {
+        return;
+      }
+      if (tab.page.type !== 'collection' && tab.page.type !== 'folder') {
+        return;
+      }
+      tab.scopedSettingsDraft = action.payload.draft;
+    },
+    /**
+     * Stores the draft provider connection id on a collection settings page tab.
+     */
+    setPageConnectionIdDraft(
+      state,
+      action: PayloadAction<{ tabId: string; connectionId: string }>
+    ) {
+      const tab = state.tabs.find((entry) => entry.tabId === action.payload.tabId);
+      if (!tab || !isPageTab(tab) || tab.page.type !== 'collection') {
+        return;
+      }
+      tab.connectionIdDraft = action.payload.connectionId;
+    },
+    /**
+     * Marks a collection/folder settings page tab as having unsaved edits.
+     */
+    setPageTabDirty(state, action: PayloadAction<{ tabId: string; dirty: boolean }>) {
+      const tab = state.tabs.find((entry) => entry.tabId === action.payload.tabId);
+      if (!tab || !isPageTab(tab)) {
+        return;
+      }
+      if (tab.page.type !== 'collection' && tab.page.type !== 'folder') {
+        return;
+      }
+      tab.dirty = action.payload.dirty;
+    },
+    /**
+     * Clears unsaved settings draft state after a successful save or discard.
+     */
+    clearPageScopedSettingsDraft(state, action: PayloadAction<string>) {
+      const tab = state.tabs.find((entry) => entry.tabId === action.payload);
+      if (!tab || !isPageTab(tab)) {
+        return;
+      }
+      delete tab.scopedSettingsDraft;
+      delete tab.connectionIdDraft;
+      tab.dirty = false;
     },
     /**
      * Closes a tab by id, leaving zero tabs open when the last tab is closed.
@@ -1070,6 +1194,11 @@ export const {
   browserGoHome,
   openInheritedBrowserTab,
   openPageTab,
+  setPageFocusSection,
+  setPageScopedSettingsDraft,
+  setPageConnectionIdDraft,
+  setPageTabDirty,
+  clearPageScopedSettingsDraft,
   closeTab,
   setBrowserSettingsPanelOpen,
   updateBrowserNavigation,

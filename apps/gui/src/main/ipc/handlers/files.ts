@@ -75,6 +75,28 @@ export function registerFileHandlers(): void {
     return filePaths[0];
   });
 
+  // Opens a single-file picker filtered for TLS certificate / private-key files.
+  handle('dialog:openSslFile', ipcArgSchemas.openSslFile, async (_event, defaultPath) => {
+    const win = BrowserWindow.getFocusedWindow();
+    const dialogOptions = {
+      properties: ['openFile'] as Array<'openFile'>,
+      defaultPath: defaultPath.trim() || undefined,
+      filters: [
+        { name: 'Certificate / key', extensions: ['pem', 'crt', 'key', 'cert'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (canceled || filePaths.length === 0) {
+      return null;
+    }
+
+    return filePaths[0];
+  });
+
   // Opens a file or directory in the OS default application (e.g. the file browser).
   handle('files:openPath', ipcArgSchemas.openPath, async (_event, path) => {
     const error = await shell.openPath(path);

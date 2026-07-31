@@ -3843,12 +3843,22 @@ function confirmClose(proceed: boolean): void {
 }
 
 /**
- * Opens a native file picker for one or more files via IPC.
+ * Opens a native file picker via IPC and returns selected absolute paths.
  *
- * @returns Selected absolute file paths, or an empty array when canceled.
+ * @returns Selected paths, or an empty array when the dialog is canceled.
  */
 function selectFiles(): Promise<string[]> {
   return ipcRenderer.invoke('dialog:openFiles');
+}
+
+/**
+ * Opens a single-file picker filtered for SSL certificate and private-key files.
+ *
+ * @param defaultPath - Optional initial path shown in the dialog.
+ * @returns Selected absolute file path, or null when canceled.
+ */
+function selectSslFile(defaultPath?: string): Promise<string | null> {
+  return ipcRenderer.invoke('dialog:openSslFile', defaultPath ?? '');
 }
 
 /**
@@ -5122,6 +5132,7 @@ const api: Api = {
   onBeforeClose,
   confirmClose,
   selectFiles,
+  selectSslFile,
   selectDirectory,
   selectSaveFile,
   openPath,

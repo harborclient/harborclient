@@ -1306,7 +1306,7 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
       activeTab != null &&
       isPageTab(activeTab) &&
       activeTab.page.type === 'collection' &&
-      selectCollectionSettingsDirty(state);
+      (isTabDirty(activeTab) || selectCollectionSettingsDirty(state));
     const environmentDirty =
       activeTab != null &&
       isPageTab(activeTab) &&
@@ -1316,7 +1316,7 @@ export const requestLoadRequest = createAsyncThunk<void, RequestLoadRequestArgs,
       activeTab != null &&
       isPageTab(activeTab) &&
       activeTab.page.type === 'folder' &&
-      selectFolderSettingsDirty(state);
+      (isTabDirty(activeTab) || selectFolderSettingsDirty(state));
     const workspaceDirty =
       activeTab != null &&
       isPageTab(activeTab) &&

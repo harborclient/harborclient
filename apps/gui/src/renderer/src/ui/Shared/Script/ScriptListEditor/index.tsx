@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Button, FaIcon, RowActionsMenu } from '@harborclient/sdk/components';
 import type { MenuItem } from '@harborclient/sdk/components';
-import { Fragment, useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type {
   ScriptRef,
@@ -53,6 +53,10 @@ import {
 import { isImportableSnippetName } from '@harborclient/core/snippetImport';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
+import {
+  scriptGroupExpansionScopeKey,
+  usePersistedScriptGroupExpansion
+} from '#/renderer/src/hooks/usePersistedScriptGroupExpansion';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
@@ -83,9 +87,9 @@ import {
   normalizeScriptStage,
   readScriptRefStage,
   SCRIPT_STAGE_OPTIONS,
+  scriptEditorGroupsForAllowedStages,
   scriptStageBorderColor,
   scriptStageGroup,
-  shouldShowScriptSectionHeadings,
   splitScriptRefsByGroup,
   type ScriptEditorGroup
 } from '@harborclient/core/scriptStage';
@@ -107,10 +111,14 @@ import {
   faPaste
 } from '#/renderer/src/fontawesome';
 import { SCRIPT_ROW_STAGE_BORDER_CLASS, SNIPPET_LIBRARY_MENU_ID } from './constants';
-import { isScriptStageEditable, saveSnippetDefaultName, scriptRowLabel } from './helpers';
+import {
+  buildScriptGroupActionMenuGroups,
+  isScriptStageEditable,
+  saveSnippetDefaultName,
+  scriptRowLabel
+} from './helpers';
 import { AddScriptStageModal } from './AddScriptStageModal';
 import { SaveSnippetNameModal } from './SaveSnippetNameModal';
-import { ScriptFlowArrow } from './ScriptFlowArrow';
 import { ScriptGroupHeading } from './ScriptGroupHeading';
 import { SortableScriptRow } from './SortableScriptRow';
 import type { SortableScriptRowProps } from './types';
@@ -314,6 +322,15 @@ export function ScriptListEditor({
   const sortableEnabled = normalized.length > 1;
   const [activeDragScriptId, setActiveDragScriptId] = useState<string | null>(null);
   const [addScriptStageModalOpen, setAddScriptStageModalOpen] = useState(false);
+  /**
+   * Persisted expand/collapse state for Before/Main/After section headers,
+   * keyed by request (or tab) and pre/post phase.
+   */
+  const groupExpansionScopeKey = scriptGroupExpansionScopeKey(requestId, sourceTabId);
+  const { expandedByGroup, setGroupExpanded } = usePersistedScriptGroupExpansion(
+    groupExpansionScopeKey,
+    phase
+  );
   const [openRowMenuId, setOpenRowMenuId] = useState<string | null>(null);
   const [saveSnippetTarget, setSaveSnippetTarget] = useState<{
     scriptId: string;
@@ -348,11 +365,11 @@ export function ScriptListEditor({
   );
 
   /**
-   * Whether Before/Run/After section headings should appear above non-empty groups.
+   * Editor groups that have at least one allowed stage (headers always render, including empty).
    */
-  const showSectionHeadings = useMemo(
-    () => shouldShowScriptSectionHeadings(scriptGroups),
-    [scriptGroups]
+  const visibleGroups = useMemo(
+    () => scriptEditorGroupsForAllowedStages(resolvedAllowedStages),
+    [resolvedAllowedStages]
   );
 
   /**
@@ -451,7 +468,7 @@ export function ScriptListEditor({
   /**
    * Adds a new empty inline script with the selected stage.
    *
-   * @param stage - Stage chosen in the add-script modal.
+   * @param stage - Stage chosen in the add-script modal or section menu.
    */
   const handleConfirmAddInline = (stage: ScriptStage): void => {
     const created = {
@@ -460,6 +477,7 @@ export function ScriptListEditor({
     };
     const groups = splitScriptRefsByGroup(normalized);
     const group = scriptStageGroup(stage);
+    setGroupExpanded(group, true);
     updateScripts(
       mergeScriptRefGroups({
         ...groups,
@@ -467,6 +485,16 @@ export function ScriptListEditor({
       })
     );
     setAddScriptStageModalOpen(false);
+  };
+
+  /**
+   * Expands or collapses one script editor section and persists the choice.
+   *
+   * @param group - Before, main, or after section being toggled.
+   * @param expanded - Whether the section body should be visible.
+   */
+  const handleGroupExpandedChange = (group: ScriptEditorGroup, expanded: boolean): void => {
+    setGroupExpanded(group, expanded);
   };
 
   /**
@@ -1234,28 +1262,30 @@ export function ScriptListEditor({
         <Button
           type="button"
           variant="secondary"
-          className="shrink-0"
-          aria-label="Syntax highlighting settings"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          aria-label="Settings"
           title="Syntax highlighting settings"
           onClick={handleOpenSyntaxSettings}
         >
-          <FaIcon icon={faGear} className="h-4 w-4" aria-hidden />
+          <FaIcon icon={faGear} className="h-3.5 w-3.5" aria-hidden />
+          Settings
         </Button>
         <Button
           type="button"
           variant="secondary"
-          className="shrink-0"
-          aria-label="Scripting help"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          aria-label="Help"
           title="Scripting help"
           onClick={handleOpenScriptingHelp}
         >
-          <FaIcon icon={faCircleQuestion} className="h-4 w-4" aria-hidden />
+          <FaIcon icon={faCircleQuestion} className="h-3.5 w-3.5" aria-hidden />
+          Help
         </Button>
       </div>
       <Button
         type="button"
         variant="secondary"
-        className="mr-4 shrink-0"
+        className="shrink-0"
         aria-label={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
         title={allScriptsExpanded ? 'Collapse all scripts' : 'Expand all scripts'}
         onClick={handleToggleExpandAll}
@@ -1269,51 +1299,48 @@ export function ScriptListEditor({
    * Hosts the script list action toolbar as a bordered chrome strip under the
    * editor tabs. Top inset comes from the tab content `pt-4`; matching `pb-4`
    * keeps equal space above and below the buttons before a full-bleed
-   * `border-separator` rule, then `mb-3` clears the script rows.
+   * `border-separator` rule. The first section header sits flush against that rule.
    */
   const scriptListHeader = (
-    <div className="-mx-4 mb-3 min-w-0 shrink-0 border-b border-separator px-4 pb-4">
-      {addControls}
-    </div>
+    <div className="-mx-4 min-w-0 shrink-0 border-b border-separator px-4 pb-4">{addControls}</div>
   );
 
   /**
-   * Renders one grouped script list with optional drag handles.
+   * Renders one grouped script list with a section header and optional drag handles.
    *
    * @param group - Editor stage group.
    * @param groupScripts - Scripts stored in that group.
    * @param groupLabel - Accessible name for the list.
-   * @param showHeading - Whether to render a visible section heading above the list.
    */
   const renderScriptGroup = (
     group: ScriptEditorGroup,
     groupScripts: ScriptRef[],
-    groupLabel: string,
-    showHeading: boolean
-  ): JSX.Element | null => {
-    if (groupScripts.length === 0) {
-      return null;
-    }
-
+    groupLabel: string
+  ): JSX.Element => {
     const groupSortable = groupScripts.length > 1;
-    const list = (
-      <ul className="flex flex-col" aria-label={groupLabel}>
-        {groupScripts.map((script, index) => {
-          const label = scriptRowLabel(script, snippets);
-          const isExpanded = script.expanded ?? false;
-          const scriptIndex = normalized.findIndex((entry) => entry.id === script.id);
-          // A throw aborts the script, so error reveal takes precedence over a
-          // failed assertion on the same row.
-          const inlineReveal = revealStateForScriptRow(
-            scriptErrors ?? [],
-            testResults ?? [],
-            phase,
-            script.id
-          );
+    const groupExpanded = expandedByGroup[group];
+    const headingId = `${phase}-${group}-scripts-heading`;
+    const panelId = `${headingId}-panel`;
 
-          return (
-            <Fragment key={script.id}>
+    const list =
+      groupScripts.length === 0 ? null : (
+        <ul className="flex flex-col gap-5" aria-label={groupLabel}>
+          {groupScripts.map((script) => {
+            const label = scriptRowLabel(script, snippets);
+            const isExpanded = script.expanded ?? false;
+            const scriptIndex = normalized.findIndex((entry) => entry.id === script.id);
+            // A throw aborts the script, so error reveal takes precedence over a
+            // failed assertion on the same row.
+            const inlineReveal = revealStateForScriptRow(
+              scriptErrors ?? [],
+              testResults ?? [],
+              phase,
+              script.id
+            );
+
+            return (
               <SortableScriptRow
+                key={script.id}
                 {...buildScriptRowProps(script, label, isExpanded, scriptIndex + 1, {
                   sortable: groupSortable,
                   includeOpenInTab: true
@@ -1324,58 +1351,56 @@ export function ScriptListEditor({
                 revealSource={inlineReveal?.source}
                 revealNonce={inlineReveal ? inlineTestResultsRevealNonce : undefined}
               />
-              {index < groupScripts.length - 1 ? <ScriptFlowArrow /> : null}
-            </Fragment>
-          );
-        })}
-      </ul>
-    );
+            );
+          })}
+        </ul>
+      );
 
-    const sortableList = groupSortable ? (
-      <SortableContext items={scriptGroupIds[group]} strategy={verticalListSortingStrategy}>
-        {list}
-      </SortableContext>
-    ) : (
-      list
-    );
-
-    if (!showHeading) {
-      return sortableList;
-    }
-
-    const headingId = `${phase}-${group}-scripts-heading`;
+    const sortableList =
+      list == null ? null : groupSortable ? (
+        <SortableContext items={scriptGroupIds[group]} strategy={verticalListSortingStrategy}>
+          {list}
+        </SortableContext>
+      ) : (
+        list
+      );
 
     return (
-      <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <section key={group} aria-labelledby={headingId} className="flex flex-col">
         <ScriptGroupHeading
           group={group}
-          phase={phase}
           scripts={groupScripts}
           headingId={headingId}
+          panelId={panelId}
+          expanded={groupExpanded}
+          onExpandedChange={(expanded) => handleGroupExpandedChange(group, expanded)}
           onEnabledChange={(enabled) => handleGroupEnabledChange(group, enabled)}
+          menuId={`script-group-${phase}-${group}`}
+          openMenuId={openRowMenuId}
+          onOpenChange={setOpenRowMenuId}
+          menuGroups={buildScriptGroupActionMenuGroups(group, resolvedAllowedStages, {
+            onAddStage: handleConfirmAddInline,
+            snippetMenuGroups
+          })}
         />
-        {sortableList}
+        {groupExpanded ? (
+          <div id={panelId} className={sortableList ? 'px-4 pr-6 py-3' : undefined}>
+            {sortableList}
+          </div>
+        ) : (
+          <div id={panelId} hidden />
+        )}
       </section>
     );
   };
 
   /**
-   * Renders the grouped script row lists.
+   * Renders the grouped script row lists for every allowed editor group.
    */
   const scriptList = (
-    <div className="flex flex-col gap-4">
-      {renderScriptGroup(
-        'before',
-        scriptGroups.before,
-        `${phase} before scripts`,
-        showSectionHeadings
-      )}
-      {renderScriptGroup('main', scriptGroups.main, `${phase} main scripts`, showSectionHeadings)}
-      {renderScriptGroup(
-        'after',
-        scriptGroups.after,
-        `${phase} after scripts`,
-        showSectionHeadings
+    <div className="flex flex-col gap-2">
+      {visibleGroups.map((group) =>
+        renderScriptGroup(group, scriptGroups[group], `${phase} ${group} scripts`)
       )}
     </div>
   );
@@ -1511,7 +1536,8 @@ export function ScriptListEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {scriptListHeader}
-      <div className="hc-scroll-stable flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
+      {/* Full-bleed scrollport so section headers reach the pane edges; rows re-inset. */}
+      <div className="hc-scroll-stable -mx-4 flex min-h-0 flex-1 flex-col overflow-y-auto pb-3">
         {scriptListBody}
       </div>
 

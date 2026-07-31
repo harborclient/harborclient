@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(live-server): enhance SSL and routing features. (`21c7007b`)
 - feat(dependencies): add Orama and OpenAI packages. (`1555db1b`)
 
 ## 2.9.0 - 2026-07-31

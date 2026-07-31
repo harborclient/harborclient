@@ -32,6 +32,8 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
   const originId = useId();
   const methodsId = useId();
   const allowedHeadersId = useId();
+  const exposedHeadersId = useId();
+  const maxAgeId = useId();
   const credentialsId = useId();
   const fieldsDisabled = disabled || !cors.enabled;
 
@@ -95,6 +97,34 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
           disabled={fieldsDisabled}
           placeholder="*"
           onChange={(event) => update({ allowedHeaders: event.target.value })}
+        />
+      </FormGroup>
+
+      <FormGroup
+        label="Exposed headers"
+        htmlFor={exposedHeadersId}
+        description="Comma-separated response headers browsers may read, or *. Leave blank to omit."
+      >
+        <Input
+          id={exposedHeadersId}
+          value={cors.exposedHeaders}
+          disabled={fieldsDisabled}
+          placeholder="Content-Length, X-Request-Id"
+          onChange={(event) => update({ exposedHeaders: event.target.value })}
+        />
+      </FormGroup>
+
+      <FormGroup
+        label="Max age"
+        htmlFor={maxAgeId}
+        description="Preflight cache lifetime in seconds (e.g. 600). Leave blank to omit."
+      >
+        <Input
+          id={maxAgeId}
+          value={cors.maxAge}
+          disabled={fieldsDisabled}
+          placeholder="600"
+          onChange={(event) => update({ maxAge: event.target.value })}
         />
       </FormGroup>
 

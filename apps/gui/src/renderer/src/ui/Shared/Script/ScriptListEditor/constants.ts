@@ -1,7 +1,7 @@
 /**
  * Minimum CodeMirror height for persisted script row editors.
  */
-export const SCRIPT_EDITOR_MIN_HEIGHT = '125px';
+export const SCRIPT_EDITOR_MIN_HEIGHT = '100px';
 
 /**
  * Title and label typography for script row headers.
@@ -34,6 +34,6 @@ export const SNIPPET_LIBRARY_LABEL = 'Snippet library';
 export const SNIPPET_LIBRARY_MENU_ID = 'snippet-library';
 
 /**
- * Left inset aligning the code preview with the script title (checkbox width + gap).
+ * Left inset aligning the code preview with the script title (expand button width + gap).
  */
-export const SCRIPT_ROW_PREVIEW_INDENT_CLASS = 'pl-6';
+export const SCRIPT_ROW_PREVIEW_INDENT_CLASS = 'pl-8';

@@ -3,8 +3,10 @@ import type { ITool } from './ITool';
 import {
   LIVE_SERVER_ALIAS_SCHEMA,
   LIVE_SERVER_CORS_SCHEMA,
+  LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES,
   liveServerAliasShape,
-  liveServerCorsShape
+  liveServerCorsShape,
+  liveServerExpandedConfigShape
 } from './liveServerSchemas';
 
 /**
@@ -49,7 +51,48 @@ export interface UpdateLiveServerToolArgs {
     origin?: string;
     methods?: string;
     allowedHeaders?: string;
+    exposedHeaders?: string;
+    maxAge?: string;
     credentials?: boolean;
+  };
+
+  /**
+   * Entry / open path when the Live Page starts. When omitted, the existing value is kept.
+   */
+  openPath?: string;
+
+  /**
+   * Whether to remember the last opened URL. When omitted, the existing value is kept.
+   */
+  rememberLastUrl?: boolean;
+
+  /**
+   * Ordered directory index filenames. When omitted, the existing value is kept.
+   */
+  indexFiles?: string[];
+
+  /**
+   * Listen bind host. When omitted, the existing value is kept.
+   */
+  host?: string;
+
+  /**
+   * Custom response headers. When omitted, the existing value is kept.
+   */
+  headers?: Array<{ name: string; value: string; enabled?: boolean }>;
+
+  /**
+   * Path routing rules. When omitted, the existing value is kept.
+   */
+  routes?: Array<{ match: string; target: string; enabled?: boolean }>;
+
+  /**
+   * HTTPS settings. When omitted, the existing value is kept.
+   */
+  ssl?: {
+    enabled?: boolean;
+    certPath?: string;
+    keyPath?: string;
   };
 }
 
@@ -62,7 +105,14 @@ export interface UpdateLiveServerToolArgs {
  * @param {number|null} port - Explicit port, or null to auto-select.
  * @param {object[]} aliases - Path aliases.
  * @param {boolean} watch - Whether file watching is enabled when started.
- * @param {object} cors - CORS settings.
+ * @param {object} cors - CORS settings (including exposedHeaders / maxAge).
+ * @param {string} [openPath] - Live Page entry path.
+ * @param {boolean} [rememberLastUrl] - Whether to persist last navigated path.
+ * @param {string[]} [indexFiles] - Directory index filenames.
+ * @param {string} [host] - Listen bind host.
+ * @param {object[]} [headers] - Custom response headers.
+ * @param {object[]} [routes] - Path routing / SPA fallback rules.
+ * @param {object} [ssl] - HTTPS cert/key paths.
  */
 export const updateLiveServerTool = {
   name: 'update_live_server',
@@ -71,7 +121,7 @@ export const updateLiveServerTool = {
     function: {
       name: 'update_live_server',
       description:
-        'Updates a saved live server config (name, root, port, aliases, watch, cors). Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server.',
+        'Updates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, ssl). Expanded fields (openPath, host, headers, routes, ssl, …) are optional — omit them to keep existing values. Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server. lastOpenedPath is not set by this tool.',
       parameters: {
         type: 'object',
         properties: {
@@ -99,8 +149,9 @@ export const updateLiveServerTool = {
           },
           cors: {
             ...LIVE_SERVER_CORS_SCHEMA,
-            description: 'CORS settings to persist.'
-          }
+            description: 'CORS settings to persist (including exposedHeaders and maxAge).'
+          },
+          ...LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES
         },
         required: ['id', 'name', 'root', 'port', 'aliases', 'watch', 'cors'],
         additionalProperties: false
@@ -114,6 +165,7 @@ export const updateLiveServerTool = {
     port: z.number().nullable(),
     aliases: z.array(liveServerAliasShape),
     watch: z.boolean(),
-    cors: liveServerCorsShape
+    cors: liveServerCorsShape,
+    ...liveServerExpandedConfigShape
   }
 } as const satisfies ITool<'update_live_server'>;

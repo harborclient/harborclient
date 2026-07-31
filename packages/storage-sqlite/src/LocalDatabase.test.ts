@@ -1102,6 +1102,149 @@ describeSqlite('LocalDatabase websites', () => {
   });
 });
 
+describeSqlite('LocalDatabase live servers', () => {
+  it('creates with defaults and round-trips expanded fields on update', async () => {
+    const { database } = await createRegistry();
+
+    const created = database.createLiveServer({
+      name: 'Docs',
+      root: '/tmp/docs'
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      name: 'Docs',
+      root: '/tmp/docs',
+      port: null,
+      aliases: [],
+      watch: true,
+      openPath: '/',
+      rememberLastUrl: false,
+      lastOpenedPath: null,
+      indexFiles: ['index.html'],
+      host: '127.0.0.1',
+      headers: [],
+      routes: [],
+      ssl: { enabled: false, certPath: '', keyPath: '' },
+      cors: {
+        enabled: true,
+        origin: '*',
+        exposedHeaders: '',
+        maxAge: '',
+        credentials: false
+      }
+    });
+
+    const updated = database.updateLiveServer({
+      id: created[0]!.id,
+      name: 'Docs Updated',
+      root: '/tmp/docs-public',
+      port: 5501,
+      aliases: [{ path: '/assets', target: './assets' }],
+      watch: false,
+      cors: {
+        enabled: true,
+        origin: 'https://example.com',
+        methods: 'GET,POST',
+        allowedHeaders: 'X-Test',
+        exposedHeaders: 'X-Exposed',
+        maxAge: '600',
+        credentials: true
+      },
+      openPath: 'preview.html',
+      rememberLastUrl: true,
+      lastOpenedPath: '/docs/foo?x=1',
+      indexFiles: ['index.htm', 'app.html'],
+      host: '0.0.0.0',
+      headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+      routes: [{ match: '*', target: 'index.html', enabled: true }],
+      ssl: {
+        enabled: true,
+        certPath: '/tmp/cert.pem',
+        keyPath: '/tmp/key.pem'
+      }
+    });
+
+    expect(updated[0]).toMatchObject({
+      name: 'Docs Updated',
+      root: '/tmp/docs-public',
+      port: 5501,
+      aliases: [{ path: '/assets', target: './assets' }],
+      watch: false,
+      openPath: '/preview.html',
+      rememberLastUrl: true,
+      lastOpenedPath: '/docs/foo?x=1',
+      indexFiles: ['index.htm', 'app.html'],
+      host: '0.0.0.0',
+      headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+      routes: [{ match: '*', target: 'index.html', enabled: true }],
+      ssl: {
+        enabled: true,
+        certPath: '/tmp/cert.pem',
+        keyPath: '/tmp/key.pem'
+      },
+      cors: {
+        origin: 'https://example.com',
+        exposedHeaders: 'X-Exposed',
+        maxAge: '600',
+        credentials: true
+      }
+    });
+
+    const remaining = database.deleteLiveServer(created[0]!.id);
+    expect(remaining).toEqual([]);
+  });
+
+  it('loads legacy payloads missing expanded fields with defaults', async () => {
+    const { database, rootDir } = await createRegistry();
+
+    const created = database.createLiveServer({
+      name: 'Legacy',
+      root: '/tmp/legacy',
+      port: 5500
+    });
+
+    const raw = new Database(join(rootDir, 'harborclient-registry.db'));
+    raw.prepare(`UPDATE live_servers SET payload = ? WHERE id = ?`).run(
+      JSON.stringify({
+        root: '/tmp/legacy',
+        port: 5500,
+        aliases: [],
+        watch: true,
+        cors: {
+          enabled: true,
+          origin: '*',
+          methods: 'GET',
+          allowedHeaders: '*',
+          credentials: false
+        }
+      }),
+      created[0]!.id
+    );
+    raw.close();
+
+    const listed = database.listLiveServers();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({
+      name: 'Legacy',
+      root: '/tmp/legacy',
+      port: 5500,
+      openPath: '/',
+      rememberLastUrl: false,
+      lastOpenedPath: null,
+      indexFiles: ['index.html'],
+      host: '127.0.0.1',
+      headers: [],
+      routes: [],
+      ssl: { enabled: false, certPath: '', keyPath: '' },
+      cors: {
+        exposedHeaders: '',
+        maxAge: ''
+      }
+    });
+  });
+});
+
 describeSqlite('LocalDatabase workflow run history', () => {
   /**
    * Builds a minimal history payload for insert tests.

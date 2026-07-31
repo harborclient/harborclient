@@ -15,6 +15,7 @@ import {
   matchActionSuggestions,
   matchInlineActionSuggestions,
   matchSlashCommandSuggestions,
+  matchUrlActionSuggestions,
   resolveSlashCommand,
   searchAll,
   type UnifiedSearchHit
@@ -22,6 +23,7 @@ import {
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
 import { useActivateSearchHit } from '#/renderer/src/search/activateSearchHit';
 import { useActionCommands } from '#/renderer/src/search/useActionCommands';
+import { runUrlAction } from '#/renderer/src/search/runUrlAction';
 import { useSearchIndexes } from '#/renderer/src/search/useSearchIndexes';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
@@ -67,6 +69,18 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
   const actionMode = isActionQuery(query);
 
   /**
+   * Context actions when the input is an absolute http(s) URL paste.
+   */
+  const urlMatch = useMemo(() => {
+    if (slashMode || actionMode) {
+      return null;
+    }
+    return matchUrlActionSuggestions(query);
+  }, [actionMode, query, slashMode]);
+
+  const urlMode = urlMatch != null;
+
+  /**
    * Slash command suggestions matching the current `/` query prefix.
    */
   const suggestions = useMemo(
@@ -75,14 +89,17 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
   );
 
   /**
-   * Action suggestions from `#` quick-open mode or plain-text matches in unified search.
+   * Action suggestions from URL paste, `#` quick-open mode, or plain-text matches.
    */
   const actionSuggestions = useMemo(() => {
+    if (urlMatch != null) {
+      return urlMatch.actions;
+    }
     if (actionMode) {
       return matchActionSuggestions(query, actions);
     }
     return matchInlineActionSuggestions(query, actions);
-  }, [actionMode, actions, query]);
+  }, [actionMode, actions, query, urlMatch]);
 
   /**
    * Count of action rows shown above unified search hits.
@@ -122,12 +139,12 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
    * Unified search hits capped for the command palette dropdown.
    */
   const hits = useMemo(() => {
-    if (slashMode || actionMode) {
+    if (slashMode || actionMode || urlMode) {
       return [];
     }
 
     return searchAll(debouncedQuery, searchContext);
-  }, [actionMode, debouncedQuery, searchContext, slashMode]);
+  }, [actionMode, debouncedQuery, searchContext, slashMode, urlMode]);
 
   /**
    * Hits grouped by domain for section headings.
@@ -162,6 +179,20 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
       activateHit(hit, query);
     },
     [activateHit, query]
+  );
+
+  /**
+   * Runs a built-in / plugin action, or a URL-paste action when the input is a URL.
+   */
+  const handleSelectAction = useCallback(
+    (id: string): void => {
+      if (urlMatch != null) {
+        runUrlAction(dispatch, id, urlMatch.url);
+        return;
+      }
+      runAction(id);
+    },
+    [dispatch, runAction, urlMatch]
   );
 
   /**
@@ -237,7 +268,7 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
         return;
       }
 
-      const hitCount = actionMode ? 0 : hits.length;
+      const hitCount = actionMode || urlMode ? 0 : hits.length;
       const selectableCount = actionSuggestionCount + hitCount;
       if (selectableCount === 0) {
         return;
@@ -254,7 +285,7 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
         if (activeIndex < actionSuggestionCount) {
           const suggestion = actionSuggestions[activeIndex];
           if (suggestion != null) {
-            runAction(suggestion.id);
+            handleSelectAction(suggestion.id);
           }
           return;
         }
@@ -271,23 +302,26 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
       actionSuggestions,
       activeIndex,
       handleActivate,
+      handleSelectAction,
       handleSelectSuggestion,
       handleSubmitCommand,
       hits,
       resolvedCommand,
-      runAction,
       slashMode,
-      suggestions
+      suggestions,
+      urlMode
     ]
   );
 
   const hasActionSuggestions = actionSuggestionCount > 0;
   const hasSlashSuggestions = slashMode && resolvedCommand == null && suggestions.length > 0;
   const hasSlashArmedCommand = slashMode && resolvedCommand != null;
-  const hasSearchResults = !slashMode && !actionMode && hits.length > 0;
+  const hasSearchResults = !slashMode && !actionMode && !urlMode && hits.length > 0;
+  const showDeniedUrl = urlMatch != null && urlMatch.denied;
   const showNoSearchResults =
     !slashMode &&
     !actionMode &&
+    !urlMode &&
     actionSuggestionCount === 0 &&
     debouncedQuery.trim().length > 0 &&
     hits.length === 0;
@@ -357,9 +391,15 @@ export function ActionMenuModalBody({ onClose }: Props): JSX.Element {
             <ActionSuggestions
               suggestions={actionSuggestions}
               activeIndex={activeIndex}
-              onSelect={runAction}
+              onSelect={handleSelectAction}
               onHighlight={setActiveIndex}
             />
+          ) : null}
+
+          {showDeniedUrl ? (
+            <p className="px-2 py-1.5 text-[14px] text-danger" role="alert">
+              This URL type cannot be opened from the Action menu.
+            </p>
           ) : null}
 
           {actionMode && actionSuggestions.length === 0 ? (

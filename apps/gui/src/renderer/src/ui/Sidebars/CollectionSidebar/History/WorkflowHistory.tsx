@@ -11,7 +11,7 @@ import {
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { sortSidebarItems } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
-import { faDiagramProject } from '#/renderer/src/fontawesome';
+import { faRoute } from '#/renderer/src/fontawesome';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { formatSidebarAbsoluteDate } from './utils';
@@ -149,7 +149,7 @@ export function WorkflowHistory(): JSX.Element {
             method="RUN"
             name={entry.name}
             isRun
-            runIcon={faDiagramProject}
+            runIcon={faRoute}
             selected={selected}
             title={`${entry.name} — ${rowDate}`}
             ariaLabel={workflowHistoryEntryAriaLabel(entry)}

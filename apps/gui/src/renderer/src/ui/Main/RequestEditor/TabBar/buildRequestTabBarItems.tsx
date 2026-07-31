@@ -156,7 +156,7 @@ export function buildRequestTabBarItems({
     const isPage = isPageTab(tab);
     const isMarkdown = isMarkdownTab(tab);
     const isBrowser = isBrowserTab(tab);
-    const dirty = isPage ? tab.page.type === 'themes' && themeDesignerDirty : isTabDirty(tab);
+    const dirty = isPage && tab.page.type === 'themes' ? themeDesignerDirty : isTabDirty(tab);
     const ariaLabel = isPage
       ? pageTabAccessibleName(pageTitle ?? 'Page', dirty)
       : isMarkdown

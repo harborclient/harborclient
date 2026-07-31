@@ -35,17 +35,13 @@ export function AliasList({ aliases, disabled, onChange }: Props): JSX.Element {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-muted">Aliases</span>
+      <div className="flex items-center justify-end gap-2">
         <Button type="button" variant="secondary" disabled={disabled} onClick={handleAdd}>
           Add alias
         </Button>
       </div>
       {aliases.length === 0 ? (
-        <p className="text-muted m-0">
-          Optional. Map a URL path such as <code>/assets</code> to a folder like{' '}
-          <code>build/assets</code>.
-        </p>
+        <p className="text-muted m-0">No aliases yet. Add one to map a URL path to a folder.</p>
       ) : null}
       {aliases.map((alias, index) => (
         <AliasRow

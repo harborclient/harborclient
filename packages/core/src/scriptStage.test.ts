@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ScriptStage } from '@harborclient/sdk';
 import {
+  defaultScriptStageForGroup,
   mergeScriptRefGroups,
   orderScriptRefsByStage,
   SCRIPT_STAGE_OPTIONS,
+  scriptEditorGroupsForAllowedStages,
   scriptRowStageSuffix,
   scriptStageBorderColor,
   scriptStageGroup,
-  shouldShowScriptSectionHeadings,
   splitScriptRefsByGroup
 } from './scriptStage';
 import { createInlineScriptRef } from './scriptRefs';
@@ -100,24 +101,32 @@ describe('scriptStageGroup', () => {
   });
 });
 
-describe('shouldShowScriptSectionHeadings', () => {
-  it('hides headings when scripts occupy only one non-empty group', () => {
-    expect(
-      shouldShowScriptSectionHeadings({
-        before: [],
-        main: [{}],
-        after: []
-      })
-    ).toBe(false);
+describe('scriptEditorGroupsForAllowedStages', () => {
+  it('returns before, main, and after when all stages are allowed', () => {
+    expect(scriptEditorGroupsForAllowedStages(ALL_STAGES)).toEqual(['before', 'main', 'after']);
   });
 
-  it('shows headings when scripts span multiple non-empty groups', () => {
-    expect(
-      shouldShowScriptSectionHeadings({
-        before: [{}],
-        main: [{}],
-        after: []
-      })
-    ).toBe(true);
+  it('returns only main when stages are restricted to main', () => {
+    expect(scriptEditorGroupsForAllowedStages(['main'])).toEqual(['main']);
+  });
+
+  it('omits groups with no allowed stages', () => {
+    expect(scriptEditorGroupsForAllowedStages(['before-each', 'after-all'])).toEqual([
+      'before',
+      'after'
+    ]);
+  });
+});
+
+describe('defaultScriptStageForGroup', () => {
+  it('picks the first SCRIPT_STAGE_OPTIONS stage in each group', () => {
+    expect(defaultScriptStageForGroup('before', ALL_STAGES)).toBe('before-all');
+    expect(defaultScriptStageForGroup('main', ALL_STAGES)).toBe('main');
+    expect(defaultScriptStageForGroup('after', ALL_STAGES)).toBe('after-each');
+  });
+
+  it('respects a restricted allowed-stages list within the group', () => {
+    expect(defaultScriptStageForGroup('before', ['before-each', 'main'])).toBe('before-each');
+    expect(defaultScriptStageForGroup('after', ['after-all'])).toBe('after-all');
   });
 });

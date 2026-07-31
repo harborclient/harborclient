@@ -10,7 +10,7 @@ import {
 } from './usePersistedScriptEditorUiState';
 
 const SCRIPT_ID = 'script-abc';
-const MIN_PX = 125;
+const MIN_PX = 100;
 
 /**
  * Minimal localStorage mock backed by an in-memory map for UI state persistence tests.
@@ -55,11 +55,11 @@ describe('scriptEditorUiStorageKey', () => {
 
 describe('parseScriptEditorMinHeightPx', () => {
   it('parses pixel strings', () => {
-    expect(parseScriptEditorMinHeightPx('125px')).toBe(125);
+    expect(parseScriptEditorMinHeightPx('100px')).toBe(100);
   });
 
   it('falls back when the value is not px', () => {
-    expect(parseScriptEditorMinHeightPx('10rem')).toBe(125);
+    expect(parseScriptEditorMinHeightPx('10rem')).toBe(100);
   });
 });
 
@@ -84,7 +84,7 @@ describe('parsePersistedScriptEditorUiState', () => {
       selection: { anchor: 'bad', head: 4 }
     });
     expect(parsePersistedScriptEditorUiState(raw, MIN_PX)).toEqual({
-      heightPx: 125,
+      heightPx: 100,
       scrollTop: 0
     });
   });

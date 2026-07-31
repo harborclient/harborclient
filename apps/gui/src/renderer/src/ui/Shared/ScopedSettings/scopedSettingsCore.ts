@@ -1,50 +1,15 @@
 import { cleanVariables } from '@harborclient/sdk/components';
-import type { AuthConfig, KeyValue, ScriptRef, Variable } from '@harborclient/core/types';
+import type { KeyValue, Variable } from '@harborclient/core/types';
 import {
   mirrorLegacyScriptString,
   normalizeScriptRefsForCompare
 } from '@harborclient/core/scriptRefs';
-import { emptyKeyValue } from '#/renderer/src/store/tabs';
+import { emptyKeyValue, type ScopedSettingsDraft } from '#/renderer/src/store/tabs';
 
 /**
  * Core editable fields shared by collection and folder settings forms.
  */
-export interface ScopedSettingsCoreFields {
-  /**
-   * Display name for the scoped entity.
-   */
-  name: string;
-
-  /**
-   * Scoped variables table rows.
-   */
-  variables: Variable[];
-
-  /**
-   * Scoped header rows.
-   */
-  headers: KeyValue[];
-
-  /**
-   * User-Agent override for this scope; empty inherits from the parent scope or global default.
-   */
-  userAgent: string;
-
-  /**
-   * Default authorization settings for requests in this scope.
-   */
-  auth: AuthConfig;
-
-  /**
-   * Pre-request script references for this scope.
-   */
-  preRequestScripts: ScriptRef[];
-
-  /**
-   * Post-request script references for this scope.
-   */
-  postRequestScripts: ScriptRef[];
-}
+export type ScopedSettingsCoreFields = ScopedSettingsDraft;
 
 /**
  * Drops header rows with no key or value content.

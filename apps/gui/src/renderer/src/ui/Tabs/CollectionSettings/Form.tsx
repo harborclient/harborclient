@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import type {
   AuthConfig,
   Collection,
@@ -20,6 +20,7 @@ import {
   type ScopedSettingsExtraTab,
   type ScopedSettingsRenderState
 } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedSettingsForm';
+import type { ScopedSettingsCoreFields } from '#/renderer/src/ui/Shared/ScopedSettings/scopedSettingsCore';
 import { GeneralSection } from './GeneralSection';
 import { GitSection } from './GitSection';
 import { collectionFormCoreFields } from './serialize';
@@ -79,6 +80,31 @@ export interface Props {
    * Hosting tab id so File → Save / Ctrl+S can persist this form.
    */
   tabId?: string;
+
+  /**
+   * Called when the user selects a different settings SegmentedTabs section.
+   */
+  onSectionChange?: (section: string) => void;
+
+  /**
+   * Draft core fields restored when the page remounts after a tab switch.
+   */
+  seed?: ScopedSettingsCoreFields;
+
+  /**
+   * Draft provider connection id restored across remounts.
+   */
+  connectionIdSeed?: string;
+
+  /**
+   * Called whenever draft core fields change so the open tab can remember them.
+   */
+  onDraftChange?: (fields: ScopedSettingsCoreFields) => void;
+
+  /**
+   * Called when the provider connection draft changes.
+   */
+  onConnectionIdChange?: (connectionId: string) => void;
 }
 
 /**
@@ -92,10 +118,17 @@ export function Form({
   onSave,
   onClose,
   onDirtyChange,
-  tabId
+  tabId,
+  onSectionChange,
+  seed,
+  connectionIdSeed,
+  onDraftChange,
+  onConnectionIdChange
 }: Props): JSX.Element {
   const pluginTabs = usePluginCollectionSettingsTabs();
-  const [connectionId, setConnectionId] = useState(collection.connectionId ?? '');
+  const [connectionId, setConnectionId] = useState(
+    connectionIdSeed ?? collection.connectionId ?? ''
+  );
   const [gitConnectionDraft, setGitConnectionDraft] = useState<
     (StorageConnection & { type: 'git' }) | null
   >(null);
@@ -166,6 +199,13 @@ export function Form({
 
   const connectionChanged = resolvedConnectionId !== baselineConnectionId;
   const extraDirty = connectionChanged || isGitDirty;
+
+  /**
+   * Pushes the provider connection draft to the parent so remounts restore it.
+   */
+  useEffect(() => {
+    onConnectionIdChange?.(connectionId);
+  }, [connectionId, onConnectionIdChange]);
 
   /**
    * Git and plugin tabs injected around the shared scoped settings tabs.
@@ -293,6 +333,7 @@ export function Form({
       ariaLabel="Collection settings sections"
       pageClassName="collection-settings-page"
       initial={initial}
+      seed={seed}
       focusVariableKey={focusVariableKey}
       focusSection={focusSection}
       preScriptDescription="Runs in the collection pre-request stage before every request, ahead of each request's pre-request stage. Supports {{variable}} syntax."
@@ -305,6 +346,8 @@ export function Form({
       disableSave={!resolvedConnectionId}
       onClose={onClose}
       onDirtyChange={onDirtyChange}
+      onDraftChange={onDraftChange}
+      onSectionChange={onSectionChange}
       onSave={handleScopedSave}
       tabId={tabId}
       renderGeneral={(state) => (

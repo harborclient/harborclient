@@ -2,6 +2,7 @@ import { useCallback, useMemo, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import {
   Button,
+  FaIcon,
   FooterPanel,
   SegmentedTabPanel,
   SegmentedTabs,
@@ -15,25 +16,42 @@ import {
   setLiveServerModalAliases,
   setLiveServerModalBusy,
   setLiveServerModalCors,
+  setLiveServerModalHeaders,
+  setLiveServerModalHost,
+  setLiveServerModalIndexFiles,
   setLiveServerModalName,
+  setLiveServerModalOpenPath,
   setLiveServerModalPort,
+  setLiveServerModalRememberLastUrl,
   setLiveServerModalRoot,
+  setLiveServerModalRoutes,
+  setLiveServerModalSsl,
   setLiveServerModalSubmitError,
   setLiveServerModalTab,
   setLiveServerModalWatch,
+  type LiveServerModalState,
   type LiveServerModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
+import type { LiveServerConfig } from '@harborclient/core/types';
 import {
   createSavedLiveServer,
+  liveServerRuntimeConfigNeedsRestart,
+  restartLiveServer,
   startLiveServer,
   stopLiveServer,
   toLiveServerConfig,
   updateSavedLiveServer
 } from '#/renderer/src/store/thunks/liveServers';
+import { faCircleExclamation } from '#/renderer/src/fontawesome';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
+import { AliasSettings } from './AliasSettings';
 import { CorsSettings } from './CorsSettings';
 import { GeneralSettings } from './GeneralSettings';
+import { HeadersSettings } from './HeadersSettings';
+import { filterLiveServerHeadersForSave } from './liveServerHeaderRows';
+import { RoutingSettings } from './RoutingSettings';
+import { SslSettings } from './SslSettings';
 
 interface Props {
   /**
@@ -63,6 +81,65 @@ function parsePortField(value: string): { port: number | null } | { error: strin
     return { error: 'Port must be an integer between 1 and 65535' };
   }
   return { port };
+}
+
+/**
+ * Pure validation + normalize of the live server editor draft.
+ *
+ * Does not dispatch — safe to call during render for restart detection.
+ *
+ * @param modal - Footer panel draft state.
+ * @returns Normalized config, or an inline validation error message.
+ */
+function tryBuildConfigFromModal(
+  modal: LiveServerModalState
+): { config: LiveServerConfig } | { error: string } {
+  const name = modal.name.trim() || 'Live Server';
+  const root = modal.root.trim();
+  if (!root) {
+    return { error: 'Choose a root directory' };
+  }
+  const parsed = parsePortField(modal.port);
+  if ('error' in parsed) {
+    return { error: parsed.error };
+  }
+  const aliases = modal.aliases
+    .map((alias) => ({
+      path: alias.path.trim(),
+      target: alias.target.trim()
+    }))
+    .filter((alias) => alias.path !== '' && alias.target !== '');
+  for (const alias of aliases) {
+    if (!alias.path.startsWith('/')) {
+      return { error: 'Alias paths must start with /' };
+    }
+  }
+  if (modal.ssl.enabled) {
+    if (!modal.ssl.certPath.trim()) {
+      return { error: 'Certificate path is required when SSL is enabled' };
+    }
+    if (!modal.ssl.keyPath.trim()) {
+      return { error: 'Private key path is required when SSL is enabled' };
+    }
+  }
+  return {
+    config: toLiveServerConfig({
+      name,
+      root,
+      port: parsed.port,
+      aliases,
+      watch: modal.watch,
+      cors: modal.cors,
+      openPath: modal.openPath,
+      rememberLastUrl: modal.rememberLastUrl,
+      lastOpenedPath: modal.lastOpenedPath,
+      indexFiles: modal.indexFiles,
+      host: modal.host,
+      headers: filterLiveServerHeadersForSave(modal.headers),
+      routes: modal.routes,
+      ssl: modal.ssl
+    })
+  };
 }
 
 /**
@@ -117,47 +194,46 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
   /**
    * Builds a normalized config from the editor fields, or sets an inline error.
    *
+   * When SSL is enabled, cert and key paths must be non-empty (file existence is
+   * validated in the main process on start).
+   *
    * @returns Config when valid, otherwise null.
    */
-  const buildConfig = useCallback(() => {
+  const buildConfig = useCallback((): LiveServerConfig | null => {
     if (!modal) {
       return null;
     }
-    const name = modal.name.trim() || 'Live Server';
-    const root = modal.root.trim();
-    if (!root) {
-      dispatch(setLiveServerModalSubmitError('Choose a root directory'));
+    const result = tryBuildConfigFromModal(modal);
+    if ('error' in result) {
+      dispatch(setLiveServerModalSubmitError(result.error));
       return null;
     }
-    const parsed = parsePortField(modal.port);
-    if ('error' in parsed) {
-      dispatch(setLiveServerModalSubmitError(parsed.error));
-      return null;
-    }
-    const aliases = modal.aliases
-      .map((alias) => ({
-        path: alias.path.trim(),
-        target: alias.target.trim()
-      }))
-      .filter((alias) => alias.path !== '' && alias.target !== '');
-    for (const alias of aliases) {
-      if (!alias.path.startsWith('/')) {
-        dispatch(setLiveServerModalSubmitError('Alias paths must start with /'));
-        return null;
-      }
-    }
-    return toLiveServerConfig({
-      name,
-      root,
-      port: parsed.port,
-      aliases,
-      watch: modal.watch,
-      cors: modal.cors
-    });
+    return result.config;
   }, [dispatch, modal]);
 
   /**
+   * True when the editor draft’s runtime fields differ from the running snapshot.
+   *
+   * Used for the restart-required banner. Uses a pure draft build so this memo
+   * never dispatches during render. Rebuilds when the modal draft or running
+   * instance changes.
+   */
+  const needsRestart = useMemo(() => {
+    if (runningInstance == null || modal == null) {
+      return false;
+    }
+    const result = tryBuildConfigFromModal(modal);
+    if ('error' in result) {
+      return false;
+    }
+    return liveServerRuntimeConfigNeedsRestart(result.config, runningInstance.config);
+  }, [modal, runningInstance]);
+
+  /**
    * Saves the config without starting the server.
+   *
+   * When an instance is already running, keeps the panel open so the
+   * restart-required banner remains visible after persisting runtime changes.
    */
   const handleSave = useCallback(async (): Promise<void> => {
     if (!modal) {
@@ -167,6 +243,10 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
     if (!config) {
       return;
     }
+    const keepOpen = runningInstance != null;
+    const restartNeeded =
+      runningInstance != null &&
+      liveServerRuntimeConfigNeedsRestart(config, runningInstance.config);
     dispatch(setLiveServerModalSubmitError(null));
     dispatch(setLiveServerModalBusy(true));
     try {
@@ -174,29 +254,21 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         await dispatch(
           updateSavedLiveServer({
             id: modal.savedId,
-            name: config.name,
-            root: config.root,
-            port: config.port,
-            aliases: config.aliases,
-            watch: config.watch,
-            cors: config.cors
+            ...config
           })
         ).unwrap();
       } else {
         await dispatch(
           createSavedLiveServer({
-            name: config.name,
-            root: config.root,
-            port: config.port,
-            aliases: config.aliases,
-            watch: config.watch,
-            cors: config.cors
+            ...config
           })
         ).unwrap();
       }
-      toast.success('Live server saved');
-      dispatch(closeLiveServerModal());
-      setActiveSidebarMode('servers');
+      toast.success(restartNeeded ? 'Saved — restart to apply' : 'Live server saved');
+      if (!keepOpen) {
+        dispatch(closeLiveServerModal());
+        setActiveSidebarMode('servers');
+      }
     } catch (error) {
       dispatch(
         setLiveServerModalSubmitError(formatErrorMessage(error, 'Failed to save live server'))
@@ -204,7 +276,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
     } finally {
       dispatch(setLiveServerModalBusy(false));
     }
-  }, [buildConfig, dispatch, modal, setActiveSidebarMode]);
+  }, [buildConfig, dispatch, modal, runningInstance, setActiveSidebarMode]);
 
   /**
    * Persists the config when needed, starts the server, and opens a browser tab.
@@ -227,23 +299,13 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         await dispatch(
           updateSavedLiveServer({
             id: savedId,
-            name: config.name,
-            root: config.root,
-            port: config.port,
-            aliases: config.aliases,
-            watch: config.watch,
-            cors: config.cors
+            ...config
           })
         ).unwrap();
       } else {
         const created = await dispatch(
           createSavedLiveServer({
-            name: config.name,
-            root: config.root,
-            port: config.port,
-            aliases: config.aliases,
-            watch: config.watch,
-            cors: config.cors
+            ...config
           })
         ).unwrap();
         savedId = created.id;
@@ -266,6 +328,57 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
       dispatch(setLiveServerModalBusy(false));
     }
   }, [buildConfig, dispatch, modal, setActiveSidebarMode]);
+
+  /**
+   * Persists the editor draft, then stops and starts the running instance so
+   * Express middleware (routes, headers, CORS, …) picks up the new snapshot.
+   *
+   * Keeps the panel open so the user can continue editing after the banner clears.
+   */
+  const handleRestart = useCallback(async (): Promise<void> => {
+    if (!modal || runningInstance == null) {
+      return;
+    }
+    const config = buildConfig();
+    if (!config) {
+      return;
+    }
+    dispatch(setLiveServerModalSubmitError(null));
+    dispatch(setLiveServerModalBusy(true));
+    try {
+      let savedId = modal.savedId;
+      if (modal.mode === 'edit' && savedId != null) {
+        await dispatch(
+          updateSavedLiveServer({
+            id: savedId,
+            ...config
+          })
+        ).unwrap();
+      } else {
+        const created = await dispatch(
+          createSavedLiveServer({
+            ...config
+          })
+        ).unwrap();
+        savedId = created.id;
+      }
+
+      await dispatch(
+        restartLiveServer({
+          runtimeId: runningInstance.id,
+          savedId,
+          config
+        })
+      ).unwrap();
+      toast.success('Live server restarted');
+    } catch (error) {
+      dispatch(
+        setLiveServerModalSubmitError(formatErrorMessage(error, 'Failed to restart live server'))
+      );
+    } finally {
+      dispatch(setLiveServerModalBusy(false));
+    }
+  }, [buildConfig, dispatch, modal, runningInstance]);
 
   /**
    * Stops the running instance for the server being edited.
@@ -293,6 +406,54 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
   const tab: LiveServerModalTab = modal?.tab ?? 'general';
   const isRunning = runningInstance != null;
 
+  /**
+   * Header actions rendered beside the close button when the editor is open.
+   */
+  const headerButtons = modal
+    ? [
+        <Button
+          key="save"
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => void handleSave()}
+        >
+          Save
+        </Button>,
+        ...(isRunning
+          ? [
+              <Button
+                key="restart"
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void handleRestart()}
+              >
+                Restart
+              </Button>,
+              <Button
+                key="stop"
+                type="button"
+                variant="primaryDanger"
+                disabled={busy}
+                onClick={() => void handleStop()}
+              >
+                Stop
+              </Button>
+            ]
+          : [
+              <Button
+                key="start"
+                type="button"
+                disabled={busy || !modal.root.trim()}
+                onClick={() => void handleStart()}
+              >
+                Start
+              </Button>
+            ])
+      ]
+    : undefined;
+
   return (
     <FooterPanel
       id="footer-live-server-panel"
@@ -301,89 +462,117 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
       closeLabel="Live server"
       storageKey="hc.liveServerPanelHeight"
       title={title}
-      description="Serve a local folder over HTTP and open it in a Live Page."
+      description="Serve a local folder over HTTP(S) and open it in a Live Page."
+      buttons={headerButtons}
       unmountWhenClosed
     >
       {modal ? (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <SegmentedTabsGroup
+            value={tab}
+            onChange={(next) => dispatch(setLiveServerModalTab(next))}
+            ariaLabel="Live server settings"
+          >
+            <div className="-mx-4 -mt-4 mb-4">
+              <SegmentedTabs
+                fullWidth
+                editable={false}
+                tabs={[
+                  { value: 'general', label: 'General' },
+                  { value: 'headers', label: 'Headers' },
+                  { value: 'routing', label: 'Routing' },
+                  { value: 'aliases', label: 'Aliases' },
+                  { value: 'cors', label: 'CORS' },
+                  { value: 'ssl', label: 'SSL' }
+                ]}
+              />
+            </div>
+
             {modal.submitError ? (
               <p className="m-0 mb-4 text-danger" role="alert">
                 {modal.submitError}
               </p>
             ) : null}
 
-            <SegmentedTabsGroup
-              value={tab}
-              onChange={(next) => dispatch(setLiveServerModalTab(next))}
-              ariaLabel="Live server settings"
-            >
-              <div className="mb-4">
-                <SegmentedTabs
-                  fullWidth
-                  editable={false}
-                  tabs={[
-                    { value: 'general', label: 'General' },
-                    { value: 'cors', label: 'CORS' }
-                  ]}
-                />
-              </div>
+            {isRunning && needsRestart ? (
+              <p
+                className="m-0 mb-4 flex items-start gap-2 text-[14px] text-warning"
+                role="status"
+                aria-live="polite"
+              >
+                <FaIcon icon={faCircleExclamation} className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  These changes require a restart to take effect. Use Restart to apply them to the
+                  running server.
+                </span>
+              </p>
+            ) : null}
 
-              <SegmentedTabPanel value="general">
-                <GeneralSettings
-                  name={modal.name}
-                  root={modal.root}
-                  port={modal.port}
-                  aliases={modal.aliases}
-                  watch={modal.watch}
-                  disabled={busy}
-                  onNameChange={(value) => dispatch(setLiveServerModalName(value))}
-                  onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
-                  onBrowse={handleBrowse}
-                  onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
-                  onAliasesChange={(next) => dispatch(setLiveServerModalAliases(next))}
-                  onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
-                />
-              </SegmentedTabPanel>
-
-              <SegmentedTabPanel value="cors">
-                <CorsSettings
-                  cors={modal.cors}
-                  disabled={busy}
-                  onChange={(next) => dispatch(setLiveServerModalCors(next))}
-                />
-              </SegmentedTabPanel>
-            </SegmentedTabsGroup>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-separator px-4 py-3">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void handleSave()}
-            >
-              Save
-            </Button>
-            {isRunning ? (
-              <Button
-                type="button"
-                variant="primaryDanger"
+            <SegmentedTabPanel value="general">
+              <GeneralSettings
+                name={modal.name}
+                root={modal.root}
+                port={modal.port}
+                watch={modal.watch}
+                openPath={modal.openPath}
+                rememberLastUrl={modal.rememberLastUrl}
+                indexFiles={modal.indexFiles}
+                host={modal.host}
                 disabled={busy}
-                onClick={() => void handleStop()}
-              >
-                Stop Server
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                disabled={busy || !modal.root.trim()}
-                onClick={() => void handleStart()}
-              >
-                Start Server
-              </Button>
-            )}
-          </div>
+                onNameChange={(value) => dispatch(setLiveServerModalName(value))}
+                onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
+                onBrowse={handleBrowse}
+                onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
+                onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
+                onOpenPathChange={(value) => dispatch(setLiveServerModalOpenPath(value))}
+                onRememberLastUrlChange={(value) =>
+                  dispatch(setLiveServerModalRememberLastUrl(value))
+                }
+                onIndexFilesChange={(value) => dispatch(setLiveServerModalIndexFiles(value))}
+                onHostChange={(value) => dispatch(setLiveServerModalHost(value))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="headers">
+              <HeadersSettings
+                headers={modal.headers}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalHeaders(next))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="routing">
+              <RoutingSettings
+                routes={modal.routes}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="aliases">
+              <AliasSettings
+                aliases={modal.aliases}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalAliases(next))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="cors">
+              <CorsSettings
+                cors={modal.cors}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalCors(next))}
+              />
+            </SegmentedTabPanel>
+
+            <SegmentedTabPanel value="ssl">
+              <SslSettings
+                ssl={modal.ssl}
+                disabled={busy}
+                onChange={(next) => dispatch(setLiveServerModalSsl(next))}
+              />
+            </SegmentedTabPanel>
+          </SegmentedTabsGroup>
         </div>
       ) : null}
     </FooterPanel>

@@ -5,16 +5,17 @@ import { findFreePort, isPortFree, LIVE_SERVER_PORT_BASE } from './ports';
 const heldServers: net.Server[] = [];
 
 /**
- * Holds a loopback port open so findFreePort can observe it as busy.
+ * Holds a TCP port open on the given host so findFreePort can observe it as busy.
  *
  * @param port - Port to occupy.
+ * @param host - Bind host (defaults to loopback).
  * @returns Resolves when the server is listening.
  */
-async function holdPort(port: number): Promise<void> {
+async function holdPort(port: number, host: string = '127.0.0.1'): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const server = net.createServer();
     server.once('error', reject);
-    server.listen(port, '127.0.0.1', () => {
+    server.listen(port, host, () => {
       heldServers.push(server);
       resolve();
     });
@@ -44,6 +45,12 @@ describe('isPortFree', () => {
     await holdPort(port);
     await expect(isPortFree(port)).resolves.toBe(false);
   });
+
+  it('probes the requested bind host', async () => {
+    const port = await findFreePort(null, LIVE_SERVER_PORT_BASE, '127.0.0.1');
+    await holdPort(port, '127.0.0.1');
+    await expect(isPortFree(port, '127.0.0.1')).resolves.toBe(false);
+  });
 });
 
 describe('findFreePort', () => {
@@ -62,6 +69,14 @@ describe('findFreePort', () => {
     const port = await findFreePort(null);
     await holdPort(port);
     await expect(findFreePort(port)).rejects.toThrow(`Port ${port} is already in use`);
+  });
+
+  it('rejects when an explicit port is busy on a non-default host', async () => {
+    const port = await findFreePort(null, LIVE_SERVER_PORT_BASE, '127.0.0.1');
+    await holdPort(port, '127.0.0.1');
+    await expect(findFreePort(port, LIVE_SERVER_PORT_BASE, '127.0.0.1')).rejects.toThrow(
+      `Port ${port} is already in use`
+    );
   });
 
   it('rejects invalid explicit ports', async () => {

@@ -3,8 +3,8 @@ import {
   faChevronRight,
   faCodeBranch,
   faFolder,
-  faLayerGroup,
-  faPersonRunning
+  faPersonRunning,
+  faWindowRestore
 } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
@@ -270,7 +270,7 @@ export const WorkspaceItem: Story = {
         <SidebarWorkspaceItem
           name="API review"
           summary="4 tabs"
-          icon={faLayerGroup}
+          icon={faWindowRestore}
           markerDot={{ marker: '#32D2E2', visible: true, label: 'Color marker for API review' }}
           sortable={{ id: 'workspace-1', dragHandleLabel: 'Reorder workspace "API review"' }}
           actions={

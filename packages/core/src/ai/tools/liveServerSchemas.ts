@@ -20,6 +20,76 @@ export const LIVE_SERVER_ALIAS_SCHEMA = {
 } as const;
 
 /**
+ * JSON schema for one custom live-server response header row.
+ */
+export const LIVE_SERVER_HEADER_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Header name, e.g. `Cache-Control`.'
+    },
+    value: {
+      type: 'string',
+      description: 'Header value, e.g. `no-store`.'
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'When false, the header is not applied. Defaults to true.'
+    }
+  },
+  required: ['name', 'value'],
+  additionalProperties: false
+} as const;
+
+/**
+ * JSON schema for one live-server path routing rule (SPA fallback / soft rewrite).
+ */
+export const LIVE_SERVER_ROUTE_SCHEMA = {
+  type: 'object',
+  properties: {
+    match: {
+      type: 'string',
+      description:
+        '`*` for every path, or a regex source matched against the URL pathname (e.g. `^/docs/`).'
+    },
+    target: {
+      type: 'string',
+      description:
+        'File or directory path, absolute or relative to the server root (e.g. `index.html`).'
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'When false, the rule is ignored. Defaults to true.'
+    }
+  },
+  required: ['match', 'target'],
+  additionalProperties: false
+} as const;
+
+/**
+ * JSON schema for live-server HTTPS certificate paths (not PEM contents).
+ */
+export const LIVE_SERVER_SSL_SCHEMA = {
+  type: 'object',
+  properties: {
+    enabled: {
+      type: 'boolean',
+      description: 'When true, listen with HTTPS using certPath/keyPath.'
+    },
+    certPath: {
+      type: 'string',
+      description: 'Absolute path to a PEM (or compatible) certificate file.'
+    },
+    keyPath: {
+      type: 'string',
+      description: 'Absolute path to a PEM (or compatible) private key file.'
+    }
+  },
+  additionalProperties: false
+} as const;
+
+/**
  * JSON schema for live-server CORS middleware settings.
  */
 export const LIVE_SERVER_CORS_SCHEMA = {
@@ -41,12 +111,68 @@ export const LIVE_SERVER_CORS_SCHEMA = {
       type: 'string',
       description: 'Allowed request headers: `*`, empty, or comma-separated names.'
     },
+    exposedHeaders: {
+      type: 'string',
+      description:
+        'Headers browsers may read: `*`, empty (omit / package default), or comma-separated names.'
+    },
+    maxAge: {
+      type: 'string',
+      description:
+        'Preflight cache duration in seconds as a string (e.g. `600`). Empty omits Access-Control-Max-Age.'
+    },
     credentials: {
       type: 'boolean',
       description: 'When true, responses include Access-Control-Allow-Credentials.'
     }
   },
   additionalProperties: false
+} as const;
+
+/**
+ * JSON schema properties shared by create/update/start for expanded live-server knobs.
+ *
+ * Omits `lastOpenedPath` (navigation preference state; not typically set by tools).
+ */
+export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
+  openPath: {
+    type: 'string',
+    description:
+      'Path or file opened when the Live Page starts (e.g. `/` or `/docs/`). Defaults to `/`.'
+  },
+  rememberLastUrl: {
+    type: 'boolean',
+    description:
+      'When true, Live Page navigations within the origin update the remembered last path.'
+  },
+  indexFiles: {
+    type: 'array',
+    items: { type: 'string' },
+    description:
+      'Ordered directory index filenames (e.g. `["index.html","app.html"]`). Defaults to `["index.html"]`.'
+  },
+  host: {
+    type: 'string',
+    description:
+      'Listen bind host. Defaults to `127.0.0.1`. Use `0.0.0.0` to expose on the LAN (security risk).'
+  },
+  headers: {
+    type: 'array',
+    items: LIVE_SERVER_HEADER_SCHEMA,
+    description:
+      'Custom response headers (e.g. Cache-Control, CSP). Applied after CORS for all responses.'
+  },
+  routes: {
+    type: 'array',
+    items: LIVE_SERVER_ROUTE_SCHEMA,
+    description:
+      'Ordered path routing rules applied after static miss (first match wins). Use match `*` and target `index.html` for SPA history fallback.'
+  },
+  ssl: {
+    ...LIVE_SERVER_SSL_SCHEMA,
+    description:
+      'HTTPS settings. Supply absolute certPath/keyPath when enabled; HarborClient does not generate certificates.'
+  }
 } as const;
 
 /**
@@ -58,6 +184,33 @@ export const liveServerAliasShape = z.object({
 });
 
 /**
+ * Zod schema for a live-server response header row in MCP tool arguments.
+ */
+export const liveServerHeaderShape = z.object({
+  name: z.string(),
+  value: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Zod schema for a live-server routing rule in MCP tool arguments.
+ */
+export const liveServerRouteShape = z.object({
+  match: z.string(),
+  target: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Zod schema for live-server SSL settings in MCP tool arguments.
+ */
+export const liveServerSslShape = z.object({
+  enabled: z.boolean().optional(),
+  certPath: z.string().optional(),
+  keyPath: z.string().optional()
+});
+
+/**
  * Zod schema for live-server CORS settings in MCP tool arguments.
  */
 export const liveServerCorsShape = z.object({
@@ -65,5 +218,20 @@ export const liveServerCorsShape = z.object({
   origin: z.string().optional(),
   methods: z.string().optional(),
   allowedHeaders: z.string().optional(),
+  exposedHeaders: z.string().optional(),
+  maxAge: z.string().optional(),
   credentials: z.boolean().optional()
 });
+
+/**
+ * Zod raw shape for expanded live-server config fields shared by create/update/start.
+ */
+export const liveServerExpandedConfigShape = {
+  openPath: z.string().optional(),
+  rememberLastUrl: z.boolean().optional(),
+  indexFiles: z.array(z.string()).optional(),
+  host: z.string().optional(),
+  headers: z.array(liveServerHeaderShape).optional(),
+  routes: z.array(liveServerRouteShape).optional(),
+  ssl: liveServerSslShape.optional()
+} as const;

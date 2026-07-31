@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { CollectionDocument, SaveDocumentInput } from '@harborclient/core/types';
-import { isMarkdownTab, isPageTab } from '#/renderer/src/store/tabs';
+import { isMarkdownTab, isPageTab, isTabDirty } from '#/renderer/src/store/tabs';
 import {
   selectCollectionSettingsDirty,
   selectEnvironmentSettingsDirty,
@@ -257,7 +257,7 @@ export const requestLoadDocument = createAsyncThunk<void, RequestLoadDocumentArg
       activeTab != null &&
       isPageTab(activeTab) &&
       activeTab.page.type === 'collection' &&
-      selectCollectionSettingsDirty(state);
+      (isTabDirty(activeTab) || selectCollectionSettingsDirty(state));
     const environmentDirty =
       activeTab != null &&
       isPageTab(activeTab) &&
@@ -267,7 +267,7 @@ export const requestLoadDocument = createAsyncThunk<void, RequestLoadDocumentArg
       activeTab != null &&
       isPageTab(activeTab) &&
       activeTab.page.type === 'folder' &&
-      selectFolderSettingsDirty(state);
+      (isTabDirty(activeTab) || selectFolderSettingsDirty(state));
     const workspaceDirty =
       activeTab != null &&
       isPageTab(activeTab) &&

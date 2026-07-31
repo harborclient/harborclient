@@ -1595,9 +1595,84 @@ export interface LiveServerCorsSettings {
   allowedHeaders: string;
 
   /**
+   * Headers browsers may read from the response: `*`, empty (omit), or
+   * comma-separated names.
+   */
+  exposedHeaders: string;
+
+  /**
+   * Preflight cache duration in seconds as a string (e.g. `600`). Empty omits
+   * `Access-Control-Max-Age`.
+   */
+  maxAge: string;
+
+  /**
    * When true, responses include `Access-Control-Allow-Credentials`.
    */
   credentials: boolean;
+}
+
+/**
+ * One custom response header applied by a Harbor Live Server.
+ */
+export interface LiveServerResponseHeader {
+  /**
+   * Header name, e.g. `Cache-Control`.
+   */
+  name: string;
+
+  /**
+   * Header value, e.g. `no-store`.
+   */
+  value: string;
+
+  /**
+   * When false, the header is not applied. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
+ * One path-routing rule for a Harbor Live Server (SPA fallback / soft rewrite).
+ *
+ * Rules run after alias and document-root static miss. First matching enabled
+ * rule wins. Use `match: '*'` to catch every remaining path.
+ */
+export interface LiveServerRoute {
+  /**
+   * `*` for all paths, or a regex source matched against the URL pathname.
+   */
+  match: string;
+
+  /**
+   * File or directory path, absolute or relative to the server root.
+   */
+  target: string;
+
+  /**
+   * When false, the rule is ignored. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
+ * TLS certificate settings for serving a Harbor Live Server over HTTPS.
+ */
+export interface LiveServerSslSettings {
+  /**
+   * When true, the live server listens with HTTPS using the configured cert/key.
+   */
+  enabled: boolean;
+
+  /**
+   * Absolute path to a PEM (or compatible) certificate file.
+   */
+  certPath: string;
+
+  /**
+   * Absolute path to a PEM (or compatible) private key file.
+   */
+  keyPath: string;
 }
 
 /**
@@ -1633,6 +1708,46 @@ export interface LiveServerConfig {
    * CORS middleware settings applied when the server starts.
    */
   cors: LiveServerCorsSettings;
+
+  /**
+   * Path or file opened when the Live Page starts (always leading `/`).
+   */
+  openPath: string;
+
+  /**
+   * When true, navigations within the origin update {@link lastOpenedPath}.
+   */
+  rememberLastUrl: boolean;
+
+  /**
+   * Last opened path+search+hash within the origin; null when never recorded.
+   */
+  lastOpenedPath: string | null;
+
+  /**
+   * Ordered directory index filenames for Express static.
+   */
+  indexFiles: string[];
+
+  /**
+   * Listen bind host (e.g. `127.0.0.1` or `0.0.0.0`).
+   */
+  host: string;
+
+  /**
+   * Custom response headers applied after CORS and before static.
+   */
+  headers: LiveServerResponseHeader[];
+
+  /**
+   * Ordered path routing rules applied after static miss (first match wins).
+   */
+  routes: LiveServerRoute[];
+
+  /**
+   * TLS settings for HTTPS listen.
+   */
+  ssl: LiveServerSslSettings;
 }
 
 /**
@@ -1678,6 +1793,46 @@ export interface LiveServer {
    * CORS middleware settings applied when the server starts.
    */
   cors: LiveServerCorsSettings;
+
+  /**
+   * Path or file opened when the Live Page starts (always leading `/`).
+   */
+  openPath: string;
+
+  /**
+   * When true, navigations within the origin update {@link lastOpenedPath}.
+   */
+  rememberLastUrl: boolean;
+
+  /**
+   * Last opened path+search+hash within the origin; null when never recorded.
+   */
+  lastOpenedPath: string | null;
+
+  /**
+   * Ordered directory index filenames for Express static.
+   */
+  indexFiles: string[];
+
+  /**
+   * Listen bind host (e.g. `127.0.0.1` or `0.0.0.0`).
+   */
+  host: string;
+
+  /**
+   * Custom response headers applied after CORS and before static.
+   */
+  headers: LiveServerResponseHeader[];
+
+  /**
+   * Ordered path routing rules applied after static miss (first match wins).
+   */
+  routes: LiveServerRoute[];
+
+  /**
+   * TLS settings for HTTPS listen.
+   */
+  ssl: LiveServerSslSettings;
 
   /**
    * Sort order within the Live Servers sidebar section.
@@ -1728,6 +1883,46 @@ export interface CreateLiveServerInput {
    * CORS settings to persist.
    */
   cors?: LiveServerCorsSettings;
+
+  /**
+   * Entry / open path. Defaults to `/`.
+   */
+  openPath?: string;
+
+  /**
+   * Whether to remember the last opened URL. Defaults to false.
+   */
+  rememberLastUrl?: boolean;
+
+  /**
+   * Last opened path+search+hash, or null. Defaults to null.
+   */
+  lastOpenedPath?: string | null;
+
+  /**
+   * Directory index filenames. Defaults to `['index.html']`.
+   */
+  indexFiles?: string[];
+
+  /**
+   * Listen bind host. Defaults to `127.0.0.1`.
+   */
+  host?: string;
+
+  /**
+   * Custom response headers. Defaults to `[]`.
+   */
+  headers?: LiveServerResponseHeader[];
+
+  /**
+   * Path routing rules. Defaults to `[]`.
+   */
+  routes?: LiveServerRoute[];
+
+  /**
+   * TLS settings.
+   */
+  ssl?: LiveServerSslSettings;
 }
 
 /**
@@ -1770,6 +1965,46 @@ export interface UpdateLiveServerInput {
    * CORS settings to persist.
    */
   cors: LiveServerCorsSettings;
+
+  /**
+   * Entry / open path relative to the server origin.
+   */
+  openPath: string;
+
+  /**
+   * Whether to remember the last opened URL.
+   */
+  rememberLastUrl: boolean;
+
+  /**
+   * Last opened path+search+hash within the origin, or null.
+   */
+  lastOpenedPath: string | null;
+
+  /**
+   * Directory index filenames.
+   */
+  indexFiles: string[];
+
+  /**
+   * Listen bind host.
+   */
+  host: string;
+
+  /**
+   * Custom response headers.
+   */
+  headers: LiveServerResponseHeader[];
+
+  /**
+   * Path routing rules.
+   */
+  routes: LiveServerRoute[];
+
+  /**
+   * TLS settings.
+   */
+  ssl: LiveServerSslSettings;
 }
 
 /**

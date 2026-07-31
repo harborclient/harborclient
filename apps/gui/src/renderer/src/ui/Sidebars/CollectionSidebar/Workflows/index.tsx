@@ -20,7 +20,7 @@ import {
   exportWorkflow,
   setWorkflowArchived
 } from '#/renderer/src/store/thunks/workflows';
-import { faDiagramProject } from '#/renderer/src/fontawesome';
+import { faRoute } from '#/renderer/src/fontawesome';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { buildCopyIdMenuItem } from '#/renderer/src/ui/Sidebars/CollectionSidebar/menus/copyEntityId';
 import {
@@ -172,7 +172,7 @@ export function Workflows(): JSX.Element {
             key={workflow.id}
             name={workflow.name}
             summary={formatWorkflowDuration(workflow.durationMs)}
-            icon={faDiagramProject}
+            icon={faRoute}
             selected={selected}
             actions={
               <RowActionsMenu

@@ -244,6 +244,12 @@ interface Props {
   onDraftChange?: (fields: ScopedSettingsCoreFields) => void;
 
   /**
+   * Called when the user selects a different settings SegmentedTabs section so
+   * parents can remember it across remounts (for example TabBar switches).
+   */
+  onSectionChange?: (section: string) => void;
+
+  /**
    * Hosting tab id so File → Save / Ctrl+S can persist this form.
    */
   tabId?: string;
@@ -279,6 +285,7 @@ export function ScopedSettingsForm({
   onClose,
   onDirtyChange,
   onDraftChange,
+  onSectionChange,
   tabId
 }: Props): JSX.Element {
   const [tab, setTab] = useState<string>(
@@ -409,10 +416,11 @@ export function ScopedSettingsForm({
 
   /**
    * Validates name, persists cleaned fields, then closes on success.
+   * No-ops when the form is clean, name is empty, or save is otherwise blocked.
    */
   const handleSave = useCallback(async (): Promise<void> => {
     const trimmedName = name.trim();
-    if (!trimmedName || disableSave) {
+    if (!trimmedName || disableSave || !isDirty) {
       return;
     }
 
@@ -423,12 +431,12 @@ export function ScopedSettingsForm({
     } finally {
       setSaving(false);
     }
-  }, [name, disableSave, onSave, currentFields, onClose]);
+  }, [name, disableSave, isDirty, onSave, currentFields, onClose]);
 
   /**
    * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).
    */
-  const menuCanSave = Boolean(name.trim()) && !disableSave && !saving;
+  const menuCanSave = Boolean(name.trim()) && !disableSave && isDirty && !saving;
 
   useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
@@ -467,7 +475,8 @@ export function ScopedSettingsForm({
   );
 
   /**
-   * Seeds a blank inline script when entering a script tab with no entries yet.
+   * Seeds a blank inline script when entering a script tab with no entries yet,
+   * then notifies the parent so the section can survive remounts.
    *
    * @param nextTab - Settings tab the user selected.
    */
@@ -479,6 +488,7 @@ export function ScopedSettingsForm({
       setPostRequestScripts(ensureDefaultScriptRef(postRequestScripts));
     }
     setTab(nextTab);
+    onSectionChange?.(nextTab);
   };
 
   return (
@@ -493,7 +503,7 @@ export function ScopedSettingsForm({
         <Button
           type="button"
           onClick={() => void handleSave()}
-          disabled={!name.trim() || disableSave || saving}
+          disabled={!name.trim() || disableSave || !isDirty || saving}
         >
           {saving ? 'Saving…' : 'Save'}
         </Button>

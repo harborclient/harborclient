@@ -44,7 +44,7 @@ import {
   reorderWorkspaces,
   saveWorkspace
 } from '#/renderer/src/store/thunks/workspaces';
-import { faLayerGroup } from '#/renderer/src/fontawesome';
+import { faWindowRestore } from '#/renderer/src/fontawesome';
 import { useSidebarRowSelection } from '#/renderer/src/ui/Sidebars/CollectionSidebar/selection/useSidebarRowSelection';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 import { useSidebarSectionFilter } from '#/renderer/src/ui/Sidebars/CollectionSidebar/filter/sidebarSectionFilterContext';
@@ -349,7 +349,7 @@ export function Workspaces(): JSX.Element {
                 key={group.id}
                 name={group.name}
                 summary={workspaceSummaryText(group)}
-                icon={faLayerGroup}
+                icon={faWindowRestore}
                 selected={selected}
                 markerDot={{
                   marker: group.marker,

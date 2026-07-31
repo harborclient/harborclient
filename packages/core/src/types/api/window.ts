@@ -320,6 +320,14 @@ export interface ApiWindow {
    */
   selectFiles: () => Promise<string[]>;
   /**
+   * Opens a native single-file picker filtered for SSL certificate and key files
+   * (`.pem`, `.crt`, `.key`, `.cert`, plus All files).
+   *
+   * @param defaultPath - Initial path shown in the dialog, if any.
+   * @returns Selected absolute file path, or null when canceled.
+   */
+  selectSslFile: (defaultPath?: string) => Promise<string | null>;
+  /**
    * Opens a native directory picker.
    *
    * @param defaultPath - Initial directory shown in the dialog, if any.

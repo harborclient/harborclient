@@ -19,6 +19,7 @@ import {
 import tabsReducer, {
   activateNextTab,
   activatePreviousTab,
+  clearPageScopedSettingsDraft,
   closeTab,
   closeTabsForCollection,
   closeTabsForEnvironment,
@@ -42,6 +43,10 @@ import tabsReducer, {
   setBrowserPreRequestScripts,
   setBrowserScripts,
   setBrowserSettingsPanelOpen,
+  setPageConnectionIdDraft,
+  setPageFocusSection,
+  setPageScopedSettingsDraft,
+  setPageTabDirty,
   setResponseViewerTab,
   updateBrowserNavigation,
   updateMarkdownContent
@@ -343,7 +348,8 @@ describe('tabsSlice openPageTab', () => {
       expect(collectionTab.page).toEqual({
         type: 'collection',
         id: 99,
-        focusVariableKey: 'second'
+        focusVariableKey: 'second',
+        focusSection: 'variables'
       });
     }
   });
@@ -366,6 +372,121 @@ describe('tabsSlice openPageTab', () => {
         id: 42,
         focusSection: 'git'
       });
+    }
+  });
+
+  it('remembers focusSection when reopening collection settings without one', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 42 }));
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      setPageFocusSection({ tabId: existingTabId, focusSection: 'variables' })
+    );
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 42 }));
+
+    expect(state.activeTabId).toBe(existingTabId);
+    const collectionTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(collectionTab).toBeDefined();
+    expect(isPageTab(collectionTab!)).toBe(true);
+    if (isPageTab(collectionTab!)) {
+      expect(collectionTab.page).toEqual({
+        type: 'collection',
+        id: 42,
+        focusSection: 'variables'
+      });
+    }
+  });
+
+  it('forces Variables section when reopening with focusVariableKey', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 42 }));
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(
+      state,
+      setPageFocusSection({ tabId: existingTabId, focusSection: 'headers' })
+    );
+    state = tabsReducer(state, newTab());
+    state = tabsReducer(
+      state,
+      openPageTab({ type: 'collection', id: 42, focusVariableKey: 'API_KEY' })
+    );
+
+    const collectionTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(collectionTab).toBeDefined();
+    expect(isPageTab(collectionTab!)).toBe(true);
+    if (isPageTab(collectionTab!)) {
+      expect(collectionTab.page).toEqual({
+        type: 'collection',
+        id: 42,
+        focusVariableKey: 'API_KEY',
+        focusSection: 'variables'
+      });
+    }
+  });
+
+  it('stores focusSection via setPageFocusSection on a folder settings tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'folder', collectionId: 1, id: 9 }));
+    const existingTabId = state.activeTabId;
+    state = tabsReducer(state, setPageFocusSection({ tabId: existingTabId, focusSection: 'auth' }));
+
+    const folderTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(folderTab).toBeDefined();
+    expect(isPageTab(folderTab!)).toBe(true);
+    if (isPageTab(folderTab!)) {
+      expect(folderTab.page).toEqual({
+        type: 'folder',
+        collectionId: 1,
+        id: 9,
+        focusSection: 'auth'
+      });
+    }
+  });
+
+  it('remembers scoped settings drafts and dirty on a collection page tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    state = tabsReducer(state, closeTab(state.activeTabId));
+    state = tabsReducer(state, openPageTab({ type: 'collection', id: 3 }));
+    const existingTabId = state.activeTabId;
+    const draft = {
+      name: 'Demo',
+      variables: [{ key: 'TOKEN', value: 'abc', defaultValue: '', enabled: true, share: false }],
+      headers: [],
+      userAgent: '',
+      auth: defaultAuth(),
+      preRequestScripts: [],
+      postRequestScripts: []
+    };
+    state = tabsReducer(state, setPageScopedSettingsDraft({ tabId: existingTabId, draft }));
+    state = tabsReducer(
+      state,
+      setPageConnectionIdDraft({ tabId: existingTabId, connectionId: 'db-1' })
+    );
+    state = tabsReducer(state, setPageTabDirty({ tabId: existingTabId, dirty: true }));
+
+    const collectionTab = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(collectionTab).toBeDefined();
+    expect(isPageTab(collectionTab!)).toBe(true);
+    if (isPageTab(collectionTab!)) {
+      expect(collectionTab.scopedSettingsDraft).toEqual(draft);
+      expect(collectionTab.connectionIdDraft).toBe('db-1');
+      expect(collectionTab.dirty).toBe(true);
+      expect(isTabDirty(collectionTab)).toBe(true);
+    }
+
+    state = tabsReducer(state, clearPageScopedSettingsDraft(existingTabId));
+    const cleared = state.tabs.find((tab) => tab.tabId === existingTabId);
+    expect(isPageTab(cleared!)).toBe(true);
+    if (isPageTab(cleared!)) {
+      expect(cleared.scopedSettingsDraft).toBeUndefined();
+      expect(cleared.connectionIdDraft).toBeUndefined();
+      expect(cleared.dirty).toBe(false);
+      expect(isTabDirty(cleared)).toBe(false);
     }
   });
 

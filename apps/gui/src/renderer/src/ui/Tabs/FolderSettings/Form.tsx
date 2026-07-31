@@ -6,6 +6,7 @@ import { GeneralSection } from './GeneralSection';
 import { ScopedAuthSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedAuthSection';
 import { ScopedHeadersSection } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedHeadersSection';
 import { ScopedSettingsForm } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedSettingsForm';
+import type { ScopedSettingsCoreFields } from '#/renderer/src/ui/Shared/ScopedSettings/scopedSettingsCore';
 import { folderFormCoreFields } from './serialize';
 
 export interface Props {
@@ -48,6 +49,26 @@ export interface Props {
    * Hosting tab id so File → Save / Ctrl+S can persist this form.
    */
   tabId?: string;
+
+  /**
+   * When set, switches to this settings section tab (for example `variables`).
+   */
+  focusSection?: string;
+
+  /**
+   * Called when the user selects a different settings SegmentedTabs section.
+   */
+  onSectionChange?: (section: string) => void;
+
+  /**
+   * Draft core fields restored when the page remounts after a tab switch.
+   */
+  seed?: ScopedSettingsCoreFields;
+
+  /**
+   * Called whenever draft core fields change so the open tab can remember them.
+   */
+  onDraftChange?: (fields: ScopedSettingsCoreFields) => void;
 }
 
 /**
@@ -56,10 +77,14 @@ export interface Props {
 export function Form({
   folder,
   focusVariableKey,
+  focusSection,
   onSave,
   onClose,
   onDirtyChange,
-  tabId
+  tabId,
+  onSectionChange,
+  seed,
+  onDraftChange
 }: Props): JSX.Element {
   /**
    * Normalized persisted snapshot used to seed and compare scoped form fields.
@@ -84,11 +109,15 @@ export function Form({
       description="Manage folder settings and configuration"
       ariaLabel="Folder settings sections"
       initial={initial}
+      seed={seed}
       focusVariableKey={focusVariableKey}
+      focusSection={focusSection}
       preScriptDescription="Runs in the folder pre-request stage before every request in this folder, after collection scripts and before each request's pre-request stage. Supports {{variable}} syntax."
       postScriptDescription="Runs in the folder post-request stage after every request in this folder, after collection scripts and before each request's post-request stage. Supports {{variable}} syntax."
       onClose={onClose}
       onDirtyChange={onDirtyChange}
+      onDraftChange={onDraftChange}
+      onSectionChange={onSectionChange}
       tabId={tabId}
       onSave={async (fields) => {
         await onSave(

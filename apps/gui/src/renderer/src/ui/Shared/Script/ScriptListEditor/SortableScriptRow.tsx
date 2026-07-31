@@ -48,13 +48,13 @@ import {
   buildRevealDiagnostics,
   type RevealDiagnosticCopyToChat
 } from '#/renderer/src/scripting/buildRevealDiagnostics';
-import { faChevronDown, faChevronUp, faWandMagicSparkles } from '#/renderer/src/fontawesome';
+import { faChevronDown, faChevronRight, faWandMagicSparkles } from '#/renderer/src/fontawesome';
 import {
   SCRIPT_EDITOR_MIN_HEIGHT,
   SCRIPT_ROW_ICON_CLASS,
   SCRIPT_ROW_PREVIEW_INDENT_CLASS
 } from './constants';
-import { stopDragPointerDown } from './helpers';
+import { scriptRowLabel, stopDragPointerDown } from './helpers';
 import { ScriptRowCodeEditor } from './ScriptRowCodeEditor';
 import { ScriptRowHeader } from './ScriptRowHeader';
 import { ScriptRowStageBorder } from './ScriptRowStageBorder';
@@ -471,8 +471,8 @@ export function SortableScriptRow({
     : 'flex rounded-2xl border border-l-0 border-separator bg-surface shadow-sm';
 
   const rowContentClassName = editorFill
-    ? 'flex min-h-0 min-w-0 flex-1 flex-col px-4 py-3'
-    : 'flex min-w-0 flex-1 flex-col px-4 py-3';
+    ? 'flex min-h-0 min-w-0 flex-1 flex-col px-4 pt-3 pb-2'
+    : 'flex min-w-0 flex-1 flex-col px-4 pt-3 pb-2';
 
   /**
    * Renders the inline or snippet script source editor, optionally filling available height.
@@ -623,12 +623,27 @@ export function SortableScriptRow({
         <div className={rowContentClassName}>
           <div className={editorFill ? 'flex shrink-0 flex-col gap-0.5' : 'flex flex-col gap-0.5'}>
             <div className="flex min-w-0 items-center gap-3">
-              <ScriptRowHeader
-                script={script}
-                snippets={snippets}
-                onEnabledChange={onEnabledChange}
-                onNameChange={onNameChange}
-              />
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                {!forceExpanded ? (
+                  <Button
+                    type="button"
+                    variant="icon"
+                    className={scriptRowIconButtonClass}
+                    aria-controls={editorPanelId}
+                    aria-expanded={rowExpanded}
+                    aria-label={expandToggleLabel}
+                    title={expandToggleLabel}
+                    onPointerDown={stopDragPointerDown}
+                    onClick={onToggleExpanded}
+                  >
+                    <FaIcon
+                      icon={rowExpanded ? faChevronDown : faChevronRight}
+                      className={SCRIPT_ROW_ICON_CLASS}
+                    />
+                  </Button>
+                ) : null}
+                <ScriptRowHeader script={script} snippets={snippets} onNameChange={onNameChange} />
+              </div>
 
               <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
                 {scriptEditorActions.map((action) => (
@@ -674,6 +689,16 @@ export function SortableScriptRow({
                     <FaIcon icon={faWandMagicSparkles} className={SCRIPT_ROW_ICON_CLASS} />
                   </Button>
                 ) : null}
+                <input
+                  type="checkbox"
+                  checked={script.enabled}
+                  onChange={(event) => onEnabledChange(event.target.checked)}
+                  onPointerDown={stopDragPointerDown}
+                  aria-label={`Enable ${scriptRowLabel(script, snippets)}${
+                    script.kind === 'snippet' ? ' (linked to snippet)' : ''
+                  }`}
+                  className="shrink-0"
+                />
                 <div className="shrink-0" onPointerDown={stopDragPointerDown}>
                   <RowActionsMenu
                     menuId={rowMenuId}
@@ -682,29 +707,11 @@ export function SortableScriptRow({
                     groups={rowActionMenuGroups}
                   />
                 </div>
-                {!forceExpanded ? (
-                  <Button
-                    type="button"
-                    variant="icon"
-                    className={scriptRowIconButtonClass}
-                    aria-controls={editorPanelId}
-                    aria-expanded={rowExpanded}
-                    aria-label={expandToggleLabel}
-                    title={expandToggleLabel}
-                    onPointerDown={stopDragPointerDown}
-                    onClick={onToggleExpanded}
-                  >
-                    <FaIcon
-                      icon={rowExpanded ? faChevronUp : faChevronDown}
-                      className={SCRIPT_ROW_ICON_CLASS}
-                    />
-                  </Button>
-                ) : null}
               </div>
             </div>
 
             {showCodePreview ? (
-              <div className={`min-w-0 ${SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
+              <div className={`min-w-0 ${forceExpanded ? '' : SCRIPT_ROW_PREVIEW_INDENT_CLASS}`}>
                 <CodePreviewTooltip
                   code={resolveScriptSourceCode(script, snippets)}
                   actionLabel={`Expand ${label}`}

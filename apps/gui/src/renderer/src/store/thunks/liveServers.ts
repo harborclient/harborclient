@@ -10,7 +10,13 @@ import type {
   StartLiveServerInput,
   UpdateLiveServerInput
 } from '@harborclient/core/types';
-import { normalizeLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  liveServerOpenedPathFromUrl,
+  normalizeLiveServerConfigFields,
+  normalizeLiveServerCorsSettings,
+  resolveLiveServerHomeUrl,
+  resolveLiveServerOpenUrl
+} from '@harborclient/core/types';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   bindLiveServerTab,
@@ -20,6 +26,7 @@ import {
 } from '#/renderer/src/store/slices/liveServersSlice';
 import {
   openLiveServerModal,
+  setLiveServerModalLastOpenedPath,
   type LiveServerModalMode
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
@@ -35,6 +42,17 @@ import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 /**
+ * Debounce window for persisting {@link LiveServer.lastOpenedPath} so rapid
+ * in-app navigations do not thrash SQLite.
+ */
+const LAST_OPENED_PATH_DEBOUNCE_MS = 400;
+
+/**
+ * Pending debounce timers keyed by saved live server id.
+ */
+const lastOpenedPathPersistTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+/**
  * Payload for opening the live server create/edit footer panel.
  */
 export type OpenLiveServerEditorInput = {
@@ -46,7 +64,37 @@ export type OpenLiveServerEditorInput = {
   aliases?: LiveServerAlias[];
   watch?: boolean;
   cors?: LiveServerCorsSettings;
+  openPath?: string;
+  rememberLastUrl?: boolean;
+  lastOpenedPath?: string | null;
+  /**
+   * Comma-separated index filenames for the General tab editor field.
+   */
+  indexFiles?: string;
+  host?: string;
+  /**
+   * Custom response headers for the Headers tab.
+   */
+  headers?: LiveServerConfig['headers'];
+  /**
+   * Path routing rules for the Routing tab.
+   */
+  routes?: LiveServerConfig['routes'];
+  /**
+   * TLS settings for the SSL tab.
+   */
+  ssl?: LiveServerConfig['ssl'];
 };
+
+/**
+ * Formats an index-files array as a comma-separated string for the editor.
+ *
+ * @param files - Normalized index filenames from a saved config.
+ * @returns Editor-friendly comma-separated string.
+ */
+export function formatLiveServerIndexFilesInput(files: string[]): string {
+  return files.join(', ');
+}
 
 /**
  * Reloads saved live servers from the local registry into the store.
@@ -73,6 +121,11 @@ export const refreshRunningLiveServers = createAsyncThunk<void, void, ThunkApiCo
 /**
  * Builds a {@link LiveServerConfig} from saved or editor fields.
  *
+ * Expanded fields (`openPath`, `host`, `headers`, `ssl`, …) are optional on
+ * the input and filled via {@link normalizeLiveServerConfigFields} so callers
+ * that predate those settings still produce a complete config. `indexFiles`
+ * may be a `string[]` or a comma-separated editor string.
+ *
  * @param input - Partial config fields.
  * @returns Normalized config suitable for start/save.
  */
@@ -83,14 +136,24 @@ export function toLiveServerConfig(input: {
   aliases: LiveServerConfig['aliases'];
   watch: boolean;
   cors?: LiveServerCorsSettings;
+  openPath?: string;
+  rememberLastUrl?: boolean;
+  lastOpenedPath?: string | null;
+  indexFiles?: string | string[];
+  host?: string;
+  headers?: LiveServerConfig['headers'];
+  routes?: LiveServerConfig['routes'];
+  ssl?: LiveServerConfig['ssl'];
 }): LiveServerConfig {
+  const fields = normalizeLiveServerConfigFields(input);
   return {
     name: input.name.trim() || 'Live Server',
     root: input.root.trim(),
     port: input.port,
     aliases: input.aliases,
     watch: input.watch,
-    cors: normalizeLiveServerCorsSettings(input.cors)
+    cors: normalizeLiveServerCorsSettings(input.cors),
+    ...fields
   };
 }
 
@@ -165,7 +228,12 @@ export type StartLiveServerThunkArg = StartLiveServerInput & {
 };
 
 /**
- * Starts a live server, optionally opens a browser tab at its origin, and tracks the binding.
+ * Starts a live server, optionally opens a browser tab, and tracks the binding.
+ *
+ * When `openBrowser` is true, the tab’s initial `url` is
+ * {@link resolveLiveServerOpenUrl} (honors remember-last-URL). `homeUrl` is
+ * always `origin + openPath` so the address-bar Home control returns to the
+ * configured entry, not a remembered deep link.
  */
 export const startLiveServer = createAsyncThunk<
   RunningLiveServer,
@@ -182,8 +250,8 @@ export const startLiveServer = createAsyncThunk<
     dispatch(
       newBrowserTab({
         tabId,
-        url: running.origin,
-        homeUrl: running.origin
+        url: resolveLiveServerOpenUrl(running.origin, running.config),
+        homeUrl: resolveLiveServerHomeUrl(running.origin, running.config.openPath)
       })
     );
     dispatch(bindLiveServerTab({ serverId: running.id, tabId }));
@@ -205,18 +273,57 @@ export const stopLiveServer = createAsyncThunk<void, string, ThunkApiConfig>(
 );
 
 /**
+ * Returns whether draft settings that are baked into the Express app / listen
+ * differ from a running instance’s start-time config snapshot.
+ *
+ * Display-only and open-URL fields (`name`, `openPath`, `rememberLastUrl`,
+ * `lastOpenedPath`) are ignored — changing them does not require a restart to
+ * affect serving. Both sides are normalized via {@link toLiveServerConfig}
+ * before compare so empty vs default does not false-positive.
+ *
+ * @param draft - Editor or saved config the user wants applied.
+ * @param running - Config snapshot from the currently running instance.
+ * @returns True when Stop+Start (or Restart) is needed for the draft to take effect.
+ */
+export function liveServerRuntimeConfigNeedsRestart(
+  draft: LiveServerConfig,
+  running: LiveServerConfig
+): boolean {
+  const next = toLiveServerConfig(draft);
+  const current = toLiveServerConfig(running);
+  return (
+    next.root !== current.root ||
+    next.port !== current.port ||
+    next.host !== current.host ||
+    next.watch !== current.watch ||
+    JSON.stringify(next.aliases) !== JSON.stringify(current.aliases) ||
+    JSON.stringify(next.cors) !== JSON.stringify(current.cors) ||
+    JSON.stringify(next.indexFiles) !== JSON.stringify(current.indexFiles) ||
+    JSON.stringify(next.headers) !== JSON.stringify(current.headers) ||
+    JSON.stringify(next.routes) !== JSON.stringify(current.routes) ||
+    JSON.stringify(next.ssl) !== JSON.stringify(current.ssl)
+  );
+}
+
+/**
  * Opens (or focuses) a browser tab for a running live server origin.
  *
- * Prefers an existing browser tab whose URL is on the same origin; otherwise
- * opens a new Live Page pointed at the server root.
+ * Prefers an existing bound tab, then any browser tab on the same origin —
+ * focusing those does **not** force navigation (preserves the user’s place).
+ * When opening a **new** tab, resolves the initial URL via
+ * {@link resolveLiveServerOpenUrl} using the running instance config (or an
+ * optional override). `homeUrl` is always `origin + openPath`.
  *
  * @param origin - Server origin such as `http://127.0.0.1:5500`.
  * @param serverId - Optional runtime id used to record the tab binding.
+ * @param openConfig - Optional open-path fields; defaults to the running
+ *   instance config when `serverId` matches a running server.
  * @returns Thunk that opens or focuses a browser tab.
  */
 export function openLiveServerInBrowser(
   origin: string,
-  serverId?: string
+  serverId?: string,
+  openConfig?: Pick<LiveServerConfig, 'openPath' | 'rememberLastUrl' | 'lastOpenedPath'>
 ): (dispatch: AppDispatch, getState: () => RootState) => void {
   return (dispatch, getState) => {
     const state = getState();
@@ -251,11 +358,249 @@ export function openLiveServerInBrowser(
       return;
     }
 
+    const running =
+      serverId != null
+        ? state.liveServers.running.find((instance) => instance.id === serverId)
+        : undefined;
+    const config = openConfig ?? running?.config;
+    const url = config != null ? resolveLiveServerOpenUrl(origin, config) : origin;
+    const homeUrl = config != null ? resolveLiveServerHomeUrl(origin, config.openPath) : origin;
+
     const tabId = crypto.randomUUID();
-    dispatch(newBrowserTab({ tabId, url: origin, homeUrl: origin }));
+    dispatch(newBrowserTab({ tabId, url, homeUrl }));
     if (serverId) {
       dispatch(bindLiveServerTab({ serverId, tabId }));
     }
+  };
+}
+
+/**
+ * Arguments for {@link restartLiveServer}: stop a runtime instance, then start
+ * again with the given config without opening a duplicate Live Page by default.
+ */
+export type RestartLiveServerThunkArg = {
+  /**
+   * Runtime instance id to stop before starting again.
+   */
+  runtimeId: string;
+
+  /**
+   * Saved registry id to attach to the new instance, when known.
+   */
+  savedId?: number | null;
+
+  /**
+   * Config applied on the new start (Express middleware / listen snapshot).
+   */
+  config: LiveServerConfig;
+};
+
+/**
+ * Stops a running live server and starts it again with a new config snapshot.
+ *
+ * Uses `openBrowser: false` on start, then focuses or rebinds an existing Live
+ * Page via {@link openLiveServerInBrowser} so restart does not spawn a
+ * duplicate tab when one already exists for the origin.
+ *
+ * @param input - Runtime id to stop plus config (and optional saved id) for start.
+ * @returns The new running instance.
+ */
+export const restartLiveServer = createAsyncThunk<
+  RunningLiveServer,
+  RestartLiveServerThunkArg,
+  ThunkApiConfig
+>('liveServers/restart', async (input, { dispatch }) => {
+  await dispatch(stopLiveServer(input.runtimeId)).unwrap();
+  const running = await dispatch(
+    startLiveServer({
+      savedId: input.savedId ?? undefined,
+      config: input.config,
+      openBrowser: false
+    })
+  ).unwrap();
+  (dispatch as AppDispatch)(
+    openLiveServerInBrowser(running.origin, running.id, {
+      openPath: running.config.openPath,
+      rememberLastUrl: running.config.rememberLastUrl,
+      lastOpenedPath: running.config.lastOpenedPath
+    })
+  );
+  return running;
+});
+
+/**
+ * Decision input for whether a browser navigation should update a saved
+ * server’s {@link LiveServer.lastOpenedPath}.
+ */
+export type LiveServerLastOpenedPersistCandidate = {
+  /**
+   * Browser tab id that navigated.
+   */
+  tabId: string;
+
+  /**
+   * Full URL after navigation.
+   */
+  url: string;
+
+  /**
+   * Bound browser tabs keyed by running server instance id.
+   */
+  tabIdsByServerId: Record<string, string>;
+
+  /**
+   * Currently running live server instances.
+   */
+  running: RunningLiveServer[];
+
+  /**
+   * Saved live server rows from the registry.
+   */
+  saved: LiveServer[];
+};
+
+/**
+ * Result of {@link resolveLiveServerLastOpenedPersist} when a write is needed.
+ */
+export type LiveServerLastOpenedPersistTarget = {
+  /**
+   * Saved `live_servers.id` to update.
+   */
+  savedId: number;
+
+  /**
+   * Path+search+hash to persist.
+   */
+  lastOpenedPath: string;
+};
+
+/**
+ * Pure helper: decides whether a navigation should update `lastOpenedPath`.
+ *
+ * Requires a bound tab, a running instance with `savedId`, matching origin,
+ * and `rememberLastUrl` on the **saved** row. Skips when the path is unchanged.
+ *
+ * @param input - Navigation + live-server state snapshot.
+ * @returns Persist target, or null when no write is needed.
+ */
+export function resolveLiveServerLastOpenedPersist(
+  input: LiveServerLastOpenedPersistCandidate
+): LiveServerLastOpenedPersistTarget | null {
+  const serverId = Object.entries(input.tabIdsByServerId).find(
+    ([, boundTabId]) => boundTabId === input.tabId
+  )?.[0];
+  if (serverId == null) {
+    return null;
+  }
+
+  const running = input.running.find((instance) => instance.id === serverId);
+  if (running == null || running.savedId == null) {
+    return null;
+  }
+
+  const saved = input.saved.find((server) => server.id === running.savedId);
+  if (saved == null || !saved.rememberLastUrl) {
+    return null;
+  }
+
+  const path = liveServerOpenedPathFromUrl(input.url, running.origin);
+  if (path == null || path === saved.lastOpenedPath) {
+    return null;
+  }
+
+  return { savedId: saved.id, lastOpenedPath: path };
+}
+
+/**
+ * Persists `lastOpenedPath` on a saved live server without changing other fields.
+ *
+ * @param input - Saved id and path fragment to store.
+ */
+export const persistLiveServerLastOpenedPath = createAsyncThunk<
+  void,
+  LiveServerLastOpenedPersistTarget,
+  ThunkApiConfig
+>('liveServers/persistLastOpenedPath', async (input, { dispatch, getState }) => {
+  const saved = getState().liveServers.saved.find((server) => server.id === input.savedId);
+  if (saved == null || !saved.rememberLastUrl) {
+    return;
+  }
+  if (saved.lastOpenedPath === input.lastOpenedPath) {
+    return;
+  }
+
+  await dispatch(
+    updateSavedLiveServer({
+      id: saved.id,
+      name: saved.name,
+      root: saved.root,
+      port: saved.port,
+      aliases: saved.aliases,
+      watch: saved.watch,
+      cors: saved.cors,
+      openPath: saved.openPath,
+      rememberLastUrl: saved.rememberLastUrl,
+      lastOpenedPath: input.lastOpenedPath,
+      indexFiles: saved.indexFiles,
+      host: saved.host,
+      headers: saved.headers,
+      routes: saved.routes,
+      ssl: saved.ssl
+    })
+  ).unwrap();
+
+  const modal = getState().modals.liveServerModal;
+  if (modal != null && modal.savedId === input.savedId) {
+    dispatch(setLiveServerModalLastOpenedPath(input.lastOpenedPath));
+  }
+});
+
+/**
+ * Debounces and schedules a `lastOpenedPath` persist for a saved live server.
+ *
+ * @param dispatch - App dispatch.
+ * @param target - Saved id and path to write after the debounce window.
+ */
+export function schedulePersistLiveServerLastOpenedPath(
+  dispatch: AppDispatch,
+  target: LiveServerLastOpenedPersistTarget
+): void {
+  const existing = lastOpenedPathPersistTimers.get(target.savedId);
+  if (existing != null) {
+    clearTimeout(existing);
+  }
+  const timer = setTimeout(() => {
+    lastOpenedPathPersistTimers.delete(target.savedId);
+    void dispatch(persistLiveServerLastOpenedPath(target));
+  }, LAST_OPENED_PATH_DEBOUNCE_MS);
+  lastOpenedPathPersistTimers.set(target.savedId, timer);
+}
+
+/**
+ * After a Live Page navigation, optionally persists `lastOpenedPath` for the
+ * bound saved live server when “Remember last URL” is enabled.
+ *
+ * @param tabId - Browser tab that navigated.
+ * @param url - Full URL after navigation.
+ * @returns Thunk that may schedule a debounced persist.
+ */
+export function maybePersistLiveServerLastOpenedFromNavigation(
+  tabId: string,
+  url: string
+): (dispatch: AppDispatch, getState: () => RootState) => void {
+  return (dispatch, getState) => {
+    const state = getState();
+    const target = resolveLiveServerLastOpenedPersist({
+      tabId,
+      url,
+      tabIdsByServerId: state.liveServers.tabIdsByServerId,
+      running: state.liveServers.running,
+      saved: state.liveServers.saved
+    });
+    if (target == null) {
+      return;
+    }
+    schedulePersistLiveServerLastOpenedPath(dispatch, target);
   };
 }
 

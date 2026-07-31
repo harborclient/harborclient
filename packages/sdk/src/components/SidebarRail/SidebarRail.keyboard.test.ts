@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { faFolder, faGlobe, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faFolder, faLeaf, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { installReact } from '@harborclient/sdk';
 import { act, createElement, useState } from 'react';
 import * as React from 'react';
@@ -9,7 +9,7 @@ import { SidebarRail, type SidebarRailItemData } from './index.js';
 
 const railItems: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
-  { id: 'environments', icon: faGlobe, label: 'Environments', badge: true },
+  { id: 'environments', icon: faLeaf, label: 'Environments', badge: true },
   { id: 'trash', icon: faTrash, label: 'Trash' }
 ];
 
@@ -232,7 +232,7 @@ describe('SidebarRail keyboard', () => {
       { id: 'collections', icon: faFolder, label: 'Collections' },
       {
         id: 'servers',
-        icon: faGlobe,
+        icon: faLeaf,
         label: 'Servers',
         badge: true,
         badgeVariant: 'success'

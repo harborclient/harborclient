@@ -260,7 +260,13 @@ export type PageRef =
   | { type: 'sharing-keys' }
   | { type: 'hosted-main-view'; pluginId: string; viewId: string }
   | { type: 'collection'; id: number; focusVariableKey?: string; focusSection?: string }
-  | { type: 'folder'; collectionId: number; id: number; focusVariableKey?: string }
+  | {
+      type: 'folder';
+      collectionId: number;
+      id: number;
+      focusVariableKey?: string;
+      focusSection?: string;
+    }
   | { type: 'environment'; id: number; focusVariableKey?: string }
   | { type: 'workspace'; id: number }
   | {
@@ -395,6 +401,64 @@ export interface PageTab {
    * Tab id that opened this tab; used to restore focus when this tab is closed.
    */
   linkedTo?: string;
+
+  /**
+   * Unsaved collection/folder settings form fields while this tab stays open.
+   *
+   * Survives remounts when switching away in the tab bar so Variable/Header/etc.
+   * edits are not lost before Save.
+   */
+  scopedSettingsDraft?: ScopedSettingsDraft;
+
+  /**
+   * Draft provider connection id for collection settings (not used for folders).
+   */
+  connectionIdDraft?: string;
+
+  /**
+   * True when this settings page has unsaved edits (core fields and/or extras).
+   */
+  dirty?: boolean;
+}
+
+/**
+ * Editable collection/folder settings fields kept on an open page tab.
+ */
+export interface ScopedSettingsDraft {
+  /**
+   * Display name for the scoped entity.
+   */
+  name: string;
+
+  /**
+   * Scoped variables table rows.
+   */
+  variables: Variable[];
+
+  /**
+   * Scoped header rows.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override for this scope; empty inherits from the parent scope or global default.
+   */
+  userAgent: string;
+
+  /**
+   * Default authorization settings for requests in this scope.
+   */
+  auth: AuthConfig;
+
+  /**
+   * Pre-request script references for this scope.
+   */
+  preRequestScripts: ScriptRef[];
+
+  /**
+   * Post-request script references for this scope.
+   */
+  postRequestScripts: ScriptRef[];
 }
 
 /**
@@ -1206,9 +1270,10 @@ export function hasBrowserPendingSave(tab: BrowserTab): boolean {
  *
  * Browser tabs are dirty when live page settings drafts diverge (not when only
  * browsing updates url/title). Use {@link hasBrowserPendingSave} for Update live page.
+ * Collection/folder settings page tabs use {@link PageTab.dirty}.
  *
  * @param tab - Open tab from the tab bar.
- * @returns True when a request, markdown, or browser settings tab differs from its saved baseline.
+ * @returns True when a request, markdown, browser settings, or dirty page tab differs from its saved baseline.
  */
 export function isTabDirty(tab: Tab): boolean {
   if (isMarkdownTab(tab)) {
@@ -1216,6 +1281,9 @@ export function isTabDirty(tab: Tab): boolean {
   }
   if (isBrowserTab(tab)) {
     return areBrowserSettingsDirty(tab);
+  }
+  if (isPageTab(tab)) {
+    return Boolean(tab.dirty);
   }
   if (!isRequestTab(tab)) {
     return false;
@@ -1342,6 +1410,14 @@ export function getDirtyEditorTabNames(tabs: Tab[]): string[] {
     }
     if (isBrowserTab(tab)) {
       names.push(tab.title || 'Browser');
+      continue;
+    }
+    if (isPageTab(tab)) {
+      if (tab.page.type === 'collection') {
+        names.push(tab.scopedSettingsDraft?.name.trim() || 'Collection settings');
+      } else if (tab.page.type === 'folder') {
+        names.push(tab.scopedSettingsDraft?.name.trim() || 'Folder settings');
+      }
       continue;
     }
     if (isRequestTab(tab)) {

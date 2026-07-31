@@ -22,25 +22,15 @@ interface Props {
   snippets: Snippet[];
 
   /**
-   * Called when the enable checkbox toggles.
-   */
-  onEnabledChange: (enabled: boolean) => void;
-
-  /**
    * Called when the optional display name changes.
    */
   onNameChange: (name: string) => void;
 }
 
 /**
- * Enable checkbox and inline-editable script label for one script row.
+ * Inline-editable script label for one script row.
  */
-export function ScriptRowHeader({
-  script,
-  snippets,
-  onEnabledChange,
-  onNameChange
-}: Props): JSX.Element {
+export function ScriptRowHeader({ script, snippets, onNameChange }: Props): JSX.Element {
   const [editingLabel, setEditingLabel] = useState(false);
   const labelInputRef = useRef<HTMLInputElement>(null);
   const accessibleLabel = scriptRowLabel(script, snippets);
@@ -121,14 +111,6 @@ export function ScriptRowHeader({
 
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-2 ${SCRIPT_ROW_TITLE_CLASS}`}>
-      <input
-        type="checkbox"
-        checked={script.enabled}
-        onChange={(event) => onEnabledChange(event.target.checked)}
-        onPointerDown={stopDragPointerDown}
-        aria-label={`Enable ${accessibleLabel}${ariaLabelSuffix}`}
-        className="shrink-0"
-      />
       <div className="min-w-0 flex-1">{titleControl}</div>
     </div>
   );

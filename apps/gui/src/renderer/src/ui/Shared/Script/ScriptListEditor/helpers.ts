@@ -1,4 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { MenuItem } from '@harborclient/sdk/components';
+import type { ScriptStage } from '@harborclient/sdk';
 import type { ScriptRef, Snippet } from '@harborclient/core/types';
 import {
   readScriptRefStage,
@@ -14,6 +16,70 @@ export const SCRIPT_GROUP_ENABLE_LABELS: Record<ScriptEditorGroup, string> = {
   main: 'Enable all main scripts',
   after: 'Enable all after scripts'
 };
+
+/**
+ * Accessible names for Before/Main/After section hamburger menus.
+ */
+export const SCRIPT_GROUP_MENU_LABELS: Record<ScriptEditorGroup, string> = {
+  before: 'Before script actions',
+  main: 'Main script actions',
+  after: 'After script actions'
+};
+
+/**
+ * Ordered "New …" stage entries for each section header menu.
+ *
+ * After lists after-all before after-each to match the product menu order.
+ */
+export const SCRIPT_GROUP_NEW_STAGE_OPTIONS: Record<
+  ScriptEditorGroup,
+  { stage: ScriptStage; label: string }[]
+> = {
+  before: [
+    { stage: 'before-all', label: 'New before-all' },
+    { stage: 'before-each', label: 'New before-each' }
+  ],
+  main: [{ stage: 'main', label: 'New script' }],
+  after: [
+    { stage: 'after-all', label: 'New after-all' },
+    { stage: 'after-each', label: 'New after-each' }
+  ]
+};
+
+/**
+ * Builds hamburger menu groups for a Before/Main/After section header.
+ *
+ * Stage "New …" items are filtered to `allowedStages`. Snippets is always a
+ * submenu whose contents match the toolbar snippet library menu.
+ *
+ * @param group - Section whose menu is being built.
+ * @param allowedStages - Stages the editor may assign to new scripts.
+ * @param options - Callbacks and snippet submenu contents.
+ * @returns Grouped `RowActionsMenu` entries for the section header.
+ */
+export function buildScriptGroupActionMenuGroups(
+  group: ScriptEditorGroup,
+  allowedStages: ScriptStage[],
+  options: {
+    onAddStage: (stage: ScriptStage) => void;
+    snippetMenuGroups: MenuItem[][];
+  }
+): MenuItem[][] {
+  const allowed = new Set(allowedStages);
+  const stageItems: MenuItem[] = SCRIPT_GROUP_NEW_STAGE_OPTIONS[group]
+    .filter((entry) => allowed.has(entry.stage))
+    .map((entry) => ({
+      label: entry.label,
+      onSelect: () => options.onAddStage(entry.stage)
+    }));
+
+  const groups: MenuItem[][] = [];
+  if (stageItems.length > 0) {
+    groups.push(stageItems);
+  }
+  groups.push([{ label: 'Snippets', submenu: options.snippetMenuGroups }]);
+  return groups;
+}
 
 export type ScriptGroupEnabledState = 'all' | 'none' | 'mixed';
 
@@ -106,29 +172,6 @@ export function saveSnippetDefaultName(script: ScriptRef, snippets: Snippet[]): 
   }
 
   return scriptRowPlaceholder(script, snippets);
-}
-
-/**
- * Returns muted help copy shown under each Before/Main/After group heading.
- *
- * @param group - Editor group for the heading.
- * @param phase - Active request stage tab (`pre` or `post`).
- * @returns One-line description of when scripts in the group run.
- */
-export function scriptGroupHeadingDescription(
-  group: ScriptEditorGroup,
-  phase: 'pre' | 'post'
-): string {
-  switch (group) {
-    case 'before':
-      return 'Scripts that run before main';
-    case 'main':
-      return phase === 'pre'
-        ? 'Scripts that run before the request'
-        : 'Scripts that run after the request';
-    case 'after':
-      return 'Scripts that run after main';
-  }
 }
 
 /**

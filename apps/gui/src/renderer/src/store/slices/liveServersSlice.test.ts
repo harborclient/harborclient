@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { LiveServer, RunningLiveServer } from '@harborclient/core/types';
-import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  defaultLiveServerCorsSettings,
+  normalizeLiveServerConfigFields
+} from '@harborclient/core/types';
 import liveServersReducer, {
   bindLiveServerTab,
   setLiveServerLogsSelection,
@@ -25,6 +28,7 @@ function savedServer(id: number): LiveServer {
     aliases: [],
     watch: true,
     cors: defaultLiveServerCorsSettings(),
+    ...normalizeLiveServerConfigFields(undefined),
     sortOrder: id,
     createdAt: 1,
     updatedAt: 1
@@ -47,7 +51,8 @@ function runningServer(id: string): RunningLiveServer {
       port: null,
       aliases: [],
       watch: true,
-      cors: defaultLiveServerCorsSettings()
+      cors: defaultLiveServerCorsSettings(),
+      ...normalizeLiveServerConfigFields(undefined)
     },
     port: 5500,
     origin: 'http://127.0.0.1:5500',

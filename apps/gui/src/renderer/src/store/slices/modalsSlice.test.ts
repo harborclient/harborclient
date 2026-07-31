@@ -32,6 +32,10 @@ import modalsReducer, {
   setAlertModal,
   setConfirmModal,
   setHostedModal,
+  setLiveServerModalHeaders,
+  setLiveServerModalRoutes,
+  setLiveServerModalSsl,
+  setLiveServerModalTab,
   setOpenExternalLinkModal,
   setSyncProviderStatus,
   setSyncProviders,
@@ -523,5 +527,105 @@ describe('selectHasBlockingModal', () => {
     const state = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
     expect(state.liveServerModal?.tab).toBe('general');
     expect(selectHasBlockingModal(rootWithModals(state))).toBe(false);
+  });
+
+  it('defaults General tab fields when opening a create live server modal', () => {
+    const state = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    expect(state.liveServerModal).toMatchObject({
+      openPath: '/',
+      rememberLastUrl: false,
+      lastOpenedPath: null,
+      indexFiles: 'index.html',
+      host: '127.0.0.1',
+      headers: [],
+      routes: [],
+      ssl: { enabled: false, certPath: '', keyPath: '' }
+    });
+    expect(state.liveServerModal?.cors).toMatchObject({
+      exposedHeaders: '',
+      maxAge: ''
+    });
+  });
+
+  it('loads General tab fields when opening an edit live server modal', () => {
+    const state = modalsReducer(
+      undefined,
+      openLiveServerModal({
+        mode: 'edit',
+        savedId: 7,
+        openPath: '/docs/',
+        rememberLastUrl: true,
+        lastOpenedPath: '/docs/guide.html',
+        indexFiles: 'index.html, app.html',
+        host: '0.0.0.0',
+        headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+        routes: [{ match: '*', target: 'index.html', enabled: true }],
+        ssl: {
+          enabled: true,
+          certPath: '/tmp/cert.pem',
+          keyPath: '/tmp/key.pem'
+        }
+      })
+    );
+    expect(state.liveServerModal).toMatchObject({
+      savedId: 7,
+      openPath: '/docs/',
+      rememberLastUrl: true,
+      lastOpenedPath: '/docs/guide.html',
+      indexFiles: 'index.html, app.html',
+      host: '0.0.0.0',
+      headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+      routes: [{ match: '*', target: 'index.html', enabled: true }],
+      ssl: {
+        enabled: true,
+        certPath: '/tmp/cert.pem',
+        keyPath: '/tmp/key.pem'
+      }
+    });
+  });
+
+  it('switches the live server modal to the Headers tab', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const state = modalsReducer(opened, setLiveServerModalTab('headers'));
+    expect(state.liveServerModal?.tab).toBe('headers');
+  });
+
+  it('switches the live server modal to the Routing tab', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const state = modalsReducer(opened, setLiveServerModalTab('routing'));
+    expect(state.liveServerModal?.tab).toBe('routing');
+  });
+
+  it('switches the live server modal to the Aliases tab', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const state = modalsReducer(opened, setLiveServerModalTab('aliases'));
+    expect(state.liveServerModal?.tab).toBe('aliases');
+  });
+
+  it('switches the live server modal to the SSL tab', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const state = modalsReducer(opened, setLiveServerModalTab('ssl'));
+    expect(state.liveServerModal?.tab).toBe('ssl');
+  });
+
+  it('updates live server header rows via the Headers setter', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const headers = [{ name: 'X-Frame-Options', value: 'DENY', enabled: false }];
+    const state = modalsReducer(opened, setLiveServerModalHeaders(headers));
+    expect(state.liveServerModal?.headers).toEqual(headers);
+  });
+
+  it('updates live server routing rules via the Routing setter', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const routes = [{ match: '*', target: 'index.html', enabled: true }];
+    const state = modalsReducer(opened, setLiveServerModalRoutes(routes));
+    expect(state.liveServerModal?.routes).toEqual(routes);
+  });
+
+  it('updates live server SSL settings via the SSL setter', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const ssl = { enabled: true, certPath: '/certs/server.crt', keyPath: '/certs/server.key' };
+    const state = modalsReducer(opened, setLiveServerModalSsl(ssl));
+    expect(state.liveServerModal?.ssl).toEqual(ssl);
   });
 });

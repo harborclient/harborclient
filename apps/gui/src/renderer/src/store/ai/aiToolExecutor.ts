@@ -125,7 +125,12 @@ import {
   toLiveServerConfig,
   updateSavedLiveServer
 } from '#/renderer/src/store/thunks/liveServers';
-import { normalizeLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  normalizeLiveServerCorsSettings,
+  normalizeLiveServerHeaders,
+  normalizeLiveServerRoutes,
+  normalizeLiveServerSslSettings
+} from '@harborclient/core/types';
 import type { OperatingSystemInfo } from '@harborclient/core/types';
 import type {
   AuthConfig,
@@ -141,6 +146,9 @@ import type {
   LiveServerCorsSettings,
   LiveServerLogsQuery,
   LiveServerRequestLogEntry,
+  LiveServerResponseHeader,
+  LiveServerRoute,
+  LiveServerSslSettings,
   RunningLiveServer,
   SavedRequest,
   ScriptRef,
@@ -2032,7 +2040,19 @@ async function createRequestTool(
 }
 
 /**
+ * Compact SSL summary for AI tool results (paths only — never PEM contents).
+ */
+type LiveServerSslSummary = {
+  enabled: boolean;
+  certPath: string;
+  keyPath: string;
+};
+
+/**
  * Compact summary of a saved live server for AI tool results.
+ *
+ * Includes the important expanded knobs (host, openPath, indexFiles, ssl.enabled)
+ * so agents can inspect and update without round-tripping full PEMs.
  */
 type LiveServerSummary = {
   id: number;
@@ -2043,6 +2063,13 @@ type LiveServerSummary = {
   aliases: LiveServerAlias[];
   watch: boolean;
   cors: LiveServerCorsSettings;
+  openPath: string;
+  rememberLastUrl: boolean;
+  indexFiles: string[];
+  host: string;
+  headers: LiveServerResponseHeader[];
+  routes: LiveServerRoute[];
+  ssl: LiveServerSslSummary;
 };
 
 /**
@@ -2060,7 +2087,28 @@ type RunningLiveServerSummary = {
   watchUnavailable?: boolean;
   aliases: LiveServerAlias[];
   cors: LiveServerCorsSettings;
+  openPath: string;
+  rememberLastUrl: boolean;
+  indexFiles: string[];
+  host: string;
+  headers: LiveServerResponseHeader[];
+  routes: LiveServerRoute[];
+  ssl: LiveServerSslSummary;
 };
+
+/**
+ * Maps SSL settings to a path-only AI summary (never includes certificate contents).
+ *
+ * @param ssl - Normalized SSL settings from a saved or running config.
+ * @returns Enabled flag plus cert/key filesystem paths.
+ */
+function summarizeLiveServerSsl(ssl: LiveServerSslSettings): LiveServerSslSummary {
+  return {
+    enabled: ssl.enabled,
+    certPath: ssl.certPath,
+    keyPath: ssl.keyPath
+  };
+}
 
 /**
  * Maps a saved live server row to a compact AI-facing summary.
@@ -2077,7 +2125,14 @@ function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
     port: server.port,
     aliases: server.aliases,
     watch: server.watch,
-    cors: server.cors
+    cors: server.cors,
+    openPath: server.openPath,
+    rememberLastUrl: server.rememberLastUrl,
+    indexFiles: server.indexFiles,
+    host: server.host,
+    headers: server.headers,
+    routes: server.routes,
+    ssl: summarizeLiveServerSsl(server.ssl)
   };
 }
 
@@ -2099,7 +2154,14 @@ function summarizeRunningLiveServer(server: RunningLiveServer): RunningLiveServe
     watch: server.config.watch,
     ...(server.watchUnavailable ? { watchUnavailable: true } : {}),
     aliases: server.config.aliases,
-    cors: server.config.cors
+    cors: server.config.cors,
+    openPath: server.config.openPath,
+    rememberLastUrl: server.config.rememberLastUrl,
+    indexFiles: server.config.indexFiles,
+    host: server.config.host,
+    headers: server.config.headers,
+    routes: server.config.routes,
+    ssl: summarizeLiveServerSsl(server.config.ssl)
   };
 }
 
@@ -2238,6 +2300,48 @@ function parseLiveServerAliases(value: unknown): LiveServerAlias[] {
 }
 
 /**
+ * Parses optional response-header rows for create/start/update tools.
+ *
+ * @param value - Unknown headers argument.
+ * @returns Normalized headers, or undefined when the argument was omitted.
+ */
+function parseLiveServerHeaders(value: unknown): LiveServerResponseHeader[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return normalizeLiveServerHeaders(value);
+}
+
+/**
+ * Parses optional routing rules for create/start/update tools.
+ *
+ * @param value - Unknown routes argument.
+ * @returns Normalized routes, or undefined when the argument was omitted.
+ */
+function parseLiveServerRoutes(value: unknown): LiveServerRoute[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return normalizeLiveServerRoutes(value);
+}
+
+/**
+ * Parses optional SSL settings for create/start/update tools.
+ *
+ * @param value - Unknown ssl argument.
+ * @returns Normalized SSL settings, or undefined when the argument was omitted.
+ */
+function parseLiveServerSsl(value: unknown): LiveServerSslSettings | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value == null || typeof value !== 'object') {
+    throw new Error('ssl must be an object.');
+  }
+  return normalizeLiveServerSslSettings(value as Partial<LiveServerSslSettings>);
+}
+
+/**
  * Starts a live server from a saved id or an ad-hoc config.
  *
  * @param args - Tool arguments.
@@ -2281,7 +2385,15 @@ async function startLiveServerTool(
             port: saved.port,
             aliases: saved.aliases,
             watch: saved.watch,
-            cors: saved.cors
+            cors: saved.cors,
+            openPath: saved.openPath,
+            rememberLastUrl: saved.rememberLastUrl,
+            lastOpenedPath: saved.lastOpenedPath,
+            indexFiles: saved.indexFiles,
+            host: saved.host,
+            headers: saved.headers,
+            routes: saved.routes,
+            ssl: saved.ssl
           }),
           openBrowser
         })
@@ -2317,12 +2429,29 @@ async function startLiveServerTool(
   const aliases = parseLiveServerAliases(parsed.aliases);
   const watch = parsed.watch !== false;
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
+  const headers = parseLiveServerHeaders(parsed.headers);
+  const routes = parseLiveServerRoutes(parsed.routes);
+  const ssl = parseLiveServerSsl(parsed.ssl);
 
   const running = await ctx
     .dispatch(
       startLiveServer({
         savedId: null,
-        config: toLiveServerConfig({ name, root, port, aliases, watch, cors }),
+        config: toLiveServerConfig({
+          name,
+          root,
+          port,
+          aliases,
+          watch,
+          cors,
+          openPath: parsed.openPath,
+          rememberLastUrl: parsed.rememberLastUrl,
+          indexFiles: parsed.indexFiles,
+          host: parsed.host,
+          headers,
+          routes,
+          ssl
+        }),
         openBrowser
       })
     )
@@ -2408,6 +2537,9 @@ async function createLiveServerTool(
   const aliases = parseLiveServerAliases(parsed.aliases);
   const watch = parsed.watch !== false;
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
+  const headers = parseLiveServerHeaders(parsed.headers);
+  const routes = parseLiveServerRoutes(parsed.routes);
+  const ssl = parseLiveServerSsl(parsed.ssl);
 
   const created = await ctx
     .dispatch(
@@ -2417,7 +2549,14 @@ async function createLiveServerTool(
         port,
         aliases,
         watch,
-        cors
+        cors,
+        openPath: parsed.openPath,
+        rememberLastUrl: parsed.rememberLastUrl,
+        indexFiles: parsed.indexFiles,
+        host: parsed.host,
+        headers,
+        routes,
+        ssl
       })
     )
     .unwrap();
@@ -2463,17 +2602,32 @@ async function updateLiveServerTool(
 
   const aliases = parseLiveServerAliases(parsed.aliases);
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
+  const existing = selectSavedLiveServers(ctx.getState()).find((entry) => entry.id === parsed.id);
+  const headers = parseLiveServerHeaders(parsed.headers);
+  const routes = parseLiveServerRoutes(parsed.routes);
+  const ssl = parseLiveServerSsl(parsed.ssl);
+  const config = toLiveServerConfig({
+    name,
+    root,
+    port: parsed.port === null ? null : Math.floor(parsed.port),
+    aliases,
+    watch: parsed.watch,
+    cors,
+    openPath: parsed.openPath ?? existing?.openPath,
+    rememberLastUrl: parsed.rememberLastUrl ?? existing?.rememberLastUrl,
+    lastOpenedPath: existing?.lastOpenedPath,
+    indexFiles: parsed.indexFiles ?? existing?.indexFiles,
+    host: parsed.host ?? existing?.host,
+    headers: headers ?? existing?.headers,
+    routes: routes ?? existing?.routes,
+    ssl: ssl ?? existing?.ssl
+  });
 
   await ctx
     .dispatch(
       updateSavedLiveServer({
         id: parsed.id,
-        name,
-        root,
-        port: parsed.port === null ? null : Math.floor(parsed.port),
-        aliases,
-        watch: parsed.watch,
-        cors
+        ...config
       })
     )
     .unwrap();

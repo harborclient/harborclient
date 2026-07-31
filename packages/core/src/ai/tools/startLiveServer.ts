@@ -3,8 +3,10 @@ import type { ITool } from './ITool';
 import {
   LIVE_SERVER_ALIAS_SCHEMA,
   LIVE_SERVER_CORS_SCHEMA,
+  LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES,
   liveServerAliasShape,
-  liveServerCorsShape
+  liveServerCorsShape,
+  liveServerExpandedConfigShape
 } from './liveServerSchemas';
 
 /**
@@ -49,11 +51,52 @@ export interface StartLiveServerToolArgs {
     origin?: string;
     methods?: string;
     allowedHeaders?: string;
+    exposedHeaders?: string;
+    maxAge?: string;
     credentials?: boolean;
   };
 
   /**
-   * When true (default), opens a browser tab at the server origin after start.
+   * Entry / open path when the Live Page starts (ad-hoc only).
+   */
+  openPath?: string;
+
+  /**
+   * Whether to remember the last opened URL (ad-hoc only; rarely useful without savedId).
+   */
+  rememberLastUrl?: boolean;
+
+  /**
+   * Ordered directory index filenames (ad-hoc only).
+   */
+  indexFiles?: string[];
+
+  /**
+   * Listen bind host (ad-hoc only).
+   */
+  host?: string;
+
+  /**
+   * Custom response headers (ad-hoc only).
+   */
+  headers?: Array<{ name: string; value: string; enabled?: boolean }>;
+
+  /**
+   * Path routing / SPA fallback rules (ad-hoc only).
+   */
+  routes?: Array<{ match: string; target: string; enabled?: boolean }>;
+
+  /**
+   * HTTPS settings for this run (ad-hoc only).
+   */
+  ssl?: {
+    enabled?: boolean;
+    certPath?: string;
+    keyPath?: string;
+  };
+
+  /**
+   * When true (default), opens a browser tab at the resolved open URL after start.
    */
   openBrowser?: boolean;
 }
@@ -68,6 +111,13 @@ export interface StartLiveServerToolArgs {
  * @param {object[]} [aliases] - Path aliases.
  * @param {boolean} [watch] - Whether file watching is enabled.
  * @param {object} [cors] - CORS settings.
+ * @param {string} [openPath] - Live Page entry path (ad-hoc).
+ * @param {boolean} [rememberLastUrl] - Remember-last-URL flag (ad-hoc).
+ * @param {string[]} [indexFiles] - Directory index filenames (ad-hoc).
+ * @param {string} [host] - Listen bind host (ad-hoc).
+ * @param {object[]} [headers] - Custom response headers (ad-hoc).
+ * @param {object[]} [routes] - Path routing rules (ad-hoc).
+ * @param {object} [ssl] - HTTPS cert/key paths (ad-hoc).
  * @param {boolean} [openBrowser] - Whether to open a browser tab (default true).
  */
 export const startLiveServerTool = {
@@ -77,7 +127,7 @@ export const startLiveServerTool = {
     function: {
       name: 'start_live_server',
       description:
-        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Returns runtime id, port, and origin (loopback only). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
+        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Ad-hoc starts accept openPath, rememberLastUrl, indexFiles, host, headers, routes, and ssl (cert/key file paths). Returns runtime id, port, and origin (loopback-friendly when bound to 0.0.0.0). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
       parameters: {
         type: 'object',
         properties: {
@@ -110,10 +160,11 @@ export const startLiveServerTool = {
             ...LIVE_SERVER_CORS_SCHEMA,
             description: 'CORS middleware settings for this run.'
           },
+          ...LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES,
           openBrowser: {
             type: 'boolean',
             description:
-              'When true (default), opens a browser tab at the server origin after start.'
+              'When true (default), opens a browser tab at the resolved open URL after start.'
           }
         },
         additionalProperties: false
@@ -128,6 +179,7 @@ export const startLiveServerTool = {
     aliases: z.array(liveServerAliasShape).optional(),
     watch: z.boolean().optional(),
     cors: liveServerCorsShape.optional(),
+    ...liveServerExpandedConfigShape,
     openBrowser: z.boolean().optional()
   }
 } as const satisfies ITool<'start_live_server'>;

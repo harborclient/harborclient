@@ -32,8 +32,10 @@ import {
   isCertificateFailLoadError,
   resolveBrowserSecurityState
 } from '#/main/browser/browserSecurityState';
+import { shouldAllowLiveServerCertificateError } from '#/main/browser/liveServerCertificatePolicy';
 import { isLeaveBrowserUnloadChoice } from '#/main/browser/browserUnloadPrompt';
 import { attachBrowserGuestContextMenu } from '#/main/browser/browserGuestContextMenu';
+import { listRunningLiveServers } from '#/main/liveServer/liveServerHost';
 import {
   selectScriptsForRunAt,
   type BrowserInjectionScript,
@@ -1346,13 +1348,22 @@ export class BrowserViewManager {
       }
       session.hasCertificateError = false;
     });
-    webContents.on('certificate-error', (event, _url, _error, _certificate, callback) => {
+    /**
+     * Allows TLS errors only for origins of currently running HTTPS live
+     * servers (self-signed / private CA). Still sets `hasCertificateError` so
+     * the lock icon stays `invalid-cert` — we do not globally disable verification.
+     */
+    webContents.on('certificate-error', (event, url, _error, _certificate, callback) => {
       event.preventDefault();
       const session = this.#sessions.get(tabId);
+      const runningOrigins = listRunningLiveServers().map((server) => server.origin);
+      const allow = shouldAllowLiveServerCertificateError(url, runningOrigins);
       if (session) {
+        // Prefer showing untrusted-cert chrome even when we allow the load for
+        // a matching live-server origin (knowingly browsing self-signed TLS).
         session.hasCertificateError = true;
       }
-      callback(false);
+      callback(allow);
       emitState();
     });
     webContents.on(

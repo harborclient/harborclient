@@ -18,7 +18,10 @@ import type {
   SendResult,
   StartLiveServerInput
 } from '@harborclient/core/types';
-import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  defaultLiveServerCorsSettings,
+  normalizeLiveServerConfigFields
+} from '@harborclient/core/types';
 import { executeAiTool } from './aiToolExecutor';
 import {
   setRunningLiveServers,
@@ -323,6 +326,7 @@ function liveServerFixture(id: number, name: string): LiveServer {
     aliases: [],
     watch: true,
     cors: defaultLiveServerCorsSettings(),
+    ...normalizeLiveServerConfigFields(undefined),
     sortOrder: id,
     createdAt: 1,
     updatedAt: 1
@@ -345,7 +349,17 @@ function runningLiveServerFixture(id: string, saved: LiveServer | null): Running
       port: saved?.port ?? null,
       aliases: saved?.aliases ?? [],
       watch: saved?.watch ?? true,
-      cors: saved?.cors ?? defaultLiveServerCorsSettings()
+      cors: saved?.cors ?? defaultLiveServerCorsSettings(),
+      ...normalizeLiveServerConfigFields({
+        openPath: saved?.openPath,
+        rememberLastUrl: saved?.rememberLastUrl,
+        lastOpenedPath: saved?.lastOpenedPath,
+        indexFiles: saved?.indexFiles,
+        host: saved?.host,
+        headers: saved?.headers,
+        routes: saved?.routes,
+        ssl: saved?.ssl
+      })
     },
     port: saved?.port ?? 5500,
     origin: `http://127.0.0.1:${saved?.port ?? 5500}`,
@@ -3172,7 +3186,11 @@ hc.test("Status code is 2xx", () => {
         uuid: saved.uuid,
         name: 'Docs',
         root: '/tmp/live-1',
-        port: 5501
+        port: 5501,
+        openPath: '/',
+        host: '127.0.0.1',
+        indexFiles: ['index.html'],
+        ssl: expect.objectContaining({ enabled: false })
       })
     ]);
 
@@ -3188,7 +3206,10 @@ hc.test("Status code is 2xx", () => {
         id: 'runtime-1',
         savedId: 1,
         origin: 'http://127.0.0.1:5501',
-        port: 5501
+        port: 5501,
+        openPath: '/',
+        host: '127.0.0.1',
+        ssl: expect.objectContaining({ enabled: false })
       })
     ]);
   });
@@ -3315,7 +3336,19 @@ hc.test("Status code is 2xx", () => {
     const createResult = JSON.parse(
       await executeAiTool(
         'create_live_server',
-        { name: 'New', root: '/tmp/live-4' },
+        {
+          name: 'New',
+          root: '/tmp/live-4',
+          openPath: '/preview.html',
+          host: '127.0.0.1',
+          indexFiles: ['index.html', 'app.html'],
+          headers: [{ name: 'Cache-Control', value: 'no-store' }],
+          cors: {
+            ...defaultLiveServerCorsSettings(),
+            exposedHeaders: 'X-Request-Id',
+            maxAge: '600'
+          }
+        },
         { getState: store.getState, dispatch: store.dispatch }
       )
     );
@@ -3323,8 +3356,29 @@ hc.test("Status code is 2xx", () => {
       ok: true,
       server: expect.objectContaining({ id: 4, name: 'New' })
     });
+    expect(createLiveServerApiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'New',
+        root: '/tmp/live-4',
+        openPath: '/preview.html',
+        host: '127.0.0.1',
+        indexFiles: ['index.html', 'app.html'],
+        headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+        cors: expect.objectContaining({
+          exposedHeaders: 'X-Request-Id',
+          maxAge: '600'
+        })
+      })
+    );
 
-    const updated = { ...created, name: 'Renamed', root: '/tmp/renamed' };
+    const updated = {
+      ...created,
+      name: 'Renamed',
+      root: '/tmp/renamed',
+      openPath: '/docs/',
+      host: '0.0.0.0',
+      ssl: { enabled: true, certPath: '/tmp/cert.pem', keyPath: '/tmp/key.pem' }
+    };
     updateLiveServerApiMock.mockResolvedValue([updated]);
     listLiveServersMock.mockResolvedValue([updated]);
     store.dispatch(setSavedLiveServers([created]));
@@ -3339,15 +3393,35 @@ hc.test("Status code is 2xx", () => {
           port: 5504,
           aliases: [],
           watch: true,
-          cors: defaultLiveServerCorsSettings()
+          cors: defaultLiveServerCorsSettings(),
+          openPath: '/docs/',
+          host: '0.0.0.0',
+          ssl: { enabled: true, certPath: '/tmp/cert.pem', keyPath: '/tmp/key.pem' }
         },
         { getState: store.getState, dispatch: store.dispatch }
       )
     );
     expect(updateResult).toEqual({
       ok: true,
-      server: expect.objectContaining({ name: 'Renamed', root: '/tmp/renamed' })
+      server: expect.objectContaining({
+        name: 'Renamed',
+        root: '/tmp/renamed',
+        openPath: '/docs/',
+        host: '0.0.0.0',
+        ssl: expect.objectContaining({
+          enabled: true,
+          certPath: '/tmp/cert.pem',
+          keyPath: '/tmp/key.pem'
+        })
+      })
     });
+    expect(updateLiveServerApiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openPath: '/docs/',
+        host: '0.0.0.0',
+        ssl: { enabled: true, certPath: '/tmp/cert.pem', keyPath: '/tmp/key.pem' }
+      })
+    );
 
     deleteLiveServerApiMock.mockResolvedValue([]);
     listLiveServersMock.mockResolvedValue([updated]);

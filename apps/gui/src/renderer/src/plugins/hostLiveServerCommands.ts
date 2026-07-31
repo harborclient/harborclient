@@ -41,7 +41,15 @@ function configFromSaved(server: LiveServer): LiveServerConfig {
     port: server.port,
     aliases: server.aliases,
     watch: server.watch,
-    cors: server.cors
+    cors: server.cors,
+    openPath: server.openPath,
+    rememberLastUrl: server.rememberLastUrl,
+    lastOpenedPath: server.lastOpenedPath,
+    indexFiles: server.indexFiles,
+    host: server.host,
+    headers: server.headers,
+    routes: server.routes,
+    ssl: server.ssl
   });
 }
 
@@ -93,7 +101,15 @@ async function resolveStartInput(input: StartLiveServerInput): Promise<{
       port: input.config.port ?? null,
       aliases: Array.isArray(input.config.aliases) ? input.config.aliases : [],
       watch: input.config.watch !== false,
-      cors: normalizeLiveServerCorsSettings(input.config.cors)
+      cors: normalizeLiveServerCorsSettings(input.config.cors),
+      openPath: input.config.openPath,
+      rememberLastUrl: input.config.rememberLastUrl,
+      lastOpenedPath: input.config.lastOpenedPath,
+      indexFiles: input.config.indexFiles,
+      host: input.config.host,
+      headers: input.config.headers,
+      routes: input.config.routes,
+      ssl: input.config.ssl
     });
     if (!config.root.trim()) {
       throw new Error('hc.liveServers.start requires config.root when providing config.');

@@ -9,6 +9,7 @@ import {
   faGlobe,
   faHouse,
   faLayerGroup,
+  faLeaf,
   faPaperPlane,
   faPlus,
   faStop,
@@ -419,7 +420,7 @@ export function environmentActivateThumbnail(
   const described = describeWorkflowAction(action, ctx);
   return (
     <TimelineTextThumbnail
-      icon={faGlobe}
+      icon={faLeaf}
       title={described.title}
       subtitle={described.subtitle}
       compact={ctx.compact}

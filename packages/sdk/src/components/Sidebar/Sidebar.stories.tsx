@@ -3,11 +3,12 @@ import {
   faCodeBranch,
   faDownload,
   faFolder,
-  faGlobe,
   faLayerGroup,
+  faLeaf,
   faPenToSquare,
   faPlay,
-  faSquareMinus
+  faSquareMinus,
+  faWindowRestore
 } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type JSX, type ReactNode, useState } from 'react';
@@ -170,7 +171,7 @@ export const CollectionsLeft: Story = {
       },
       {
         id: 'toggle-environments',
-        icon: faGlobe,
+        icon: faLeaf,
         label: 'Environments',
         title: 'Environments section',
         ariaPressed: false,
@@ -178,7 +179,7 @@ export const CollectionsLeft: Story = {
       },
       {
         id: 'toggle-workspaces',
-        icon: faLayerGroup,
+        icon: faWindowRestore,
         label: 'Workspaces',
         title: 'Workspaces section',
         ariaPressed: false,

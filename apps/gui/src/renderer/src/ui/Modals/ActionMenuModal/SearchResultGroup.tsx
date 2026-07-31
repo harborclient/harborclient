@@ -11,7 +11,7 @@ import {
 import {
   faFolder,
   faGear,
-  faGlobe,
+  faLeaf,
   faPalette,
   faPaperPlane,
   faPuzzlePiece,
@@ -28,7 +28,7 @@ const DOMAIN_ICONS: Record<SearchDomain, IconDefinition> = {
   collection: faFolder,
   folder: faFolder,
   request: faPaperPlane,
-  environment: faGlobe,
+  environment: faLeaf,
   setting: faGear,
   page: faCode,
   plugin: faPuzzlePiece,

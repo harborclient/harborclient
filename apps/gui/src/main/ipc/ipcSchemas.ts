@@ -797,6 +797,33 @@ export const liveServerAlias = z.object({
 });
 
 /**
+ * One custom response header for a live server.
+ */
+export const liveServerResponseHeader = z.object({
+  name: z.string(),
+  value: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * One path-routing rule for a live server (SPA fallback / soft rewrite).
+ */
+export const liveServerRoute = z.object({
+  match: z.string(),
+  target: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * TLS certificate settings for a live server.
+ */
+export const liveServerSslSettings = z.object({
+  enabled: z.boolean(),
+  certPath: z.string(),
+  keyPath: z.string()
+});
+
+/**
  * CORS middleware settings for a live server.
  */
 export const liveServerCorsSettings = z.object({
@@ -804,6 +831,8 @@ export const liveServerCorsSettings = z.object({
   origin: z.string(),
   methods: z.string(),
   allowedHeaders: z.string(),
+  exposedHeaders: z.string(),
+  maxAge: z.string(),
   credentials: z.boolean()
 });
 
@@ -816,7 +845,15 @@ export const liveServerConfig = z.object({
   port: z.number().int().positive().max(65535).nullable(),
   aliases: z.array(liveServerAlias),
   watch: z.boolean(),
-  cors: liveServerCorsSettings
+  cors: liveServerCorsSettings,
+  openPath: z.string(),
+  rememberLastUrl: z.boolean(),
+  lastOpenedPath: z.string().nullable(),
+  indexFiles: z.array(z.string()),
+  host: z.string(),
+  headers: z.array(liveServerResponseHeader),
+  routes: z.array(liveServerRoute),
+  ssl: liveServerSslSettings
 });
 
 /**
@@ -837,7 +874,15 @@ export const createLiveServerInput = z.object({
   port: z.number().int().positive().max(65535).nullable().optional(),
   aliases: z.array(liveServerAlias).optional(),
   watch: z.boolean().optional(),
-  cors: liveServerCorsSettings.optional()
+  cors: liveServerCorsSettings.optional(),
+  openPath: z.string().optional(),
+  rememberLastUrl: z.boolean().optional(),
+  lastOpenedPath: z.string().nullable().optional(),
+  indexFiles: z.array(z.string()).optional(),
+  host: z.string().optional(),
+  headers: z.array(liveServerResponseHeader).optional(),
+  routes: z.array(liveServerRoute).optional(),
+  ssl: liveServerSslSettings.optional()
 }) satisfies z.ZodType<CreateLiveServerInput>;
 
 /**
@@ -850,7 +895,15 @@ export const updateLiveServerInput = z.object({
   port: z.number().int().positive().max(65535).nullable(),
   aliases: z.array(liveServerAlias),
   watch: z.boolean(),
-  cors: liveServerCorsSettings
+  cors: liveServerCorsSettings,
+  openPath: z.string(),
+  rememberLastUrl: z.boolean(),
+  lastOpenedPath: z.string().nullable(),
+  indexFiles: z.array(z.string()),
+  host: z.string(),
+  headers: z.array(liveServerResponseHeader),
+  routes: z.array(liveServerRoute),
+  ssl: liveServerSslSettings
 }) satisfies z.ZodType<UpdateLiveServerInput>;
 
 /**
@@ -1266,6 +1319,10 @@ export const ipcArgSchemas = {
   importAuto: z.tuple([dbId.nullable(), z.array(z.string()).optional()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
+  /**
+   * Default path for the SSL cert/key single-file picker (empty string when unset).
+   */
+  openSslFile: z.tuple([z.string()]),
   openPath: z.tuple([z.string().min(1)]),
   saveFile: z.tuple([z.string()]),
   saveTextFile: z.tuple([z.string().max(MAX_IPC_REQUEST_BODY_CHARS), z.string()]),

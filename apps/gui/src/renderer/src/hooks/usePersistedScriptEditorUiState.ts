@@ -50,16 +50,16 @@ export function scriptEditorHeightStorageKey(scriptId: string): string {
 /**
  * Parses a CSS min-height value into pixels for clamping and defaults.
  *
- * @param cssHeight - CSS length such as `125px`.
- * @returns Parsed pixel value, or 125 when parsing fails.
+ * @param cssHeight - CSS length such as `100px`.
+ * @returns Parsed pixel value, or 100 when parsing fails.
  */
 export function parseScriptEditorMinHeightPx(cssHeight: string): number {
   const match = /^(\d+(?:\.\d+)?)px$/.exec(cssHeight.trim());
   if (!match) {
-    return 125;
+    return 100;
   }
   const parsed = Number(match[1]);
-  return Number.isFinite(parsed) ? Math.round(parsed) : 125;
+  return Number.isFinite(parsed) ? Math.round(parsed) : 100;
 }
 
 /**
@@ -200,7 +200,7 @@ function readStoredScriptEditorUiState(
 export function persistScriptEditorUiState(
   scriptId: string,
   patch: PersistedScriptEditorUiState,
-  minPx = 125
+  minPx = 100
 ): void {
   try {
     const existing = readStoredScriptEditorUiState(scriptId, minPx);
@@ -223,7 +223,7 @@ export function persistScriptEditorUiState(
 export function migrateScriptEditorUiState(
   fromScriptId: string,
   toScriptId: string,
-  minPx = 125
+  minPx = 100
 ): void {
   if (fromScriptId === toScriptId) {
     return;
@@ -274,7 +274,7 @@ interface PersistedScriptEditorUiStateResult {
  * Restores and persists per-script CodeEditor UI state keyed by script id.
  *
  * @param scriptId - Stable {@link ScriptRef.id} for the script row.
- * @param minHeightCss - Minimum editor height in CSS units (for example `125px`).
+ * @param minHeightCss - Minimum editor height in CSS units (for example `100px`).
  * @returns Props to pass through to {@link CodeEditor}.
  */
 export function usePersistedScriptEditorUiState(

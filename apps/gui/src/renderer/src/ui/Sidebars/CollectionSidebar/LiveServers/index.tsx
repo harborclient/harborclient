@@ -25,9 +25,11 @@ import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
 import { openLiveServerLogs } from '#/renderer/src/store/slices/navigationSlice';
 import {
   deleteSavedLiveServer,
+  formatLiveServerIndexFilesInput,
   openLiveServerEditor,
   openLiveServerInBrowser,
   reportLiveServerError,
+  restartLiveServer,
   startLiveServer,
   stopLiveServer,
   toLiveServerConfig
@@ -93,7 +95,15 @@ export function LiveServers(): JSX.Element {
               port: server.port,
               aliases: server.aliases,
               watch: server.watch,
-              cors: server.cors
+              cors: server.cors,
+              openPath: server.openPath,
+              rememberLastUrl: server.rememberLastUrl,
+              lastOpenedPath: server.lastOpenedPath,
+              indexFiles: server.indexFiles,
+              host: server.host,
+              headers: server.headers,
+              routes: server.routes,
+              ssl: server.ssl
             })
           })
         ).unwrap();
@@ -132,9 +142,33 @@ export function LiveServers(): JSX.Element {
           port: server.port,
           aliases: server.aliases,
           watch: server.watch,
-          cors: server.cors
+          cors: server.cors,
+          openPath: server.openPath,
+          rememberLastUrl: server.rememberLastUrl,
+          lastOpenedPath: server.lastOpenedPath,
+          indexFiles: formatLiveServerIndexFilesInput(server.indexFiles),
+          host: server.host,
+          headers: server.headers,
+          routes: server.routes,
+          ssl: server.ssl
         })
       );
+    },
+    [dispatch]
+  );
+
+  /**
+   * Opens the server document root in the OS file browser.
+   *
+   * @param server - Saved config whose `root` directory should open.
+   */
+  const handleOpenFolder = useCallback(
+    async (server: LiveServer): Promise<void> => {
+      try {
+        await window.api.openPath(server.root);
+      } catch (error) {
+        reportLiveServerError(dispatch, error, 'Failed to open live server folder');
+      }
     },
     [dispatch]
   );
@@ -163,6 +197,46 @@ export function LiveServers(): JSX.Element {
       }
     },
     [confirm, dispatch]
+  );
+
+  /**
+   * Restarts a running live server from its saved registry config.
+   *
+   * No confirmation (unlike Stop). Reuses the existing Live Page when possible.
+   *
+   * @param server - Saved config to apply on the new start.
+   * @param instance - Runtime instance to stop first.
+   */
+  const handleRestart = useCallback(
+    async (server: LiveServer, instance: RunningLiveServer): Promise<void> => {
+      try {
+        await dispatch(
+          restartLiveServer({
+            runtimeId: instance.id,
+            savedId: server.id,
+            config: toLiveServerConfig({
+              name: server.name,
+              root: server.root,
+              port: server.port,
+              aliases: server.aliases,
+              watch: server.watch,
+              cors: server.cors,
+              openPath: server.openPath,
+              rememberLastUrl: server.rememberLastUrl,
+              lastOpenedPath: server.lastOpenedPath,
+              indexFiles: server.indexFiles,
+              host: server.host,
+              headers: server.headers,
+              routes: server.routes,
+              ssl: server.ssl
+            })
+          })
+        ).unwrap();
+      } catch (error) {
+        reportLiveServerError(dispatch, error, 'Failed to restart live server');
+      }
+    },
+    [dispatch]
   );
 
   /**
@@ -272,6 +346,12 @@ export function LiveServers(): JSX.Element {
                       }
                     },
                     {
+                      label: 'Open folder',
+                      onSelect: () => {
+                        void handleOpenFolder(server);
+                      }
+                    },
+                    {
                       label: 'Logs',
                       onSelect: () => {
                         dispatch(closeLiveServerModal());
@@ -294,6 +374,14 @@ export function LiveServers(): JSX.Element {
                   [
                     ...(isRunning
                       ? [
+                          {
+                            label: 'Restart',
+                            onSelect: () => {
+                              if (instance != null) {
+                                void handleRestart(server, instance);
+                              }
+                            }
+                          },
                           {
                             label: 'Stop',
                             variant: 'danger' as const,

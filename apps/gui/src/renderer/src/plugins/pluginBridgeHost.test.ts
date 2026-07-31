@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  defaultLiveServerCorsSettings,
+  normalizeLiveServerConfigFields
+} from '@harborclient/core/types';
+import {
   applyContributionMessage,
   handlePluginHostBridge,
   handlePluginHostBridgeInvoke
@@ -139,6 +143,8 @@ describe('handlePluginHostBridgeInvoke', () => {
   });
 
   it('routes liveServers.* ops through host live-server helpers', async () => {
+    const fields = normalizeLiveServerConfigFields(undefined);
+    const cors = defaultLiveServerCorsSettings();
     const saved = [
       {
         id: 1,
@@ -148,13 +154,8 @@ describe('handlePluginHostBridgeInvoke', () => {
         port: null,
         aliases: [],
         watch: true,
-        cors: {
-          enabled: true,
-          origin: '*',
-          methods: 'GET',
-          allowedHeaders: '*',
-          credentials: false
-        },
+        cors,
+        ...fields,
         sortOrder: 0,
         createdAt: 1,
         updatedAt: 1
@@ -169,7 +170,8 @@ describe('handlePluginHostBridgeInvoke', () => {
         port: null,
         aliases: [],
         watch: true,
-        cors: saved[0].cors
+        cors,
+        ...fields
       },
       port: 5500,
       origin: 'http://127.0.0.1:5500',

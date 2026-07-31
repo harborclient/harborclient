@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LiveServer, RunningLiveServer } from '@harborclient/sdk';
 import {
+  defaultLiveServerCorsSettings,
+  normalizeLiveServerConfigFields
+} from '@harborclient/core/types';
+import {
   createLiveServerForPlugin,
   getLiveServerForPlugin,
   getLiveServerLogsForPlugin,
@@ -46,13 +50,8 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     port: null,
     aliases: [],
     watch: true,
-    cors: {
-      enabled: true,
-      origin: '*',
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      allowedHeaders: '*',
-      credentials: false
-    },
+    cors: defaultLiveServerCorsSettings(),
+    ...normalizeLiveServerConfigFields(undefined),
     sortOrder: 0,
     createdAt: 1,
     updatedAt: 1,
@@ -76,7 +75,15 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
       port: saved.port,
       aliases: saved.aliases,
       watch: saved.watch,
-      cors: saved.cors
+      cors: saved.cors,
+      openPath: saved.openPath,
+      rememberLastUrl: saved.rememberLastUrl,
+      lastOpenedPath: saved.lastOpenedPath,
+      indexFiles: saved.indexFiles,
+      host: saved.host,
+      headers: saved.headers,
+      routes: saved.routes,
+      ssl: saved.ssl
     },
     port: 5500,
     origin: 'http://127.0.0.1:5500',
@@ -142,6 +149,55 @@ describe('hostLiveServerCommands', () => {
       expect.objectContaining({
         savedId: 1,
         config: expect.objectContaining({ root: '/tmp/site', name: 'Preview' })
+      })
+    );
+  });
+
+  it('starts from an explicit config including expanded fields', async () => {
+    const running = makeRunning();
+    startLiveServerMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    await expect(
+      startLiveServerForPlugin({
+        config: {
+          name: 'LAN Preview',
+          root: '/tmp/site',
+          port: 5500,
+          aliases: [],
+          watch: true,
+          cors: {
+            ...defaultLiveServerCorsSettings(),
+            exposedHeaders: 'X-Request-Id',
+            maxAge: '600'
+          },
+          openPath: '/docs/',
+          rememberLastUrl: true,
+          lastOpenedPath: null,
+          indexFiles: ['index.html', 'app.html'],
+          host: '0.0.0.0',
+          headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+          routes: [{ match: '*', target: 'index.html', enabled: true }],
+          ssl: { enabled: false, certPath: '', keyPath: '' }
+        }
+      })
+    ).resolves.toEqual(running);
+
+    expect(startLiveServerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          openPath: '/docs/',
+          rememberLastUrl: true,
+          indexFiles: ['index.html', 'app.html'],
+          host: '0.0.0.0',
+          headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
+          routes: [{ match: '*', target: 'index.html', enabled: true }],
+          ssl: { enabled: false, certPath: '', keyPath: '' },
+          cors: expect.objectContaining({
+            exposedHeaders: 'X-Request-Id',
+            maxAge: '600'
+          })
+        })
       })
     );
   });

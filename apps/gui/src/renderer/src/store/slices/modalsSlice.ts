@@ -3,6 +3,9 @@ import type {
   CollectionDocument,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerResponseHeader,
+  LiveServerRoute,
+  LiveServerSslSettings,
   SavedRequest,
   ScriptExecutionEvent,
   ScriptLogEntry,
@@ -11,7 +14,12 @@ import type {
   TrustedSharingKey,
   UpdateCheckResult
 } from '@harborclient/core/types';
-import { defaultLiveServerCorsSettings } from '@harborclient/core/types';
+import {
+  defaultLiveServerCorsSettings,
+  defaultLiveServerIndexFiles,
+  normalizeLiveServerHeaders,
+  normalizeLiveServerSslSettings
+} from '@harborclient/core/types';
 import type {
   CollectionRunnerConfig,
   CollectionRunnerRequestResult,
@@ -315,7 +323,7 @@ export type LiveServerModalMode = 'create' | 'edit';
 /**
  * Segmented tab in the live server create/edit footer panel.
  */
-export type LiveServerModalTab = 'general' | 'cors';
+export type LiveServerModalTab = 'general' | 'headers' | 'routing' | 'aliases' | 'cors' | 'ssl';
 
 /**
  * Live server editor draft state for create and edit footer-panel flows.
@@ -365,6 +373,46 @@ export interface LiveServerModalState {
    * CORS middleware settings edited in the panel.
    */
   cors: LiveServerCorsSettings;
+
+  /**
+   * Entry path opened in Live Page (normalized on save/start).
+   */
+  openPath: string;
+
+  /**
+   * When true, restore {@link lastOpenedPath} on the next start/open.
+   */
+  rememberLastUrl: boolean;
+
+  /**
+   * Last navigated path+search+hash within the server origin (hidden; preserved on save).
+   */
+  lastOpenedPath: string | null;
+
+  /**
+   * Comma-separated directory index filenames for the editor field.
+   */
+  indexFiles: string;
+
+  /**
+   * Bind host for `listen` (e.g. `127.0.0.1` or `0.0.0.0`).
+   */
+  host: string;
+
+  /**
+   * Custom response headers applied by the Express app (Headers tab).
+   */
+  headers: LiveServerResponseHeader[];
+
+  /**
+   * Path routing rules edited on the Routing tab (ordered; first match wins).
+   */
+  routes: LiveServerRoute[];
+
+  /**
+   * TLS settings edited on the SSL tab (user-supplied cert/key paths).
+   */
+  ssl: LiveServerSslSettings;
 
   /**
    * Inline submit error shown above the panel actions.
@@ -492,6 +540,26 @@ const modalsSlice = createSlice({
         aliases?: LiveServerAlias[];
         watch?: boolean;
         cors?: LiveServerCorsSettings;
+        openPath?: string;
+        rememberLastUrl?: boolean;
+        lastOpenedPath?: string | null;
+        /**
+         * Comma-separated index filenames, or omit for the default list.
+         */
+        indexFiles?: string;
+        host?: string;
+        /**
+         * Custom response headers, or omit for an empty list.
+         */
+        headers?: LiveServerResponseHeader[];
+        /**
+         * Path routing rules, or omit for an empty list.
+         */
+        routes?: LiveServerRoute[];
+        /**
+         * TLS settings, or omit for HTTPS disabled with empty paths.
+         */
+        ssl?: LiveServerSslSettings;
       }>
     ) {
       const port =
@@ -508,6 +576,14 @@ const modalsSlice = createSlice({
         aliases: action.payload.aliases ?? [],
         watch: action.payload.watch !== false,
         cors: action.payload.cors ?? defaultLiveServerCorsSettings(),
+        openPath: action.payload.openPath ?? '/',
+        rememberLastUrl: action.payload.rememberLastUrl === true,
+        lastOpenedPath: action.payload.lastOpenedPath ?? null,
+        indexFiles: action.payload.indexFiles ?? defaultLiveServerIndexFiles().join(', '),
+        host: action.payload.host ?? '127.0.0.1',
+        headers: normalizeLiveServerHeaders(action.payload.headers),
+        routes: action.payload.routes ?? [],
+        ssl: normalizeLiveServerSslSettings(action.payload.ssl),
         submitError: null,
         busy: false
       };
@@ -519,7 +595,7 @@ const modalsSlice = createSlice({
       state.liveServerModal = null;
     },
     /**
-     * Switches the live server editor between General and CORS tabs.
+     * Switches the live server editor among General, Headers, Routing, CORS, and SSL tabs.
      */
     setLiveServerModalTab(state, action: PayloadAction<LiveServerModalTab>) {
       if (state.liveServerModal) {
@@ -572,6 +648,70 @@ const modalsSlice = createSlice({
     setLiveServerModalCors(state, action: PayloadAction<LiveServerCorsSettings>) {
       if (state.liveServerModal) {
         state.liveServerModal.cors = action.payload;
+      }
+    },
+    /**
+     * Updates the Live Page entry / open path field.
+     */
+    setLiveServerModalOpenPath(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.openPath = action.payload;
+      }
+    },
+    /**
+     * Updates the “Remember last URL” checkbox.
+     */
+    setLiveServerModalRememberLastUrl(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.rememberLastUrl = action.payload;
+      }
+    },
+    /**
+     * Updates the remembered last-opened path (usually preserved from the saved row).
+     */
+    setLiveServerModalLastOpenedPath(state, action: PayloadAction<string | null>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.lastOpenedPath = action.payload;
+      }
+    },
+    /**
+     * Updates the comma-separated index-files editor string.
+     */
+    setLiveServerModalIndexFiles(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.indexFiles = action.payload;
+      }
+    },
+    /**
+     * Updates the bind host field.
+     */
+    setLiveServerModalHost(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.host = action.payload;
+      }
+    },
+    /**
+     * Replaces the custom response-header rows in the editor.
+     */
+    setLiveServerModalHeaders(state, action: PayloadAction<LiveServerResponseHeader[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.headers = action.payload;
+      }
+    },
+    /**
+     * Replaces the path routing rules in the editor (order is significant).
+     */
+    setLiveServerModalRoutes(state, action: PayloadAction<LiveServerRoute[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.routes = action.payload;
+      }
+    },
+    /**
+     * Replaces the TLS / SSL settings object in the editor.
+     */
+    setLiveServerModalSsl(state, action: PayloadAction<LiveServerSslSettings>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.ssl = action.payload;
       }
     },
     /**
@@ -1284,6 +1424,14 @@ export const {
   setLiveServerModalAliases,
   setLiveServerModalWatch,
   setLiveServerModalCors,
+  setLiveServerModalOpenPath,
+  setLiveServerModalRememberLastUrl,
+  setLiveServerModalLastOpenedPath,
+  setLiveServerModalIndexFiles,
+  setLiveServerModalHost,
+  setLiveServerModalHeaders,
+  setLiveServerModalRoutes,
+  setLiveServerModalSsl,
   setLiveServerModalSubmitError,
   setLiveServerModalBusy
 } = modalsSlice.actions;

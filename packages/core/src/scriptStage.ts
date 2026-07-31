@@ -53,26 +53,6 @@ export const SCRIPT_EDITOR_GROUP_HEADINGS: Record<ScriptEditorGroup, string> = {
 };
 
 /**
- * Returns whether the script list editor should show Before/Main/After section headings.
- *
- * Headings appear only when scripts span two or more non-empty groups.
- *
- * @param groups - Before, main, and after script groups from the editor.
- * @returns True when multiple non-empty groups should show section labels.
- */
-export function shouldShowScriptSectionHeadings(groups: {
-  before: unknown[];
-  main: unknown[];
-  after: unknown[];
-}): boolean {
-  const nonEmptyCount =
-    (groups.before.length > 0 ? 1 : 0) +
-    (groups.main.length > 0 ? 1 : 0) +
-    (groups.after.length > 0 ? 1 : 0);
-  return nonEmptyCount > 1;
-}
-
-/**
  * Maps a script stage to its editor list group.
  *
  * @param stage - Script execution stage.
@@ -86,6 +66,40 @@ export function scriptStageGroup(stage: ScriptStage): ScriptEditorGroup {
     return 'after';
   }
   return 'main';
+}
+
+/**
+ * Ordered editor groups that should appear for the given allowed stages.
+ *
+ * Empty groups still render so section headers can add scripts into them.
+ *
+ * @param stages - Stages the editor may assign to new or existing scripts.
+ * @returns Before, main, and/or after groups that include at least one allowed stage.
+ */
+export function scriptEditorGroupsForAllowedStages(stages: ScriptStage[]): ScriptEditorGroup[] {
+  const present = new Set(stages.map((stage) => scriptStageGroup(stage)));
+  return (['before', 'main', 'after'] as const).filter((group) => present.has(group));
+}
+
+/**
+ * Picks the default stage when adding a script from a Before/Main/After section header.
+ *
+ * Uses the first stage in {@link SCRIPT_STAGE_OPTIONS} order that belongs to the
+ * group and is present in `allowedStages`.
+ *
+ * @param group - Editor group whose section "+" was clicked.
+ * @param allowedStages - Stages the editor may assign.
+ * @returns Stage to use for the new inline script.
+ */
+export function defaultScriptStageForGroup(
+  group: ScriptEditorGroup,
+  allowedStages: ScriptStage[]
+): ScriptStage {
+  const allowed = new Set(allowedStages);
+  const match = SCRIPT_STAGE_OPTIONS.find(
+    (option) => scriptStageGroup(option.value) === group && allowed.has(option.value)
+  );
+  return match?.value ?? DEFAULT_SCRIPT_STAGE;
 }
 
 /**

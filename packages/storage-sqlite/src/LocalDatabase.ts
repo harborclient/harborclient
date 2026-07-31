@@ -30,6 +30,9 @@ import type {
   LiveServer,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerResponseHeader,
+  LiveServerRoute,
+  LiveServerSslSettings,
   RequestHistoryEntry,
   ScriptRef,
   Snippet,
@@ -45,6 +48,7 @@ import type {
   Variable
 } from '@harborclient/core/types';
 import {
+  normalizeLiveServerConfigFields,
   normalizeLiveServerCorsSettings,
   normalizeWorkflowDelayMs
 } from '@harborclient/core/types';
@@ -73,6 +77,10 @@ const LIVE_SERVER_COLUMNS = 'id, uuid, name, payload, sort_order, created_at, up
 
 /**
  * Stored JSON payload for a live server row.
+ *
+ * Expanded fields (`openPath`, `host`, `headers`, `ssl`, …) are always written
+ * in normalized form. Legacy rows missing keys are filled by
+ * {@link parseLiveServerPayload} via {@link normalizeLiveServerConfigFields}.
  */
 interface LiveServerPayloadJson {
   root: string;
@@ -80,18 +88,30 @@ interface LiveServerPayloadJson {
   aliases: LiveServerAlias[];
   watch: boolean;
   cors: LiveServerCorsSettings;
+  openPath: string;
+  rememberLastUrl: boolean;
+  lastOpenedPath: string | null;
+  indexFiles: string[];
+  host: string;
+  headers: LiveServerResponseHeader[];
+  routes: LiveServerRoute[];
+  ssl: LiveServerSslSettings;
 }
 
 /**
  * Returns an empty live-server payload used when stored JSON is corrupt.
+ *
+ * @returns Normalized empty payload with defaults for all expanded fields.
  */
 function emptyLiveServerPayload(): LiveServerPayloadJson {
+  const fields = normalizeLiveServerConfigFields(undefined);
   return {
     root: '',
     port: null,
     aliases: [],
     watch: true,
-    cors: normalizeLiveServerCorsSettings(undefined)
+    cors: normalizeLiveServerCorsSettings(undefined),
+    ...fields
   };
 }
 
@@ -3239,12 +3259,14 @@ export class LocalDatabase {
         typeof parsed.port === 'number' && Number.isInteger(parsed.port) && parsed.port > 0
           ? parsed.port
           : null;
+      const fields = normalizeLiveServerConfigFields(parsed);
       return {
         root: typeof parsed.root === 'string' ? parsed.root : '',
         port,
         aliases,
         watch: parsed.watch !== false,
-        cors: normalizeLiveServerCorsSettings(parsed.cors)
+        cors: normalizeLiveServerCorsSettings(parsed.cors),
+        ...fields
       };
     } catch {
       return emptyLiveServerPayload();
@@ -3280,6 +3302,14 @@ export class LocalDatabase {
         aliases: payload.aliases,
         watch: payload.watch,
         cors: payload.cors,
+        openPath: payload.openPath,
+        rememberLastUrl: payload.rememberLastUrl,
+        lastOpenedPath: payload.lastOpenedPath,
+        indexFiles: payload.indexFiles,
+        host: payload.host,
+        headers: payload.headers,
+        routes: payload.routes,
+        ssl: payload.ssl,
         sortOrder: row.sort_order,
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -3313,6 +3343,7 @@ export class LocalDatabase {
     }
     const now = Date.now();
     const uuid = generateDocumentUuid();
+    const fields = normalizeLiveServerConfigFields(input);
     const payload = JSON.stringify({
       root,
       port:
@@ -3326,7 +3357,8 @@ export class LocalDatabase {
         }))
         .filter((alias) => alias.path !== '' && alias.target !== ''),
       watch: input.watch !== false,
-      cors: normalizeLiveServerCorsSettings(input.cors)
+      cors: normalizeLiveServerCorsSettings(input.cors),
+      ...fields
     } satisfies LiveServerPayloadJson);
 
     this.getDb()
@@ -3358,6 +3390,7 @@ export class LocalDatabase {
       throw new Error('Root directory is required');
     }
     const now = Date.now();
+    const fields = normalizeLiveServerConfigFields(input);
     const payload = JSON.stringify({
       root,
       port:
@@ -3371,7 +3404,8 @@ export class LocalDatabase {
         }))
         .filter((alias) => alias.path !== '' && alias.target !== ''),
       watch: input.watch !== false,
-      cors: normalizeLiveServerCorsSettings(input.cors)
+      cors: normalizeLiveServerCorsSettings(input.cors),
+      ...fields
     } satisfies LiveServerPayloadJson);
 
     this.getDb()

@@ -82,6 +82,7 @@ import {
   saveFromMenu
 } from '#/renderer/src/store/thunks';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
+import { maybePersistLiveServerLastOpenedFromNavigation } from '#/renderer/src/store/thunks/liveServers';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
@@ -163,6 +164,10 @@ function isDirtyForClose(
     return themeDesignerDirty;
   }
 
+  if (isPageTab(tab) && (tab.page.type === 'collection' || tab.page.type === 'folder')) {
+    return isTabDirty(tab);
+  }
+
   if (isPageTab(tab) && tab.tabId === activeTabId) {
     return isActivePageTabDirty(
       tab.page,
@@ -241,11 +246,14 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   }, [tabs]);
 
   /**
-   * Forwards guest navigation/title updates into browser tab Redux state.
+   * Forwards guest navigation/title updates into browser tab Redux state, and
+   * may debounce-persist `lastOpenedPath` for bound live servers with remember
+   * enabled.
    */
   useEffect(() => {
     return window.api.onBrowserNavigation((state) => {
       dispatch(updateBrowserNavigation(state));
+      dispatch(maybePersistLiveServerLastOpenedFromNavigation(state.tabId, state.url));
     });
   }, [dispatch]);
 
@@ -659,6 +667,18 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
 
     if (isPageTab(tab) && tab.page.type === 'themes' && themeDesignerDirty) {
       setCloseTabPrompt({ tabId, name: 'Themes' });
+      return;
+    }
+
+    if (
+      isPageTab(tab) &&
+      (tab.page.type === 'collection' || tab.page.type === 'folder') &&
+      isTabDirty(tab)
+    ) {
+      setCloseTabPrompt({
+        tabId,
+        name: pageTabCloseName(tab.page, collections, environments, teamHubs, workspaces)
+      });
       return;
     }
 

@@ -6,6 +6,7 @@ import {
   cloneDraft,
   createBrowserTab,
   createMarkdownTab,
+  createPageTab,
   createTab,
   defaultDraft,
   draftFromSaved,
@@ -197,6 +198,13 @@ describe('isTabDirty', () => {
     expect(isTabDirty(tab)).toBe(false);
 
     tab.draft.url = 'https://changed.example';
+    expect(isTabDirty(tab)).toBe(true);
+  });
+
+  it('marks collection settings page tabs dirty from the dirty flag', () => {
+    const tab = createPageTab({ type: 'collection', id: 1 });
+    expect(isTabDirty(tab)).toBe(false);
+    tab.dirty = true;
     expect(isTabDirty(tab)).toBe(true);
   });
 
