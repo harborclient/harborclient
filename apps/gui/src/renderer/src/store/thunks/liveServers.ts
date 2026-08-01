@@ -51,6 +51,7 @@ import {
 } from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { withOfflineTeamHubLiveServerError } from './liveServerThunkErrors';
 
 /**
  * Debounce window for persisting {@link LiveServer.lastOpenedPath} so rapid
@@ -69,6 +70,7 @@ const lastOpenedPathPersistTimers = new Map<number, ReturnType<typeof setTimeout
 export type OpenLiveServerEditorInput = {
   mode: LiveServerModalMode;
   savedId?: number | null;
+  connectionId?: string;
   name?: string;
   root?: string;
   port?: number | null;
@@ -92,6 +94,10 @@ export type OpenLiveServerEditorInput = {
    * Path routing rules for the Routing tab.
    */
   routes?: LiveServerConfig['routes'];
+  /**
+   * Custom error-page mappings for the Routing tab.
+   */
+  errorPages?: LiveServerConfig['errorPages'];
   /**
    * Reverse-proxy rules for the Proxy tab.
    */
@@ -283,7 +289,7 @@ export const createSavedLiveServer = createAsyncThunk<
   ThunkApiConfig
 >('liveServers/createSaved', async (input, { dispatch, getState }) => {
   const previousIds = new Set(getState().liveServers.saved.map((server) => server.id));
-  const items = await window.api.createLiveServer(input);
+  const items = await withOfflineTeamHubLiveServerError(() => window.api.createLiveServer(input));
   dispatch(setSavedLiveServers(items));
   const created = items.find((server) => !previousIds.has(server.id));
   if (created == null) {
@@ -295,13 +301,43 @@ export const createSavedLiveServer = createAsyncThunk<
 /**
  * Updates a saved live server and refreshes the list.
  */
-export const updateSavedLiveServer = createAsyncThunk<void, UpdateLiveServerInput, ThunkApiConfig>(
-  'liveServers/updateSaved',
-  async (input, { dispatch }) => {
-    const items = await window.api.updateLiveServer(input);
-    dispatch(setSavedLiveServers(items));
+export const updateSavedLiveServer = createAsyncThunk<
+  void,
+  UpdateLiveServerInput & { connectionId?: string },
+  ThunkApiConfig
+>('liveServers/updateSaved', async (input, { dispatch, getState }) => {
+  const { connectionId, ...updateInput } = input;
+  const saved = getState().liveServers.saved.find((server) => server.id === input.id);
+  const primaryConnectionId = connectionId
+    ? (await Promise.resolve(window.api.getActiveStorageId()).catch(() => '')) || ''
+    : '';
+  const currentConnectionId = saved?.connectionId ?? primaryConnectionId;
+
+  if (connectionId && connectionId !== currentConnectionId) {
+    await withOfflineTeamHubLiveServerError(() =>
+      window.api.moveLiveServer(input.id, connectionId)
+    );
+    try {
+      const items = await withOfflineTeamHubLiveServerError(() =>
+        window.api.updateLiveServer(updateInput)
+      );
+      dispatch(setSavedLiveServers(items));
+      return;
+    } catch (err) {
+      const items = await window.api.listLiveServers();
+      dispatch(setSavedLiveServers(items));
+      throw new Error(
+        'Live server was moved to the new database, but your changes could not be saved. Open it again and save.',
+        { cause: err }
+      );
+    }
   }
-);
+
+  const items = await withOfflineTeamHubLiveServerError(() =>
+    window.api.updateLiveServer(updateInput)
+  );
+  dispatch(setSavedLiveServers(items));
+});
 
 /**
  * Deletes a saved live server and refreshes the list.
@@ -309,7 +345,7 @@ export const updateSavedLiveServer = createAsyncThunk<void, UpdateLiveServerInpu
 export const deleteSavedLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
   'liveServers/deleteSaved',
   async (id, { dispatch }) => {
-    const items = await window.api.deleteLiveServer(id);
+    const items = await withOfflineTeamHubLiveServerError(() => window.api.deleteLiveServer(id));
     dispatch(setSavedLiveServers(items));
   }
 );
@@ -344,6 +380,7 @@ export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
       host: server.host,
       headers: server.headers,
       routes: server.routes,
+      errorPages: server.errorPages,
       proxies: server.proxies,
       ssl: server.ssl,
       runCommand: server.runCommand,
@@ -456,6 +493,7 @@ export function liveServerRuntimeConfigNeedsRestart(
     JSON.stringify(next.indexFiles) !== JSON.stringify(current.indexFiles) ||
     JSON.stringify(next.headers) !== JSON.stringify(current.headers) ||
     JSON.stringify(next.routes) !== JSON.stringify(current.routes) ||
+    JSON.stringify(next.errorPages) !== JSON.stringify(current.errorPages) ||
     JSON.stringify(next.proxies) !== JSON.stringify(current.proxies) ||
     JSON.stringify(next.ssl) !== JSON.stringify(current.ssl) ||
     next.runCommand !== current.runCommand ||
@@ -754,32 +792,11 @@ export const persistLiveServerLastOpenedPath = createAsyncThunk<
     return;
   }
 
-  await dispatch(
-    updateSavedLiveServer({
-      id: saved.id,
-      name: saved.name,
-      root: saved.root,
-      port: saved.port,
-      aliases: saved.aliases,
-      watch: saved.watch,
-      cors: saved.cors,
-      openPath: saved.openPath,
-      openPathOnStartup: saved.openPathOnStartup,
-      rememberLastUrl: saved.rememberLastUrl,
-      lastOpenedPath: input.lastOpenedPath,
-      indexFiles: saved.indexFiles,
-      host: saved.host,
-      headers: saved.headers,
-      routes: saved.routes,
-      proxies: saved.proxies,
-      ssl: saved.ssl,
-      runCommand: saved.runCommand,
-      restartOnCrash: saved.restartOnCrash,
-      urlVariable: saved.urlVariable,
-      preRequestScripts: saved.preRequestScripts,
-      postRequestScripts: saved.postRequestScripts
-    })
-  ).unwrap();
+  await withOfflineTeamHubLiveServerError(() =>
+    window.api.setLiveServerLastOpenedPath(saved.id, input.lastOpenedPath)
+  );
+  const items = await window.api.listLiveServers();
+  dispatch(setSavedLiveServers(items));
 
   const modal = getState().modals.liveServerModal;
   if (modal != null && modal.savedId === input.savedId) {

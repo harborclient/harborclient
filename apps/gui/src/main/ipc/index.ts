@@ -55,8 +55,8 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerWorkspaceHandlers();
   registerWorkflowHandlers();
   registerWorkflowRunHistoryHandlers();
-  registerWebsiteHandlers();
-  registerLiveServerHandlers();
+  registerWebsiteHandlers(db);
+  registerLiveServerHandlers(db);
   registerRequestHandlers(db);
   registerDocumentHandlers(db);
   registerNetworkHandlers(cookieJar);

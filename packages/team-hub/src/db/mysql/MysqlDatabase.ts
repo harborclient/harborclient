@@ -17,6 +17,8 @@ import {
   mapDocumentSqlRow,
   mapEnvironmentSqlRow,
   mapFolderSqlRow,
+  mapLivePageSqlRow,
+  mapLiveServerSqlRow,
   mapRequestSqlRow,
   mapRunResultSqlRow,
   mapSnippetSqlRow,
@@ -24,6 +26,7 @@ import {
   type DocumentSqlRow,
   type EnvironmentSqlRow,
   type FolderSqlRow,
+  type PayloadEntitySqlRow,
   type RequestSqlRow,
   type RunResultSqlRow,
   type SnippetSqlRow
@@ -72,11 +75,15 @@ import type {
   CreatedInvitedUserResult,
   CreateLlmUsageLogInput,
   CreateRunResultInput,
+  CreateLivePageRecordInput,
+  CreateLiveServerRecordInput,
   EnvironmentRecord,
   FolderRecord,
   InvitationRecord,
   KeyValue,
   ListAuditLogOptions,
+  LivePageRecord,
+  LiveServerRecord,
   LlmUsageLogRecord,
   LlmUsageRecord,
   RedeemedInvitationResult,
@@ -88,6 +95,8 @@ import type {
   SnippetRecord,
   SnippetScope,
   UpdateUserInput,
+  UpdateLivePageRecordInput,
+  UpdateLiveServerRecordInput,
   UserRecord,
   Variable
 } from '#/db/types.js';
@@ -96,6 +105,8 @@ import { formatZodError } from '#/db/validation.js';
 const COLLECTION_SELECT = `SELECT ${COLLECTION_SELECT_COLUMNS} FROM collections`;
 const ENVIRONMENT_SELECT = `SELECT ${ENVIRONMENT_SELECT_COLUMNS} FROM environments`;
 const SNIPPET_SELECT = `SELECT ${SNIPPET_SELECT_COLUMNS} FROM snippets`;
+const PAYLOAD_ENTITY_SELECT_COLUMNS =
+  'id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id, deletion_locked';
 const RUN_RESULT_SELECT_COLUMNS =
   'id, kind, label, collection_name, request_name, summary_passed, summary_failed, summary_skipped, payload, created_at, created_by_user_id';
 const RUN_RESULT_SELECT = `SELECT ${RUN_RESULT_SELECT_COLUMNS} FROM run_results`;
@@ -260,6 +271,8 @@ export class MysqlDatabase implements IDatabase {
         collection_access,
         environment_access,
         snippet_access,
+        live_server_access,
+        live_page_access,
         llm_access,
         llm_models,
         llm_monthly_token_limit,
@@ -267,7 +280,7 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         trimmedName,
@@ -275,6 +288,8 @@ export class MysqlDatabase implements IDatabase {
         serializeAccessList(input.collectionAccess),
         serializeAccessList(input.environmentAccess),
         serializeAccessList(input.snippetAccess),
+        serializeAccessList(input.liveServerAccess),
+        serializeAccessList(input.livePageAccess),
         input.llmAccess ? 1 : 0,
         serializeAccessList(input.llmModels ?? []),
         input.llmMonthlyTokenLimit ?? null,
@@ -359,6 +374,8 @@ export class MysqlDatabase implements IDatabase {
     const collectionAccess = input.collectionAccess ?? existing.collectionAccess;
     const environmentAccess = input.environmentAccess ?? existing.environmentAccess;
     const snippetAccess = input.snippetAccess ?? existing.snippetAccess;
+    const liveServerAccess = input.liveServerAccess ?? existing.liveServerAccess;
+    const livePageAccess = input.livePageAccess ?? existing.livePageAccess;
     const llmAccess = input.llmAccess ?? existing.llmAccess;
     const llmModels = input.llmModels ?? existing.llmModels;
     const llmMonthlyTokenLimit =
@@ -374,6 +391,8 @@ export class MysqlDatabase implements IDatabase {
         collection_access = ?,
         environment_access = ?,
         snippet_access = ?,
+        live_server_access = ?,
+        live_page_access = ?,
         llm_access = ?,
         llm_models = ?,
         llm_monthly_token_limit = ?,
@@ -386,6 +405,8 @@ export class MysqlDatabase implements IDatabase {
         serializeAccessList(collectionAccess),
         serializeAccessList(environmentAccess),
         serializeAccessList(snippetAccess),
+        serializeAccessList(liveServerAccess),
+        serializeAccessList(livePageAccess),
         llmAccess ? 1 : 0,
         serializeAccessList(llmModels),
         llmMonthlyTokenLimit,
@@ -457,7 +478,9 @@ export class MysqlDatabase implements IDatabase {
           role: 'user',
           collectionAccess: ['*'],
           environmentAccess: ['*'],
-          snippetAccess: ['*']
+          snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*']
         },
         systemUserId
       );
@@ -647,6 +670,8 @@ export class MysqlDatabase implements IDatabase {
           collection_access,
           environment_access,
           snippet_access,
+          live_server_access,
+          live_page_access,
           llm_access,
           llm_models,
           llm_monthly_token_limit,
@@ -654,7 +679,7 @@ export class MysqlDatabase implements IDatabase {
           updated_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           trimmedName,
@@ -662,6 +687,8 @@ export class MysqlDatabase implements IDatabase {
           serializeAccessList(input.collectionAccess),
           serializeAccessList(input.environmentAccess),
           serializeAccessList(input.snippetAccess),
+          serializeAccessList(input.liveServerAccess),
+          serializeAccessList(input.livePageAccess),
           input.llmAccess ? 1 : 0,
           serializeAccessList(input.llmModels ?? []),
           input.llmMonthlyTokenLimit ?? null,
@@ -1499,6 +1526,274 @@ export class MysqlDatabase implements IDatabase {
     }
 
     return mapSnippetSqlRow(row);
+  }
+
+  /**
+   * Lists live servers ordered by name.
+   */
+  async listLiveServers(): Promise<LiveServerRecord[]> {
+    return this.listPayloadEntities('live_servers', mapLiveServerSqlRow);
+  }
+
+  /**
+   * Creates a live server.
+   */
+  async createLiveServer(
+    input: CreateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.createPayloadEntity(
+      'live_servers',
+      'live_server',
+      input,
+      actingUserId,
+      mapLiveServerSqlRow
+    );
+  }
+
+  /**
+   * Replaces a live server.
+   */
+  async updateLiveServer(
+    id: string,
+    input: UpdateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.updatePayloadEntity(
+      'live_servers',
+      'live_server',
+      id,
+      input,
+      actingUserId,
+      mapLiveServerSqlRow
+    );
+  }
+
+  /**
+   * Deletes a live server.
+   */
+  async deleteLiveServer(id: string, actingUserId: string): Promise<void> {
+    await this.deletePayloadEntity('live_servers', 'live_server', id, actingUserId);
+  }
+
+  /**
+   * Finds a live server by id.
+   */
+  async findLiveServerById(id: string): Promise<LiveServerRecord | null> {
+    return this.findPayloadEntity('live_servers', id, mapLiveServerSqlRow);
+  }
+
+  /**
+   * Updates a live server deletion lock.
+   */
+  async setLiveServerDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.lockPayloadEntity(
+      'live_servers',
+      'live_server',
+      id,
+      deletionLocked,
+      actingUserId,
+      mapLiveServerSqlRow
+    );
+  }
+
+  /**
+   * Lists live pages ordered by name.
+   */
+  async listLivePages(): Promise<LivePageRecord[]> {
+    return this.listPayloadEntities('live_pages', mapLivePageSqlRow);
+  }
+
+  /**
+   * Creates a live page.
+   */
+  async createLivePage(
+    input: CreateLivePageRecordInput,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.createPayloadEntity(
+      'live_pages',
+      'live_page',
+      input,
+      actingUserId,
+      mapLivePageSqlRow
+    );
+  }
+
+  /**
+   * Replaces a live page.
+   */
+  async updateLivePage(
+    id: string,
+    input: UpdateLivePageRecordInput,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.updatePayloadEntity(
+      'live_pages',
+      'live_page',
+      id,
+      input,
+      actingUserId,
+      mapLivePageSqlRow
+    );
+  }
+
+  /**
+   * Deletes a live page.
+   */
+  async deleteLivePage(id: string, actingUserId: string): Promise<void> {
+    await this.deletePayloadEntity('live_pages', 'live_page', id, actingUserId);
+  }
+
+  /**
+   * Finds a live page by id.
+   */
+  async findLivePageById(id: string): Promise<LivePageRecord | null> {
+    return this.findPayloadEntity('live_pages', id, mapLivePageSqlRow);
+  }
+
+  /**
+   * Updates a live page deletion lock.
+   */
+  async setLivePageDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.lockPayloadEntity(
+      'live_pages',
+      'live_page',
+      id,
+      deletionLocked,
+      actingUserId,
+      mapLivePageSqlRow
+    );
+  }
+
+  /**
+   * Lists rows from one of the two fixed payload entity tables.
+   */
+  private async listPayloadEntities<T>(
+    table: 'live_servers' | 'live_pages',
+    mapper: (row: PayloadEntitySqlRow) => T
+  ): Promise<T[]> {
+    const rows = await this.queryRows<PayloadEntitySqlRow & RowDataPacket>(
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} ORDER BY name ASC`
+    );
+    return rows.map(mapper);
+  }
+
+  /**
+   * Inserts a JSON-payload entity and records its audit entry.
+   */
+  private async createPayloadEntity<T>(
+    table: 'live_servers' | 'live_pages',
+    entityType: 'live_server' | 'live_page',
+    input: CreateLiveServerRecordInput,
+    actingUserId: string,
+    mapper: (row: PayloadEntitySqlRow) => T
+  ): Promise<T> {
+    const id = randomUUID();
+    const now = new Date();
+    await this.executeStatement(
+      `INSERT INTO ${table} (id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        trimRequiredName(input.name, 'Entity name'),
+        JSON.stringify(input.payload),
+        now,
+        now,
+        actingUserId,
+        actingUserId
+      ]
+    );
+    await this.recordAuditEntry(actingUserId, 'create', entityType, id);
+    const record = await this.findPayloadEntity(table, id, mapper);
+    if (!record) throw new Error('Entity not found after insert');
+    return record;
+  }
+
+  /**
+   * Replaces the name and payload of a JSON-payload entity.
+   */
+  private async updatePayloadEntity<T>(
+    table: 'live_servers' | 'live_pages',
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    input: UpdateLiveServerRecordInput,
+    actingUserId: string,
+    mapper: (row: PayloadEntitySqlRow) => T
+  ): Promise<T> {
+    const result = await this.executeStatement(
+      `UPDATE ${table} SET name = ?, payload = ?, updated_at = ?, updated_by_user_id = ? WHERE id = ?`,
+      [
+        trimRequiredName(input.name, 'Entity name'),
+        JSON.stringify(input.payload),
+        new Date(),
+        actingUserId,
+        id
+      ]
+    );
+    if (result.affectedRows === 0) throw new Error('Entity not found');
+    await this.recordAuditEntry(actingUserId, 'update', entityType, id);
+    const record = await this.findPayloadEntity(table, id, mapper);
+    if (!record) throw new Error('Entity not found');
+    return record;
+  }
+
+  /**
+   * Deletes a JSON-payload entity and records its audit entry.
+   */
+  private async deletePayloadEntity(
+    table: 'live_servers' | 'live_pages',
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    actingUserId: string
+  ): Promise<void> {
+    await this.recordAuditEntry(actingUserId, 'delete', entityType, id);
+    await this.executeStatement(`DELETE FROM ${table} WHERE id = ?`, [id]);
+  }
+
+  /**
+   * Finds one JSON-payload entity.
+   */
+  private async findPayloadEntity<T>(
+    table: 'live_servers' | 'live_pages',
+    id: string,
+    mapper: (row: PayloadEntitySqlRow) => T
+  ): Promise<T | null> {
+    const rows = await this.queryRows<PayloadEntitySqlRow & RowDataPacket>(
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE id = ?`,
+      [id]
+    );
+    return rows[0] ? mapper(rows[0]) : null;
+  }
+
+  /**
+   * Changes a JSON-payload entity deletion lock.
+   */
+  private async lockPayloadEntity<T>(
+    table: 'live_servers' | 'live_pages',
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string,
+    mapper: (row: PayloadEntitySqlRow) => T
+  ): Promise<T> {
+    const result = await this.executeStatement(
+      `UPDATE ${table} SET deletion_locked = ?, updated_at = ?, updated_by_user_id = ? WHERE id = ?`,
+      [deletionLocked ? 1 : 0, new Date(), actingUserId, id]
+    );
+    if (result.affectedRows === 0) throw new Error('Entity not found');
+    await this.recordAuditEntry(actingUserId, 'update', entityType, id);
+    const record = await this.findPayloadEntity(table, id, mapper);
+    if (!record) throw new Error('Entity not found');
+    return record;
   }
 
   /**
@@ -2696,6 +2991,8 @@ export class MysqlDatabase implements IDatabase {
         collection_access,
         environment_access,
         snippet_access,
+        live_server_access,
+        live_page_access,
         llm_access,
         llm_models,
         llm_monthly_token_limit,
@@ -2703,7 +3000,7 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         trimmedName,
@@ -2711,6 +3008,8 @@ export class MysqlDatabase implements IDatabase {
         serializeAccessList(input.collectionAccess),
         serializeAccessList(input.environmentAccess),
         serializeAccessList(input.snippetAccess),
+        serializeAccessList(input.liveServerAccess),
+        serializeAccessList(input.livePageAccess),
         0,
         serializeAccessList([]),
         null,

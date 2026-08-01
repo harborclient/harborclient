@@ -14,6 +14,8 @@ import {
   listEnvironmentsResponseSchema,
   listFoldersResponseSchema,
   listHubLlmModelsResponseSchema,
+  listLivePagesResponseSchema,
+  listLiveServersResponseSchema,
   listSnippetsResponseSchema,
   pluginSourcesResponseSchema,
   listRequestsResponseSchema,
@@ -33,6 +35,8 @@ import {
   createdApiTokenResponseSchema,
   listAdminTokensResponseSchema,
   hubUserRecordSchema,
+  livePageRecordSchema,
+  liveServerRecordSchema,
   reloadConfigResponseSchema,
   createAdminInvitationResponseSchema,
   listAdminInvitationsResponseSchema,
@@ -48,6 +52,8 @@ import type {
   CreateFolderInput,
   CreateHubTokenInput,
   CreateHubUserInput,
+  CreateLivePageInput,
+  CreateLiveServerInput,
   CreateRequestInput,
   CreateRunResultInput,
   CreateSnippetInput,
@@ -64,6 +70,8 @@ import type {
   HubInvitationPreview,
   HubInvitationRecord,
   HubUserRecord,
+  LivePageRecord,
+  LiveServerRecord,
   MoveDocumentInput,
   MoveFolderInput,
   MoveRequestInput,
@@ -85,6 +93,8 @@ import type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateLivePageInput,
+  UpdateLiveServerInput,
   UpdateRequestInput,
   UpdateSnippetInput,
   ReloadConfigResponse
@@ -928,6 +938,98 @@ export class TeamHubClient implements ITeamHubClient {
    */
   async deleteSnippet(id: string): Promise<void> {
     await this.request('DELETE', `/snippets/${id}`);
+  }
+
+  /**
+   * Lists all live servers visible to the authenticated token.
+   */
+  async listLiveServers(): Promise<LiveServerRecord[]> {
+    const result = await this.request('GET', '/live-servers', {
+      schema: listLiveServersResponseSchema
+    });
+    return (result as { liveServers: LiveServerRecord[] }).liveServers;
+  }
+
+  /**
+   * Creates a live server.
+   *
+   * @param input - Complete mutable live server configuration.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServerRecord> {
+    const result = await this.request('POST', '/live-servers', {
+      body: input,
+      schema: liveServerRecordSchema
+    });
+    return result as LiveServerRecord;
+  }
+
+  /**
+   * Replaces a live server's mutable configuration.
+   *
+   * @param id - Live server UUID.
+   * @param input - Complete replacement configuration.
+   */
+  async updateLiveServer(id: string, input: UpdateLiveServerInput): Promise<LiveServerRecord> {
+    const result = await this.request('PUT', `/live-servers/${id}`, {
+      body: input,
+      schema: liveServerRecordSchema
+    });
+    return result as LiveServerRecord;
+  }
+
+  /**
+   * Deletes a live server by id.
+   *
+   * @param id - Live server UUID.
+   */
+  async deleteLiveServer(id: string): Promise<void> {
+    await this.request('DELETE', `/live-servers/${id}`);
+  }
+
+  /**
+   * Lists all live pages visible to the authenticated token.
+   */
+  async listLivePages(): Promise<LivePageRecord[]> {
+    const result = await this.request('GET', '/live-pages', {
+      schema: listLivePagesResponseSchema
+    });
+    return (result as { livePages: LivePageRecord[] }).livePages;
+  }
+
+  /**
+   * Creates a live page.
+   *
+   * @param input - Complete mutable live page configuration.
+   */
+  async createLivePage(input: CreateLivePageInput): Promise<LivePageRecord> {
+    const result = await this.request('POST', '/live-pages', {
+      body: input,
+      schema: livePageRecordSchema
+    });
+    return result as LivePageRecord;
+  }
+
+  /**
+   * Replaces a live page's mutable configuration.
+   *
+   * @param id - Live page UUID.
+   * @param input - Complete replacement configuration.
+   */
+  async updateLivePage(id: string, input: UpdateLivePageInput): Promise<LivePageRecord> {
+    const result = await this.request('PUT', `/live-pages/${id}`, {
+      body: input,
+      schema: livePageRecordSchema
+    });
+    return result as LivePageRecord;
+  }
+
+  /**
+   * Deletes a live page by id.
+   *
+   * @param id - Live page UUID.
+   */
+  async deleteLivePage(id: string): Promise<void> {
+    await this.request('DELETE', `/live-pages/${id}`);
   }
 
   /**

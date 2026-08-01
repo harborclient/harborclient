@@ -29,6 +29,16 @@ export const ENVIRONMENTS_COLLECTION = 'environments';
 export const SNIPPETS_COLLECTION = 'snippets';
 
 /**
+ * Firestore collection name for live server documents.
+ */
+export const LIVE_SERVERS_COLLECTION = 'liveServers';
+
+/**
+ * Firestore collection name for live page documents.
+ */
+export const LIVE_PAGES_COLLECTION = 'livePages';
+
+/**
  * Firestore collection name for folder documents.
  */
 export const FOLDERS_COLLECTION = 'folders';

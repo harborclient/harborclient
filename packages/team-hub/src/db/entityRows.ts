@@ -10,6 +10,8 @@ import type {
   SnippetScope,
   HttpMethod,
   KeyValue,
+  LivePageRecord,
+  LiveServerRecord,
   SavedRequestRecord,
   DocumentRecord,
   Variable
@@ -229,6 +231,20 @@ export interface SnippetSqlRow {
   /**
    * Deletion lock column.
    */
+  deletion_locked: boolean;
+}
+
+/**
+ * SQL row shared by live servers and live pages.
+ */
+export interface PayloadEntitySqlRow {
+  id: string;
+  name: string;
+  payload: string;
+  created_at: Date;
+  updated_at: Date;
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
   deletion_locked: boolean;
 }
 
@@ -525,6 +541,45 @@ export function mapSnippetSqlRow(row: SnippetSqlRow): SnippetRecord {
     code: row.code,
     scope: parseSnippetScope(row.scope),
     sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+    createdByUserId: row.created_by_user_id ?? null,
+    updatedByUserId: row.updated_by_user_id ?? null,
+    deletionLocked: Boolean(row.deletion_locked)
+  };
+}
+
+/**
+ * Maps a live-server SQL row into its application record.
+ *
+ * @param row - Database row from live_servers.
+ * @returns Parsed live server record.
+ */
+export function mapLiveServerSqlRow(row: PayloadEntitySqlRow): LiveServerRecord {
+  return mapPayloadEntitySqlRow(row);
+}
+
+/**
+ * Maps a live-page SQL row into its application record.
+ *
+ * @param row - Database row from live_pages.
+ * @returns Parsed live page record.
+ */
+export function mapLivePageSqlRow(row: PayloadEntitySqlRow): LivePageRecord {
+  return mapPayloadEntitySqlRow(row);
+}
+
+/**
+ * Parses the common JSON-payload entity row.
+ *
+ * @param row - Relational database row.
+ * @returns Normalized payload entity.
+ */
+function mapPayloadEntitySqlRow(row: PayloadEntitySqlRow): LiveServerRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    payload: parseJson<Record<string, unknown>>(row.payload, {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
     createdByUserId: row.created_by_user_id ?? null,

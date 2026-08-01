@@ -107,6 +107,16 @@ export interface TeamHubServiceFlags {
   snippets: boolean;
 
   /**
+   * When true, the hub server exposes live-server storage routes.
+   */
+  liveServers?: boolean;
+
+  /**
+   * When true, the hub server exposes live-page storage routes.
+   */
+  livePages?: boolean;
+
+  /**
    * When true, this connection uses an admin token with management API access.
    */
   admin: boolean;

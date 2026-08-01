@@ -111,9 +111,9 @@ export function useBrowserGuestOverlayCover(): void {
      * Applies the cover once the effect is still current.
      */
     async function cover(): Promise<void> {
-      await coverBrowserGuestForOverlay(tabId);
+      await coverBrowserGuestForOverlay(tabId, 'footer-modals');
       if (cancelled) {
-        await uncoverBrowserGuest();
+        await uncoverBrowserGuest('footer-modals');
       }
     }
 
@@ -121,7 +121,7 @@ export function useBrowserGuestOverlayCover(): void {
 
     return () => {
       cancelled = true;
-      void uncoverBrowserGuest();
+      void uncoverBrowserGuest('footer-modals');
     };
   }, [needsCover, browserTabId]);
 }

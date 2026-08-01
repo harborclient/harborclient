@@ -5,6 +5,10 @@
  * Callers capture the current viewport into a data URL, hide the guest, and
  * show the freeze frame in the React placeholder so the page does not flash
  * to the empty grey host.
+ *
+ * Cover holds are reference-counted by owner id so nested overlays (address
+ * suggestions inside an open footer panel, menus over modals, etc.) cannot
+ * restore the guest while another overlay still needs it hidden.
  */
 
 export interface BrowserGuestCover {
@@ -19,7 +23,18 @@ export interface BrowserGuestCover {
   dataUrl: string;
 }
 
+/**
+ * Stable ids for callers that hold a guest cover.
+ */
+export type BrowserGuestCoverOwner =
+  | 'footer-modals'
+  | 'address-suggestions'
+  | 'downloads-menu'
+  | 'linux-menu';
+
 let activeCover: BrowserGuestCover | null = null;
+/** Owners that currently require the guest to stay covered. */
+const coverOwners = new Set<BrowserGuestCoverOwner>();
 const listeners = new Set<() => void>();
 
 /**
@@ -56,20 +71,33 @@ export function subscribeBrowserGuestCover(listener: () => void): () => void {
 /**
  * Captures the guest viewport, publishes a freeze frame, then hides the native view.
  *
- * Safe to call when a cover is already active for the same tab (no-op). When the
- * tab id differs, replaces the previous cover and restores the prior guest first.
- * Capture failures still hide the guest (empty cover) so HTML overlays remain usable.
+ * Safe to call when a cover is already active for the same tab (adds the owner
+ * hold and re-hides if needed). When the tab id differs, replaces the previous
+ * cover and restores the prior guest first. Capture failures still hide the
+ * guest (empty cover) so HTML overlays remain usable.
  *
  * @param tabId - Browser tab id that currently owns a visible guest.
+ * @param ownerId - Caller that requires the cover; released via uncoverBrowserGuest.
  */
-export async function coverBrowserGuestForOverlay(tabId: string): Promise<void> {
+export async function coverBrowserGuestForOverlay(
+  tabId: string,
+  ownerId: BrowserGuestCoverOwner
+): Promise<void> {
+  coverOwners.add(ownerId);
+
   if (activeCover?.tabId === tabId) {
     // Something else may have re-shown the guest (HMR / ensureGuest); force hide again.
     await window.api.browserSetVisible(tabId, false);
     return;
   }
   if (activeCover && activeCover.tabId !== tabId) {
-    await uncoverBrowserGuest();
+    // Drop all holds for the prior tab; a different tab is taking over.
+    coverOwners.clear();
+    coverOwners.add(ownerId);
+    const previous = activeCover;
+    activeCover = null;
+    notifyCoverListeners();
+    await window.api.browserSetVisible(previous.tabId, true);
   }
 
   let dataUrl = '';
@@ -85,9 +113,16 @@ export async function coverBrowserGuestForOverlay(tabId: string): Promise<void> 
 }
 
 /**
- * Clears the freeze frame and restores visibility for the covered guest.
+ * Releases one owner's cover hold and restores the guest when no holds remain.
+ *
+ * @param ownerId - Caller that previously covered via coverBrowserGuestForOverlay.
  */
-export async function uncoverBrowserGuest(): Promise<void> {
+export async function uncoverBrowserGuest(ownerId: BrowserGuestCoverOwner): Promise<void> {
+  coverOwners.delete(ownerId);
+  if (coverOwners.size > 0) {
+    return;
+  }
+
   const previous = activeCover;
   if (!previous) {
     return;
@@ -107,6 +142,7 @@ export function dismissBrowserGuestCover(tabId: string): void {
     return;
   }
   activeCover = null;
+  coverOwners.clear();
   notifyCoverListeners();
 }
 
@@ -115,5 +151,6 @@ export function dismissBrowserGuestCover(tabId: string): void {
  */
 export function resetBrowserGuestCoverForTests(): void {
   activeCover = null;
+  coverOwners.clear();
   listeners.clear();
 }

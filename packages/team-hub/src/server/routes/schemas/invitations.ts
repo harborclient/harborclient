@@ -71,6 +71,8 @@ export const hubInvitationPreviewUserSchema = z.object({
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
+  liveServerAccess: z.array(z.string()),
+  livePageAccess: z.array(z.string()),
   llmAccess: z.boolean(),
   llmModels: z.array(z.string())
 });
@@ -115,6 +117,8 @@ export function serializeInvitationPreviewUser(user: UserRecord) {
     collectionAccess: user.collectionAccess,
     environmentAccess: user.environmentAccess,
     snippetAccess: user.snippetAccess,
+    liveServerAccess: user.liveServerAccess,
+    livePageAccess: user.livePageAccess,
     llmAccess: user.llmAccess,
     llmModels: user.llmModels
   };

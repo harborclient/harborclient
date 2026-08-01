@@ -6,7 +6,7 @@ export class DeletionLockedError extends Error {
   /**
    * @param entityType - Human-readable entity kind shown in the error message.
    */
-  constructor(entityType: 'collection' | 'environment' | 'snippet') {
+  constructor(entityType: 'collection' | 'environment' | 'snippet' | 'live server' | 'live page') {
     super(`Deletion is locked for this ${entityType}.`);
     this.name = 'DeletionLockedError';
   }

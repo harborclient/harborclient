@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
 /**
+ * JSON schema for selecting the storage provider used by a saved live server.
+ */
+export const LIVE_SERVER_CONNECTION_ID_SCHEMA = {
+  type: 'string',
+  description:
+    'Storage connection id for the saved live server. Omit to use the active data provider.'
+} as const;
+
+/**
  * JSON schema for a live-server URL-path-to-filesystem alias.
  */
 export const LIVE_SERVER_ALIAS_SCHEMA = {
@@ -64,6 +73,30 @@ export const LIVE_SERVER_ROUTE_SCHEMA = {
     }
   },
   required: ['match', 'target'],
+  additionalProperties: false
+} as const;
+
+/**
+ * JSON schema for one live-server custom error page (status code → HTML file).
+ */
+export const LIVE_SERVER_ERROR_PAGE_SCHEMA = {
+  type: 'object',
+  properties: {
+    code: {
+      type: 'string',
+      description:
+        'Status pattern: exact (`404`), decade (`40x` for 400–409), or class (`4xx` for 400–499). The letter `x` is case-insensitive.'
+    },
+    path: {
+      type: 'string',
+      description: 'HTML file path, absolute or relative to the server root (e.g. `404.html`).'
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'When false, the mapping is ignored. Defaults to true.'
+    }
+  },
+  required: ['code', 'path'],
   additionalProperties: false
 } as const;
 
@@ -202,6 +235,12 @@ export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
     description:
       'Ordered path routing rules applied after static miss (first match wins). Use match `*` and target `index.html` for SPA history fallback.'
   },
+  errorPages: {
+    type: 'array',
+    items: LIVE_SERVER_ERROR_PAGE_SCHEMA,
+    description:
+      'Custom HTML error pages for status ≥ 400. Codes may be exact (`404`), decade (`40x`), or class (`4xx`). Most specific match wins.'
+  },
   proxies: {
     type: 'array',
     items: LIVE_SERVER_PROXY_SCHEMA,
@@ -269,6 +308,15 @@ export const liveServerRouteShape = z.object({
 });
 
 /**
+ * Zod schema for a live-server error-page row in MCP tool arguments.
+ */
+export const liveServerErrorPageShape = z.object({
+  code: z.string(),
+  path: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
  * Zod schema for a live-server reverse-proxy rule in MCP tool arguments.
  */
 export const liveServerProxyShape = z.object({
@@ -301,6 +349,11 @@ export const liveServerCorsShape = z.object({
 });
 
 /**
+ * Zod schema for an optional live-server storage connection id.
+ */
+export const liveServerConnectionIdShape = z.string().trim().min(1);
+
+/**
  * Zod raw shape for expanded live-server config fields shared by create/update/start.
  */
 export const liveServerExpandedConfigShape = {
@@ -311,6 +364,7 @@ export const liveServerExpandedConfigShape = {
   host: z.string().optional(),
   headers: z.array(liveServerHeaderShape).optional(),
   routes: z.array(liveServerRouteShape).optional(),
+  errorPages: z.array(liveServerErrorPageShape).optional(),
   proxies: z.array(liveServerProxyShape).optional(),
   ssl: liveServerSslShape.optional(),
   runCommand: z.string().optional(),

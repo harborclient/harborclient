@@ -218,7 +218,7 @@ export class TrashService {
         this.restoreWorkflow(item);
         break;
       case 'website':
-        this.restoreWebsite(item);
+        await this.restoreWebsite(item);
         break;
       default:
         throw new Error(`Unsupported trash entity type: ${String(item.entityType)}`);
@@ -481,18 +481,26 @@ export class TrashService {
    *
    * @param id - Website id.
    */
-  moveWebsiteToTrash(id: number): void {
-    const website = this.database.listWebsites().find((item) => item.id === id);
+  async moveWebsiteToTrash(id: number): Promise<void> {
+    const router = this.storage instanceof RoutingStorage ? this.storage : null;
+    const website = (router ? await router.listLivePages() : this.database.listWebsites()).find(
+      (item) => item.id === id
+    );
     if (!website) {
       throw new Error(`Website ${id} not found`);
     }
 
-    this.database.deleteWebsite(id);
+    if (router) {
+      await router.deleteLivePage(id);
+    } else {
+      this.database.deleteWebsite(id);
+    }
 
     this.database.insertTrashItem({
       entityType: 'website',
       label: website.name,
-      originalIds: { websiteId: id },
+      connectionId: website.connectionId ?? null,
+      originalIds: { websiteId: id, connectionId: website.connectionId },
       payload: { website }
     });
   }
@@ -701,9 +709,9 @@ export class TrashService {
    *
    * @param item - Trash snapshot row.
    */
-  private restoreWebsite(item: TrashItem): void {
+  private async restoreWebsite(item: TrashItem): Promise<void> {
     const payload = item.payload as { website: Website };
-    this.database.createWebsite({
+    const input = {
       name: payload.website.name,
       uuid: payload.website.uuid,
       url: payload.website.url,
@@ -711,8 +719,25 @@ export class TrashService {
       faviconDataUrl: payload.website.faviconDataUrl,
       scripts: payload.website.scripts,
       preRequestScripts: payload.website.preRequestScripts,
-      postRequestScripts: payload.website.postRequestScripts
-    });
+      postRequestScripts: payload.website.postRequestScripts,
+      variables: payload.website.variables,
+      headers: payload.website.headers,
+      userAgent: payload.website.userAgent,
+      auth: payload.website.auth
+    };
+    if (this.storage instanceof RoutingStorage) {
+      const connectionId =
+        item.connectionId ??
+        (typeof item.originalIds.connectionId === 'string'
+          ? item.originalIds.connectionId
+          : payload.website.connectionId);
+      if (!connectionId) {
+        throw new Error('Trash item is missing a storage connection id');
+      }
+      await this.storage.createLivePageInProvider(connectionId, input);
+      return;
+    }
+    this.database.createWebsite(input);
   }
 
   /**

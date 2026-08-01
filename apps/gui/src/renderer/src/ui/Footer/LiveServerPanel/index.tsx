@@ -21,6 +21,7 @@ import {
   setLiveServerModalHost,
   setLiveServerModalIndexFiles,
   setLiveServerModalName,
+  setLiveServerModalConnectionId,
   setLiveServerModalUrlVariable,
   setLiveServerModalOpenPath,
   setLiveServerModalOpenPathOnStartup,
@@ -31,6 +32,7 @@ import {
   setLiveServerModalRememberLastUrl,
   setLiveServerModalRoot,
   setLiveServerModalRoutes,
+  setLiveServerModalErrorPages,
   setLiveServerModalRunCommand,
   setLiveServerModalRestartOnCrash,
   setLiveServerModalSsl,
@@ -41,7 +43,10 @@ import {
   type LiveServerModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
 import type { LiveServerConfig } from '@harborclient/core/types';
-import { isValidLiveServerProxyTarget } from '@harborclient/core/types';
+import {
+  isValidLiveServerErrorPageCode,
+  isValidLiveServerProxyTarget
+} from '@harborclient/core/types';
 import {
   createSavedLiveServer,
   liveServerRuntimeConfigNeedsRestart,
@@ -157,6 +162,22 @@ function tryBuildConfigFromModal(
       return { error: 'Private key path is required when SSL is enabled' };
     }
   }
+  for (const page of modal.errorPages) {
+    const code = page.code.trim();
+    const filePath = page.path.trim();
+    if (code === '' && filePath === '') {
+      continue;
+    }
+    if (!isValidLiveServerErrorPageCode(code)) {
+      return {
+        error:
+          'Error page status codes must be like 404, 40x, or 4xx (fill the Status code field — placeholders are not saved)'
+      };
+    }
+    if (filePath === '') {
+      return { error: 'Error page rows need a file path' };
+    }
+  }
   return {
     config: toLiveServerConfig({
       name,
@@ -173,6 +194,7 @@ function tryBuildConfigFromModal(
       host: modal.host,
       headers: filterLiveServerHeadersForSave(modal.headers),
       routes: modal.routes,
+      errorPages: modal.errorPages,
       proxies,
       ssl: modal.ssl,
       runCommand: modal.runCommand,
@@ -298,12 +320,14 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         await dispatch(
           updateSavedLiveServer({
             id: modal.savedId,
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
       } else {
         await dispatch(
           createSavedLiveServer({
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
@@ -343,12 +367,14 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         await dispatch(
           updateSavedLiveServer({
             id: savedId,
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
       } else {
         const created = await dispatch(
           createSavedLiveServer({
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
@@ -395,12 +421,14 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         await dispatch(
           updateSavedLiveServer({
             id: savedId,
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
       } else {
         const created = await dispatch(
           createSavedLiveServer({
+            connectionId: modal.connectionId,
             ...config
           })
         ).unwrap();
@@ -595,6 +623,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
               <SegmentedTabPanel value="general">
                 <GeneralSettings
                   name={modal.name}
+                  connectionId={modal.connectionId}
                   variables={globalVariables}
                   urlVariable={modal.urlVariable}
                   root={modal.root}
@@ -609,6 +638,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   restartOnCrash={modal.restartOnCrash}
                   disabled={busy}
                   onNameChange={(value) => dispatch(setLiveServerModalName(value))}
+                  onConnectionIdChange={(value) => dispatch(setLiveServerModalConnectionId(value))}
                   onUrlVariableChange={(value) => dispatch(setLiveServerModalUrlVariable(value))}
                   onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
                   onBrowse={handleBrowse}
@@ -641,8 +671,11 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
               <SegmentedTabPanel value="routing">
                 <RoutingSettings
                   routes={modal.routes}
+                  errorPages={modal.errorPages}
+                  root={modal.root}
                   disabled={busy}
                   onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
+                  onErrorPagesChange={(next) => dispatch(setLiveServerModalErrorPages(next))}
                 />
               </SegmentedTabPanel>
 

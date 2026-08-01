@@ -23,6 +23,7 @@ describe('buildLiveServerExport', () => {
       host: '127.0.0.1',
       headers: [{ name: 'X-Test', value: '1', enabled: true }],
       routes: [{ match: '*', target: 'index.html' }],
+      errorPages: [{ code: '404', path: '404.html' }],
       proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '/usr/bin/npm start',
@@ -61,6 +62,7 @@ describe('buildLiveServerExport', () => {
     expect(envelope.aliases).toHaveLength(1);
     expect(envelope.headers).toHaveLength(1);
     expect(envelope.routes).toHaveLength(1);
+    expect(envelope.errorPages).toHaveLength(1);
     expect(envelope.proxies).toHaveLength(1);
     expect(envelope.pre_request_scripts).toHaveLength(1);
   });
@@ -77,6 +79,7 @@ describe('buildLiveServerExport', () => {
     expect(envelope.aliases).toBeUndefined();
     expect(envelope.headers).toBeUndefined();
     expect(envelope.routes).toBeUndefined();
+    expect(envelope.errorPages).toBeUndefined();
     expect(envelope.proxies).toBeUndefined();
     expect(envelope.runCommand).toBeUndefined();
     expect(envelope.urlVariable).toBeUndefined();

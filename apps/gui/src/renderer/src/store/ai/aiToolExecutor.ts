@@ -129,6 +129,7 @@ import {
   normalizeLiveServerCorsSettings,
   normalizeLiveServerHeaders,
   normalizeLiveServerProxies,
+  normalizeLiveServerErrorPages,
   normalizeLiveServerRoutes,
   normalizeLiveServerSslSettings
 } from '@harborclient/core/types';
@@ -147,6 +148,7 @@ import type {
   LiveServerCorsSettings,
   LiveServerLogEntry,
   LiveServerLogsQuery,
+  LiveServerErrorPage,
   LiveServerProxy,
   LiveServerScriptRef,
   LiveServerResponseHeader,
@@ -2060,6 +2062,7 @@ type LiveServerSslSummary = {
 type LiveServerSummary = {
   id: number;
   uuid: string;
+  connectionId?: string;
   name: string;
   root: string;
   port: number | null;
@@ -2073,6 +2076,7 @@ type LiveServerSummary = {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  errorPages: LiveServerErrorPage[];
   proxies: LiveServerProxy[];
   ssl: LiveServerSslSummary;
 };
@@ -2099,6 +2103,7 @@ type RunningLiveServerSummary = {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  errorPages: LiveServerErrorPage[];
   proxies: LiveServerProxy[];
   ssl: LiveServerSslSummary;
 };
@@ -2127,6 +2132,7 @@ function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
   return {
     id: server.id,
     uuid: server.uuid,
+    ...(server.connectionId ? { connectionId: server.connectionId } : {}),
     name: server.name,
     root: server.root,
     port: server.port,
@@ -2140,6 +2146,7 @@ function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
     host: server.host,
     headers: server.headers,
     routes: server.routes,
+    errorPages: server.errorPages,
     proxies: server.proxies,
     ssl: summarizeLiveServerSsl(server.ssl)
   };
@@ -2171,6 +2178,7 @@ function summarizeRunningLiveServer(server: RunningLiveServer): RunningLiveServe
     host: server.config.host,
     headers: server.config.headers,
     routes: server.config.routes,
+    errorPages: server.config.errorPages,
     proxies: server.config.proxies,
     ssl: summarizeLiveServerSsl(server.config.ssl)
   };
@@ -2337,6 +2345,19 @@ function parseLiveServerRoutes(value: unknown): LiveServerRoute[] | undefined {
 }
 
 /**
+ * Parses optional error-page mappings for create/start/update tools.
+ *
+ * @param value - Unknown errorPages argument.
+ * @returns Normalized error pages, or undefined when the argument was omitted.
+ */
+function parseLiveServerErrorPages(value: unknown): LiveServerErrorPage[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return normalizeLiveServerErrorPages(value);
+}
+
+/**
  * Parses optional reverse-proxy rules for create/start/update tools.
  *
  * @param value - Unknown proxies argument.
@@ -2419,6 +2440,7 @@ async function startLiveServerTool(
       host: saved.host,
       headers: saved.headers,
       routes: saved.routes,
+      errorPages: saved.errorPages,
       proxies: saved.proxies,
       ssl: saved.ssl,
       runCommand: saved.runCommand,
@@ -2469,6 +2491,7 @@ async function startLiveServerTool(
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const errorPages = parseLiveServerErrorPages(parsed.errorPages);
   const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
 
@@ -2486,6 +2509,7 @@ async function startLiveServerTool(
     host: parsed.host,
     headers,
     routes,
+    errorPages,
     proxies,
     ssl,
     runCommand: parsed.runCommand,
@@ -2564,6 +2588,8 @@ async function createLiveServerTool(
   const parsed = args as CreateLiveServerToolArgs;
   const name = typeof parsed?.name === 'string' ? parsed.name.trim() : '';
   const root = typeof parsed?.root === 'string' ? parsed.root.trim() : '';
+  const connectionId =
+    typeof parsed?.connectionId === 'string' ? parsed.connectionId.trim() : undefined;
   if (!name) {
     return { error: 'name is required.' };
   }
@@ -2587,12 +2613,14 @@ async function createLiveServerTool(
   const cors = normalizeLiveServerCorsSettings(parsed.cors);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const errorPages = parseLiveServerErrorPages(parsed.errorPages);
   const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
 
   const created = await ctx
     .dispatch(
       createSavedLiveServer({
+        ...(connectionId ? { connectionId } : {}),
         name,
         root,
         port,
@@ -2606,6 +2634,7 @@ async function createLiveServerTool(
         host: parsed.host,
         headers,
         routes,
+        errorPages,
         proxies,
         ssl,
         runCommand: parsed.runCommand,
@@ -2637,6 +2666,8 @@ async function updateLiveServerTool(
   }
   const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
   const root = typeof parsed.root === 'string' ? parsed.root.trim() : '';
+  const connectionId =
+    typeof parsed.connectionId === 'string' ? parsed.connectionId.trim() : undefined;
   if (!name) {
     return { error: 'name is required.' };
   }
@@ -2661,6 +2692,7 @@ async function updateLiveServerTool(
   const existing = selectSavedLiveServers(ctx.getState()).find((entry) => entry.id === parsed.id);
   const headers = parseLiveServerHeaders(parsed.headers);
   const routes = parseLiveServerRoutes(parsed.routes);
+  const errorPages = parseLiveServerErrorPages(parsed.errorPages);
   const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
   const config = toLiveServerConfig({
@@ -2678,6 +2710,7 @@ async function updateLiveServerTool(
     host: parsed.host ?? existing?.host,
     headers: headers ?? existing?.headers,
     routes: routes ?? existing?.routes,
+    errorPages: errorPages ?? existing?.errorPages,
     proxies: proxies ?? existing?.proxies,
     ssl: ssl ?? existing?.ssl,
     runCommand: parsed.runCommand ?? existing?.runCommand,
@@ -2695,6 +2728,7 @@ async function updateLiveServerTool(
     .dispatch(
       updateSavedLiveServer({
         id: parsed.id,
+        ...(connectionId ? { connectionId } : {}),
         ...config
       })
     )

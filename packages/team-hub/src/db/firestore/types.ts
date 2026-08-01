@@ -53,6 +53,16 @@ export interface FirestoreUserDocument {
   snippetAccess: string[];
 
   /**
+   * Live server ids the user may access.
+   */
+  liveServerAccess: string[];
+
+  /**
+   * Live page ids the user may access.
+   */
+  livePageAccess: string[];
+
+  /**
    * When the user account was created.
    */
   createdAt: Date;
@@ -350,6 +360,19 @@ export interface FirestoreSnippetDocument {
   /**
    * When true, non-admin users cannot delete this snippet.
    */
+  deletionLocked?: boolean;
+}
+
+/**
+ * Firestore document shared by live servers and live pages.
+ */
+export interface FirestorePayloadEntityDocument {
+  name: string;
+  payload: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
   deletionLocked?: boolean;
 }
 

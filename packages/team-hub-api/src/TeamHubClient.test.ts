@@ -155,6 +155,8 @@ describe('TeamHubClient', () => {
         collectionAccess: ['*'],
         environmentAccess: ['*'],
         snippetAccess: ['*'],
+        liveServerAccess: ['*'],
+        livePageAccess: ['*'],
         llmAccess: true,
         llmModels: ['*'],
         llmMonthlyTokenLimit: 100000,
@@ -196,6 +198,8 @@ describe('TeamHubClient', () => {
         collectionAccess: ['*'],
         environmentAccess: ['*'],
         snippetAccess: ['*'],
+        liveServerAccess: ['*'],
+        livePageAccess: ['*'],
         llmAccess: true,
         llmModels: ['*'],
         llmMonthlyTokenLimit: 100000,
@@ -261,6 +265,8 @@ describe('TeamHubClient', () => {
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*'],
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
@@ -293,7 +299,9 @@ describe('TeamHubClient', () => {
         role: 'user',
         collectionAccess: ['*'],
         environmentAccess: ['*'],
-        snippetAccess: ['*']
+        snippetAccess: ['*'],
+        liveServerAccess: ['*'],
+        livePageAccess: ['*']
       });
 
       expect(created).toEqual(payload);
@@ -306,7 +314,9 @@ describe('TeamHubClient', () => {
             role: 'user',
             collectionAccess: ['*'],
             environmentAccess: ['*'],
-            snippetAccess: ['*']
+            snippetAccess: ['*'],
+            liveServerAccess: ['*'],
+            livePageAccess: ['*']
           })
         })
       );
@@ -412,6 +422,8 @@ describe('TeamHubClient', () => {
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*'],
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
@@ -446,6 +458,8 @@ describe('TeamHubClient', () => {
         collectionAccess: ['*'],
         environmentAccess: ['*'],
         snippetAccess: ['*'],
+        liveServerAccess: ['*'],
+        livePageAccess: ['*'],
         expiresInHours: 168
       });
 
@@ -460,6 +474,8 @@ describe('TeamHubClient', () => {
             collectionAccess: ['*'],
             environmentAccess: ['*'],
             snippetAccess: ['*'],
+            liveServerAccess: ['*'],
+            livePageAccess: ['*'],
             expiresInHours: 168
           })
         })
@@ -477,6 +493,8 @@ describe('TeamHubClient', () => {
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*'],
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
@@ -581,6 +599,8 @@ describe('TeamHubClient', () => {
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*'],
           llmAccess: false,
           llmModels: []
         },
@@ -1019,6 +1039,186 @@ describe('TeamHubClient', () => {
 
       const client = createClient();
       await expect(client.probeSnippetsServiceEnabled()).resolves.toBe(false);
+    });
+  });
+
+  describe('live servers', () => {
+    it('lists, creates, updates, and deletes live servers', async () => {
+      const input = {
+        name: 'Documentation',
+        root: '/srv/docs',
+        port: 4173,
+        aliases: [{ path: '/assets', target: '/srv/shared-assets' }],
+        watch: true,
+        cors: {
+          enabled: true,
+          origin: '*',
+          methods: 'GET,HEAD',
+          allowedHeaders: 'Content-Type',
+          exposedHeaders: '',
+          maxAge: '600',
+          credentials: false
+        },
+        openPath: '/index.html',
+        openPathOnStartup: true,
+        rememberLastUrl: true,
+        lastOpenedPath: '/guide',
+        indexFiles: ['index.html'],
+        host: '127.0.0.1',
+        headers: [{ name: 'X-Test', value: 'yes', enabled: true }],
+        routes: [{ match: '/docs/*', target: '/$1', enabled: true }],
+        errorPages: [{ code: '404', path: '/404.html', enabled: true }],
+        proxies: [
+          {
+            path: '/api',
+            target: 'http://127.0.0.1:8788',
+            stripPath: true,
+            enabled: true
+          }
+        ],
+        ssl: { enabled: false, certPath: '', keyPath: '' },
+        runCommand: 'pnpm docs:build',
+        restartOnCrash: false,
+        urlVariable: 'DOCS_URL',
+        preRequestScripts: [{ id: 'pre-1' }],
+        postRequestScripts: [{ id: 'post-1' }]
+      };
+      const record = {
+        id: '880e8400-e29b-41d4-a716-446655440004',
+        ...input,
+        createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-03T00:00:00.000Z',
+        createdByUserId: '550e8400-e29b-41d4-a716-446655440000',
+        updatedByUserId: null,
+        deletionLocked: false
+      };
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ liveServers: [record] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(record), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(record), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+
+      await expect(client.listLiveServers()).resolves.toEqual([record]);
+      await expect(client.createLiveServer(input)).resolves.toEqual(record);
+      await expect(client.updateLiveServer(record.id, input)).resolves.toEqual(record);
+      await expect(client.deleteLiveServer(record.id)).resolves.toBeUndefined();
+
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        `${baseUrl}/live-servers`,
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        `${baseUrl}/live-servers`,
+        expect.objectContaining({ method: 'POST', body: JSON.stringify(input) })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        3,
+        `${baseUrl}/live-servers/${record.id}`,
+        expect.objectContaining({ method: 'PUT', body: JSON.stringify(input) })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        4,
+        `${baseUrl}/live-servers/${record.id}`,
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+  });
+
+  describe('live pages', () => {
+    it('lists, creates, updates, and deletes live pages', async () => {
+      const input = {
+        name: 'Dashboard',
+        url: 'https://example.com/dashboard',
+        homeUrl: 'https://example.com',
+        faviconDataUrl: 'data:image/png;base64,abc',
+        scripts: [{ id: 'script-1' }],
+        preRequestScripts: [{ id: 'pre-1' }],
+        postRequestScripts: [{ id: 'post-1' }],
+        variables: [{ key: 'region', value: 'us-east-1' }],
+        headers: [{ key: 'X-Test', value: 'yes', enabled: true }],
+        userAgent: 'HarborClient Test',
+        auth: { type: 'none' }
+      };
+      const record = {
+        id: '990e8400-e29b-41d4-a716-446655440005',
+        ...input,
+        createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-03T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: '550e8400-e29b-41d4-a716-446655440000',
+        deletionLocked: true
+      };
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ livePages: [record] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(record), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(record), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        )
+        .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+
+      await expect(client.listLivePages()).resolves.toEqual([record]);
+      await expect(client.createLivePage(input)).resolves.toEqual(record);
+      await expect(client.updateLivePage(record.id, input)).resolves.toEqual(record);
+      await expect(client.deleteLivePage(record.id)).resolves.toBeUndefined();
+
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        `${baseUrl}/live-pages`,
+        expect.objectContaining({ method: 'GET' })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        `${baseUrl}/live-pages`,
+        expect.objectContaining({ method: 'POST', body: JSON.stringify(input) })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        3,
+        `${baseUrl}/live-pages/${record.id}`,
+        expect.objectContaining({ method: 'PUT', body: JSON.stringify(input) })
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        4,
+        `${baseUrl}/live-pages/${record.id}`,
+        expect.objectContaining({ method: 'DELETE' })
+      );
     });
   });
 

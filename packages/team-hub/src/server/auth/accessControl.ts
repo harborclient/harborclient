@@ -2,6 +2,8 @@ import type {
   CollectionRecord,
   DocumentRecord,
   EnvironmentRecord,
+  LivePageRecord,
+  LiveServerRecord,
   RunResultRecord,
   SavedRequestRecord,
   SnippetRecord,
@@ -72,6 +74,20 @@ export function canListEnvironments(user: UserRecord): boolean {
  * @returns True for `user`- and `admin`-role accounts.
  */
 export function canListSnippets(user: UserRecord): boolean {
+  return canUseDataApi(user) || canUseManagementApi(user);
+}
+
+/**
+ * Returns whether the user may list live servers.
+ */
+export function canListLiveServers(user: UserRecord): boolean {
+  return canUseDataApi(user) || canUseManagementApi(user);
+}
+
+/**
+ * Returns whether the user may list live pages.
+ */
+export function canListLivePages(user: UserRecord): boolean {
   return canUseDataApi(user) || canUseManagementApi(user);
 }
 
@@ -153,6 +169,26 @@ export function canAccessSnippet(user: UserRecord, snippetId: string): boolean {
   }
 
   return user.snippetAccess.includes(snippetId);
+}
+
+/**
+ * Returns whether the user may access a live server.
+ */
+export function canAccessLiveServer(user: UserRecord, id: string): boolean {
+  return (
+    user.role !== 'admin' &&
+    (hasWildcardAccess(user.liveServerAccess) || user.liveServerAccess.includes(id))
+  );
+}
+
+/**
+ * Returns whether the user may access a live page.
+ */
+export function canAccessLivePage(user: UserRecord, id: string): boolean {
+  return (
+    user.role !== 'admin' &&
+    (hasWildcardAccess(user.livePageAccess) || user.livePageAccess.includes(id))
+  );
 }
 
 /**
@@ -267,6 +303,20 @@ export function canCreateSnippet(user: UserRecord): boolean {
 }
 
 /**
+ * Returns whether the user may create live servers.
+ */
+export function canCreateLiveServer(user: UserRecord): boolean {
+  return user.role === 'user' && hasWildcardAccess(user.liveServerAccess);
+}
+
+/**
+ * Returns whether the user may create live pages.
+ */
+export function canCreateLivePage(user: UserRecord): boolean {
+  return user.role === 'user' && hasWildcardAccess(user.livePageAccess);
+}
+
+/**
  * Filters a collection list to entries the user is allowed to see.
  *
  * @param user - Authenticated user attached to the request.
@@ -321,6 +371,30 @@ export function filterAccessibleSnippets(
 
   const allowed = new Set(user.snippetAccess);
   return snippets.filter((snippet) => allowed.has(snippet.id));
+}
+
+/**
+ * Filters live servers to records visible to the user.
+ */
+export function filterAccessibleLiveServers(
+  user: UserRecord,
+  records: LiveServerRecord[]
+): LiveServerRecord[] {
+  if (user.role === 'admin' || hasWildcardAccess(user.liveServerAccess)) return records;
+  const allowed = new Set(user.liveServerAccess);
+  return records.filter((record) => allowed.has(record.id));
+}
+
+/**
+ * Filters live pages to records visible to the user.
+ */
+export function filterAccessibleLivePages(
+  user: UserRecord,
+  records: LivePageRecord[]
+): LivePageRecord[] {
+  if (user.role === 'admin' || hasWildcardAccess(user.livePageAccess)) return records;
+  const allowed = new Set(user.livePageAccess);
+  return records.filter((record) => allowed.has(record.id));
 }
 
 /**

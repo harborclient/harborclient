@@ -35,6 +35,8 @@ export type {
   CreateHubTokenInput,
   CreateHubUserInput,
   CreateInvitedHubUserInput,
+  CreateLivePageInput,
+  CreateLiveServerInput,
   CreateUserInvitationInput,
   CreateRequestInput,
   CreateRunResultInput,
@@ -53,6 +55,8 @@ export type {
   HubInvitationStatus,
   HubUserRecord,
   HubUserRole,
+  LivePageRecord,
+  LiveServerRecord,
   MoveDocumentInput,
   MoveFolderInput,
   MoveRequestInput,
@@ -82,6 +86,8 @@ export type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateLivePageInput,
+  UpdateLiveServerInput,
   UpdateRequestInput,
   UpdateSnippetInput
 } from './types.js';

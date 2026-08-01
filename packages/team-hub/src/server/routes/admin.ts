@@ -29,6 +29,8 @@ import {
   listAdminCollectionsResponseSchema,
   listAdminEnvironmentsResponseSchema,
   listAdminLlmModelsResponseSchema,
+  listAdminLivePagesResponseSchema,
+  listAdminLiveServersResponseSchema,
   listAdminSnippetsResponseSchema,
   listAdminRunResultsResponseSchema,
   listAdminTokensResponseSchema,
@@ -38,6 +40,7 @@ import {
   serializeHubUser,
   updateAdminCollectionBodySchema,
   updateAdminEnvironmentBodySchema,
+  updateAdminLiveEntityBodySchema,
   updateAdminSnippetBodySchema,
   updateAdminUserBodySchema
 } from '#/server/routes/schemas/admin.js';
@@ -202,17 +205,22 @@ export async function registerAdminRoutes(
 
         const systemUserId = db.getSystemUserId();
         const llm = getLlm();
-        const [users, collections, environments, snippets] = await Promise.all([
-          db.listUsers(),
-          db.listCollections(),
-          db.listEnvironments(),
-          db.listSnippets()
-        ]);
+        const [users, collections, environments, snippets, liveServers, livePages] =
+          await Promise.all([
+            db.listUsers(),
+            db.listCollections(),
+            db.listEnvironments(),
+            db.listSnippets(),
+            db.listLiveServers(),
+            db.listLivePages()
+          ]);
         const catalogs = buildAccessCatalogIds(
           collections,
           environments,
           snippets,
-          llm ? listHubOfferedModels(llm).map((model) => model.id) : null
+          llm ? listHubOfferedModels(llm).map((model) => model.id) : null,
+          liveServers,
+          livePages
         );
 
         return reply.send({
@@ -225,6 +233,8 @@ export async function registerAdminRoutes(
                   collectionAccess: record.collectionAccess,
                   environmentAccess: record.environmentAccess,
                   snippetAccess: record.snippetAccess,
+                  liveServerAccess: record.liveServerAccess,
+                  livePageAccess: record.livePageAccess,
                   llmModels: record.llmModels
                 },
                 catalogs
@@ -237,6 +247,110 @@ export async function registerAdminRoutes(
         }
 
         throw error;
+      }
+    }
+  });
+
+  routes.route({
+    method: 'GET',
+    url: '/admin/live-servers',
+    schema: { response: { 200: listAdminLiveServersResponseSchema, 403: errorResponseSchema } },
+    /**
+     * Lists live servers for access-list administration.
+     */
+    handler: async (request, reply) => {
+      try {
+        const user = requireAuthenticatedUser(request);
+        if (denyUnlessAllowed(reply, canUseManagementApi(user))) return;
+        const records = await db.listLiveServers();
+        return reply.send({
+          liveServers: records.map(({ id, name, deletionLocked }) => ({ id, name, deletionLocked }))
+        });
+      } catch (error) {
+        if (!handleDbError(reply, error)) throw error;
+      }
+    }
+  });
+
+  routes.route({
+    method: 'GET',
+    url: '/admin/live-pages',
+    schema: { response: { 200: listAdminLivePagesResponseSchema, 403: errorResponseSchema } },
+    /**
+     * Lists live pages for access-list administration.
+     */
+    handler: async (request, reply) => {
+      try {
+        const user = requireAuthenticatedUser(request);
+        if (denyUnlessAllowed(reply, canUseManagementApi(user))) return;
+        const records = await db.listLivePages();
+        return reply.send({
+          livePages: records.map(({ id, name, deletionLocked }) => ({ id, name, deletionLocked }))
+        });
+      } catch (error) {
+        if (!handleDbError(reply, error)) throw error;
+      }
+    }
+  });
+
+  routes.route({
+    method: 'PUT',
+    url: '/admin/live-servers/:id',
+    schema: {
+      params: idParamSchema,
+      body: updateAdminLiveEntityBodySchema,
+      response: { 200: adminEntityConfigSchema, 403: errorResponseSchema, 404: errorResponseSchema }
+    },
+    /**
+     * Changes deletion protection for a live server.
+     */
+    handler: async (request, reply) => {
+      try {
+        const user = requireAuthenticatedUser(request);
+        if (denyUnlessAllowed(reply, canUseManagementApi(user))) return;
+        const record = await db.setLiveServerDeletionLocked(
+          request.params.id,
+          request.body.deletionLocked,
+          user.id
+        );
+        return reply.send({
+          id: record.id,
+          name: record.name,
+          deletionLocked: record.deletionLocked
+        });
+      } catch (error) {
+        if (!handleDbError(reply, error)) throw error;
+      }
+    }
+  });
+
+  routes.route({
+    method: 'PUT',
+    url: '/admin/live-pages/:id',
+    schema: {
+      params: idParamSchema,
+      body: updateAdminLiveEntityBodySchema,
+      response: { 200: adminEntityConfigSchema, 403: errorResponseSchema, 404: errorResponseSchema }
+    },
+    /**
+     * Changes deletion protection for a live page.
+     */
+    handler: async (request, reply) => {
+      try {
+        const user = requireAuthenticatedUser(request);
+        if (denyUnlessAllowed(reply, canUseManagementApi(user))) return;
+        const record = await db.setLivePageDeletionLocked(
+          request.params.id,
+          request.body.deletionLocked,
+          user.id
+        );
+        return reply.send({
+          id: record.id,
+          name: record.name,
+          deletionLocked: record.deletionLocked
+        });
+      } catch (error) {
+        if (!handleDbError(reply, error)) throw error;
       }
     }
   });
@@ -264,16 +378,20 @@ export async function registerAdminRoutes(
 
         const input = buildAdminUserCreateInput(request.body);
         const llm = getLlm();
-        const [collections, environments, snippets] = await Promise.all([
+        const [collections, environments, snippets, liveServers, livePages] = await Promise.all([
           db.listCollections(),
           db.listEnvironments(),
-          db.listSnippets()
+          db.listSnippets(),
+          db.listLiveServers(),
+          db.listLivePages()
         ]);
         const catalogs = buildAccessCatalogIds(
           collections,
           environments,
           snippets,
-          llm ? listHubOfferedModels(llm).map((model) => model.id) : null
+          llm ? listHubOfferedModels(llm).map((model) => model.id) : null,
+          liveServers,
+          livePages
         );
         validateSubmittedAccessLists(
           {
@@ -281,6 +399,8 @@ export async function registerAdminRoutes(
             collectionAccess: request.body.collectionAccess,
             environmentAccess: request.body.environmentAccess,
             snippetAccess: request.body.snippetAccess,
+            liveServerAccess: request.body.liveServerAccess,
+            livePageAccess: request.body.livePageAccess,
             llmModels: request.body.llmModels
           },
           catalogs
@@ -328,16 +448,20 @@ export async function registerAdminRoutes(
 
         const input = buildAdminUserCreateInput(request.body);
         const llm = getLlm();
-        const [collections, environments, snippets] = await Promise.all([
+        const [collections, environments, snippets, liveServers, livePages] = await Promise.all([
           db.listCollections(),
           db.listEnvironments(),
-          db.listSnippets()
+          db.listSnippets(),
+          db.listLiveServers(),
+          db.listLivePages()
         ]);
         const catalogs = buildAccessCatalogIds(
           collections,
           environments,
           snippets,
-          llm ? listHubOfferedModels(llm).map((model) => model.id) : null
+          llm ? listHubOfferedModels(llm).map((model) => model.id) : null,
+          liveServers,
+          livePages
         );
         validateSubmittedAccessLists(
           {
@@ -345,6 +469,8 @@ export async function registerAdminRoutes(
             collectionAccess: request.body.collectionAccess,
             environmentAccess: request.body.environmentAccess,
             snippetAccess: request.body.snippetAccess,
+            liveServerAccess: request.body.liveServerAccess,
+            livePageAccess: request.body.livePageAccess,
             llmModels: request.body.llmModels
           },
           catalogs
@@ -1199,16 +1325,20 @@ export async function registerAdminRoutes(
         const input = buildAdminUserUpdateInput(existing, request.body);
         const role = request.body.role ?? existing.role;
         const llm = getLlm();
-        const [collections, environments, snippets] = await Promise.all([
+        const [collections, environments, snippets, liveServers, livePages] = await Promise.all([
           db.listCollections(),
           db.listEnvironments(),
-          db.listSnippets()
+          db.listSnippets(),
+          db.listLiveServers(),
+          db.listLivePages()
         ]);
         const catalogs = buildAccessCatalogIds(
           collections,
           environments,
           snippets,
-          llm ? listHubOfferedModels(llm).map((model) => model.id) : null
+          llm ? listHubOfferedModels(llm).map((model) => model.id) : null,
+          liveServers,
+          livePages
         );
         validateSubmittedAccessLists(
           {
@@ -1216,6 +1346,8 @@ export async function registerAdminRoutes(
             collectionAccess: request.body.collectionAccess,
             environmentAccess: request.body.environmentAccess,
             snippetAccess: request.body.snippetAccess,
+            liveServerAccess: request.body.liveServerAccess,
+            livePageAccess: request.body.livePageAccess,
             llmModels: request.body.llmModels
           },
           catalogs

@@ -39,7 +39,9 @@ describe('userValidation', () => {
     expect(normalizeAccessForRole('admin', [], [], [])).toEqual({
       collectionAccess: [],
       environmentAccess: [],
-      snippetAccess: []
+      snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: []
     });
   });
 
@@ -69,6 +71,8 @@ describe('userValidation', () => {
       collectionAccess: [],
       environmentAccess: [],
       snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: [],
       llmAccess: false,
       llmModels: [],
       llmMonthlyTokenLimit: undefined
@@ -92,6 +96,8 @@ describe('userValidation', () => {
       collectionAccess: ['collection-1'],
       environmentAccess: ['env-1'],
       snippetAccess: ['snippet-1'],
+      liveServerAccess: [],
+      livePageAccess: [],
       llmAccess: true,
       llmModels: [],
       llmMonthlyTokenLimit: undefined

@@ -37,6 +37,8 @@ import {
   rowToDocument,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderLivePage,
+  rowToProviderLiveServer,
   rowToProviderRunResult,
   rowToProviderRunResultSummary,
   rowToProviderSnippet,
@@ -49,10 +51,20 @@ import {
   PROVIDER_RUN_RESULT_COLUMNS
 } from './providerRunResultSql';
 import {
+  CREATE_PROVIDER_LIVE_PAGES_TABLE_SQL,
+  PROVIDER_LIVE_PAGE_COLUMNS
+} from './providerLivePageSql';
+import {
+  CREATE_PROVIDER_LIVE_SERVERS_TABLE_SQL,
+  PROVIDER_LIVE_SERVER_COLUMNS
+} from './providerLiveServerSql';
+import {
   CREATE_PROVIDER_SNIPPETS_TABLE_SQL,
   migrateSqliteSnippetStageColumn,
   PROVIDER_SNIPPET_COLUMNS
 } from './providerSnippetSql';
+import { serializeLivePagePayload } from './livePagePayload';
+import { serializeLiveServerPayload } from './liveServerPayload';
 import { bundleScriptFieldsWithLegacy, migrateSqliteScriptArrayColumns } from './scriptFields';
 import { trimRequiredName } from './trimRequiredName';
 import {
@@ -69,16 +81,22 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   Folder,
   KeyValue,
+  LiveServer,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
   Snippet,
   SqliteSettings,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
@@ -243,6 +261,10 @@ export class SqliteStorage implements IStorage {
     );
 
     ${CREATE_PROVIDER_SNIPPETS_TABLE_SQL}
+
+    ${CREATE_PROVIDER_LIVE_SERVERS_TABLE_SQL}
+
+    ${CREATE_PROVIDER_LIVE_PAGES_TABLE_SQL}
 
     ${CREATE_PROVIDER_RUN_RESULTS_TABLE_SQL}
   `);
@@ -2262,6 +2284,162 @@ export class SqliteStorage implements IStorage {
   }
 
   /**
+   * Lists all live servers stored in this provider ordered for display.
+   *
+   * @returns Provider-local live server records.
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers ORDER BY sort_order ASC, name ASC`
+      )
+      .all() as Record<string, unknown>[];
+    return rows.map(rowToProviderLiveServer);
+  }
+
+  /**
+   * Creates a new live server in this provider.
+   *
+   * @param input - Live server fields to persist.
+   * @returns The newly created provider-local live server.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    const trimmedName = trimRequiredName(input.name, 'Live server name');
+    const root = input.root.trim();
+    if (!root) {
+      throw new Error('Root directory is required');
+    }
+    const now = Date.now();
+    const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
+    const payload = serializeLiveServerPayload({ ...input, name: trimmedName, root });
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO live_servers (uuid, name, payload, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(uuid, trimmedName, payload, this.nextLiveServerSortOrder(), now, now);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers WHERE id = ?`)
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+    return rowToProviderLiveServer(row);
+  }
+
+  /**
+   * Updates a live server in this provider.
+   *
+   * @param input - Live server id and fields to persist.
+   * @returns The updated provider-local live server.
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const existing = (await this.listLiveServers()).find((server) => server.id === input.id);
+    if (!existing) {
+      throw new Error(`Live server not found: ${input.id}`);
+    }
+    const trimmedName = trimRequiredName(input.name, 'Live server name');
+    const root = input.root.trim();
+    if (!root) {
+      throw new Error('Root directory is required');
+    }
+    const now = Date.now();
+    const payload = serializeLiveServerPayload({ ...input, name: trimmedName, root });
+    this.getDb()
+      .prepare(`UPDATE live_servers SET name = ?, payload = ?, updated_at = ? WHERE id = ?`)
+      .run(trimmedName, payload, now, input.id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers WHERE id = ?`)
+      .get(input.id) as Record<string, unknown> | undefined;
+    if (!row) {
+      throw new Error(`Live server not found: ${input.id}`);
+    }
+    return rowToProviderLiveServer(row);
+  }
+
+  /**
+   * Deletes a live server from this provider.
+   *
+   * @param id - Provider-local live server id.
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM live_servers WHERE id = ?').run(id);
+  }
+
+  /**
+   * Lists all live pages stored in this provider ordered for display.
+   *
+   * @returns Provider-local live page records.
+   */
+  async listLivePages(): Promise<Website[]> {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages ORDER BY sort_order ASC, name ASC`
+      )
+      .all() as Record<string, unknown>[];
+    return rows.map(rowToProviderLivePage);
+  }
+
+  /**
+   * Creates a new live page in this provider.
+   *
+   * @param input - Live page fields to persist.
+   * @returns The newly created provider-local live page.
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    const trimmedName = trimRequiredName(input.name, 'Live page name');
+    const now = Date.now();
+    const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
+    const payload = serializeLivePagePayload(input);
+    const result = this.getDb()
+      .prepare(
+        `INSERT INTO live_pages (uuid, name, payload, sort_order, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(uuid, trimmedName, payload, this.nextLivePageSortOrder(), now, now);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages WHERE id = ?`)
+      .get(result.lastInsertRowid) as Record<string, unknown>;
+    return rowToProviderLivePage(row);
+  }
+
+  /**
+   * Updates a live page in this provider.
+   *
+   * @param input - Live page id and fields to persist.
+   * @returns The updated provider-local live page.
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const existing = (await this.listLivePages()).find((page) => page.id === input.id);
+    if (!existing) {
+      throw new Error(`Live page not found: ${input.id}`);
+    }
+    const trimmedName = trimRequiredName(input.name, 'Live page name');
+    const now = Date.now();
+    const payload = serializeLivePagePayload(input);
+    this.getDb()
+      .prepare(`UPDATE live_pages SET name = ?, payload = ?, updated_at = ? WHERE id = ?`)
+      .run(trimmedName, payload, now, input.id);
+
+    const row = this.getDb()
+      .prepare(`SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages WHERE id = ?`)
+      .get(input.id) as Record<string, unknown> | undefined;
+    if (!row) {
+      throw new Error(`Live page not found: ${input.id}`);
+    }
+    return rowToProviderLivePage(row);
+  }
+
+  /**
+   * Deletes a live page from this provider.
+   *
+   * @param id - Provider-local live page id.
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    this.getDb().prepare('DELETE FROM live_pages WHERE id = ?').run(id);
+  }
+
+  /**
    * Lists persisted run result snapshots ordered by newest first.
    */
   async listRunResults(): Promise<ProviderRunResultSummary[]> {
@@ -2335,6 +2513,30 @@ export class SqliteStorage implements IStorage {
   private nextSnippetSortOrder(): number {
     const row = this.getDb()
       .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets')
+      .get() as { max_order: number };
+    return row.max_order + 1;
+  }
+
+  /**
+   * Returns the next sort order value for a new live server row.
+   *
+   * @returns Next sort order index.
+   */
+  private nextLiveServerSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_servers')
+      .get() as { max_order: number };
+    return row.max_order + 1;
+  }
+
+  /**
+   * Returns the next sort order value for a new live page row.
+   *
+   * @returns Next sort order index.
+   */
+  private nextLivePageSortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_pages')
       .get() as { max_order: number };
     return row.max_order + 1;
   }

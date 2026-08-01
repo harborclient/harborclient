@@ -2,9 +2,11 @@ import { z } from 'zod';
 import type { ITool } from './ITool';
 import {
   LIVE_SERVER_ALIAS_SCHEMA,
+  LIVE_SERVER_CONNECTION_ID_SCHEMA,
   LIVE_SERVER_CORS_SCHEMA,
   LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES,
   liveServerAliasShape,
+  liveServerConnectionIdShape,
   liveServerCorsShape,
   liveServerExpandedConfigShape
 } from './liveServerSchemas';
@@ -13,6 +15,11 @@ import {
  * Arguments for the create_live_server tool.
  */
 export interface CreateLiveServerToolArgs {
+  /**
+   * Storage connection that should own the saved server.
+   */
+  connectionId?: string;
+
   /**
    * Display name for the saved server.
    */
@@ -87,6 +94,11 @@ export interface CreateLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Custom error-page mappings (status code → HTML file).
+   */
+  errorPages?: Array<{ code: string; path: string; enabled?: boolean }>;
+
+  /**
    * Reverse-proxy rules (path prefix → upstream HTTP/HTTPS URL).
    */
   proxies?: Array<{
@@ -134,6 +146,7 @@ export interface CreateLiveServerToolArgs {
 /**
  * Creates a saved live server in the local registry.
  *
+ * @param {string} [connectionId] - Storage connection that should own the saved server.
  * @param {string} name - Display name for the saved server.
  * @param {string} root - Absolute document root path.
  * @param {number|null} [port] - Explicit port, or null to auto-select.
@@ -146,6 +159,7 @@ export interface CreateLiveServerToolArgs {
  * @param {string} [host] - Listen bind host.
  * @param {object[]} [headers] - Custom response headers.
  * @param {object[]} [routes] - Path routing / SPA fallback rules.
+ * @param {object[]} [errorPages] - Custom HTML error pages for status ≥ 400.
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
  * @param {string} [runCommand] - Companion process command (absolute binary + args).
@@ -159,10 +173,11 @@ export const createLiveServerTool = {
     function: {
       name: 'create_live_server',
       description:
-        'Creates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable) in the local registry. Persists immediately but does not start the server. Only call when the user explicitly asks to create or save a live server. root must be an absolute filesystem path. Routing rules run after static miss (use match `*` + target `index.html` for SPA fallback). Reverse proxies run before static (path prefix → http(s) upstream; WebSockets not supported). SSL uses absolute cert/key file paths — HarborClient does not generate certificates. runCommand is an optional companion process (absolute binary + args, no shell); restartOnCrash restarts it after unexpected non-zero exit. urlVariable is an optional global variable name set to the server origin URL when started. lastOpenedPath is not set by this tool (navigation preference state).',
+        'Creates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, errorPages, proxies, ssl, runCommand, restartOnCrash, urlVariable). connectionId optionally selects its storage provider; omit it to use the active provider. Persists immediately but does not start the server. Only call when the user explicitly asks to create or save a live server. root must be an absolute filesystem path. Routing rules run after static miss (use match `*` + target `index.html` for SPA fallback). errorPages map status codes (`404`, `40x`, `4xx`) to HTML files for responses ≥ 400. Reverse proxies run before static (path prefix → http(s) upstream; WebSockets not supported). SSL uses absolute cert/key file paths — HarborClient does not generate certificates. runCommand is an optional companion process (absolute binary + args, no shell); restartOnCrash restarts it after unexpected non-zero exit. urlVariable is an optional global variable name set to the server origin URL when started. lastOpenedPath is not set by this tool (navigation preference state).',
       parameters: {
         type: 'object',
         properties: {
+          connectionId: LIVE_SERVER_CONNECTION_ID_SCHEMA,
           name: { type: 'string', description: 'Display name for the saved server.' },
           root: {
             type: 'string',
@@ -193,6 +208,7 @@ export const createLiveServerTool = {
     }
   },
   inputShape: {
+    connectionId: liveServerConnectionIdShape.optional(),
     name: z.string(),
     root: z.string(),
     port: z.number().nullable().optional(),

@@ -5,6 +5,8 @@ import {
   validateLiveServerExport
 } from '@harborclient/core/types/liveServer';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 
 /**
  * Result of importing a live-server export into the local registry.
@@ -28,9 +30,13 @@ export interface LiveServerImportResult {
  * otherwise a new live server is created.
  *
  * @param parsed - Parsed JSON payload from the import file.
+ * @param db - Active storage facade used for routed imports.
  * @returns Import result, or null when validation fails.
  */
-export function importLiveServerData(parsed: unknown): LiveServerImportResult | null {
+export async function importLiveServerData(
+  parsed: unknown,
+  db: IStorage
+): Promise<LiveServerImportResult | null> {
   let exportData;
   try {
     exportData = validateLiveServerExport(parsed);
@@ -38,8 +44,11 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
     return null;
   }
 
+  const router = db instanceof RoutingStorage ? db : null;
   const database = getLocalDatabase();
-  const existing = database.listLiveServers().find((item) => item.uuid === exportData.uuid);
+  const existing = (router ? await router.listLiveServers() : database.listLiveServers()).find(
+    (item) => item.uuid === exportData.uuid
+  );
   const aliases = exportData.aliases ?? [];
   const watch = exportData.watch !== false;
   const cors = exportData.cors ?? defaultLiveServerCorsSettings();
@@ -51,6 +60,7 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
   const host = exportData.host ?? '127.0.0.1';
   const headers = exportData.headers ?? [];
   const routes = exportData.routes ?? [];
+  const errorPages = exportData.errorPages ?? [];
   const proxies = exportData.proxies ?? [];
   const ssl = exportData.ssl ?? defaultLiveServerSslSettings();
   const runCommand = exportData.runCommand ?? '';
@@ -60,62 +70,118 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
   const postRequestScripts = exportData.post_request_scripts ?? [];
 
   if (existing) {
-    const items = database.updateLiveServer({
-      id: existing.id,
-      name: exportData.name,
-      root: exportData.root,
-      port: exportData.port,
-      aliases,
-      watch,
-      cors,
-      openPath,
-      openPathOnStartup,
-      rememberLastUrl,
-      lastOpenedPath,
-      indexFiles,
-      host,
-      headers,
-      routes,
-      proxies,
-      ssl,
-      runCommand,
-      restartOnCrash,
-      urlVariable,
-      preRequestScripts,
-      postRequestScripts
-    });
-    const server = items.find((item) => item.id === existing.id);
+    const server = router
+      ? await router.updateLiveServer({
+          id: existing.id,
+          name: exportData.name,
+          root: exportData.root,
+          port: exportData.port,
+          aliases,
+          watch,
+          cors,
+          openPath,
+          openPathOnStartup,
+          rememberLastUrl,
+          lastOpenedPath,
+          indexFiles,
+          host,
+          headers,
+          routes,
+          errorPages,
+          proxies,
+          ssl,
+          runCommand,
+          restartOnCrash,
+          urlVariable,
+          preRequestScripts,
+          postRequestScripts
+        })
+      : database
+          .updateLiveServer({
+            id: existing.id,
+            name: exportData.name,
+            root: exportData.root,
+            port: exportData.port,
+            aliases,
+            watch,
+            cors,
+            openPath,
+            openPathOnStartup,
+            rememberLastUrl,
+            lastOpenedPath,
+            indexFiles,
+            host,
+            headers,
+            routes,
+            errorPages,
+            proxies,
+            ssl,
+            runCommand,
+            restartOnCrash,
+            urlVariable,
+            preRequestScripts,
+            postRequestScripts
+          })
+          .find((item) => item.id === existing.id);
     if (!server) {
       return null;
     }
     return { server, action: 'updated' };
   }
 
-  const items = database.createLiveServer({
-    uuid: exportData.uuid,
-    name: exportData.name,
-    root: exportData.root,
-    port: exportData.port,
-    aliases,
-    watch,
-    cors,
-    openPath,
-    openPathOnStartup,
-    rememberLastUrl,
-    lastOpenedPath,
-    indexFiles,
-    host,
-    headers,
-    routes,
-    proxies,
-    ssl,
-    runCommand,
-    restartOnCrash,
-    urlVariable,
-    preRequestScripts,
-    postRequestScripts
-  });
-  const server = items.find((item) => item.uuid === exportData.uuid);
+  const server = router
+    ? await router.createLiveServer({
+        uuid: exportData.uuid,
+        name: exportData.name,
+        root: exportData.root,
+        port: exportData.port,
+        aliases,
+        watch,
+        cors,
+        openPath,
+        openPathOnStartup,
+        rememberLastUrl,
+        lastOpenedPath,
+        indexFiles,
+        host,
+        headers,
+        routes,
+        errorPages,
+        proxies,
+        ssl,
+        runCommand,
+        restartOnCrash,
+        urlVariable,
+        preRequestScripts,
+        postRequestScripts
+      })
+    : database
+        .createLiveServer({
+          uuid: exportData.uuid,
+          name: exportData.name,
+          root: exportData.root,
+          port: exportData.port,
+          aliases,
+          watch,
+          cors,
+          openPath,
+          openPathOnStartup,
+          rememberLastUrl,
+          lastOpenedPath,
+          indexFiles,
+          host,
+          headers,
+          routes,
+          errorPages,
+          proxies,
+          ssl,
+          runCommand,
+          restartOnCrash,
+          urlVariable,
+          preRequestScripts,
+          postRequestScripts
+        })
+        .find((item) => item.uuid === exportData.uuid);
   if (!server) {
     return null;
   }

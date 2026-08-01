@@ -81,7 +81,7 @@ export function toFileSlug(name: string): string {
 /**
  * HarborClient export kinds used as filename prefixes at the git harbor root.
  */
-export type HarborExportFileKind = 'collection' | 'environment' | 'snippet';
+export type HarborExportFileKind = 'collection' | 'environment' | 'snippet' | 'server' | 'website';
 
 /**
  * Builds the base name for a HarborClient export JSON file at the harbor root.
@@ -91,7 +91,8 @@ export type HarborExportFileKind = 'collection' | 'environment' | 'snippet';
  * @returns Base name `kind-slug` without the `.json` extension.
  */
 export function exportFileBaseName(kind: HarborExportFileKind, name: string): string {
-  return `${kind}-${toFileSlug(name)}`;
+  const prefix = kind === 'server' ? 'live-server' : kind === 'website' ? 'live-page' : kind;
+  return `${prefix}-${toFileSlug(name)}`;
 }
 
 /**

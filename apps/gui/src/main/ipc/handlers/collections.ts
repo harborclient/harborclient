@@ -765,7 +765,7 @@ export function registerCollectionHandlers(db: IStorage): void {
 
         if (exportKind === 'website') {
           logImportVerbose('imports:auto classified', { kind: 'website' });
-          const websiteResult = importWebsiteData(parsed);
+          const websiteResult = await importWebsiteData(parsed, db);
           if (!websiteResult) {
             return null;
           }
@@ -778,7 +778,7 @@ export function registerCollectionHandlers(db: IStorage): void {
 
         if (exportKind === 'server') {
           logImportVerbose('imports:auto classified', { kind: 'server' });
-          const serverResult = importLiveServerData(parsed);
+          const serverResult = await importLiveServerData(parsed, db);
           if (!serverResult) {
             return null;
           }

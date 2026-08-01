@@ -106,6 +106,9 @@ const startLiveServerApiMock = vi.fn<(input: StartLiveServerInput) => Promise<Ru
 const stopLiveServerApiMock = vi.fn<(id: string) => Promise<void>>();
 const createLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
 const updateLiveServerApiMock = vi.fn<(input: unknown) => Promise<LiveServer[]>>();
+const moveLiveServerApiMock =
+  vi.fn<(id: number, targetConnectionId: string) => Promise<LiveServer[]>>();
+const getActiveStorageIdMock = vi.fn<() => Promise<string>>();
 const deleteLiveServerApiMock = vi.fn<(id: number) => Promise<LiveServer[]>>();
 const setGeneralSettingsMock = vi.fn<(settings: GeneralSettings) => Promise<void>>();
 
@@ -253,6 +256,8 @@ beforeEach(() => {
       stopLiveServer: stopLiveServerApiMock,
       createLiveServer: createLiveServerApiMock,
       updateLiveServer: updateLiveServerApiMock,
+      moveLiveServer: moveLiveServerApiMock,
+      getActiveStorageId: getActiveStorageIdMock,
       deleteLiveServer: deleteLiveServerApiMock,
       setGeneralSettings: setGeneralSettingsMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
@@ -305,6 +310,10 @@ beforeEach(() => {
   stopLiveServerApiMock.mockResolvedValue(undefined);
   createLiveServerApiMock.mockReset();
   updateLiveServerApiMock.mockReset();
+  moveLiveServerApiMock.mockReset();
+  moveLiveServerApiMock.mockResolvedValue([]);
+  getActiveStorageIdMock.mockReset();
+  getActiveStorageIdMock.mockResolvedValue('local');
   deleteLiveServerApiMock.mockReset();
   setGeneralSettingsMock.mockReset();
   setGeneralSettingsMock.mockResolvedValue(undefined);
@@ -359,6 +368,7 @@ function runningLiveServerFixture(id: string, saved: LiveServer | null): Running
         host: saved?.host,
         headers: saved?.headers,
         routes: saved?.routes,
+        errorPages: saved?.errorPages,
         proxies: saved?.proxies,
         ssl: saved?.ssl
       })
@@ -3332,6 +3342,7 @@ hc.test("Status code is 2xx", () => {
     store.dispatch(setSavedLiveServers([]));
     store.dispatch(setRunningLiveServers([]));
     const created = liveServerFixture(4, 'New');
+    created.connectionId = 'team-hub-1';
     createLiveServerApiMock.mockResolvedValue([created]);
     listLiveServersMock.mockResolvedValue([created]);
 
@@ -3341,6 +3352,7 @@ hc.test("Status code is 2xx", () => {
         {
           name: 'New',
           root: '/tmp/live-4',
+          connectionId: 'team-hub-1',
           openPath: '/preview.html',
           host: '127.0.0.1',
           indexFiles: ['index.html', 'app.html'],
@@ -3356,12 +3368,17 @@ hc.test("Status code is 2xx", () => {
     );
     expect(createResult).toEqual({
       ok: true,
-      server: expect.objectContaining({ id: 4, name: 'New' })
+      server: expect.objectContaining({
+        id: 4,
+        name: 'New',
+        connectionId: 'team-hub-1'
+      })
     });
     expect(createLiveServerApiMock).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'New',
         root: '/tmp/live-4',
+        connectionId: 'team-hub-1',
         openPath: '/preview.html',
         host: '127.0.0.1',
         indexFiles: ['index.html', 'app.html'],
@@ -3375,6 +3392,7 @@ hc.test("Status code is 2xx", () => {
 
     const updated = {
       ...created,
+      connectionId: 'sqlite-2',
       name: 'Renamed',
       root: '/tmp/renamed',
       openPath: '/docs/',
@@ -3390,6 +3408,7 @@ hc.test("Status code is 2xx", () => {
         'update_live_server',
         {
           id: 4,
+          connectionId: 'sqlite-2',
           name: 'Renamed',
           root: '/tmp/renamed',
           port: 5504,
@@ -3406,6 +3425,7 @@ hc.test("Status code is 2xx", () => {
     expect(updateResult).toEqual({
       ok: true,
       server: expect.objectContaining({
+        connectionId: 'sqlite-2',
         name: 'Renamed',
         root: '/tmp/renamed',
         openPath: '/docs/',
@@ -3424,6 +3444,7 @@ hc.test("Status code is 2xx", () => {
         ssl: { enabled: true, certPath: '/tmp/cert.pem', keyPath: '/tmp/key.pem' }
       })
     );
+    expect(moveLiveServerApiMock).toHaveBeenCalledWith(4, 'sqlite-2');
 
     deleteLiveServerApiMock.mockResolvedValue([]);
     listLiveServersMock.mockResolvedValue([updated]);

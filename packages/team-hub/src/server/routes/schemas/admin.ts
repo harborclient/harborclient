@@ -100,6 +100,27 @@ export const listAdminSnippetsResponseSchema = z.object({
 });
 
 /**
+ * Response body for admin live server listings.
+ */
+export const listAdminLiveServersResponseSchema = z.object({
+  liveServers: z.array(adminResourceOptionSchema)
+});
+
+/**
+ * Response body for admin live page listings.
+ */
+export const listAdminLivePagesResponseSchema = z.object({
+  livePages: z.array(adminResourceOptionSchema)
+});
+
+/**
+ * Request body for changing a live entity deletion lock.
+ */
+export const updateAdminLiveEntityBodySchema = z.object({
+  deletionLocked: z.boolean()
+});
+
+/**
  * Response body schema for admin run result listing.
  */
 export const listAdminRunResultsResponseSchema = z.object({
@@ -122,6 +143,8 @@ export const hubUserRecordSchema = z.object({
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
+  liveServerAccess: z.array(z.string()),
+  livePageAccess: z.array(z.string()),
   llmAccess: z.boolean(),
   llmModels: z.array(z.string()),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable(),
@@ -152,6 +175,8 @@ export const updateAdminUserBodySchema = z.object({
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
+  liveServerAccess: z.array(z.string()).optional(),
+  livePageAccess: z.array(z.string()).optional(),
   llmAccess: z.boolean().optional(),
   llmModels: z.array(z.string()).optional(),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
@@ -166,6 +191,8 @@ export const createAdminUserBodySchema = z.object({
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
+  liveServerAccess: z.array(z.string()).optional(),
+  livePageAccess: z.array(z.string()).optional(),
   llmAccess: z.boolean().optional(),
   llmModels: z.array(z.string()).optional(),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
@@ -246,6 +273,8 @@ export function serializeHubUser(user: UserRecord) {
     collectionAccess: user.collectionAccess,
     environmentAccess: user.environmentAccess,
     snippetAccess: user.snippetAccess,
+    liveServerAccess: user.liveServerAccess,
+    livePageAccess: user.livePageAccess,
     llmAccess: user.llmAccess,
     llmModels: user.llmModels,
     llmMonthlyTokenLimit: user.llmMonthlyTokenLimit,

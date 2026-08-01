@@ -240,6 +240,7 @@ describe('buildAiScriptReferenceValidationContext', () => {
         host: saved.host,
         headers: saved.headers,
         routes: saved.routes,
+        errorPages: saved.errorPages,
         proxies: saved.proxies,
         ssl: saved.ssl,
         runCommand: saved.runCommand,

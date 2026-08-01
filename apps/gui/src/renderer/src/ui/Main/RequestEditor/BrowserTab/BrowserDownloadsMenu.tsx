@@ -66,7 +66,7 @@ export function BrowserDownloadsMenu({
       return;
     }
     if (hasBrowserGuest(tabId)) {
-      await coverBrowserGuestForOverlay(tabId);
+      await coverBrowserGuestForOverlay(tabId, 'downloads-menu');
     }
     setAnchor(
       getTriggerAnchoredMenuPosition(rect, {
@@ -83,7 +83,7 @@ export function BrowserDownloadsMenu({
   const closeMenu = useCallback((): void => {
     setOpen(false);
     setAnchor(null);
-    void uncoverBrowserGuest();
+    void uncoverBrowserGuest('downloads-menu');
   }, []);
 
   /**
@@ -115,7 +115,7 @@ export function BrowserDownloadsMenu({
   useEffect(() => {
     return () => {
       if (open) {
-        void uncoverBrowserGuest();
+        void uncoverBrowserGuest('downloads-menu');
       }
     };
   }, [open]);

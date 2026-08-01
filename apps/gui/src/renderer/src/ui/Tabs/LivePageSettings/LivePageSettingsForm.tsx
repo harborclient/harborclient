@@ -1,6 +1,6 @@
-import { useCallback, useMemo, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX } from 'react';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
-import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setBrowserScripts, updateBrowserTab } from '#/renderer/src/store/slices/tabsSlice';
 import { saveLivePageSettings } from '#/renderer/src/store/thunks/websites';
 import { areBrowserScriptsDirty, type BrowserInjectionScript } from '#/browser/browserScripts';
@@ -44,6 +44,10 @@ interface Props {
  */
 export function LivePageSettingsForm({ browserTab, onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const website = useAppSelector((state) =>
+    state.websites.items.find((item) => item.id === browserTab.websiteId)
+  );
+  const [connectionId, setConnectionId] = useState(website?.connectionId ?? '');
 
   /**
    * Saved baselines for ScopedSettingsForm dirty comparison.
@@ -150,7 +154,8 @@ export function LivePageSettingsForm({ browserTab, onClose }: Props): JSX.Elemen
           auth: fields.auth,
           preRequestScripts: fields.preRequestScripts,
           postRequestScripts: fields.postRequestScripts,
-          scripts: browserTab.scripts
+          scripts: browserTab.scripts,
+          connectionId
         })
       ).unwrap();
     } catch (error) {
@@ -175,7 +180,9 @@ export function LivePageSettingsForm({ browserTab, onClose }: Props): JSX.Elemen
       renderGeneral={(state: ScopedSettingsRenderState) => (
         <LivePageGeneralSection
           name={state.name}
+          connectionId={connectionId}
           onNameChange={state.setName}
+          onConnectionIdChange={setConnectionId}
           onSave={state.save}
           onClose={onClose}
         />

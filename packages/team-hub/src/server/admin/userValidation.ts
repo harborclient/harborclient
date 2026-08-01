@@ -84,10 +84,21 @@ export function normalizeAccessForRole(
   role: UserRole,
   collectionAccess: string[],
   environmentAccess: string[],
-  snippetAccess: string[]
-): Pick<UpdateUserInput, 'collectionAccess' | 'environmentAccess' | 'snippetAccess'> {
+  snippetAccess: string[],
+  liveServerAccess: string[] = [],
+  livePageAccess: string[] = []
+): Pick<
+  UpdateUserInput,
+  'collectionAccess' | 'environmentAccess' | 'snippetAccess' | 'liveServerAccess' | 'livePageAccess'
+> {
   if (role === 'admin') {
-    if (collectionAccess.length > 0 || environmentAccess.length > 0 || snippetAccess.length > 0) {
+    if (
+      collectionAccess.length > 0 ||
+      environmentAccess.length > 0 ||
+      snippetAccess.length > 0 ||
+      liveServerAccess.length > 0 ||
+      livePageAccess.length > 0
+    ) {
       throw new ValidationError(
         'Admin users cannot have collection, environment, or snippet access.'
       );
@@ -96,18 +107,24 @@ export function normalizeAccessForRole(
     return {
       collectionAccess: [],
       environmentAccess: [],
-      snippetAccess: []
+      snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: []
     };
   }
 
   validateAccessList(collectionAccess);
   validateAccessList(environmentAccess);
   validateAccessList(snippetAccess);
+  validateAccessList(liveServerAccess);
+  validateAccessList(livePageAccess);
 
   return {
     collectionAccess,
     environmentAccess,
-    snippetAccess
+    snippetAccess,
+    liveServerAccess,
+    livePageAccess
   };
 }
 
@@ -129,6 +146,16 @@ export interface AccessCatalogIds {
    * Snippet ids currently stored on the hub.
    */
   knownSnippetIds: ReadonlySet<string>;
+
+  /**
+   * Live server ids currently stored on the hub.
+   */
+  knownLiveServerIds: ReadonlySet<string>;
+
+  /**
+   * Live page ids currently stored on the hub.
+   */
+  knownLivePageIds: ReadonlySet<string>;
 
   /**
    * Hub-offered LLM model ids, or null when LLM support is not configured.
@@ -161,6 +188,16 @@ export interface SubmittedAccessLists {
   snippetAccess?: string[];
 
   /**
+   * Live server access ids submitted by the caller.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Live page access ids submitted by the caller.
+   */
+  livePageAccess?: string[];
+
+  /**
    * LLM model access ids from the request body or CLI flags, when provided.
    */
   llmModels?: string[];
@@ -184,6 +221,16 @@ export interface StoredAccessLists {
    * Persisted snippet access ids.
    */
   snippetAccess: string[];
+
+  /**
+   * Persisted live server access ids.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Persisted live page access ids.
+   */
+  livePageAccess?: string[];
 
   /**
    * Persisted LLM model access ids.
@@ -213,7 +260,13 @@ export function findUnknownAccessIds(access: string[], knownIds: ReadonlySet<str
 export function validateKnownAccessIds(
   access: string[],
   knownIds: ReadonlySet<string>,
-  resourceLabel: 'collection' | 'environment' | 'snippet' | 'LLM model'
+  resourceLabel:
+    | 'collection'
+    | 'environment'
+    | 'snippet'
+    | 'live server'
+    | 'live page'
+    | 'LLM model'
 ): void {
   const unknownIds = findUnknownAccessIds(access, knownIds);
   if (unknownIds.length === 0) {
@@ -251,6 +304,16 @@ export function validateSubmittedAccessLists(
     if (submitted.snippetAccess !== undefined) {
       validateKnownAccessIds(submitted.snippetAccess, catalogs.knownSnippetIds, 'snippet');
     }
+    if (submitted.liveServerAccess !== undefined) {
+      validateKnownAccessIds(
+        submitted.liveServerAccess,
+        catalogs.knownLiveServerIds,
+        'live server'
+      );
+    }
+    if (submitted.livePageAccess !== undefined) {
+      validateKnownAccessIds(submitted.livePageAccess, catalogs.knownLivePageIds, 'live page');
+    }
   }
 
   if (submitted.llmModels !== undefined && catalogs.knownLlmModelIds !== null) {
@@ -282,6 +345,15 @@ export function buildAccessListWarnings(
   for (const id of findUnknownAccessIds(stored.snippetAccess, catalogs.knownSnippetIds)) {
     warnings.push(`Unknown snippet id "${id}".`);
   }
+  for (const id of findUnknownAccessIds(
+    stored.liveServerAccess ?? [],
+    catalogs.knownLiveServerIds
+  )) {
+    warnings.push(`Unknown live server id "${id}".`);
+  }
+  for (const id of findUnknownAccessIds(stored.livePageAccess ?? [], catalogs.knownLivePageIds)) {
+    warnings.push(`Unknown live page id "${id}".`);
+  }
 
   if (catalogs.knownLlmModelIds !== null) {
     for (const id of findUnknownAccessIds(stored.llmModels, catalogs.knownLlmModelIds)) {
@@ -305,12 +377,16 @@ export function buildAccessCatalogIds(
   collections: ReadonlyArray<{ id: string }>,
   environments: ReadonlyArray<{ id: string }>,
   snippets: ReadonlyArray<{ id: string }>,
-  llmModelIds: string[] | null
+  llmModelIds: string[] | null,
+  liveServers: ReadonlyArray<{ id: string }> = [],
+  livePages: ReadonlyArray<{ id: string }> = []
 ): AccessCatalogIds {
   return {
     knownCollectionIds: new Set(collections.map((collection) => collection.id)),
     knownEnvironmentIds: new Set(environments.map((environment) => environment.id)),
     knownSnippetIds: new Set(snippets.map((snippet) => snippet.id)),
+    knownLiveServerIds: new Set(liveServers.map((record) => record.id)),
+    knownLivePageIds: new Set(livePages.map((record) => record.id)),
     knownLlmModelIds: llmModelIds === null ? null : new Set(llmModelIds)
   };
 }
@@ -330,6 +406,8 @@ export function buildAdminUserUpdateInput(
     collectionAccess: string[];
     environmentAccess: string[];
     snippetAccess: string[];
+    liveServerAccess?: string[];
+    livePageAccess?: string[];
     llmAccess: boolean;
     llmModels: string[];
     llmMonthlyTokenLimit: number | null;
@@ -340,6 +418,8 @@ export function buildAdminUserUpdateInput(
     collectionAccess?: string[];
     environmentAccess?: string[];
     snippetAccess?: string[];
+    liveServerAccess?: string[];
+    livePageAccess?: string[];
     llmAccess?: boolean;
     llmModels?: string[];
     llmMonthlyTokenLimit?: number | null;
@@ -351,7 +431,18 @@ export function buildAdminUserUpdateInput(
   const environmentAccess =
     role === 'admin' ? [] : (body.environmentAccess ?? existing.environmentAccess);
   const snippetAccess = role === 'admin' ? [] : (body.snippetAccess ?? existing.snippetAccess);
-  const access = normalizeAccessForRole(role, collectionAccess, environmentAccess, snippetAccess);
+  const liveServerAccess =
+    role === 'admin' ? [] : (body.liveServerAccess ?? existing.liveServerAccess ?? []);
+  const livePageAccess =
+    role === 'admin' ? [] : (body.livePageAccess ?? existing.livePageAccess ?? []);
+  const access = normalizeAccessForRole(
+    role,
+    collectionAccess,
+    environmentAccess,
+    snippetAccess,
+    liveServerAccess,
+    livePageAccess
+  );
   const llmAccess = role === 'admin' ? false : (body.llmAccess ?? existing.llmAccess);
   const llmModels = role === 'admin' ? [] : (body.llmModels ?? existing.llmModels);
   const llm = normalizeLlmForRole(role, llmAccess, llmModels);
@@ -362,6 +453,8 @@ export function buildAdminUserUpdateInput(
     collectionAccess: access.collectionAccess,
     environmentAccess: access.environmentAccess,
     snippetAccess: access.snippetAccess,
+    liveServerAccess: access.liveServerAccess,
+    livePageAccess: access.livePageAccess,
     llmAccess: llm.llmAccess,
     llmModels: llm.llmModels,
     llmMonthlyTokenLimit: body.llmMonthlyTokenLimit
@@ -381,6 +474,8 @@ export function buildAdminUserCreateInput(body: {
   collectionAccess?: string[];
   environmentAccess?: string[];
   snippetAccess?: string[];
+  liveServerAccess?: string[];
+  livePageAccess?: string[];
   llmAccess?: boolean;
   llmModels?: string[];
   llmMonthlyTokenLimit?: number | null;
@@ -388,11 +483,15 @@ export function buildAdminUserCreateInput(body: {
   const collectionAccess = body.collectionAccess ?? [];
   const environmentAccess = body.environmentAccess ?? [];
   const snippetAccess = body.snippetAccess ?? [];
+  const liveServerAccess = body.liveServerAccess ?? [];
+  const livePageAccess = body.livePageAccess ?? [];
   const access = normalizeAccessForRole(
     body.role,
     collectionAccess,
     environmentAccess,
-    snippetAccess
+    snippetAccess,
+    liveServerAccess,
+    livePageAccess
   );
   const llmAccess = body.role === 'admin' ? false : (body.llmAccess ?? false);
   const llmModels = body.role === 'admin' ? [] : (body.llmModels ?? []);
@@ -404,6 +503,8 @@ export function buildAdminUserCreateInput(body: {
     collectionAccess: access.collectionAccess ?? [],
     environmentAccess: access.environmentAccess ?? [],
     snippetAccess: access.snippetAccess ?? [],
+    liveServerAccess: access.liveServerAccess ?? [],
+    livePageAccess: access.livePageAccess ?? [],
     llmAccess: llm.llmAccess ?? false,
     llmModels: llm.llmModels ?? [],
     llmMonthlyTokenLimit: body.llmMonthlyTokenLimit ?? null

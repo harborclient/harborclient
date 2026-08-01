@@ -60,7 +60,9 @@ import {
   docToEnvironment,
   docToFolder,
   docToProviderSnippet,
-  docToRequest
+  docToRequest,
+  rowToProviderLivePage,
+  rowToProviderLiveServer
 } from './entityMappers';
 import { assertContainerItemOrder, planContainerItemMove } from './containerReorder';
 import type { ContainerItemRef } from '@harborclient/core/collectionContainerOrder';
@@ -73,16 +75,22 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   FirestoreSettings,
   Folder,
   KeyValue,
+  LiveServer,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
   Snippet,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type {
   ProviderRunResult,
@@ -94,6 +102,8 @@ import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/s
 import type { ScriptStage } from '@harborclient/sdk';
 import { generateDocumentUuid } from './uuid';
 import { serializeSidebarMarker } from './sidebarMarkerMigration';
+import { serializeLiveServerPayload } from '@harborclient/storage-sqlite/liveServerPayload';
+import { serializeLivePagePayload } from '@harborclient/storage-sqlite/livePagePayload';
 
 /**
  * Maximum writes per Firestore batch commit.
@@ -652,6 +662,148 @@ export class FirestoreStorage implements IStorage {
    */
   async deleteSnippet(id: number): Promise<void> {
     await deleteDoc(doc(this.getFirestore(), 'snippets', String(id)));
+  }
+
+  /**
+   * Lists live servers ordered by provider sort position.
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    const snap = await getDocs(collection(this.getFirestore(), 'live_servers'));
+    return snap.docs
+      .map((document) =>
+        rowToProviderLiveServer({
+          ...document.data(),
+          id: Number(document.id)
+        })
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Creates a live server document.
+   *
+   * @param input - Live server fields to persist.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const id = await this.nextId('live_servers');
+    const now = Date.now();
+    const data = {
+      id,
+      uuid: input.uuid?.trim() || generateDocumentUuid(),
+      name,
+      payload: serializeLiveServerPayload(input),
+      sort_order: id,
+      created_at: now,
+      updated_at: now
+    };
+    await setDoc(doc(this.getFirestore(), 'live_servers', String(id)), data);
+    return rowToProviderLiveServer(data);
+  }
+
+  /**
+   * Replaces a live server document's mutable fields.
+   *
+   * @param input - Complete live server update.
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const ref = doc(this.getFirestore(), 'live_servers', String(input.id));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error(`Live server not found: ${input.id}`);
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const updated = {
+      ...snap.data(),
+      id: input.id,
+      name,
+      payload: serializeLiveServerPayload(input),
+      updated_at: Date.now()
+    };
+    await updateDoc(ref, {
+      name: updated.name,
+      payload: updated.payload,
+      updated_at: updated.updated_at
+    });
+    return rowToProviderLiveServer(updated);
+  }
+
+  /**
+   * Deletes a live server document.
+   *
+   * @param id - Provider-local live server id.
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    await deleteDoc(doc(this.getFirestore(), 'live_servers', String(id)));
+  }
+
+  /**
+   * Lists live pages ordered by provider sort position.
+   */
+  async listLivePages(): Promise<Website[]> {
+    const snap = await getDocs(collection(this.getFirestore(), 'live_pages'));
+    return snap.docs
+      .map((document) =>
+        rowToProviderLivePage({
+          ...document.data(),
+          id: Number(document.id)
+        })
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Creates a live page document.
+   *
+   * @param input - Website fields to persist.
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    const id = await this.nextId('live_pages');
+    const now = Date.now();
+    const data = {
+      id,
+      uuid: input.uuid?.trim() || generateDocumentUuid(),
+      name: trimRequiredName(input.name, 'Live page name'),
+      payload: serializeLivePagePayload(input),
+      sort_order: id,
+      created_at: now,
+      updated_at: now
+    };
+    await setDoc(doc(this.getFirestore(), 'live_pages', String(id)), data);
+    return rowToProviderLivePage(data);
+  }
+
+  /**
+   * Replaces a live page document's mutable fields.
+   *
+   * @param input - Complete live page update.
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const ref = doc(this.getFirestore(), 'live_pages', String(input.id));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error(`Live page not found: ${input.id}`);
+    const updated = {
+      ...snap.data(),
+      id: input.id,
+      name: trimRequiredName(input.name, 'Live page name'),
+      payload: serializeLivePagePayload(input),
+      updated_at: Date.now()
+    };
+    await updateDoc(ref, {
+      name: updated.name,
+      payload: updated.payload,
+      updated_at: updated.updated_at
+    });
+    return rowToProviderLivePage(updated);
+  }
+
+  /**
+   * Deletes a live page document.
+   *
+   * @param id - Provider-local live page id.
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    await deleteDoc(doc(this.getFirestore(), 'live_pages', String(id)));
   }
 
   /**

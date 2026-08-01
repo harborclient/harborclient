@@ -82,6 +82,42 @@ CREATE TABLE IF NOT EXISTS snippets (
 `.trim();
 
 /**
+ * DDL for provider-routed live server and live page entities.
+ */
+export const LIVE_SERVERS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS live_servers (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  payload LONGTEXT NOT NULL DEFAULT ('{}'),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36) NULL,
+  updated_by_user_id VARCHAR(36) NULL,
+  deletion_locked TINYINT(1) NOT NULL DEFAULT 0,
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
+ * DDL for provider-routed live pages.
+ */
+export const LIVE_PAGES_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS live_pages (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  payload LONGTEXT NOT NULL DEFAULT ('{}'),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36) NULL,
+  updated_by_user_id VARCHAR(36) NULL,
+  deletion_locked TINYINT(1) NOT NULL DEFAULT 0,
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
  * DDL for creating the folders table when absent.
  */
 export const FOLDERS_MIGRATION_SQL = `
@@ -166,6 +202,8 @@ CREATE TABLE IF NOT EXISTS users (
   collection_access LONGTEXT NOT NULL,
   environment_access LONGTEXT NOT NULL,
   snippet_access LONGTEXT NOT NULL,
+  live_server_access LONGTEXT NOT NULL,
+  live_page_access LONGTEXT NOT NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   created_by_user_id VARCHAR(36) NULL,
@@ -391,6 +429,28 @@ WHERE role = 'user'
 `.trim();
 
 /**
+ * Adds live entity access columns and grants them to existing wildcard users.
+ */
+export const USERS_LIVE_SERVER_ACCESS_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS live_server_access LONGTEXT NOT NULL DEFAULT '[]'
+`.trim();
+
+/**
+ * Adds live page access to existing user tables.
+ */
+export const USERS_LIVE_PAGE_ACCESS_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS live_page_access LONGTEXT NOT NULL DEFAULT '[]'
+`.trim();
+
+/**
+ * Grants live entity access to existing wildcard users.
+ */
+export const USERS_LIVE_ENTITY_ACCESS_BACKFILL_SQL = `
+UPDATE users SET live_server_access = '["*"]', live_page_access = '["*"]'
+WHERE role = 'user' AND collection_access LIKE '%"*"%'
+`.trim();
+
+/**
  * DDL for creating the run_results table when absent.
  */
 export const RUN_RESULTS_MIGRATION_SQL = `
@@ -480,6 +540,8 @@ export const MYSQL_MIGRATIONS = [
   COLLECTIONS_MIGRATION_SQL,
   ENVIRONMENTS_MIGRATION_SQL,
   SNIPPETS_MIGRATION_SQL,
+  LIVE_SERVERS_MIGRATION_SQL,
+  LIVE_PAGES_MIGRATION_SQL,
   FOLDERS_MIGRATION_SQL,
   REQUESTS_MIGRATION_SQL,
   DOCUMENTS_MIGRATION_SQL,
@@ -502,6 +564,9 @@ export const MYSQL_MIGRATIONS = [
   ENVIRONMENTS_DELETION_LOCKED_MIGRATION_SQL,
   USERS_SNIPPET_ACCESS_MIGRATION_SQL,
   USERS_SNIPPET_ACCESS_BACKFILL_SQL,
+  USERS_LIVE_SERVER_ACCESS_MIGRATION_SQL,
+  USERS_LIVE_PAGE_ACCESS_MIGRATION_SQL,
+  USERS_LIVE_ENTITY_ACCESS_BACKFILL_SQL,
   RUN_RESULTS_MIGRATION_SQL,
   USER_INVITATIONS_MIGRATION_SQL,
   ...MARKER_MIGRATIONS_SQL,

@@ -603,6 +603,16 @@ function deleteWebsite(id: number): Promise<Website[]> {
 }
 
 /**
+ * Moves a live page to another storage provider and returns the refreshed list.
+ *
+ * @param id - Live page id.
+ * @param targetConnectionId - Destination storage connection id.
+ */
+function moveWebsite(id: number, targetConnectionId: string): Promise<Website[]> {
+  return ipcRenderer.invoke('websites:move', id, targetConnectionId);
+}
+
+/**
  * Starts a live server instance via IPC.
  *
  * @param input - Runtime id (optional), saved id, and server config.
@@ -660,6 +670,26 @@ function updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer[]> {
  */
 function deleteLiveServer(id: number): Promise<LiveServer[]> {
   return ipcRenderer.invoke('liveServers:delete', id);
+}
+
+/**
+ * Moves a saved live server to another storage provider and returns the refreshed list.
+ *
+ * @param id - Live server id.
+ * @param targetConnectionId - Destination storage connection id.
+ */
+function moveLiveServer(id: number, targetConnectionId: string): Promise<LiveServer[]> {
+  return ipcRenderer.invoke('liveServers:move', id, targetConnectionId);
+}
+
+/**
+ * Persists only the machine-local last opened path for a saved live server.
+ *
+ * @param id - Live server id.
+ * @param path - Last path opened within the server origin.
+ */
+function setLiveServerLastOpenedPath(id: number, path: string | null): Promise<void> {
+  return ipcRenderer.invoke('liveServers:setLastOpenedPath', id, path);
 }
 
 /**
@@ -3966,6 +3996,16 @@ function selectSslFile(defaultPath?: string): Promise<string | null> {
 }
 
 /**
+ * Opens a single-file picker filtered for HTML files (error pages, etc.).
+ *
+ * @param defaultPath - Optional initial path shown in the dialog.
+ * @returns Selected absolute file path, or null when canceled.
+ */
+function selectFile(defaultPath?: string): Promise<string | null> {
+  return ipcRenderer.invoke('dialog:openFile', defaultPath ?? '');
+}
+
+/**
  * Opens a native directory picker via IPC.
  *
  * @param defaultPath - Initial directory shown in the dialog, if any.
@@ -4933,6 +4973,7 @@ const api: Api = {
   createWebsite,
   updateWebsite,
   deleteWebsite,
+  moveWebsite,
   startLiveServer,
   stopLiveServer,
   listRunningLiveServers,
@@ -4940,6 +4981,8 @@ const api: Api = {
   createLiveServer,
   updateLiveServer,
   deleteLiveServer,
+  moveLiveServer,
+  setLiveServerLastOpenedPath,
   getLiveServerLogs,
   clearLiveServerLogs,
   listLiveServerLogSessions,
@@ -5246,6 +5289,7 @@ const api: Api = {
   confirmClose,
   selectFiles,
   selectSslFile,
+  selectFile,
   selectDirectory,
   selectSaveFile,
   openPath,

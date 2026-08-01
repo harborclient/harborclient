@@ -10,6 +10,8 @@ import { registerInvitationRoutes } from '#/server/routes/invitations.js';
 import { registerCollectionRoutes } from '#/server/routes/collections.js';
 import { registerEnvironmentRoutes } from '#/server/routes/environments.js';
 import { registerSnippetRoutes } from '#/server/routes/snippets.js';
+import { registerLiveServerRoutes } from '#/server/routes/liveServers.js';
+import { registerLivePageRoutes } from '#/server/routes/livePages.js';
 import { registerFolderRoutes } from '#/server/routes/folders.js';
 import { registerDocumentRoutes } from '#/server/routes/documents.js';
 import { registerHealthRoute } from '#/server/routes/health.js';
@@ -101,6 +103,8 @@ export async function registerProtectedRoutes(
   await registerCollectionRoutes(app, options.db);
   await registerEnvironmentRoutes(app, options.db);
   await registerSnippetRoutes(app, options.db);
+  await registerLiveServerRoutes(app, options.db);
+  await registerLivePageRoutes(app, options.db);
   await registerFolderRoutes(app, options.db);
   await registerRequestRoutes(app, options.db);
   await registerDocumentRoutes(app, options.db);

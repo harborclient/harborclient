@@ -3,6 +3,7 @@ import type {
   CollectionDocument,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerErrorPage,
   LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
@@ -356,6 +357,11 @@ export interface LiveServerModalState {
   savedId: number | null;
 
   /**
+   * Storage provider selected for the saved configuration.
+   */
+  connectionId: string;
+
+  /**
    * Display name for the server.
    */
   name: string;
@@ -429,6 +435,11 @@ export interface LiveServerModalState {
    * Path routing rules edited on the Routing tab (ordered; first match wins).
    */
   routes: LiveServerRoute[];
+
+  /**
+   * Custom error-page mappings edited on the Routing tab.
+   */
+  errorPages: LiveServerErrorPage[];
 
   /**
    * Reverse-proxy rules edited on the Proxy tab (ordered; first match wins).
@@ -580,6 +591,7 @@ const modalsSlice = createSlice({
       action: PayloadAction<{
         mode: LiveServerModalMode;
         savedId?: number | null;
+        connectionId?: string;
         name?: string;
         root?: string;
         port?: number | null;
@@ -603,6 +615,10 @@ const modalsSlice = createSlice({
          * Path routing rules, or omit for an empty list.
          */
         routes?: LiveServerRoute[];
+        /**
+         * Custom error-page mappings, or omit for an empty list.
+         */
+        errorPages?: LiveServerErrorPage[];
         /**
          * Reverse-proxy rules, or omit for an empty list.
          */
@@ -641,6 +657,7 @@ const modalsSlice = createSlice({
         mode: action.payload.mode,
         tab: 'general',
         savedId: action.payload.savedId ?? null,
+        connectionId: action.payload.connectionId ?? '',
         name: action.payload.name ?? '',
         root: action.payload.root ?? '',
         port,
@@ -655,6 +672,7 @@ const modalsSlice = createSlice({
         host: action.payload.host ?? '127.0.0.1',
         headers: normalizeLiveServerHeaders(action.payload.headers),
         routes: action.payload.routes ?? [],
+        errorPages: action.payload.errorPages ?? [],
         proxies: action.payload.proxies ?? [],
         ssl: normalizeLiveServerSslSettings(action.payload.ssl),
         runCommand: action.payload.runCommand?.trim() ?? '',
@@ -686,6 +704,14 @@ const modalsSlice = createSlice({
     setLiveServerModalName(state, action: PayloadAction<string>) {
       if (state.liveServerModal) {
         state.liveServerModal.name = action.payload;
+      }
+    },
+    /**
+     * Updates the selected live-server storage provider.
+     */
+    setLiveServerModalConnectionId(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.connectionId = action.payload;
       }
     },
     /**
@@ -798,6 +824,14 @@ const modalsSlice = createSlice({
     setLiveServerModalRoutes(state, action: PayloadAction<LiveServerRoute[]>) {
       if (state.liveServerModal) {
         state.liveServerModal.routes = action.payload;
+      }
+    },
+    /**
+     * Replaces the error-page mappings in the live server editor draft.
+     */
+    setLiveServerModalErrorPages(state, action: PayloadAction<LiveServerErrorPage[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.errorPages = action.payload;
       }
     },
     /**
@@ -1553,6 +1587,7 @@ export const {
   closeLiveServerModal,
   setLiveServerModalTab,
   setLiveServerModalName,
+  setLiveServerModalConnectionId,
   setLiveServerModalUrlVariable,
   setLiveServerModalRoot,
   setLiveServerModalPort,
@@ -1567,6 +1602,7 @@ export const {
   setLiveServerModalHost,
   setLiveServerModalHeaders,
   setLiveServerModalRoutes,
+  setLiveServerModalErrorPages,
   setLiveServerModalProxies,
   setLiveServerModalSsl,
   setLiveServerModalRunCommand,

@@ -6,6 +6,8 @@ import type {
   EnvironmentRecord,
   FolderRecord,
   InvitationRecord,
+  LivePageRecord,
+  LiveServerRecord,
   SnippetRecord,
   LlmUsageRecord,
   LlmUsageLogRecord,
@@ -20,6 +22,7 @@ import type {
   FirestoreCollectionDocument,
   FirestoreEnvironmentDocument,
   FirestoreInvitationDocument,
+  FirestorePayloadEntityDocument,
   FirestoreSnippetDocument,
   FirestoreFolderDocument,
   FirestoreLlmUsageDocument,
@@ -46,6 +49,8 @@ function parseAuditEntityType(value: string): AuditEntityType {
     value === 'collection' ||
     value === 'environment' ||
     value === 'snippet' ||
+    value === 'live_server' ||
+    value === 'live_page' ||
     value === 'folder' ||
     value === 'request' ||
     value === 'document' ||
@@ -123,6 +128,8 @@ export function mapFirestoreUser(id: string, data: FirestoreUserDocument): UserR
     collectionAccess: data.collectionAccess,
     environmentAccess: data.environmentAccess,
     snippetAccess: data.snippetAccess ?? [],
+    liveServerAccess: data.liveServerAccess ?? [],
+    livePageAccess: data.livePageAccess ?? [],
     llmAccess: data.llmAccess ?? false,
     llmModels: data.llmModels ?? [],
     llmMonthlyTokenLimit: data.llmMonthlyTokenLimit ?? null,
@@ -247,6 +254,57 @@ export function mapFirestoreSnippet(id: string, data: FirestoreSnippetDocument):
     code: data.code,
     scope: data.scope,
     sortOrder: data.sortOrder,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt ?? data.createdAt,
+    createdByUserId: data.createdByUserId ?? null,
+    updatedByUserId: data.updatedByUserId ?? null,
+    deletionLocked: data.deletionLocked ?? false
+  };
+}
+
+/**
+ * Maps a Firestore live server document to its shared record.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored live server fields.
+ * @returns Normalized live server record.
+ */
+export function mapFirestoreLiveServer(
+  id: string,
+  data: FirestorePayloadEntityDocument
+): LiveServerRecord {
+  return mapFirestorePayloadEntity(id, data);
+}
+
+/**
+ * Maps a Firestore live page document to its shared record.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored live page fields.
+ * @returns Normalized live page record.
+ */
+export function mapFirestoreLivePage(
+  id: string,
+  data: FirestorePayloadEntityDocument
+): LivePageRecord {
+  return mapFirestorePayloadEntity(id, data);
+}
+
+/**
+ * Maps common Firestore payload entity fields.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored payload entity fields.
+ * @returns Normalized payload entity record.
+ */
+function mapFirestorePayloadEntity(
+  id: string,
+  data: FirestorePayloadEntityDocument
+): LiveServerRecord {
+  return {
+    id,
+    name: data.name,
+    payload: data.payload ?? {},
     createdAt: data.createdAt,
     updatedAt: data.updatedAt ?? data.createdAt,
     createdByUserId: data.createdByUserId ?? null,

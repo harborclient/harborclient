@@ -72,6 +72,32 @@ CREATE TABLE IF NOT EXISTS snippets (
 `.trim();
 
 /**
+ * DDL for provider-routed live server and live page entities.
+ */
+export const LIVE_ENTITIES_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS live_servers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  deletion_locked BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE TABLE IF NOT EXISTS live_pages (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  deletion_locked BOOLEAN NOT NULL DEFAULT FALSE
+);
+`.trim();
+
+/**
  * DDL for creating the folders table when absent.
  */
 export const FOLDERS_MIGRATION_SQL = `
@@ -149,6 +175,8 @@ CREATE TABLE IF NOT EXISTS users (
   collection_access TEXT NOT NULL DEFAULT '[]',
   environment_access TEXT NOT NULL DEFAULT '[]',
   snippet_access TEXT NOT NULL DEFAULT '[]',
+  live_server_access TEXT NOT NULL DEFAULT '[]',
+  live_page_access TEXT NOT NULL DEFAULT '[]',
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -353,6 +381,16 @@ WHERE role = 'user'
 `.trim();
 
 /**
+ * Adds live entity access columns and grants them to existing wildcard users.
+ */
+export const USERS_LIVE_ENTITY_ACCESS_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS live_server_access TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS live_page_access TEXT NOT NULL DEFAULT '[]';
+UPDATE users SET live_server_access = '["*"]', live_page_access = '["*"]'
+WHERE role = 'user' AND collection_access LIKE '%"*"%';
+`.trim();
+
+/**
  * DDL for creating the run_results table when absent.
  */
 export const RUN_RESULTS_MIGRATION_SQL = `
@@ -469,6 +507,7 @@ export const POSTGRES_MIGRATIONS = [
   COLLECTIONS_MIGRATION_SQL,
   ENVIRONMENTS_MIGRATION_SQL,
   SNIPPETS_MIGRATION_SQL,
+  LIVE_ENTITIES_MIGRATION_SQL,
   FOLDERS_MIGRATION_SQL,
   REQUESTS_MIGRATION_SQL,
   DOCUMENTS_MIGRATION_SQL,
@@ -491,6 +530,7 @@ export const POSTGRES_MIGRATIONS = [
   ENVIRONMENTS_DELETION_LOCKED_MIGRATION_SQL,
   USERS_SNIPPET_ACCESS_MIGRATION_SQL,
   USERS_SNIPPET_ACCESS_BACKFILL_SQL,
+  USERS_LIVE_ENTITY_ACCESS_MIGRATION_SQL,
   RUN_RESULTS_MIGRATION_SQL,
   USER_INVITATIONS_MIGRATION_SQL,
   COLLECTIONS_MARKER_MIGRATION_SQL,

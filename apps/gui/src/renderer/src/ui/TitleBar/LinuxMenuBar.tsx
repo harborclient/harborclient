@@ -40,7 +40,7 @@ export function LinuxMenuBar(): JSX.Element {
     if (!activeBrowserTab || !hasBrowserGuest(activeBrowserTab.tabId)) {
       return;
     }
-    await coverBrowserGuestForOverlay(activeBrowserTab.tabId);
+    await coverBrowserGuestForOverlay(activeBrowserTab.tabId, 'linux-menu');
   }, [activeBrowserTab]);
 
   /**
@@ -73,7 +73,7 @@ export function LinuxMenuBar(): JSX.Element {
    */
   const closeSubmenu = useCallback((): void => {
     setOpenMenu(null);
-    void uncoverBrowserGuest();
+    void uncoverBrowserGuest('linux-menu');
   }, []);
 
   return (

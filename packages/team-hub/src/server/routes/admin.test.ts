@@ -119,7 +119,9 @@ describe('GET /admin/users', () => {
       role: 'admin' as const,
       collectionAccess: [],
       environmentAccess: [],
-      snippetAccess: []
+      snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: []
     };
     const systemUser = {
       ...sampleUserRecord,
@@ -128,7 +130,9 @@ describe('GET /admin/users', () => {
       role: 'admin' as const,
       collectionAccess: [],
       environmentAccess: [],
-      snippetAccess: []
+      snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: []
     };
     const listedUser = {
       ...sampleUserRecord,
@@ -220,7 +224,9 @@ describe('GET /admin/users', () => {
       role: 'admin' as const,
       collectionAccess: [],
       environmentAccess: [],
-      snippetAccess: []
+      snippetAccess: [],
+      liveServerAccess: [],
+      livePageAccess: []
     };
     const listedUser = {
       ...sampleUserRecord,
@@ -252,6 +258,8 @@ describe('GET /admin/users', () => {
           collectionAccess: [],
           environmentAccess: [],
           snippetAccess: [],
+          liveServerAccess: [],
+          livePageAccess: [],
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
@@ -266,6 +274,8 @@ describe('GET /admin/users', () => {
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*'],
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,

@@ -12,6 +12,8 @@ const sampleUser: UserRecord = {
   collectionAccess: ['*'],
   environmentAccess: ['*'],
   snippetAccess: ['*'],
+  liveServerAccess: ['*'],
+  livePageAccess: ['*'],
   llmAccess: false,
   llmModels: [],
   llmMonthlyTokenLimit: null,

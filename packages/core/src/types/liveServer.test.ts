@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest';
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
+  defaultLiveServerErrorPages,
   defaultLiveServerProxies,
   defaultLiveServerRoutes,
   defaultLiveServerSslSettings,
   isLiveServerLoopbackHost,
+  isValidLiveServerErrorPageCode,
   isValidLiveServerProxyTarget,
   joinLiveServerOriginPath,
   liveServerOpenedPathFromUrl,
+  matchLiveServerErrorPage,
   normalizeLiveServerConfigFields,
   normalizeLiveServerCorsSettings,
   toLiveServerConfig,
+  normalizeLiveServerErrorPages,
   normalizeLiveServerHeaders,
   normalizeLiveServerHost,
   normalizeLiveServerIndexFiles,
@@ -234,6 +238,47 @@ describe('normalizeLiveServerRoutes', () => {
   });
 });
 
+describe('normalizeLiveServerErrorPages / matchLiveServerErrorPage', () => {
+  it('validates code formats and drops invalid rows', () => {
+    expect(isValidLiveServerErrorPageCode('404')).toBe(true);
+    expect(isValidLiveServerErrorPageCode('40x')).toBe(true);
+    expect(isValidLiveServerErrorPageCode('4XX')).toBe(true);
+    expect(isValidLiveServerErrorPageCode('4x')).toBe(false);
+    expect(isValidLiveServerErrorPageCode('999')).toBe(false);
+    expect(normalizeLiveServerErrorPages(undefined)).toEqual([]);
+    expect(defaultLiveServerErrorPages()).toEqual([]);
+    expect(
+      normalizeLiveServerErrorPages([
+        null,
+        { code: '404', path: '' },
+        { code: 'bad', path: '404.html' },
+        { code: '  40X  ', path: '  errors/40x.html  ' },
+        { code: '4xx', path: 'errors/4xx.html', enabled: false },
+        { code: '502', path: '502.html' }
+      ])
+    ).toEqual([
+      { code: '40x', path: 'errors/40x.html', enabled: true },
+      { code: '4xx', path: 'errors/4xx.html', enabled: false },
+      { code: '502', path: '502.html', enabled: true }
+    ]);
+  });
+
+  it('prefers exact over decade over class, and ignores status below 400', () => {
+    const pages = normalizeLiveServerErrorPages([
+      { code: '4xx', path: '4xx.html' },
+      { code: '40x', path: '40x.html' },
+      { code: '404', path: '404.html' },
+      { code: '50x', path: '50x.html' }
+    ]);
+    expect(matchLiveServerErrorPage(404, pages)?.path).toBe('404.html');
+    expect(matchLiveServerErrorPage(403, pages)?.path).toBe('40x.html');
+    expect(matchLiveServerErrorPage(418, pages)?.path).toBe('4xx.html');
+    expect(matchLiveServerErrorPage(502, pages)?.path).toBe('50x.html');
+    expect(matchLiveServerErrorPage(200, pages)).toBeNull();
+    expect(matchLiveServerErrorPage(399, pages)).toBeNull();
+  });
+});
+
 describe('normalizeLiveServerProxyPath / isValidLiveServerProxyTarget', () => {
   it('normalizes prefixes, accepts catch-all / and *, and rejects empty paths', () => {
     expect(normalizeLiveServerProxyPath(undefined)).toBeNull();
@@ -327,6 +372,7 @@ describe('normalizeLiveServerConfigFields', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      errorPages: [],
       proxies: [],
       ssl: defaultLiveServerSslSettings(),
       runCommand: '',
@@ -348,6 +394,7 @@ describe('normalizeLiveServerConfigFields', () => {
         host: '0.0.0.0',
         headers: [{ name: 'COOP', value: 'same-origin' }],
         routes: [{ match: '*', target: 'index.html' }],
+        errorPages: [{ code: '404', path: '404.html' }],
         proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }],
         ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
         runCommand: '  /usr/bin/node ./server.js  ',
@@ -363,6 +410,7 @@ describe('normalizeLiveServerConfigFields', () => {
       host: '0.0.0.0',
       headers: [{ name: 'COOP', value: 'same-origin', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      errorPages: [{ code: '404', path: '404.html', enabled: true }],
       proxies: [
         {
           path: '/api',

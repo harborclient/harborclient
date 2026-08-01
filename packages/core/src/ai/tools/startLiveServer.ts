@@ -92,6 +92,11 @@ export interface StartLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Custom error-page mappings (ad-hoc only).
+   */
+  errorPages?: Array<{ code: string; path: string; enabled?: boolean }>;
+
+  /**
    * Reverse-proxy rules (ad-hoc only).
    */
   proxies?: Array<{
@@ -157,6 +162,7 @@ export interface StartLiveServerToolArgs {
  * @param {string} [host] - Listen bind host (ad-hoc).
  * @param {object[]} [headers] - Custom response headers (ad-hoc).
  * @param {object[]} [routes] - Path routing rules (ad-hoc).
+ * @param {object[]} [errorPages] - Custom HTML error pages for status ≥ 400 (ad-hoc).
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules (ad-hoc).
  * @param {object} [ssl] - HTTPS cert/key paths (ad-hoc).
  * @param {string} [runCommand] - Companion process command (ad-hoc).
@@ -171,7 +177,7 @@ export const startLiveServerTool = {
     function: {
       name: 'start_live_server',
       description:
-        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Ad-hoc starts accept openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl (cert/key file paths), runCommand, restartOnCrash, and urlVariable. Returns runtime id, port, and origin (loopback-friendly when bound to 0.0.0.0). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
+        'Starts a live server from a savedId or an ad-hoc config (root required without savedId). Ad-hoc starts accept openPath, rememberLastUrl, indexFiles, host, headers, routes, errorPages, proxies, ssl (cert/key file paths), runCommand, restartOnCrash, and urlVariable. Returns runtime id, port, and origin (loopback-friendly when bound to 0.0.0.0). Only call when the user explicitly asks to start a live server. openBrowser defaults to true; pass false to skip opening a browser tab. Config changes on a running server require stop then start.',
       parameters: {
         type: 'object',
         properties: {

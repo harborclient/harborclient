@@ -2,9 +2,11 @@ import { z } from 'zod';
 import type { ITool } from './ITool';
 import {
   LIVE_SERVER_ALIAS_SCHEMA,
+  LIVE_SERVER_CONNECTION_ID_SCHEMA,
   LIVE_SERVER_CORS_SCHEMA,
   LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES,
   liveServerAliasShape,
+  liveServerConnectionIdShape,
   liveServerCorsShape,
   liveServerExpandedConfigShape
 } from './liveServerSchemas';
@@ -13,6 +15,11 @@ import {
  * Arguments for the update_live_server tool.
  */
 export interface UpdateLiveServerToolArgs {
+  /**
+   * Storage connection that should own the saved server after the update.
+   */
+  connectionId?: string;
+
   /**
    * Database primary key of the server to update.
    */
@@ -92,6 +99,11 @@ export interface UpdateLiveServerToolArgs {
   routes?: Array<{ match: string; target: string; enabled?: boolean }>;
 
   /**
+   * Custom error-page mappings. When omitted, the existing value is kept.
+   */
+  errorPages?: Array<{ code: string; path: string; enabled?: boolean }>;
+
+  /**
    * Reverse-proxy rules. When omitted, the existing value is kept.
    */
   proxies?: Array<{
@@ -139,6 +151,7 @@ export interface UpdateLiveServerToolArgs {
 /**
  * Updates a saved live server in the local registry.
  *
+ * @param {string} [connectionId] - Storage connection to move the saved server to.
  * @param {number} id - Database primary key of the server to update.
  * @param {string} name - Display name for the saved server.
  * @param {string} root - Absolute document root path.
@@ -152,6 +165,7 @@ export interface UpdateLiveServerToolArgs {
  * @param {string} [host] - Listen bind host.
  * @param {object[]} [headers] - Custom response headers.
  * @param {object[]} [routes] - Path routing / SPA fallback rules.
+ * @param {object[]} [errorPages] - Custom HTML error pages for status ≥ 400.
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
  * @param {string} [runCommand] - Companion process command.
@@ -165,10 +179,11 @@ export const updateLiveServerTool = {
     function: {
       name: 'update_live_server',
       description:
-        'Updates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable). Expanded fields (openPath, host, headers, routes, proxies, ssl, runCommand, restartOnCrash, urlVariable, …) are optional — omit them to keep existing values. Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server. lastOpenedPath is not set by this tool.',
+        'Updates a saved live server config (name, root, port, aliases, watch, cors, openPath, rememberLastUrl, indexFiles, host, headers, routes, errorPages, proxies, ssl, runCommand, restartOnCrash, urlVariable). connectionId optionally moves it to another storage provider. Expanded fields (openPath, host, headers, routes, errorPages, proxies, ssl, runCommand, restartOnCrash, urlVariable, …) are optional — omit them to keep existing values. Persists immediately but does not restart a running instance — call stop_live_server then start_live_server when the user wants the new config applied. Only call when the user explicitly asks to change a live server. lastOpenedPath is not set by this tool.',
       parameters: {
         type: 'object',
         properties: {
+          connectionId: LIVE_SERVER_CONNECTION_ID_SCHEMA,
           id: {
             type: 'number',
             description: 'Database primary key of the server to update.'
@@ -203,6 +218,7 @@ export const updateLiveServerTool = {
     }
   },
   inputShape: {
+    connectionId: liveServerConnectionIdShape.optional(),
     id: z.number(),
     name: z.string(),
     root: z.string(),

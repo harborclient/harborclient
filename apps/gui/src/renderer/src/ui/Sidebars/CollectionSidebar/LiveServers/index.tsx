@@ -2,6 +2,7 @@ import {
   EmptySectionLabel,
   FaIcon,
   RowActionsMenu,
+  SidebarBadge,
   SidebarItem,
   SidebarStatusDot,
   SIDEBAR_ITEM_BUTTON_CLASS
@@ -42,6 +43,7 @@ import {
   sortSidebarItems,
   toSortTimestamp
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
+import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
 
 /** Delay before single-click starts/opens a server so double-click can open settings instead. */
 const LIVE_SERVER_OPEN_CLICK_DELAY_MS = 250;
@@ -55,7 +57,8 @@ export function LiveServers(): JSX.Element {
   const { aiAvailable, copyToChat } = useCopyToChat();
   const allSaved = useAppSelector(selectSavedLiveServers);
   const running = useAppSelector(selectRunningLiveServers);
-  const { sectionSort } = useSidebarExpansion();
+  const { sectionSort, showStorageLocationBadges } = useSidebarExpansion();
+  const { primaryConnectionId, connectionNamesById } = useSidebarProviders();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const openClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sortMode = sectionSort.liveServers;
@@ -129,6 +132,7 @@ export function LiveServers(): JSX.Element {
               host: server.host,
               headers: server.headers,
               routes: server.routes,
+              errorPages: server.errorPages,
               proxies: server.proxies,
               ssl: server.ssl,
               runCommand: server.runCommand,
@@ -189,6 +193,7 @@ export function LiveServers(): JSX.Element {
         openLiveServerEditor({
           mode: 'edit',
           savedId: server.id,
+          connectionId: server.connectionId,
           name: server.name,
           root: server.root,
           port: server.port,
@@ -203,6 +208,7 @@ export function LiveServers(): JSX.Element {
           host: server.host,
           headers: server.headers,
           routes: server.routes,
+          errorPages: server.errorPages,
           proxies: server.proxies,
           ssl: server.ssl,
           runCommand: server.runCommand,
@@ -288,6 +294,7 @@ export function LiveServers(): JSX.Element {
               host: server.host,
               headers: server.headers,
               routes: server.routes,
+              errorPages: server.errorPages,
               proxies: server.proxies,
               ssl: server.ssl,
               runCommand: server.runCommand,
@@ -342,6 +349,7 @@ export function LiveServers(): JSX.Element {
             : 'auto port';
         const subtitle = `${server.root} · ${portLabel}`;
         const statusLabel = isRunning ? 'Running' : 'Stopped';
+        const connectionName = connectionNamesById[server.connectionId ?? primaryConnectionId];
 
         /**
          * Starts or opens the server when Enter is pressed on the row.
@@ -476,6 +484,11 @@ export function LiveServers(): JSX.Element {
               <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
               <span className="flex min-w-0 flex-1 items-baseline gap-2">
                 <span className="min-w-0 shrink truncate">{server.name}</span>
+                {showStorageLocationBadges && connectionName ? (
+                  <SidebarBadge variant="info" title={`Stored in ${connectionName}`}>
+                    {connectionName}
+                  </SidebarBadge>
+                ) : null}
                 <span className="min-w-0 flex-1 truncate text-[14px] text-muted">{subtitle}</span>
               </span>
               <SidebarStatusDot

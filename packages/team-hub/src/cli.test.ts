@@ -67,6 +67,8 @@ function createMockDatabase(): IDatabase {
     collectionAccess: ['*'],
     environmentAccess: ['*'],
     snippetAccess: ['*'],
+    liveServerAccess: ['*'],
+    livePageAccess: ['*'],
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
@@ -82,6 +84,8 @@ function createMockDatabase(): IDatabase {
     collectionAccess: ['*'],
     environmentAccess: ['*'],
     snippetAccess: ['*'],
+    liveServerAccess: ['*'],
+    livePageAccess: ['*'],
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
@@ -94,6 +98,8 @@ function createMockDatabase(): IDatabase {
   db.listCollections.mockResolvedValue([]);
   db.listEnvironments.mockResolvedValue([]);
   db.listSnippets.mockResolvedValue([]);
+  db.listLiveServers.mockResolvedValue([]);
+  db.listLivePages.mockResolvedValue([]);
   db.updateUser.mockResolvedValue({
     id: 'user-1',
     name: 'Alice',
@@ -101,6 +107,8 @@ function createMockDatabase(): IDatabase {
     collectionAccess: ['*'],
     environmentAccess: ['*'],
     snippetAccess: ['*'],
+    liveServerAccess: ['*'],
+    livePageAccess: ['*'],
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,

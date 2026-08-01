@@ -50,6 +50,7 @@ function configFromSaved(server: LiveServer): LiveServerConfig {
     host: server.host,
     headers: server.headers,
     routes: server.routes,
+    errorPages: server.errorPages,
     proxies: server.proxies,
     ssl: server.ssl,
     runCommand: server.runCommand,
@@ -117,6 +118,7 @@ async function resolveStartInput(input: StartLiveServerInput): Promise<{
       host: input.config.host,
       headers: input.config.headers,
       routes: input.config.routes,
+      errorPages: input.config.errorPages,
       proxies: input.config.proxies,
       ssl: input.config.ssl,
       runCommand: input.config.runCommand,
@@ -211,7 +213,17 @@ export async function createLiveServerForPlugin(input: CreateLiveServerInput): P
  * @returns The updated saved server.
  */
 export async function updateLiveServerForPlugin(input: UpdateLiveServerInput): Promise<LiveServer> {
-  const items = await window.api.updateLiveServer(input);
+  const { connectionId, ...updateInput } = input;
+  const targetConnectionId = connectionId?.trim();
+  if (targetConnectionId) {
+    const saved = (await window.api.listLiveServers()).find((server) => server.id === input.id);
+    const currentConnectionId = saved?.connectionId ?? (await window.api.getActiveStorageId());
+    if (targetConnectionId !== currentConnectionId) {
+      await window.api.moveLiveServer(input.id, targetConnectionId);
+    }
+  }
+
+  const items = await window.api.updateLiveServer(updateInput);
   store.dispatch(setSavedLiveServers(items));
   const updated = items.find((server) => server.id === input.id);
   if (updated == null) {

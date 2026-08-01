@@ -6,6 +6,8 @@ import type {
   CreateDocumentInput,
   CreateEnvironmentInput,
   CreateFolderInput,
+  CreateLivePageInput,
+  CreateLiveServerInput,
   CreateRequestInput,
   CreateRunResultInput,
   CreateSnippetInput,
@@ -14,6 +16,8 @@ import type {
   FolderRecord,
   HealthResponse,
   HubUserRecord,
+  LivePageRecord,
+  LiveServerRecord,
   MoveDocumentInput,
   MoveFolderInput,
   MoveRequestInput,
@@ -32,6 +36,8 @@ import type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateLivePageInput,
+  UpdateLiveServerInput,
   CreateHubUserInput,
   CreateInvitedHubUserInput,
   CreateUserInvitationInput,
@@ -399,6 +405,60 @@ export interface ITeamHubClient {
    * @param id - Snippet UUID.
    */
   deleteSnippet(id: string): Promise<void>;
+
+  /**
+   * Lists all live servers visible to the authenticated token.
+   */
+  listLiveServers(): Promise<LiveServerRecord[]>;
+
+  /**
+   * Creates a live server.
+   *
+   * @param input - Complete mutable live server configuration.
+   */
+  createLiveServer(input: CreateLiveServerInput): Promise<LiveServerRecord>;
+
+  /**
+   * Replaces a live server's mutable configuration.
+   *
+   * @param id - Live server UUID.
+   * @param input - Complete replacement configuration.
+   */
+  updateLiveServer(id: string, input: UpdateLiveServerInput): Promise<LiveServerRecord>;
+
+  /**
+   * Deletes a live server by id.
+   *
+   * @param id - Live server UUID.
+   */
+  deleteLiveServer(id: string): Promise<void>;
+
+  /**
+   * Lists all live pages visible to the authenticated token.
+   */
+  listLivePages(): Promise<LivePageRecord[]>;
+
+  /**
+   * Creates a live page.
+   *
+   * @param input - Complete mutable live page configuration.
+   */
+  createLivePage(input: CreateLivePageInput): Promise<LivePageRecord>;
+
+  /**
+   * Replaces a live page's mutable configuration.
+   *
+   * @param id - Live page UUID.
+   * @param input - Complete replacement configuration.
+   */
+  updateLivePage(id: string, input: UpdateLivePageInput): Promise<LivePageRecord>;
+
+  /**
+   * Deletes a live page by id.
+   *
+   * @param id - Live page UUID.
+   */
+  deleteLivePage(id: string): Promise<void>;
 
   /**
    * Lists run results saved by the authenticated user token.

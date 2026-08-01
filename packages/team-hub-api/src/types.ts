@@ -158,6 +158,16 @@ export interface HubUserRecord {
   snippetAccess: string[];
 
   /**
+   * Live server ids the user may access, or `['*']` for all live servers.
+   */
+  liveServerAccess: string[];
+
+  /**
+   * Live page ids the user may access, or `['*']` for all live pages.
+   */
+  livePageAccess: string[];
+
+  /**
    * When true, the user may call hub-proxied LLM routes.
    */
   llmAccess: boolean;
@@ -318,6 +328,16 @@ export interface UpdateHubUserInput {
   snippetAccess?: string[];
 
   /**
+   * Replacement live server access list.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Replacement live page access list.
+   */
+  livePageAccess?: string[];
+
+  /**
    * Whether the user may use hub-proxied LLM routes.
    */
   llmAccess?: boolean;
@@ -361,6 +381,16 @@ export interface CreateHubUserInput {
    * Snippet access list; admins store an empty array.
    */
   snippetAccess?: string[];
+
+  /**
+   * Live server access list; admins store an empty array.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Live page access list; admins store an empty array.
+   */
+  livePageAccess?: string[];
 
   /**
    * Whether the user may use hub-proxied LLM routes.
@@ -566,6 +596,16 @@ export interface HubInvitationPreviewUser {
    * Snippet ids the invited user may access, or `['*']` for all snippets.
    */
   snippetAccess: string[];
+
+  /**
+   * Live server ids the invited user may access, or `['*']` for all live servers.
+   */
+  liveServerAccess: string[];
+
+  /**
+   * Live page ids the invited user may access, or `['*']` for all live pages.
+   */
+  livePageAccess: string[];
 
   /**
    * Whether the invited user may call hub-proxied LLM routes.
@@ -901,6 +941,269 @@ export interface UpdateSnippetInput {
    * Script phases where this snippet may be referenced.
    */
   scope: SnippetScope;
+}
+
+/**
+ * Mutable fields shared by live server create and update requests.
+ */
+export interface CreateLiveServerInput {
+  /**
+   * Display name shown in the live server list.
+   */
+  name: string;
+
+  /**
+   * Filesystem root served by the live server.
+   */
+  root: string;
+
+  /**
+   * Preferred listening port, or null for automatic selection.
+   */
+  port: number | null;
+
+  /**
+   * Additional URL paths mapped to filesystem targets.
+   */
+  aliases: Array<{ path: string; target: string }>;
+
+  /**
+   * Whether filesystem changes trigger live reloads.
+   */
+  watch: boolean;
+
+  /**
+   * Cross-origin request policy for served resources.
+   */
+  cors: {
+    enabled: boolean;
+    origin: string;
+    methods: string;
+    allowedHeaders: string;
+    exposedHeaders: string;
+    maxAge: string;
+    credentials: boolean;
+  };
+
+  /**
+   * Path opened when launching the server.
+   */
+  openPath: string;
+
+  /**
+   * Whether the configured open path launches on startup.
+   */
+  openPathOnStartup: boolean;
+
+  /**
+   * Whether to restore the most recently opened URL.
+   */
+  rememberLastUrl: boolean;
+
+  /**
+   * Most recently opened path, or null when none has been recorded.
+   */
+  lastOpenedPath: string | null;
+
+  /**
+   * Candidate index filenames checked for directory requests.
+   */
+  indexFiles: string[];
+
+  /**
+   * Network host interface used by the server.
+   */
+  host: string;
+
+  /**
+   * Response headers added by the live server.
+   */
+  headers: Array<{ name: string; value: string; enabled?: boolean }>;
+
+  /**
+   * Static path rewrite rules.
+   */
+  routes: Array<{ match: string; target: string; enabled?: boolean }>;
+
+  /**
+   * Custom files served for HTTP error status codes.
+   */
+  errorPages: Array<{ code: string; path: string; enabled?: boolean }>;
+
+  /**
+   * Reverse proxy rules applied before static file serving.
+   */
+  proxies: Array<{ path: string; target: string; stripPath?: boolean; enabled?: boolean }>;
+
+  /**
+   * TLS settings for HTTPS serving.
+   */
+  ssl: { enabled: boolean; certPath: string; keyPath: string };
+
+  /**
+   * Command launched alongside the live server.
+   */
+  runCommand: string;
+
+  /**
+   * Whether a failed companion command is restarted.
+   */
+  restartOnCrash: boolean;
+
+  /**
+   * Variable name populated with the running server URL.
+   */
+  urlVariable: string;
+
+  /**
+   * Script references executed before live server requests.
+   */
+  preRequestScripts: unknown[];
+
+  /**
+   * Script references executed after live server requests.
+   */
+  postRequestScripts: unknown[];
+}
+
+/**
+ * Request body for `PUT /live-servers/:id`.
+ */
+export type UpdateLiveServerInput = CreateLiveServerInput;
+
+/**
+ * Live server record returned by HarborClient Server entity routes.
+ */
+export interface LiveServerRecord extends CreateLiveServerInput {
+  /**
+   * Live server UUID.
+   */
+  id: string;
+
+  /**
+   * ISO 8601 timestamp when the live server was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the live server was last updated.
+   */
+  updatedAt: string;
+
+  /**
+   * User that created the live server, when known.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User that last updated the live server, when known.
+   */
+  updatedByUserId: string | null;
+
+  /**
+   * When true, non-admin users cannot delete this live server.
+   */
+  deletionLocked: boolean;
+}
+
+/**
+ * Mutable fields shared by live page create and update requests.
+ */
+export interface CreateLivePageInput {
+  /**
+   * Display name shown in the live page list.
+   */
+  name: string;
+
+  /**
+   * Current page URL.
+   */
+  url: string;
+
+  /**
+   * URL used when returning to the page home.
+   */
+  homeUrl: string;
+
+  /**
+   * Embedded favicon data URL, or null when unavailable.
+   */
+  faviconDataUrl: string | null;
+
+  /**
+   * Scripts available to the live page.
+   */
+  scripts: unknown[];
+
+  /**
+   * Script references executed before page requests.
+   */
+  preRequestScripts: unknown[];
+
+  /**
+   * Script references executed after page requests.
+   */
+  postRequestScripts: unknown[];
+
+  /**
+   * Variables available to the live page.
+   */
+  variables: unknown[];
+
+  /**
+   * Headers applied to page requests.
+   */
+  headers: unknown[];
+
+  /**
+   * Browser user-agent override.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization configuration applied to page requests.
+   */
+  auth: unknown;
+}
+
+/**
+ * Request body for `PUT /live-pages/:id`.
+ */
+export type UpdateLivePageInput = CreateLivePageInput;
+
+/**
+ * Live page record returned by HarborClient Server entity routes.
+ */
+export interface LivePageRecord extends CreateLivePageInput {
+  /**
+   * Live page UUID.
+   */
+  id: string;
+
+  /**
+   * ISO 8601 timestamp when the live page was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the live page was last updated.
+   */
+  updatedAt: string;
+
+  /**
+   * User that created the live page, when known.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User that last updated the live page, when known.
+   */
+  updatedByUserId: string | null;
+
+  /**
+   * When true, non-admin users cannot delete this live page.
+   */
+  deletionLocked: boolean;
 }
 
 /**

@@ -505,6 +505,7 @@ export async function startLiveServer(
     headers: config.headers,
     proxies: config.proxies,
     routes: config.routes,
+    errorPages: config.errorPages,
     onRequestLog: (fields) => {
       const entry: LiveServerRequestLogEntry = {
         kind: 'access',

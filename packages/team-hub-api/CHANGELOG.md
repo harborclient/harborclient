@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(live-server): enhance live server and live page management. (`fba086b7`)
+
 ## 0.4.4 - 2026-07-28
 
 - Enhance environment variable management and UI readiness. (`abab021c`)

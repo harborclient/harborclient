@@ -215,6 +215,73 @@ describeSqlite('LocalDatabase collection archive', () => {
   });
 });
 
+describeSqlite('LocalDatabase live registries', () => {
+  it('creates, lists, updates, and deletes live-server registry entries', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addLiveServerRegistryEntry({
+      id: 42,
+      name: 'Local server',
+      uuid: 'server-uuid',
+      connectionId: 'conn-a',
+      providerLiveServerId: 7
+    });
+
+    expect(entry).toMatchObject({
+      id: 42,
+      name: 'Local server',
+      uuid: 'server-uuid',
+      connectionId: 'conn-a',
+      providerLiveServerId: 7
+    });
+    expect(database.listLiveServerRegistry()).toEqual([entry]);
+
+    const updated = database.updateLiveServerRegistryEntry(entry.id, {
+      name: 'Renamed server',
+      connectionId: 'conn-b',
+      providerLiveServerId: 8
+    });
+    expect(database.getLiveServerRegistryEntry(entry.id)).toEqual(updated);
+
+    database.setLiveServerLocalLastOpenedPath(entry.uuid, '/docs/');
+    expect(database.getLiveServerLocalLastOpenedPath(entry.uuid)).toBe('/docs/');
+    database.setLiveServerLocalLastOpenedPath(entry.uuid, null);
+    expect(database.getLiveServerLocalLastOpenedPath(entry.uuid)).toBeNull();
+
+    database.deleteLiveServerRegistryEntry(entry.id);
+    expect(database.listLiveServerRegistry()).toEqual([]);
+  });
+
+  it('creates, lists, updates, and deletes live-page registry entries', async () => {
+    const { database } = await createRegistry();
+    const entry = database.addLivePageRegistryEntry({
+      id: 43,
+      name: 'Local page',
+      uuid: 'page-uuid',
+      connectionId: 'conn-a',
+      providerLivePageId: 9
+    });
+
+    expect(entry).toMatchObject({
+      id: 43,
+      name: 'Local page',
+      uuid: 'page-uuid',
+      connectionId: 'conn-a',
+      providerLivePageId: 9
+    });
+    expect(database.listLivePageRegistry()).toEqual([entry]);
+
+    const updated = database.updateLivePageRegistryEntry(entry.id, {
+      name: 'Renamed page',
+      connectionId: 'conn-b',
+      providerLivePageId: 10
+    });
+    expect(database.getLivePageRegistryEntry(entry.id)).toEqual(updated);
+
+    database.deleteLivePageRegistryEntry(entry.id);
+    expect(database.listLivePageRegistry()).toEqual([]);
+  });
+});
+
 describeSqlite('LocalDatabase environment order', () => {
   it('lists new environments by insertion order rather than name', async () => {
     const { database } = await createRegistry();
@@ -1129,6 +1196,7 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      errorPages: [],
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',
@@ -1167,6 +1235,7 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      errorPages: [{ code: '404', path: '404.html', enabled: true }],
       proxies: [
         {
           path: '/api',
@@ -1199,6 +1268,7 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      errorPages: [{ code: '404', path: '404.html', enabled: true }],
       proxies: [
         {
           path: '/api',
@@ -1269,6 +1339,7 @@ describeSqlite('LocalDatabase live servers', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      errorPages: [],
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',

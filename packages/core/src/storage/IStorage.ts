@@ -11,16 +11,22 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   Folder,
   KeyValue,
+  LiveServer,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
   Snippet,
   SourceControlStatus,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 
 /**
@@ -477,6 +483,66 @@ export interface IStorage {
    * @param id - Provider-local snippet id.
    */
   deleteSnippet(id: number): Promise<void>;
+
+  /**
+   * Lists all live servers stored in this provider ordered for display.
+   *
+   * @returns Provider-local live server records.
+   */
+  listLiveServers(): Promise<LiveServer[]>;
+
+  /**
+   * Creates a new live server in this provider.
+   *
+   * @param input - Live server fields to persist.
+   * @returns The newly created provider-local live server.
+   */
+  createLiveServer(input: CreateLiveServerInput): Promise<LiveServer>;
+
+  /**
+   * Updates a live server in this provider.
+   *
+   * @param input - Live server id and fields to persist.
+   * @returns The updated provider-local live server.
+   */
+  updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer>;
+
+  /**
+   * Deletes a live server from this provider.
+   *
+   * @param id - Provider-local live server id.
+   */
+  deleteLiveServer(id: number): Promise<void>;
+
+  /**
+   * Lists all live pages (websites) stored in this provider ordered for display.
+   *
+   * @returns Provider-local live page records.
+   */
+  listLivePages(): Promise<Website[]>;
+
+  /**
+   * Creates a new live page in this provider.
+   *
+   * @param input - Live page fields to persist.
+   * @returns The newly created provider-local live page.
+   */
+  createLivePage(input: CreateWebsiteInput): Promise<Website>;
+
+  /**
+   * Updates a live page in this provider.
+   *
+   * @param input - Live page id and fields to persist.
+   * @returns The updated provider-local live page.
+   */
+  updateLivePage(input: UpdateWebsiteInput): Promise<Website>;
+
+  /**
+   * Deletes a live page from this provider.
+   *
+   * @param id - Provider-local live page id.
+   */
+  deleteLivePage(id: number): Promise<void>;
 
   /**
    * Lists persisted run result snapshots ordered for display.

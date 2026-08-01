@@ -102,6 +102,111 @@ export interface LiveServerRoute {
 }
 
 /**
+ * One custom error-page mapping for a live server (status code → HTML file).
+ *
+ * When the server would return status ≥ 400, the first matching enabled page
+ * (exact → decade `40x` → class `4xx`) is served instead of the plaintext body.
+ */
+export interface LiveServerErrorPage {
+  /**
+   * Status pattern: exact (`404`), decade (`40x`), or class (`4xx`).
+   * The letter `x` is case-insensitive.
+   */
+  code: string;
+
+  /**
+   * HTML file path, absolute or relative to the server root.
+   */
+  path: string;
+
+  /**
+   * When false, the mapping is ignored. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
+ * Regex for a valid live-server error-page code pattern.
+ *
+ * Accepts exact three-digit codes (`404`), decade wildcards (`40x`), and class
+ * wildcards (`4xx`). The letter `x` is case-insensitive. Only 1xx–5xx ranges.
+ */
+export const LIVE_SERVER_ERROR_PAGE_CODE_PATTERN = /^(?:[1-5]\d{2}|[1-5]\d[xX]|[1-5][xX]{2})$/;
+
+/**
+ * Returns whether a string is a valid live-server error-page code pattern.
+ *
+ * @param value - Candidate code from the editor or storage.
+ * @returns True when the value matches exact / decade / class formats.
+ */
+export function isValidLiveServerErrorPageCode(value: string): boolean {
+  return LIVE_SERVER_ERROR_PAGE_CODE_PATTERN.test(value.trim());
+}
+
+/**
+ * Returns how specifically an error-page code matches a status (higher wins).
+ *
+ * Exact three-digit codes score 3, decade patterns (`40x`) score 2, class
+ * patterns (`4xx`) score 1. Non-matching or disabled patterns score 0.
+ *
+ * @param code - Normalized error-page code pattern.
+ * @param status - HTTP status code (typically ≥ 400).
+ * @returns Specificity score, or 0 when the pattern does not match.
+ */
+export function liveServerErrorPageCodeSpecificity(code: string, status: number): number {
+  if (!Number.isInteger(status) || status < 100 || status > 599) {
+    return 0;
+  }
+  const normalized = code.trim().toLowerCase();
+  if (!isValidLiveServerErrorPageCode(normalized)) {
+    return 0;
+  }
+  const statusText = String(status);
+  if (normalized.length === 3 && !normalized.includes('x')) {
+    return normalized === statusText ? 3 : 0;
+  }
+  if (normalized.length === 3 && normalized.endsWith('x') && normalized[1] !== 'x') {
+    return normalized[0] === statusText[0] && normalized[1] === statusText[1] ? 2 : 0;
+  }
+  if (normalized.length === 3 && normalized.endsWith('xx')) {
+    return normalized[0] === statusText[0] ? 1 : 0;
+  }
+  return 0;
+}
+
+/**
+ * Picks the best enabled error page for an HTTP status code.
+ *
+ * Only statuses ≥ 400 are considered. Among matching enabled rows, the most
+ * specific code wins (exact → `40x` → `4xx`); ties keep the first list entry.
+ *
+ * @param status - HTTP status about to be returned.
+ * @param pages - Normalized error-page rows.
+ * @returns Matching page, or `null` when none apply.
+ */
+export function matchLiveServerErrorPage(
+  status: number,
+  pages: LiveServerErrorPage[]
+): LiveServerErrorPage | null {
+  if (!Number.isInteger(status) || status < 400) {
+    return null;
+  }
+  let best: LiveServerErrorPage | null = null;
+  let bestScore = 0;
+  for (const page of pages) {
+    if (page.enabled === false) {
+      continue;
+    }
+    const score = liveServerErrorPageCodeSpecificity(page.code, status);
+    if (score > bestScore) {
+      best = page;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/**
  * One reverse-proxy rule for a live server (path prefix → HTTP/HTTPS upstream).
  *
  * Rules mount before aliases and document-root static. First matching enabled
@@ -500,6 +605,49 @@ export function normalizeLiveServerRoutes(value: unknown): LiveServerRoute[] {
 }
 
 /**
+ * Default error-page mappings for a new live server (none).
+ *
+ * @returns A fresh empty error-page list.
+ */
+export function defaultLiveServerErrorPages(): LiveServerErrorPage[] {
+  return [];
+}
+
+/**
+ * Normalizes an error-page list from storage or IPC.
+ *
+ * Corrupt entries, invalid codes, and rows with an empty path are dropped.
+ * Codes are trimmed and lowercased for the `x` wildcard. `enabled` defaults to
+ * true when omitted. Order is preserved for same-specificity ties.
+ *
+ * @param value - Array of error-page rows, or unknown legacy payload.
+ * @returns Normalized error-page rows (may be empty).
+ */
+export function normalizeLiveServerErrorPages(value: unknown): LiveServerErrorPage[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const pages: LiveServerErrorPage[] = [];
+  for (const entry of value) {
+    if (entry == null || typeof entry !== 'object') {
+      continue;
+    }
+    const row = entry as Partial<LiveServerErrorPage>;
+    const code = typeof row.code === 'string' ? row.code.trim().toLowerCase() : '';
+    const filePath = typeof row.path === 'string' ? row.path.trim() : '';
+    if (code === '' || filePath === '' || !isValidLiveServerErrorPageCode(code)) {
+      continue;
+    }
+    pages.push({
+      code,
+      path: filePath,
+      enabled: row.enabled !== false
+    });
+  }
+  return pages;
+}
+
+/**
  * Default reverse-proxy rules for a new live server (none).
  *
  * @returns A fresh empty proxy list.
@@ -719,6 +867,11 @@ export interface LiveServerConfigFieldInput {
   routes?: unknown;
 
   /**
+   * Status-code → HTML file mappings for custom error pages.
+   */
+  errorPages?: unknown;
+
+  /**
    * Reverse-proxy rules (path prefix → upstream).
    */
   proxies?: unknown;
@@ -800,6 +953,11 @@ export interface LiveServerConfigFields {
   routes: LiveServerRoute[];
 
   /**
+   * Status-code → HTML file mappings for custom error responses.
+   */
+  errorPages: LiveServerErrorPage[];
+
+  /**
    * Ordered reverse-proxy rules applied before static (first match wins).
    */
   proxies: LiveServerProxy[];
@@ -840,7 +998,7 @@ export interface LiveServerConfigFields {
 
 /**
  * Normalizes the expanded live-server config fields added for open path, index
- * files, bind host, response headers, routing rules, reverse proxies, SSL,
+ * files, bind host, response headers, routing rules, error pages, reverse proxies, SSL,
  * optional companion run command, URL variable, and pre/post request scripts.
  *
  * Pure and dependency-free so storage, IPC, and UI can share one code path.
@@ -862,6 +1020,7 @@ export function normalizeLiveServerConfigFields(
       host: normalizeLiveServerHost(undefined),
       headers: [],
       routes: defaultLiveServerRoutes(),
+      errorPages: defaultLiveServerErrorPages(),
       proxies: defaultLiveServerProxies(),
       ssl: defaultLiveServerSslSettings(),
       runCommand: normalizeLiveServerRunCommand(undefined),
@@ -880,6 +1039,7 @@ export function normalizeLiveServerConfigFields(
     host: normalizeLiveServerHost(value.host),
     headers: normalizeLiveServerHeaders(value.headers),
     routes: normalizeLiveServerRoutes(value.routes),
+    errorPages: normalizeLiveServerErrorPages(value.errorPages),
     proxies: normalizeLiveServerProxies(value.proxies),
     ssl: normalizeLiveServerSslSettings(
       value.ssl != null && typeof value.ssl === 'object'
@@ -975,6 +1135,11 @@ export interface LiveServerConfig {
   routes: LiveServerRoute[];
 
   /**
+   * Status-code → HTML file mappings for custom error responses.
+   */
+  errorPages: LiveServerErrorPage[];
+
+  /**
    * Ordered reverse-proxy rules applied before static (first match wins).
    */
   proxies: LiveServerProxy[];
@@ -1035,6 +1200,7 @@ export interface ToLiveServerConfigInput {
   host?: string;
   headers?: LiveServerConfig['headers'];
   routes?: LiveServerConfig['routes'];
+  errorPages?: LiveServerConfig['errorPages'];
   proxies?: LiveServerConfig['proxies'];
   ssl?: LiveServerConfig['ssl'];
   runCommand?: string;
@@ -1159,6 +1325,11 @@ export interface LiveServer {
   routes: LiveServerRoute[];
 
   /**
+   * Status-code → HTML file mappings for custom error responses.
+   */
+  errorPages: LiveServerErrorPage[];
+
+  /**
    * Ordered reverse-proxy rules applied before static (first match wins).
    */
   proxies: LiveServerProxy[];
@@ -1200,6 +1371,13 @@ export interface LiveServer {
   sortOrder: number;
 
   /**
+   * Id of the storage connection that stores this live server.
+   *
+   * Omitted for provider-local records before RoutingStorage merges registry metadata.
+   */
+  connectionId?: string;
+
+  /**
    * Unix timestamp (ms) when the row was created.
    */
   createdAt: number;
@@ -1226,6 +1404,11 @@ export interface CreateLiveServerInput {
    * Optional portable uuid; generated when omitted.
    */
   uuid?: string;
+
+  /**
+   * Optional storage connection id; defaults to the active data provider when omitted.
+   */
+  connectionId?: string;
 
   /**
    * Absolute path to the directory served as the document root.
@@ -1291,6 +1474,11 @@ export interface CreateLiveServerInput {
    * Path routing rules. Defaults to `[]`.
    */
   routes?: LiveServerRoute[];
+
+  /**
+   * Custom error-page mappings. Defaults to `[]`.
+   */
+  errorPages?: LiveServerErrorPage[];
 
   /**
    * Reverse-proxy rules. Defaults to `[]`.
@@ -1409,6 +1597,11 @@ export interface UpdateLiveServerInput {
    * Path routing rules.
    */
   routes: LiveServerRoute[];
+
+  /**
+   * Custom error-page mappings.
+   */
+  errorPages: LiveServerErrorPage[];
 
   /**
    * Reverse-proxy rules.
@@ -1852,6 +2045,11 @@ export interface LiveServerExport {
   routes?: LiveServerRoute[];
 
   /**
+   * Custom error-page mappings (status code → HTML file).
+   */
+  errorPages?: LiveServerErrorPage[];
+
+  /**
    * Reverse-proxy rules.
    */
   proxies?: LiveServerProxy[];
@@ -1903,6 +2101,12 @@ const liveServerRouteExportSchema = z.object({
   target: z.string(),
   enabled: z.boolean().optional()
 }) satisfies z.ZodType<LiveServerRoute>;
+
+const liveServerErrorPageExportSchema = z.object({
+  code: z.string(),
+  path: z.string(),
+  enabled: z.boolean().optional()
+}) satisfies z.ZodType<LiveServerErrorPage>;
 
 const liveServerProxyExportSchema = z.object({
   path: z.string(),
@@ -1973,6 +2177,7 @@ export const liveServerExportSchema = z.object({
   host: z.string().optional(),
   headers: z.array(liveServerResponseHeaderExportSchema).optional(),
   routes: z.array(liveServerRouteExportSchema).optional(),
+  errorPages: z.array(liveServerErrorPageExportSchema).optional(),
   proxies: z.array(liveServerProxyExportSchema).optional(),
   ssl: liveServerSslExportSchema.optional(),
   runCommand: z.string().optional(),
@@ -2073,6 +2278,11 @@ export interface BuildLiveServerExportInput {
   routes?: LiveServerRoute[];
 
   /**
+   * Custom error-page mappings.
+   */
+  errorPages?: LiveServerErrorPage[];
+
+  /**
    * Reverse-proxy rules.
    */
   proxies?: LiveServerProxy[];
@@ -2135,6 +2345,9 @@ export function buildLiveServerExport(input: BuildLiveServerExportInput): LiveSe
     ...(input.host != null && input.host !== '' ? { host: input.host } : {}),
     ...(input.headers != null && input.headers.length > 0 ? { headers: input.headers } : {}),
     ...(input.routes != null && input.routes.length > 0 ? { routes: input.routes } : {}),
+    ...(input.errorPages != null && input.errorPages.length > 0
+      ? { errorPages: input.errorPages }
+      : {}),
     ...(input.proxies != null && input.proxies.length > 0 ? { proxies: input.proxies } : {}),
     ...(input.ssl != null ? { ssl: input.ssl } : {}),
     ...(input.runCommand != null && input.runCommand !== ''

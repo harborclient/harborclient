@@ -92,19 +92,34 @@ export const bootstrapShellForReveal = createAsyncThunk<void, void, ThunkApiConf
 );
 
 /**
+ * Waits for storage connections to be available, then refreshes routed entity lists.
+ *
+ * Live servers, Live Pages, and snippets all fan out across configured providers,
+ * so their initial reads must not race provider connection bootstrap.
+ *
+ * @param dispatch - Redux dispatch used to refresh routed entities.
+ */
+export async function refreshRoutedStorageEntities(dispatch: AppDispatch): Promise<void> {
+  await window.api.listStorageConnections();
+  await Promise.all([
+    dispatch(refreshSnippets()),
+    dispatch(refreshWebsites()),
+    dispatch(refreshLiveServers())
+  ]);
+}
+
+/**
  * Starts non-blocking background loads that are not needed for first paint.
  *
  * @param dispatch - Redux dispatch used to kick off refresh thunks.
  */
 export function startBackgroundRefresh(dispatch: AppDispatch): void {
-  void dispatch(refreshSnippets());
+  void refreshRoutedStorageEntities(dispatch);
   void dispatch(refreshRunResults());
   void dispatch(refreshRequestHistory());
   void dispatch(refreshWorkflowRunHistory());
   void dispatch(refreshWorkspaces());
   void dispatch(refreshWorkflows());
-  void dispatch(refreshWebsites());
-  void dispatch(refreshLiveServers());
   void dispatch(refreshRunningLiveServers());
   void dispatch(refreshTrash());
 }

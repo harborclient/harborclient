@@ -63,6 +63,8 @@
     "docs:sdk:build": "pnpm --filter @harborclient/sdk docs:build",
     "docs:http:serve": "pnpm --filter @harborclient/http docs:serve",
     "docs:http:build": "pnpm --filter @harborclient/http docs:build",
+    "docs:live-server:serve": "pnpm --filter @harborclient/live-server docs:serve",
+    "docs:live-server:build": "pnpm --filter @harborclient/live-server docs:build",
     "docs:team-hub:serve": "pnpm --filter @harborclient/team-hub docs:serve",
     "docs:team-hub:build": "pnpm --filter @harborclient/team-hub docs:build",
     "docs:team-hub-api:serve": "pnpm --filter @harborclient/team-hub-api docs:serve",

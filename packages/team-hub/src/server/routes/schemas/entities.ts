@@ -6,7 +6,9 @@ import type {
   DocumentRecord,
   RunResultRecord,
   SavedRequestRecord,
-  SnippetRecord
+  SnippetRecord,
+  LivePageRecord,
+  LiveServerRecord
 } from '#/db/types.js';
 import {
   authConfigSchema,
@@ -76,6 +78,79 @@ export const snippetRecordSchema = z.object({
   createdByUserId: z.string().nullable(),
   updatedByUserId: z.string().nullable(),
   deletionLocked: z.boolean()
+});
+
+const payloadEntityMetadataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  createdByUserId: z.string().nullable(),
+  updatedByUserId: z.string().nullable(),
+  deletionLocked: z.boolean()
+});
+
+/**
+ * Flattened JSON response for a persisted live server.
+ */
+export const liveServerRecordSchema = payloadEntityMetadataSchema.catchall(z.unknown());
+
+/**
+ * Flattened JSON response for a persisted live page.
+ */
+export const livePageRecordSchema = payloadEntityMetadataSchema.catchall(z.unknown());
+
+const liveServerPayloadFields = {
+  root: z.string().optional(),
+  port: z.number().int().positive().max(65535).nullable().optional(),
+  aliases: z.unknown().optional(),
+  watch: z.boolean().optional(),
+  cors: z.unknown().optional(),
+  openPath: z.string().optional(),
+  openPathOnStartup: z.boolean().optional(),
+  rememberLastUrl: z.boolean().optional(),
+  lastOpenedPath: z.string().nullable().optional(),
+  indexFiles: z.array(z.string()).optional(),
+  host: z.string().optional(),
+  headers: z.unknown().optional(),
+  routes: z.unknown().optional(),
+  errorPages: z.unknown().optional(),
+  proxies: z.unknown().optional(),
+  ssl: z.unknown().optional(),
+  runCommand: z.string().optional(),
+  restartOnCrash: z.boolean().optional(),
+  urlVariable: z.string().optional(),
+  preRequestScripts: z.unknown().optional(),
+  postRequestScripts: z.unknown().optional()
+};
+
+/**
+ * Flattened create and replacement body for live servers.
+ */
+export const liveServerBodySchema = z.object({
+  name: z.string().trim().min(1),
+  ...liveServerPayloadFields
+});
+
+const livePagePayloadFields = {
+  url: z.string().optional(),
+  homeUrl: z.string().optional(),
+  faviconDataUrl: z.string().nullable().optional(),
+  scripts: z.unknown().optional(),
+  preRequestScripts: z.unknown().optional(),
+  postRequestScripts: z.unknown().optional(),
+  variables: z.unknown().optional(),
+  headers: z.unknown().optional(),
+  userAgent: z.string().optional(),
+  auth: z.unknown().optional()
+};
+
+/**
+ * Flattened create and replacement body for live pages.
+ */
+export const livePageBodySchema = z.object({
+  name: z.string().trim().min(1),
+  ...livePagePayloadFields
 });
 
 /**
@@ -277,6 +352,20 @@ export const listSnippetsResponseSchema = z.object({
 });
 
 /**
+ * List response wrapper for live servers.
+ */
+export const listLiveServersResponseSchema = z.object({
+  liveServers: z.array(liveServerRecordSchema)
+});
+
+/**
+ * List response wrapper for live pages.
+ */
+export const listLivePagesResponseSchema = z.object({
+  livePages: z.array(livePageRecordSchema)
+});
+
+/**
  * List response wrapper for folders.
  */
 export const listFoldersResponseSchema = z.object({
@@ -391,6 +480,56 @@ export function serializeSnippet(record: SnippetRecord) {
     ...record,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString()
+  };
+}
+
+/**
+ * Serializes and flattens a live server payload for API consumers.
+ *
+ * @param record - Live server record from storage.
+ * @returns Flattened record with ISO timestamps.
+ */
+export function serializeLiveServer(record: LiveServerRecord) {
+  return serializePayloadEntity(record);
+}
+
+/**
+ * Serializes and flattens a live page payload for API consumers.
+ *
+ * @param record - Live page record from storage.
+ * @returns Flattened record with ISO timestamps.
+ */
+export function serializeLivePage(record: LivePageRecord) {
+  return serializePayloadEntity(record);
+}
+
+/**
+ * Moves flattened body fields other than name into the persisted payload.
+ *
+ * @param body - Validated live entity request body.
+ * @returns Database input with separate name and payload.
+ */
+export function payloadEntityInput(body: { name: string } & Record<string, unknown>) {
+  const { name, ...payload } = body;
+  return { name, payload };
+}
+
+/**
+ * Flattens a stored JSON payload while protecting server-owned metadata.
+ *
+ * @param record - Persisted payload entity.
+ * @returns Flattened API response.
+ */
+function serializePayloadEntity(record: LiveServerRecord) {
+  return {
+    ...record.payload,
+    id: record.id,
+    name: record.name,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    createdByUserId: record.createdByUserId,
+    updatedByUserId: record.updatedByUserId,
+    deletionLocked: record.deletionLocked
   };
 }
 

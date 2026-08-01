@@ -4,11 +4,15 @@ import {
   createSnippetRoutingInternals,
   type SnippetRoutingInternals
 } from './SnippetMover';
+import { LiveServerMoveCoordinator, type LiveServerRoutingInternals } from './LiveServerMover';
+import { LivePageMoveCoordinator, type LivePageRoutingInternals } from './LivePageMover';
 import { createTeamHubStorage, teamHubIdMapPath } from './createTeamHubStorage';
 import { TeamHubIdMap } from './TeamHubIdMap';
 import {
   LocalDatabase,
   type CollectionRegistryEntry,
+  type LivePageRegistryEntry,
+  type LiveServerRegistryEntry,
   type SnippetRegistryEntry
 } from './LocalDatabase';
 import { MigrationManager } from './DatabaseMigrator';
@@ -23,11 +27,21 @@ import type { IStorage } from './IStorage';
 import { TeamHubStorage } from './TeamHubStorage';
 import {
   addDetachedServerId,
+  addDetachedLivePageId,
+  addDetachedLiveServerId,
   addDetachedSnippetServerId,
+  readDetachedLivePageIds,
+  readDetachedLiveServerIds,
   readDetachedServerIds,
   readDetachedSnippetServerIds,
+  removeDetachedLivePageSetting,
+  removeDetachedLiveServerSetting,
   removeDetachedSetting
 } from './teamHubDetached';
+import {
+  rethrowTeamHubLivePageCreateError,
+  rethrowTeamHubLiveServerCreateError
+} from './teamHubLiveServerErrors';
 import type { MountedBackend, ProviderDescriptor, RoutingInternals } from './routingInternals';
 import {
   isTeamHubCollectionDeleteForbiddenError,
@@ -44,12 +58,15 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   DiscoveredCollection,
   StorageConnection,
   Environment,
   Folder,
   GitRequestFileStatus,
   KeyValue,
+  LiveServer,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
@@ -57,12 +74,19 @@ import type {
   Snippet,
   SourceControlStatus,
   TeamHub,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
 import { defaultAuth } from '@harborclient/core/auth';
+import {
+  normalizeLiveServerConfigFields,
+  normalizeLiveServerCorsSettings
+} from '@harborclient/core/types/liveServer';
 import type {
   SavedRunResult,
   SavedRunResultSummary,
@@ -122,6 +146,8 @@ export class RoutingStorage implements IStorage {
   private internalsCache?: RoutingInternals;
   private moverCache?: MoveCoordinator;
   private snippetMoverCache?: SnippetMoveCoordinator;
+  private liveServerMoverCache?: LiveServerMoveCoordinator;
+  private livePageMoverCache?: LivePageMoveCoordinator;
   private migratorCache?: MigrationManager;
 
   /**
@@ -147,6 +173,76 @@ export class RoutingStorage implements IStorage {
    */
   private get snippetMover(): SnippetMoveCoordinator {
     return (this.snippetMoverCache ??= new SnippetMoveCoordinator(this.snippetInternals));
+  }
+
+  /**
+   * Lazily constructs the live-server move coordinator.
+   */
+  private get liveServerMover(): LiveServerMoveCoordinator {
+    return (this.liveServerMoverCache ??= new LiveServerMoveCoordinator(this.liveServerInternals));
+  }
+
+  /**
+   * Supplies registry and provider operations to live-server moves.
+   */
+  private get liveServerInternals(): LiveServerRoutingInternals {
+    return {
+      database: this.database,
+      getBackend: (connectionId) => this.byConnectionId.get(connectionId),
+      requireBackendByConnectionId: (connectionId) =>
+        this.requireBackendByConnectionId(connectionId),
+      requireEntry: (id) => this.requireLiveServerEntry(id),
+      build: (entry, record) => this.buildLiveServer(entry, record),
+      resolveServerId: (connectionId, providerId) => {
+        const backend = this.byConnectionId.get(connectionId);
+        if (backend?.db instanceof TeamHubStorage) {
+          return backend.db.getServerLiveServerId(providerId);
+        }
+        return this.database
+          .listLiveServerRegistry()
+          .find(
+            (entry) =>
+              entry.connectionId === connectionId && entry.providerLiveServerId === providerId
+          )?.uuid;
+      },
+      addDetachedServerId: (hubId, serverId) =>
+        addDetachedLiveServerId(this.database, hubId, serverId)
+    };
+  }
+
+  /**
+   * Lazily constructs the live-page move coordinator.
+   */
+  private get livePageMover(): LivePageMoveCoordinator {
+    return (this.livePageMoverCache ??= new LivePageMoveCoordinator(this.livePageInternals));
+  }
+
+  /**
+   * Supplies registry and provider operations to live-page moves.
+   */
+  private get livePageInternals(): LivePageRoutingInternals {
+    return {
+      database: this.database,
+      getBackend: (connectionId) => this.byConnectionId.get(connectionId),
+      requireBackendByConnectionId: (connectionId) =>
+        this.requireBackendByConnectionId(connectionId),
+      requireEntry: (id) => this.requireLivePageEntry(id),
+      build: (entry, record) => this.buildLivePage(entry, record),
+      resolveServerId: (connectionId, providerId) => {
+        const backend = this.byConnectionId.get(connectionId);
+        if (backend?.db instanceof TeamHubStorage) {
+          return backend.db.getServerLivePageId(providerId);
+        }
+        return this.database
+          .listLivePageRegistry()
+          .find(
+            (entry) =>
+              entry.connectionId === connectionId && entry.providerLivePageId === providerId
+          )?.uuid;
+      },
+      addDetachedServerId: (hubId, serverId) =>
+        addDetachedLivePageId(this.database, hubId, serverId)
+    };
   }
 
   /**
@@ -1434,6 +1530,245 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Lists live servers from their registered providers using stable registry ids.
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    const entries = this.database.listLiveServerRegistry();
+    const recordsByConnection = new Map<string, Map<number, LiveServer>>();
+    for (const connectionId of new Set(entries.map((entry) => entry.connectionId))) {
+      const backend = this.byConnectionId.get(connectionId);
+      if (!backend) continue;
+      try {
+        const records = await backend.db.listLiveServers();
+        recordsByConnection.set(
+          connectionId,
+          new Map(records.map((record) => [record.id, record]))
+        );
+        this.pruneOrphanLiveServerRegistryEntries(
+          connectionId,
+          new Set(records.map((record) => record.id)),
+          backend.connectionName,
+          backend.db instanceof TeamHubStorage ? backend.db : undefined
+        );
+      } catch (err) {
+        console.warn(`Failed to read live servers from "${backend.connectionName}":`, err);
+      }
+    }
+    return entries.flatMap((entry) => {
+      const providerRecords = recordsByConnection.get(entry.connectionId);
+      const record = providerRecords?.get(entry.providerLiveServerId);
+      if (providerRecords && !record) return [];
+      return [this.buildLiveServer(entry, record)];
+    });
+  }
+
+  /**
+   * Creates a live server on its requested provider or the default provider.
+   *
+   * @param input - Portable live-server configuration.
+   * @returns Registered live server with a stable global id.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    if (input.connectionId) {
+      return this.createLiveServerInProvider(input.connectionId, input);
+    }
+    return this.createLiveServerOnBackend(input, this.requireDefaultDataBackend());
+  }
+
+  /**
+   * Creates a live server on a specific mounted provider.
+   *
+   * @param connectionId - Destination provider connection id.
+   * @param input - Portable live-server configuration.
+   * @returns Registered live server with a stable global id.
+   */
+  async createLiveServerInProvider(
+    connectionId: string,
+    input: CreateLiveServerInput
+  ): Promise<LiveServer> {
+    return this.createLiveServerOnBackend(
+      { ...input, connectionId: undefined },
+      this.requireBackendByConnectionId(connectionId)
+    );
+  }
+
+  /**
+   * Updates shared live-server fields in its provider and local navigation state locally.
+   *
+   * @param input - Complete mutable live-server fields using the global id.
+   * @returns Updated routed live server.
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const entry = this.requireLiveServerEntry(input.id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const record = await backend.db.updateLiveServer({
+      ...input,
+      id: entry.providerLiveServerId,
+      lastOpenedPath: null
+    });
+    this.database.setLiveServerLocalLastOpenedPath(record.uuid || entry.uuid, input.lastOpenedPath);
+    const updatedEntry = this.database.updateLiveServerRegistryEntry(entry.id, {
+      name: record.name,
+      uuid: record.uuid
+    });
+    return this.buildLiveServer(updatedEntry, record);
+  }
+
+  /**
+   * Persists only the machine-local path remembered for a live server.
+   *
+   * @param id - Stable global live-server id.
+   * @param path - Last path opened in the embedded browser, or null.
+   */
+  setLiveServerLastOpenedPath(id: number, path: string | null): void {
+    const entry = this.requireLiveServerEntry(id);
+    this.database.setLiveServerLocalLastOpenedPath(entry.uuid, path);
+  }
+
+  /**
+   * Deletes a routed live server or detaches unavailable Team Hub metadata locally.
+   *
+   * @param id - Stable global live-server id.
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    const entry = this.requireLiveServerEntry(id);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      if (this.isTeamHubConnection(entry.connectionId) && entry.uuid) {
+        addDetachedLiveServerId(this.database, entry.connectionId, entry.uuid);
+      }
+      this.database.deleteLiveServerRegistryEntry(id);
+      return;
+    }
+    await backend.db.deleteLiveServer(entry.providerLiveServerId);
+    this.database.deleteLiveServerRegistryEntry(id);
+  }
+
+  /**
+   * Moves a live server between providers while preserving its global id.
+   *
+   * @param id - Stable global live-server id.
+   * @param targetConnectionId - Destination provider connection id.
+   * @returns Moved routed live server.
+   */
+  async moveLiveServer(id: number, targetConnectionId: string): Promise<LiveServer> {
+    return this.liveServerMover.move(id, targetConnectionId);
+  }
+
+  /**
+   * Lists live pages from their registered providers using stable registry ids.
+   */
+  async listLivePages(): Promise<Website[]> {
+    const entries = this.database.listLivePageRegistry();
+    const recordsByConnection = new Map<string, Map<number, Website>>();
+    for (const connectionId of new Set(entries.map((entry) => entry.connectionId))) {
+      const backend = this.byConnectionId.get(connectionId);
+      if (!backend) continue;
+      try {
+        const records = await backend.db.listLivePages();
+        recordsByConnection.set(
+          connectionId,
+          new Map(records.map((record) => [record.id, record]))
+        );
+        this.pruneOrphanLivePageRegistryEntries(
+          connectionId,
+          new Set(records.map((record) => record.id)),
+          backend.connectionName,
+          backend.db instanceof TeamHubStorage ? backend.db : undefined
+        );
+      } catch (err) {
+        console.warn(`Failed to read live pages from "${backend.connectionName}":`, err);
+      }
+    }
+    return entries.flatMap((entry) => {
+      const providerRecords = recordsByConnection.get(entry.connectionId);
+      const record = providerRecords?.get(entry.providerLivePageId);
+      if (providerRecords && !record) return [];
+      return [this.buildLivePage(entry, record)];
+    });
+  }
+
+  /**
+   * Creates a live page on its requested provider or the default provider.
+   *
+   * @param input - Portable live-page fields.
+   * @returns Registered live page with a stable global id.
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    if (input.connectionId) {
+      return this.createLivePageInProvider(input.connectionId, input);
+    }
+    return this.createLivePageOnBackend(input, this.requireDefaultDataBackend());
+  }
+
+  /**
+   * Creates a live page on a specific mounted provider.
+   *
+   * @param connectionId - Destination provider connection id.
+   * @param input - Portable live-page fields.
+   * @returns Registered live page with a stable global id.
+   */
+  async createLivePageInProvider(
+    connectionId: string,
+    input: CreateWebsiteInput
+  ): Promise<Website> {
+    return this.createLivePageOnBackend(
+      { ...input, connectionId: undefined },
+      this.requireBackendByConnectionId(connectionId)
+    );
+  }
+
+  /**
+   * Updates a live page in the provider selected by its registry entry.
+   *
+   * @param input - Complete mutable fields using the global live-page id.
+   * @returns Updated routed live page.
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const entry = this.requireLivePageEntry(input.id);
+    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const record = await backend.db.updateLivePage({
+      ...input,
+      id: entry.providerLivePageId
+    });
+    const updatedEntry = this.database.updateLivePageRegistryEntry(entry.id, {
+      name: record.name,
+      uuid: record.uuid
+    });
+    return this.buildLivePage(updatedEntry, record);
+  }
+
+  /**
+   * Deletes a routed live page or detaches unavailable Team Hub metadata locally.
+   *
+   * @param id - Stable global live-page id.
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    const entry = this.requireLivePageEntry(id);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      if (this.isTeamHubConnection(entry.connectionId) && entry.uuid) {
+        addDetachedLivePageId(this.database, entry.connectionId, entry.uuid);
+      }
+      this.database.deleteLivePageRegistryEntry(id);
+      return;
+    }
+    await backend.db.deleteLivePage(entry.providerLivePageId);
+    this.database.deleteLivePageRegistryEntry(id);
+  }
+
+  /**
+   * Moves a live page between providers while preserving its global id.
+   *
+   * @param id - Stable global live-page id.
+   * @param targetConnectionId - Destination provider connection id.
+   * @returns Moved routed live page.
+   */
+  async moveLivePage(id: number, targetConnectionId: string): Promise<Website> {
+    return this.livePageMover.move(id, targetConnectionId);
+  }
+
+  /**
    * Lists run result snapshots from every mounted provider with global ids.
    */
   async listRunResults(): Promise<SavedRunResultSummary[]> {
@@ -1693,6 +2028,8 @@ export class RoutingStorage implements IStorage {
   async recoverPendingMoveCleanups(): Promise<void> {
     await this.mover.recoverPendingMoveCleanups();
     await this.snippetMover.recoverPendingMoveCleanups();
+    await this.liveServerMover.recoverPendingMoveCleanups();
+    await this.livePageMover.recoverPendingMoveCleanups();
   }
 
   /**
@@ -2157,6 +2494,8 @@ export class RoutingStorage implements IStorage {
     );
 
     await this.syncTeamHubSnippets(hubId, hubDb, backend.connectionName);
+    await this.syncTeamHubLiveServers(hubId, hubDb, backend.connectionName);
+    await this.syncTeamHubLivePages(hubId, hubDb, backend.connectionName);
   }
 
   /**
@@ -2218,6 +2557,76 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Adds Team Hub live servers that are not registered or intentionally detached.
+   *
+   * @param hubId - Team Hub connection id.
+   * @param hubDb - Mounted Team Hub storage.
+   * @param connectionName - Display name for diagnostics.
+   */
+  private async syncTeamHubLiveServers(
+    hubId: string,
+    hubDb: TeamHubStorage,
+    connectionName: string
+  ): Promise<void> {
+    const records = await (hubDb as IStorage).listLiveServers();
+    const detached = readDetachedLiveServerIds(this.database, hubId);
+    const entries = this.database
+      .listLiveServerRegistry()
+      .filter((entry) => entry.connectionId === hubId);
+    const registered = new Set(entries.map((entry) => entry.providerLiveServerId));
+    for (const record of records) {
+      if (detached.has(record.uuid) || registered.has(record.id)) continue;
+      this.database.addLiveServerRegistryEntry({
+        name: record.name,
+        uuid: record.uuid,
+        connectionId: hubId,
+        providerLiveServerId: record.id
+      });
+    }
+    this.pruneOrphanLiveServerRegistryEntries(
+      hubId,
+      new Set(records.map((record) => record.id)),
+      connectionName,
+      hubDb
+    );
+  }
+
+  /**
+   * Adds Team Hub live pages that are not registered or intentionally detached.
+   *
+   * @param hubId - Team Hub connection id.
+   * @param hubDb - Mounted Team Hub storage.
+   * @param connectionName - Display name for diagnostics.
+   */
+  private async syncTeamHubLivePages(
+    hubId: string,
+    hubDb: TeamHubStorage,
+    connectionName: string
+  ): Promise<void> {
+    const records = await (hubDb as IStorage).listLivePages();
+    const detached = readDetachedLivePageIds(this.database, hubId);
+    const entries = this.database
+      .listLivePageRegistry()
+      .filter((entry) => entry.connectionId === hubId);
+    const registered = new Set(entries.map((entry) => entry.providerLivePageId));
+    for (const record of records) {
+      if (detached.has(record.uuid) || registered.has(record.id)) continue;
+      this.database.addLivePageRegistryEntry({
+        name: record.name,
+        uuid: record.uuid,
+        connectionId: hubId,
+        providerLivePageId: record.id
+      });
+    }
+    this.pruneOrphanLivePageRegistryEntries(
+      hubId,
+      new Set(records.map((record) => record.id)),
+      connectionName,
+      hubDb
+    );
+  }
+
+  /**
    * Removes registry entries for a connection when their provider collection id
    * is absent from a successful remote listing.
    *
@@ -2272,6 +2681,58 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Removes live-server registry rows whose provider record disappeared.
+   *
+   * @param connectionId - Provider connection id.
+   * @param providerIds - Provider-local ids returned by a successful listing.
+   * @param connectionName - Provider display name for diagnostics.
+   * @param hubDb - Team Hub backend used to clear stale id mappings.
+   */
+  private pruneOrphanLiveServerRegistryEntries(
+    connectionId: string,
+    providerIds: ReadonlySet<number>,
+    connectionName: string,
+    hubDb?: TeamHubStorage
+  ): void {
+    for (const entry of this.database.listLiveServerRegistry()) {
+      if (entry.connectionId !== connectionId || providerIds.has(entry.providerLiveServerId)) {
+        continue;
+      }
+      hubDb?.forgetLocalLiveServer(entry.providerLiveServerId);
+      this.database.deleteLiveServerRegistryEntry(entry.id);
+      logVerbose(
+        `Removed registry entry for live server "${entry.name}" on "${connectionName}" because it no longer exists on the provider.`
+      );
+    }
+  }
+
+  /**
+   * Removes live-page registry rows whose provider record disappeared.
+   *
+   * @param connectionId - Provider connection id.
+   * @param providerIds - Provider-local ids returned by a successful listing.
+   * @param connectionName - Provider display name for diagnostics.
+   * @param hubDb - Team Hub backend used to clear stale id mappings.
+   */
+  private pruneOrphanLivePageRegistryEntries(
+    connectionId: string,
+    providerIds: ReadonlySet<number>,
+    connectionName: string,
+    hubDb?: TeamHubStorage
+  ): void {
+    for (const entry of this.database.listLivePageRegistry()) {
+      if (entry.connectionId !== connectionId || providerIds.has(entry.providerLivePageId)) {
+        continue;
+      }
+      hubDb?.forgetLocalLivePage(entry.providerLivePageId);
+      this.database.deleteLivePageRegistryEntry(entry.id);
+      logVerbose(
+        `Removed registry entry for live page "${entry.name}" on "${connectionName}" because it no longer exists on the provider.`
+      );
+    }
+  }
+
+  /**
    * Removes all sidebar registry entries for a team hub without deleting server data.
    *
    * @param hubId - Team hub connection id.
@@ -2300,6 +2761,28 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
+   * Removes live-server registry rows for a disconnected Team Hub.
+   *
+   * @param hubId - Team Hub connection id.
+   */
+  private purgeTeamHubSidebarLiveServers(hubId: string): void {
+    for (const entry of this.database.listLiveServerRegistry()) {
+      if (entry.connectionId === hubId) this.database.deleteLiveServerRegistryEntry(entry.id);
+    }
+  }
+
+  /**
+   * Removes live-page registry rows for a disconnected Team Hub.
+   *
+   * @param hubId - Team Hub connection id.
+   */
+  private purgeTeamHubSidebarLivePages(hubId: string): void {
+    for (const entry of this.database.listLivePageRegistry()) {
+      if (entry.connectionId === hubId) this.database.deleteLivePageRegistryEntry(entry.id);
+    }
+  }
+
+  /**
    * Soft-disconnects a team hub: unmounts the backend and purges sidebar registry
    * entries while preserving the id map file and detached-collection settings so
    * reconnect can remount without reconfiguring the hub.
@@ -2319,6 +2802,8 @@ export class RoutingStorage implements IStorage {
 
     this.purgeTeamHubSidebarCollections(hubId);
     this.purgeTeamHubSidebarSnippets(hubId);
+    this.purgeTeamHubSidebarLiveServers(hubId);
+    this.purgeTeamHubSidebarLivePages(hubId);
   }
 
   /**
@@ -2346,7 +2831,12 @@ export class RoutingStorage implements IStorage {
       }
     }
 
+    this.purgeTeamHubSidebarLiveServers(hubId);
+    this.purgeTeamHubSidebarLivePages(hubId);
+
     removeDetachedSetting(this.database, hubId);
+    removeDetachedLiveServerSetting(this.database, hubId);
+    removeDetachedLivePageSetting(this.database, hubId);
 
     try {
       unlinkSync(teamHubIdMapPath(this.userDataPath, hubId));
@@ -2481,6 +2971,150 @@ export class RoutingStorage implements IStorage {
       created_at: record?.created_at ?? entry.created_at,
       updated_at: record?.updated_at ?? entry.created_at
     };
+  }
+
+  /**
+   * Merges live-server registry identity with provider fields and local navigation state.
+   *
+   * @param entry - Stable routing registry entry.
+   * @param record - Provider-local live-server record when available.
+   * @returns Routed live server using the registry id.
+   */
+  private buildLiveServer(
+    entry: LiveServerRegistryEntry,
+    record: LiveServer | undefined
+  ): LiveServer {
+    const fields = normalizeLiveServerConfigFields(record);
+    const uuid = record?.uuid?.trim() || entry.uuid;
+    if (record?.uuid && record.uuid !== entry.uuid) {
+      this.database.updateLiveServerRegistryEntry(entry.id, { uuid: record.uuid });
+    }
+    return {
+      id: entry.id,
+      uuid,
+      name: entry.name,
+      root: record?.root ?? '',
+      port: record?.port ?? null,
+      aliases: record?.aliases ?? [],
+      watch: record?.watch ?? true,
+      cors: normalizeLiveServerCorsSettings(record?.cors),
+      ...fields,
+      lastOpenedPath: this.database.getLiveServerLocalLastOpenedPath(uuid),
+      sortOrder: record?.sortOrder ?? 0,
+      connectionId: entry.connectionId,
+      createdAt: record?.createdAt ?? Date.parse(entry.created_at),
+      updatedAt: record?.updatedAt ?? Date.parse(entry.created_at)
+    };
+  }
+
+  /**
+   * Merges live-page registry identity with provider fields.
+   *
+   * @param entry - Stable routing registry entry.
+   * @param record - Provider-local live-page record when available.
+   * @returns Routed live page using the registry id.
+   */
+  private buildLivePage(entry: LivePageRegistryEntry, record: Website | undefined): Website {
+    const uuid = record?.uuid?.trim() || entry.uuid;
+    if (record?.uuid && record.uuid !== entry.uuid) {
+      this.database.updateLivePageRegistryEntry(entry.id, { uuid: record.uuid });
+    }
+    const createdAt = record?.createdAt ?? Date.parse(entry.created_at);
+    return {
+      id: entry.id,
+      uuid,
+      name: entry.name,
+      url: record?.url ?? 'about:blank',
+      homeUrl: record?.homeUrl ?? 'about:blank',
+      faviconDataUrl: record?.faviconDataUrl ?? null,
+      scripts: record?.scripts ?? [],
+      preRequestScripts: record?.preRequestScripts ?? [],
+      postRequestScripts: record?.postRequestScripts ?? [],
+      variables: record?.variables ?? [],
+      headers: record?.headers ?? [],
+      userAgent: record?.userAgent ?? '',
+      auth: record?.auth ?? defaultAuth(),
+      connectionId: entry.connectionId,
+      createdAt,
+      updatedAt: record?.updatedAt ?? createdAt
+    };
+  }
+
+  /**
+   * Creates and registers a live server, compensating provider writes on registry failure.
+   *
+   * @param input - Portable live-server fields.
+   * @param backend - Destination provider.
+   * @returns Routed live server.
+   */
+  private async createLiveServerOnBackend(
+    input: CreateLiveServerInput,
+    backend: MountedBackend
+  ): Promise<LiveServer> {
+    let created: LiveServer;
+    try {
+      created = await backend.db.createLiveServer({
+        ...input,
+        connectionId: undefined,
+        lastOpenedPath: null
+      });
+    } catch (err) {
+      rethrowTeamHubLiveServerCreateError(backend, err);
+    }
+    try {
+      const entry = this.database.addLiveServerRegistryEntry({
+        name: created.name,
+        uuid: created.uuid,
+        connectionId: backend.connectionId,
+        providerLiveServerId: created.id
+      });
+      if (input.lastOpenedPath != null) {
+        this.database.setLiveServerLocalLastOpenedPath(created.uuid, input.lastOpenedPath);
+      }
+      return this.buildLiveServer(entry, created);
+    } catch (err) {
+      try {
+        await backend.db.deleteLiveServer(created.id);
+      } catch (cleanupErr) {
+        console.warn('Failed to compensate live-server create after registry failure:', cleanupErr);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Creates and registers a live page, compensating provider writes on registry failure.
+   *
+   * @param input - Portable live-page fields.
+   * @param backend - Destination provider.
+   * @returns Routed live page.
+   */
+  private async createLivePageOnBackend(
+    input: CreateWebsiteInput,
+    backend: MountedBackend
+  ): Promise<Website> {
+    let created: Website;
+    try {
+      created = await backend.db.createLivePage({ ...input, connectionId: undefined });
+    } catch (err) {
+      rethrowTeamHubLivePageCreateError(backend, err);
+    }
+    try {
+      const entry = this.database.addLivePageRegistryEntry({
+        name: created.name,
+        uuid: created.uuid,
+        connectionId: backend.connectionId,
+        providerLivePageId: created.id
+      });
+      return this.buildLivePage(entry, created);
+    } catch (err) {
+      try {
+        await backend.db.deleteLivePage(created.id);
+      } catch (cleanupErr) {
+        console.warn('Failed to compensate live-page create after registry failure:', cleanupErr);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -2706,6 +3340,30 @@ export class RoutingStorage implements IStorage {
     if (!entry) {
       throw new Error(`Snippet not found: ${id}`);
     }
+    return entry;
+  }
+
+  /**
+   * Returns a live-server registry entry by global id or throws.
+   *
+   * @param id - Stable global live-server id.
+   * @returns Matching routing entry.
+   */
+  private requireLiveServerEntry(id: number): LiveServerRegistryEntry {
+    const entry = this.database.getLiveServerRegistryEntry(id);
+    if (!entry) throw new Error(`Live server not found: ${id}`);
+    return entry;
+  }
+
+  /**
+   * Returns a live-page registry entry by global id or throws.
+   *
+   * @param id - Stable global live-page id.
+   * @returns Matching routing entry.
+   */
+  private requireLivePageEntry(id: number): LivePageRegistryEntry {
+    const entry = this.database.getLivePageRegistryEntry(id);
+    if (!entry) throw new Error(`Live page not found: ${id}`);
     return entry;
   }
 

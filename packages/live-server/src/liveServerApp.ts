@@ -8,6 +8,7 @@ import type { CorsOptions } from 'cors';
 import type {
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerErrorPage,
   LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute
@@ -15,6 +16,8 @@ import type {
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
+  matchLiveServerErrorPage,
+  normalizeLiveServerErrorPages,
   normalizeLiveServerIndexFiles,
   normalizeLiveServerProxies,
   normalizeLiveServerRoutes
@@ -102,6 +105,11 @@ export interface CreateLiveServerAppOptions {
    * Path routing rules applied after static miss (SPA / soft rewrite).
    */
   routes?: LiveServerRoute[];
+
+  /**
+   * Status-code → HTML file mappings for custom error responses (≥ 400).
+   */
+  errorPages?: LiveServerErrorPage[];
 
   /**
    * Optional callback for completed request access lines.
@@ -452,17 +460,104 @@ function buildLiveServerProxyRequestHeaders(
 }
 
 /**
- * Writes a plaintext 502 response when the upstream cannot be reached or the
- * target URL is invalid, unless headers were already sent.
+ * Resolves an error-page file path against the document root.
+ *
+ * Absolute paths are used as-is; relative paths join under `root`. Returns null
+ * when the path does not exist or is not a regular file.
+ *
+ * @param root - Absolute document root.
+ * @param filePath - Configured error-page path (absolute or root-relative).
+ * @returns Absolute file path, or null when unusable.
+ */
+export function resolveLiveServerErrorPageFile(root: string, filePath: string): string | null {
+  const trimmed = filePath.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  const resolved = resolveAliasTarget(root, trimmed);
+  try {
+    if (fs.statSync(resolved).isFile()) {
+      return resolved;
+    }
+  } catch {
+    // Missing or inaccessible.
+  }
+  return null;
+}
+
+/**
+ * Attempts to send a configured HTML error page for the given status.
  *
  * @param res - Outgoing Express response.
+ * @param root - Absolute document root.
+ * @param status - HTTP status about to be returned (≥ 400).
+ * @param pages - Normalized error-page rows.
+ * @returns True when an error-page file was sent.
  */
-function sendLiveServerBadGateway(res: Response): void {
+function trySendLiveServerErrorPage(
+  res: Response,
+  root: string,
+  status: number,
+  pages: LiveServerErrorPage[]
+): boolean {
+  if (res.headersSent) {
+    return false;
+  }
+  const page = matchLiveServerErrorPage(status, pages);
+  if (page == null) {
+    return false;
+  }
+  const filePath = resolveLiveServerErrorPageFile(root, page.path);
+  if (filePath == null) {
+    return false;
+  }
+  res.status(status).type('text/html').sendFile(filePath);
+  return true;
+}
+
+/**
+ * Writes an error response, preferring a configured HTML error page.
+ *
+ * Falls back to plaintext when no page matches or the file is missing. Destroys
+ * the socket when headers were already sent.
+ *
+ * @param res - Outgoing Express response.
+ * @param root - Absolute document root.
+ * @param status - HTTP status to return.
+ * @param pages - Normalized error-page rows.
+ * @param fallbackPlaintext - Body when no error page applies.
+ */
+function sendLiveServerErrorResponse(
+  res: Response,
+  root: string,
+  status: number,
+  pages: LiveServerErrorPage[],
+  fallbackPlaintext: string
+): void {
   if (res.headersSent) {
     res.destroy();
     return;
   }
-  res.status(502).type('text/plain').send('Bad gateway');
+  if (trySendLiveServerErrorPage(res, root, status, pages)) {
+    return;
+  }
+  res.status(status).type('text/plain').send(fallbackPlaintext);
+}
+
+/**
+ * Writes a 502 response when the upstream cannot be reached or the target URL
+ * is invalid, using a configured error page when available.
+ *
+ * @param res - Outgoing Express response.
+ * @param root - Absolute document root.
+ * @param errorPages - Normalized error-page rows.
+ */
+function sendLiveServerBadGateway(
+  res: Response,
+  root: string,
+  errorPages: LiveServerErrorPage[]
+): void {
+  sendLiveServerErrorResponse(res, root, 502, errorPages, 'Bad gateway');
 }
 
 /**
@@ -470,19 +565,28 @@ function sendLiveServerBadGateway(res: Response): void {
  *
  * Streams the request body and response body. Overwrites response headers with
  * upstream values (after hop-by-hop filtering) so the backend controls
- * Content-Type and similar. Aborts the upstream request when the client
- * disconnects.
+ * Content-Type and similar. When the upstream status is ≥ 400 and a matching
+ * error page exists, the upstream body is discarded and the HTML page is sent
+ * instead. Aborts the upstream request when the client disconnects.
  *
  * @param req - Incoming Express request.
  * @param res - Outgoing Express response.
  * @param proxy - Matched proxy rule.
+ * @param root - Absolute document root (for error-page resolution).
+ * @param errorPages - Normalized error-page rows.
  */
-function forwardLiveServerProxyRequest(req: Request, res: Response, proxy: LiveServerProxy): void {
+function forwardLiveServerProxyRequest(
+  req: Request,
+  res: Response,
+  proxy: LiveServerProxy,
+  root: string,
+  errorPages: LiveServerErrorPage[]
+): void {
   let upstreamUrl: URL;
   try {
     upstreamUrl = buildLiveServerProxiedUpstreamUrl(req.path, req.originalUrl || req.url, proxy);
   } catch {
-    sendLiveServerBadGateway(res);
+    sendLiveServerBadGateway(res, root, errorPages);
     return;
   }
 
@@ -500,7 +604,12 @@ function forwardLiveServerProxyRequest(req: Request, res: Response, proxy: LiveS
       headers
     },
     (upstreamRes) => {
-      res.statusCode = upstreamRes.statusCode ?? 502;
+      const status = upstreamRes.statusCode ?? 502;
+      if (status >= 400 && trySendLiveServerErrorPage(res, root, status, errorPages)) {
+        upstreamRes.resume();
+        return;
+      }
+      res.statusCode = status;
       for (const [name, value] of Object.entries(upstreamRes.headers)) {
         if (value == null) {
           continue;
@@ -515,7 +624,7 @@ function forwardLiveServerProxyRequest(req: Request, res: Response, proxy: LiveS
   );
 
   upstreamReq.on('error', () => {
-    sendLiveServerBadGateway(res);
+    sendLiveServerBadGateway(res, root, errorPages);
   });
 
   /**
@@ -540,12 +649,20 @@ function forwardLiveServerProxyRequest(req: Request, res: Response, proxy: LiveS
  *
  * Runs after CORS/custom headers and before aliases/static. Enabled rules are
  * tried in order; the first matching prefix is forwarded. Unmatched requests
- * fall through to static serving. Upstream failures respond with 502.
+ * fall through to static serving. Upstream failures respond with 502 (or a
+ * matching error page when configured).
  *
  * @param app - Express app to instrument.
  * @param proxies - Normalized proxy rules.
+ * @param root - Absolute document root.
+ * @param errorPages - Normalized error-page rows.
  */
-function mountLiveServerProxyMiddleware(app: Express, proxies: LiveServerProxy[]): void {
+function mountLiveServerProxyMiddleware(
+  app: Express,
+  proxies: LiveServerProxy[],
+  root: string,
+  errorPages: LiveServerErrorPage[]
+): void {
   const active = proxies.filter((proxy) => proxy.enabled !== false);
   if (active.length === 0) {
     return;
@@ -554,7 +671,7 @@ function mountLiveServerProxyMiddleware(app: Express, proxies: LiveServerProxy[]
   app.use((req: Request, res: Response, next: NextFunction) => {
     for (const proxy of active) {
       if (pathMatchesLiveServerProxyPrefix(req.path, proxy.path)) {
-        forwardLiveServerProxyRequest(req, res, proxy);
+        forwardLiveServerProxyRequest(req, res, proxy, root, errorPages);
         return;
       }
     }
@@ -710,18 +827,21 @@ function tryServeLiveServerRoute(
  * Mounts post-static routing middleware (SPA fallback / soft rewrites).
  *
  * Only GET/HEAD are considered. Enabled rules are tried in order; the first
- * match that can serve a file wins. Otherwise a plaintext 404 is sent.
+ * match that can serve a file wins. Otherwise a 404 is sent (HTML error page
+ * when configured, else plaintext).
  *
  * @param app - Express app to instrument.
  * @param root - Absolute document root.
  * @param routes - Normalized routing rules.
  * @param indexFiles - Index filenames for directory targets.
+ * @param errorPages - Normalized error-page rows.
  */
 function mountLiveServerRouteMiddleware(
   app: Express,
   root: string,
   routes: LiveServerRoute[],
-  indexFiles: string[]
+  indexFiles: string[],
+  errorPages: LiveServerErrorPage[]
 ): void {
   const activeRoutes = routes.filter((route) => route.enabled !== false);
 
@@ -734,7 +854,7 @@ function mountLiveServerRouteMiddleware(
         }
       }
     }
-    res.status(404).type('text/plain').send('Not found');
+    sendLiveServerErrorResponse(res, root, 404, errorPages, 'Not found');
   });
 }
 
@@ -766,6 +886,7 @@ export function createLiveServerApp(
     headers = [],
     proxies: proxiesInput,
     routes: routesInput,
+    errorPages: errorPagesInput,
     onRequestLog,
     scripts
   } = options;
@@ -785,6 +906,11 @@ export function createLiveServerApp(
 
   const routes =
     routesInput != null ? normalizeLiveServerRoutes(routesInput) : normalizeLiveServerRoutes([]);
+
+  const errorPages =
+    errorPagesInput != null
+      ? normalizeLiveServerErrorPages(errorPagesInput)
+      : normalizeLiveServerErrorPages([]);
 
   const staticOptions = {
     index: indexFiles,
@@ -808,7 +934,7 @@ export function createLiveServerApp(
   }
 
   mountResponseHeaderMiddleware(app, headers);
-  mountLiveServerProxyMiddleware(app, proxies);
+  mountLiveServerProxyMiddleware(app, proxies, resolvedRoot, errorPages);
 
   for (const alias of aliases) {
     const mountPath = normalizeAliasPath(alias.path);
@@ -824,7 +950,7 @@ export function createLiveServerApp(
 
   app.use(express.static(resolvedRoot, staticOptions));
 
-  mountLiveServerRouteMiddleware(app, resolvedRoot, routes, indexFiles);
+  mountLiveServerRouteMiddleware(app, resolvedRoot, routes, indexFiles, errorPages);
 
   return app;
 }

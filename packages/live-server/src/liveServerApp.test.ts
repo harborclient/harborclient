@@ -584,6 +584,40 @@ describe('createLiveServerApp reverse proxy', () => {
     expect(response.body).toBe('Bad gateway');
   });
 
+  it('serves a configured error page for unreachable upstream 502', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<html>static</html>');
+    fs.writeFileSync(path.join(root, '502.html'), '<html>bad gateway page</html>');
+    const app = createLiveServerApp(root, {
+      proxies: [{ path: '/api', target: 'http://127.0.0.1:1' }],
+      errorPages: [{ code: '502', path: '502.html' }]
+    });
+    const response = await get(app, '/api/ping');
+    expect(response.status).toBe(502);
+    expect(response.body).toContain('bad gateway page');
+  });
+
+  it('intercepts upstream 4xx with a matching error page', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, '404.html'), '<html>custom 404</html>');
+    const upstream = await listenUpstream((_req, res) => {
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.end('upstream missing');
+    });
+    try {
+      const app = createLiveServerApp(root, {
+        proxies: [{ path: '/api', target: upstream.origin }],
+        errorPages: [{ code: '404', path: '404.html' }]
+      });
+      const response = await get(app, '/api/missing');
+      expect(response.status).toBe(404);
+      expect(response.body).toContain('custom 404');
+      expect(response.body).not.toContain('upstream missing');
+    } finally {
+      await upstream.close();
+    }
+  });
+
   it('serves static files when the path does not match a proxy rule', async () => {
     const root = makeTempDir();
     fs.writeFileSync(path.join(root, 'index.html'), '<html>home</html>');
@@ -615,6 +649,59 @@ describe('createLiveServerApp reverse proxy', () => {
     } finally {
       await upstream.close();
     }
+  });
+});
+
+describe('createLiveServerApp error pages', () => {
+  it('serves an exact 404 error page instead of plaintext', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<h1>home</h1>');
+    fs.writeFileSync(path.join(root, '404.html'), '<h1>not found page</h1>');
+    const app = createLiveServerApp(root, {
+      errorPages: [{ code: '404', path: '404.html' }]
+    });
+    const response = await get(app, '/missing');
+    expect(response.status).toBe(404);
+    expect(response.body).toContain('not found page');
+  });
+
+  it('prefers exact over 40x over 4xx', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'exact.html'), 'exact');
+    fs.writeFileSync(path.join(root, 'decade.html'), 'decade');
+    fs.writeFileSync(path.join(root, 'class.html'), 'class');
+    const app = createLiveServerApp(root, {
+      errorPages: [
+        { code: '4xx', path: 'class.html' },
+        { code: '40x', path: 'decade.html' },
+        { code: '404', path: 'exact.html' }
+      ]
+    });
+    expect((await get(app, '/missing')).body).toBe('exact');
+  });
+
+  it('falls back to plaintext when the error-page file is missing', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<h1>home</h1>');
+    const app = createLiveServerApp(root, {
+      errorPages: [{ code: '404', path: 'missing-404.html' }]
+    });
+    const response = await get(app, '/nope');
+    expect(response.status).toBe(404);
+    expect(response.body).toBe('Not found');
+  });
+
+  it('does not use error pages when an SPA catch-all route serves the path', async () => {
+    const root = makeTempDir();
+    fs.writeFileSync(path.join(root, 'index.html'), '<h1>spa</h1>');
+    fs.writeFileSync(path.join(root, '404.html'), '<h1>error</h1>');
+    const app = createLiveServerApp(root, {
+      routes: [{ match: '*', target: 'index.html' }],
+      errorPages: [{ code: '404', path: '404.html' }]
+    });
+    const response = await get(app, '/about');
+    expect(response.status).toBe(200);
+    expect(response.body).toContain('spa');
   });
 });
 

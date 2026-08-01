@@ -31,7 +31,7 @@ describe('browserGuestCover', () => {
     const listener = vi.fn();
     const unsubscribe = subscribeBrowserGuestCover(listener);
 
-    await coverBrowserGuestForOverlay('tab-1');
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
 
     expect(window.api.browserCapturePage).toHaveBeenCalledWith('tab-1', { fullPage: false });
     expect(window.api.browserSetVisible).toHaveBeenCalledWith('tab-1', false);
@@ -44,26 +44,62 @@ describe('browserGuestCover', () => {
   });
 
   it('re-hides the guest when the same tab is already covered', async () => {
-    await coverBrowserGuestForOverlay('tab-1');
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
     vi.mocked(window.api.browserCapturePage).mockClear();
     vi.mocked(window.api.browserSetVisible).mockClear();
 
-    await coverBrowserGuestForOverlay('tab-1');
+    await coverBrowserGuestForOverlay('tab-1', 'address-suggestions');
 
     expect(window.api.browserCapturePage).not.toHaveBeenCalled();
     expect(window.api.browserSetVisible).toHaveBeenCalledWith('tab-1', false);
   });
 
   it('restores the guest when uncovered', async () => {
-    await coverBrowserGuestForOverlay('tab-1');
-    await uncoverBrowserGuest();
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
+    await uncoverBrowserGuest('footer-modals');
 
     expect(getBrowserGuestCover()).toBeNull();
     expect(window.api.browserSetVisible).toHaveBeenLastCalledWith('tab-1', true);
   });
 
+  it('keeps the guest covered when one of two owners uncovers', async () => {
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
+    await coverBrowserGuestForOverlay('tab-1', 'address-suggestions');
+    vi.mocked(window.api.browserSetVisible).mockClear();
+
+    await uncoverBrowserGuest('address-suggestions');
+
+    expect(getBrowserGuestCover()).toEqual({
+      tabId: 'tab-1',
+      dataUrl: 'data:image/png;base64,abc'
+    });
+    expect(window.api.browserSetVisible).not.toHaveBeenCalled();
+  });
+
+  it('restores the guest only after the last owner uncovers', async () => {
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
+    await coverBrowserGuestForOverlay('tab-1', 'address-suggestions');
+
+    await uncoverBrowserGuest('address-suggestions');
+    await uncoverBrowserGuest('footer-modals');
+
+    expect(getBrowserGuestCover()).toBeNull();
+    expect(window.api.browserSetVisible).toHaveBeenLastCalledWith('tab-1', true);
+  });
+
+  it('treats same-owner double cover as a single hold', async () => {
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
+    vi.mocked(window.api.browserSetVisible).mockClear();
+
+    await uncoverBrowserGuest('footer-modals');
+
+    expect(getBrowserGuestCover()).toBeNull();
+    expect(window.api.browserSetVisible).toHaveBeenCalledWith('tab-1', true);
+  });
+
   it('dismisses cover without restoring visibility', async () => {
-    await coverBrowserGuestForOverlay('tab-1');
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
     vi.mocked(window.api.browserSetVisible).mockClear();
 
     dismissBrowserGuestCover('tab-1');
@@ -75,7 +111,7 @@ describe('browserGuestCover', () => {
   it('still hides the guest when capture fails', async () => {
     vi.mocked(window.api.browserCapturePage).mockRejectedValueOnce(new Error('busy'));
 
-    await coverBrowserGuestForOverlay('tab-1');
+    await coverBrowserGuestForOverlay('tab-1', 'footer-modals');
 
     expect(getBrowserGuestCover()).toEqual({ tabId: 'tab-1', dataUrl: '' });
     expect(window.api.browserSetVisible).toHaveBeenCalledWith('tab-1', false);

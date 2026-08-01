@@ -7,6 +7,8 @@ import type {
   FolderRecord,
   HealthResponse,
   HubUserRecord,
+  LivePageRecord,
+  LiveServerRecord,
   RunResultDetail,
   RunResultRecord,
   SavedRequestRecord,
@@ -166,6 +168,132 @@ export const snippetRecordSchema = z.object({
 }) satisfies z.ZodType<SnippetRecord>;
 
 /**
+ * URL alias stored with a live server.
+ */
+export const liveServerAliasSchema = z.object({
+  path: z.string(),
+  target: z.string()
+});
+
+/**
+ * Named live server header row.
+ */
+export const liveServerHeaderSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Static route rewrite stored with a live server.
+ */
+export const liveServerRouteSchema = z.object({
+  match: z.string(),
+  target: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Custom error page mapping stored with a live server.
+ */
+export const liveServerErrorPageSchema = z.object({
+  code: z.string(),
+  path: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Reverse proxy mapping stored with a live server.
+ */
+export const liveServerProxySchema = z.object({
+  path: z.string(),
+  target: z.string(),
+  stripPath: z.boolean().optional(),
+  enabled: z.boolean().optional()
+});
+
+/**
+ * Mutable live server fields accepted by create and update routes.
+ */
+export const createLiveServerBodySchema = z.object({
+  name: z.string(),
+  root: z.string(),
+  port: z.number().int().nullable(),
+  aliases: z.array(liveServerAliasSchema),
+  watch: z.boolean(),
+  cors: z.object({
+    enabled: z.boolean(),
+    origin: z.string(),
+    methods: z.string(),
+    allowedHeaders: z.string(),
+    exposedHeaders: z.string(),
+    maxAge: z.string(),
+    credentials: z.boolean()
+  }),
+  openPath: z.string(),
+  openPathOnStartup: z.boolean(),
+  rememberLastUrl: z.boolean(),
+  lastOpenedPath: z.string().nullable(),
+  indexFiles: z.array(z.string()),
+  host: z.string(),
+  headers: z.array(liveServerHeaderSchema),
+  routes: z.array(liveServerRouteSchema),
+  errorPages: z.array(liveServerErrorPageSchema),
+  proxies: z.array(liveServerProxySchema),
+  ssl: z.object({
+    enabled: z.boolean(),
+    certPath: z.string(),
+    keyPath: z.string()
+  }),
+  runCommand: z.string(),
+  restartOnCrash: z.boolean(),
+  urlVariable: z.string(),
+  preRequestScripts: z.array(z.unknown()),
+  postRequestScripts: z.array(z.unknown())
+});
+
+/**
+ * JSON shape for a persisted live server record.
+ */
+export const liveServerRecordSchema = createLiveServerBodySchema.extend({
+  id: z.string(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  createdByUserId: z.string().nullable(),
+  updatedByUserId: z.string().nullable(),
+  deletionLocked: deletionLockedSchema
+}) satisfies z.ZodType<LiveServerRecord>;
+
+/**
+ * Mutable live page fields accepted by create and update routes.
+ */
+export const createLivePageBodySchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  homeUrl: z.string(),
+  faviconDataUrl: z.string().nullable(),
+  scripts: z.array(z.unknown()),
+  preRequestScripts: z.array(z.unknown()),
+  postRequestScripts: z.array(z.unknown()),
+  variables: z.array(z.unknown()),
+  headers: z.array(z.unknown()),
+  userAgent: z.string(),
+  auth: z.unknown()
+});
+
+/**
+ * JSON shape for a persisted live page record.
+ */
+export const livePageRecordSchema = createLivePageBodySchema.extend({
+  id: z.string(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  createdByUserId: z.string().nullable(),
+  updatedByUserId: z.string().nullable(),
+  deletionLocked: deletionLockedSchema
+}) satisfies z.ZodType<LivePageRecord>;
+
+/**
  * JSON shape for a persisted folder record.
  */
 export const folderRecordSchema = z.object({
@@ -271,6 +399,8 @@ export const hubUserRecordSchema = z.object({
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
+  liveServerAccess: z.array(z.string()),
+  livePageAccess: z.array(z.string()),
   llmAccess: z.boolean(),
   llmModels: z.array(z.string()),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable(),
@@ -347,6 +477,8 @@ export const updateAdminUserBodySchema = z.object({
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
+  liveServerAccess: z.array(z.string()).optional(),
+  livePageAccess: z.array(z.string()).optional(),
   llmAccess: z.boolean().optional(),
   llmModels: z.array(z.string()).optional(),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
@@ -361,6 +493,8 @@ export const createAdminUserBodySchema = z.object({
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
+  liveServerAccess: z.array(z.string()).optional(),
+  livePageAccess: z.array(z.string()).optional(),
   llmAccess: z.boolean().optional(),
   llmModels: z.array(z.string()).optional(),
   llmMonthlyTokenLimit: z.number().int().nonnegative().nullable().optional()
@@ -446,6 +580,20 @@ export const listEnvironmentsResponseSchema = z.object({
  */
 export const listSnippetsResponseSchema = z.object({
   snippets: z.array(snippetRecordSchema)
+});
+
+/**
+ * List response wrapper for live servers.
+ */
+export const listLiveServersResponseSchema = z.object({
+  liveServers: z.array(liveServerRecordSchema)
+});
+
+/**
+ * List response wrapper for live pages.
+ */
+export const listLivePagesResponseSchema = z.object({
+  livePages: z.array(livePageRecordSchema)
 });
 
 /**
@@ -661,6 +809,8 @@ export const hubInvitationPreviewUserSchema = z.object({
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
+  liveServerAccess: z.array(z.string()),
+  livePageAccess: z.array(z.string()),
   llmAccess: z.boolean(),
   llmModels: z.array(z.string())
 });

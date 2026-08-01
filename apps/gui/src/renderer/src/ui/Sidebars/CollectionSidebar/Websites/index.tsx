@@ -1,6 +1,7 @@
 import {
   EmptySectionLabel,
   RowActionsMenu,
+  SidebarBadge,
   SidebarWebsiteItem
 } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
@@ -23,6 +24,7 @@ import {
   toSortTimestamp
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
 
 /**
  * Websites sidebar section listing saved embedded browser tabs with open, edit, copy-id, export, and delete actions.
@@ -33,7 +35,8 @@ export function Websites(): JSX.Element {
   const allWebsites = useAppSelector(selectAllWebsites);
   const tabs = useAppSelector((state) => state.tabs.tabs);
   const activeTabId = useAppSelector((state) => state.tabs.activeTabId);
-  const { sectionSort } = useSidebarExpansion();
+  const { sectionSort, showStorageLocationBadges } = useSidebarExpansion();
+  const { primaryConnectionId, connectionNamesById } = useSidebarProviders();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const sortMode = sectionSort.websites;
 
@@ -110,6 +113,7 @@ export function Websites(): JSX.Element {
       {websites.map((website) => {
         const menuId = `website-${website.id}`;
         const selected = activeWebsiteId === website.id;
+        const connectionName = connectionNamesById[website.connectionId ?? primaryConnectionId];
         return (
           <SidebarWebsiteItem
             key={website.id}
@@ -118,37 +122,44 @@ export function Websites(): JSX.Element {
             fallbackIcon={faGlobe}
             selected={selected}
             actions={
-              <RowActionsMenu
-                menuId={menuId}
-                openMenuId={openMenuId}
-                onOpenChange={setOpenMenuId}
-                groups={[
-                  [
-                    {
-                      label: 'Edit',
-                      onSelect: () => {
-                        handleEdit(website);
+              <>
+                {showStorageLocationBadges && connectionName ? (
+                  <SidebarBadge variant="info" title={`Stored in ${connectionName}`}>
+                    {connectionName}
+                  </SidebarBadge>
+                ) : null}
+                <RowActionsMenu
+                  menuId={menuId}
+                  openMenuId={openMenuId}
+                  onOpenChange={setOpenMenuId}
+                  groups={[
+                    [
+                      {
+                        label: 'Edit',
+                        onSelect: () => {
+                          handleEdit(website);
+                        }
+                      },
+                      buildCopyIdMenuItem(website.uuid),
+                      {
+                        label: 'Export',
+                        onSelect: () => {
+                          void dispatch(exportWebsite(website.id));
+                        }
                       }
-                    },
-                    buildCopyIdMenuItem(website.uuid),
-                    {
-                      label: 'Export',
-                      onSelect: () => {
-                        void dispatch(exportWebsite(website.id));
+                    ],
+                    [
+                      {
+                        label: 'Delete',
+                        variant: 'danger',
+                        onSelect: () => {
+                          void handleDelete(website);
+                        }
                       }
-                    }
-                  ],
-                  [
-                    {
-                      label: 'Delete',
-                      variant: 'danger',
-                      onSelect: () => {
-                        void handleDelete(website);
-                      }
-                    }
-                  ]
-                ]}
-              />
+                    ]
+                  ]}
+                />
+              </>
             }
             onClick={(event: MouseEvent) => {
               event.preventDefault();

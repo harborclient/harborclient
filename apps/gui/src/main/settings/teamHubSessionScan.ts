@@ -16,6 +16,8 @@ function emptyServices(): TeamHubServiceFlags {
     openai: false,
     pluginCatalog: false,
     snippets: false,
+    liveServers: false,
+    livePages: false,
     admin: false
   };
 }
@@ -76,6 +78,28 @@ async function probeSnippetsEnabled(client: TeamHubClient): Promise<boolean> {
 }
 
 /**
+ * Probes provider-backed live-server and live-page route availability.
+ *
+ * @param client - Authenticated Team Hub client.
+ * @returns Route support flags for storage pickers.
+ */
+async function probeLiveEntityServices(
+  client: TeamHubClient
+): Promise<{ liveServers: boolean; livePages: boolean }> {
+  const [liveServers, livePages] = await Promise.all([
+    client
+      .listLiveServers()
+      .then(() => true)
+      .catch(() => false),
+    client
+      .listLivePages()
+      .then(() => true)
+      .catch(() => false)
+  ]);
+  return { liveServers, livePages };
+}
+
+/**
  * Probes one team hub connection for server services and token capabilities.
  *
  * @param hub - Team hub connection to scan.
@@ -87,12 +111,13 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
   try {
     await client.checkHealth();
     const session = await client.getSession();
-    const [llmCapabilities, pluginCatalog, snippets] = await Promise.all([
+    const [llmCapabilities, pluginCatalog, snippets, liveEntities] = await Promise.all([
       session.capabilities.llm || session.capabilities.managementApi
         ? probeHubLlmCapabilities(client, session.capabilities.managementApi)
         : Promise.resolve({ llm: false, openai: false }),
       probePluginCatalogEnabled(client),
-      probeSnippetsEnabled(client)
+      probeSnippetsEnabled(client),
+      probeLiveEntityServices(client)
     ]);
 
     setHubOpenAiCapability(hub.id, llmCapabilities.openai);
@@ -105,7 +130,8 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
         llm: llmCapabilities.llm,
         openai: llmCapabilities.openai,
         pluginCatalog,
-        snippets
+        snippets,
+        ...liveEntities
       },
       managementApi: session.capabilities.managementApi,
       user: {

@@ -16,6 +16,8 @@ packages/sdk/docs/.vitepress/cache
 packages/sdk/docs/.vitepress/static/storybook
 packages/http/docs/.vitepress/dist
 packages/http/docs/.vitepress/cache
+packages/live-server/docs/.vitepress/dist
+packages/live-server/docs/.vitepress/cache
 packages/team-hub/docs/.vitepress/dist
 packages/team-hub/docs/.vitepress/cache
 packages/team-hub-api/docs/.vitepress/dist

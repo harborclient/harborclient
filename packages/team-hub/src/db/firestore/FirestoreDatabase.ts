@@ -13,6 +13,8 @@ import {
   INVITATIONS_COLLECTION,
   LLM_USAGE_COLLECTION,
   LLM_USAGE_LOG_COLLECTION,
+  LIVE_PAGES_COLLECTION,
+  LIVE_SERVERS_COLLECTION,
   REQUESTS_COLLECTION,
   RUN_RESULTS_COLLECTION,
   SNIPPETS_COLLECTION,
@@ -31,6 +33,7 @@ import type {
   FirestoreInvitationDocument,
   FirestoreLlmUsageDocument,
   FirestoreLlmUsageLogDocument,
+  FirestorePayloadEntityDocument,
   FirestoreRequestDocument,
   FirestoreDocumentDocument,
   FirestoreRunResultDocument,
@@ -46,6 +49,8 @@ import {
   mapFirestoreInvitation,
   mapFirestoreLlmUsage,
   mapFirestoreLlmUsageLog,
+  mapFirestoreLivePage,
+  mapFirestoreLiveServer,
   mapFirestoreRequest,
   mapFirestoreDocument,
   mapFirestoreRunResult,
@@ -66,6 +71,8 @@ import type {
   AuthConfig,
   CollectionRecord,
   CreateRunResultInput,
+  CreateLivePageRecordInput,
+  CreateLiveServerRecordInput,
   CreateUserInput,
   CreatedInvitedUserResult,
   CreateLlmUsageLogInput,
@@ -74,6 +81,8 @@ import type {
   InvitationRecord,
   KeyValue,
   ListAuditLogOptions,
+  LivePageRecord,
+  LiveServerRecord,
   LlmUsageLogRecord,
   LlmUsageRecord,
   RedeemedInvitationResult,
@@ -85,6 +94,8 @@ import type {
   SnippetRecord,
   SnippetScope,
   UpdateUserInput,
+  UpdateLivePageRecordInput,
+  UpdateLiveServerRecordInput,
   UserRecord,
   Variable
 } from '#/db/types.js';
@@ -222,6 +233,8 @@ export class FirestoreDatabase implements IDatabase {
       collectionAccess: input.collectionAccess,
       environmentAccess: input.environmentAccess,
       snippetAccess: input.snippetAccess,
+      liveServerAccess: input.liveServerAccess,
+      livePageAccess: input.livePageAccess,
       llmAccess: input.llmAccess ?? false,
       llmModels: input.llmModels ?? [],
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
@@ -312,6 +325,8 @@ export class FirestoreDatabase implements IDatabase {
     const collectionAccess = input.collectionAccess ?? existing.collectionAccess;
     const environmentAccess = input.environmentAccess ?? existing.environmentAccess;
     const snippetAccess = input.snippetAccess ?? existing.snippetAccess;
+    const liveServerAccess = input.liveServerAccess ?? existing.liveServerAccess;
+    const livePageAccess = input.livePageAccess ?? existing.livePageAccess;
     const llmAccess = input.llmAccess ?? existing.llmAccess;
     const llmModels = input.llmModels ?? existing.llmModels;
     const llmMonthlyTokenLimit =
@@ -326,6 +341,8 @@ export class FirestoreDatabase implements IDatabase {
       collectionAccess,
       environmentAccess,
       snippetAccess,
+      liveServerAccess,
+      livePageAccess,
       llmAccess,
       llmModels,
       llmMonthlyTokenLimit,
@@ -396,7 +413,9 @@ export class FirestoreDatabase implements IDatabase {
           role: 'user',
           collectionAccess: ['*'],
           environmentAccess: ['*'],
-          snippetAccess: ['*']
+          snippetAccess: ['*'],
+          liveServerAccess: ['*'],
+          livePageAccess: ['*']
         },
         systemUserId
       );
@@ -427,14 +446,17 @@ export class FirestoreDatabase implements IDatabase {
 
     for (const doc of snapshot.docs) {
       const data = doc.data() as FirestoreUserDocument;
-      if ((data.snippetAccess?.length ?? 0) > 0) {
-        continue;
-      }
       if (!data.collectionAccess?.includes('*')) {
         continue;
       }
 
-      batch.update(doc.ref, { snippetAccess: ['*'] });
+      const accessUpdates = {
+        ...((data.snippetAccess?.length ?? 0) === 0 ? { snippetAccess: ['*'] } : {}),
+        ...((data.liveServerAccess?.length ?? 0) === 0 ? { liveServerAccess: ['*'] } : {}),
+        ...((data.livePageAccess?.length ?? 0) === 0 ? { livePageAccess: ['*'] } : {})
+      };
+      if (Object.keys(accessUpdates).length === 0) continue;
+      batch.update(doc.ref, accessUpdates);
       batchSize += 1;
 
       if (batchSize >= WRITE_BATCH_LIMIT) {
@@ -622,6 +644,8 @@ export class FirestoreDatabase implements IDatabase {
       collectionAccess: input.collectionAccess,
       environmentAccess: input.environmentAccess,
       snippetAccess: input.snippetAccess,
+      liveServerAccess: input.liveServerAccess,
+      livePageAccess: input.livePageAccess,
       llmAccess: input.llmAccess ?? false,
       llmModels: input.llmModels ?? [],
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
@@ -1348,6 +1372,272 @@ export class FirestoreDatabase implements IDatabase {
       updatedAt,
       updatedByUserId: actingUserId
     });
+  }
+
+  /**
+   * Lists live servers ordered by name.
+   */
+  async listLiveServers(): Promise<LiveServerRecord[]> {
+    return this.listPayloadEntities(LIVE_SERVERS_COLLECTION, mapFirestoreLiveServer);
+  }
+
+  /**
+   * Creates a live server.
+   */
+  async createLiveServer(
+    input: CreateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.createPayloadEntity(
+      LIVE_SERVERS_COLLECTION,
+      'live_server',
+      input,
+      actingUserId,
+      mapFirestoreLiveServer
+    );
+  }
+
+  /**
+   * Replaces a live server.
+   */
+  async updateLiveServer(
+    id: string,
+    input: UpdateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.updatePayloadEntity(
+      LIVE_SERVERS_COLLECTION,
+      'live_server',
+      id,
+      input,
+      actingUserId,
+      mapFirestoreLiveServer
+    );
+  }
+
+  /**
+   * Deletes a live server.
+   */
+  async deleteLiveServer(id: string, actingUserId: string): Promise<void> {
+    await this.deletePayloadEntity(LIVE_SERVERS_COLLECTION, 'live_server', id, actingUserId);
+  }
+
+  /**
+   * Finds a live server by id.
+   */
+  async findLiveServerById(id: string): Promise<LiveServerRecord | null> {
+    return this.findPayloadEntity(LIVE_SERVERS_COLLECTION, id, mapFirestoreLiveServer);
+  }
+
+  /**
+   * Updates a live server deletion lock.
+   */
+  async setLiveServerDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LiveServerRecord> {
+    return this.lockPayloadEntity(
+      LIVE_SERVERS_COLLECTION,
+      'live_server',
+      id,
+      deletionLocked,
+      actingUserId,
+      mapFirestoreLiveServer
+    );
+  }
+
+  /**
+   * Lists live pages ordered by name.
+   */
+  async listLivePages(): Promise<LivePageRecord[]> {
+    return this.listPayloadEntities(LIVE_PAGES_COLLECTION, mapFirestoreLivePage);
+  }
+
+  /**
+   * Creates a live page.
+   */
+  async createLivePage(
+    input: CreateLivePageRecordInput,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.createPayloadEntity(
+      LIVE_PAGES_COLLECTION,
+      'live_page',
+      input,
+      actingUserId,
+      mapFirestoreLivePage
+    );
+  }
+
+  /**
+   * Replaces a live page.
+   */
+  async updateLivePage(
+    id: string,
+    input: UpdateLivePageRecordInput,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.updatePayloadEntity(
+      LIVE_PAGES_COLLECTION,
+      'live_page',
+      id,
+      input,
+      actingUserId,
+      mapFirestoreLivePage
+    );
+  }
+
+  /**
+   * Deletes a live page.
+   */
+  async deleteLivePage(id: string, actingUserId: string): Promise<void> {
+    await this.deletePayloadEntity(LIVE_PAGES_COLLECTION, 'live_page', id, actingUserId);
+  }
+
+  /**
+   * Finds a live page by id.
+   */
+  async findLivePageById(id: string): Promise<LivePageRecord | null> {
+    return this.findPayloadEntity(LIVE_PAGES_COLLECTION, id, mapFirestoreLivePage);
+  }
+
+  /**
+   * Updates a live page deletion lock.
+   */
+  async setLivePageDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LivePageRecord> {
+    return this.lockPayloadEntity(
+      LIVE_PAGES_COLLECTION,
+      'live_page',
+      id,
+      deletionLocked,
+      actingUserId,
+      mapFirestoreLivePage
+    );
+  }
+
+  /**
+   * Lists one of the fixed payload-entity collections.
+   */
+  private async listPayloadEntities<T>(
+    collection: string,
+    mapper: (id: string, data: FirestorePayloadEntityDocument) => T
+  ): Promise<T[]> {
+    const snapshot = await this.requireClient().collection(collection).get();
+    return snapshot.docs
+      .map((doc) => mapper(doc.id, doc.data() as FirestorePayloadEntityDocument))
+      .sort((left, right) => {
+        const leftName = (left as { name: string }).name;
+        const rightName = (right as { name: string }).name;
+        return leftName.localeCompare(rightName);
+      });
+  }
+
+  /**
+   * Creates a JSON-payload Firestore entity.
+   */
+  private async createPayloadEntity<T>(
+    collection: string,
+    entityType: 'live_server' | 'live_page',
+    input: CreateLiveServerRecordInput,
+    actingUserId: string,
+    mapper: (id: string, data: FirestorePayloadEntityDocument) => T
+  ): Promise<T> {
+    const id = randomUUID();
+    const now = new Date();
+    const data: FirestorePayloadEntityDocument = {
+      name: trimRequiredName(input.name, 'Entity name'),
+      payload: input.payload,
+      createdAt: now,
+      updatedAt: now,
+      createdByUserId: actingUserId,
+      updatedByUserId: actingUserId,
+      deletionLocked: false
+    };
+    await this.requireClient().collection(collection).doc(id).set(data);
+    await this.recordAuditEntry(actingUserId, 'create', entityType, id);
+    return mapper(id, data);
+  }
+
+  /**
+   * Replaces a JSON-payload Firestore entity.
+   */
+  private async updatePayloadEntity<T>(
+    collection: string,
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    input: UpdateLiveServerRecordInput,
+    actingUserId: string,
+    mapper: (id: string, data: FirestorePayloadEntityDocument) => T
+  ): Promise<T> {
+    const ref = this.requireClient().collection(collection).doc(id);
+    const snapshot = await ref.get();
+    if (!snapshot.exists) throw new Error('Entity not found');
+    const data = snapshot.data() as FirestorePayloadEntityDocument;
+    const updated = {
+      ...data,
+      name: trimRequiredName(input.name, 'Entity name'),
+      payload: input.payload,
+      updatedAt: new Date(),
+      updatedByUserId: actingUserId
+    };
+    await ref.set(updated);
+    await this.recordAuditEntry(actingUserId, 'update', entityType, id);
+    return mapper(id, updated);
+  }
+
+  /**
+   * Deletes a JSON-payload Firestore entity.
+   */
+  private async deletePayloadEntity(
+    collection: string,
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    actingUserId: string
+  ): Promise<void> {
+    await this.recordAuditEntry(actingUserId, 'delete', entityType, id);
+    await this.requireClient().collection(collection).doc(id).delete();
+  }
+
+  /**
+   * Finds one JSON-payload Firestore entity.
+   */
+  private async findPayloadEntity<T>(
+    collection: string,
+    id: string,
+    mapper: (id: string, data: FirestorePayloadEntityDocument) => T
+  ): Promise<T | null> {
+    const snapshot = await this.requireClient().collection(collection).doc(id).get();
+    return snapshot.exists ? mapper(id, snapshot.data() as FirestorePayloadEntityDocument) : null;
+  }
+
+  /**
+   * Changes a JSON-payload Firestore entity deletion lock.
+   */
+  private async lockPayloadEntity<T>(
+    collection: string,
+    entityType: 'live_server' | 'live_page',
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string,
+    mapper: (id: string, data: FirestorePayloadEntityDocument) => T
+  ): Promise<T> {
+    const ref = this.requireClient().collection(collection).doc(id);
+    const snapshot = await ref.get();
+    if (!snapshot.exists) throw new Error('Entity not found');
+    const updated = {
+      ...(snapshot.data() as FirestorePayloadEntityDocument),
+      deletionLocked,
+      updatedAt: new Date(),
+      updatedByUserId: actingUserId
+    };
+    await ref.set(updated);
+    await this.recordAuditEntry(actingUserId, 'update', entityType, id);
+    return mapper(id, updated);
   }
 
   /**
@@ -2410,6 +2700,8 @@ export class FirestoreDatabase implements IDatabase {
       collectionAccess: input.collectionAccess,
       environmentAccess: input.environmentAccess,
       snippetAccess: input.snippetAccess,
+      liveServerAccess: input.liveServerAccess,
+      livePageAccess: input.livePageAccess,
       llmAccess: false,
       llmModels: [],
       llmMonthlyTokenLimit: null,

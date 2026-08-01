@@ -46,6 +46,8 @@ export function createSystemUserInput(): CreateUserInput {
     role: 'admin',
     collectionAccess: [],
     environmentAccess: [],
-    snippetAccess: []
+    snippetAccess: [],
+    liveServerAccess: [],
+    livePageAccess: []
   };
 }

@@ -34,6 +34,7 @@ import modalsReducer, {
   setHostedModal,
   setLiveServerModalHeaders,
   setLiveServerModalRoutes,
+  setLiveServerModalErrorPages,
   setLiveServerModalSsl,
   setLiveServerModalTab,
   setOpenExternalLinkModal,
@@ -540,6 +541,7 @@ describe('selectHasBlockingModal', () => {
       host: '127.0.0.1',
       headers: [],
       routes: [],
+      errorPages: [],
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',
@@ -569,6 +571,7 @@ describe('selectHasBlockingModal', () => {
         host: '0.0.0.0',
         headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
         routes: [{ match: '*', target: 'index.html', enabled: true }],
+        errorPages: [],
         proxies: [
           {
             path: '/api',
@@ -594,6 +597,7 @@ describe('selectHasBlockingModal', () => {
       host: '0.0.0.0',
       headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
       routes: [{ match: '*', target: 'index.html', enabled: true }],
+      errorPages: [],
       proxies: [
         {
           path: '/api',
@@ -655,6 +659,13 @@ describe('selectHasBlockingModal', () => {
     const routes = [{ match: '*', target: 'index.html', enabled: true }];
     const state = modalsReducer(opened, setLiveServerModalRoutes(routes));
     expect(state.liveServerModal?.routes).toEqual(routes);
+  });
+
+  it('updates live server error pages via the Routing setter', () => {
+    const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
+    const errorPages = [{ code: '404', path: '404.html', enabled: true }];
+    const state = modalsReducer(opened, setLiveServerModalErrorPages(errorPages));
+    expect(state.liveServerModal?.errorPages).toEqual(errorPages);
   });
 
   it('updates live server SSL settings via the SSL setter', () => {

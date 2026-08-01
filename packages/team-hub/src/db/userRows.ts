@@ -35,6 +35,16 @@ export interface UserSqlRow {
   snippet_access: string;
 
   /**
+   * JSON-encoded live server access list column.
+   */
+  live_server_access: string;
+
+  /**
+   * JSON-encoded live page access list column.
+   */
+  live_page_access: string;
+
+  /**
    * Creation timestamp column.
    */
   created_at: Date;
@@ -118,6 +128,8 @@ export function mapUserSqlRow(row: UserSqlRow): UserRecord {
     collectionAccess: parseAccessList(row.collection_access),
     environmentAccess: parseAccessList(row.environment_access),
     snippetAccess: parseAccessList(row.snippet_access),
+    liveServerAccess: parseAccessList(row.live_server_access),
+    livePageAccess: parseAccessList(row.live_page_access),
     llmAccess: Boolean(row.llm_access),
     llmModels: parseAccessList(row.llm_models),
     llmMonthlyTokenLimit: row.llm_monthly_token_limit,
@@ -141,7 +153,7 @@ export function serializeAccessList(access: string[]): string {
 /**
  * Column list for SELECT queries against the users table.
  */
-export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, llm_access, llm_models, llm_monthly_token_limit, created_at, updated_at, created_by_user_id, updated_by_user_id`;
+export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, live_server_access, live_page_access, llm_access, llm_models, llm_monthly_token_limit, created_at, updated_at, created_by_user_id, updated_by_user_id`;
 
 /**
  * Column list for SELECT queries against the collections table.

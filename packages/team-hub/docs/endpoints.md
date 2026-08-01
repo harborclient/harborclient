@@ -870,6 +870,64 @@ Deletes a snippet by id.
 
 **Response `404`:** Snippet not found.
 
+## Live Servers and Live Pages
+
+Team Hub stores Live Server configuration at `/live-servers` and Live Page
+(Website) configuration at `/live-pages`. Both resources use UUID string ids.
+Configuration fields are accepted as flattened JSON and stored internally in a
+JSON payload; responses flatten that payload again alongside server metadata.
+
+### GET /live-servers and GET /live-pages
+
+Lists records visible through `liveServerAccess` or `livePageAccess`.
+Administrators receive the full catalog. Responses use `liveServers` and
+`livePages` array wrappers respectively.
+
+### POST /live-servers
+
+Requires wildcard live-server access.
+
+```json
+{
+  "name": "Documentation",
+  "root": "/srv/docs",
+  "port": 5500,
+  "watch": true,
+  "openPath": "/index.html"
+}
+```
+
+All Live Server configuration fields are accepted: `root`, `port`, `aliases`,
+`watch`, `cors`, `openPath`, `openPathOnStartup`, `rememberLastUrl`,
+`lastOpenedPath`, `indexFiles`, `host`, `headers`, `routes`, `errorPages`,
+`proxies`, `ssl`, `runCommand`, `restartOnCrash`, `urlVariable`,
+`preRequestScripts`, and `postRequestScripts`.
+
+### POST /live-pages
+
+Requires wildcard live-page access.
+
+```json
+{
+  "name": "Dashboard",
+  "url": "https://example.test/app",
+  "homeUrl": "https://example.test"
+}
+```
+
+Live Page payload fields are `url`, `homeUrl`, `faviconDataUrl`, `scripts`,
+`preRequestScripts`, `postRequestScripts`, `variables`, `headers`, `userAgent`,
+and `auth`.
+
+### PUT /live-servers/:id and PUT /live-pages/:id
+
+Replaces the name and configuration payload. The caller must have access to the
+specific record.
+
+### DELETE /live-servers/:id and DELETE /live-pages/:id
+
+Deletes an accessible record unless its `deletionLocked` flag is enabled.
+
 Folders organize saved requests within a collection.
 
 **Folder record:**

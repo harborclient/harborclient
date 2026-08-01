@@ -156,6 +156,7 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     host: '127.0.0.1',
     headers: [],
     routes: [],
+    errorPages: [],
     proxies: [],
     ssl: defaultLiveServerSslSettings(),
     runCommand: '',
@@ -229,6 +230,15 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
     const draft = toLiveServerConfig({
       ...running,
       routes: [{ match: '*', target: 'index.html' }]
+    });
+    expect(liveServerRuntimeConfigNeedsRestart(draft, running)).toBe(true);
+  });
+
+  it('returns true when error pages differ', () => {
+    const running = baseConfig();
+    const draft = toLiveServerConfig({
+      ...running,
+      errorPages: [{ code: '404', path: '404.html' }]
     });
     expect(liveServerRuntimeConfigNeedsRestart(draft, running)).toBe(true);
   });
@@ -335,6 +345,7 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
       watch: running.watch,
       cors: undefined,
       routes: [],
+      errorPages: [],
       proxies: [],
       headers: [],
       ssl: undefined

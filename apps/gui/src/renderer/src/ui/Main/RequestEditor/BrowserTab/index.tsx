@@ -105,9 +105,9 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
    */
   const prepareAddressSuggestionsOverlay = useCallback(async (): Promise<void> => {
     wantAddressGuestCoverRef.current = true;
-    await coverBrowserGuestForOverlay(tab.tabId);
+    await coverBrowserGuestForOverlay(tab.tabId, 'address-suggestions');
     if (!wantAddressGuestCoverRef.current) {
-      void uncoverBrowserGuest();
+      void uncoverBrowserGuest('address-suggestions');
     }
   }, [tab.tabId]);
 
@@ -122,7 +122,7 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
       return;
     }
     wantAddressGuestCoverRef.current = false;
-    void uncoverBrowserGuest();
+    void uncoverBrowserGuest('address-suggestions');
   }, []);
 
   /**

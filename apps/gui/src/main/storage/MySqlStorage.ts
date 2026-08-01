@@ -39,6 +39,8 @@ import {
   rowToDocument,
   rowToEnvironment,
   rowToFolder,
+  rowToProviderLivePage,
+  rowToProviderLiveServer,
   rowToProviderSnippet,
   rowToRequest
 } from './entityMappers';
@@ -48,6 +50,16 @@ import {
   CREATE_PROVIDER_SNIPPETS_TABLE_MYSQL,
   PROVIDER_SNIPPET_COLUMNS
 } from './providerSnippetSql';
+import {
+  CREATE_PROVIDER_LIVE_SERVERS_TABLE_MYSQL,
+  PROVIDER_LIVE_SERVER_COLUMNS
+} from '@harborclient/storage-sqlite/providerLiveServerSql';
+import {
+  CREATE_PROVIDER_LIVE_PAGES_TABLE_MYSQL,
+  PROVIDER_LIVE_PAGE_COLUMNS
+} from '@harborclient/storage-sqlite/providerLivePageSql';
+import { serializeLiveServerPayload } from '@harborclient/storage-sqlite/liveServerPayload';
+import { serializeLivePagePayload } from '@harborclient/storage-sqlite/livePagePayload';
 import { bundleScriptFieldsWithLegacy } from './scriptFields';
 import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { trimRequiredName } from './trimRequiredName';
@@ -58,16 +70,22 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   Folder,
   KeyValue,
+  LiveServer,
   MySqlSettings,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
   Snippet,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type {
   ProviderRunResult,
@@ -210,6 +228,8 @@ export class MySqlStorage implements IStorage {
     `);
 
     await this.#pool.execute(CREATE_PROVIDER_SNIPPETS_TABLE_MYSQL);
+    await this.#pool.execute(CREATE_PROVIDER_LIVE_SERVERS_TABLE_MYSQL);
+    await this.#pool.execute(CREATE_PROVIDER_LIVE_PAGES_TABLE_MYSQL);
 
     // MySQL has no `ADD COLUMN IF NOT EXISTS` (a MariaDB-only extension), so the
     // schema is migrated by checking information_schema before each ALTER.
@@ -2147,6 +2167,147 @@ export class MySqlStorage implements IStorage {
    */
   async deleteSnippet(id: number): Promise<void> {
     await this.getPool().execute('DELETE FROM snippets WHERE id = ?', [id]);
+  }
+
+  /**
+   * Lists live servers ordered by their provider sort position.
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers ORDER BY sort_order ASC, name ASC`
+    );
+    return rows.map(rowToProviderLiveServer);
+  }
+
+  /**
+   * Creates a live server with normalized payload fields.
+   *
+   * @param input - Live server fields to persist.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_servers'
+    );
+    const now = Date.now();
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      `INSERT INTO live_servers (uuid, name, payload, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        input.uuid?.trim() || generateDocumentUuid(),
+        name,
+        serializeLiveServerPayload(input),
+        Number(maxRows[0]?.max_order ?? -1) + 1,
+        now,
+        now
+      ]
+    );
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers WHERE id = ?`,
+      [result.insertId]
+    );
+    return rowToProviderLiveServer(rows[0]);
+  }
+
+  /**
+   * Replaces a live server's mutable fields.
+   *
+   * @param input - Complete live server update.
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE live_servers SET name = ?, payload = ?, updated_at = ? WHERE id = ?',
+      [name, serializeLiveServerPayload(input), Date.now(), input.id]
+    );
+    if (result.affectedRows === 0) throw new Error(`Live server not found: ${input.id}`);
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_SERVER_COLUMNS} FROM live_servers WHERE id = ?`,
+      [input.id]
+    );
+    return rowToProviderLiveServer(rows[0]);
+  }
+
+  /**
+   * Deletes a live server by provider-local id.
+   *
+   * @param id - Live server id.
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    await this.getPool().execute('DELETE FROM live_servers WHERE id = ?', [id]);
+  }
+
+  /**
+   * Lists live pages ordered by their provider sort position.
+   */
+  async listLivePages(): Promise<Website[]> {
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages ORDER BY sort_order ASC, name ASC`
+    );
+    return rows.map(rowToProviderLivePage);
+  }
+
+  /**
+   * Creates a live page with a serialized website payload.
+   *
+   * @param input - Website fields to persist.
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    const [maxRows] = await this.getPool().execute<RowDataPacket[]>(
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_pages'
+    );
+    const now = Date.now();
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      `INSERT INTO live_pages (uuid, name, payload, sort_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        input.uuid?.trim() || generateDocumentUuid(),
+        trimRequiredName(input.name, 'Live page name'),
+        serializeLivePagePayload(input),
+        Number(maxRows[0]?.max_order ?? -1) + 1,
+        now,
+        now
+      ]
+    );
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages WHERE id = ?`,
+      [result.insertId]
+    );
+    return rowToProviderLivePage(rows[0]);
+  }
+
+  /**
+   * Replaces a live page's mutable fields.
+   *
+   * @param input - Complete live page update.
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const [result] = await this.getPool().execute<ResultSetHeader>(
+      'UPDATE live_pages SET name = ?, payload = ?, updated_at = ? WHERE id = ?',
+      [
+        trimRequiredName(input.name, 'Live page name'),
+        serializeLivePagePayload(input),
+        Date.now(),
+        input.id
+      ]
+    );
+    if (result.affectedRows === 0) throw new Error(`Live page not found: ${input.id}`);
+    const [rows] = await this.getPool().execute<RowDataPacket[]>(
+      `SELECT ${PROVIDER_LIVE_PAGE_COLUMNS} FROM live_pages WHERE id = ?`,
+      [input.id]
+    );
+    return rowToProviderLivePage(rows[0]);
+  }
+
+  /**
+   * Deletes a live page by provider-local id.
+   *
+   * @param id - Live page id.
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    await this.getPool().execute('DELETE FROM live_pages WHERE id = ?', [id]);
   }
 
   /**

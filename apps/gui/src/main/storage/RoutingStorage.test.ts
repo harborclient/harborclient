@@ -102,6 +102,8 @@ function userTeamHubSessionMock(managementApi = false): SessionResponse {
 function withDefaultTeamHubClient(client: Partial<TeamHubClient>): Partial<TeamHubClient> {
   return {
     getSession: vi.fn().mockResolvedValue(userTeamHubSessionMock(false)),
+    listLivePages: vi.fn().mockResolvedValue([]),
+    listLiveServers: vi.fn().mockResolvedValue([]),
     listSnippets: vi.fn().mockResolvedValue([]),
     ...client
   };
@@ -1513,5 +1515,49 @@ describeSqlite('RoutingStorage collection discovery', () => {
     await router.close();
     rmSync(rootDir, { recursive: true, force: true });
     rmSync(repoPath, { recursive: true, force: true });
+  });
+
+  it('routes live servers with registry ids and overlays local last-opened paths', async () => {
+    const { router, database, backendA } = await createRoutingFixture();
+    const created = await router.createLiveServer({
+      name: 'Docs',
+      root: '/tmp/docs',
+      lastOpenedPath: '/provider-path'
+    });
+
+    const entry = database.getLiveServerRegistryEntry(created.id);
+    expect(entry?.connectionId).toBe(CONN_A.id);
+    expect((await backendA.listLiveServers())[0]?.lastOpenedPath).toBeNull();
+
+    router.setLiveServerLastOpenedPath(created.id, '/guide?mode=dark');
+    await expect(router.listLiveServers()).resolves.toMatchObject([
+      {
+        id: created.id,
+        connectionId: CONN_A.id,
+        lastOpenedPath: '/guide?mode=dark'
+      }
+    ]);
+  });
+
+  it('moves live servers and live pages while preserving global ids', async () => {
+    const { router, database, backendA, backendB } = await createRoutingFixture();
+    const server = await router.createLiveServer({ name: 'Server', root: '/tmp/server' });
+    const page = await router.createLivePage({
+      name: 'Page',
+      url: 'https://example.com/current',
+      homeUrl: 'https://example.com'
+    });
+
+    const movedServer = await router.moveLiveServer(server.id, CONN_B.id);
+    const movedPage = await router.moveLivePage(page.id, CONN_B.id);
+
+    expect(movedServer).toMatchObject({ id: server.id, connectionId: CONN_B.id });
+    expect(movedPage).toMatchObject({ id: page.id, connectionId: CONN_B.id });
+    expect(database.getLiveServerRegistryEntry(server.id)?.connectionId).toBe(CONN_B.id);
+    expect(database.getLivePageRegistryEntry(page.id)?.connectionId).toBe(CONN_B.id);
+    await expect(backendA.listLiveServers()).resolves.toHaveLength(0);
+    await expect(backendA.listLivePages()).resolves.toHaveLength(0);
+    await expect(backendB.listLiveServers()).resolves.toHaveLength(1);
+    await expect(backendB.listLivePages()).resolves.toHaveLength(1);
   });
 });

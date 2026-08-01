@@ -3,6 +3,8 @@ import type {
   AuthConfig,
   CollectionRecord,
   CreateRunResultInput,
+  CreateLivePageRecordInput,
+  CreateLiveServerRecordInput,
   CreateUserInput,
   CreatedInvitedUserResult,
   EnvironmentRecord,
@@ -23,7 +25,11 @@ import type {
   LlmUsageRecord,
   CreateLlmUsageLogInput,
   LlmUsageLogRecord,
-  RunResultRecord
+  RunResultRecord,
+  LivePageRecord,
+  LiveServerRecord,
+  UpdateLivePageRecordInput,
+  UpdateLiveServerRecordInput
 } from '#/db/types.js';
 import type { ApiTokenRecord } from '#/db/types.js';
 
@@ -461,6 +467,75 @@ export interface IDatabase {
     deletionLocked: boolean,
     actingUserId: string
   ): Promise<SnippetRecord>;
+
+  /**
+   * Lists all live server records ordered by name.
+   */
+  listLiveServers(): Promise<LiveServerRecord[]>;
+  /**
+   * Creates a live server record.
+   */
+  createLiveServer(
+    input: CreateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord>;
+  /**
+   * Replaces a live server record.
+   */
+  updateLiveServer(
+    id: string,
+    input: UpdateLiveServerRecordInput,
+    actingUserId: string
+  ): Promise<LiveServerRecord>;
+  /**
+   * Deletes a live server record.
+   */
+  deleteLiveServer(id: string, actingUserId: string): Promise<void>;
+  /**
+   * Finds a live server by id.
+   */
+  findLiveServerById(id: string): Promise<LiveServerRecord | null>;
+  /**
+   * Updates a live server deletion lock.
+   */
+  setLiveServerDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LiveServerRecord>;
+
+  /**
+   * Lists all live page records ordered by name.
+   */
+  listLivePages(): Promise<LivePageRecord[]>;
+  /**
+   * Creates a live page record.
+   */
+  createLivePage(input: CreateLivePageRecordInput, actingUserId: string): Promise<LivePageRecord>;
+  /**
+   * Replaces a live page record.
+   */
+  updateLivePage(
+    id: string,
+    input: UpdateLivePageRecordInput,
+    actingUserId: string
+  ): Promise<LivePageRecord>;
+  /**
+   * Deletes a live page record.
+   */
+  deleteLivePage(id: string, actingUserId: string): Promise<void>;
+  /**
+   * Finds a live page by id.
+   */
+  findLivePageById(id: string): Promise<LivePageRecord | null>;
+  /**
+   * Updates a live page deletion lock.
+   */
+  setLivePageDeletionLocked(
+    id: string,
+    deletionLocked: boolean,
+    actingUserId: string
+  ): Promise<LivePageRecord>;
 
   /**
    * Lists all saved requests in a collection.

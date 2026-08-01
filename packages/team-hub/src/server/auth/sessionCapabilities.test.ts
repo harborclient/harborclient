@@ -10,6 +10,8 @@ const baseUser: UserRecord = {
   collectionAccess: ['collection-1'],
   environmentAccess: ['*'],
   snippetAccess: [],
+  liveServerAccess: [],
+  livePageAccess: [],
 
   llmAccess: true,
   llmModels: ['gpt-4o'],

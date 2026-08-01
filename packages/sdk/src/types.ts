@@ -1656,6 +1656,26 @@ export interface LiveServerRoute {
 }
 
 /**
+ * One custom error-page mapping for a Harbor Live Server (status code → HTML file).
+ */
+export interface LiveServerErrorPage {
+  /**
+   * Status pattern: exact (`404`), decade (`40x`), or class (`4xx`).
+   */
+  code: string;
+
+  /**
+   * HTML file path, absolute or relative to the server root.
+   */
+  path: string;
+
+  /**
+   * When false, the mapping is ignored. Defaults to true when omitted.
+   */
+  enabled?: boolean;
+}
+
+/**
  * One reverse-proxy rule for a Harbor Live Server (path prefix → HTTP/HTTPS upstream).
  */
 export interface LiveServerProxy {
@@ -1831,6 +1851,11 @@ export interface LiveServerConfig {
   routes: LiveServerRoute[];
 
   /**
+   * Status-code → HTML file mappings for custom error responses.
+   */
+  errorPages: LiveServerErrorPage[];
+
+  /**
    * Ordered reverse-proxy rules applied before static (first match wins).
    */
   proxies: LiveServerProxy[];
@@ -1880,6 +1905,13 @@ export interface LiveServer {
    * Stable portable identifier.
    */
   uuid: string;
+
+  /**
+   * Id of the storage connection that stores this live server.
+   *
+   * Omitted for provider-local records before routed storage adds registry metadata.
+   */
+  connectionId?: string;
 
   /**
    * Display name.
@@ -1952,6 +1984,11 @@ export interface LiveServer {
   routes: LiveServerRoute[];
 
   /**
+   * Status-code → HTML file mappings for custom error responses.
+   */
+  errorPages: LiveServerErrorPage[];
+
+  /**
    * Ordered reverse-proxy rules applied before static (first match wins).
    */
   proxies: LiveServerProxy[];
@@ -2007,6 +2044,11 @@ export interface LiveServer {
  * Input for creating a saved Harbor Live Server.
  */
 export interface CreateLiveServerInput {
+  /**
+   * Optional storage connection id; defaults to the active data provider when omitted.
+   */
+  connectionId?: string;
+
   /**
    * Display name for the saved server.
    */
@@ -2078,6 +2120,11 @@ export interface CreateLiveServerInput {
   routes?: LiveServerRoute[];
 
   /**
+   * Custom error-page mappings. Defaults to `[]`.
+   */
+  errorPages?: LiveServerErrorPage[];
+
+  /**
    * Reverse-proxy rules. Defaults to `[]`.
    */
   proxies?: LiveServerProxy[];
@@ -2123,6 +2170,13 @@ export interface UpdateLiveServerInput {
    * Database primary key of the server to update.
    */
   id: number;
+
+  /**
+   * Optional destination storage connection id.
+   *
+   * Hosts that support routed storage move the live server before applying the update.
+   */
+  connectionId?: string;
 
   /**
    * Display name for the saved server.
@@ -2193,6 +2247,11 @@ export interface UpdateLiveServerInput {
    * Path routing rules.
    */
   routes: LiveServerRoute[];
+
+  /**
+   * Custom error-page mappings.
+   */
+  errorPages: LiveServerErrorPage[];
 
   /**
    * Reverse-proxy rules.

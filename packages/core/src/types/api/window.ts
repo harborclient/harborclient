@@ -334,6 +334,14 @@ export interface ApiWindow {
    */
   selectSslFile: (defaultPath?: string) => Promise<string | null>;
   /**
+   * Opens a native single-file picker filtered for HTML files (`.html`, `.htm`,
+   * plus All files). Used for live-server error pages and similar paths.
+   *
+   * @param defaultPath - Initial path shown in the dialog, if any.
+   * @returns Selected absolute file path, or null when canceled.
+   */
+  selectFile: (defaultPath?: string) => Promise<string | null>;
+  /**
    * Opens a native directory picker.
    *
    * @param defaultPath - Initial directory shown in the dialog, if any.

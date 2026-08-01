@@ -30,6 +30,7 @@ import type {
   LiveServer,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerErrorPage,
   LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
@@ -98,6 +99,7 @@ interface LiveServerPayloadJson {
   host: string;
   headers: LiveServerResponseHeader[];
   routes: LiveServerRoute[];
+  errorPages: LiveServerErrorPage[];
   proxies: LiveServerProxy[];
   ssl: LiveServerSslSettings;
   runCommand: string;
@@ -458,6 +460,66 @@ export type UpdateSnippetRegistryEntryInput = Partial<
 >;
 
 /**
+ * A single entry in the local live-server routing registry.
+ */
+export interface LiveServerRegistryEntry {
+  id: number;
+  name: string;
+  uuid: string;
+  connectionId: string;
+  providerLiveServerId: number;
+  created_at: string;
+}
+
+/**
+ * Input for creating a live-server registry entry.
+ */
+export interface AddLiveServerRegistryEntryInput {
+  id?: number;
+  name: string;
+  connectionId: string;
+  providerLiveServerId: number;
+  uuid?: string;
+}
+
+/**
+ * Mutable fields of a live-server registry entry.
+ */
+export type UpdateLiveServerRegistryEntryInput = Partial<
+  Pick<LiveServerRegistryEntry, 'name' | 'connectionId' | 'providerLiveServerId' | 'uuid'>
+>;
+
+/**
+ * A single entry in the local live-page routing registry.
+ */
+export interface LivePageRegistryEntry {
+  id: number;
+  name: string;
+  uuid: string;
+  connectionId: string;
+  providerLivePageId: number;
+  created_at: string;
+}
+
+/**
+ * Input for creating a live-page registry entry.
+ */
+export interface AddLivePageRegistryEntryInput {
+  id?: number;
+  name: string;
+  connectionId: string;
+  providerLivePageId: number;
+  uuid?: string;
+}
+
+/**
+ * Mutable fields of a live-page registry entry.
+ */
+export type UpdateLivePageRegistryEntryInput = Partial<
+  Pick<LivePageRegistryEntry, 'name' | 'connectionId' | 'providerLivePageId' | 'uuid'>
+>;
+
+/**
  * Maps a raw SQLite row to a snippet registry entry.
  */
 function rowToSnippetRegistryEntry(row: Record<string, unknown>): SnippetRegistryEntry {
@@ -468,6 +530,40 @@ function rowToSnippetRegistryEntry(row: Record<string, unknown>): SnippetRegistr
     connectionId: row.connection_id as string,
     providerSnippetId: row.provider_snippet_id as number,
     scope: (row.scope as SnippetScope) ?? 'any',
+    created_at: row.created_at as string
+  };
+}
+
+/**
+ * Maps a raw SQLite row to a live-server registry entry.
+ *
+ * @param row - SQLite result row using database column names.
+ * @returns Registry metadata using application field names.
+ */
+function rowToLiveServerRegistryEntry(row: Record<string, unknown>): LiveServerRegistryEntry {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    uuid: (row.uuid as string) ?? '',
+    connectionId: row.connection_id as string,
+    providerLiveServerId: row.provider_live_server_id as number,
+    created_at: row.created_at as string
+  };
+}
+
+/**
+ * Maps a raw SQLite row to a live-page registry entry.
+ *
+ * @param row - SQLite result row using database column names.
+ * @returns Registry metadata using application field names.
+ */
+function rowToLivePageRegistryEntry(row: Record<string, unknown>): LivePageRegistryEntry {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    uuid: (row.uuid as string) ?? '',
+    connectionId: row.connection_id as string,
+    providerLivePageId: row.provider_live_page_id as number,
     created_at: row.created_at as string
   };
 }
@@ -610,6 +706,31 @@ export class LocalDatabase {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
+      CREATE TABLE IF NOT EXISTS live_server_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_live_server_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS live_page_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_live_page_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS live_server_local_state (
+        uuid TEXT PRIMARY KEY,
+        last_opened_path TEXT
+      );
+
       CREATE TABLE IF NOT EXISTS request_history (
         id               INTEGER PRIMARY KEY,
         method           TEXT    NOT NULL,
@@ -718,6 +839,8 @@ export class LocalDatabase {
     this.migrateChatMessageReferenceSnapshots();
     this.migrateSnippetMarketplaceFields();
     this.migrateSnippetRegistryTable();
+    this.migrateLiveServerRegistryTables();
+    this.migrateLivePageRegistryTable();
     this.migrateRequestHistoryTable();
     this.migrateWorkspacesTable();
     this.migrateWorkflowsTable();
@@ -1035,6 +1158,45 @@ export class LocalDatabase {
         provider_snippet_id INTEGER NOT NULL,
         scope TEXT NOT NULL DEFAULT 'any',
         stage TEXT NOT NULL DEFAULT 'main',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+  }
+
+  /**
+   * Ensures live-server routing and machine-local state tables exist on legacy databases.
+   */
+  private migrateLiveServerRegistryTables(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS live_server_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_live_server_id INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS live_server_local_state (
+        uuid TEXT PRIMARY KEY,
+        last_opened_path TEXT
+      );
+    `);
+  }
+
+  /**
+   * Ensures the live-page routing registry exists on legacy databases.
+   */
+  private migrateLivePageRegistryTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS live_page_registry (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        uuid TEXT NOT NULL DEFAULT '',
+        connection_id TEXT NOT NULL,
+        provider_live_page_id INTEGER NOT NULL,
         sort_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
@@ -1698,6 +1860,260 @@ export class LocalDatabase {
       .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippet_registry')
       .get() as { max_order: number };
     return row.max_order + 1;
+  }
+
+  /**
+   * Lists live-server registry entries in stable display order.
+   *
+   * @returns Registry entries with provider routing metadata.
+   */
+  listLiveServerRegistry(): LiveServerRegistryEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_live_server_id, created_at FROM live_server_registry ORDER BY sort_order ASC, name ASC'
+      )
+      .all() as Record<string, unknown>[];
+    return rows.map(rowToLiveServerRegistryEntry);
+  }
+
+  /**
+   * Looks up a live-server registry entry by global id.
+   *
+   * @param id - Stable global live-server id.
+   * @returns The entry when found, otherwise undefined.
+   */
+  getLiveServerRegistryEntry(id: number): LiveServerRegistryEntry | undefined {
+    const row = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_live_server_id, created_at FROM live_server_registry WHERE id = ?'
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    return row ? rowToLiveServerRegistryEntry(row) : undefined;
+  }
+
+  /**
+   * Registers a live server with its provider routing metadata.
+   *
+   * @param input - Registry fields, optionally including a preserved global id.
+   * @returns The persisted registry entry.
+   */
+  addLiveServerRegistryEntry(input: AddLiveServerRegistryEntryInput): LiveServerRegistryEntry {
+    const sortOrder = this.nextLiveServerRegistrySortOrder();
+    const uuid = input.uuid?.trim() ?? '';
+    if (input.id != null) {
+      this.getDb()
+        .prepare(
+          'INSERT INTO live_server_registry (id, name, uuid, connection_id, provider_live_server_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+        )
+        .run(
+          input.id,
+          input.name.trim(),
+          uuid,
+          input.connectionId,
+          input.providerLiveServerId,
+          sortOrder
+        );
+      const entry = this.getLiveServerRegistryEntry(input.id);
+      if (!entry) throw new Error('Live-server registry entry not found after insert');
+      return entry;
+    }
+
+    const result = this.getDb()
+      .prepare(
+        'INSERT INTO live_server_registry (name, uuid, connection_id, provider_live_server_id, sort_order) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run(input.name.trim(), uuid, input.connectionId, input.providerLiveServerId, sortOrder);
+    const entry = this.getLiveServerRegistryEntry(Number(result.lastInsertRowid));
+    if (!entry) throw new Error('Live-server registry entry not found after insert');
+    return entry;
+  }
+
+  /**
+   * Updates live-server registry routing metadata.
+   *
+   * @param id - Stable global live-server id.
+   * @param fields - Partial registry fields to merge.
+   * @returns The updated registry entry.
+   */
+  updateLiveServerRegistryEntry(
+    id: number,
+    fields: UpdateLiveServerRegistryEntryInput
+  ): LiveServerRegistryEntry {
+    const current = this.getLiveServerRegistryEntry(id);
+    if (!current) throw new Error('Live-server registry entry not found');
+    const next = { ...current, ...fields };
+    this.getDb()
+      .prepare(
+        'UPDATE live_server_registry SET name = ?, uuid = ?, connection_id = ?, provider_live_server_id = ? WHERE id = ?'
+      )
+      .run(next.name.trim(), next.uuid, next.connectionId, next.providerLiveServerId, id);
+    const updated = this.getLiveServerRegistryEntry(id);
+    if (!updated) throw new Error('Live-server registry entry not found after update');
+    return updated;
+  }
+
+  /**
+   * Removes a live server from the routing registry.
+   *
+   * @param id - Stable global live-server id.
+   */
+  deleteLiveServerRegistryEntry(id: number): void {
+    this.getDb().prepare('DELETE FROM live_server_registry WHERE id = ?').run(id);
+  }
+
+  /**
+   * Returns the next insertion order for live-server registry entries.
+   *
+   * @returns Next zero-based sort order.
+   */
+  private nextLiveServerRegistrySortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_server_registry')
+      .get() as { max_order: number };
+    return row.max_order + 1;
+  }
+
+  /**
+   * Lists live-page registry entries in stable display order.
+   *
+   * @returns Registry entries with provider routing metadata.
+   */
+  listLivePageRegistry(): LivePageRegistryEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_live_page_id, created_at FROM live_page_registry ORDER BY sort_order ASC, name ASC'
+      )
+      .all() as Record<string, unknown>[];
+    return rows.map(rowToLivePageRegistryEntry);
+  }
+
+  /**
+   * Looks up a live-page registry entry by global id.
+   *
+   * @param id - Stable global live-page id.
+   * @returns The entry when found, otherwise undefined.
+   */
+  getLivePageRegistryEntry(id: number): LivePageRegistryEntry | undefined {
+    const row = this.getDb()
+      .prepare(
+        'SELECT id, name, uuid, connection_id, provider_live_page_id, created_at FROM live_page_registry WHERE id = ?'
+      )
+      .get(id) as Record<string, unknown> | undefined;
+    return row ? rowToLivePageRegistryEntry(row) : undefined;
+  }
+
+  /**
+   * Registers a live page with its provider routing metadata.
+   *
+   * @param input - Registry fields, optionally including a preserved global id.
+   * @returns The persisted registry entry.
+   */
+  addLivePageRegistryEntry(input: AddLivePageRegistryEntryInput): LivePageRegistryEntry {
+    const sortOrder = this.nextLivePageRegistrySortOrder();
+    const uuid = input.uuid?.trim() ?? '';
+    if (input.id != null) {
+      this.getDb()
+        .prepare(
+          'INSERT INTO live_page_registry (id, name, uuid, connection_id, provider_live_page_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+        )
+        .run(
+          input.id,
+          input.name.trim(),
+          uuid,
+          input.connectionId,
+          input.providerLivePageId,
+          sortOrder
+        );
+      const entry = this.getLivePageRegistryEntry(input.id);
+      if (!entry) throw new Error('Live-page registry entry not found after insert');
+      return entry;
+    }
+
+    const result = this.getDb()
+      .prepare(
+        'INSERT INTO live_page_registry (name, uuid, connection_id, provider_live_page_id, sort_order) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run(input.name.trim(), uuid, input.connectionId, input.providerLivePageId, sortOrder);
+    const entry = this.getLivePageRegistryEntry(Number(result.lastInsertRowid));
+    if (!entry) throw new Error('Live-page registry entry not found after insert');
+    return entry;
+  }
+
+  /**
+   * Updates live-page registry routing metadata.
+   *
+   * @param id - Stable global live-page id.
+   * @param fields - Partial registry fields to merge.
+   * @returns The updated registry entry.
+   */
+  updateLivePageRegistryEntry(
+    id: number,
+    fields: UpdateLivePageRegistryEntryInput
+  ): LivePageRegistryEntry {
+    const current = this.getLivePageRegistryEntry(id);
+    if (!current) throw new Error('Live-page registry entry not found');
+    const next = { ...current, ...fields };
+    this.getDb()
+      .prepare(
+        'UPDATE live_page_registry SET name = ?, uuid = ?, connection_id = ?, provider_live_page_id = ? WHERE id = ?'
+      )
+      .run(next.name.trim(), next.uuid, next.connectionId, next.providerLivePageId, id);
+    const updated = this.getLivePageRegistryEntry(id);
+    if (!updated) throw new Error('Live-page registry entry not found after update');
+    return updated;
+  }
+
+  /**
+   * Removes a live page from the routing registry.
+   *
+   * @param id - Stable global live-page id.
+   */
+  deleteLivePageRegistryEntry(id: number): void {
+    this.getDb().prepare('DELETE FROM live_page_registry WHERE id = ?').run(id);
+  }
+
+  /**
+   * Returns the next insertion order for live-page registry entries.
+   *
+   * @returns Next zero-based sort order.
+   */
+  private nextLivePageRegistrySortOrder(): number {
+    const row = this.getDb()
+      .prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM live_page_registry')
+      .get() as { max_order: number };
+    return row.max_order + 1;
+  }
+
+  /**
+   * Reads the machine-local last path opened for a live server.
+   *
+   * @param uuid - Portable live-server uuid.
+   * @returns The saved path, or null when no local path is stored.
+   */
+  getLiveServerLocalLastOpenedPath(uuid: string): string | null {
+    const row = this.getDb()
+      .prepare('SELECT last_opened_path FROM live_server_local_state WHERE uuid = ?')
+      .get(uuid) as { last_opened_path: string | null } | undefined;
+    return row?.last_opened_path ?? null;
+  }
+
+  /**
+   * Stores or clears the machine-local last path opened for a live server.
+   *
+   * @param uuid - Portable live-server uuid.
+   * @param path - Last opened path, or null to clear local state.
+   */
+  setLiveServerLocalLastOpenedPath(uuid: string, path: string | null): void {
+    if (path == null) {
+      this.getDb().prepare('DELETE FROM live_server_local_state WHERE uuid = ?').run(uuid);
+      return;
+    }
+    this.getDb()
+      .prepare(
+        `INSERT INTO live_server_local_state (uuid, last_opened_path) VALUES (?, ?)
+         ON CONFLICT(uuid) DO UPDATE SET last_opened_path = excluded.last_opened_path`
+      )
+      .run(uuid, path);
   }
 
   /**
@@ -3319,6 +3735,7 @@ export class LocalDatabase {
         host: payload.host,
         headers: payload.headers,
         routes: payload.routes,
+        errorPages: payload.errorPages,
         proxies: payload.proxies,
         ssl: payload.ssl,
         runCommand: payload.runCommand,

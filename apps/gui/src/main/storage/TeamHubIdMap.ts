@@ -10,6 +10,8 @@ export type TeamHubEntityType =
   | 'document'
   | 'environment'
   | 'folder'
+  | 'live_page'
+  | 'live_server'
   | 'request'
   | 'run_result'
   | 'snippet';

@@ -70,6 +70,16 @@ export interface UserCreateCommandOptions extends UserCommandOptions {
   snippetAccess: string[];
 
   /**
+   * Live server ids or `*` granting live server access.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Live page ids or `*` granting live page access.
+   */
+  livePageAccess?: string[];
+
+  /**
    * Whether the user may use hub-proxied LLM routes.
    */
   llmAccess?: boolean;
@@ -115,6 +125,16 @@ export interface UserUpdateCommandOptions extends UserCommandOptions {
    * Replacement snippet access list.
    */
   snippetAccess?: string[];
+
+  /**
+   * Replacement live server access list.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Replacement live page access list.
+   */
+  livePageAccess?: string[];
 
   /**
    * Whether the user may use hub-proxied LLM routes.
@@ -304,6 +324,8 @@ function printUser(
     collectionAccess: string[];
     environmentAccess: string[];
     snippetAccess: string[];
+    liveServerAccess: string[];
+    livePageAccess: string[];
     llmAccess: boolean;
     llmModels: string[];
     llmMonthlyTokenLimit: number | null;
@@ -318,6 +340,8 @@ function printUser(
   console.log(`  collection access: ${formatAccessList(user.collectionAccess)}`);
   console.log(`  environment access: ${formatAccessList(user.environmentAccess)}`);
   console.log(`  snippet access: ${formatAccessList(user.snippetAccess)}`);
+  console.log(`  live server access: ${formatAccessList(user.liveServerAccess ?? [])}`);
+  console.log(`  live page access: ${formatAccessList(user.livePageAccess ?? [])}`);
   console.log(`  llm access: ${user.llmAccess ? 'enabled' : 'disabled'}`);
   console.log(`  llm models: ${formatAccessList(user.llmModels)}`);
   console.log(
@@ -357,17 +381,21 @@ function printCreatedApiToken(
  * @returns Known collection, environment, and LLM model ids.
  */
 async function loadAccessCatalogs(db: IDatabase, llm: LlmConfig | null) {
-  const [collections, environments, snippets] = await Promise.all([
+  const [collections, environments, snippets, liveServers, livePages] = await Promise.all([
     db.listCollections(),
     db.listEnvironments(),
-    db.listSnippets()
+    db.listSnippets(),
+    db.listLiveServers?.() ?? Promise.resolve([]),
+    db.listLivePages?.() ?? Promise.resolve([])
   ]);
 
   return buildAccessCatalogIds(
     collections,
     environments,
     snippets,
-    llm ? listHubOfferedModels(llm).map((model) => model.id) : null
+    llm ? listHubOfferedModels(llm).map((model) => model.id) : null,
+    liveServers,
+    livePages
   );
 }
 
@@ -428,7 +456,9 @@ export async function userCreateCommand(options: UserCreateCommandOptions): Prom
       options.role,
       options.collectionAccess,
       options.environmentAccess,
-      options.snippetAccess
+      options.snippetAccess,
+      options.liveServerAccess ?? [],
+      options.livePageAccess ?? []
     )
   );
 
@@ -445,6 +475,8 @@ export async function userCreateCommand(options: UserCreateCommandOptions): Prom
       collectionAccess: access.collectionAccess,
       environmentAccess: access.environmentAccess,
       snippetAccess: access.snippetAccess,
+      liveServerAccess: access.liveServerAccess,
+      livePageAccess: access.livePageAccess,
       llmModels
     },
     catalogs
@@ -457,6 +489,8 @@ export async function userCreateCommand(options: UserCreateCommandOptions): Prom
       collectionAccess: access.collectionAccess ?? [],
       environmentAccess: access.environmentAccess ?? [],
       snippetAccess: access.snippetAccess ?? [],
+      liveServerAccess: access.liveServerAccess ?? [],
+      livePageAccess: access.livePageAccess ?? [],
       llmAccess: llm.llmAccess,
       llmModels: llm.llmModels,
       llmMonthlyTokenLimit: options.llmMonthlyTokens ?? null
@@ -522,7 +556,9 @@ export async function userInviteCreateCommand(
       options.role,
       options.collectionAccess,
       options.environmentAccess,
-      options.snippetAccess
+      options.snippetAccess,
+      options.liveServerAccess ?? [],
+      options.livePageAccess ?? []
     )
   );
 
@@ -539,6 +575,8 @@ export async function userInviteCreateCommand(
       collectionAccess: access.collectionAccess,
       environmentAccess: access.environmentAccess,
       snippetAccess: access.snippetAccess,
+      liveServerAccess: access.liveServerAccess,
+      livePageAccess: access.livePageAccess,
       llmModels
     },
     catalogs
@@ -555,6 +593,8 @@ export async function userInviteCreateCommand(
       collectionAccess: access.collectionAccess ?? [],
       environmentAccess: access.environmentAccess ?? [],
       snippetAccess: access.snippetAccess ?? [],
+      liveServerAccess: access.liveServerAccess ?? [],
+      livePageAccess: access.livePageAccess ?? [],
       llmAccess: llm.llmAccess,
       llmModels: llm.llmModels,
       llmMonthlyTokenLimit: options.llmMonthlyTokens ?? null
@@ -657,6 +697,8 @@ export async function userListCommand(options: UserCommandOptions): Promise<void
           collectionAccess: user.collectionAccess,
           environmentAccess: user.environmentAccess,
           snippetAccess: user.snippetAccess,
+          liveServerAccess: user.liveServerAccess,
+          livePageAccess: user.livePageAccess,
           llmModels: user.llmModels
         },
         catalogs
@@ -697,6 +739,8 @@ export async function userShowCommand(options: UserUpdateCommandOptions): Promis
         collectionAccess: user.collectionAccess,
         environmentAccess: user.environmentAccess,
         snippetAccess: user.snippetAccess,
+        liveServerAccess: user.liveServerAccess,
+        livePageAccess: user.livePageAccess,
         llmModels: user.llmModels
       },
       catalogs
@@ -730,8 +774,19 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
     options.environmentAccess ?? (options.role === 'admin' ? [] : existing.environmentAccess);
   const snippetAccess =
     options.snippetAccess ?? (options.role === 'admin' ? [] : existing.snippetAccess);
+  const liveServerAccess =
+    options.liveServerAccess ?? (options.role === 'admin' ? [] : existing.liveServerAccess);
+  const livePageAccess =
+    options.livePageAccess ?? (options.role === 'admin' ? [] : existing.livePageAccess);
   const access = mapValidationError(() =>
-    normalizeAccessForRole(role, collectionAccess, environmentAccess, snippetAccess)
+    normalizeAccessForRole(
+      role,
+      collectionAccess,
+      environmentAccess,
+      snippetAccess,
+      liveServerAccess,
+      livePageAccess
+    )
   );
   const llmAccess = role === 'admin' ? false : (options.llmAccess ?? existing.llmAccess);
   const llmModels = role === 'admin' ? [] : (options.llmModels ?? existing.llmModels);
@@ -743,6 +798,8 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
       collectionAccess: options.collectionAccess,
       environmentAccess: options.environmentAccess,
       snippetAccess: options.snippetAccess,
+      liveServerAccess: options.liveServerAccess,
+      livePageAccess: options.livePageAccess,
       llmModels: options.llmModels
     },
     catalogs
@@ -754,6 +811,8 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
     collectionAccess: access.collectionAccess,
     environmentAccess: access.environmentAccess,
     snippetAccess: access.snippetAccess,
+    liveServerAccess: access.liveServerAccess,
+    livePageAccess: access.livePageAccess,
     llmAccess: llm.llmAccess,
     llmModels: llm.llmModels,
     llmMonthlyTokenLimit:
@@ -922,6 +981,18 @@ export function registerUserCommand(
       parseAccessFlag,
       [] as string[]
     )
+    .option(
+      '--live-server-access <id>',
+      'Live server id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
+    .option(
+      '--live-page-access <id>',
+      'Live page id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
     .option('--llm-access', 'Enable hub-proxied LLM access for the user')
     .option('--llm-model <id>', 'LLM model id or * (repeatable)', parseAccessFlag, [] as string[])
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
@@ -992,6 +1063,18 @@ export function registerUserCommand(
       parseAccessFlag,
       [] as string[]
     )
+    .option(
+      '--live-server-access <id>',
+      'Live server id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
+    .option(
+      '--live-page-access <id>',
+      'Live page id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
     .option('--llm-access', 'Enable hub-proxied LLM access for the user')
     .option('--llm-model <id>', 'LLM model id or * (repeatable)', parseAccessFlag, [] as string[])
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
@@ -1053,6 +1136,18 @@ export function registerUserCommand(
       parseAccessFlag,
       [] as string[]
     )
+    .option(
+      '--live-server-access <id>',
+      'Replacement live server id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
+    .option(
+      '--live-page-access <id>',
+      'Replacement live page id or * (repeatable)',
+      parseAccessFlag,
+      [] as string[]
+    )
     .option('--llm-access', 'Enable hub-proxied LLM access for the user')
     .option('--no-llm-access', 'Disable hub-proxied LLM access for the user')
     .option(
@@ -1080,6 +1175,10 @@ export function registerUserCommand(
             (options.environmentAccess ?? []).length > 0 ? options.environmentAccess : undefined,
           snippetAccess:
             (options.snippetAccess ?? []).length > 0 ? options.snippetAccess : undefined,
+          liveServerAccess:
+            (options.liveServerAccess ?? []).length > 0 ? options.liveServerAccess : undefined,
+          livePageAccess:
+            (options.livePageAccess ?? []).length > 0 ? options.livePageAccess : undefined,
           llmModels: (() => {
             const llmModels = readLlmModelsOption(options);
             return llmModels.length > 0 ? llmModels : undefined;

@@ -6,6 +6,8 @@ import {
   validateEnvironmentExport
 } from '#/main/storage/collectionData';
 import { validateSnippetExport } from '#/main/storage/snippetData';
+import { validateLiveServerExport } from '@harborclient/core/types/liveServer';
+import { validateWebsiteExport } from '@harborclient/core/types/website';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
 import { collectionDirName, exportFileBaseName, stripMdExtension, toFileSlug } from './slug';
 import { validateRequestExport } from '#/main/storage/collectionData';
@@ -14,7 +16,9 @@ import type {
   EnvironmentExport,
   ExportedDocument,
   ExportedRequest,
-  SnippetExport
+  LiveServerExport,
+  SnippetExport,
+  WebsiteExport
 } from '@harborclient/core/types';
 import type { RequestExport } from '@harborclient/core/types/request';
 import { parseJson } from '@harborclient/core/parseJson';
@@ -32,7 +36,7 @@ const HARBOR_ROOT_RESERVED_NAMES = new Set(['.gitignore']);
 /**
  * HarborClient export discriminators stored as root JSON files.
  */
-export type HarborExportKind = 'collection' | 'environment' | 'snippet';
+export type HarborExportKind = 'collection' | 'environment' | 'snippet' | 'server' | 'website';
 
 /**
  * Returns the HarborClient export kind from a parsed JSON object, or null when unknown.
@@ -44,7 +48,13 @@ export function parseHarborExportKind(parsed: unknown): HarborExportKind | null 
     return null;
   }
   const kind = (parsed as { harborclientExport?: unknown }).harborclientExport;
-  if (kind === 'collection' || kind === 'environment' || kind === 'snippet') {
+  if (
+    kind === 'collection' ||
+    kind === 'environment' ||
+    kind === 'snippet' ||
+    kind === 'server' ||
+    kind === 'website'
+  ) {
     return kind;
   }
   return null;
@@ -1767,6 +1777,102 @@ export function deleteSnippetFile(root: string, uuid: string): void {
       }
     } catch {
       // Ignore invalid snippet files when deleting by uuid.
+    }
+  }
+}
+
+/**
+ * Writes a live-server export file at the Harbor data root.
+ *
+ * @param root - HarborClient data root.
+ * @param data - Live-server export envelope.
+ */
+export function writeLiveServerFile(root: string, data: LiveServerExport): void {
+  mkdirSync(root, { recursive: true });
+  const validated = validateLiveServerExport(data);
+  const uuid = resolveImportUuid(validated.uuid);
+  assertExportFilenameAvailable(root, 'server', validated.name, uuid);
+  const targetPath = exportFilePath(root, 'server', validated.name);
+  writeFileSync(targetPath, JSON.stringify(validated, null, 2), 'utf-8');
+  removeStaleExportFilesForUuid(root, 'server', uuid, targetPath);
+}
+
+/**
+ * Reads all valid live-server export files under a HarborClient root.
+ *
+ * @param root - HarborClient data root.
+ */
+export function readAllLiveServers(root: string): LiveServerExport[] {
+  return listManagedHarborExportFiles(root)
+    .filter((entry) => entry.kind === 'server')
+    .flatMap((entry) => {
+      try {
+        return [validateLiveServerExport(readJsonFile(entry.filePath))];
+      } catch {
+        return [];
+      }
+    });
+}
+
+/**
+ * Deletes live-server export files matching a uuid.
+ *
+ * @param root - HarborClient data root.
+ * @param uuid - Stable live-server uuid.
+ */
+export function deleteLiveServerFile(root: string, uuid: string): void {
+  const normalizedUuid = resolveImportUuid(uuid);
+  for (const entry of listManagedHarborExportFiles(root)) {
+    if (entry.kind === 'server' && entry.uuid === normalizedUuid) {
+      rmSync(entry.filePath, { force: true });
+    }
+  }
+}
+
+/**
+ * Writes a live-page export file at the Harbor data root.
+ *
+ * @param root - HarborClient data root.
+ * @param data - Website export envelope.
+ */
+export function writeLivePageFile(root: string, data: WebsiteExport): void {
+  mkdirSync(root, { recursive: true });
+  const validated = validateWebsiteExport(data);
+  const uuid = resolveImportUuid(validated.uuid);
+  assertExportFilenameAvailable(root, 'website', validated.name, uuid);
+  const targetPath = exportFilePath(root, 'website', validated.name);
+  writeFileSync(targetPath, JSON.stringify(validated, null, 2), 'utf-8');
+  removeStaleExportFilesForUuid(root, 'website', uuid, targetPath);
+}
+
+/**
+ * Reads all valid live-page export files under a HarborClient root.
+ *
+ * @param root - HarborClient data root.
+ */
+export function readAllLivePages(root: string): WebsiteExport[] {
+  return listManagedHarborExportFiles(root)
+    .filter((entry) => entry.kind === 'website')
+    .flatMap((entry) => {
+      try {
+        return [validateWebsiteExport(readJsonFile(entry.filePath))];
+      } catch {
+        return [];
+      }
+    });
+}
+
+/**
+ * Deletes live-page export files matching a uuid.
+ *
+ * @param root - HarborClient data root.
+ * @param uuid - Stable website uuid.
+ */
+export function deleteLivePageFile(root: string, uuid: string): void {
+  const normalizedUuid = resolveImportUuid(uuid);
+  for (const entry of listManagedHarborExportFiles(root)) {
+    if (entry.kind === 'website' && entry.uuid === normalizedUuid) {
+      rmSync(entry.filePath, { force: true });
     }
   }
 }

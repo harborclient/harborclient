@@ -28,6 +28,8 @@ describe('assertUserNameAvailable', () => {
     collectionAccess: [],
     environmentAccess: [],
     snippetAccess: [],
+    liveServerAccess: [],
+    livePageAccess: [],
 
     llmAccess: false,
     llmModels: [],

@@ -25,6 +25,8 @@ describe('scanTeamHubSessions', () => {
     openai: false,
     pluginCatalog: false,
     snippets: false,
+    liveServers: false,
+    livePages: false,
     admin: false
   };
 
@@ -34,6 +36,8 @@ describe('scanTeamHubSessions', () => {
     openai: true,
     pluginCatalog: true,
     snippets: true,
+    liveServers: false,
+    livePages: false,
     admin: false
   };
 
@@ -43,6 +47,8 @@ describe('scanTeamHubSessions', () => {
     openai: false,
     pluginCatalog: true,
     snippets: true,
+    liveServers: false,
+    livePages: false,
     admin: true
   };
 
@@ -206,7 +212,9 @@ describe('scanTeamHubSessions', () => {
           llm: false,
           openai: false,
           pluginCatalog: true,
-          snippets: true
+          snippets: true,
+          liveServers: false,
+          livePages: false
         },
         managementApi: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
@@ -259,7 +267,9 @@ describe('scanTeamHubSessions', () => {
           llm: true,
           openai: true,
           pluginCatalog: false,
-          snippets: true
+          snippets: true,
+          liveServers: false,
+          livePages: false
         },
         managementApi: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
@@ -312,7 +322,9 @@ describe('scanTeamHubSessions', () => {
           llm: true,
           openai: true,
           pluginCatalog: false,
-          snippets: false
+          snippets: false,
+          liveServers: false,
+          livePages: false
         },
         managementApi: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }

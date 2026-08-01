@@ -51,6 +51,16 @@ export interface ApiLiveServer {
   deleteLiveServer: (id: number) => Promise<LiveServer[]>;
 
   /**
+   * Moves a saved live server to another provider and returns the refreshed list.
+   */
+  moveLiveServer: (id: number, targetConnectionId: string) => Promise<LiveServer[]>;
+
+  /**
+   * Persists only the machine-local last opened path for a saved live server.
+   */
+  setLiveServerLastOpenedPath: (id: number, path: string | null) => Promise<void>;
+
+  /**
    * Returns buffered access and script log lines for a log session.
    *
    * @param query - Saved id or runtime / session id.

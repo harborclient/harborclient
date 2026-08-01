@@ -23,4 +23,9 @@ export interface ApiWebsites {
    * Deletes a website (moves it to trash) and returns the refreshed list.
    */
   deleteWebsite: (id: number) => Promise<Website[]>;
+
+  /**
+   * Moves a live page to another provider and returns the refreshed list.
+   */
+  moveWebsite: (id: number, targetConnectionId: string) => Promise<Website[]>;
 }

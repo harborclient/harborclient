@@ -20,6 +20,7 @@ import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 import { getActiveBaseVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
+import { withOfflineTeamHubLivePageError } from './liveServerThunkErrors';
 
 /**
  * Pushes the browser tab's current scripts and request defaults to the main-process guest.
@@ -144,20 +145,22 @@ export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiCo
     try {
       const uuid = crypto.randomUUID();
       const name = websiteNameFromBrowserTab(tab);
-      const items = await window.api.createWebsite({
-        uuid,
-        name,
-        url: tab.url,
-        homeUrl: tab.homeUrl,
-        faviconDataUrl: tab.faviconDataUrl,
-        scripts: tab.scripts,
-        preRequestScripts: tab.pre_request_scripts,
-        postRequestScripts: tab.post_request_scripts,
-        variables: tab.variables,
-        headers: tab.headers,
-        userAgent: tab.userAgent,
-        auth: tab.auth
-      });
+      const items = await withOfflineTeamHubLivePageError(() =>
+        window.api.createWebsite({
+          uuid,
+          name,
+          url: tab.url,
+          homeUrl: tab.homeUrl,
+          faviconDataUrl: tab.faviconDataUrl,
+          scripts: tab.scripts,
+          preRequestScripts: tab.pre_request_scripts,
+          postRequestScripts: tab.post_request_scripts,
+          variables: tab.variables,
+          headers: tab.headers,
+          userAgent: tab.userAgent,
+          auth: tab.auth
+        })
+      );
       dispatch(setWebsites(items));
       const created = items.find((item) => item.uuid === uuid);
       if (!created) {
@@ -203,20 +206,23 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
 
     try {
       const name = websiteNameFromBrowserTab(tab);
-      const items = await window.api.updateWebsite({
-        id: tab.websiteId,
-        name,
-        url: tab.url,
-        homeUrl: tab.homeUrl,
-        faviconDataUrl: tab.faviconDataUrl,
-        scripts: tab.scripts,
-        preRequestScripts: tab.pre_request_scripts,
-        postRequestScripts: tab.post_request_scripts,
-        variables: tab.variables,
-        headers: tab.headers,
-        userAgent: tab.userAgent,
-        auth: tab.auth
-      });
+      const websiteId = tab.websiteId;
+      const items = await withOfflineTeamHubLivePageError(() =>
+        window.api.updateWebsite({
+          id: websiteId,
+          name,
+          url: tab.url,
+          homeUrl: tab.homeUrl,
+          faviconDataUrl: tab.faviconDataUrl,
+          scripts: tab.scripts,
+          preRequestScripts: tab.pre_request_scripts,
+          postRequestScripts: tab.post_request_scripts,
+          variables: tab.variables,
+          headers: tab.headers,
+          userAgent: tab.userAgent,
+          auth: tab.auth
+        })
+      );
       dispatch(setWebsites(items));
       dispatch(
         bindBrowserTabToWebsite({
@@ -366,6 +372,11 @@ export interface SaveLivePageSettingsInput {
    * Injection scripts.
    */
   scripts: BrowserInjectionScript[];
+
+  /**
+   * Destination storage connection selected in General settings.
+   */
+  connectionId?: string;
 }
 
 /**
@@ -421,20 +432,46 @@ export const saveLivePageSettings = createAsyncThunk<
   }
 
   if (updated.websiteId != null) {
-    const items = await window.api.updateWebsite({
-      id: updated.websiteId,
-      name: input.name,
-      url: updated.url,
-      homeUrl: updated.homeUrl,
-      faviconDataUrl: updated.faviconDataUrl,
-      scripts: updated.scripts,
-      preRequestScripts: updated.pre_request_scripts,
-      postRequestScripts: updated.post_request_scripts,
-      variables: updated.variables,
-      headers: updated.headers,
-      userAgent: updated.userAgent,
-      auth: updated.auth
-    });
+    const websiteId = updated.websiteId;
+    const website = getState().websites.items.find((item) => item.id === websiteId);
+    const primaryConnectionId =
+      (await Promise.resolve(window.api.getActiveStorageId()).catch(() => '')) || '';
+    const currentConnectionId = website?.connectionId ?? primaryConnectionId;
+    if (input.connectionId && input.connectionId !== currentConnectionId) {
+      await withOfflineTeamHubLivePageError(() =>
+        window.api.moveWebsite(websiteId, input.connectionId as string)
+      );
+    }
+
+    let items;
+    try {
+      items = await withOfflineTeamHubLivePageError(() =>
+        window.api.updateWebsite({
+          id: websiteId,
+          name: input.name,
+          url: updated.url,
+          homeUrl: updated.homeUrl,
+          faviconDataUrl: updated.faviconDataUrl,
+          scripts: updated.scripts,
+          preRequestScripts: updated.pre_request_scripts,
+          postRequestScripts: updated.post_request_scripts,
+          variables: updated.variables,
+          headers: updated.headers,
+          userAgent: updated.userAgent,
+          auth: updated.auth
+        })
+      );
+    } catch (err) {
+      if (input.connectionId && input.connectionId !== currentConnectionId) {
+        const refreshed = await window.api.listWebsites();
+        dispatch(setWebsites(refreshed));
+        throw new Error(
+          'Live page was moved to the new database, but your changes could not be saved. Open it again and save.',
+          { cause: err }
+        );
+      }
+      throw err;
+    }
     dispatch(setWebsites(items));
     dispatch(
       bindBrowserTabToWebsite({
@@ -455,7 +492,7 @@ export const saveLivePageSettings = createAsyncThunk<
 export const deleteWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
   'websites/delete',
   async (id, { dispatch }) => {
-    const items = await window.api.deleteWebsite(id);
+    const items = await withOfflineTeamHubLivePageError(() => window.api.deleteWebsite(id));
     dispatch(setWebsites(items));
     await syncTrash(dispatch);
   }

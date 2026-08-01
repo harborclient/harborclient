@@ -1,21 +1,29 @@
-import { useId, type JSX } from 'react';
+import { useEffect, useId, type JSX } from 'react';
 import {
   Button,
   Checkbox,
   FaIcon,
+  FieldError,
   FormGroup,
   Input,
+  Select,
   VariableInput,
   fieldFrame
 } from '@harborclient/sdk/components';
 import { isLiveServerLoopbackHost, type Variable } from '@harborclient/core/types';
 import { faCircleExclamation } from '#/renderer/src/fontawesome';
+import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 
 interface Props {
   /**
    * Display name for the server.
    */
   name: string;
+
+  /**
+   * Selected storage provider connection id.
+   */
+  connectionId: string;
 
   /**
    * Global variables for Run command `{{token}}` highlighting and tooltips.
@@ -89,6 +97,13 @@ interface Props {
    * @param value - Next name value.
    */
   onNameChange: (value: string) => void;
+
+  /**
+   * Called when the storage provider changes.
+   *
+   * @param value - Destination storage connection id.
+   */
+  onConnectionIdChange: (value: string) => void;
 
   /**
    * Called when the URL variable field changes.
@@ -181,6 +196,7 @@ interface Props {
  */
 export function GeneralSettings({
   name,
+  connectionId,
   variables,
   urlVariable,
   root,
@@ -195,6 +211,7 @@ export function GeneralSettings({
   restartOnCrash,
   disabled,
   onNameChange,
+  onConnectionIdChange,
   onUrlVariableChange,
   onRootChange,
   onBrowse,
@@ -209,6 +226,18 @@ export function GeneralSettings({
   onRestartOnCrashChange
 }: Props): JSX.Element {
   const nameId = useId();
+  const providerSelectId = useId();
+  const {
+    providers,
+    primaryProviderId,
+    loading: providersLoading,
+    error: providersError
+  } = useProviders(connectionId ? [connectionId] : [], {
+    excludeAdminTeamHubs: true,
+    excludeLiveServerUnsupportedTeamHubs: true,
+    excludeGit: true,
+    retainConnectionId: connectionId
+  });
   const urlVariableId = useId();
   const rootId = useId();
   const portId = useId();
@@ -223,6 +252,15 @@ export function GeneralSettings({
   const showLanWarning = !isLiveServerLoopbackHost(host);
   const runCommandConfigured = runCommand.trim() !== '';
   const pathControlsDisabled = disabled || !openPathOnStartup;
+
+  /**
+   * Defaults new live-server drafts to the active provider after providers load.
+   */
+  useEffect(() => {
+    if (!connectionId && primaryProviderId) {
+      onConnectionIdChange(primaryProviderId);
+    }
+  }, [connectionId, onConnectionIdChange, primaryProviderId]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -258,6 +296,22 @@ export function GeneralSettings({
           />
         </FormGroup>
       </div>
+
+      <FormGroup label="Storage location" htmlFor={providerSelectId}>
+        <Select
+          id={providerSelectId}
+          value={connectionId}
+          disabled={disabled || providersLoading || providers.length === 0}
+          onChange={(event) => onConnectionIdChange(event.target.value)}
+        >
+          {providers.map((provider) => (
+            <option key={provider.id} value={provider.id}>
+              {provider.name || 'Untitled'} ({providerOptionLabel(provider)})
+            </option>
+          ))}
+        </Select>
+        {providersError ? <FieldError spacing="field">{providersError}</FieldError> : null}
+      </FormGroup>
 
       <div className="flex gap-4">
         <FormGroup

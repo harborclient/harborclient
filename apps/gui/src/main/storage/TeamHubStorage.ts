@@ -50,6 +50,8 @@ import {
   type DocumentRecord,
   type EnvironmentRecord,
   type FolderRecord,
+  type LivePageRecord,
+  type LiveServerRecord,
   type SavedRequestRecord,
   type SnippetRecord,
   type TeamHubAuthConfig,
@@ -69,20 +71,37 @@ import type {
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   ExportedFolder,
   Folder,
   KeyValue,
+  LiveServer,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
   ScriptRef,
   Snippet,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
+import { isTeamHubLiveServersUnsupportedError } from './teamHubLiveServerErrors';
+import { isTeamHubLivePagesUnsupportedError } from './teamHubLivePageErrors';
+import { normalizeLiveServerConfigFields } from '@harborclient/core/types';
+import {
+  parseLiveServerPayload,
+  serializeLiveServerPayload
+} from '@harborclient/storage-sqlite/liveServerPayload';
+import {
+  parseLivePagePayload,
+  serializeLivePagePayload
+} from '@harborclient/storage-sqlite/livePagePayload';
 
 /**
  * Resolves script references from a Team Hub record, preferring the legacy string column.
@@ -191,6 +210,100 @@ function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
     source: 'local',
     created_at: record.createdAt,
     updated_at: record.createdAt
+  };
+}
+
+/**
+ * Maps a Team Hub live-server record to the local storage shape.
+ *
+ * @param record - Live-server payload returned by the hub.
+ * @param localId - Numeric id assigned by the local id map.
+ */
+function serverToLiveServer(record: LiveServerRecord, localId: number): LiveServer {
+  const fields = normalizeLiveServerConfigFields({
+    ...record,
+    preRequestScripts: record.preRequestScripts as LiveServer['preRequestScripts'],
+    postRequestScripts: record.postRequestScripts as LiveServer['postRequestScripts']
+  });
+  return {
+    id: localId,
+    uuid: record.id,
+    name: record.name,
+    root: record.root,
+    port: record.port,
+    aliases: record.aliases,
+    watch: record.watch,
+    cors: record.cors,
+    ...fields,
+    sortOrder: localId,
+    createdAt: Date.parse(record.createdAt) || Date.now(),
+    updatedAt: Date.parse(record.updatedAt) || Date.now()
+  };
+}
+
+/**
+ * Maps a Team Hub live-page record to the local website shape.
+ *
+ * @param record - Live-page payload returned by the hub.
+ * @param localId - Numeric id assigned by the local id map.
+ */
+function serverToLivePage(record: LivePageRecord, localId: number): Website {
+  return {
+    id: localId,
+    uuid: record.id,
+    name: record.name,
+    url: record.url,
+    homeUrl: record.homeUrl,
+    faviconDataUrl: record.faviconDataUrl,
+    scripts: record.scripts as Website['scripts'],
+    preRequestScripts: record.preRequestScripts as Website['preRequestScripts'],
+    postRequestScripts: record.postRequestScripts as Website['postRequestScripts'],
+    variables: (record.variables as Variable[]).map(normalizeVariable),
+    headers: record.headers as KeyValue[],
+    userAgent: record.userAgent,
+    auth: normalizeAuth(record.auth as AuthConfig),
+    createdAt: Date.parse(record.createdAt) || Date.now(),
+    updatedAt: Date.parse(record.updatedAt) || Date.now()
+  };
+}
+
+/**
+ * Omits large favicon data URLs before sending a live page to Team Hub.
+ *
+ * @param value - Optional favicon data URL.
+ */
+function faviconForTeamHub(value: string | null | undefined): string | null {
+  return typeof value === 'string' && value.length <= 16 * 1024 && value.length > 0 ? value : null;
+}
+
+/**
+ * Builds the complete replacement body expected by Team Hub live-server routes.
+ *
+ * @param input - Core live-server create or update input.
+ */
+function toTeamHubLiveServerInput(
+  input: CreateLiveServerInput | UpdateLiveServerInput
+): Parameters<TeamHubClient['createLiveServer']>[0] {
+  const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
+  return {
+    name: trimRequiredName(input.name, 'Live server name'),
+    ...payload
+  };
+}
+
+/**
+ * Builds the complete replacement body expected by Team Hub live-page routes.
+ *
+ * @param input - Core website create or update input.
+ */
+function toTeamHubLivePageInput(
+  input: CreateWebsiteInput | UpdateWebsiteInput
+): Parameters<TeamHubClient['createLivePage']>[0] {
+  const payload = parseLivePagePayload(serializeLivePagePayload(input));
+  return {
+    name: trimRequiredName(input.name, 'Live page name'),
+    ...payload,
+    faviconDataUrl: faviconForTeamHub(payload.faviconDataUrl)
   };
 }
 
@@ -506,6 +619,24 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Returns the server UUID for a mapped local live-server id.
+   *
+   * @param localId - Provider-local live-server id.
+   */
+  getServerLiveServerId(localId: number): string | undefined {
+    return this.idMap.toServerId('live_server', localId);
+  }
+
+  /**
+   * Returns the server UUID for a mapped local live-page id.
+   *
+   * @param localId - Provider-local live-page id.
+   */
+  getServerLivePageId(localId: number): string | undefined {
+    return this.idMap.toServerId('live_page', localId);
+  }
+
+  /**
    * Drops the id map entry for a local collection without calling the server.
    *
    * Used when a collection was deleted remotely and the local registry is pruned.
@@ -529,6 +660,26 @@ export class TeamHubStorage implements IStorage {
     if (serverId) {
       this.idMap.forget('snippet', serverId);
     }
+  }
+
+  /**
+   * Drops a live-server id mapping without calling the hub.
+   *
+   * @param localId - Provider-local live-server id.
+   */
+  forgetLocalLiveServer(localId: number): void {
+    const serverId = this.getServerLiveServerId(localId);
+    if (serverId) this.idMap.forget('live_server', serverId);
+  }
+
+  /**
+   * Drops a live-page id mapping without calling the hub.
+   *
+   * @param localId - Provider-local live-page id.
+   */
+  forgetLocalLivePage(localId: number): void {
+    const serverId = this.getServerLivePageId(localId);
+    if (serverId) this.idMap.forget('live_page', serverId);
   }
 
   /**
@@ -771,6 +922,128 @@ export class TeamHubStorage implements IStorage {
     const serverId = this.requireServerId('snippet', id);
     await this.client.deleteSnippet(serverId);
     this.idMap.forget('snippet', serverId);
+  }
+
+  /**
+   * Lists live servers from the hub, returning an empty list for older hubs.
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    try {
+      const records = await this.client.listLiveServers();
+      return records.map((record) =>
+        serverToLiveServer(record, this.idMap.toLocalId('live_server', record.id))
+      );
+    } catch (error) {
+      if (isTeamHubLiveServersUnsupportedError(error)) return [];
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a live server on the hub.
+   *
+   * @param input - Live-server fields to persist.
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    try {
+      const record = await this.client.createLiveServer(toTeamHubLiveServerInput(input));
+      return serverToLiveServer(record, this.idMap.toLocalId('live_server', record.id));
+    } catch (error) {
+      if (isTeamHubLiveServersUnsupportedError(error)) {
+        throw new Error('This Team Hub does not support live server storage.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Replaces a hub live server's mutable fields.
+   *
+   * @param input - Complete live-server update.
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const serverId = this.requireServerId('live_server', input.id);
+    try {
+      const record = await this.client.updateLiveServer(serverId, toTeamHubLiveServerInput(input));
+      return serverToLiveServer(record, input.id);
+    } catch (error) {
+      if (isTeamHubLiveServersUnsupportedError(error)) {
+        throw new Error('This Team Hub does not support live server storage.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a live server on the hub and forgets its local id.
+   *
+   * @param id - Provider-local live-server id.
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    const serverId = this.requireServerId('live_server', id);
+    await this.client.deleteLiveServer(serverId);
+    this.idMap.forget('live_server', serverId);
+  }
+
+  /**
+   * Lists live pages from the hub, returning an empty list for older hubs.
+   */
+  async listLivePages(): Promise<Website[]> {
+    try {
+      const records = await this.client.listLivePages();
+      return records.map((record) =>
+        serverToLivePage(record, this.idMap.toLocalId('live_page', record.id))
+      );
+    } catch (error) {
+      if (isTeamHubLivePagesUnsupportedError(error)) return [];
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a live page on the hub.
+   *
+   * @param input - Website fields to persist.
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    try {
+      const record = await this.client.createLivePage(toTeamHubLivePageInput(input));
+      return serverToLivePage(record, this.idMap.toLocalId('live_page', record.id));
+    } catch (error) {
+      if (isTeamHubLivePagesUnsupportedError(error)) {
+        throw new Error('This Team Hub does not support live page storage.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Replaces a hub live page's mutable fields.
+   *
+   * @param input - Complete live-page update.
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const serverId = this.requireServerId('live_page', input.id);
+    try {
+      const record = await this.client.updateLivePage(serverId, toTeamHubLivePageInput(input));
+      return serverToLivePage(record, input.id);
+    } catch (error) {
+      if (isTeamHubLivePagesUnsupportedError(error)) {
+        throw new Error('This Team Hub does not support live page storage.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a live page on the hub and forgets its local id.
+   *
+   * @param id - Provider-local live-page id.
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    const serverId = this.requireServerId('live_page', id);
+    await this.client.deleteLivePage(serverId);
+    this.idMap.forget('live_page', serverId);
   }
 
   /**
@@ -1937,7 +2210,15 @@ export class TeamHubStorage implements IStorage {
    * @param localId - Provider-local numeric id.
    */
   private requireServerId(
-    entityType: 'collection' | 'document' | 'folder' | 'request' | 'run_result' | 'snippet',
+    entityType:
+      | 'collection'
+      | 'document'
+      | 'folder'
+      | 'live_page'
+      | 'live_server'
+      | 'request'
+      | 'run_result'
+      | 'snippet',
     localId: number
   ): string {
     const serverId = this.idMap.toServerId(entityType, localId);

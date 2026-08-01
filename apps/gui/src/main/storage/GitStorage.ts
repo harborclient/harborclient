@@ -14,10 +14,14 @@ import {
   collectionManifestPath,
   createStoredFolder,
   deleteEnvironmentFile,
+  deleteLivePageFile,
+  deleteLiveServerFile,
   deleteSnippetFile,
   ensureHarborclientLayout,
   listCollectionFoldersOnDisk,
   readAllEnvironments,
+  readAllLivePages,
+  readAllLiveServers,
   readAllSnippets,
   assertDocumentFilenameAvailable,
   isCollectionRequestOrDocumentFile,
@@ -28,6 +32,8 @@ import {
   writeCollectionToFolder,
   writeEnvironmentFile,
   writeGitProviderSettings,
+  writeLivePageFile,
+  writeLiveServerFile,
   writeSnippetFile,
   type StoredFolderRow
 } from '#/main/git/fileLayout';
@@ -69,12 +75,26 @@ import {
   serializeImportedRequestFields
 } from './collectionImport';
 import { serializeSidebarMarker } from './sidebarMarkerMigration';
+import { buildLiveServerExport } from '@harborclient/core/types/liveServer';
+import { buildWebsiteExport } from '@harborclient/core/types/website';
+import {
+  liveServerFromPayload,
+  parseLiveServerPayload,
+  serializeLiveServerPayload
+} from '@harborclient/storage-sqlite/liveServerPayload';
+import {
+  livePageFromPayload,
+  parseLivePagePayload,
+  serializeLivePagePayload
+} from '@harborclient/storage-sqlite/livePagePayload';
 import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import type {
   AuthConfig,
   Collection,
   CollectionDocument,
   CollectionExport,
+  CreateLiveServerInput,
+  CreateWebsiteInput,
   Environment,
   EnvironmentExport,
   ExportedDocument,
@@ -83,6 +103,8 @@ import type {
   GitSettings,
   GitRequestFileStatus,
   KeyValue,
+  LiveServer,
+  LiveServerExport,
   SaveDocumentInput,
   SaveRequestInput,
   SavedRequest,
@@ -90,7 +112,11 @@ import type {
   Snippet,
   SnippetExport,
   SourceControlStatus,
-  Variable
+  UpdateLiveServerInput,
+  UpdateWebsiteInput,
+  Variable,
+  Website,
+  WebsiteExport
 } from '@harborclient/core/types';
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
@@ -192,6 +218,10 @@ export class GitStorage implements IStorage {
   #collections = new Map<number, LoadedCollection>();
   #environments = new Map<number, EnvironmentExport>();
   #snippets = new Map<number, SnippetExport>();
+  #liveServers = new Map<number, LiveServerExport>();
+  #livePages = new Map<number, WebsiteExport>();
+  #liveServerTimestamps = new Map<string, { createdAt: number; updatedAt: number }>();
+  #livePageTimestamps = new Map<string, { createdAt: number; updatedAt: number }>();
   #requestTimestamps = new Map<string, { created_at: string; updated_at: string }>();
   #documentTimestamps = new Map<string, { created_at: string; updated_at: string }>();
   #providerSettings: Record<string, string> = {};
@@ -267,6 +297,8 @@ export class GitStorage implements IStorage {
     this.#collections.clear();
     this.#environments.clear();
     this.#snippets.clear();
+    this.#liveServers.clear();
+    this.#livePages.clear();
     ensureHarborclientLayout(this.#root);
 
     const collectionUuids = new Set<string>();
@@ -336,6 +368,32 @@ export class GitStorage implements IStorage {
       this.#snippets.set(snippetId, { ...snippet, uuid: snippetUuid });
     }
     pruneGitIdMap(this.#idIndex, 'snippetIds', snippetUuids);
+
+    const liveServerUuids = new Set<string>();
+    for (const server of readAllLiveServers(this.#root)) {
+      const uuid = resolveImportUuid(server.uuid);
+      liveServerUuids.add(uuid);
+      const id = assignGitId(this.#idIndex, 'liveServerIds', 'nextLiveServerId', uuid);
+      this.#liveServers.set(id, { ...server, uuid });
+      if (!this.#liveServerTimestamps.has(uuid)) {
+        const now = Date.now();
+        this.#liveServerTimestamps.set(uuid, { createdAt: now, updatedAt: now });
+      }
+    }
+    pruneGitIdMap(this.#idIndex, 'liveServerIds', liveServerUuids);
+
+    const livePageUuids = new Set<string>();
+    for (const page of readAllLivePages(this.#root)) {
+      const uuid = resolveImportUuid(page.uuid);
+      livePageUuids.add(uuid);
+      const id = assignGitId(this.#idIndex, 'livePageIds', 'nextLivePageId', uuid);
+      this.#livePages.set(id, { ...page, uuid });
+      if (!this.#livePageTimestamps.has(uuid)) {
+        const now = Date.now();
+        this.#livePageTimestamps.set(uuid, { createdAt: now, updatedAt: now });
+      }
+    }
+    pruneGitIdMap(this.#idIndex, 'livePageIds', livePageUuids);
 
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
@@ -667,6 +725,142 @@ export class GitStorage implements IStorage {
     deleteSnippetFile(this.#root, resolveImportUuid(existing.uuid));
     delete this.#idIndex.snippetIds[resolveImportUuid(existing.uuid)];
     this.#snippets.delete(id);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async listLiveServers(): Promise<LiveServer[]> {
+    return [...this.#liveServers.entries()]
+      .map(([id, server]) => this.exportToLiveServer(id, server))
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const uuid = input.uuid?.trim() || generateDocumentUuid();
+    const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
+    const exportData = buildLiveServerExport({
+      uuid,
+      name,
+      ...payload
+    });
+    writeLiveServerFile(this.#root, exportData);
+    const id = assignGitId(this.#idIndex, 'liveServerIds', 'nextLiveServerId', uuid);
+    const now = Date.now();
+    this.#liveServerTimestamps.set(uuid, { createdAt: now, updatedAt: now });
+    this.#liveServers.set(id, exportData);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToLiveServer(id, exportData);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
+    const existing = this.#liveServers.get(input.id);
+    if (!existing) throw new Error(`Live server not found: ${input.id}`);
+    const name = trimRequiredName(input.name, 'Live server name');
+    if (!input.root.trim()) throw new Error('Root directory is required');
+    const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
+    const updated = buildLiveServerExport({
+      uuid: existing.uuid,
+      name,
+      ...payload
+    });
+    writeLiveServerFile(this.#root, updated);
+    this.#liveServers.set(input.id, updated);
+    const timestamps = this.#liveServerTimestamps.get(existing.uuid);
+    this.#liveServerTimestamps.set(existing.uuid, {
+      createdAt: timestamps?.createdAt ?? Date.now(),
+      updatedAt: Date.now()
+    });
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToLiveServer(input.id, updated);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async deleteLiveServer(id: number): Promise<void> {
+    const existing = this.#liveServers.get(id);
+    if (!existing) throw new Error(`Live server not found: ${id}`);
+    const uuid = resolveImportUuid(existing.uuid);
+    deleteLiveServerFile(this.#root, uuid);
+    delete this.#idIndex.liveServerIds[uuid];
+    this.#liveServers.delete(id);
+    this.#liveServerTimestamps.delete(uuid);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async listLivePages(): Promise<Website[]> {
+    return [...this.#livePages.entries()]
+      .map(([id, page]) => this.exportToLivePage(id, page))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async createLivePage(input: CreateWebsiteInput): Promise<Website> {
+    const uuid = input.uuid?.trim() || generateDocumentUuid();
+    const payload = parseLivePagePayload(serializeLivePagePayload(input));
+    const exportData = buildWebsiteExport({
+      uuid,
+      name: trimRequiredName(input.name, 'Live page name'),
+      ...payload
+    });
+    writeLivePageFile(this.#root, exportData);
+    const id = assignGitId(this.#idIndex, 'livePageIds', 'nextLivePageId', uuid);
+    const now = Date.now();
+    this.#livePageTimestamps.set(uuid, { createdAt: now, updatedAt: now });
+    this.#livePages.set(id, exportData);
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToLivePage(id, exportData);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async updateLivePage(input: UpdateWebsiteInput): Promise<Website> {
+    const existing = this.#livePages.get(input.id);
+    if (!existing) throw new Error(`Live page not found: ${input.id}`);
+    const payload = parseLivePagePayload(serializeLivePagePayload(input));
+    const updated = buildWebsiteExport({
+      uuid: existing.uuid,
+      name: trimRequiredName(input.name, 'Live page name'),
+      ...payload
+    });
+    writeLivePageFile(this.#root, updated);
+    this.#livePages.set(input.id, updated);
+    const timestamps = this.#livePageTimestamps.get(existing.uuid);
+    this.#livePageTimestamps.set(existing.uuid, {
+      createdAt: timestamps?.createdAt ?? Date.now(),
+      updatedAt: Date.now()
+    });
+    saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
+    return this.exportToLivePage(input.id, updated);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async deleteLivePage(id: number): Promise<void> {
+    const existing = this.#livePages.get(id);
+    if (!existing) throw new Error(`Live page not found: ${id}`);
+    const uuid = resolveImportUuid(existing.uuid);
+    deleteLivePageFile(this.#root, uuid);
+    delete this.#idIndex.livePageIds[uuid];
+    this.#livePages.delete(id);
+    this.#livePageTimestamps.delete(uuid);
     saveGitIdIndex(this.#userDataPath, this.#connectionId, this.#idIndex);
   }
 
@@ -2357,6 +2551,92 @@ export class GitStorage implements IStorage {
       created_at: snippet.created_at ?? now,
       updated_at: snippet.updated_at ?? now
     };
+  }
+
+  /**
+   * Converts a live-server export to the provider entity shape.
+   *
+   * @param id - Provider-local live server id.
+   * @param server - Portable live-server export.
+   */
+  private exportToLiveServer(id: number, server: LiveServerExport): LiveServer {
+    const uuid = resolveImportUuid(server.uuid);
+    const payload = parseLiveServerPayload(
+      serializeLiveServerPayload({
+        name: server.name,
+        root: server.root,
+        port: server.port,
+        aliases: server.aliases,
+        watch: server.watch,
+        cors: server.cors,
+        openPath: server.openPath,
+        openPathOnStartup: server.openPathOnStartup,
+        rememberLastUrl: server.rememberLastUrl,
+        lastOpenedPath: server.lastOpenedPath,
+        indexFiles: server.indexFiles,
+        host: server.host,
+        headers: server.headers,
+        routes: server.routes,
+        errorPages: server.errorPages,
+        proxies: server.proxies,
+        ssl: server.ssl,
+        runCommand: server.runCommand,
+        restartOnCrash: server.restartOnCrash,
+        urlVariable: server.urlVariable,
+        preRequestScripts: server.pre_request_scripts,
+        postRequestScripts: server.post_request_scripts
+      })
+    );
+    const timestamps = this.#liveServerTimestamps.get(uuid);
+    const now = Date.now();
+    return liveServerFromPayload(
+      {
+        id,
+        uuid,
+        name: server.name,
+        sortOrder: id,
+        createdAt: timestamps?.createdAt ?? now,
+        updatedAt: timestamps?.updatedAt ?? now
+      },
+      payload
+    );
+  }
+
+  /**
+   * Converts a website export to the provider entity shape.
+   *
+   * @param id - Provider-local live page id.
+   * @param page - Portable website export.
+   */
+  private exportToLivePage(id: number, page: WebsiteExport): Website {
+    const uuid = resolveImportUuid(page.uuid);
+    const payload = parseLivePagePayload(
+      serializeLivePagePayload({
+        name: page.name,
+        url: page.url,
+        homeUrl: page.homeUrl,
+        faviconDataUrl: page.faviconDataUrl,
+        scripts: page.scripts,
+        preRequestScripts: page.pre_request_scripts,
+        postRequestScripts: page.post_request_scripts,
+        variables: page.variables,
+        headers: page.headers,
+        userAgent: page.userAgent,
+        auth: page.auth
+      })
+    );
+    const timestamps = this.#livePageTimestamps.get(uuid);
+    const now = Date.now();
+    return livePageFromPayload(
+      {
+        id,
+        uuid,
+        name: page.name,
+        createdAt: timestamps?.createdAt ?? now,
+        updatedAt: timestamps?.updatedAt ?? now
+      },
+      payload
+    );
   }
 
   /**

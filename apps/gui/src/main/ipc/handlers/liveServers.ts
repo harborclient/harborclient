@@ -8,6 +8,8 @@ import type {
 } from '@harborclient/core/types';
 import { getRegisteredMainWindow } from '#/main/window/mainWindowReveal';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import type { IStorage } from '#/main/storage/IStorage';
+import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
@@ -44,9 +46,11 @@ function sendToMainWindow(channel: string, payload: unknown): void {
 }
 
 /**
- * Registers IPC handlers for live server runtime control and saved configs.
+ * Registers IPC handlers for live server runtime control and routed saved configs.
+ *
+ * @param db - Active storage facade used for provider-backed live servers.
  */
-export function registerLiveServerHandlers(): void {
+export function registerLiveServerHandlers(db: IStorage): void {
   setLiveServerFileChangedHandler((event: LiveServerFileChangedEvent) => {
     sendToMainWindow('liveServer:file-changed', event);
   });
@@ -93,14 +97,23 @@ export function registerLiveServerHandlers(): void {
     clearLiveServerLogs(query);
   });
 
-  handle('liveServers:list', ipcArgSchemas.none, () => getLocalDatabase().listLiveServers());
-
-  handle('liveServers:create', ipcArgSchemas.liveServersCreate, (_event, input) =>
-    getLocalDatabase().createLiveServer(input)
+  handle('liveServers:list', ipcArgSchemas.none, () =>
+    db instanceof RoutingStorage ? db.listLiveServers() : getLocalDatabase().listLiveServers()
   );
 
-  handle('liveServers:update', ipcArgSchemas.liveServersUpdate, (_event, input) => {
-    const list = getLocalDatabase().updateLiveServer(input);
+  handle('liveServers:create', ipcArgSchemas.liveServersCreate, async (_event, input) => {
+    if (db instanceof RoutingStorage) {
+      await db.createLiveServer(input);
+      return db.listLiveServers();
+    }
+    return getLocalDatabase().createLiveServer(input);
+  });
+
+  handle('liveServers:update', ipcArgSchemas.liveServersUpdate, async (_event, input) => {
+    const list =
+      db instanceof RoutingStorage
+        ? await db.updateLiveServer(input).then(() => db.listLiveServers())
+        : getLocalDatabase().updateLiveServer(input);
     updateLiveServerScripts(input.id, {
       preRequestScripts: input.preRequestScripts,
       postRequestScripts: input.postRequestScripts
@@ -108,7 +121,34 @@ export function registerLiveServerHandlers(): void {
     return list;
   });
 
-  handle('liveServers:delete', ipcArgSchemas.liveServersDelete, (_event, id) =>
-    getLocalDatabase().deleteLiveServer(id)
+  handle('liveServers:delete', ipcArgSchemas.liveServersDelete, async (_event, id) => {
+    if (db instanceof RoutingStorage) {
+      await db.deleteLiveServer(id);
+      return db.listLiveServers();
+    }
+    return getLocalDatabase().deleteLiveServer(id);
+  });
+
+  handle(
+    'liveServers:move',
+    ipcArgSchemas.liveServersMove,
+    async (_event, id, targetConnectionId) => {
+      if (!(db instanceof RoutingStorage)) {
+        throw new Error('Live server move is unavailable.');
+      }
+      await db.moveLiveServer(id, targetConnectionId);
+      return db.listLiveServers();
+    }
+  );
+
+  handle(
+    'liveServers:setLastOpenedPath',
+    ipcArgSchemas.liveServersSetLastOpenedPath,
+    (_event, id, path) => {
+      if (!(db instanceof RoutingStorage)) {
+        throw new Error('Live server path persistence is unavailable.');
+      }
+      db.setLiveServerLastOpenedPath(id, path);
+    }
   );
 }

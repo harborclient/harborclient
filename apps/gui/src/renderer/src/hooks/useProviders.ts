@@ -42,6 +42,16 @@ export interface UseProvidersOptions {
   excludeSnippetUnsupportedTeamHubs?: boolean;
 
   /**
+   * When true, omits team hubs whose servers do not expose live-server routes.
+   */
+  excludeLiveServerUnsupportedTeamHubs?: boolean;
+
+  /**
+   * When true, omits team hubs whose servers do not expose live-page routes.
+   */
+  excludeLivePageUnsupportedTeamHubs?: boolean;
+
+  /**
    * Provider id to keep in the list even when it is an admin hub (current collection provider).
    */
   retainConnectionId?: string;
@@ -169,6 +179,29 @@ function snippetUnsupportedHubIdsFromScanResults(
 }
 
 /**
+ * Builds hub ids whose servers do not expose the requested live-entity routes.
+ *
+ * @param scanResults - Session scan results from IPC, or undefined when the scan failed.
+ * @param service - Live entity service flag to inspect.
+ * @returns Hub ids that failed the requested route probe.
+ */
+function liveEntityUnsupportedHubIdsFromScanResults(
+  scanResults: Awaited<ReturnType<typeof window.api.scanTeamHubSessions>> | undefined,
+  service: 'liveServers' | 'livePages'
+): Set<string> {
+  const unsupportedHubIds = new Set<string>();
+  if (scanResults === undefined) {
+    return unsupportedHubIds;
+  }
+  for (const result of scanResults) {
+    if (result.services[service] !== true) {
+      unsupportedHubIds.add(result.hubId);
+    }
+  }
+  return unsupportedHubIds;
+}
+
+/**
  * Removes team hubs that failed the snippet route probe from a provider list.
  *
  * @param providers - Full merged provider list from IPC.
@@ -235,6 +268,8 @@ export function useProviders(
   const {
     excludeAdminTeamHubs = false,
     excludeSnippetUnsupportedTeamHubs = false,
+    excludeLiveServerUnsupportedTeamHubs = false,
+    excludeLivePageUnsupportedTeamHubs = false,
     excludeGit = false,
     retainConnectionId
   } = options;
@@ -272,7 +307,10 @@ export function useProviders(
           window.api.listStorageConnections(),
           window.api.listTeamHubs(),
           window.api.getActiveStorageId(),
-          excludeAdminTeamHubs || excludeSnippetUnsupportedTeamHubs
+          excludeAdminTeamHubs ||
+          excludeSnippetUnsupportedTeamHubs ||
+          excludeLiveServerUnsupportedTeamHubs ||
+          excludeLivePageUnsupportedTeamHubs
             ? window.api.scanTeamHubSessions().catch((): undefined => undefined)
             : Promise.resolve(undefined)
         ]);
@@ -310,6 +348,20 @@ export function useProviders(
             retainConnectionId
           );
         }
+        if (excludeLiveServerUnsupportedTeamHubs) {
+          visibleProviders = filterSnippetProviders(
+            visibleProviders,
+            liveEntityUnsupportedHubIdsFromScanResults(scanResults, 'liveServers'),
+            retainConnectionId
+          );
+        }
+        if (excludeLivePageUnsupportedTeamHubs) {
+          visibleProviders = filterSnippetProviders(
+            visibleProviders,
+            liveEntityUnsupportedHubIdsFromScanResults(scanResults, 'livePages'),
+            retainConnectionId
+          );
+        }
         if (excludeGit) {
           visibleProviders = filterGitProviders(visibleProviders, retainConnectionId);
         }
@@ -329,6 +381,8 @@ export function useProviders(
   }, [
     excludeAdminTeamHubs,
     excludeSnippetUnsupportedTeamHubs,
+    excludeLiveServerUnsupportedTeamHubs,
+    excludeLivePageUnsupportedTeamHubs,
     excludeGit,
     retainConnectionId,
     reloadToken,

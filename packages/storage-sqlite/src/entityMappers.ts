@@ -23,11 +23,15 @@ import type {
   Folder,
   HttpMethod,
   KeyValue,
+  LiveServer,
   SavedRequest,
   Snippet,
-  Variable
+  Variable,
+  Website
 } from '@harborclient/core/types';
 import type { PersistedChatReferenceSnapshots } from '@harborclient/core/ai/scriptReferences';
+import { livePageFromPayload, parseLivePagePayload } from './livePagePayload';
+import { liveServerFromPayload, parseLiveServerPayload } from './liveServerPayload';
 
 /**
  * Parses a JSON string, returning a fallback value on failure.
@@ -525,6 +529,47 @@ export function rowToDocument(row: Record<string, unknown>): CollectionDocument 
  */
 export const docToCollection = (id: number, data: Record<string, unknown>): Collection =>
   rowToCollection({ ...data, id });
+
+/**
+ * Maps a raw provider live-server row to a {@link LiveServer}.
+ *
+ * @param row - Row fields including numeric `id` and serialized `payload`.
+ * @returns Provider-local live server record.
+ */
+export function rowToProviderLiveServer(row: Record<string, unknown>): LiveServer {
+  const payload = parseLiveServerPayload(readString(row.payload, '{}'));
+  return liveServerFromPayload(
+    {
+      id: readNumber(row.id),
+      uuid: readString(row.uuid),
+      name: readString(row.name),
+      sortOrder: readNumber(row.sort_order),
+      createdAt: readNumber(row.created_at, Date.now()),
+      updatedAt: readNumber(row.updated_at, Date.now())
+    },
+    payload
+  );
+}
+
+/**
+ * Maps a raw provider live-page row to a {@link Website}.
+ *
+ * @param row - Row fields including numeric `id` and serialized `payload`.
+ * @returns Provider-local live page record.
+ */
+export function rowToProviderLivePage(row: Record<string, unknown>): Website {
+  const payload = parseLivePagePayload(readString(row.payload, '{}'));
+  return livePageFromPayload(
+    {
+      id: readNumber(row.id),
+      uuid: readString(row.uuid),
+      name: readString(row.name),
+      createdAt: readNumber(row.created_at, Date.now()),
+      updatedAt: readNumber(row.updated_at, Date.now())
+    },
+    payload
+  );
+}
 
 /**
  * Maps a Firestore environment document to an Environment object.

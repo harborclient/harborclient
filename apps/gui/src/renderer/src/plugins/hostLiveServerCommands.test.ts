@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { LiveServer, RunningLiveServer } from '@harborclient/sdk';
+import type { LiveServer, RunningLiveServer, UpdateLiveServerInput } from '@harborclient/sdk';
 import {
   defaultLiveServerCorsSettings,
   normalizeLiveServerConfigFields
@@ -11,11 +11,15 @@ import {
   getLiveServerStatusForPlugin,
   listLiveServersForPlugin,
   startLiveServerForPlugin,
-  stopLiveServerForPlugin
+  stopLiveServerForPlugin,
+  updateLiveServerForPlugin
 } from './hostLiveServerCommands';
 
 const listLiveServersMock = vi.fn();
 const createLiveServerMock = vi.fn();
+const updateLiveServerMock = vi.fn();
+const moveLiveServerMock = vi.fn();
+const getActiveStorageIdMock = vi.fn();
 const startLiveServerMock = vi.fn();
 const stopLiveServerMock = vi.fn();
 const listRunningLiveServersMock = vi.fn();
@@ -84,6 +88,7 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
       host: saved.host,
       headers: saved.headers,
       routes: saved.routes,
+      errorPages: saved.errorPages,
       proxies: saved.proxies,
       ssl: saved.ssl,
       runCommand: saved.runCommand,
@@ -102,15 +107,23 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
 beforeEach(() => {
   listLiveServersMock.mockReset();
   createLiveServerMock.mockReset();
+  updateLiveServerMock.mockReset();
+  moveLiveServerMock.mockReset();
+  getActiveStorageIdMock.mockReset();
   startLiveServerMock.mockReset();
   stopLiveServerMock.mockReset();
   listRunningLiveServersMock.mockReset();
   getLiveServerLogsMock.mockReset();
   dispatchMock.mockReset();
+  moveLiveServerMock.mockResolvedValue([]);
+  getActiveStorageIdMock.mockResolvedValue('local');
   vi.stubGlobal('window', {
     api: {
       listLiveServers: listLiveServersMock,
       createLiveServer: createLiveServerMock,
+      updateLiveServer: updateLiveServerMock,
+      moveLiveServer: moveLiveServerMock,
+      getActiveStorageId: getActiveStorageIdMock,
       startLiveServer: startLiveServerMock,
       stopLiveServer: stopLiveServerMock,
       listRunningLiveServers: listRunningLiveServersMock,
@@ -135,13 +148,44 @@ describe('hostLiveServerCommands', () => {
   });
 
   it('creates a saved live server and returns the new row', async () => {
-    const created = makeSaved({ id: 2, uuid: 'ls-2', name: 'New' });
+    const created = makeSaved({
+      id: 2,
+      uuid: 'ls-2',
+      name: 'New',
+      connectionId: 'team-hub-1'
+    });
     createLiveServerMock.mockResolvedValue([created]);
 
-    await expect(createLiveServerForPlugin({ name: 'New', root: '/tmp/site' })).resolves.toEqual(
-      created
+    await expect(
+      createLiveServerForPlugin({
+        name: 'New',
+        root: '/tmp/site',
+        connectionId: 'team-hub-1'
+      })
+    ).resolves.toEqual(created);
+    expect(createLiveServerMock).toHaveBeenCalledWith(
+      expect.objectContaining({ connectionId: 'team-hub-1' })
     );
     expect(dispatchMock).toHaveBeenCalled();
+  });
+
+  it('moves a saved live server before updating its routed provider', async () => {
+    const saved = makeSaved({ connectionId: 'local' });
+    const updated = makeSaved({ name: 'Moved', connectionId: 'team-hub-1' });
+    listLiveServersMock.mockResolvedValue([saved]);
+    updateLiveServerMock.mockResolvedValue([updated]);
+
+    const input = {
+      ...saved,
+      name: 'Moved',
+      connectionId: 'team-hub-1'
+    } satisfies UpdateLiveServerInput;
+
+    await expect(updateLiveServerForPlugin(input)).resolves.toEqual(updated);
+    expect(moveLiveServerMock).toHaveBeenCalledWith(saved.id, 'team-hub-1');
+    expect(updateLiveServerMock).toHaveBeenCalledWith(
+      expect.not.objectContaining({ connectionId: expect.anything() })
+    );
   });
 
   it('starts from savedId by loading the saved config', async () => {
@@ -186,6 +230,7 @@ describe('hostLiveServerCommands', () => {
           host: '0.0.0.0',
           headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
           routes: [{ match: '*', target: 'index.html', enabled: true }],
+          errorPages: [],
           proxies: [
             {
               path: '/api',
@@ -214,6 +259,7 @@ describe('hostLiveServerCommands', () => {
           host: '0.0.0.0',
           headers: [{ name: 'Cache-Control', value: 'no-store', enabled: true }],
           routes: [{ match: '*', target: 'index.html', enabled: true }],
+          errorPages: [],
           proxies: [
             {
               path: '/api',

@@ -18,6 +18,8 @@ export type AuditEntityType =
   | 'collection'
   | 'environment'
   | 'snippet'
+  | 'live_server'
+  | 'live_page'
   | 'folder'
   | 'request'
   | 'document'
@@ -129,6 +131,16 @@ export interface UserRecord {
   snippetAccess: string[];
 
   /**
+   * Live server ids the user may access, or `['*']` for all live servers.
+   */
+  liveServerAccess: string[];
+
+  /**
+   * Live page ids the user may access, or `['*']` for all live pages.
+   */
+  livePageAccess: string[];
+
+  /**
    * When true, the user may call hub-proxied LLM routes.
    */
   llmAccess: boolean;
@@ -194,6 +206,16 @@ export interface CreateUserInput {
   snippetAccess: string[];
 
   /**
+   * Live server access list; admins store an empty array.
+   */
+  liveServerAccess: string[];
+
+  /**
+   * Live page access list; admins store an empty array.
+   */
+  livePageAccess: string[];
+
+  /**
    * Whether the user may use hub-proxied LLM routes.
    */
   llmAccess?: boolean;
@@ -237,6 +259,16 @@ export interface UpdateUserInput {
    * Replacement snippet access list.
    */
   snippetAccess?: string[];
+
+  /**
+   * Replacement live server access list.
+   */
+  liveServerAccess?: string[];
+
+  /**
+   * Replacement live page access list.
+   */
+  livePageAccess?: string[];
 
   /**
    * Whether the user may use hub-proxied LLM routes.
@@ -877,6 +909,57 @@ export interface SnippetRecord {
    */
   deletionLocked: boolean;
 }
+
+/**
+ * Shared persisted shape for provider-routed entities whose configuration is
+ * stored as one JSON payload.
+ */
+export interface PayloadEntityRecord {
+  id: string;
+  name: string;
+  payload: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+  deletionLocked: boolean;
+}
+
+/**
+ * Persisted live server configuration.
+ */
+export type LiveServerRecord = PayloadEntityRecord;
+
+/**
+ * Persisted live page (Website) configuration.
+ */
+export type LivePageRecord = PayloadEntityRecord;
+
+/**
+ * Input used to create a live server on Team Hub.
+ */
+export interface CreateLiveServerRecordInput {
+  name: string;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Input used to replace a live server on Team Hub.
+ */
+export type UpdateLiveServerRecordInput = CreateLiveServerRecordInput;
+
+/**
+ * Input used to create a live page on Team Hub.
+ */
+export interface CreateLivePageRecordInput {
+  name: string;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * Input used to replace a live page on Team Hub.
+ */
+export type UpdateLivePageRecordInput = CreateLivePageRecordInput;
 
 /**
  * Discriminator for collection-wide or single-request run result snapshots.

@@ -786,6 +786,7 @@ export const websiteInjectionScript = z.object({
 export const createWebsiteInput = z.object({
   name: z.string().trim().min(1),
   uuid: z.string().trim().min(1).optional(),
+  connectionId: connectionId.optional(),
   url: z.string(),
   homeUrl: z.string(),
   faviconDataUrl: z.union([z.string(), z.null()]).optional(),
@@ -846,6 +847,15 @@ export const liveServerRoute = z.object({
 });
 
 /**
+ * One custom error-page mapping for a live server (status code → HTML file).
+ */
+export const liveServerErrorPage = z.object({
+  code: z.string(),
+  path: z.string(),
+  enabled: z.boolean().optional()
+});
+
+/**
  * One reverse-proxy rule for a live server (path prefix → upstream).
  */
 export const liveServerProxy = z.object({
@@ -895,6 +905,7 @@ export const liveServerConfig = z.object({
   host: z.string(),
   headers: z.array(liveServerResponseHeader),
   routes: z.array(liveServerRoute),
+  errorPages: z.array(liveServerErrorPage),
   proxies: z.array(liveServerProxy),
   ssl: liveServerSslSettings,
   runCommand: z.string(),
@@ -919,6 +930,7 @@ export const startLiveServerInput = z.object({
 export const createLiveServerInput = z.object({
   name: z.string().trim().min(1),
   uuid: z.string().trim().min(1).optional(),
+  connectionId: connectionId.optional(),
   root: z.string().trim().min(1),
   port: z.number().int().positive().max(65535).nullable().optional(),
   aliases: z.array(liveServerAlias).optional(),
@@ -932,6 +944,7 @@ export const createLiveServerInput = z.object({
   host: z.string().optional(),
   headers: z.array(liveServerResponseHeader).optional(),
   routes: z.array(liveServerRoute).optional(),
+  errorPages: z.array(liveServerErrorPage).optional(),
   proxies: z.array(liveServerProxy).optional(),
   ssl: liveServerSslSettings.optional(),
   runCommand: z.string().optional(),
@@ -960,6 +973,7 @@ export const updateLiveServerInput = z.object({
   host: z.string(),
   headers: z.array(liveServerResponseHeader),
   routes: z.array(liveServerRoute),
+  errorPages: z.array(liveServerErrorPage),
   proxies: z.array(liveServerProxy),
   ssl: liveServerSslSettings,
   runCommand: z.string(),
@@ -1387,6 +1401,7 @@ export const ipcArgSchemas = {
   importAuto: z.tuple([dbId.nullable(), z.array(z.string()).optional()]),
   shareCreate: z.tuple([dbId, recipientKid.optional()]),
   openDirectory: z.tuple([z.string()]),
+  openFile: z.tuple([z.string()]),
   /**
    * Default path for the SSL cert/key single-file picker (empty string when unset).
    */
@@ -1702,12 +1717,15 @@ export const ipcArgSchemas = {
   websitesCreate: z.tuple([createWebsiteInput]),
   websitesUpdate: z.tuple([updateWebsiteInput]),
   websitesDelete: z.tuple([z.number().int().positive()]),
+  websitesMove: z.tuple([z.number().int().positive(), connectionId]),
   liveServerStart: z.tuple([startLiveServerInput]),
   liveServerStop: z.tuple([z.string().min(1)]),
   liveServerLogsQuery: z.tuple([liveServerLogsQuery]),
   liveServersCreate: z.tuple([createLiveServerInput]),
   liveServersUpdate: z.tuple([updateLiveServerInput]),
   liveServersDelete: z.tuple([z.number().int().positive()]),
+  liveServersMove: z.tuple([z.number().int().positive(), connectionId]),
+  liveServersSetLastOpenedPath: z.tuple([z.number().int().positive(), z.string().nullable()]),
   workflowRunHistoryAdd: z.tuple([workflowRunHistoryAddInput]),
   workflowRunHistoryDelete: z.tuple([z.number().int().positive()]),
   collectionsSetMarker: z.tuple([dbId, sidebarMarker]),

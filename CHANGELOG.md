@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(live-server): enhance live server and live page management. (`fba086b7`)
 - feat(live-server): add openPathOnStartup configuration for live server. (`039b74dc`)
 
 ## 2.9.3 - 2026-08-01

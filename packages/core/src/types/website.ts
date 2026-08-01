@@ -108,6 +108,13 @@ export interface Website {
   auth: AuthConfig;
 
   /**
+   * Id of the storage connection that stores this live page.
+   *
+   * Omitted for provider-local records before RoutingStorage merges registry metadata.
+   */
+  connectionId?: string;
+
+  /**
    * Creation timestamp in milliseconds since epoch.
    */
   createdAt: number;
@@ -131,6 +138,11 @@ export interface CreateWebsiteInput {
    * Optional portable uuid; generated when omitted.
    */
   uuid?: string;
+
+  /**
+   * Optional storage connection id; defaults to the active data provider when omitted.
+   */
+  connectionId?: string;
 
   /**
    * Last committed URL.

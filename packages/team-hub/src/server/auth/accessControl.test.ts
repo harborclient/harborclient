@@ -8,8 +8,12 @@ import type {
 import {
   canAccessCollection,
   canAccessEnvironment,
+  canAccessLivePage,
+  canAccessLiveServer,
   canCreateCollection,
   canCreateEnvironment,
+  canCreateLivePage,
+  canCreateLiveServer,
   canDeleteCollection,
   canDeleteEnvironment,
   canDeleteRequest,
@@ -23,6 +27,8 @@ import {
   isOverMonthlyLimit,
   filterAccessibleCollections,
   filterAccessibleEnvironments,
+  filterAccessibleLivePages,
+  filterAccessibleLiveServers,
   hasWildcardAccess
 } from '#/server/auth/accessControl.js';
 
@@ -33,6 +39,8 @@ const baseUser: UserRecord = {
   collectionAccess: ['collection-a'],
   environmentAccess: ['env-a'],
   snippetAccess: [],
+  liveServerAccess: [],
+  livePageAccess: [],
 
   llmAccess: false,
   llmModels: [],
@@ -142,6 +150,30 @@ const sampleRequest: SavedRequestRecord = {
 };
 
 describe('accessControl', () => {
+  it('applies explicit and wildcard access to live entities', () => {
+    const scoped = {
+      ...baseUser,
+      liveServerAccess: ['server-a'],
+      livePageAccess: ['page-a']
+    };
+    expect(canAccessLiveServer(scoped, 'server-a')).toBe(true);
+    expect(canAccessLiveServer(scoped, 'server-b')).toBe(false);
+    expect(canAccessLivePage(scoped, 'page-a')).toBe(true);
+    expect(canCreateLiveServer(scoped)).toBe(false);
+    expect(canCreateLivePage({ ...scoped, livePageAccess: ['*'] })).toBe(true);
+
+    const servers = [
+      { id: 'server-a' },
+      { id: 'server-b' }
+    ] as import('#/db/types.js').LiveServerRecord[];
+    expect(filterAccessibleLiveServers(scoped, servers)).toEqual([servers[0]]);
+    expect(
+      filterAccessibleLivePages(
+        { ...scoped, livePageAccess: ['*'] },
+        servers as import('#/db/types.js').LivePageRecord[]
+      )
+    ).toEqual(servers);
+  });
   it('detects wildcard access lists', () => {
     expect(hasWildcardAccess(['*'])).toBe(true);
     expect(hasWildcardAccess(['collection-a'])).toBe(false);

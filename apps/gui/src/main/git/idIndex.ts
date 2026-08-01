@@ -31,6 +31,16 @@ export interface GitIdIndexData {
   nextSnippetId: number;
 
   /**
+   * Next numeric id to assign for live servers.
+   */
+  nextLiveServerId: number;
+
+  /**
+   * Next numeric id to assign for live pages.
+   */
+  nextLivePageId: number;
+
+  /**
    * Next numeric id to assign for markdown documents.
    */
   nextDocumentId: number;
@@ -61,6 +71,16 @@ export interface GitIdIndexData {
   snippetIds: Record<string, number>;
 
   /**
+   * Live server uuid to local numeric id.
+   */
+  liveServerIds: Record<string, number>;
+
+  /**
+   * Live page uuid to local numeric id.
+   */
+  livePageIds: Record<string, number>;
+
+  /**
    * Markdown document uuid to local numeric id.
    */
   documentIds: Record<string, number>;
@@ -76,12 +96,16 @@ export function createEmptyGitIdIndex(): GitIdIndexData {
     nextRequestId: 1,
     nextEnvironmentId: 1,
     nextSnippetId: 1,
+    nextLiveServerId: 1,
+    nextLivePageId: 1,
     nextDocumentId: 1,
     collectionIds: {},
     folderIds: {},
     requestIds: {},
     environmentIds: {},
     snippetIds: {},
+    liveServerIds: {},
+    livePageIds: {},
     documentIds: {}
   };
 }
@@ -108,12 +132,16 @@ export function loadGitIdIndex(userDataPath: string, connectionId: string): GitI
       nextRequestId: parsed.nextRequestId ?? 1,
       nextEnvironmentId: parsed.nextEnvironmentId ?? 1,
       nextSnippetId: parsed.nextSnippetId ?? 1,
+      nextLiveServerId: parsed.nextLiveServerId ?? 1,
+      nextLivePageId: parsed.nextLivePageId ?? 1,
       nextDocumentId: parsed.nextDocumentId ?? 1,
       collectionIds: parsed.collectionIds ?? {},
       folderIds: parsed.folderIds ?? {},
       requestIds: parsed.requestIds ?? {},
       environmentIds: parsed.environmentIds ?? {},
       snippetIds: parsed.snippetIds ?? {},
+      liveServerIds: parsed.liveServerIds ?? {},
+      livePageIds: parsed.livePageIds ?? {},
       documentIds: parsed.documentIds ?? {}
     };
   } catch {
@@ -156,6 +184,8 @@ export function assignGitId(
     | 'requestIds'
     | 'environmentIds'
     | 'snippetIds'
+    | 'liveServerIds'
+    | 'livePageIds'
     | 'documentIds',
   nextKey:
     | 'nextCollectionId'
@@ -163,6 +193,8 @@ export function assignGitId(
     | 'nextRequestId'
     | 'nextEnvironmentId'
     | 'nextSnippetId'
+    | 'nextLiveServerId'
+    | 'nextLivePageId'
     | 'nextDocumentId',
   uuid: string
 ): number {
@@ -193,6 +225,8 @@ export function pruneGitIdMap(
     | 'requestIds'
     | 'environmentIds'
     | 'snippetIds'
+    | 'liveServerIds'
+    | 'livePageIds'
     | 'documentIds',
   activeUuids: Set<string>
 ): void {
