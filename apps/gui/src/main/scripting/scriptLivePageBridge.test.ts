@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ScriptWebpageBridge } from './scriptWebpageBridge';
+import { ScriptLivePageBridge } from './scriptLivePageBridge';
 
-describe('ScriptWebpageBridge', () => {
-  let bridge: ScriptWebpageBridge;
+describe('ScriptLivePageBridge', () => {
+  let bridge: ScriptLivePageBridge;
   let send: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    bridge = new ScriptWebpageBridge();
+    bridge = new ScriptLivePageBridge();
     send = vi.fn();
     bridge.setMainWindow(
       () =>
@@ -17,10 +17,10 @@ describe('ScriptWebpageBridge', () => {
     );
   });
 
-  it('round-trips webpage invocations through the renderer bridge channel', async () => {
+  it('round-trips livePage invocations through the renderer bridge channel', async () => {
     const resultPromise = bridge.invoke({ op: 'open', url: 'https://example.com' });
 
-    expect(send).toHaveBeenCalledWith('scripts:webpageInvoke', {
+    expect(send).toHaveBeenCalledWith('scripts:livePageInvoke', {
       requestId: 1,
       req: { op: 'open', url: 'https://example.com' }
     });
@@ -53,7 +53,7 @@ describe('ScriptWebpageBridge', () => {
   it('rejects when HarborClient is not open', async () => {
     bridge.setMainWindow(() => null);
     await expect(bridge.invoke({ op: 'open' })).rejects.toThrow(
-      'HarborClient must be open to use hc.webpage.'
+      'HarborClient must be open to use hc.livePage.'
     );
   });
 });

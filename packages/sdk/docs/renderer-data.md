@@ -1071,7 +1071,7 @@ Create, start, stop, and inspect Harbor Live Servers (loopback static file serve
 
 Requires the `live-server` permission. This is separate from [`hc.server`](/main-api#hcserver) (plugin echo server under the `server` permission).
 
-Saved-config `update` / `delete` do **not** restart or stop a running instance. `start` returns the running instance and does **not** open a browser tab — call `hc.webpage(origin)` when you also have the `browser` permission.
+Saved-config `update` / `delete` do **not** restart or stop a running instance. `start` returns the running instance and does **not** open a browser tab — call `hc.livePage(origin)` when you also have the `browser` permission.
 
 ```ts
 export async function activate(hc: PluginContext): Promise<void> {
@@ -1175,6 +1175,66 @@ Subscribes to start/stop list changes (including changes from the Harbor UI).
 
 Subscribes to Express access-log lines from running live servers.
 
+## hc.livePages
+
+Create, update, and delete saved Live Pages (website registry rows with URL, home URL, injection scripts, pre/post request scripts, variables, headers, and auth).
+
+Requires the `live-pages` permission. This is separate from [`hc.livePage`](/renderer-data#hclivepage) (embedded browser tab control under the `browser` permission) and from [`hc.liveServers`](/renderer-data#hcliveservers).
+
+Registry mutations do **not** open or bind a browser tab.
+
+```ts
+export async function activate(hc: PluginContext): Promise<void> {
+  const page = await hc.livePages.create({
+    name: 'Docs',
+    url: 'https://example.com/docs',
+    homeUrl: 'https://example.com/',
+    scripts: [],
+    preRequestScripts: [],
+    postRequestScripts: []
+  });
+
+  const listed = await hc.livePages.list();
+  const found = await hc.livePages.get(page.uuid);
+  await hc.livePages.update({
+    ...page,
+    name: 'Docs (updated)'
+  });
+  await hc.livePages.delete(page.id);
+  console.log(listed.length, found?.name);
+}
+```
+
+### hc.livePages.list()
+
+**Signature:** `() => Promise<Website[]>`
+
+Lists saved live pages from the local registry.
+
+### hc.livePages.get(idOrUuid)
+
+**Signature:** `(idOrUuid: number | string) => Promise<Website | null>`
+
+Returns one saved live page by database id or uuid, or `null` when not found.
+
+### hc.livePages.create(input)
+
+**Signature:** `(input: CreateWebsiteInput) => Promise<Website>`
+
+Persists a new saved live page and returns the created row.
+
+### hc.livePages.update(input)
+
+**Signature:** `(input: UpdateWebsiteInput) => Promise<Website>`
+
+Updates a saved live page. Does not open or bind a browser tab.
+
+### hc.livePages.delete(id)
+
+**Signature:** `(id: number) => Promise<void>`
+
+Deletes a saved live page (moves it to trash).
+
 ## hc.ai
 
 Chat pointer registration and copy-to-chat for the AI sidebar.
@@ -1211,26 +1271,31 @@ Context longer than 100,000 characters is truncated with a clear marker. Pair wi
 
 See [Chat pointers](/examples/chat-pointers) for a full walkthrough.
 
-## hc.webpage
+## hc.livePage
 
 Opens or reuses an embedded browser tab and returns a control handle (focus, close, DOM query/evaluate/inject, viewport screenshot).
 
-Requires the `browser` permission (granted at install/enable). This is independent of Settings → General → Allow script webpage access, which only gates request-script `hc.webpage`. Saving a screenshot with `page.screenshot` also requires `filesystem:write`.
+Requires the `browser` permission (granted at install/enable). This is independent of Settings → General → Allow script live page access, which only gates request-script `hc.livePage`. Saving a screenshot with `page.screenshot` also requires `filesystem:write`.
 
 ```ts
 export async function activate(hc: PluginContext): Promise<void> {
   // Open or reuse a tab at this URL (reuse defaults to true). New tabs wait for load.
-  const page = await hc.webpage('https://example.com');
+  const page = await hc.livePage('https://example.com');
 
   // Or always force a fresh tab:
-  // const page = await hc.webpage('https://example.com', { reuse: false });
+  // const page = await hc.livePage('https://example.com', { reuse: false });
 
   // Or bind whatever browser tab is already active (no URL):
-  // const page = await hc.webpage();
+  // const page = await hc.livePage();
 
   console.log(page.tabId, page.url, page.title, page.canGoBack, page.canGoForward);
 
   await page.focus();
+  await page.navigate('https://example.com/docs');
+  await page.reload();
+  await page.goBack();
+  await page.goForward();
+  // Navigation helpers wait for load and refresh url/title/canGoBack/canGoForward.
 
   // First matching element by default; use { all: true } for every match.
   const heading = await page.dom.query('h1');

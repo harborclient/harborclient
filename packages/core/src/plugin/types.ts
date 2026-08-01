@@ -26,6 +26,7 @@ export type PluginPermission =
   | 'ipc'
   | 'server'
   | 'live-server'
+  | 'live-pages'
   | 'mcp'
   | 'ai'
   | 'browser';
@@ -104,6 +105,7 @@ export interface PluginManifest {
     collectionSettingsTabs?: ManifestContributionEntry[];
     footerPanels?: ManifestContributionEntry[];
     requestToolbarActions?: ManifestContributionEntry[];
+    livePageChromeActions?: ManifestContributionEntry[];
     scriptEditorActions?: ManifestContributionEntry[];
     workflowToolbarActions?: ManifestContributionEntry[];
     workflowActionBlocks?: ManifestContributionEntry[];
@@ -389,6 +391,30 @@ export interface RegisteredRequestToolbarAction {
   command: string;
   icon?: string;
   order?: number;
+}
+
+/**
+ * Registered live-page chrome bar action contribution.
+ *
+ * Sorted by {@link activationSeq} (plugin activation order) then
+ * {@link registrationIndex} within that plugin — not by title or an order field.
+ */
+export interface RegisteredLivePageChromeAction {
+  pluginId: string;
+  id: string;
+  title: string;
+  command: string;
+  icon?: string;
+  /**
+   * Monotonic sequence stamped when the plugin first registers a chrome action
+   * during the current activation. Lower values render further left.
+   */
+  activationSeq: number;
+  /**
+   * Registration order within the plugin for the current activation.
+   * Lower values render further left among that plugin's buttons.
+   */
+  registrationIndex: number;
 }
 
 /**

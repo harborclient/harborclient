@@ -714,6 +714,63 @@ export interface RequestToolbarActionContribution {
 }
 
 /**
+ * Context passed to a live-page chrome action command when the user clicks the button.
+ */
+export interface LivePageChromeActionContext {
+  /**
+   * Client-side id of the browser tab whose chrome rendered the button.
+   */
+  tabId: string;
+
+  /**
+   * Current page URL shown in the address bar.
+   */
+  url: string;
+
+  /**
+   * Document title shown in the tab bar.
+   */
+  title: string;
+
+  /**
+   * Linked saved website database id when the tab is bound to a Website; otherwise null/undefined.
+   */
+  websiteId?: number | null;
+}
+
+/**
+ * Adds a RoundButton to the embedded browser chrome bar (between Downloads and Ask AI).
+ *
+ * Register the command handler with {@link PluginCommands.register} separately.
+ * The handler receives a single {@link LivePageChromeActionContext} argument.
+ * Manifest: `contributes.livePageChromeActions` plus a matching `contributes.commands` entry.
+ * Requires the `ui` permission.
+ *
+ * Buttons sort by plugin activation order, then registration order within the plugin — not by title.
+ */
+export interface LivePageChromeActionContribution {
+  /**
+   * Action id — must match an entry in `contributes.livePageChromeActions`.
+   */
+  id: string;
+
+  /**
+   * Button label / accessible name (and tooltip).
+   */
+  title: string;
+
+  /**
+   * Command id to run on click — must match a registered command and manifest entry.
+   */
+  command: string;
+
+  /**
+   * Optional curated icon name resolved by the host (falls back to a puzzle-piece icon).
+   */
+  icon?: string;
+}
+
+/**
  * Context passed to a script editor action command when the user clicks a row button.
  */
 export interface ScriptEditorActionContext {
@@ -2295,7 +2352,7 @@ export interface UpdateLiveServerInput {
  *
  * Provide `savedId` to start from a persisted config (config optional override),
  * or provide `config` alone for an ad-hoc run. Does not open a browser tab;
- * use {@link PluginContext.webpage} when the `browser` permission is granted.
+ * use {@link PluginContext.livePage} when the `browser` permission is granted.
  */
 export interface StartLiveServerInput {
   /**
@@ -2649,6 +2706,407 @@ export interface PluginLiveServers {
 }
 
 /**
+ * Page-load points at which a saved website injection script may run.
+ *
+ * Mirrors `@harborclient/core` website script run-at values.
+ */
+export type WebsiteScriptRunAt = 'document-start' | 'dom-ready' | 'did-finish-load';
+
+/**
+ * One plain JavaScript injection script persisted with a website.
+ *
+ * Mirrors `@harborclient/core` website injection script rows.
+ */
+export interface WebsiteInjectionScript {
+  /**
+   * Stable id within the website's script list.
+   */
+  id: string;
+
+  /**
+   * Display name shown in browser settings.
+   */
+  name: string;
+
+  /**
+   * When false, the script is skipped at injection time.
+   */
+  enabled: boolean;
+
+  /**
+   * Guest lifecycle hook that triggers this script.
+   */
+  runAt: WebsiteScriptRunAt;
+
+  /**
+   * JavaScript source executed in the page main world.
+   */
+  source: string;
+}
+
+/**
+ * One pre/post request script on a saved website (no path match).
+ *
+ * Mirrors `@harborclient/core` ScriptRef used by live pages.
+ */
+export interface WebsiteScriptRef {
+  /**
+   * Stable list key used for reordering and React keys.
+   */
+  id: string;
+
+  /**
+   * When false, the script is skipped.
+   */
+  enabled: boolean;
+
+  /**
+   * Inline JavaScript source or a live reference to a saved snippet.
+   */
+  kind: 'inline' | 'snippet';
+
+  /**
+   * Optional display label for inline scripts.
+   */
+  name?: string;
+
+  /**
+   * JavaScript source when {@link kind} is `inline`.
+   */
+  code?: string;
+
+  /**
+   * Snippet uuid when {@link kind} is `snippet`.
+   */
+  snippetUuid?: string;
+
+  /**
+   * When true, the script editor body is expanded in the list UI.
+   */
+  expanded?: boolean;
+
+  /**
+   * Stage within a request stage list. Live pages coerce this to `main`.
+   */
+  stage?: ScriptStage;
+}
+
+/**
+ * Authorization stored on a saved website (includes OAuth 2.0 fields for parity with core).
+ *
+ * Mirrors `@harborclient/core` AuthConfig used by {@link Website}.
+ */
+export interface WebsiteAuthConfig {
+  /**
+   * Selected auth mode; none means no chrome-driven auth header.
+   */
+  type: 'none' | 'basic' | 'bearer' | 'oauth2';
+
+  /**
+   * Username and password for Basic Auth.
+   */
+  basic: {
+    username: string;
+    password: string;
+  };
+
+  /**
+   * Token value for Bearer Token auth.
+   */
+  bearer: {
+    token: string;
+  };
+
+  /**
+   * OAuth 2.0 Client Credentials settings (not applied to guest navigations today).
+   */
+  oauth2: {
+    tokenUrl: string;
+    clientId: string;
+    clientSecret: string;
+    scope: string;
+    audience: string;
+    clientAuth: 'body' | 'header';
+  };
+}
+
+/**
+ * A saved embedded-browser website (live page) in the local registry.
+ *
+ * Mirrors `@harborclient/core` Website entity shape.
+ */
+export interface Website {
+  /**
+   * Database primary key.
+   */
+  id: number;
+
+  /**
+   * Stable portable identifier for export/import.
+   */
+  uuid: string;
+
+  /**
+   * Display name shown in the sidebar (last page title).
+   */
+  name: string;
+
+  /**
+   * Last committed URL when the website was saved.
+   */
+  url: string;
+
+  /**
+   * Home URL for the browser Home button.
+   */
+  homeUrl: string;
+
+  /**
+   * Favicon as a data URL when available.
+   */
+  faviconDataUrl: string | null;
+
+  /**
+   * Applied injection scripts.
+   */
+  scripts: WebsiteInjectionScript[];
+
+  /**
+   * Applied pre-request hc.* scripts.
+   */
+  preRequestScripts: WebsiteScriptRef[];
+
+  /**
+   * Applied post-request hc.* scripts.
+   */
+  postRequestScripts: WebsiteScriptRef[];
+
+  /**
+   * Website-scoped variables for address-bar and script substitution.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers sent with chrome-driven guest navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override for chrome-driven navigations; empty uses Chromium default.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization applied to chrome-driven guest navigations (Basic/Bearer).
+   */
+  auth: WebsiteAuthConfig;
+
+  /**
+   * Id of the storage connection that stores this live page.
+   *
+   * Omitted for provider-local records before RoutingStorage merges registry metadata.
+   */
+  connectionId?: string;
+
+  /**
+   * Creation timestamp in milliseconds since epoch.
+   */
+  createdAt: number;
+
+  /**
+   * Last update timestamp in milliseconds since epoch.
+   */
+  updatedAt: number;
+}
+
+/**
+ * Input for creating a website in the local registry.
+ *
+ * Mirrors `@harborclient/core` CreateWebsiteInput.
+ */
+export interface CreateWebsiteInput {
+  /**
+   * Display name for the website.
+   */
+  name: string;
+
+  /**
+   * Optional portable uuid; generated when omitted.
+   */
+  uuid?: string;
+
+  /**
+   * Optional storage connection id; defaults to the active data provider when omitted.
+   */
+  connectionId?: string;
+
+  /**
+   * Last committed URL.
+   */
+  url: string;
+
+  /**
+   * Home URL for the browser Home button.
+   */
+  homeUrl: string;
+
+  /**
+   * Optional favicon data URL.
+   */
+  faviconDataUrl?: string | null;
+
+  /**
+   * Injection scripts to persist.
+   */
+  scripts?: WebsiteInjectionScript[];
+
+  /**
+   * Pre-request hc.* scripts to persist.
+   */
+  preRequestScripts?: WebsiteScriptRef[];
+
+  /**
+   * Post-request hc.* scripts to persist.
+   */
+  postRequestScripts?: WebsiteScriptRef[];
+
+  /**
+   * Website-scoped variables to persist.
+   */
+  variables?: Variable[];
+
+  /**
+   * Headers to persist for chrome-driven navigations.
+   */
+  headers?: KeyValue[];
+
+  /**
+   * User-Agent override to persist; empty uses Chromium default.
+   */
+  userAgent?: string;
+
+  /**
+   * Authorization settings to persist.
+   */
+  auth?: WebsiteAuthConfig;
+}
+
+/**
+ * Input for updating a website in the local registry.
+ *
+ * Mirrors `@harborclient/core` UpdateWebsiteInput.
+ */
+export interface UpdateWebsiteInput {
+  /**
+   * Database primary key of the website to update.
+   */
+  id: number;
+
+  /**
+   * Display name for the website.
+   */
+  name: string;
+
+  /**
+   * Last committed URL.
+   */
+  url: string;
+
+  /**
+   * Home URL for the browser Home button.
+   */
+  homeUrl: string;
+
+  /**
+   * Optional favicon data URL.
+   */
+  faviconDataUrl?: string | null;
+
+  /**
+   * Injection scripts to persist.
+   */
+  scripts: WebsiteInjectionScript[];
+
+  /**
+   * Pre-request hc.* scripts to persist.
+   */
+  preRequestScripts: WebsiteScriptRef[];
+
+  /**
+   * Post-request hc.* scripts to persist.
+   */
+  postRequestScripts: WebsiteScriptRef[];
+
+  /**
+   * Website-scoped variables to persist.
+   */
+  variables: Variable[];
+
+  /**
+   * Headers to persist for chrome-driven navigations.
+   */
+  headers: KeyValue[];
+
+  /**
+   * User-Agent override to persist; empty uses Chromium default.
+   */
+  userAgent: string;
+
+  /**
+   * Authorization settings to persist.
+   */
+  auth: WebsiteAuthConfig;
+}
+
+/**
+ * Saved live page (website) APIs available on {@link PluginContext.livePages}.
+ *
+ * Requires the `live-pages` permission. Mutations update the registry only; they do
+ * not open or bind a browser tab.
+ */
+export interface PluginLivePages {
+  /**
+   * Lists all saved live pages from the local registry.
+   *
+   * @returns Saved website rows.
+   */
+  list(): Promise<Website[]>;
+
+  /**
+   * Returns one saved live page by database id or uuid.
+   *
+   * @param idOrUuid - Numeric id or uuid string.
+   * @returns The saved website, or null when not found.
+   */
+  get(idOrUuid: number | string): Promise<Website | null>;
+
+  /**
+   * Creates a saved live page and returns the new row.
+   *
+   * @param input - Name, URLs, and optional scripts/headers/auth/variables.
+   * @returns The created saved website.
+   */
+  create(input: CreateWebsiteInput): Promise<Website>;
+
+  /**
+   * Updates a saved live page and returns the refreshed row.
+   *
+   * Does not open or bind a browser tab.
+   *
+   * @param input - Full update payload including id.
+   * @returns The updated saved website.
+   */
+  update(input: UpdateWebsiteInput): Promise<Website>;
+
+  /**
+   * Deletes a saved live page (moves it to trash).
+   *
+   * @param id - Database primary key.
+   */
+  delete(id: number): Promise<void>;
+}
+
+/**
  * Config for {@link PluginAi.registerChatPointer}.
  */
 export interface PluginChatPointerConfig {
@@ -2706,11 +3164,11 @@ export interface PluginCopyToChatInput {
 }
 
 /**
- * Live DOM helpers on a webpage handle from {@link PluginContext.webpage}.
+ * Live DOM helpers on a live-page handle from {@link PluginContext.livePage}.
  *
  * Requires the `browser` permission.
  */
-export interface PluginWebpageDom {
+export interface PluginLivePageDom {
   /**
    * Queries the live page DOM with a CSS selector.
    *
@@ -2749,17 +3207,29 @@ export interface PluginWebpageDom {
 }
 
 /**
- * Handle returned by {@link PluginContext.webpage} for an embedded browser tab.
+ * Handle returned by {@link PluginContext.livePage} for an embedded browser tab.
  *
- * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+ * Requires the `browser` permission. Same semantics as request-script `hc.livePage`.
  */
-export interface PluginWebpageHandle {
+export interface PluginLivePageHandle {
   readonly tabId: string;
-  readonly url: string;
-  readonly title: string;
-  readonly canGoBack: boolean;
-  readonly canGoForward: boolean;
-  readonly dom: PluginWebpageDom;
+  /**
+   * Current page URL. Updated after navigate / goBack / goForward / reload.
+   */
+  url: string;
+  /**
+   * Document title. Updated after navigate / goBack / goForward / reload.
+   */
+  title: string;
+  /**
+   * Whether history can go back. Updated after navigation helpers.
+   */
+  canGoBack: boolean;
+  /**
+   * Whether history can go forward. Updated after navigation helpers.
+   */
+  canGoForward: boolean;
+  readonly dom: PluginLivePageDom;
 
   /**
    * Focuses this browser tab in the tab bar.
@@ -2770,6 +3240,40 @@ export interface PluginWebpageHandle {
    * Closes this browser tab. Returns false when the user cancels a leave prompt.
    */
   close(): Promise<boolean>;
+
+  /**
+   * Navigates history back one entry and waits for load.
+   *
+   * Updates {@link PluginLivePageHandle.url}, {@link PluginLivePageHandle.title},
+   * {@link PluginLivePageHandle.canGoBack}, and {@link PluginLivePageHandle.canGoForward}.
+   */
+  goBack(): Promise<void>;
+
+  /**
+   * Navigates history forward one entry and waits for load.
+   *
+   * Updates {@link PluginLivePageHandle.url}, {@link PluginLivePageHandle.title},
+   * {@link PluginLivePageHandle.canGoBack}, and {@link PluginLivePageHandle.canGoForward}.
+   */
+  goForward(): Promise<void>;
+
+  /**
+   * Reloads the current page and waits for load.
+   *
+   * Updates {@link PluginLivePageHandle.url}, {@link PluginLivePageHandle.title},
+   * {@link PluginLivePageHandle.canGoBack}, and {@link PluginLivePageHandle.canGoForward}.
+   */
+  reload(): Promise<void>;
+
+  /**
+   * Loads a URL in this tab and waits for load.
+   *
+   * Updates {@link PluginLivePageHandle.url}, {@link PluginLivePageHandle.title},
+   * {@link PluginLivePageHandle.canGoBack}, and {@link PluginLivePageHandle.canGoForward}.
+   *
+   * @param url - Absolute http(s) or about:blank URL.
+   */
+  navigate(url: string): Promise<void>;
 
   /**
    * Captures the visible viewport as PNG and writes it under an allowlisted path.
@@ -3097,6 +3601,17 @@ export interface PluginUi {
    * @returns A {@link Disposable} that unregisters the action when disposed.
    */
   registerRequestToolbarAction(action: RequestToolbarActionContribution): Disposable;
+
+  /**
+   * Adds a RoundButton to the embedded browser chrome bar.
+   *
+   * Manifest: `contributes.livePageChromeActions` plus a matching `contributes.commands` entry.
+   * The command handler receives a {@link LivePageChromeActionContext} argument.
+   *
+   * @param action - Live-page chrome action contribution.
+   * @returns A {@link Disposable} that unregisters the action when disposed.
+   */
+  registerLivePageChromeAction(action: LivePageChromeActionContribution): Disposable;
 
   /**
    * Adds an icon button to each script row in the pre/post request script editor.
@@ -4708,6 +5223,11 @@ export interface PluginContext {
   liveServers: PluginLiveServers;
 
   /**
+   * Saved live page (website) CRUD. Requires the `live-pages` permission.
+   */
+  livePages: PluginLivePages;
+
+  /**
    * AI chat pointer registration and copy-to-chat. Requires the `ai` permission.
    */
   ai: PluginAi;
@@ -4716,14 +5236,14 @@ export interface PluginContext {
    * Opens or reuses an embedded browser tab and returns a control handle.
    *
    * Requires the `browser` permission (granted at install/enable). Same call shape
-   * as request-script `hc.webpage`: omit `url` to bind the active browser tab;
+   * as request-script `hc.livePage`: omit `url` to bind the active browser tab;
    * `{ reuse }` defaults to true; new tabs wait for load.
    *
    * @param url - Optional URL to open or reuse.
    * @param options - Optional `{ reuse }` (default true).
    * @returns Handle with `focus` / `close` and `dom` helpers.
    */
-  webpage(url?: string, options?: { reuse?: boolean }): Promise<PluginWebpageHandle>;
+  livePage(url?: string, options?: { reuse?: boolean }): Promise<PluginLivePageHandle>;
 
   /**
    * Host-managed disposable list used for registration cleanup on deactivation.

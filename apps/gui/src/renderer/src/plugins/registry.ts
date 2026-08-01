@@ -9,6 +9,7 @@ import type {
   RegisteredPluginTheme,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredLivePageChromeAction,
   RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
@@ -46,6 +47,7 @@ interface MutableRegistryState {
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
+  livePageChromeActions: RegisteredLivePageChromeAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
   workflowToolbarActions: RegisteredWorkflowToolbarAction[];
   workflowActionBlocks: RegisteredWorkflowActionBlock[];
@@ -69,12 +71,29 @@ interface CachedRegistrySnapshot {
   statusBarItems: RegisteredStatusBarItem[];
   menuItems: RegisteredMenuItem[];
   requestToolbarActions: RegisteredRequestToolbarAction[];
+  livePageChromeActions: RegisteredLivePageChromeAction[];
   scriptEditorActions: RegisteredScriptEditorAction[];
   workflowToolbarActions: RegisteredWorkflowToolbarAction[];
   workflowActionBlocks: RegisteredWorkflowActionBlock[];
   contextMenuItems: RegisteredContextMenuItem[];
   actions: RegisteredAction[];
 }
+
+/**
+ * Next monotonic activation sequence for live-page chrome actions.
+ * Incremented when a plugin first registers a chrome action during activation.
+ */
+let nextLivePageChromeActivationSeq = 1;
+
+/**
+ * Per-plugin activation sequence for live-page chrome actions (cleared on deactivate).
+ */
+const livePageChromeActivationSeqByPlugin = new Map<string, number>();
+
+/**
+ * Next registration index within each plugin for live-page chrome actions.
+ */
+const livePageChromeNextRegistrationIndexByPlugin = new Map<string, number>();
 
 const state: MutableRegistryState = {
   settingsSections: [],
@@ -92,6 +111,7 @@ const state: MutableRegistryState = {
   statusBarItems: [],
   menuItems: [],
   requestToolbarActions: [],
+  livePageChromeActions: [],
   scriptEditorActions: [],
   workflowToolbarActions: [],
   workflowActionBlocks: [],
@@ -123,6 +143,7 @@ function emptySnapshot(): CachedRegistrySnapshot {
     statusBarItems: [],
     menuItems: [],
     requestToolbarActions: [],
+    livePageChromeActions: [],
     scriptEditorActions: [],
     workflowToolbarActions: [],
     workflowActionBlocks: [],
@@ -144,6 +165,23 @@ function sortByOrderThenTitle<T extends { order?: number; title: string }>(entri
       return leftOrder - rightOrder;
     }
     return left.title.localeCompare(right.title);
+  });
+}
+
+/**
+ * Sorts live-page chrome actions by plugin activation order, then registration index.
+ *
+ * @param entries - Registered live-page chrome actions.
+ * @returns A new array sorted left-to-right for the browser chrome bar.
+ */
+function sortLivePageChromeActions(
+  entries: RegisteredLivePageChromeAction[]
+): RegisteredLivePageChromeAction[] {
+  return [...entries].sort((left, right) => {
+    if (left.activationSeq !== right.activationSeq) {
+      return left.activationSeq - right.activationSeq;
+    }
+    return left.registrationIndex - right.registrationIndex;
   });
 }
 
@@ -236,6 +274,7 @@ function rebuildCachedSnapshots(): void {
     requestToolbarActions: sortByOrderThenTitle(
       state.requestToolbarActions.map((entry) => ({ ...entry, title: entry.title }))
     ),
+    livePageChromeActions: sortLivePageChromeActions(state.livePageChromeActions),
     scriptEditorActions: sortByOrderThenTitle(
       state.scriptEditorActions.map((entry) => ({ ...entry, title: entry.title }))
     ),
@@ -645,6 +684,52 @@ export function registerRequestToolbarActionContribution(
 }
 
 /**
+ * Registers a live-page chrome bar action contribution.
+ *
+ * Stamps {@link RegisteredLivePageChromeAction.activationSeq} on the plugin's first
+ * chrome-action registration during the current activation, and
+ * {@link RegisteredLivePageChromeAction.registrationIndex} for ordering within that plugin.
+ * Re-registering the same id keeps the previous registration index.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param action - Chrome action contribution metadata (without host ordering stamps).
+ */
+export function registerLivePageChromeActionContribution(
+  pluginId: string,
+  action: Omit<RegisteredLivePageChromeAction, 'pluginId' | 'activationSeq' | 'registrationIndex'>
+): Disposable {
+  let activationSeq = livePageChromeActivationSeqByPlugin.get(pluginId);
+  if (activationSeq === undefined) {
+    activationSeq = nextLivePageChromeActivationSeq;
+    nextLivePageChromeActivationSeq += 1;
+    livePageChromeActivationSeqByPlugin.set(pluginId, activationSeq);
+  }
+
+  const existing = state.livePageChromeActions.find(
+    (item) => item.pluginId === pluginId && item.id === action.id
+  );
+  let registrationIndex = existing?.registrationIndex;
+  if (registrationIndex === undefined) {
+    registrationIndex = livePageChromeNextRegistrationIndexByPlugin.get(pluginId) ?? 0;
+    livePageChromeNextRegistrationIndexByPlugin.set(pluginId, registrationIndex + 1);
+  }
+
+  const entry: RegisteredLivePageChromeAction = {
+    pluginId,
+    ...action,
+    activationSeq,
+    registrationIndex
+  };
+  return registerContribution(
+    state.livePageChromeActions,
+    pluginId,
+    action.id,
+    entry,
+    (item) => item.pluginId === pluginId && item.id === action.id
+  );
+}
+
+/**
  * Registers a script editor row action contribution.
  *
  * @param pluginId - Plugin manifest id.
@@ -771,6 +856,7 @@ export function unregisterContribution(
     | 'statusBarItems'
     | 'menuItems'
     | 'requestToolbarActions'
+    | 'livePageChromeActions'
     | 'scriptEditorActions'
     | 'workflowToolbarActions'
     | 'workflowActionBlocks'
@@ -872,6 +958,12 @@ export function unregisterContribution(
         (item) => item.pluginId === pluginId && item.id === contributionId
       );
       break;
+    case 'livePageChromeActions':
+      filter(
+        state.livePageChromeActions,
+        (item) => item.pluginId === pluginId && item.id === contributionId
+      );
+      break;
     case 'scriptEditorActions':
       filter(
         state.scriptEditorActions,
@@ -939,6 +1031,11 @@ export function clearPluginContributions(pluginId: string): void {
   state.requestToolbarActions = state.requestToolbarActions.filter(
     (item) => item.pluginId !== pluginId
   );
+  state.livePageChromeActions = state.livePageChromeActions.filter(
+    (item) => item.pluginId !== pluginId
+  );
+  livePageChromeActivationSeqByPlugin.delete(pluginId);
+  livePageChromeNextRegistrationIndexByPlugin.delete(pluginId);
   state.scriptEditorActions = state.scriptEditorActions.filter(
     (item) => item.pluginId !== pluginId
   );
@@ -980,6 +1077,8 @@ export const getRegisteredStatusBarItems = (): RegisteredStatusBarItem[] =>
 export const getRegisteredMenuItems = (): RegisteredMenuItem[] => cachedSnapshot.menuItems;
 export const getRegisteredRequestToolbarActions = (): RegisteredRequestToolbarAction[] =>
   cachedSnapshot.requestToolbarActions;
+export const getRegisteredLivePageChromeActions = (): RegisteredLivePageChromeAction[] =>
+  cachedSnapshot.livePageChromeActions;
 export const getRegisteredScriptEditorActions = (): RegisteredScriptEditorAction[] =>
   cachedSnapshot.scriptEditorActions;
 export const getRegisteredWorkflowToolbarActions = (): RegisteredWorkflowToolbarAction[] =>

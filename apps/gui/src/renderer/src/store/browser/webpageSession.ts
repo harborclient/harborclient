@@ -336,6 +336,140 @@ export async function screenshotWebpage(
 }
 
 /**
+ * Waits for the guest to finish loading and returns refreshed tab metadata.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @param tabId - Browser tab id.
+ * @returns Tab info after load, or an error when the tab is missing or wait fails.
+ */
+async function waitForWebpageNavigation(
+  ctx: WebpageSessionContext,
+  tabId: string
+): Promise<WebpageTabInfo | WebpageSessionError> {
+  try {
+    const navigation = await window.api.browserWaitForLoad(tabId);
+    const tab = findBrowserTabById(ctx.getState(), tabId);
+    if (!tab) {
+      return { error: 'Browser tab was closed before load completed.' };
+    }
+    return formatWebpageTabInfo(tab, {
+      url: navigation.url,
+      title: navigation.title,
+      canGoBack: navigation.canGoBack,
+      canGoForward: navigation.canGoForward
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Navigation wait failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Navigates history back one entry and waits for load.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @param tabId - Browser tab id.
+ * @returns Refreshed tab info, or an error.
+ */
+export async function goBackWebpageTab(
+  ctx: WebpageSessionContext,
+  tabId: string
+): Promise<WebpageTabInfo | WebpageSessionError> {
+  if (!findBrowserTabById(ctx.getState(), tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    await window.api.browserGoBack(tabId);
+    return waitForWebpageNavigation(ctx, tabId);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Go back failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Navigates history forward one entry and waits for load.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @param tabId - Browser tab id.
+ * @returns Refreshed tab info, or an error.
+ */
+export async function goForwardWebpageTab(
+  ctx: WebpageSessionContext,
+  tabId: string
+): Promise<WebpageTabInfo | WebpageSessionError> {
+  if (!findBrowserTabById(ctx.getState(), tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    await window.api.browserGoForward(tabId);
+    return waitForWebpageNavigation(ctx, tabId);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Go forward failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Reloads the current page and waits for load.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @param tabId - Browser tab id.
+ * @returns Refreshed tab info, or an error.
+ */
+export async function reloadWebpageTab(
+  ctx: WebpageSessionContext,
+  tabId: string
+): Promise<WebpageTabInfo | WebpageSessionError> {
+  if (!findBrowserTabById(ctx.getState(), tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    await window.api.browserReload(tabId);
+    return waitForWebpageNavigation(ctx, tabId);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Reload failed.';
+    return { error: message };
+  }
+}
+
+/**
+ * Loads a URL in an open browser tab and waits for load.
+ *
+ * @param ctx - Redux getState and dispatch.
+ * @param tabId - Browser tab id.
+ * @param url - Absolute http(s) or about:blank URL.
+ * @returns Refreshed tab info, or an error.
+ */
+export async function navigateWebpageTab(
+  ctx: WebpageSessionContext,
+  tabId: string,
+  url: string
+): Promise<WebpageTabInfo | WebpageSessionError> {
+  if (!findBrowserTabById(ctx.getState(), tabId)) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  const normalized = normalizeBrowserAddressInput(url);
+  if (!normalized) {
+    return {
+      error: 'Invalid or disallowed URL. Use http, https, or about:blank.'
+    };
+  }
+
+  try {
+    await window.api.browserLoadURL(tabId, normalized);
+    return waitForWebpageNavigation(ctx, tabId);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Navigate failed.';
+    return { error: message };
+  }
+}
+
+/**
  * Returns whether a session result is an error object.
  *
  * @param result - Session helper return value.

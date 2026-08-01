@@ -46,9 +46,9 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(prompt, options?) => Promise<string | null> — AI one-shot ask'
   },
   {
-    label: 'webpage',
+    label: 'livePage',
     type: 'function',
-    detail: '(url?, options?) => Promise<WebpageHandle> — requires Settings → General'
+    detail: '(url?, options?) => Promise<LivePageHandle> — requires Settings → General'
   },
   {
     label: 'sleep',

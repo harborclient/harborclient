@@ -271,9 +271,9 @@ interface HcSendRequestResponse {
 }
 
 /**
- * Live DOM helpers on a webpage handle from hc.webpage.
+ * Live DOM helpers on a live-page handle from hc.livePage.
  */
-interface HcWebpageDom {
+interface HcLivePageDom {
   /**
    * Queries the live page DOM with a CSS selector.
    */
@@ -299,15 +299,19 @@ interface HcWebpageDom {
 }
 
 /**
- * Handle returned by hc.webpage for an embedded browser tab.
+ * Handle returned by hc.livePage for an embedded browser tab.
  */
-interface HcWebpageHandle {
+interface HcLivePageHandle {
   readonly tabId: string;
-  readonly url: string;
-  readonly title: string;
-  readonly canGoBack: boolean;
-  readonly canGoForward: boolean;
-  readonly dom: HcWebpageDom;
+  /** Current page URL. Updated after navigate / goBack / goForward / reload. */
+  url: string;
+  /** Document title. Updated after navigate / goBack / goForward / reload. */
+  title: string;
+  /** Whether history can go back. Updated after navigation helpers. */
+  canGoBack: boolean;
+  /** Whether history can go forward. Updated after navigation helpers. */
+  canGoForward: boolean;
+  readonly dom: HcLivePageDom;
   /**
    * Focuses this browser tab in the tab bar.
    */
@@ -316,6 +320,24 @@ interface HcWebpageHandle {
    * Closes this browser tab. Returns false when the user cancels a leave prompt.
    */
   close(): Promise<boolean>;
+  /**
+   * Navigates history back one entry and waits for load. Updates url/title/history flags.
+   */
+  goBack(): Promise<void>;
+  /**
+   * Navigates history forward one entry and waits for load. Updates url/title/history flags.
+   */
+  goForward(): Promise<void>;
+  /**
+   * Reloads the current page and waits for load. Updates url/title/history flags.
+   */
+  reload(): Promise<void>;
+  /**
+   * Loads a URL in this tab and waits for load. Updates url/title/history flags.
+   *
+   * @param url - Absolute http(s) or about:blank URL.
+   */
+  navigate(url: string): Promise<void>;
   /**
    * Captures the visible viewport as PNG and writes it under the script file access root.
    *
@@ -465,13 +487,13 @@ interface HcScriptApi {
   ask(prompt: string, options?: HcAskOptions): Promise<string | null>;
   /**
    * Opens or reuses an embedded browser tab and returns a control handle.
-   * Requires Settings → General → Allow script webpage access.
+   * Requires Settings → General → Allow script live page access.
    *
    * @param url - Optional URL to open or reuse; omit to bind the active browser tab.
    * @param options - Optional `{ reuse }` (default true).
-   * @throws When webpage access is disabled or unavailable in this context.
+   * @throws When live-page access is disabled or unavailable in this context.
    */
-  webpage(url?: string, options?: { reuse?: boolean }): Promise<HcWebpageHandle>;
+  livePage(url?: string, options?: { reuse?: boolean }): Promise<HcLivePageHandle>;
   /**
    * Resolves after the given delay. Use for pacing between script steps.
    *

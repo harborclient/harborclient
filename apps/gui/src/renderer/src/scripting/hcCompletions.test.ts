@@ -134,6 +134,7 @@ describe('createHcCompletionSource', () => {
       'fs',
       'globals',
       'info',
+      'livePage',
       'parse',
       'request',
       'send',
@@ -141,8 +142,7 @@ describe('createHcCompletionSource', () => {
       'sendRequest',
       'sleep',
       'stringify',
-      'test',
-      'webpage'
+      'test'
     ]);
   });
 
@@ -161,6 +161,7 @@ describe('createHcCompletionSource', () => {
       'fs',
       'globals',
       'info',
+      'livePage',
       'parse',
       'request',
       'response',
@@ -169,8 +170,7 @@ describe('createHcCompletionSource', () => {
       'sendRequest',
       'sleep',
       'stringify',
-      'test',
-      'webpage'
+      'test'
     ]);
   });
 

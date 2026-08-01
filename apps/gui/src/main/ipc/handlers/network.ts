@@ -4,7 +4,7 @@ import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { executeHttpSend } from '#/main/network/executeHttpSend';
 import { runScript } from '#/main/scripting/scripts';
 import { initScriptRunnerHost } from '#/main/scripting/scriptRunnerHost';
-import { getScriptWebpageBridge } from '#/main/scripting/scriptWebpageBridge';
+import { getScriptLivePageBridge } from '#/main/scripting/scriptLivePageBridge';
 import { ipcMain } from 'electron';
 
 /**
@@ -87,9 +87,9 @@ export function registerNetworkHandlers(cookieJar: ICookieJar): void {
   handle('scripts:run', ipcArgSchemas.scriptRun, (_event, input) => runScript(input));
 
   ipcMain.on(
-    'scripts:webpageComplete',
+    'scripts:livePageComplete',
     (_event, message: { requestId: number; ok: boolean; result?: unknown; error?: string }) => {
-      getScriptWebpageBridge().complete(message);
+      getScriptLivePageBridge().complete(message);
     }
   );
 }

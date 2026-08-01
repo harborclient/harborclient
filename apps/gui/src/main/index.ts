@@ -68,7 +68,7 @@ import { setPluginMcpRegistryMainWindow } from '#/main/plugins/pluginMcpRegistry
 import { getBrowserViewManager } from '#/main/browser/BrowserViewManager';
 import { bootstrapMcpHost } from '#/main/ipc/handlers/mcp';
 import { disposeMcpHost, getMcpToolBridge } from './mcp';
-import { getScriptWebpageBridge } from './scripting/scriptWebpageBridge';
+import { getScriptLivePageBridge } from './scripting/scriptLivePageBridge';
 import { killAllTerminals, killTerminalsForWebContents } from '#/main/terminal/terminalHost';
 import { stopAllLiveServers } from '#/main/liveServer/liveServerHost';
 import {
@@ -970,7 +970,7 @@ app.whenReady().then(async () => {
     pluginUiBroker.setMainWindow(() => mainWindow);
     setPluginMcpRegistryMainWindow(() => mainWindow);
     getMcpToolBridge().setMainWindow(() => mainWindow);
-    getScriptWebpageBridge().setMainWindow(() => mainWindow);
+    getScriptLivePageBridge().setMainWindow(() => mainWindow);
     pluginUiBroker.setThemeGetter(async () => {
       const override = getStartupThemeOverride();
       if (override != null) {

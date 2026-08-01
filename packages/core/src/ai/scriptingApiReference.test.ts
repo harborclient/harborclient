@@ -12,8 +12,8 @@ describe('scriptingApiReference', () => {
     expect(text).toContain('pm.test');
     expect(text).toContain('hc.response');
     expect(text).toContain('hc.ask');
-    expect(text).toContain('hc.webpage');
-    expect(text).toContain('Allow script webpage access');
+    expect(text).toContain('hc.livePage');
+    expect(text).toContain('Allow script live page access');
     expect(text).toContain('page.screenshot');
     expect(text).toContain('fullPage');
     expect(text).toContain('hc.sleep');

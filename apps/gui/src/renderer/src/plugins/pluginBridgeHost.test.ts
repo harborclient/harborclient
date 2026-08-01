@@ -14,9 +14,11 @@ import * as hostLibraryCommands from './hostLibraryCommands';
 import * as hostLibraryMutations from './hostLibraryMutations';
 import * as hostEntityContextMenu from './hostEntityContextMenu';
 import * as hostLiveServerCommands from './hostLiveServerCommands';
-import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
+import * as hostLivePageCommands from './hostLivePageCommands';
+import * as scriptLivePageBridge from '#/renderer/src/scripting/scriptLivePageBridge';
 import {
   clearPluginContributions,
+  getRegisteredLivePageChromeActions,
   getRegisteredPluginThemes,
   getRegisteredSidebarRailItems
 } from './registry';
@@ -52,7 +54,7 @@ describe('handlePluginHostBridgeInvoke', () => {
     expect(result).toEqual(sendResult);
   });
 
-  it('routes webpage.* ops through executeScriptWebpageRequest', async () => {
+  it('routes livePage.* ops through executeScriptLivePageRequest', async () => {
     const opened = {
       tabId: 'browser-9',
       url: 'https://example.test/',
@@ -61,7 +63,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       canGoForward: false
     };
     const execute = vi
-      .spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest')
+      .spyOn(scriptLivePageBridge, 'executeScriptLivePageRequest')
       .mockResolvedValueOnce(opened)
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({
@@ -75,7 +77,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       handlePluginHostBridgeInvoke({
         requestId: 10,
         pluginId: 'com.test.browser',
-        op: 'webpage.open',
+        op: 'livePage.open',
         payload: { url: 'https://example.test', reuse: true }
       })
     ).resolves.toEqual(opened);
@@ -84,7 +86,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       handlePluginHostBridgeInvoke({
         requestId: 11,
         pluginId: 'com.test.browser',
-        op: 'webpage.focus',
+        op: 'livePage.focus',
         payload: { tabId: 'browser-9' }
       })
     ).resolves.toBeUndefined();
@@ -93,7 +95,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       handlePluginHostBridgeInvoke({
         requestId: 12,
         pluginId: 'com.test.browser',
-        op: 'webpage.query',
+        op: 'livePage.query',
         payload: { tabId: 'browser-9', selector: 'h1' }
       })
     ).resolves.toEqual({
@@ -106,7 +108,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       handlePluginHostBridgeInvoke({
         requestId: 13,
         pluginId: 'com.test.browser',
-        op: 'webpage.close',
+        op: 'livePage.close',
         payload: { tabId: 'browser-9' }
       })
     ).resolves.toEqual({ closed: true });
@@ -128,7 +130,7 @@ describe('handlePluginHostBridgeInvoke', () => {
   });
 
   it('throws when a webpage session returns an error object', async () => {
-    vi.spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest').mockResolvedValue({
+    vi.spyOn(scriptLivePageBridge, 'executeScriptLivePageRequest').mockResolvedValue({
       error: 'No active browser tab'
     });
 
@@ -136,7 +138,7 @@ describe('handlePluginHostBridgeInvoke', () => {
       handlePluginHostBridgeInvoke({
         requestId: 14,
         pluginId: 'com.test.browser',
-        op: 'webpage.open',
+        op: 'livePage.open',
         payload: {}
       })
     ).rejects.toThrow('No active browser tab');
@@ -217,6 +219,96 @@ describe('handlePluginHostBridgeInvoke', () => {
         payload: { query: { savedId: 1, limit: 10 } }
       })
     ).resolves.toEqual([]);
+  });
+
+  it('routes livePages.* ops through host live-page helpers', async () => {
+    const saved = [
+      {
+        id: 1,
+        uuid: 'lp-1',
+        name: 'Example',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/',
+        faviconDataUrl: null,
+        scripts: [],
+        preRequestScripts: [],
+        postRequestScripts: [],
+        variables: [],
+        headers: [],
+        userAgent: '',
+        auth: {
+          type: 'none' as const,
+          basic: { username: '', password: '' },
+          bearer: { token: '' },
+          oauth2: {
+            tokenUrl: '',
+            clientId: '',
+            clientSecret: '',
+            scope: '',
+            audience: '',
+            clientAuth: 'body' as const
+          }
+        },
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ];
+    vi.spyOn(hostLivePageCommands, 'listLivePagesForPlugin').mockResolvedValue(saved);
+    vi.spyOn(hostLivePageCommands, 'getLivePageForPlugin').mockResolvedValue(saved[0]!);
+    vi.spyOn(hostLivePageCommands, 'createLivePageForPlugin').mockResolvedValue(saved[0]!);
+    vi.spyOn(hostLivePageCommands, 'updateLivePageForPlugin').mockResolvedValue(saved[0]!);
+    vi.spyOn(hostLivePageCommands, 'deleteLivePageForPlugin').mockResolvedValue(undefined);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 30,
+        pluginId: 'com.test.live-pages',
+        op: 'livePages.list',
+        payload: {}
+      })
+    ).resolves.toEqual(saved);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 31,
+        pluginId: 'com.test.live-pages',
+        op: 'livePages.get',
+        payload: { idOrUuid: 'lp-1' }
+      })
+    ).resolves.toEqual(saved[0]);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 32,
+        pluginId: 'com.test.live-pages',
+        op: 'livePages.create',
+        payload: {
+          input: {
+            name: 'Example',
+            url: 'https://example.com/',
+            homeUrl: 'https://example.com/'
+          }
+        }
+      })
+    ).resolves.toEqual(saved[0]);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 33,
+        pluginId: 'com.test.live-pages',
+        op: 'livePages.update',
+        payload: { input: saved[0] }
+      })
+    ).resolves.toEqual(saved[0]);
+
+    await expect(
+      handlePluginHostBridgeInvoke({
+        requestId: 34,
+        pluginId: 'com.test.live-pages',
+        op: 'livePages.delete',
+        payload: { id: 1 }
+      })
+    ).resolves.toBeUndefined();
   });
 
   it('routes host.listCollections and host.listLibraryTree to library helpers', async () => {
@@ -474,5 +566,33 @@ describe('applyContributionMessage', () => {
     ]);
 
     clearPluginContributions('com.example.rail');
+  });
+
+  it('registers live-page chrome actions from agent webview contribution messages', () => {
+    applyContributionMessage({
+      pluginId: 'com.example.chrome',
+      op: 'registerContribution',
+      kind: 'livePageChromeActions',
+      contribution: {
+        id: 'pageAction',
+        title: 'Page action',
+        command: 'pageAction',
+        icon: 'bolt'
+      }
+    });
+
+    expect(getRegisteredLivePageChromeActions()).toEqual([
+      expect.objectContaining({
+        pluginId: 'com.example.chrome',
+        id: 'pageAction',
+        title: 'Page action',
+        command: 'pageAction',
+        icon: 'bolt',
+        activationSeq: expect.any(Number),
+        registrationIndex: 0
+      })
+    ]);
+
+    clearPluginContributions('com.example.chrome');
   });
 });

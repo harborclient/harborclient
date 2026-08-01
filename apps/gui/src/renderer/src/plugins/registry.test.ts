@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clearPluginContributions,
+  getRegisteredLivePageChromeActions,
   getRegisteredPluginThemes,
   getRegisteredRequestTabs,
   getRegisteredSettingsSections,
@@ -8,6 +9,7 @@ import {
   getRegisteredSidebarRailItems,
   getRegisteredWorkflowActionBlocks,
   getRegisteredWorkflowToolbarActions,
+  registerLivePageChromeActionContribution,
   registerRequestTabContribution,
   registerSettingsSectionContribution,
   registerSidebarPanelContribution,
@@ -158,6 +160,64 @@ describe('plugin registry', () => {
 
     clearPluginContributions('com.example.rail');
     expect(getRegisteredSidebarRailItems()).toHaveLength(0);
+  });
+
+  it('sorts live-page chrome actions by activation order then registration index', () => {
+    registerLivePageChromeActionContribution('com.example.second', {
+      id: 'b-first',
+      title: 'Zebra',
+      command: 'b-first',
+      icon: 'bolt'
+    });
+    registerLivePageChromeActionContribution('com.example.second', {
+      id: 'b-second',
+      title: 'Apple',
+      command: 'b-second'
+    });
+    registerLivePageChromeActionContribution('com.example.first', {
+      id: 'a-only',
+      title: 'Later plugin',
+      command: 'a-only'
+    });
+
+    expect(getRegisteredLivePageChromeActions().map((action) => action.id)).toEqual([
+      'b-first',
+      'b-second',
+      'a-only'
+    ]);
+    expect(getRegisteredLivePageChromeActions()[0]?.activationSeq).toBeLessThan(
+      getRegisteredLivePageChromeActions()[2]?.activationSeq ?? Number.POSITIVE_INFINITY
+    );
+    expect(getRegisteredLivePageChromeActions()[0]?.registrationIndex).toBe(0);
+    expect(getRegisteredLivePageChromeActions()[1]?.registrationIndex).toBe(1);
+
+    unregisterContribution('com.example.second', 'livePageChromeActions', 'b-first');
+    expect(getRegisteredLivePageChromeActions().map((action) => action.id)).toEqual([
+      'b-second',
+      'a-only'
+    ]);
+
+    clearPluginContributions('com.example.second');
+    clearPluginContributions('com.example.first');
+    expect(getRegisteredLivePageChromeActions()).toHaveLength(0);
+
+    registerLivePageChromeActionContribution('com.example.first', {
+      id: 'a-reactivated',
+      title: 'Reactivated first',
+      command: 'a-reactivated'
+    });
+    registerLivePageChromeActionContribution('com.example.second', {
+      id: 'b-reactivated',
+      title: 'Reactivated second',
+      command: 'b-reactivated'
+    });
+    expect(getRegisteredLivePageChromeActions().map((action) => action.id)).toEqual([
+      'a-reactivated',
+      'b-reactivated'
+    ]);
+
+    clearPluginContributions('com.example.first');
+    clearPluginContributions('com.example.second');
   });
 
   it('registers and unregisters workflow toolbar actions and action blocks', () => {

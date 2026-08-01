@@ -15,9 +15,10 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `ipc`              | Register custom IPC handlers via `hc.ipc.handle`                                                                                                          |
 | `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
 | `live-server`      | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                                                                                 |
+| `live-pages`       | Create, update, and delete saved Live Pages (websites) via `hc.livePages`                                                                                 |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
 | `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar via `hc.ai`                                                                        |
-| `browser`          | Open and control embedded browser tabs via `hc.webpage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)     |
+| `browser`          | Open and control embedded browser tabs via `hc.livePage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)    |
 
 Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers only; the host checks permissions and path allowlists on each call.
 
@@ -27,8 +28,12 @@ Declare required permissions in [Manifest](/manifest) under `permissions`.
 
 ### `live-server`
 
-Grants `hc.liveServers` for Harbor Live Server CRUD, start/stop, status, and access logs. This is separate from the `server` permission, which only covers the plugin-owned echo server (`hc.server`). Saved-config updates and deletes do not restart or stop running instances. Start does not open a browser tab; use `hc.webpage` when the `browser` permission is also granted.
+Grants `hc.liveServers` for Harbor Live Server CRUD, start/stop, status, and access logs. This is separate from the `server` permission, which only covers the plugin-owned echo server (`hc.server`). Saved-config updates and deletes do not restart or stop running instances. Start does not open a browser tab; use `hc.livePage` when the `browser` permission is also granted.
+
+### `live-pages`
+
+Grants `hc.livePages` for saved Live Page (website) registry CRUD — list, get, create, update, and delete. Mutations update the sidebar registry only; they do **not** open or bind a browser tab. For tab control use `hc.livePage` with the `browser` permission. This is separate from `live-server` (local static file servers).
 
 ### `browser`
 
-Grants `hc.webpage` for opening and controlling embedded browser tabs (focus, close, DOM query/evaluate/inject, viewport or full-page screenshot). Access is granted when the user installs or enables a plugin that declares `browser` — it is **not** gated by Settings → General → Allow script webpage access (that setting applies only to request scripts). `page.screenshot` also requires `filesystem:write` to save the PNG. Pass `{ fullPage: true }` for a scroll-and-stitch capture.
+Grants `hc.livePage` for opening and controlling embedded browser tabs (focus, close, DOM query/evaluate/inject, viewport or full-page screenshot). Access is granted when the user installs or enables a plugin that declares `browser` — it is **not** gated by Settings → General → Allow script live page access (that setting applies only to request scripts). `page.screenshot` also requires `filesystem:write` to save the PNG. Pass `{ fullPage: true }` for a scroll-and-stitch capture.

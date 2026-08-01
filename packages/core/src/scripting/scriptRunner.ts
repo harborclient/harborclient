@@ -1,7 +1,7 @@
 import 'ses';
 import type { ScriptRunInput, ScriptRunResult, SendRequestInput, SendResult } from '../types';
 import { evaluateScript } from './scriptEvaluator';
-import type { ScriptAskRequest, ScriptWebpageRequest } from './scriptApi';
+import type { ScriptAskRequest, ScriptLivePageRequest } from './scriptApi';
 import type { ScriptFileRequest } from './scriptFileOperations';
 
 // errorTaming 'unsafe' keeps Error.prototype.stack intact. The default 'safe'
@@ -74,18 +74,18 @@ interface AskErrorReply {
   error: string;
 }
 
-interface WebpageSuccessReply {
-  kind: 'webpage-reply';
+interface LivePageSuccessReply {
+  kind: 'livePage-reply';
   runId: number;
-  webpageId: number;
+  livePageId: number;
   ok: true;
   result: unknown;
 }
 
-interface WebpageErrorReply {
-  kind: 'webpage-reply';
+interface LivePageErrorReply {
+  kind: 'livePage-reply';
   runId: number;
-  webpageId: number;
+  livePageId: number;
   ok: false;
   error: string;
 }
@@ -97,8 +97,8 @@ type ParentReply =
   | FileErrorReply
   | AskSuccessReply
   | AskErrorReply
-  | WebpageSuccessReply
-  | WebpageErrorReply;
+  | LivePageSuccessReply
+  | LivePageErrorReply;
 
 interface PendingNetworkCall {
   resolve: (result: SendResult) => void;
@@ -115,7 +115,7 @@ interface PendingAskCall {
   reject: (error: Error) => void;
 }
 
-interface PendingWebpageCall {
+interface PendingLivePageCall {
   resolve: (result: unknown) => void;
   reject: (error: Error) => void;
 }
@@ -150,8 +150,8 @@ const pendingFileCalls = new Map<number, PendingFileCall>();
 let nextAskId = 1;
 const pendingAskCalls = new Map<number, PendingAskCall>();
 
-let nextWebpageId = 1;
-const pendingWebpageCalls = new Map<number, PendingWebpageCall>();
+let nextLivePageId = 1;
+const pendingLivePageCalls = new Map<number, PendingLivePageCall>();
 
 /**
  * Rejects every pending hc.sendRequest promise when the runner shuts down.
@@ -190,15 +190,15 @@ function rejectAllPendingAskCalls(message: string): void {
 }
 
 /**
- * Rejects every pending hc.webpage promise when the runner shuts down.
+ * Rejects every pending hc.livePage promise when the runner shuts down.
  *
  * @param message - Error message applied to each pending webpage call.
  */
-function rejectAllPendingWebpageCalls(message: string): void {
-  for (const pending of pendingWebpageCalls.values()) {
+function rejectAllPendingLivePageCalls(message: string): void {
+  for (const pending of pendingLivePageCalls.values()) {
     pending.reject(new Error(message));
   }
-  pendingWebpageCalls.clear();
+  pendingLivePageCalls.clear();
 }
 
 /**
@@ -265,23 +265,23 @@ function createAskTransport(runId: number): (req: ScriptAskRequest) => Promise<s
 }
 
 /**
- * Builds the hc.webpage transport that bridges to the main process runner host.
+ * Builds the hc.livePage transport that bridges to the main process runner host.
  *
  * @param runId - Correlation id for the active script run message.
- * @returns Async webpage function injected into the script sandbox.
+ * @returns Async live-page function injected into the script sandbox.
  */
-function createWebpageTransport(runId: number): (req: ScriptWebpageRequest) => Promise<unknown> {
+function createLivePageTransport(runId: number): (req: ScriptLivePageRequest) => Promise<unknown> {
   return (req) =>
     new Promise<unknown>((resolve, reject) => {
       const port = utilityProcess.parentPort;
       if (!port) {
-        reject(new Error('Script webpage bridge is unavailable'));
+        reject(new Error('Script live page bridge is unavailable'));
         return;
       }
 
-      const webpageId = nextWebpageId++;
-      pendingWebpageCalls.set(webpageId, { resolve, reject });
-      port.postMessage({ kind: 'webpage', runId, webpageId, req });
+      const livePageId = nextLivePageId++;
+      pendingLivePageCalls.set(livePageId, { resolve, reject });
+      port.postMessage({ kind: 'livePage', runId, livePageId, req });
     });
 }
 
@@ -301,7 +301,7 @@ async function handleRunMessage(message: RunMessage): Promise<void> {
       sendRequest: createNetworkTransport(message.id),
       fileBridge: createFileTransport(message.id),
       ask: createAskTransport(message.id),
-      webpage: createWebpageTransport(message.id)
+      livePage: createLivePageTransport(message.id)
     });
     const reply: SuccessReply = { id: message.id, ok: true, result };
     port.postMessage(reply);
@@ -362,12 +362,12 @@ if (port) {
       return;
     }
 
-    if ('kind' in message && message.kind === 'webpage-reply') {
-      const pending = pendingWebpageCalls.get(message.webpageId);
+    if ('kind' in message && message.kind === 'livePage-reply') {
+      const pending = pendingLivePageCalls.get(message.livePageId);
       if (!pending) {
         return;
       }
-      pendingWebpageCalls.delete(message.webpageId);
+      pendingLivePageCalls.delete(message.livePageId);
       if (message.ok) {
         pending.resolve(message.result);
       } else {
@@ -384,5 +384,5 @@ process.on('exit', () => {
   rejectAllPendingNetworkCalls('Script runner exited');
   rejectAllPendingFileCalls('Script runner exited');
   rejectAllPendingAskCalls('Script runner exited');
-  rejectAllPendingWebpageCalls('Script runner exited');
+  rejectAllPendingLivePageCalls('Script runner exited');
 });

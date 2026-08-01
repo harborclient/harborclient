@@ -10,7 +10,7 @@ import {
 import { SettingField } from '../components/SettingField';
 
 /**
- * Script webpage permission field backed by the shared settings draft.
+ * Script live page permission field backed by the shared settings draft.
  */
 export function GeneralAllowScriptWebpageField(): JSX.Element {
   const dispatch = useAppDispatch();

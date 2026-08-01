@@ -450,6 +450,35 @@ hc.ui.registerRequestToolbarAction({
 });
 ```
 
+## hc.ui.registerLivePageChromeAction(action)
+
+**Signature:** `(action: LivePageChromeActionContribution) => Disposable`
+
+**Manifest:** `contributes.livePageChromeActions` plus a matching `contributes.commands` entry
+
+| Parameter | Type     | Description                                                 |
+| --------- | -------- | ----------------------------------------------------------- |
+| `id`      | `string` | Action id                                                   |
+| `title`   | `string` | Button accessible name / tooltip                            |
+| `command` | `string` | Command id to run on click                                  |
+| `icon`    | `string` | Optional curated icon name (host resolves; puzzle fallback) |
+
+Adds a RoundButton to the embedded browser chrome bar between Downloads and Ask AI. Buttons sort by **plugin activation order**, then registration order within that plugin — there is no `order` field.
+
+The command handler receives a single {@link LivePageChromeActionContext} argument with `tabId`, `url`, `title`, and optional `websiteId`.
+
+```typescript
+hc.commands.register('myPlugin.pageAction', (context: LivePageChromeActionContext) => {
+  hc.ui.showToast(`Page: ${context.url}`);
+});
+hc.ui.registerLivePageChromeAction({
+  id: 'myPlugin.pageAction',
+  title: 'Page action',
+  command: 'myPlugin.pageAction',
+  icon: 'bolt'
+});
+```
+
 ## hc.ui.registerScriptEditorAction(action)
 
 **Signature:** `(action: ScriptEditorActionContribution) => Disposable`

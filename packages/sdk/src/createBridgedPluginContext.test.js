@@ -274,7 +274,72 @@ describe('createBridgedPluginContext ai', () => {
   });
 });
 
-describe('createBridgedPluginContext webpage', () => {
+describe('createBridgedPluginContext livePages', () => {
+  it('throws when the plugin lacks the live-pages permission', async () => {
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['ui'])
+    });
+
+    await expect(hc.livePages.list()).rejects.toThrow(/lacks permission: live-pages/);
+  });
+
+  it('bridges livePages list/get/create/update/delete ops', async () => {
+    const page = {
+      id: 1,
+      uuid: 'lp-1',
+      name: 'Example',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/'
+    };
+    bridgeInvoke
+      .mockResolvedValueOnce([page])
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce({ ...page, name: 'Updated' })
+      .mockResolvedValueOnce(undefined);
+
+    const hc = createBridgedPluginContext({
+      pluginId: 'com.example.test',
+      mode: 'agent',
+      react: {},
+      manifest: createManifest(['live-pages'])
+    });
+
+    await expect(hc.livePages.list()).resolves.toEqual([page]);
+    await expect(hc.livePages.get('lp-1')).resolves.toEqual(page);
+    await expect(
+      hc.livePages.create({
+        name: 'Example',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    ).resolves.toEqual(page);
+    await expect(hc.livePages.update({ ...page, name: 'Updated' })).resolves.toEqual({
+      ...page,
+      name: 'Updated'
+    });
+    await expect(hc.livePages.delete(1)).resolves.toBeUndefined();
+
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(1, 'livePages.list');
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(2, 'livePages.get', { idOrUuid: 'lp-1' });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(3, 'livePages.create', {
+      input: {
+        name: 'Example',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      }
+    });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(4, 'livePages.update', {
+      input: { ...page, name: 'Updated' }
+    });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(5, 'livePages.delete', { id: 1 });
+  });
+});
+
+describe('createBridgedPluginContext livePage', () => {
   it('throws when the plugin lacks the browser permission', async () => {
     const hc = createBridgedPluginContext({
       pluginId: 'com.example.test',
@@ -283,7 +348,7 @@ describe('createBridgedPluginContext webpage', () => {
       manifest: createManifest(['ui'])
     });
 
-    await expect(hc.webpage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
+    await expect(hc.livePage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
   });
 
   it('opens a page and bridges focus, query, and close ops', async () => {
@@ -310,7 +375,7 @@ describe('createBridgedPluginContext webpage', () => {
       manifest: createManifest(['browser'])
     });
 
-    const page = await hc.webpage('https://example.com');
+    const page = await hc.livePage('https://example.com');
     expect(page.tabId).toBe('browser-2');
     await page.focus();
     await expect(page.dom.query('h1')).resolves.toEqual({
@@ -320,18 +385,18 @@ describe('createBridgedPluginContext webpage', () => {
     });
     await expect(page.close()).resolves.toBe(true);
 
-    expect(bridgeInvoke).toHaveBeenNthCalledWith(1, 'webpage.open', {
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(1, 'livePage.open', {
       url: 'https://example.com',
       reuse: undefined
     });
-    expect(bridgeInvoke).toHaveBeenNthCalledWith(2, 'webpage.focus', { tabId: 'browser-2' });
-    expect(bridgeInvoke).toHaveBeenNthCalledWith(3, 'webpage.query', {
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(2, 'livePage.focus', { tabId: 'browser-2' });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(3, 'livePage.query', {
       tabId: 'browser-2',
       selector: 'h1',
       all: undefined,
       maxElements: undefined
     });
-    expect(bridgeInvoke).toHaveBeenNthCalledWith(4, 'webpage.close', { tabId: 'browser-2' });
+    expect(bridgeInvoke).toHaveBeenNthCalledWith(4, 'livePage.close', { tabId: 'browser-2' });
   });
 });
 

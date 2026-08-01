@@ -5,9 +5,9 @@ import {
   registerContributionHeaderActions
 } from './contributionRegistry.js';
 import { bridgeInvoke, bridgeOn } from './hcBridge.js';
+import { openLivePage } from './livePageHandle.js';
 import { createPluginDatabaseApi } from './pluginDatabaseApi.js';
 import { setHostReact } from './reactHost.js';
-import { openWebpage } from './webpageHandle.js';
 
 /** @type {Map<string, Set<(...args: unknown[]) => void | Promise<void>>>} */
 const commandHandlers = new Map();
@@ -354,7 +354,7 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   const assertAi = () => assertPermission('ai');
 
   /**
-   * Asserts browser permission for embedded webpage control.
+   * Asserts browser permission for embedded live page control.
    */
   const assertBrowser = () => assertPermission('browser');
 
@@ -364,43 +364,56 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   const assertLiveServer = () => assertPermission('live-server');
 
   /**
-   * Invokes a webpage session op on the host renderer via the plugin bridge.
+   * Asserts live-pages permission for saved live page (website) APIs.
+   */
+  const assertLivePages = () => assertPermission('live-pages');
+
+  /**
+   * Invokes a livePage session op on the host renderer via the plugin bridge.
    *
-   * @param {Record<string, unknown>} req - ScriptWebpageRequest-shaped payload.
+   * @param {Record<string, unknown>} req - ScriptLivePageRequest-shaped payload.
    * @returns {Promise<unknown>} Host session result.
    */
-  const callWebpage = async (req) => {
+  const callLivePage = async (req) => {
     const op = String(req.op ?? '');
     switch (op) {
       case 'open':
-        return bridgeInvoke('webpage.open', { url: req.url, reuse: req.reuse });
+        return bridgeInvoke('livePage.open', { url: req.url, reuse: req.reuse });
       case 'focus':
-        return bridgeInvoke('webpage.focus', { tabId: req.tabId });
+        return bridgeInvoke('livePage.focus', { tabId: req.tabId });
       case 'close':
-        return bridgeInvoke('webpage.close', { tabId: req.tabId });
+        return bridgeInvoke('livePage.close', { tabId: req.tabId });
       case 'query':
-        return bridgeInvoke('webpage.query', {
+        return bridgeInvoke('livePage.query', {
           tabId: req.tabId,
           selector: req.selector,
           all: req.all,
           maxElements: req.maxElements
         });
       case 'evaluate':
-        return bridgeInvoke('webpage.evaluate', {
+        return bridgeInvoke('livePage.evaluate', {
           tabId: req.tabId,
           expression: req.expression
         });
       case 'injectScript':
-        return bridgeInvoke('webpage.injectScript', { tabId: req.tabId, source: req.source });
+        return bridgeInvoke('livePage.injectScript', { tabId: req.tabId, source: req.source });
       case 'injectStylesheet':
-        return bridgeInvoke('webpage.injectStylesheet', { tabId: req.tabId, css: req.css });
+        return bridgeInvoke('livePage.injectStylesheet', { tabId: req.tabId, css: req.css });
       case 'screenshot':
-        return bridgeInvoke('webpage.screenshot', {
+        return bridgeInvoke('livePage.screenshot', {
           tabId: req.tabId,
           fullPage: req.fullPage === true
         });
+      case 'goBack':
+        return bridgeInvoke('livePage.goBack', { tabId: req.tabId });
+      case 'goForward':
+        return bridgeInvoke('livePage.goForward', { tabId: req.tabId });
+      case 'reload':
+        return bridgeInvoke('livePage.reload', { tabId: req.tabId });
+      case 'navigate':
+        return bridgeInvoke('livePage.navigate', { tabId: req.tabId, url: req.url });
       default:
-        throw new Error(`Unsupported webpage bridge op: ${op}`);
+        throw new Error(`Unsupported livePage bridge op: ${op}`);
     }
   };
 
@@ -856,6 +869,28 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         return track(() => {
           void bridgeInvoke('unregisterContribution', {
             kind: 'requestToolbarActions',
+            contributionId: action.id
+          });
+        });
+      },
+      registerLivePageChromeAction: (action) => {
+        assertManifestContribution('livePageChromeActions', action.id);
+        if (!isAgent) {
+          return noopDisposable();
+        }
+        void bridgeInvoke('registerContribution', {
+          kind: 'livePageChromeActions',
+          contribution: {
+            pluginId,
+            id: action.id,
+            title: action.title,
+            command: action.command,
+            icon: action.icon
+          }
+        });
+        return track(() => {
+          void bridgeInvoke('unregisterContribution', {
+            kind: 'livePageChromeActions',
             contributionId: action.id
           });
         });
@@ -1341,6 +1376,28 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         });
       }
     },
+    livePages: {
+      list: async () => {
+        assertLivePages();
+        return bridgeInvoke('livePages.list');
+      },
+      get: async (idOrUuid) => {
+        assertLivePages();
+        return bridgeInvoke('livePages.get', { idOrUuid });
+      },
+      create: async (input) => {
+        assertLivePages();
+        return bridgeInvoke('livePages.create', { input });
+      },
+      update: async (input) => {
+        assertLivePages();
+        return bridgeInvoke('livePages.update', { input });
+      },
+      delete: async (id) => {
+        assertLivePages();
+        await bridgeInvoke('livePages.delete', { id });
+      }
+    },
     ai: {
       registerChatPointer: (config) => {
         assertAi();
@@ -1375,13 +1432,13 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
     /**
      * Opens or reuses an embedded browser tab and returns a control handle.
      *
-     * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+     * Requires the `browser` permission. Same semantics as request-script `hc.livePage`.
      *
      * @param {string} [url] - Optional URL; omit to bind the active browser tab.
      * @param {{ reuse?: boolean }} [options] - Optional `{ reuse }` (default true).
-     * @returns {Promise<import('../types').PluginWebpageHandle>} Webpage handle.
+     * @returns {Promise<import('../types').PluginLivePageHandle>} Webpage handle.
      */
-    webpage: async (url, options) => {
+    livePage: async (url, options) => {
       assertBrowser();
       /**
        * Writes screenshot PNG bytes via the plugin filesystem bridge.
@@ -1394,11 +1451,11 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         assertPermission('filesystem:write');
         const result = await bridgeInvoke('fs.writeBytes', { path, base64: pngBase64 });
         if (typeof result !== 'string' || !result.trim()) {
-          throw new Error('hc.webpage().screenshot failed to resolve write path');
+          throw new Error('hc.livePage().screenshot failed to resolve write path');
         }
         return result;
       };
-      return openWebpage(callWebpage, url, options, writeScreenshotBytes);
+      return openLivePage(callLivePage, url, options, writeScreenshotBytes);
     }
   };
 }

@@ -1,7 +1,7 @@
 import type { KeyValue } from '../common';
 import type { ScriptRunInput, ScriptRunResult } from '../script';
 import type { SendRequestInput, SendResult } from '../request';
-import type { ScriptWebpageRequest } from '../../scripting/scriptApi';
+import type { ScriptLivePageRequest } from '../../scripting/scriptApi';
 
 /**
  * IPC methods for http.
@@ -47,21 +47,21 @@ export interface ApiHttp {
   runScript: (input: ScriptRunInput) => Promise<ScriptRunResult>;
 
   /**
-   * Subscribes to script webpage invocations routed from the main-process script host.
+   * Subscribes to script live-page invocations routed from the main-process script host.
    *
-   * @param callback - Handler invoked with the request id and webpage operation.
+   * @param callback - Handler invoked with the request id and live-page operation.
    * @returns Unsubscribe function.
    */
-  onScriptWebpageInvoke: (
-    callback: (message: { requestId: number; req: ScriptWebpageRequest }) => void
+  onScriptLivePageInvoke: (
+    callback: (message: { requestId: number; req: ScriptLivePageRequest }) => void
   ) => () => void;
 
   /**
-   * Completes a script webpage invocation with a result or error.
+   * Completes a script live page invocation with a result or error.
    *
-   * @param message - Completion payload for a prior {@link onScriptWebpageInvoke} request.
+   * @param message - Completion payload for a prior {@link onScriptLivePageInvoke} request.
    */
-  completeScriptWebpage: (message: {
+  completeScriptLivePage: (message: {
     requestId: number;
     ok: boolean;
     result?: unknown;

@@ -24,6 +24,7 @@ import {
   registerMenuItemContribution,
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
+  registerLivePageChromeActionContribution,
   registerScriptEditorActionContribution,
   registerWorkflowActionBlockContribution,
   registerWorkflowToolbarActionContribution,
@@ -86,7 +87,7 @@ import {
   updateCollectionForPlugin
 } from './hostLibraryMutations';
 import { openImageView } from './hostImageCommands';
-import { openPluginWebpage } from './pluginWebpageApi';
+import { openPluginLivePage } from './pluginLivePageApi';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
 import { subscribePluginLibraryChanged } from './pluginLibraryChangedBus';
 import { subscribePluginWorkflowsChanged } from './pluginWorkflowsChangedBus';
@@ -111,6 +112,13 @@ import {
   stopLiveServerForPlugin,
   updateLiveServerForPlugin
 } from './hostLiveServerCommands';
+import {
+  createLivePageForPlugin,
+  deleteLivePageForPlugin,
+  getLivePageForPlugin,
+  listLivePagesForPlugin,
+  updateLivePageForPlugin
+} from './hostLivePageCommands';
 import {
   subscribePluginLiveServerRequestLog,
   subscribePluginLiveServersRunningChanged
@@ -593,6 +601,11 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertManifestContribution(manifest, 'requestToolbarActions', action.id);
         return track(registerRequestToolbarActionContribution(pluginId, action));
       },
+      registerLivePageChromeAction: (action) => {
+        assertUi();
+        assertManifestContribution(manifest, 'livePageChromeActions', action.id);
+        return track(registerLivePageChromeActionContribution(pluginId, action));
+      },
       registerScriptEditorAction: (action) => {
         assertUi();
         assertManifestContribution(manifest, 'scriptEditorActions', action.id);
@@ -973,6 +986,28 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         return track(subscribePluginLiveServerRequestLog(listener));
       }
     },
+    livePages: {
+      list: async () => {
+        assertPermission('live-pages');
+        return listLivePagesForPlugin();
+      },
+      get: async (idOrUuid) => {
+        assertPermission('live-pages');
+        return getLivePageForPlugin(idOrUuid);
+      },
+      create: async (input) => {
+        assertPermission('live-pages');
+        return createLivePageForPlugin(input);
+      },
+      update: async (input) => {
+        assertPermission('live-pages');
+        return updateLivePageForPlugin(input);
+      },
+      delete: async (id) => {
+        assertPermission('live-pages');
+        await deleteLivePageForPlugin(id);
+      }
+    },
     ai: {
       registerChatPointer: () => {
         assertPermission('ai');
@@ -985,13 +1020,13 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
     /**
      * Opens or reuses an embedded browser tab and returns a control handle.
      *
-     * Requires the `browser` permission. Same semantics as request-script `hc.webpage`.
+     * Requires the `browser` permission. Same semantics as request-script `hc.livePage`.
      *
      * @param url - Optional URL; omit to bind the active browser tab.
      * @param options - Optional `{ reuse }` (default true).
-     * @returns Webpage handle with focus/close and `dom` helpers.
+     * @returns Live-page handle with focus/close and `dom` helpers.
      */
-    webpage: async (url, options) => {
+    livePage: async (url, options) => {
       assertPermission('browser');
       /**
        * Writes screenshot PNG bytes via the plugin filesystem IPC.
@@ -1004,7 +1039,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertPermission('filesystem:write');
         return window.api.pluginFsWriteBytes(pluginId, path, pngBase64);
       };
-      return openPluginWebpage(url, options, writeScreenshotBytes);
+      return openPluginLivePage(url, options, writeScreenshotBytes);
     }
   };
 }

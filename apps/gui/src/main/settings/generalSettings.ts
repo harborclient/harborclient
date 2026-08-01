@@ -103,9 +103,9 @@ export function isScriptFileWriteAllowed(): boolean {
 }
 
 /**
- * Returns whether script-initiated browser webpage control is allowed.
+ * Returns whether script-initiated browser live-page control is allowed.
  *
- * @returns True when hc.webpage may open and control embedded browser tabs.
+ * @returns True when hc.livePage may open and control embedded browser tabs.
  */
 export function isScriptWebpageAllowed(): boolean {
   return getGeneralSettings().allowScriptWebpage === true;

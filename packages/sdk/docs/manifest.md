@@ -53,6 +53,7 @@ Every plugin requires a manifest at the root of the `.hcp` archive. The example 
     "collectionSettingsTabs": [{ "id": "myPlugin.collTab", "title": "Plugin" }],
     "footerPanels": [{ "id": "myPlugin.footer", "title": "My Plugin" }],
     "requestToolbarActions": [{ "id": "myPlugin.sendAction", "title": "Run check" }],
+    "livePageChromeActions": [{ "id": "myPlugin.pageAction", "title": "Page action" }],
     "workflowToolbarActions": [{ "id": "myPlugin.annotate", "title": "Annotate" }],
     "workflowActionBlocks": [{ "id": "badge", "title": "Action badge" }],
     "scriptEditorActions": [{ "id": "myPlugin.convert", "title": "Convert" }],
@@ -161,8 +162,9 @@ Common renderer permissions:
 | `ui`          | Register settings, themes, commands, import handlers, or other UI contributions         |
 | `mcp`         | Register remote MCP client servers with `hc.mcp.registerServer` for Harbor's chat agent |
 | `ai`          | Register `@plugin…` chat pointers and copy context into the AI sidebar with `hc.ai`     |
-| `browser`     | Open and control embedded browser tabs via `hc.webpage`                                 |
+| `browser`     | Open and control embedded browser tabs via `hc.livePage`                                |
 | `live-server` | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`               |
+| `live-pages`  | Create, update, and delete saved Live Pages via `hc.livePages`                          |
 | `storage`     | Persist plugin-scoped key-value data with `hc.storage`                                  |
 | `network`     | Send outbound HTTP from the renderer via `hc.host.sendHttpRequest`                      |
 
@@ -213,6 +215,7 @@ The `contributes` block declares where your plugin can appear. Each entry's `id`
 | `collectionSettingsTabs` | `registerCollectionSettingsTab`  | Collection settings segmented tabs                                                                     |
 | `footerPanels`           | `registerFooterPanel`            | Slide-up footer panel                                                                                  |
 | `requestToolbarActions`  | `registerRequestToolbarAction`   | Button near Send in the URL bar                                                                        |
+| `livePageChromeActions`  | `registerLivePageChromeAction`   | RoundButton in browser chrome between Downloads and Ask AI (activation-order sorted)                   |
 | `scriptEditorActions`    | `registerScriptEditorAction`     | Icon button on each pre/post script editor row                                                         |
 | `workflowToolbarActions` | `registerWorkflowToolbarAction`  | Button to the right of Save in the workflow play/edit toolbar                                          |
 | `workflowActionBlocks`   | `registerWorkflowActionBlock`    | HostedSurface inside matching workflow timeline action blocks                                          |

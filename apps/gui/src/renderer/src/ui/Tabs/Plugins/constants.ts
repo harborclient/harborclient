@@ -30,6 +30,7 @@ export const PERMISSION_NAMES: Record<PluginPermission, string> = {
   'ipc': 'IPC',
   'server': 'Server',
   'live-server': 'Live Server',
+  'live-pages': 'Live Pages',
   'mcp': 'MCP',
   'ai': 'AI',
   'browser': 'Browser'
@@ -50,9 +51,10 @@ export const PERMISSION_DESCRIPTIONS: Record<PluginPermission, string> = {
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
   'live-server': 'Create, start, stop, and inspect Harbor Live Servers',
+  'live-pages': 'Create, update, and delete saved Live Pages via hc.livePages',
   'mcp': 'Register remote MCP client servers for the chat agent',
   'ai': 'Chat tools, system prompt contributions, and agent hooks',
-  'browser': 'Open and control embedded browser tabs via hc.webpage'
+  'browser': 'Open and control embedded browser tabs via hc.livePage'
 };
 
 /**
@@ -70,7 +72,8 @@ export const PERMISSION_LABELS: Record<PluginPermission, string> = {
   'ipc': 'Custom IPC between renderer and main plugin halves',
   'server': 'Local HTTP echo server for incoming requests',
   'live-server': 'Create, start, stop, and inspect Harbor Live Servers',
+  'live-pages': 'Create, update, and delete saved Live Pages via hc.livePages',
   'mcp': 'Register remote MCP client servers for the chat agent',
   'ai': 'Chat tools, system prompt contributions, and agent hooks',
-  'browser': 'Open and control embedded browser tabs via hc.webpage'
+  'browser': 'Open and control embedded browser tabs via hc.livePage'
 };

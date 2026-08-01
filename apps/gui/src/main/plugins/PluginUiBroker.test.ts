@@ -358,7 +358,7 @@ describe('PluginUiBroker host bridge invoke', () => {
     await expect(resultPromise).resolves.toEqual(sendResult);
   });
 
-  it('round-trips webpage.open through plugins:hostBridgeInvoke with browser permission', async () => {
+  it('round-trips livePage.open through plugins:hostBridgeInvoke with browser permission', async () => {
     const send = vi.fn();
     const mockWindow = {
       isDestroyed: () => false,
@@ -378,13 +378,13 @@ describe('PluginUiBroker host bridge invoke', () => {
     });
 
     const payload = { url: 'https://example.test', reuse: true };
-    const resultPromise = broker.handleInvoke(sender, 'webpage.open', payload);
+    const resultPromise = broker.handleInvoke(sender, 'livePage.open', payload);
 
     expect(manager.assertPermission).toHaveBeenCalledWith('com.test.browser', 'browser');
     expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
       requestId: 1,
       pluginId: 'com.test.browser',
-      op: 'webpage.open',
+      op: 'livePage.open',
       payload
     });
 
@@ -400,7 +400,7 @@ describe('PluginUiBroker host bridge invoke', () => {
     await expect(resultPromise).resolves.toEqual(opened);
   });
 
-  it('rejects webpage.open when the plugin lacks the browser permission', async () => {
+  it('rejects livePage.open when the plugin lacks the browser permission', async () => {
     const manager = {
       assertPermission: vi.fn((pluginId: string, permission: string) => {
         if (permission === 'browser') {
@@ -418,7 +418,7 @@ describe('PluginUiBroker host bridge invoke', () => {
     });
 
     await expect(
-      broker.handleInvoke(sender, 'webpage.open', { url: 'https://example.test' })
+      broker.handleInvoke(sender, 'livePage.open', { url: 'https://example.test' })
     ).rejects.toThrow(/lacks permission: browser/);
   });
 
@@ -474,6 +474,61 @@ describe('PluginUiBroker host bridge invoke', () => {
 
     await expect(broker.handleInvoke(sender, 'liveServers.list', {})).rejects.toThrow(
       /lacks permission: live-server/
+    );
+  });
+
+  it('round-trips livePages.list through plugins:hostBridgeInvoke with live-pages permission', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 75 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.live-pages',
+      role: 'agent'
+    });
+
+    const resultPromise = broker.handleInvoke(sender, 'livePages.list', {});
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.test.live-pages', 'live-pages');
+    expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
+      requestId: 1,
+      pluginId: 'com.test.live-pages',
+      op: 'livePages.list',
+      payload: {}
+    });
+
+    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: [] });
+    await expect(resultPromise).resolves.toEqual([]);
+  });
+
+  it('rejects livePages.list when the plugin lacks the live-pages permission', async () => {
+    const manager = {
+      assertPermission: vi.fn((pluginId: string, permission: string) => {
+        if (permission === 'live-pages') {
+          throw new Error(`Plugin ${pluginId} lacks permission: live-pages`);
+        }
+      })
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 76 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.test.no-live-pages',
+      role: 'agent'
+    });
+
+    await expect(broker.handleInvoke(sender, 'livePages.list', {})).rejects.toThrow(
+      /lacks permission: live-pages/
     );
   });
 

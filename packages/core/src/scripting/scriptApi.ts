@@ -62,9 +62,9 @@ export interface ScriptAskRequest {
 }
 
 /**
- * Bridge operation for {@link ScriptApiOptions.webpage} / `hc.webpage`.
+ * Bridge operation for {@link ScriptApiOptions.livePage} / `hc.livePage`.
  */
-export type ScriptWebpageRequest =
+export type ScriptLivePageRequest =
   | {
       op: 'open';
       /**
@@ -88,12 +88,16 @@ export type ScriptWebpageRequest =
   | { op: 'evaluate'; tabId: string; expression: string }
   | { op: 'injectScript'; tabId: string; source: string }
   | { op: 'injectStylesheet'; tabId: string; css: string }
-  | { op: 'screenshot'; tabId: string; fullPage?: boolean };
+  | { op: 'screenshot'; tabId: string; fullPage?: boolean }
+  | { op: 'goBack'; tabId: string }
+  | { op: 'goForward'; tabId: string }
+  | { op: 'reload'; tabId: string }
+  | { op: 'navigate'; tabId: string; url: string };
 
 /**
- * Optional second argument to `hc.webpage(url, options)`.
+ * Optional second argument to `hc.livePage(url, options)`.
  */
-export interface ScriptWebpageOpenOptions {
+export interface ScriptLivePageOpenOptions {
   /**
    * When true (default), reuse an open browser tab whose URL matches.
    * When false, always open a new tab.
@@ -122,10 +126,10 @@ export interface ScriptApiOptions {
   ask?: (req: ScriptAskRequest) => Promise<string | null>;
 
   /**
-   * When provided, enables hc.webpage for opening and controlling embedded browser tabs.
-   * When omitted, hc.webpage throws.
+   * When provided, enables hc.livePage for opening and controlling embedded browser tabs.
+   * When omitted, hc.livePage throws.
    */
-  webpage?: (req: ScriptWebpageRequest) => Promise<unknown>;
+  livePage?: (req: ScriptLivePageRequest) => Promise<unknown>;
 
   /**
    * Compile sourcemap chain from {@link evaluateScript} used to remap assertion stacks
@@ -564,25 +568,25 @@ function normalizeScriptAskRequest(prompt: unknown, options?: unknown): ScriptAs
 }
 
 /**
- * Normalizes optional `hc.webpage` open options.
+ * Normalizes optional `hc.livePage` open options.
  *
  * @param options - Optional `{ reuse }` object.
  * @returns Normalized open options.
  * @throws When options is provided but not a plain object, or reuse is not a boolean.
  */
-function normalizeScriptWebpageOpenOptions(options?: unknown): ScriptWebpageOpenOptions {
+function normalizeScriptLivePageOpenOptions(options?: unknown): ScriptLivePageOpenOptions {
   if (options == null) {
     return {};
   }
   if (typeof options !== 'object' || Array.isArray(options)) {
-    throw new Error('hc.webpage options must be an object');
+    throw new Error('hc.livePage options must be an object');
   }
   const raw = options as Record<string, unknown>;
   if (!('reuse' in raw) || raw.reuse === undefined) {
     return {};
   }
   if (typeof raw.reuse !== 'boolean') {
-    throw new Error('hc.webpage options.reuse must be a boolean');
+    throw new Error('hc.livePage options.reuse must be a boolean');
   }
   return { reuse: raw.reuse };
 }
@@ -594,7 +598,7 @@ function normalizeScriptWebpageOpenOptions(options?: unknown): ScriptWebpageOpen
  * @returns The result when it is not an error.
  * @throws When the bridge returned `{ error: string }`.
  */
-function unwrapWebpageBridgeResult(result: unknown): unknown {
+function unwrapLivePageBridgeResult(result: unknown): unknown {
   if (
     result != null &&
     typeof result === 'object' &&
@@ -609,25 +613,25 @@ function unwrapWebpageBridgeResult(result: unknown): unknown {
 }
 
 /**
- * Normalizes optional `hc.webpage().screenshot` options.
+ * Normalizes optional `hc.livePage().screenshot` options.
  *
  * @param options - User-provided options (`fullPage` optional).
  * @returns Normalized `{ fullPage }` (default false).
  * @throws When options is present but not a plain object, or `fullPage` is not a boolean.
  */
-function normalizeScriptWebpageScreenshotOptions(options?: unknown): { fullPage: boolean } {
+function normalizeScriptLivePageScreenshotOptions(options?: unknown): { fullPage: boolean } {
   if (options == null) {
     return { fullPage: false };
   }
   if (typeof options !== 'object' || Array.isArray(options)) {
-    throw new Error('hc.webpage().screenshot options must be an object');
+    throw new Error('hc.livePage().screenshot options must be an object');
   }
   const raw = options as Record<string, unknown>;
   if (!('fullPage' in raw) || raw.fullPage === undefined) {
     return { fullPage: false };
   }
   if (typeof raw.fullPage !== 'boolean') {
-    throw new Error('hc.webpage().screenshot options.fullPage must be a boolean');
+    throw new Error('hc.livePage().screenshot options.fullPage must be a boolean');
   }
   return { fullPage: raw.fullPage };
 }
@@ -643,14 +647,39 @@ function decodePngBase64ToUint8Array(pngBase64: string): Uint8Array {
 }
 
 /**
- * Builds a webpage handle whose methods call the host webpage bridge.
+ * Copies navigation fields from a bridge result onto a live-page handle.
+ *
+ * @param handle - Mutable handle to update.
+ * @param result - Bridge result with url/title/history flags.
+ */
+function applyLivePageNavSnapshot(handle: Record<string, unknown>, result: unknown): void {
+  if (result == null || typeof result !== 'object' || Array.isArray(result)) {
+    return;
+  }
+  const snapshot = result as Record<string, unknown>;
+  if (typeof snapshot.url === 'string') {
+    handle.url = snapshot.url;
+  }
+  if (typeof snapshot.title === 'string') {
+    handle.title = snapshot.title;
+  }
+  if (typeof snapshot.canGoBack === 'boolean') {
+    handle.canGoBack = snapshot.canGoBack;
+  }
+  if (typeof snapshot.canGoForward === 'boolean') {
+    handle.canGoForward = snapshot.canGoForward;
+  }
+}
+
+/**
+ * Builds a live-page handle whose methods call the host live page bridge.
  *
  * @param tab - Opened tab metadata from the bridge.
- * @param callWebpage - Bridge transport.
+ * @param callLivePage - Bridge transport.
  * @param writeScreenshotBytes - Optional writer that saves PNG bytes under the script file root.
  * @returns Plain-object handle for the script sandbox.
  */
-function createWebpageHandle(
+function createLivePageHandle(
   tab: {
     tabId: string;
     url: string;
@@ -658,11 +687,11 @@ function createWebpageHandle(
     canGoBack?: boolean;
     canGoForward?: boolean;
   },
-  callWebpage: (req: ScriptWebpageRequest) => Promise<unknown>,
+  callLivePage: (req: ScriptLivePageRequest) => Promise<unknown>,
   writeScreenshotBytes?: (path: string, bytes: Uint8Array) => Promise<string>
 ): Record<string, unknown> {
   const tabId = tab.tabId;
-  return {
+  const handle: Record<string, unknown> = {
     tabId,
     url: tab.url,
     title: tab.title,
@@ -674,7 +703,7 @@ function createWebpageHandle(
      * @returns Resolves when the tab is focused.
      */
     focus: async (): Promise<void> => {
-      unwrapWebpageBridgeResult(await callWebpage({ op: 'focus', tabId }));
+      unwrapLivePageBridgeResult(await callLivePage({ op: 'focus', tabId }));
     },
     /**
      * Closes this browser tab, honoring page leave prompts.
@@ -682,10 +711,59 @@ function createWebpageHandle(
      * @returns True when closed; false when the user chose to stay.
      */
     close: async (): Promise<boolean> => {
-      const result = unwrapWebpageBridgeResult(await callWebpage({ op: 'close', tabId })) as {
+      const result = unwrapLivePageBridgeResult(await callLivePage({ op: 'close', tabId })) as {
         closed: boolean;
       };
       return result.closed === true;
+    },
+    /**
+     * Navigates history back one entry and waits for load.
+     *
+     * @returns Resolves when load finishes.
+     */
+    goBack: async (): Promise<void> => {
+      applyLivePageNavSnapshot(
+        handle,
+        unwrapLivePageBridgeResult(await callLivePage({ op: 'goBack', tabId }))
+      );
+    },
+    /**
+     * Navigates history forward one entry and waits for load.
+     *
+     * @returns Resolves when load finishes.
+     */
+    goForward: async (): Promise<void> => {
+      applyLivePageNavSnapshot(
+        handle,
+        unwrapLivePageBridgeResult(await callLivePage({ op: 'goForward', tabId }))
+      );
+    },
+    /**
+     * Reloads the current page and waits for load.
+     *
+     * @returns Resolves when load finishes.
+     */
+    reload: async (): Promise<void> => {
+      applyLivePageNavSnapshot(
+        handle,
+        unwrapLivePageBridgeResult(await callLivePage({ op: 'reload', tabId }))
+      );
+    },
+    /**
+     * Loads a URL in this tab and waits for load.
+     *
+     * @param url - Absolute http(s) or about:blank URL.
+     * @returns Resolves when load finishes.
+     */
+    navigate: async (url: unknown): Promise<void> => {
+      const urlText = String(url ?? '').trim();
+      if (!urlText) {
+        throw new Error('hc.livePage().navigate requires a non-empty url');
+      }
+      applyLivePageNavSnapshot(
+        handle,
+        unwrapLivePageBridgeResult(await callLivePage({ op: 'navigate', tabId, url: urlText }))
+      );
     },
     /**
      * Captures the visible viewport (or full page) as PNG and writes it under the script file root.
@@ -695,21 +773,21 @@ function createWebpageHandle(
      * @returns Absolute path of the written file.
      */
     screenshot: async (path: unknown, screenshotOptions?: unknown): Promise<{ path: string }> => {
-      const { fullPage } = normalizeScriptWebpageScreenshotOptions(screenshotOptions);
+      const { fullPage } = normalizeScriptLivePageScreenshotOptions(screenshotOptions);
       const pathText = String(path ?? '').trim();
       if (!pathText) {
-        throw new Error('hc.webpage().screenshot requires a path');
+        throw new Error('hc.livePage().screenshot requires a path');
       }
       if (!writeScreenshotBytes) {
-        throw new Error('hc.webpage().screenshot requires hc.fs');
+        throw new Error('hc.livePage().screenshot requires hc.fs');
       }
-      const capture = unwrapWebpageBridgeResult(
-        await callWebpage({ op: 'screenshot', tabId, fullPage })
+      const capture = unwrapLivePageBridgeResult(
+        await callLivePage({ op: 'screenshot', tabId, fullPage })
       ) as {
         pngBase64?: string;
       };
       if (!capture || typeof capture.pngBase64 !== 'string' || !capture.pngBase64) {
-        throw new Error('hc.webpage().screenshot did not return image data');
+        throw new Error('hc.livePage().screenshot did not return image data');
       }
       const absolutePath = await writeScreenshotBytes(
         pathText,
@@ -731,30 +809,32 @@ function createWebpageHandle(
       ): Promise<{ selector: string; matchCount: number; elements: unknown[] }> => {
         const selectorText = String(selector ?? '').trim();
         if (!selectorText) {
-          throw new Error('hc.webpage().dom.query requires a selector');
+          throw new Error('hc.livePage().dom.query requires a selector');
         }
         let all: boolean | undefined;
         let maxElements: number | undefined;
         if (queryOptions != null) {
           if (typeof queryOptions !== 'object' || Array.isArray(queryOptions)) {
-            throw new Error('hc.webpage().dom.query options must be an object');
+            throw new Error('hc.livePage().dom.query options must be an object');
           }
           const raw = queryOptions as Record<string, unknown>;
           if ('all' in raw && raw.all !== undefined) {
             if (typeof raw.all !== 'boolean') {
-              throw new Error('hc.webpage().dom.query options.all must be a boolean');
+              throw new Error('hc.livePage().dom.query options.all must be a boolean');
             }
             all = raw.all;
           }
           if ('maxElements' in raw && raw.maxElements !== undefined) {
             if (typeof raw.maxElements !== 'number' || !Number.isFinite(raw.maxElements)) {
-              throw new Error('hc.webpage().dom.query options.maxElements must be a finite number');
+              throw new Error(
+                'hc.livePage().dom.query options.maxElements must be a finite number'
+              );
             }
             maxElements = raw.maxElements;
           }
         }
-        return unwrapWebpageBridgeResult(
-          await callWebpage({ op: 'query', tabId, selector: selectorText, all, maxElements })
+        return unwrapLivePageBridgeResult(
+          await callLivePage({ op: 'query', tabId, selector: selectorText, all, maxElements })
         ) as { selector: string; matchCount: number; elements: unknown[] };
       },
       /**
@@ -766,10 +846,10 @@ function createWebpageHandle(
       evaluate: async (expression: unknown): Promise<unknown> => {
         const expressionText = String(expression ?? '').trim();
         if (!expressionText) {
-          throw new Error('hc.webpage().dom.evaluate requires an expression');
+          throw new Error('hc.livePage().dom.evaluate requires an expression');
         }
-        const result = unwrapWebpageBridgeResult(
-          await callWebpage({ op: 'evaluate', tabId, expression: expressionText })
+        const result = unwrapLivePageBridgeResult(
+          await callLivePage({ op: 'evaluate', tabId, expression: expressionText })
         ) as { value: unknown };
         return result.value;
       },
@@ -782,10 +862,10 @@ function createWebpageHandle(
       injectScript: async (source: unknown): Promise<unknown> => {
         const sourceText = String(source ?? '');
         if (!sourceText.trim()) {
-          throw new Error('hc.webpage().dom.injectScript requires source');
+          throw new Error('hc.livePage().dom.injectScript requires source');
         }
-        const result = unwrapWebpageBridgeResult(
-          await callWebpage({ op: 'injectScript', tabId, source: sourceText })
+        const result = unwrapLivePageBridgeResult(
+          await callLivePage({ op: 'injectScript', tabId, source: sourceText })
         ) as { value: unknown };
         return result.value;
       },
@@ -798,15 +878,16 @@ function createWebpageHandle(
       injectStylesheet: async (css: unknown): Promise<string> => {
         const cssText = String(css ?? '');
         if (!cssText.trim()) {
-          throw new Error('hc.webpage().dom.injectStylesheet requires css');
+          throw new Error('hc.livePage().dom.injectStylesheet requires css');
         }
-        const result = unwrapWebpageBridgeResult(
-          await callWebpage({ op: 'injectStylesheet', tabId, css: cssText })
+        const result = unwrapLivePageBridgeResult(
+          await callLivePage({ op: 'injectStylesheet', tabId, css: cssText })
         ) as { key: string };
         return result.key;
       }
     }
   };
+  return handle;
 }
 
 /**
@@ -1311,38 +1392,41 @@ export function createScriptApi(
     hc.ask = async (): Promise<string | null> => null;
   }
 
-  if (options?.webpage) {
-    const transport = options.webpage;
+  if (options?.livePage) {
+    const transport = options.livePage;
     /**
-     * Invokes the host webpage bridge or throws when the result is an error object.
+     * Invokes the host live page bridge or throws when the result is an error object.
      *
      * @param req - Webpage operation payload.
      * @returns Operation result from the host.
      */
-    const callWebpage = async (req: ScriptWebpageRequest): Promise<unknown> => transport(req);
+    const callLivePage = async (req: ScriptLivePageRequest): Promise<unknown> => transport(req);
 
     /**
      * Opens or reuses an embedded browser tab and returns a control handle.
      *
-     * Requires Settings → General → Allow script webpage access. Page load waits
+     * Requires Settings → General → Allow script live page access. Page load waits
      * count against the script timeout.
      *
      * @param url - Optional URL to open or reuse; omit to bind the active browser tab.
      * @param openOptions - Optional `{ reuse }` (default true).
      * @returns Handle with focus/close and `dom` helpers.
      */
-    hc.webpage = async (url?: unknown, openOptions?: unknown): Promise<Record<string, unknown>> => {
-      const normalizedOptions = normalizeScriptWebpageOpenOptions(openOptions);
+    hc.livePage = async (
+      url?: unknown,
+      openOptions?: unknown
+    ): Promise<Record<string, unknown>> => {
+      const normalizedOptions = normalizeScriptLivePageOpenOptions(openOptions);
       let openUrl: string | undefined;
       if (url !== undefined && url !== null) {
         const trimmed = String(url).trim();
         if (!trimmed) {
-          throw new Error('hc.webpage requires a non-empty url when provided');
+          throw new Error('hc.livePage requires a non-empty url when provided');
         }
         openUrl = trimmed;
       }
-      const opened = unwrapWebpageBridgeResult(
-        await callWebpage({
+      const opened = unwrapLivePageBridgeResult(
+        await callLivePage({
           op: 'open',
           url: openUrl,
           reuse: normalizedOptions.reuse
@@ -1355,7 +1439,7 @@ export function createScriptApi(
         canGoForward?: boolean;
       };
       if (!opened || typeof opened.tabId !== 'string') {
-        throw new Error('hc.webpage open did not return a tab');
+        throw new Error('hc.livePage open did not return a tab');
       }
       /**
        * Writes screenshot PNG bytes via the script file bridge and returns the absolute path.
@@ -1366,28 +1450,28 @@ export function createScriptApi(
        */
       const writeScreenshotBytes = async (path: string, bytes: Uint8Array): Promise<string> => {
         if (!options.fileBridge) {
-          throw new Error('hc.webpage().screenshot requires hc.fs');
+          throw new Error('hc.livePage().screenshot requires hc.fs');
         }
         const result = await options.fileBridge({ op: 'writeBytes', path, bytes });
         if (typeof result !== 'string' || !result.trim()) {
-          throw new Error('hc.webpage().screenshot failed to resolve write path');
+          throw new Error('hc.livePage().screenshot failed to resolve write path');
         }
         return result;
       };
-      return createWebpageHandle(
+      return createLivePageHandle(
         opened,
-        callWebpage,
+        callLivePage,
         options.fileBridge ? writeScreenshotBytes : undefined
       );
     };
   } else {
     /**
-     * Throws when no webpage transport is available in this script context.
+     * Throws when no livePage transport is available in this script context.
      *
      * @throws Always — webpage control requires the GUI script bridge.
      */
-    hc.webpage = async (): Promise<never> => {
-      throw new Error('hc.webpage is not available in this script context');
+    hc.livePage = async (): Promise<never> => {
+      throw new Error('hc.livePage is not available in this script context');
     };
   }
 

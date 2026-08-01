@@ -9,6 +9,7 @@ import type {
   RegisteredMenuItem,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredLivePageChromeAction,
   RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
@@ -30,6 +31,7 @@ import {
   registerMenuItemContribution,
   registerRequestTabContribution,
   registerRequestToolbarActionContribution,
+  registerLivePageChromeActionContribution,
   registerScriptEditorActionContribution,
   registerWorkflowActionBlockContribution,
   registerWorkflowToolbarActionContribution,
@@ -108,6 +110,13 @@ import {
   stopLiveServerForPlugin,
   updateLiveServerForPlugin
 } from './hostLiveServerCommands';
+import {
+  createLivePageForPlugin,
+  deleteLivePageForPlugin,
+  getLivePageForPlugin,
+  listLivePagesForPlugin,
+  updateLivePageForPlugin
+} from './hostLivePageCommands';
 import { openImageView } from './hostImageCommands';
 import {
   createEnvironmentWithVariables,
@@ -158,8 +167,8 @@ import {
   unregisterBridgedImportHandler
 } from './pluginImportHandlers';
 import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
-import type { ScriptWebpageRequest } from '@harborclient/core/scripting/scriptApi';
-import { executeScriptWebpageRequest } from '#/renderer/src/scripting/scriptWebpageBridge';
+import type { ScriptLivePageRequest } from '@harborclient/core/scripting/scriptApi';
+import { executeScriptLivePageRequest } from '#/renderer/src/scripting/scriptLivePageBridge';
 import { isWebpageSessionError } from '#/renderer/src/store/browser/webpageSession';
 
 type ContributionKind =
@@ -177,6 +186,7 @@ type ContributionKind =
   | 'statusBarItems'
   | 'menuItems'
   | 'requestToolbarActions'
+  | 'livePageChromeActions'
   | 'scriptEditorActions'
   | 'workflowToolbarActions'
   | 'workflowActionBlocks'
@@ -314,6 +324,15 @@ export function applyContributionMessage(message: ContributionMessage): void {
         contribution as Omit<RegisteredRequestToolbarAction, 'pluginId'>
       );
       break;
+    case 'livePageChromeActions':
+      registerLivePageChromeActionContribution(
+        message.pluginId,
+        contribution as Omit<
+          RegisteredLivePageChromeAction,
+          'pluginId' | 'activationSeq' | 'registrationIndex'
+        >
+      );
+      break;
     case 'scriptEditorActions':
       registerScriptEditorActionContribution(
         message.pluginId,
@@ -374,26 +393,26 @@ export function applyImportHandlerMessage(message: ImportHandlerMessage): void {
 }
 
 /**
- * Maps a plugin host-bridge webpage op + payload to a {@link ScriptWebpageRequest}.
+ * Maps a plugin host-bridge livePage op + payload to a {@link ScriptLivePageRequest}.
  *
- * @param op - Bridge operation name (`webpage.open`, …).
+ * @param op - Bridge operation name (`livePage.open`, …).
  * @param payload - Serializable fields for the op.
- * @returns Request for {@link executeScriptWebpageRequest}.
+ * @returns Request for {@link executeScriptLivePageRequest}.
  */
-function toScriptWebpageRequest(op: string, payload: unknown): ScriptWebpageRequest {
+function toScriptLivePageRequest(op: string, payload: unknown): ScriptLivePageRequest {
   const fields = (payload ?? {}) as Record<string, unknown>;
   switch (op) {
-    case 'webpage.open':
+    case 'livePage.open':
       return {
         op: 'open',
         url: typeof fields.url === 'string' ? fields.url : undefined,
         reuse: typeof fields.reuse === 'boolean' ? fields.reuse : undefined
       };
-    case 'webpage.focus':
+    case 'livePage.focus':
       return { op: 'focus', tabId: String(fields.tabId ?? '') };
-    case 'webpage.close':
+    case 'livePage.close':
       return { op: 'close', tabId: String(fields.tabId ?? '') };
-    case 'webpage.query':
+    case 'livePage.query':
       return {
         op: 'query',
         tabId: String(fields.tabId ?? ''),
@@ -401,45 +420,57 @@ function toScriptWebpageRequest(op: string, payload: unknown): ScriptWebpageRequ
         all: typeof fields.all === 'boolean' ? fields.all : undefined,
         maxElements: typeof fields.maxElements === 'number' ? fields.maxElements : undefined
       };
-    case 'webpage.evaluate':
+    case 'livePage.evaluate':
       return {
         op: 'evaluate',
         tabId: String(fields.tabId ?? ''),
         expression: String(fields.expression ?? '')
       };
-    case 'webpage.injectScript':
+    case 'livePage.injectScript':
       return {
         op: 'injectScript',
         tabId: String(fields.tabId ?? ''),
         source: String(fields.source ?? '')
       };
-    case 'webpage.injectStylesheet':
+    case 'livePage.injectStylesheet':
       return {
         op: 'injectStylesheet',
         tabId: String(fields.tabId ?? ''),
         css: String(fields.css ?? '')
       };
-    case 'webpage.screenshot':
+    case 'livePage.screenshot':
       return {
         op: 'screenshot',
         tabId: String(fields.tabId ?? ''),
         fullPage: fields.fullPage === true ? true : undefined
       };
+    case 'livePage.goBack':
+      return { op: 'goBack', tabId: String(fields.tabId ?? '') };
+    case 'livePage.goForward':
+      return { op: 'goForward', tabId: String(fields.tabId ?? '') };
+    case 'livePage.reload':
+      return { op: 'reload', tabId: String(fields.tabId ?? '') };
+    case 'livePage.navigate':
+      return {
+        op: 'navigate',
+        tabId: String(fields.tabId ?? ''),
+        url: String(fields.url ?? '')
+      };
     default:
-      throw new Error(`Unsupported webpage bridge operation: ${op}`);
+      throw new Error(`Unsupported livePage bridge operation: ${op}`);
   }
 }
 
 /**
- * Runs one webpage session op for a plugin host-bridge invoke.
+ * Runs one live-page session op for a plugin host-bridge invoke.
  *
- * @param op - Bridge operation name.
+ * @param op - Bridge operation name (`livePage.open`, …).
  * @param payload - Serializable fields for the op.
  * @returns Session helper result.
  * @throws When the session returns `{ error }` or an unknown op.
  */
-async function executePluginWebpageBridge(op: string, payload: unknown): Promise<unknown> {
-  const result = await executeScriptWebpageRequest(toScriptWebpageRequest(op, payload));
+async function executePluginLivePageBridge(op: string, payload: unknown): Promise<unknown> {
+  const result = await executeScriptLivePageRequest(toScriptLivePageRequest(op, payload));
   if (isWebpageSessionError(result)) {
     throw new Error(result.error);
   }
@@ -737,14 +768,19 @@ export async function handlePluginHostBridgeInvoke(
       logImportVerbose('hostBridge commands.execute ok', { commandId });
       return undefined;
     }
-    case 'webpage.open':
-    case 'webpage.focus':
-    case 'webpage.close':
-    case 'webpage.query':
-    case 'webpage.evaluate':
-    case 'webpage.injectScript':
-    case 'webpage.injectStylesheet':
-      return executePluginWebpageBridge(op, payload);
+    case 'livePage.open':
+    case 'livePage.focus':
+    case 'livePage.close':
+    case 'livePage.query':
+    case 'livePage.evaluate':
+    case 'livePage.injectScript':
+    case 'livePage.injectStylesheet':
+    case 'livePage.screenshot':
+    case 'livePage.goBack':
+    case 'livePage.goForward':
+    case 'livePage.reload':
+    case 'livePage.navigate':
+      return executePluginLivePageBridge(op, payload);
     case 'liveServers.list':
       return listLiveServersForPlugin();
     case 'liveServers.get':
@@ -785,6 +821,22 @@ export async function handlePluginHostBridgeInvoke(
       await clearLiveServerLogsForPlugin(
         (payload as { query: Parameters<typeof clearLiveServerLogsForPlugin>[0] }).query
       );
+      return undefined;
+    }
+    case 'livePages.list':
+      return listLivePagesForPlugin();
+    case 'livePages.get':
+      return getLivePageForPlugin((payload as { idOrUuid: number | string }).idOrUuid);
+    case 'livePages.create':
+      return createLivePageForPlugin(
+        (payload as { input: Parameters<typeof createLivePageForPlugin>[0] }).input
+      );
+    case 'livePages.update':
+      return updateLivePageForPlugin(
+        (payload as { input: Parameters<typeof updateLivePageForPlugin>[0] }).input
+      );
+    case 'livePages.delete': {
+      await deleteLivePageForPlugin((payload as { id: number }).id);
       return undefined;
     }
     default:

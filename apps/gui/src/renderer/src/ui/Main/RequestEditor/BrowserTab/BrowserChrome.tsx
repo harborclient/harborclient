@@ -1,4 +1,5 @@
 import { VariableInput, RoundButton, fieldFrame } from '@harborclient/sdk/components';
+import type { LivePageChromeActionContext } from '@harborclient/sdk';
 import type { Variable } from '@harborclient/core/types';
 import { useState, type ClipboardEvent, type FocusEvent, type FormEvent, type JSX } from 'react';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
@@ -12,6 +13,8 @@ import {
 } from '#/renderer/src/fontawesome';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { browserUrlSource } from '#/renderer/src/autocomplete/sources';
+import { usePluginLivePageChromeActions } from '#/renderer/src/plugins/pluginHooks';
+import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
 import { applyBrowserAddressPaste } from './applyBrowserAddressPaste';
 import { resolveBrowserAddressInput } from './resolveBrowserAddress';
 import { resolveBrowserExternalUrl } from './resolveBrowserExternalUrl';
@@ -119,7 +122,7 @@ interface Props {
 
 /**
  * Navigation toolbar for an embedded browser tab (back, forward, reload, home, address,
- * open external, downloads, AI, screenshot).
+ * open external, downloads, plugin chrome actions, AI, screenshot).
  *
  * Address autocomplete is gated on {@link Props.beforeSuggestionsOpen} so the parent can cover
  * the native WebContentsView before the portaled suggestion list paints. Navigation commits when
@@ -151,6 +154,21 @@ export function BrowserChrome({
   const addressValue = editingAddress ?? tab.url;
   const runtimeVars = buildRuntimeVars(variables);
   const externalUrl = resolveBrowserExternalUrl(addressValue, runtimeVars);
+  const livePageChromeActions = usePluginLivePageChromeActions();
+
+  /**
+   * Builds the command context for a live-page chrome action click.
+   *
+   * @returns Context describing the current browser tab.
+   */
+  function buildLivePageChromeActionContext(): LivePageChromeActionContext {
+    return {
+      tabId: tab.tabId,
+      url: tab.url,
+      title: tab.title,
+      websiteId: tab.websiteId
+    };
+  }
 
   /**
    * Resolves address-bar text and navigates when it is a valid URL.
@@ -319,6 +337,21 @@ export function BrowserChrome({
         buttonClassName={chromeButtonClassName}
         iconClassName={chromeIconClassName}
       />
+      {livePageChromeActions.map((action) => (
+        <RoundButton
+          key={`${action.pluginId}:${action.id}`}
+          icon={resolvePluginTabIcon(action.icon)}
+          ariaLabel={action.title}
+          title={action.title}
+          onClick={() => {
+            void window.api.executePluginAgentCommand(action.pluginId, action.command, [
+              buildLivePageChromeActionContext()
+            ]);
+          }}
+          className={chromeButtonClassName}
+          iconClassName={chromeIconClassName}
+        />
+      ))}
       {onAskAi != null ? (
         <RoundButton
           icon={faWandMagicSparkles}

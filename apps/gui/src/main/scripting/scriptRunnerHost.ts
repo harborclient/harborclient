@@ -34,8 +34,8 @@ import {
   scriptFileAccessForOp,
   type ScriptFileRequest
 } from '@harborclient/core/scripting/scriptFileOperations';
-import type { ScriptAskRequest, ScriptWebpageRequest } from './scriptApi';
-import { getScriptWebpageBridge } from './scriptWebpageBridge';
+import type { ScriptAskRequest, ScriptLivePageRequest } from './scriptApi';
+import { getScriptLivePageBridge } from './scriptLivePageBridge';
 
 /**
  * Resolves the script execution timeout from persisted general settings.
@@ -134,25 +134,25 @@ interface AskErrorReply {
   error: string;
 }
 
-interface WebpageRequestMessage {
-  kind: 'webpage';
+interface LivePageRequestMessage {
+  kind: 'livePage';
   runId: number;
-  webpageId: number;
-  req: ScriptWebpageRequest;
+  livePageId: number;
+  req: ScriptLivePageRequest;
 }
 
-interface WebpageSuccessReply {
-  kind: 'webpage-reply';
+interface LivePageSuccessReply {
+  kind: 'livePage-reply';
   runId: number;
-  webpageId: number;
+  livePageId: number;
   ok: true;
   result: unknown;
 }
 
-interface WebpageErrorReply {
-  kind: 'webpage-reply';
+interface LivePageErrorReply {
+  kind: 'livePage-reply';
   runId: number;
-  webpageId: number;
+  livePageId: number;
   ok: false;
   error: string;
 }
@@ -162,7 +162,7 @@ type ChildMessage =
   | NetRequestMessage
   | FileRequestMessage
   | AskRequestMessage
-  | WebpageRequestMessage;
+  | LivePageRequestMessage;
 
 interface PendingRun {
   input: ScriptRunInput;
@@ -476,36 +476,36 @@ async function handleScriptAskRequest(
 }
 
 /**
- * Handles an hc.webpage bridge call from the utility process runner.
+ * Handles an hc.livePage bridge call from the utility process runner.
  *
  * @param child - Utility process that initiated the webpage call.
  * @param message - Webpage request payload from the script sandbox.
  */
-async function handleScriptWebpageRequest(
+async function handleScriptLivePageRequest(
   child: UtilityProcess,
-  message: WebpageRequestMessage
+  message: LivePageRequestMessage
 ): Promise<void> {
-  const reply = (payload: WebpageSuccessReply | WebpageErrorReply): void => {
+  const reply = (payload: LivePageSuccessReply | LivePageErrorReply): void => {
     child.postMessage(payload);
   };
 
   if (!isScriptWebpageAllowed()) {
     reply({
-      kind: 'webpage-reply',
+      kind: 'livePage-reply',
       runId: message.runId,
-      webpageId: message.webpageId,
+      livePageId: message.livePageId,
       ok: false,
-      error: 'Script webpage access is disabled in Settings → General'
+      error: 'Script live page access is disabled in Settings → General'
     });
     return;
   }
 
   try {
-    const result = await getScriptWebpageBridge().invoke(message.req);
+    const result = await getScriptLivePageBridge().invoke(message.req);
     reply({
-      kind: 'webpage-reply',
+      kind: 'livePage-reply',
       runId: message.runId,
-      webpageId: message.webpageId,
+      livePageId: message.livePageId,
       ok: true,
       result
     });
@@ -515,9 +515,9 @@ async function handleScriptWebpageRequest(
         ? String((err as { message: unknown }).message)
         : String(err);
     reply({
-      kind: 'webpage-reply',
+      kind: 'livePage-reply',
       runId: message.runId,
-      webpageId: message.webpageId,
+      livePageId: message.livePageId,
       ok: false,
       error: sanitizeScriptErrorMessage(rawMessage)
     });
@@ -546,8 +546,8 @@ function attachRunnerHandlers(child: UtilityProcess): void {
       return;
     }
 
-    if ('kind' in message && message.kind === 'webpage') {
-      void handleScriptWebpageRequest(child, message);
+    if ('kind' in message && message.kind === 'livePage') {
+      void handleScriptLivePageRequest(child, message);
       return;
     }
 

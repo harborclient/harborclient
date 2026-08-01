@@ -10,6 +10,7 @@ import type {
   RegisteredPluginTheme,
   RegisteredRequestTab,
   RegisteredRequestToolbarAction,
+  RegisteredLivePageChromeAction,
   RegisteredScriptEditorAction,
   RegisteredResponseTab,
   RegisteredSettingsSection,
@@ -31,6 +32,7 @@ import {
   getRegisteredPluginThemes,
   getRegisteredRequestTabs,
   getRegisteredRequestToolbarActions,
+  getRegisteredLivePageChromeActions,
   getRegisteredScriptEditorActions,
   getRegisteredResponseTabs,
   getRegisteredSettingsSections,
@@ -149,6 +151,19 @@ export function usePluginRequestToolbarActions(): RegisteredRequestToolbarAction
   return useSyncExternalStore(
     subscribePluginRegistry,
     getRegisteredRequestToolbarActions,
+    () => []
+  );
+}
+
+/**
+ * Subscribes to plugin live-page chrome bar action contributions.
+ *
+ * Snapshot order is plugin activation order, then registration index within each plugin.
+ */
+export function usePluginLivePageChromeActions(): RegisteredLivePageChromeAction[] {
+  return useSyncExternalStore(
+    subscribePluginRegistry,
+    getRegisteredLivePageChromeActions,
     () => []
   );
 }

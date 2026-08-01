@@ -2,7 +2,7 @@ import type { OAuthFetchTokenResult } from '@harborclient/core/auth';
 import type { SearchDocsToolArgs } from '@harborclient/core/ai/tools';
 import type { HarborDeepLink } from '@harborclient/core/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '@harborclient/core/themes';
-import type { ScriptWebpageRequest } from '@harborclient/core/scripting/scriptApi';
+import type { ScriptLivePageRequest } from '@harborclient/core/scripting/scriptApi';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
 import { clipboard, contextBridge, ipcRenderer } from 'electron';
 import os from 'node:os';
@@ -2184,30 +2184,30 @@ function completeMcpServerTool(message: {
 }
 
 /**
- * Subscribes to script webpage invocations routed from the main-process script host.
+ * Subscribes to script livePage invocations routed from the main-process script host.
  */
-function onScriptWebpageInvoke(
-  callback: (message: { requestId: number; req: ScriptWebpageRequest }) => void
+function onScriptLivePageInvoke(
+  callback: (message: { requestId: number; req: ScriptLivePageRequest }) => void
 ): () => void {
   const listener = (_event: Electron.IpcRendererEvent, message: unknown): void => {
-    callback(message as { requestId: number; req: ScriptWebpageRequest });
+    callback(message as { requestId: number; req: ScriptLivePageRequest });
   };
-  ipcRenderer.on('scripts:webpageInvoke', listener);
+  ipcRenderer.on('scripts:livePageInvoke', listener);
   return () => {
-    ipcRenderer.removeListener('scripts:webpageInvoke', listener);
+    ipcRenderer.removeListener('scripts:livePageInvoke', listener);
   };
 }
 
 /**
- * Completes a script webpage invocation with a result or error.
+ * Completes a script live page invocation with a result or error.
  */
-function completeScriptWebpage(message: {
+function completeScriptLivePage(message: {
   requestId: number;
   ok: boolean;
   result?: unknown;
   error?: string;
 }): void {
-  ipcRenderer.send('scripts:webpageComplete', message);
+  ipcRenderer.send('scripts:livePageComplete', message);
 }
 
 /**
@@ -5146,8 +5146,8 @@ const api: Api = {
   searchDocs,
   onMcpServerToolInvoke,
   completeMcpServerTool,
-  onScriptWebpageInvoke,
-  completeScriptWebpage,
+  onScriptLivePageInvoke,
+  completeScriptLivePage,
   createTerminal,
   writeTerminal,
   resizeTerminal,

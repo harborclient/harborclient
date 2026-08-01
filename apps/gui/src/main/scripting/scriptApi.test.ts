@@ -974,13 +974,13 @@ describe('createScriptApi hc.fs', () => {
   });
 });
 
-describe('createScriptApi hc.webpage', () => {
-  it('throws when no webpage transport is available', async () => {
+describe('createScriptApi hc.livePage', () => {
+  it('throws when no livePage transport is available', async () => {
     const api = createScriptApi(baseInput);
-    const webpage = api.hc.webpage as (url?: string) => Promise<unknown>;
+    const livePage = api.hc.livePage as (url?: string) => Promise<unknown>;
 
-    await expect(webpage('https://example.com')).rejects.toThrow(
-      'hc.webpage is not available in this script context'
+    await expect(livePage('https://example.com')).rejects.toThrow(
+      'hc.livePage is not available in this script context'
     );
   });
 
@@ -988,7 +988,7 @@ describe('createScriptApi hc.webpage', () => {
     const calls: unknown[] = [];
     const fileCalls: Array<{ op: string; path?: string }> = [];
     const api = createScriptApi(baseInput, {
-      webpage: async (req) => {
+      livePage: async (req) => {
         calls.push(req);
         if (req.op === 'open') {
           return {
@@ -1031,7 +1031,7 @@ describe('createScriptApi hc.webpage', () => {
       }
     });
 
-    const webpage = api.hc.webpage as (
+    const livePage = api.hc.livePage as (
       url?: string,
       options?: { reuse?: boolean }
     ) => Promise<{
@@ -1049,7 +1049,7 @@ describe('createScriptApi hc.webpage', () => {
       };
     }>;
 
-    const page = await webpage('https://example.com', { reuse: false });
+    const page = await livePage('https://example.com', { reuse: false });
     expect(page.tabId).toBe('tab-1');
     expect(page.title).toBe('Example');
     await page.focus();
@@ -1088,9 +1088,9 @@ describe('createScriptApi hc.webpage', () => {
 
   it('throws bridge error objects from open', async () => {
     const api = createScriptApi(baseInput, {
-      webpage: async () => ({ error: 'No active browser tab.' })
+      livePage: async () => ({ error: 'No active browser tab.' })
     });
-    const webpage = api.hc.webpage as (url?: string) => Promise<unknown>;
-    await expect(webpage()).rejects.toThrow('No active browser tab.');
+    const livePage = api.hc.livePage as (url?: string) => Promise<unknown>;
+    await expect(livePage()).rejects.toThrow('No active browser tab.');
   });
 });

@@ -201,10 +201,19 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     id: 'general.allowScriptWebpage',
     section: 'general',
     kind: 'field',
-    label: 'Allow script webpage access',
+    label: 'Allow script live page access',
     description:
-      'When enabled, pre- and post-request scripts may call hc.webpage to open, focus, query, and close embedded browser tabs. Page load waits count against the script timeout.',
-    keywords: ['script', 'webpage', 'browser', 'tab', 'dom', 'permission', 'hc.webpage']
+      'When enabled, pre- and post-request scripts may call hc.livePage to open, focus, query, and close embedded browser tabs. Page load waits count against the script timeout.',
+    keywords: [
+      'script',
+      'webpage',
+      'live page',
+      'browser',
+      'tab',
+      'dom',
+      'permission',
+      'hc.livePage'
+    ]
   },
   {
     id: 'general.scriptFileRoot',

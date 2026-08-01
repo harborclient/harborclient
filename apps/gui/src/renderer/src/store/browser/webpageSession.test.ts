@@ -14,8 +14,11 @@ import tabsReducer, {
 import {
   closeWebpageTab,
   focusWebpageTab,
+  goBackWebpageTab,
   isWebpageSessionError,
+  navigateWebpageTab,
   openOrReuseWebpageTab,
+  reloadWebpageTab,
   screenshotWebpage,
   type WebpageSessionContext
 } from './webpageSession';
@@ -72,7 +75,11 @@ describe('webpageSession', () => {
         browserCapturePage: vi.fn(async () => ({
           dataUrl: 'data:image/png;base64,abc',
           pngBase64: 'abc'
-        }))
+        })),
+        browserGoBack: vi.fn(async () => undefined),
+        browserGoForward: vi.fn(async () => undefined),
+        browserReload: vi.fn(async () => undefined),
+        browserLoadURL: vi.fn(async () => undefined)
       }
     });
   });
@@ -193,5 +200,68 @@ describe('webpageSession', () => {
     if (isWebpageSessionError(result)) {
       expect(result.error).toContain('No browser tab found');
     }
+  });
+
+  it('navigates, reloads, and goes back while waiting for load', async () => {
+    const store = createTestStore();
+    store.dispatch(
+      newBrowserTab({
+        tabId: 'tab-1',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    );
+
+    vi.mocked(window.api.browserWaitForLoad).mockResolvedValueOnce({
+      tabId: 'tab-1',
+      url: 'https://example.com/docs',
+      title: 'Docs',
+      canGoBack: true,
+      canGoForward: false,
+      faviconDataUrl: null,
+      securityState: 'secure'
+    });
+
+    const navigated = await navigateWebpageTab(
+      sessionContext(store),
+      'tab-1',
+      'https://example.com/docs'
+    );
+    expect(isWebpageSessionError(navigated)).toBe(false);
+    if (!isWebpageSessionError(navigated)) {
+      expect(navigated.url).toBe('https://example.com/docs');
+      expect(navigated.canGoBack).toBe(true);
+    }
+    expect(window.api.browserLoadURL).toHaveBeenCalledWith('tab-1', 'https://example.com/docs');
+
+    vi.mocked(window.api.browserWaitForLoad).mockResolvedValueOnce({
+      tabId: 'tab-1',
+      url: 'https://example.com/docs',
+      title: 'Docs',
+      canGoBack: true,
+      canGoForward: false,
+      faviconDataUrl: null,
+      securityState: 'secure'
+    });
+    const reloaded = await reloadWebpageTab(sessionContext(store), 'tab-1');
+    expect(isWebpageSessionError(reloaded)).toBe(false);
+    expect(window.api.browserReload).toHaveBeenCalledWith('tab-1');
+
+    vi.mocked(window.api.browserWaitForLoad).mockResolvedValueOnce({
+      tabId: 'tab-1',
+      url: 'https://example.com/',
+      title: 'Home',
+      canGoBack: false,
+      canGoForward: true,
+      faviconDataUrl: null,
+      securityState: 'secure'
+    });
+    const back = await goBackWebpageTab(sessionContext(store), 'tab-1');
+    expect(isWebpageSessionError(back)).toBe(false);
+    if (!isWebpageSessionError(back)) {
+      expect(back.url).toBe('https://example.com/');
+      expect(back.canGoForward).toBe(true);
+    }
+    expect(window.api.browserGoBack).toHaveBeenCalledWith('tab-1');
   });
 });

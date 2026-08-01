@@ -371,6 +371,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/renderer-ui#hcuiregisterrequesttoolbaractionaction"
       },
       {
+        "text": "hc.ui.registerLivePageChromeAction(action)",
+        "link": "/renderer-ui#hcuiregisterlivepagechromeactionaction"
+      },
+      {
         "text": "hc.ui.registerScriptEditorAction(action)",
         "link": "/renderer-ui#hcuiregisterscripteditoractionaction"
       },
@@ -696,6 +700,33 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "collapsed": false
       },
       {
+        "text": "hc.livePages",
+        "link": "/renderer-data#hclivepages",
+        "items": [
+          {
+            "text": "hc.livePages.list()",
+            "link": "/renderer-data#hclivepageslist"
+          },
+          {
+            "text": "hc.livePages.get(idOrUuid)",
+            "link": "/renderer-data#hclivepagesgetidoruuid"
+          },
+          {
+            "text": "hc.livePages.create(input)",
+            "link": "/renderer-data#hclivepagescreateinput"
+          },
+          {
+            "text": "hc.livePages.update(input)",
+            "link": "/renderer-data#hclivepagesupdateinput"
+          },
+          {
+            "text": "hc.livePages.delete(id)",
+            "link": "/renderer-data#hclivepagesdeleteid"
+          }
+        ],
+        "collapsed": false
+      },
+      {
         "text": "hc.ai",
         "link": "/renderer-data#hcai",
         "items": [
@@ -711,8 +742,8 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "collapsed": false
       },
       {
-        "text": "hc.webpage",
-        "link": "/renderer-data#hcwebpage"
+        "text": "hc.livePage",
+        "link": "/renderer-data#hclivepage"
       },
       {
         "text": "Not extensible",

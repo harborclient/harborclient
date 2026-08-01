@@ -106,7 +106,7 @@ Contribution buckets include:
 
 - `settingsSections`, `sidebarPanels`, `sidebarSections`, `mainViews`
 - `requestTabs`, `responseTabs`, `collectionSettingsTabs`
-- `footerPanels`, `statusBarItems`, `requestToolbarActions`, `contextMenus`
+- `footerPanels`, `statusBarItems`, `requestToolbarActions`, `livePageChromeActions`, `contextMenus`
 - `workflowToolbarActions`, `workflowActionBlocks`
 - `themes`, `commands`, `menus`
 
@@ -162,7 +162,7 @@ and the optional stylesheet.
 | `server`           | Start a loopback HTTP echo server on `127.0.0.1`                               |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent                     |
 | `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar         |
-| `browser`          | Open and control embedded browser tabs via `hc.webpage`                        |
+| `browser`          | Open and control embedded browser tabs via `hc.livePage`                       |
 | `network`          | Outbound HTTP from the renderer via `hc.host.sendHttpRequest`                  |
 
 ---
@@ -349,6 +349,7 @@ primary collections surface when `activeSidebarPanelId` is `null`.
 | `footerPanels`           | [`HostedFooterPanel`](../ui/Footer/HostedFooterPanel/index.tsx)                                | `usePluginFooterPanels`               |
 | `statusBarItems`         | [`Footer/index.tsx`](../ui/Footer/index.tsx)                                                   | `usePluginStatusBarItems`             |
 | `requestToolbarActions`  | [`UrlBar.tsx`](../ui/Main/RequestEditor/Editor/UrlBar.tsx)                                     | `usePluginRequestToolbarActions`      |
+| `livePageChromeActions`  | [`BrowserChrome.tsx`](../ui/Main/RequestEditor/BrowserTab/BrowserChrome.tsx)                   | `usePluginLivePageChromeActions`      |
 | `workflowToolbarActions` | [`WorkflowEditControls.tsx`](../ui/Modals/WorkflowRecordingDialog/WorkflowEditControls.tsx)    | `usePluginWorkflowToolbarActions`     |
 | `workflowActionBlocks`   | [`TimelineTrack.tsx`](../ui/Modals/WorkflowRecordingDialog/WorkflowTimeline/TimelineTrack.tsx) | `usePluginWorkflowActionBlocks`       |
 | `menuItems`              | Native app menu (main process merge)                                                           | `pluginMenuSync.ts`                   |
@@ -419,29 +420,29 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 
 **Broker operations (`plugins:uiBridge`):**
 
-| Operation                                                                                                                    | Permission                             | Target                                                         |
-| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | -------------------------------------------------------------- |
-| `storage.get/set`                                                                                                            | `storage`                              | PluginManager                                                  |
-| `database.*`                                                                                                                 | `database`                             | PluginDatabaseManager                                          |
-| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`                                                                             | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)     |
-| `fs.readFile`, `fs.writeFile`, `fs.watchFile`                                                                                | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                            |
-| `ipc.invoke`                                                                                                                 | `ipc`                                  | SES runner (lazy-activates main if inactive)                   |
-| `registerContribution/unregisterContribution`                                                                                | `ui`                                   | Host renderer via `plugins:contributions`                      |
-| `themes.register`, `themes.unregister`                                                                                       | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)   |
-| `ui.showToast`, `commands.execute`                                                                                           | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                  |
-| `commands.executeRemote`                                                                                                     | `ui`                                   | Another plugin's agent webview                                 |
-| `host.openRequestDraft`, `host.applyRequestDraft`, `host.loadRequest`, `host.loadDocument`, `host.openCollectionSettings`, … | `ui`                                   | Host renderer via `plugins:hostBridge` / `hostBridgeInvoke`    |
-| `host.showEntityContextMenu`                                                                                                 | `ui`                                   | Host renderer via `plugins:hostBridge` (void; opens host menu) |
-| `host.getSidebarSelection`, `host.setSidebarSelection`, `host.onSidebarSelectionChanged`                                     | `ui`                                   | Host renderer + `sidebar.selection.changed` push event         |
-| `host.listCollections`, `host.listLibraryTree`, `host.listFolders`, …                                                        | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
-| `host.reorderContainerItems`, `host.moveRequest`, `host.reorderRequests`, …                                                  | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
-| `host.sendHttpRequest`, `host.createCollection`, …                                                                           | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)  |
-| `webpage.open`, `webpage.focus`, `webpage.close`, `webpage.query`, `webpage.evaluate`, …                                     | `browser`                              | Host renderer via `plugins:hostBridgeInvoke` → webpage session |
-| `imports.registerHandler`, `imports.unregisterHandler`                                                                       | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)     |
-| `imports.invokeComplete`                                                                                                     | `ui`                                   | Resolves pending import handler invocations from host renderer |
-| `themes.getActive`                                                                                                           | `ui`                                   | Main process theme getter                                      |
-| `view.getContext`                                                                                                            | `ui`                                   | Cached context snapshot for a view contribution                |
-| `view.reportSize`                                                                                                            | `ui`                                   | Host renderer via `plugins:surfaceResize`                      |
+| Operation                                                                                                                    | Permission                             | Target                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| `storage.get/set`                                                                                                            | `storage`                              | PluginManager                                                    |
+| `database.*`                                                                                                                 | `database`                             | PluginDatabaseManager                                            |
+| `fs.pickFile`, `fs.pickDirectory`, `fs.saveFile`                                                                             | `filesystem:pick`                      | PluginManager via shared fs helpers (`pluginFsOperations`)       |
+| `fs.readFile`, `fs.writeFile`, `fs.watchFile`                                                                                | `filesystem:read` / `filesystem:write` | PluginManager via shared fs helpers                              |
+| `ipc.invoke`                                                                                                                 | `ipc`                                  | SES runner (lazy-activates main if inactive)                     |
+| `registerContribution/unregisterContribution`                                                                                | `ui`                                   | Host renderer via `plugins:contributions`                        |
+| `themes.register`, `themes.unregister`                                                                                       | `ui`                                   | Host renderer via `plugins:contributions` (`kind: 'themes'`)     |
+| `ui.showToast`, `commands.execute`                                                                                           | `ui`                                   | Host renderer via `plugins:hostBridge` (void)                    |
+| `commands.executeRemote`                                                                                                     | `ui`                                   | Another plugin's agent webview                                   |
+| `host.openRequestDraft`, `host.applyRequestDraft`, `host.loadRequest`, `host.loadDocument`, `host.openCollectionSettings`, … | `ui`                                   | Host renderer via `plugins:hostBridge` / `hostBridgeInvoke`      |
+| `host.showEntityContextMenu`                                                                                                 | `ui`                                   | Host renderer via `plugins:hostBridge` (void; opens host menu)   |
+| `host.getSidebarSelection`, `host.setSidebarSelection`, `host.onSidebarSelectionChanged`                                     | `ui`                                   | Host renderer + `sidebar.selection.changed` push event           |
+| `host.listCollections`, `host.listLibraryTree`, `host.listFolders`, …                                                        | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
+| `host.reorderContainerItems`, `host.moveRequest`, `host.reorderRequests`, …                                                  | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
+| `host.sendHttpRequest`, `host.createCollection`, …                                                                           | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
+| `livePage.open`, `livePage.focus`, `livePage.close`, `livePage.query`, `livePage.evaluate`, …                                | `browser`                              | Host renderer via `plugins:hostBridgeInvoke` → live-page session |
+| `imports.registerHandler`, `imports.unregisterHandler`                                                                       | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)       |
+| `imports.invokeComplete`                                                                                                     | `ui`                                   | Resolves pending import handler invocations from host renderer   |
+| `themes.getActive`                                                                                                           | `ui`                                   | Main process theme getter                                        |
+| `view.getContext`                                                                                                            | `ui`                                   | Cached context snapshot for a view contribution                  |
+| `view.reportSize`                                                                                                            | `ui`                                   | Host renderer via `plugins:surfaceResize`                        |
 
 **Push events to webviews (`plugin-ui:event`):**
 

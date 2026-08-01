@@ -19,7 +19,7 @@ import {
   clearPluginLiveServersSubscribers,
   emitPluginLiveServersRunningChanged
 } from './pluginLiveServersBus';
-import * as scriptWebpageBridge from '#/renderer/src/scripting/scriptWebpageBridge';
+import * as scriptLivePageBridge from '#/renderer/src/scripting/scriptLivePageBridge';
 
 const invokePluginMainMock =
   vi.fn<(pluginId: string, channel: string, args: unknown[]) => Promise<unknown>>();
@@ -240,14 +240,19 @@ describe('createPluginContext runtime surfaces', () => {
     await expect(hc.database.get('SELECT 1')).rejects.toThrow(/lacks permission: database/);
   });
 
-  it('rejects hc.webpage without the browser permission', async () => {
+  it('rejects hc.livePage without the browser permission', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
-    await expect(hc.webpage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
+    await expect(hc.livePage('https://example.com')).rejects.toThrow(/lacks permission: browser/);
   });
 
   it('rejects hc.liveServers without the live-server permission', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
     await expect(hc.liveServers.list()).rejects.toThrow(/lacks permission: live-server/);
+  });
+
+  it('rejects hc.livePages without the live-pages permission', async () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    await expect(hc.livePages.list()).rejects.toThrow(/lacks permission: live-pages/);
   });
 
   it('lists live servers and tracks onRunningChanged when live-server is granted', async () => {
@@ -289,9 +294,74 @@ describe('createPluginContext runtime surfaces', () => {
     disposable.dispose();
   });
 
+  it('lists, creates, updates, and deletes live pages when live-pages is granted', async () => {
+    const saved = {
+      id: 1,
+      uuid: 'lp-1',
+      name: 'Example',
+      url: 'https://example.com/',
+      homeUrl: 'https://example.com/',
+      faviconDataUrl: null,
+      scripts: [],
+      preRequestScripts: [],
+      postRequestScripts: [],
+      variables: [],
+      headers: [],
+      userAgent: '',
+      auth: {
+        type: 'none' as const,
+        basic: { username: '', password: '' },
+        bearer: { token: '' },
+        oauth2: {
+          tokenUrl: '',
+          clientId: '',
+          clientSecret: '',
+          scope: '',
+          audience: '',
+          clientAuth: 'body' as const
+        }
+      },
+      createdAt: 1,
+      updatedAt: 1
+    };
+    const created = { ...saved, id: 2, uuid: 'lp-2', name: 'Created' };
+    const updated = { ...created, name: 'Updated' };
+    const listWebsites = vi.fn().mockResolvedValue([saved]);
+    const createWebsite = vi.fn().mockResolvedValue([created]);
+    const updateWebsite = vi.fn().mockResolvedValue([updated]);
+    const deleteWebsite = vi.fn().mockResolvedValue([]);
+    vi.stubGlobal('window', {
+      api: {
+        ...window.api,
+        listWebsites,
+        createWebsite,
+        updateWebsite,
+        deleteWebsite
+      }
+    });
+
+    const hc = createPluginContext('com.example.test', createManifest(['live-pages']));
+    await expect(hc.livePages.list()).resolves.toHaveLength(1);
+    await expect(
+      hc.livePages.create({
+        name: 'Created',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    ).resolves.toMatchObject({ id: 2, name: 'Created' });
+    await expect(
+      hc.livePages.update({
+        ...created,
+        name: 'Updated'
+      })
+    ).resolves.toMatchObject({ name: 'Updated' });
+    await expect(hc.livePages.delete(2)).resolves.toBeUndefined();
+    expect(deleteWebsite).toHaveBeenCalledWith(2);
+  });
+
   it('opens, focuses, queries, and closes a webpage when browser permission is granted', async () => {
     const execute = vi
-      .spyOn(scriptWebpageBridge, 'executeScriptWebpageRequest')
+      .spyOn(scriptLivePageBridge, 'executeScriptLivePageRequest')
       .mockResolvedValueOnce({
         tabId: 'browser-3',
         url: 'https://example.com/',
@@ -308,7 +378,7 @@ describe('createPluginContext runtime surfaces', () => {
       .mockResolvedValueOnce({ closed: true });
 
     const hc = createPluginContext('com.example.test', createManifest(['browser']));
-    const page = await hc.webpage('https://example.com');
+    const page = await hc.livePage('https://example.com');
 
     expect(page.tabId).toBe('browser-3');
     expect(page.url).toBe('https://example.com/');

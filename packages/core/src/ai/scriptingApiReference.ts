@@ -137,16 +137,20 @@ if (sizeAnswer == null) {
 
 Do not invent tool-calling loops or Postman AI APIs; use \`await hc.ask(...)\`.
 
-## hc.webpage(url?, options?)
+## hc.livePage(url?, options?)
 
 Opens or reuses an embedded HarborClient browser tab and returns a handle.
-Requires Settings → General → Allow script webpage access. Page load waits count
+Requires Settings → General → Allow script live page access. Page load waits count
 against \`scriptTimeoutMs\` — raise the script timeout for slow pages.
 
 \`\`\`js
-const page = await hc.webpage("https://example.com");
+const page = await hc.livePage("https://example.com");
 console.log(page.title);
 await page.focus();
+await page.navigate("https://example.com/docs");
+await page.reload();
+await page.goBack();
+await page.goForward();
 const { elements } = await page.dom.query("h1");
 const title = await page.dom.evaluate("document.title");
 const { path } = await page.screenshot("screenshot.png", {});
@@ -156,6 +160,8 @@ await page.close();
 
 - Omit \`url\` to bind the currently active browser tab
 - \`options.reuse\` — default \`true\`; set \`false\` to always open a new tab
+- \`page.navigate(url)\` / \`page.goBack()\` / \`page.goForward()\` / \`page.reload()\` —
+  wait for load and refresh \`url\` / \`title\` / \`canGoBack\` / \`canGoForward\`
 - \`page.dom.query(selector, { all?, maxElements? })\` — CSS selector reads
 - \`page.dom.evaluate(expression)\` — run JS in the page and return the result
 - \`page.dom.injectScript(source)\` / \`page.dom.injectStylesheet(css)\`

@@ -110,6 +110,20 @@ export interface RequestToolbarActionContribution {
   order?: number;
 }
 
+export interface LivePageChromeActionContext {
+  tabId: string;
+  url: string;
+  title: string;
+  websiteId?: number | null;
+}
+
+export interface LivePageChromeActionContribution {
+  id: string;
+  title: string;
+  command: string;
+  icon?: string;
+}
+
 export type ContextMenuTarget = 'collection' | 'folder' | 'request';
 
 export interface ContextMenuItemContribution {
@@ -277,6 +291,7 @@ export interface PluginUi {
   setFooterPanelIndicator(panelId: string, state: FooterPanelIndicatorState | null): void;
   registerMenuItem(item: MenuItemContribution): Disposable;
   registerRequestToolbarAction(action: RequestToolbarActionContribution): Disposable;
+  registerLivePageChromeAction(action: LivePageChromeActionContribution): Disposable;
   registerScriptEditorAction(action: ScriptEditorActionContribution): Disposable;
   registerWorkflowToolbarAction(action: WorkflowToolbarActionContribution): Disposable;
   registerWorkflowActionBlock(block: WorkflowActionBlockContribution): Disposable;

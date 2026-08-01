@@ -167,7 +167,7 @@ export const updateGeneralSettingsTool = {
           allowScriptWebpage: {
             type: 'boolean',
             description:
-              'When true, pre/post scripts may call hc.webpage to open and control browser tabs.'
+              'When true, pre/post scripts may call hc.livePage to open and control browser tabs.'
           },
           scriptFileRoot: {
             type: 'string',

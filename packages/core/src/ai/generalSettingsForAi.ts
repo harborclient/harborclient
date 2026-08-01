@@ -47,7 +47,7 @@ export interface GeneralSettingsAiPatch {
   allowScriptFileWrite?: boolean;
 
   /**
-   * When true, pre/post scripts may call hc.webpage to open and control browser tabs.
+   * When true, pre/post scripts may call hc.livePage to open and control browser tabs.
    */
   allowScriptWebpage?: boolean;
 

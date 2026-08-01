@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(live-page): introduce live page functionality and refactor related components. (`16f1f304`)
+
 ## 0.3.4 - 2026-08-01
 
 - feat(websites): implement Add Live Page modal and import functionality. (`1bdbf8a4`)

@@ -34,6 +34,7 @@ const pluginPermission = z.enum([
   'ipc',
   'server',
   'live-server',
+  'live-pages',
   'mcp',
   'ai',
   'browser'
@@ -83,6 +84,7 @@ export const pluginManifestSchema = z.object({
       collectionSettingsTabs: z.array(contributionEntry).optional(),
       footerPanels: z.array(contributionEntry).optional(),
       requestToolbarActions: z.array(contributionEntry).optional(),
+      livePageChromeActions: z.array(contributionEntry).optional(),
       scriptEditorActions: z.array(contributionEntry).optional(),
       workflowToolbarActions: z.array(contributionEntry).optional(),
       workflowActionBlocks: z.array(contributionEntry).optional(),
