@@ -6,6 +6,7 @@
   --color-separator: #3a3a3c;
   --color-control: #3a3a3c;
   --color-surface: #2c2c2e;
+  --color-header: #252526;
   --color-sidebar: #252526;
   --color-sidebar-toolbar: color-mix(in srgb, #252526 80%, black);
   --color-sidebar-rail: #313131;

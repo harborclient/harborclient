@@ -1077,6 +1077,7 @@ export interface StatusBarItemContribution {
  *
  * Token usage:
  * - `surface` — main content background
+ * - `header` — top header strip (sidebar search + request tab bar)
  * - `sidebar` — left sidebar background
  * - `sidebar-toolbar` — sidebar/footer toolbar strip background
  * - `sidebar-rail` — activity rail background
@@ -1118,6 +1119,7 @@ export interface StatusBarItemContribution {
  */
 export type ThemeColorToken =
   | 'surface'
+  | 'header'
   | 'sidebar'
   | 'sidebar-toolbar'
   | 'sidebar-rail'

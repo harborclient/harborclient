@@ -582,7 +582,7 @@ export function TabBar<TId extends string | number>({
   const scrollContainer = renderScrollContainer ?? defaultScrollContainer;
 
   const containerClassName = cn(
-    'app-no-drag flex shrink-0 items-end bg-sidebar pr-2 pl-0',
+    'app-no-drag flex shrink-0 items-end bg-header pr-2 pl-0',
     className
   );
 

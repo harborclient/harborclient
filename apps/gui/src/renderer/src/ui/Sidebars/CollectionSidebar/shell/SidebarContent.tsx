@@ -477,7 +477,7 @@ export function SidebarContent(): JSX.Element {
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar">
       {showSearch ? (
-        <div className="shrink-0 border-b border-separator">
+        <div className="shrink-0 border-b border-separator bg-header">
           <SidebarSearch value={searchQuery} onChange={setSearchQuery} loading={searchLoading} />
         </div>
       ) : null}

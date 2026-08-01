@@ -50,12 +50,14 @@ describe('customTheme Rail & Sidebars color tokens', () => {
 
     expect(layout?.tokens).toEqual([
       'surface',
+      'header',
       'footer',
       'control',
       'field',
       'separator',
       'terminal'
     ]);
+    expect(CUSTOM_THEME_TOKEN_LABELS.header).toBe('Header');
     expect(text?.tokens).toEqual([
       'text',
       'text-secondary',

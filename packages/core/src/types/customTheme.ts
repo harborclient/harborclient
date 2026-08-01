@@ -156,6 +156,7 @@ export interface CustomThemeMetricGroup {
  */
 export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'surface': 'Surface',
+  'header': 'Header',
   'sidebar': 'Sidebar',
   'sidebar-toolbar': 'Sidebar toolbar',
   'sidebar-rail': 'Sidebar rail',
@@ -268,7 +269,7 @@ export const CUSTOM_THEME_METRIC_LABELS: Record<ThemeMetricToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
-    tokens: ['surface', 'footer', 'control', 'field', 'separator', 'terminal']
+    tokens: ['surface', 'header', 'footer', 'control', 'field', 'separator', 'terminal']
   },
   {
     label: 'Rail & Sidebars',

@@ -148,6 +148,7 @@ export interface StatusBarItemContribution {
  */
 export type ThemeColorToken =
   | 'surface'
+  | 'header'
   | 'sidebar'
   | 'sidebar-toolbar'
   | 'sidebar-rail'

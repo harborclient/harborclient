@@ -11,6 +11,7 @@ const customThemeTypeSchema = z.enum(['light', 'dark', 'high-contrast']);
 
 const themeColorTokenSchema = z.enum([
   'surface',
+  'header',
   'sidebar',
   'sidebar-toolbar',
   'sidebar-rail',

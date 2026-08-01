@@ -157,6 +157,7 @@ Override any of these keys in `colors`. Each maps to `--mac-<token>` on the docu
 | Token                                                  | Used for                                                 |
 | ------------------------------------------------------ | -------------------------------------------------------- |
 | `surface`                                              | Main content background                                  |
+| `header`                                               | Top header strip (sidebar search + request tab bar)      |
 | `sidebar`                                              | Left sidebar background                                  |
 | `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                  |
 | `sidebar-rail`                                         | Activity rail background                                 |

@@ -51,6 +51,7 @@
 
 @theme {
   --color-surface: var(--mac-surface);
+  --color-header: var(--mac-header, var(--mac-sidebar));
   --color-sidebar: var(--mac-sidebar);
   --color-sidebar-toolbar: var(--mac-sidebar-toolbar);
   --color-sidebar-rail: var(--mac-sidebar-rail);
@@ -128,6 +129,7 @@
 
     --mac-surface: #f5f5f7;
     --mac-sidebar: #ececee;
+    --mac-header: var(--mac-sidebar);
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 88%, black);
     --mac-sidebar-rail: #ffffff;
     --mac-sidebar-rail-active: #ececee;
@@ -243,6 +245,7 @@
     :root:not([data-theme='light']) {
       --mac-surface: #1e1e1e;
       --mac-sidebar: #252526;
+      --mac-header: var(--mac-sidebar);
       /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
       --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
       --mac-sidebar-rail: #313131;
@@ -299,6 +302,7 @@
 
     --mac-surface: #1e1e1e;
     --mac-sidebar: #252526;
+    --mac-header: var(--mac-sidebar);
     /* Recessed vs sidebar so the activity rail reads as a distinct strip. */
     --mac-sidebar-toolbar: color-mix(in srgb, var(--mac-sidebar) 80%, black);
     --mac-sidebar-rail: #313131;
@@ -364,6 +368,7 @@
 
     --mac-surface: #000000;
     --mac-sidebar: #000000;
+    --mac-header: #000000;
     --mac-sidebar-toolbar: #141414;
     --mac-sidebar-rail: #ffd60a;
     --mac-sidebar-rail-active: #c9a008;
@@ -429,6 +434,7 @@
 
       --mac-surface: Canvas;
       --mac-sidebar: Canvas;
+      --mac-header: Canvas;
       --mac-sidebar-toolbar: Canvas;
       --mac-sidebar-rail: Canvas;
       --mac-sidebar-rail-active: Highlight;

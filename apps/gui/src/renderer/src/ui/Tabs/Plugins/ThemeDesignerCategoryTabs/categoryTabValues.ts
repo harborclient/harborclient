@@ -27,7 +27,7 @@ export interface ThemeDesignerCategoryTab {
  */
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'Layout':
-    'Main surfaces: app background, footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
+    'Main surfaces: app background, header (search + tabs), footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
   'Rail & Sidebars':
     'Activity rail fills, text, and separators, plus the sidebar panel, toolbar strip, and section header colors.',
   'Breadcrumb':

@@ -3,6 +3,7 @@
   "harborclientExport": "theme",
   "theme": {
     "surface": "#f5f5f7",
+    "header": "#ececee",
     "sidebar": "#ececee",
     "sidebar-toolbar": "#d0d0d1",
     "sidebar-rail": "#ffffff",

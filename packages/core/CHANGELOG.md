@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(theme): introduce header color variable and update related styles. (`6b6637e3`)
+
 ## 0.4.0 - 2026-08-01
 
 - feat(live-page): introduce live page functionality and refactor related components. (`16f1f304`)

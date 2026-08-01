@@ -101,7 +101,7 @@ export function ChatTabBar({ aiSettings }: Props): JSX.Element {
       tabIdPrefix="ai-chat-tab-"
       panelIdPrefix="ai-chat-panel-"
       sortablePrefix="ai-chat-tab-sort:"
-      className="relative z-10"
+      className="relative z-10 bg-sidebar"
       maxTabWidthClass="max-w-[180px]"
       newTab={{
         ariaLabel: 'New chat',

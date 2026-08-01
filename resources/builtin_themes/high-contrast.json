@@ -5,6 +5,7 @@
   "type": "high-contrast",
   "theme": {
     "surface": "#000000",
+    "header": "#000000",
     "sidebar": "#000000",
     "sidebar-toolbar": "#141414",
     "sidebar-rail": "#ffd60a",
