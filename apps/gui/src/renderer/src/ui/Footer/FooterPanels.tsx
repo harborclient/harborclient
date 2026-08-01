@@ -2,6 +2,7 @@ import { useCallback, useMemo, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
 import {
   closeLiveServerModal,
   selectLiveServerModal
@@ -10,8 +11,10 @@ import {
   selectActivePluginFooterPanelId,
   togglePluginFooterPanel
 } from '#/renderer/src/store/slices/navigationSlice';
+import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
 import { usePluginFooterPanels } from '#/renderer/src/plugins/pluginHooks';
 import { ConsolePanel } from './ConsolePanel';
+import { LivePageSettingsPanel } from './LivePageSettingsPanel';
 import { LiveServerLogsPanel } from './LiveServerLogsPanel';
 import { LiveServerPanel } from './LiveServerPanel';
 import { McpPanel } from './McpPanel';
@@ -152,7 +155,9 @@ export function FooterPanels({
   const pluginFooterPanels = usePluginFooterPanels();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const liveServerModal = useAppSelector(selectLiveServerModal);
+  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
   const liveServerOpen = liveServerModal != null;
+  const livePageSettingsOpen = activeBrowserTab?.settingsPanelOpen === true;
 
   /**
    * Merges scoped variables for the variables panel content.
@@ -176,36 +181,50 @@ export function FooterPanels({
   }, [dispatch]);
 
   /**
-   * Closes the live server editor, then toggles the console panel.
+   * Closes the live page settings panel when another footer panel is toggled open.
+   */
+  const closeLivePageSettings = useCallback((): void => {
+    if (activeBrowserTab?.settingsPanelOpen !== true) {
+      return;
+    }
+    dispatch(setBrowserSettingsPanelOpen({ tabId: activeBrowserTab.tabId, open: false }));
+  }, [activeBrowserTab, dispatch]);
+
+  /**
+   * Closes exclusive editors, then toggles the console panel.
    */
   const handleToggleConsole = useCallback((): void => {
     closeLiveServerEditor();
+    closeLivePageSettings();
     onToggleConsole();
-  }, [closeLiveServerEditor, onToggleConsole]);
+  }, [closeLivePageSettings, closeLiveServerEditor, onToggleConsole]);
 
   /**
-   * Closes the live server editor, then toggles the variables panel.
+   * Closes exclusive editors, then toggles the variables panel.
    */
   const handleToggleVariables = useCallback((): void => {
     closeLiveServerEditor();
+    closeLivePageSettings();
     onToggleVariables();
-  }, [closeLiveServerEditor, onToggleVariables]);
+  }, [closeLivePageSettings, closeLiveServerEditor, onToggleVariables]);
 
   /**
-   * Closes the live server editor, then toggles the MCP panel.
+   * Closes exclusive editors, then toggles the MCP panel.
    */
   const handleToggleMcp = useCallback((): void => {
     closeLiveServerEditor();
+    closeLivePageSettings();
     onToggleMcp();
-  }, [closeLiveServerEditor, onToggleMcp]);
+  }, [closeLivePageSettings, closeLiveServerEditor, onToggleMcp]);
 
   /**
-   * Closes the live server editor, then toggles the terminal panel.
+   * Closes exclusive editors, then toggles the terminal panel.
    */
   const handleToggleTerminal = useCallback((): void => {
     closeLiveServerEditor();
+    closeLivePageSettings();
     onToggleTerminal();
-  }, [closeLiveServerEditor, onToggleTerminal]);
+  }, [closeLivePageSettings, closeLiveServerEditor, onToggleTerminal]);
 
   /**
    * Closes the live-server logs slide-up panel.
@@ -224,10 +243,23 @@ export function FooterPanels({
     closeLiveServerEditor();
   }, [closeLiveServerEditor, liveServerModal?.busy]);
 
+  /**
+   * Closes the live page settings footer panel.
+   */
+  const handleCloseLivePageSettings = useCallback((): void => {
+    closeLivePageSettings();
+  }, [closeLivePageSettings]);
+
   return (
     <div className="absolute inset-x-0 bottom-0">
       {liveServerOpen ? (
         <LiveServerPanel open onClose={handleCloseLiveServer} />
+      ) : livePageSettingsOpen && activeBrowserTab != null ? (
+        <LivePageSettingsPanel
+          open
+          browserTab={activeBrowserTab}
+          onClose={handleCloseLivePageSettings}
+        />
       ) : (
         <>
           <ConsolePanel
@@ -259,6 +291,7 @@ export function FooterPanels({
               open={activePluginFooterPanelId === panel.id}
               onClose={() => {
                 closeLiveServerEditor();
+                closeLivePageSettings();
                 dispatch(togglePluginFooterPanel(panel.id));
               }}
             />

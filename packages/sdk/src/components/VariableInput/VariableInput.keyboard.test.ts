@@ -2,8 +2,10 @@
 import { installReact } from '@harborclient/sdk';
 import { act, createElement, useState } from 'react';
 import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setHostReactDom } from '../../runtime/reactHost.js';
 import type { Variable } from '../../types.js';
 import { VariableInput } from './index.js';
 
@@ -48,6 +50,7 @@ describe('VariableInput keyboard', () => {
    */
   beforeEach(() => {
     installReact(React);
+    setHostReactDom(ReactDOM);
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -416,5 +419,44 @@ describe('VariableInput keyboard', () => {
     expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
     outside.remove();
+  });
+
+  it('calls onSuggestionSelect after applying an autocomplete suggestion', async () => {
+    const onSuggestionSelect = vi.fn();
+    const source = {
+      list: async () => ['https://example.com', 'https://harborclient.com'],
+      add: async () => {}
+    };
+
+    act(() => {
+      root.render(
+        createElement(VariableInput, {
+          value: 'https://ex',
+          onChange: () => {},
+          variables: sampleVariables,
+          source,
+          onSuggestionSelect,
+          'aria-label': 'Address'
+        })
+      );
+    });
+
+    const input = container.querySelector('.hc-variable-input-field') as HTMLInputElement;
+
+    await act(async () => {
+      input.focus();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const option = document.querySelector('[role="option"]');
+    expect(option).not.toBeNull();
+
+    await act(async () => {
+      option!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+
+    expect(onSuggestionSelect).toHaveBeenCalledWith('https://example.com');
   });
 });

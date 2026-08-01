@@ -80,7 +80,7 @@ describe('websiteNameFromTab', () => {
 });
 
 describe('openWebsiteSettings', () => {
-  it('opens the website browser tab with the settings panel open', async () => {
+  it('opens the website browser tab with the settings footer panel open', async () => {
     const { dispatch, getTabs } = createTestStore();
     dispatch(setWebsites([sampleWebsite()]));
 

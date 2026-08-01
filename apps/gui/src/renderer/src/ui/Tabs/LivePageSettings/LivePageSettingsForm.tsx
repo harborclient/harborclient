@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type JSX } from 'react';
+import { useCallback, useMemo, useState, type JSX, type ReactNode } from 'react';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setBrowserScripts, updateBrowserTab } from '#/renderer/src/store/slices/tabsSlice';
@@ -28,21 +28,33 @@ interface Props {
    * Closes the settings panel without navigating away from the live page tab.
    */
   onClose: () => void;
+
+  /**
+   * Receives the Save control for the parent FooterPanel header.
+   *
+   * @param actions - Save button node, or null when clearing.
+   */
+  onHeaderActionsChange?: (actions: ReactNode | null) => void;
 }
 
 /**
  * Collection-style settings form for one open browser / live page tab.
  *
  * Remount via `key={browserTab.tabId}` so injection drafts reseed when the linked
- * browser tab changes. Hosted in the slide-down panel under browser chrome.
+ * browser tab changes. Hosted in the slide-up live page settings footer panel with
+ * footer chrome (Save in the panel header, sticky tabs).
  *
  * Drafts sync into the browser tab so unsaved edits survive panel close and tab
  * switches; dirty state ambers the tab and prompts on close like request tabs.
  *
- * @param props - Linked browser tab and close handler.
+ * @param props - Linked browser tab, close handler, and header-actions callback.
  * @returns Tabbed live page settings form.
  */
-export function LivePageSettingsForm({ browserTab, onClose }: Props): JSX.Element {
+export function LivePageSettingsForm({
+  browserTab,
+  onClose,
+  onHeaderActionsChange
+}: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const website = useAppSelector((state) =>
     state.websites.items.find((item) => item.id === browserTab.websiteId)
@@ -169,6 +181,8 @@ export function LivePageSettingsForm({ browserTab, onClose }: Props): JSX.Elemen
       title="Live Page Settings"
       description="Manage live page settings and configuration."
       ariaLabel="Live page settings sections"
+      chrome="footer"
+      onHeaderActionsChange={onHeaderActionsChange}
       initial={initial}
       seed={seed}
       tabId={browserTab.tabId}

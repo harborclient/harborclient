@@ -48,6 +48,7 @@ import {
 import {
   newBrowserTab,
   setActiveTab,
+  setBrowserSettingsPanelOpen,
   updateBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
@@ -296,6 +297,11 @@ export const openLiveServerEditor = createAsyncThunk<
     dispatch(setShowLiveServerLogs(false));
   }
   dispatch(setActivePluginFooterPanelId(null));
+  for (const tab of getState().tabs.tabs) {
+    if (isBrowserTab(tab) && tab.settingsPanelOpen) {
+      dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: false }));
+    }
+  }
   dispatch(openLiveServerModal(payload));
 });
 

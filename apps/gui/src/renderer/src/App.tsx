@@ -11,6 +11,7 @@ import { useMcpServerStatus } from '#/renderer/src/hooks/useMcpServerStatus';
 import { usePersistedPanelLayout } from '#/renderer/src/hooks/usePersistedPanelLayout';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  selectActiveBrowserTab,
   selectActiveEnvironmentId,
   selectActivePage,
   selectActiveTab,
@@ -53,7 +54,11 @@ import {
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import { closeLiveServerModal, openThemePicker } from '#/renderer/src/store/slices/modalsSlice';
-import { closeTab, openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  closeTab,
+  openPageTab,
+  setBrowserSettingsPanelOpen
+} from '#/renderer/src/store/slices/tabsSlice';
 import {
   bootstrapShellForReveal,
   refreshCollectionContents,
@@ -139,6 +144,11 @@ export default function App(): JSX.Element {
   const activePage = useAppSelector(selectActivePage);
   const activeTab = useAppSelector(selectActiveTab);
   const activeTabId = useAppSelector(selectActiveTabId);
+  /**
+   * When a Live Page guest is active, toasts must sit in the HTML chrome (top)
+   * — WebContentsView paints above bottom-center HTML overlays.
+   */
+  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const railVisible = useAppSelector(selectShowRail);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
@@ -165,6 +175,16 @@ export default function App(): JSX.Element {
   usePersistedPanelLayout();
   useBeforeClose();
   useBrowserGuestOverlayCover();
+
+  /**
+   * Closes the live page settings footer panel for the active browser tab, if open.
+   */
+  const closeLivePageSettings = useCallback((): void => {
+    if (activeBrowserTab?.settingsPanelOpen !== true) {
+      return;
+    }
+    dispatch(setBrowserSettingsPanelOpen({ tabId: activeBrowserTab.tabId, open: false }));
+  }, [activeBrowserTab, dispatch]);
 
   /**
    * Loads folders and requests when a collection tree is expanded in the sidebar,
@@ -471,6 +491,7 @@ export default function App(): JSX.Element {
                       consoleOpen={showConsole}
                       onToggleConsole={() => {
                         dispatch(closeLiveServerModal());
+                        closeLivePageSettings();
                         dispatch(toggleConsole());
                       }}
                       entries={consoleEntries}
@@ -478,16 +499,19 @@ export default function App(): JSX.Element {
                       variablesOpen={showVariables}
                       onToggleVariables={() => {
                         dispatch(closeLiveServerModal());
+                        closeLivePageSettings();
                         dispatch(toggleVariables());
                       }}
                       mcpOpen={showMcp}
                       onToggleMcp={() => {
                         dispatch(closeLiveServerModal());
+                        closeLivePageSettings();
                         dispatch(toggleMcp());
                       }}
                       terminalOpen={showTerminal}
                       onToggleTerminal={() => {
                         dispatch(closeLiveServerModal());
+                        closeLivePageSettings();
                         dispatch(toggleTerminal());
                       }}
                       liveServerLogsOpen={liveServerLogsFooterOpen}
@@ -542,21 +566,25 @@ export default function App(): JSX.Element {
                 entryCount={consoleEntries.length}
                 onToggleConsole={() => {
                   dispatch(closeLiveServerModal());
+                  closeLivePageSettings();
                   dispatch(toggleConsole());
                 }}
                 variablesOpen={showVariables}
                 onToggleVariables={() => {
                   dispatch(closeLiveServerModal());
+                  closeLivePageSettings();
                   dispatch(toggleVariables());
                 }}
                 mcpOpen={showMcp}
                 onToggleMcp={() => {
                   dispatch(closeLiveServerModal());
+                  closeLivePageSettings();
                   dispatch(toggleMcp());
                 }}
                 terminalOpen={showTerminal}
                 onToggleTerminal={() => {
                   dispatch(closeLiveServerModal());
+                  closeLivePageSettings();
                   dispatch(toggleTerminal());
                 }}
                 mcpServerRunning={mcpServerStatus.running}
@@ -601,8 +629,8 @@ export default function App(): JSX.Element {
               <TeamHubJoinDeepLinkHost />
 
               <Toaster
-                position="bottom-center"
-                containerStyle={{ bottom: 16 }}
+                position={activeBrowserTab ? 'top-center' : 'bottom-center'}
+                containerStyle={activeBrowserTab ? { top: 16 } : { bottom: 16 }}
                 toastOptions={{
                   duration: 2000,
                   ariaProps: DEFAULT_TOAST_ARIA_PROPS,

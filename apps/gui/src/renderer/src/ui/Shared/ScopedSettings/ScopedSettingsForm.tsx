@@ -135,6 +135,24 @@ interface Props {
   pageClassName?: string;
 
   /**
+   * Visual chrome for the form.
+   *
+   * - `page` (default): Page header with title, description, and Save — used by
+   *   collection/folder settings tabs.
+   * - `footer`: No page header; sticky tab strip + scrollable body for FooterPanel
+   *   hosts. Save is reported via {@link onHeaderActionsChange}.
+   */
+  chrome?: 'page' | 'footer';
+
+  /**
+   * When {@link chrome} is `footer`, receives the Save control for the parent
+   * FooterPanel header. Called with `null` on unmount or when chrome is not footer.
+   *
+   * @param actions - Header action node, or null to clear.
+   */
+  onHeaderActionsChange?: (actions: ReactNode | null) => void;
+
+  /**
    * Persisted snapshot used for dirty comparison (and as the editor seed when
    * {@link seed} is omitted).
    */
@@ -265,6 +283,8 @@ export function ScopedSettingsForm({
   description,
   ariaLabel,
   pageClassName,
+  chrome = 'page',
+  onHeaderActionsChange,
   initial,
   seed,
   focusVariableKey,
@@ -440,6 +460,41 @@ export function ScopedSettingsForm({
 
   useTabSaveRegistration(tabId, menuCanSave, handleSave);
 
+  const saveDisabled = !name.trim() || disableSave || !isDirty || saving;
+
+  /**
+   * Save control for the page-header chrome (collection/folder settings).
+   */
+  const saveButton = (
+    <Button type="button" onClick={() => void handleSave()} disabled={saveDisabled}>
+      {saving ? 'Saving…' : 'Save'}
+    </Button>
+  );
+
+  /**
+   * Reports the Save control to a FooterPanel host when using footer chrome.
+   */
+  useEffect(() => {
+    if (chrome !== 'footer') {
+      onHeaderActionsChange?.(null);
+      return;
+    }
+    onHeaderActionsChange?.(
+      <Button
+        key="save"
+        type="button"
+        variant="secondary"
+        onClick={() => void handleSave()}
+        disabled={saveDisabled}
+      >
+        {saving ? 'Saving…' : 'Save'}
+      </Button>
+    );
+    return () => {
+      onHeaderActionsChange?.(null);
+    };
+  }, [chrome, onHeaderActionsChange, saveDisabled, saving, handleSave]);
+
   const renderState = useMemo(
     (): ScopedSettingsRenderState => ({
       name,
@@ -491,6 +546,74 @@ export function ScopedSettingsForm({
     onSectionChange?.(nextTab);
   };
 
+  /**
+   * Tab panels shared by page and footer chrome layouts.
+   */
+  const tabPanels = (
+    <>
+      <SegmentedTabPanel value="general">{renderGeneral(renderState)}</SegmentedTabPanel>
+      {tabsAfterGeneral.map((entry) => (
+        <SegmentedTabPanel key={entry.value} value={entry.value} className={entry.panelClassName}>
+          {entry.panel(renderState)}
+        </SegmentedTabPanel>
+      ))}
+      <SegmentedTabPanel value="variables">
+        <VariablesSection
+          variables={variables}
+          onChange={setVariables}
+          focusVariableKey={focusVariableKey}
+        />
+      </SegmentedTabPanel>
+      <SegmentedTabPanel value="headers">{renderHeaders(renderState)}</SegmentedTabPanel>
+      <SegmentedTabPanel value="auth">{renderAuth(renderState)}</SegmentedTabPanel>
+      <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col">
+        <ScriptSection
+          phase="pre"
+          description={preScriptDescription}
+          placeholder={COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER}
+          scripts={preRequestScripts}
+          onChange={setPreRequestScripts}
+          variables={variables}
+          allowedStages={scriptAllowedStages}
+        />
+      </SegmentedTabPanel>
+      <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col">
+        <ScriptSection
+          phase="post"
+          description={postScriptDescription}
+          placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
+          scripts={postRequestScripts}
+          onChange={setPostRequestScripts}
+          variables={variables}
+          allowedStages={scriptAllowedStages}
+        />
+      </SegmentedTabPanel>
+      {tabsAfterScripts.map((entry) => (
+        <SegmentedTabPanel key={entry.value} value={entry.value} className={entry.panelClassName}>
+          {entry.panel(renderState)}
+        </SegmentedTabPanel>
+      ))}
+    </>
+  );
+
+  if (chrome === 'footer') {
+    return (
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <SegmentedTabsGroup value={tab} onChange={handleTabChange} ariaLabel={ariaLabel}>
+          <div className="shrink-0">
+            <SegmentedTabs
+              fullWidth
+              tabs={tabs}
+              visibleTabValues={visibleTabValues}
+              onVisibleTabValuesChange={onVisibleTabValuesChange}
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-4">{tabPanels}</div>
+        </SegmentedTabsGroup>
+      </div>
+    );
+  }
+
   return (
     <Page
       embedded
@@ -499,15 +622,7 @@ export function ScopedSettingsForm({
         .join(' ')}
       title={title}
       description={description}
-      actions={
-        <Button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={!name.trim() || disableSave || !isDirty || saving}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </Button>
-      }
+      actions={saveButton}
     >
       <SegmentedTabsGroup value={tab} onChange={handleTabChange} ariaLabel={ariaLabel}>
         <div className="-mx-6 -mt-3 mb-6 shrink-0">
@@ -519,56 +634,7 @@ export function ScopedSettingsForm({
         </div>
 
         <div className="hc-scroll-stable -mx-6 flex min-h-0 flex-1 flex-col overflow-y-auto px-6">
-          <SegmentedTabPanel value="general">{renderGeneral(renderState)}</SegmentedTabPanel>
-          {tabsAfterGeneral.map((entry) => (
-            <SegmentedTabPanel
-              key={entry.value}
-              value={entry.value}
-              className={entry.panelClassName}
-            >
-              {entry.panel(renderState)}
-            </SegmentedTabPanel>
-          ))}
-          <SegmentedTabPanel value="variables">
-            <VariablesSection
-              variables={variables}
-              onChange={setVariables}
-              focusVariableKey={focusVariableKey}
-            />
-          </SegmentedTabPanel>
-          <SegmentedTabPanel value="headers">{renderHeaders(renderState)}</SegmentedTabPanel>
-          <SegmentedTabPanel value="auth">{renderAuth(renderState)}</SegmentedTabPanel>
-          <SegmentedTabPanel value="pre" className="flex min-h-0 flex-1 flex-col">
-            <ScriptSection
-              phase="pre"
-              description={preScriptDescription}
-              placeholder={COLLECTION_PRE_REQUEST_SCRIPT_PLACEHOLDER}
-              scripts={preRequestScripts}
-              onChange={setPreRequestScripts}
-              variables={variables}
-              allowedStages={scriptAllowedStages}
-            />
-          </SegmentedTabPanel>
-          <SegmentedTabPanel value="post" className="flex min-h-0 flex-1 flex-col">
-            <ScriptSection
-              phase="post"
-              description={postScriptDescription}
-              placeholder={POST_REQUEST_SCRIPT_PLACEHOLDER}
-              scripts={postRequestScripts}
-              onChange={setPostRequestScripts}
-              variables={variables}
-              allowedStages={scriptAllowedStages}
-            />
-          </SegmentedTabPanel>
-          {tabsAfterScripts.map((entry) => (
-            <SegmentedTabPanel
-              key={entry.value}
-              value={entry.value}
-              className={entry.panelClassName}
-            >
-              {entry.panel(renderState)}
-            </SegmentedTabPanel>
-          ))}
+          {tabPanels}
         </div>
       </SegmentedTabsGroup>
     </Page>

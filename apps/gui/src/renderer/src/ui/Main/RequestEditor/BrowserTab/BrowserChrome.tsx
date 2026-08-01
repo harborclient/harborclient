@@ -1,20 +1,19 @@
 import { VariableInput, RoundButton, fieldFrame } from '@harborclient/sdk/components';
 import type { Variable } from '@harborclient/core/types';
-import { useState, type FormEvent, type JSX } from 'react';
+import { useState, type ClipboardEvent, type FocusEvent, type FormEvent, type JSX } from 'react';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
-import { hasBrowserPendingSave } from '#/renderer/src/store/tabs';
 import {
   faAngleLeft,
   faAngleRight,
   faArrowsRotate,
-  faBolt,
   faCamera,
-  faGear,
+  faFloppyDisk,
   faHouse,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import { buildRuntimeVars } from '#/renderer/src/scripting/scriptOrchestration';
 import { browserUrlSource } from '#/renderer/src/autocomplete/sources';
+import { applyBrowserAddressPaste } from './applyBrowserAddressPaste';
 import { resolveBrowserAddressInput } from './resolveBrowserAddress';
 import { resolveBrowserExternalUrl } from './resolveBrowserExternalUrl';
 import { browserAddressInputId } from './focusBrowserAddress';
@@ -105,21 +104,6 @@ interface Props {
   onAskAi?: () => void;
 
   /**
-   * When true, the live page settings panel is open under this chrome.
-   */
-  settingsOpen: boolean;
-
-  /**
-   * DOM id of the settings panel for aria-controls.
-   */
-  settingsPanelId: string;
-
-  /**
-   * Toggles the live page settings panel under the address bar.
-   */
-  onToggleSettings: () => void;
-
-  /**
    * Opens settings to edit a variable from an address-bar token tooltip.
    *
    * @param key - Variable name from the hovered `{{key}}` token.
@@ -140,10 +124,12 @@ interface Props {
 }
 
 /**
- * Navigation toolbar for an embedded browser tab (back, forward, reload, home, address, downloads, AI, screenshot, save, settings).
+ * Navigation toolbar for an embedded browser tab (save, back, forward, reload, home, address,
+ * open external, downloads, AI, screenshot).
  *
  * Address autocomplete is gated on {@link Props.beforeSuggestionsOpen} so the parent can cover
- * the native WebContentsView before the portaled suggestion list paints.
+ * the native WebContentsView before the portaled suggestion list paints. Navigation commits when
+ * the user presses Enter, blurs the address field, pastes a URL, or accepts a suggestion.
  *
  * @param props - Tab state and chrome action handlers.
  * @returns Browser chrome row.
@@ -160,9 +146,6 @@ export function BrowserChrome({
   onScreenshot,
   screenshotDisabled = false,
   onAskAi,
-  settingsOpen,
-  settingsPanelId,
-  onToggleSettings,
   onEditVariables,
   beforeSuggestionsOpen,
   onSuggestionsOpenChange
@@ -175,38 +158,114 @@ export function BrowserChrome({
   const addressValue = editingAddress ?? tab.url;
   const runtimeVars = buildRuntimeVars(variables);
   const externalUrl = resolveBrowserExternalUrl(addressValue, runtimeVars);
-  const dirty = hasBrowserPendingSave(tab);
   const linked = tab.websiteId != null;
-  const saveEnabled = !linked || dirty;
   const saveLabel = linked ? 'Update live page' : 'Save live page';
 
   /**
-   * Submits the address bar: substitutes variables, normalizes, then navigates.
+   * Resolves address-bar text and navigates when it is a valid URL.
+   *
+   * Skips {@link Props.onNavigate} when the guest is already at the normalized
+   * URL, but still clears the edit buffer so the field tracks tab state again.
+   *
+   * @param raw - Raw address-bar text to commit.
+   * @returns Whether the address resolved to an allowed URL.
+   */
+  function commitAddress(raw: string): boolean {
+    const normalized = resolveBrowserAddressInput(raw, runtimeVars);
+    if (!normalized) {
+      return false;
+    }
+    setEditingAddress(null);
+    const trimmed = raw.trim();
+    if (trimmed) {
+      void browserUrlSource.add(trimmed);
+    }
+    if (normalized !== tab.url) {
+      onNavigate(normalized);
+    }
+    return true;
+  }
+
+  /**
+   * Submits the address bar via Enter: substitutes variables, normalizes, then navigates.
    *
    * @param event - Form submit event.
    */
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const normalized = resolveBrowserAddressInput(addressValue, runtimeVars);
-    if (!normalized) {
-      return;
-    }
-    setEditingAddress(null);
-    const trimmed = addressValue.trim();
-    if (trimmed) {
-      void browserUrlSource.add(trimmed);
-    }
-    onNavigate(normalized);
+    commitAddress(addressValue);
   }
 
-  const settingsLabel = !linked
-    ? 'Live page settings (save as a live page first)'
-    : dirty
-      ? 'Live page settings (unsaved changes)'
-      : 'Live page settings';
+  /**
+   * Navigates when the address field loses focus outside its wrapper (not when
+   * focus moves between the input and in-field variable token controls).
+   *
+   * Invalid edits are discarded so the field reverts to {@link BrowserTab.url}.
+   *
+   * @param event - Focus event from the VariableInput wrapper (React focusout).
+   */
+  function handleAddressBlur(event: FocusEvent<HTMLDivElement>): void {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) {
+      return;
+    }
+    if (!commitAddress(addressValue)) {
+      setEditingAddress(null);
+    }
+    // Clear an in-flight guest cover if suggestions never opened (stale beforeOpen).
+    onSuggestionsOpenChange?.(false);
+  }
+
+  /**
+   * Applies a paste to the address value and navigates when the result is valid.
+   *
+   * Prevents the default insert so controlled state and navigation stay in sync
+   * (avoids onChange re-arming the edit buffer after a successful commit).
+   *
+   * @param event - Paste event bubbled from the address input.
+   */
+  function handleAddressPaste(event: ClipboardEvent<HTMLDivElement>): void {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) {
+      return;
+    }
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    if (!pasted) {
+      return;
+    }
+    event.preventDefault();
+    const nextValue = applyBrowserAddressPaste(
+      input.value,
+      input.selectionStart,
+      input.selectionEnd,
+      pasted
+    );
+    if (!commitAddress(nextValue)) {
+      setEditingAddress(nextValue);
+    }
+  }
+
+  /**
+   * Navigates after the user accepts an address autocomplete suggestion.
+   *
+   * Suggestion mousedown prevents input blur, so commit must happen here rather
+   * than waiting for {@link handleAddressBlur}.
+   *
+   * @param value - Selected suggestion (already applied via onChange).
+   */
+  function handleAddressSuggestionSelect(value: string): void {
+    commitAddress(value);
+  }
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-separator bg-sidebar-toolbar p-2">
+      <RoundButton
+        icon={faFloppyDisk}
+        ariaLabel={saveLabel}
+        onClick={onSave}
+        className={chromeButtonClassName}
+        iconClassName={chromeIconClassName}
+      />
       <RoundButton
         icon={faAngleLeft}
         ariaLabel="Back"
@@ -256,22 +315,21 @@ export function BrowserChrome({
             onEditVariable={onEditVariables}
             beforeSuggestionsOpen={beforeSuggestionsOpen}
             onSuggestionsOpenChange={onSuggestionsOpenChange}
+            onSuggestionSelect={handleAddressSuggestionSelect}
             wrapperClassName={addressInputWrapperClassName}
             className={addressInputClassName}
             onFocus={() => setEditingAddress((prev) => prev ?? tab.url)}
-            onBlur={(event) => {
-              const next = event.relatedTarget;
-              if (next instanceof Node && event.currentTarget.contains(next)) {
-                return;
-              }
-              setEditingAddress(null);
-              // Clear an in-flight guest cover if suggestions never opened (stale beforeOpen).
-              onSuggestionsOpenChange?.(false);
-            }}
+            onBlur={handleAddressBlur}
+            onPaste={handleAddressPaste}
           />
-          <BrowserAddressOpenExternalButton url={externalUrl} disabled={externalUrl == null} />
         </div>
       </form>
+      <BrowserAddressOpenExternalButton
+        url={externalUrl}
+        disabled={externalUrl == null}
+        className={chromeButtonClassName}
+        iconClassName={chromeIconClassName}
+      />
       <BrowserDownloadsMenu
         tabId={tab.tabId}
         buttonClassName={chromeButtonClassName}
@@ -294,36 +352,6 @@ export function BrowserChrome({
         className={chromeButtonClassName}
         iconClassName={chromeIconClassName}
       />
-      <RoundButton
-        icon={faBolt}
-        ariaLabel={saveLabel}
-        disabled={!saveEnabled}
-        onClick={onSave}
-        className={
-          linked
-            ? `${chromeButtonClassName} text-accent disabled:opacity-100`
-            : chromeButtonClassName
-        }
-        iconClassName={chromeIconClassName}
-      />
-      <div className="relative">
-        <RoundButton
-          icon={faGear}
-          ariaLabel={settingsLabel}
-          aria-expanded={settingsOpen}
-          aria-controls={settingsPanelId}
-          disabled={!linked}
-          onClick={onToggleSettings}
-          className={chromeButtonClassName}
-          iconClassName={chromeIconClassName}
-        />
-        {linked && dirty ? (
-          <span
-            className="pointer-events-none absolute end-0.5 top-0.5 h-2 w-2 rounded-full bg-accent"
-            aria-hidden
-          />
-        ) : null}
-      </div>
     </div>
   );
 }

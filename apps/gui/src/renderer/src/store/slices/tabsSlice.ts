@@ -571,7 +571,7 @@ const tabsSlice = createSlice({
       state.tabs = next;
     },
     /**
-     * Opens or closes the live page settings panel under the browser address bar.
+     * Opens or closes the live page settings footer panel for a browser tab.
      */
     setBrowserSettingsPanelOpen(state, action: PayloadAction<{ tabId: string; open: boolean }>) {
       const tab = state.tabs.find((t) => t.tabId === action.payload.tabId);

@@ -28,6 +28,7 @@ import {
  * @param activePluginFooterPanelId - Active plugin footer panel id, if any.
  * @param liveServerEditorOpen - Live server create/edit footer panel open.
  * @param showLiveServerLogs - Live server logs footer panel open.
+ * @param livePageSettingsOpen - Live page settings footer panel open.
  * @returns True when at least one footer panel should cover the live page.
  */
 export function isAnyFooterPanelOpen(
@@ -37,7 +38,8 @@ export function isAnyFooterPanelOpen(
   showTerminal: boolean,
   activePluginFooterPanelId: string | null,
   liveServerEditorOpen = false,
-  showLiveServerLogs = false
+  showLiveServerLogs = false,
+  livePageSettingsOpen = false
 ): boolean {
   return (
     showConsole ||
@@ -46,7 +48,8 @@ export function isAnyFooterPanelOpen(
     showTerminal ||
     activePluginFooterPanelId != null ||
     liveServerEditorOpen ||
-    showLiveServerLogs
+    showLiveServerLogs ||
+    livePageSettingsOpen
   );
 }
 
@@ -82,6 +85,7 @@ export function useBrowserGuestOverlayCover(): void {
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const liveServerEditorOpen = useAppSelector(selectLiveServerModal) != null;
   const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
+  const livePageSettingsOpen = activeBrowserTab?.settingsPanelOpen === true;
 
   const footerOpen = isAnyFooterPanelOpen(
     showConsole,
@@ -90,7 +94,8 @@ export function useBrowserGuestOverlayCover(): void {
     showTerminal,
     activePluginFooterPanelId,
     liveServerEditorOpen,
-    liveServerLogsFooterOpen
+    liveServerLogsFooterOpen,
+    livePageSettingsOpen
   );
   const needsCover = shouldCoverBrowserGuest({ hasBlockingModal, footerOpen });
   const browserTabId = activeBrowserTab?.tabId ?? null;

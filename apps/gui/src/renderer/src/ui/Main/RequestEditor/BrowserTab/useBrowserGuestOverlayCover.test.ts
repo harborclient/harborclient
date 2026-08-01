@@ -16,6 +16,7 @@ describe('isAnyFooterPanelOpen', () => {
     );
     expect(isAnyFooterPanelOpen(false, false, false, false, null, true, false)).toBe(true);
     expect(isAnyFooterPanelOpen(false, false, false, false, null, false, true)).toBe(true);
+    expect(isAnyFooterPanelOpen(false, false, false, false, null, false, false, true)).toBe(true);
   });
 });
 

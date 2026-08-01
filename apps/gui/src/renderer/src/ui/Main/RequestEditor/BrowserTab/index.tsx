@@ -4,13 +4,11 @@ import type { BrowserTab } from '#/renderer/src/store/tabs';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
-import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
 import { saveOrUpdateBrowserWebsite } from '#/renderer/src/store/thunks/websites';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 import { BrowserChrome } from './BrowserChrome';
 import { BrowserGuestBoundsSync } from './BrowserGuestBoundsSync';
 import { BrowserGuestCoverImage } from './BrowserGuestCoverImage';
-import { BrowserLivePageSettingsPanel } from './BrowserLivePageSettingsPanel';
 import { BrowserScreenshotModeModal } from './BrowserScreenshotModeModal';
 import { browserScreenshotDefaultFileName } from './browserScreenshotFileName';
 import {
@@ -242,25 +240,6 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
   }
 
   /**
-   * Toggles the per-tab live page settings panel under the address bar.
-   */
-  function handleToggleSettings(): void {
-    dispatch(
-      setBrowserSettingsPanelOpen({
-        tabId: tab.tabId,
-        open: !tab.settingsPanelOpen
-      })
-    );
-  }
-
-  /**
-   * Closes the live page settings panel.
-   */
-  function handleCloseSettings(): void {
-    dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: false }));
-  }
-
-  /**
    * Saves a new live page or updates the linked live page from this tab.
    */
   function handleSave(): void {
@@ -334,18 +313,9 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
         onScreenshot={handleScreenshotClick}
         screenshotDisabled={screenshotBusy}
         onAskAi={aiAvailable ? handleAskAi : undefined}
-        settingsOpen={tab.settingsPanelOpen}
-        settingsPanelId={`browser-settings-panel-${tab.tabId}`}
-        onToggleSettings={handleToggleSettings}
         onEditVariables={onEditVariables}
         beforeSuggestionsOpen={prepareAddressSuggestionsOverlay}
         onSuggestionsOpenChange={handleAddressSuggestionsOpenChange}
-      />
-      <BrowserLivePageSettingsPanel
-        open={tab.settingsPanelOpen}
-        panelId={`browser-settings-panel-${tab.tabId}`}
-        browserTab={tab}
-        onClose={handleCloseSettings}
       />
       {screenshotBusy ? (
         <p

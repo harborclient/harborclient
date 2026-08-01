@@ -661,7 +661,7 @@ export interface BrowserTab {
   savedFaviconDataUrl: string | null;
 
   /**
-   * When true, the live page settings panel is open under the address bar chrome.
+   * When true, the live page settings footer panel is open for this tab.
    */
   settingsPanelOpen: boolean;
 

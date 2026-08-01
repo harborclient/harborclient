@@ -18,6 +18,8 @@ import {
   type NavigationState,
   type SidebarFooterLayoutSnapshot
 } from '#/renderer/src/store/slices/navigationSlice';
+import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
+import { isBrowserTab } from '#/renderer/src/store/tabs';
 
 /**
  * Captures the current sidebar and footer panel visibility for later restore.
@@ -106,6 +108,11 @@ export const hideSidebarsAndFooterPanels = createAsyncThunk<void, void, ThunkApi
     dispatch(setShowLiveServerLogs(false));
     dispatch(setActivePluginFooterPanelId(null));
     dispatch(closeLiveServerModal());
+    for (const tab of getState().tabs.tabs) {
+      if (isBrowserTab(tab) && tab.settingsPanelOpen) {
+        dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: false }));
+      }
+    }
   }
 );
 

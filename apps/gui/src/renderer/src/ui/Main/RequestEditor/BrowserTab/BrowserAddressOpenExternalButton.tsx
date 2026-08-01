@@ -14,15 +14,30 @@ interface Props {
    * When true, the button cannot be activated.
    */
   disabled?: boolean;
+
+  /**
+   * Extra classes for the RoundButton shell (chrome row sizing).
+   */
+  className?: string;
+
+  /**
+   * Extra classes for the icon inside the RoundButton.
+   */
+  iconClassName?: string;
 }
 
 /**
- * Compact omnibox control that opens the current address in the OS default browser.
+ * Chrome control that opens the current address in the OS default browser.
  *
  * @param props - Component props.
- * @returns Icon button for the trailing edge of the address field.
+ * @returns Icon button for the browser toolbar.
  */
-export function BrowserAddressOpenExternalButton({ url, disabled = false }: Props): JSX.Element {
+export function BrowserAddressOpenExternalButton({
+  url,
+  disabled = false,
+  className = 'h-[35px] w-[35px]',
+  iconClassName = 'h-5 w-5'
+}: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const store = useAppStore();
 
@@ -54,8 +69,8 @@ export function BrowserAddressOpenExternalButton({ url, disabled = false }: Prop
       onClick={() => {
         void handleClick();
       }}
-      className="h-6 w-6 shrink-0"
-      iconClassName="h-4 w-4"
+      className={className}
+      iconClassName={iconClassName}
     />
   );
 }

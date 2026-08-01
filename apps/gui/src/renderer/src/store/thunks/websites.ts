@@ -7,6 +7,15 @@ import type { BrowserInjectionScript } from '#/browser/browserScripts';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import { selectSnippets } from '#/renderer/src/store/selectors';
 import { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
+import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  setActivePluginFooterPanelId,
+  setShowConsole,
+  setShowLiveServerLogs,
+  setShowMcp,
+  setShowTerminal,
+  setShowVariables
+} from '#/renderer/src/store/slices/navigationSlice';
 import {
   bindBrowserTabToWebsite,
   newBrowserTab,
@@ -253,6 +262,9 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
 
 /**
  * Saves or updates the active browser tab as a website depending on link state.
+ *
+ * Always shows a success toast when the chrome Save control is used: first create,
+ * update with pending changes, or a no-op click on an already-saved live page.
  */
 export const saveOrUpdateBrowserWebsite = createAsyncThunk<void, string, ThunkApiConfig>(
   'websites/saveOrUpdateFromTab',
@@ -263,6 +275,7 @@ export const saveOrUpdateBrowserWebsite = createAsyncThunk<void, string, ThunkAp
     }
     if (tab.websiteId != null) {
       if (!hasBrowserPendingSave(tab)) {
+        toast.success('Live page saved');
         return;
       }
       await dispatch(updateWebsiteFromTab(tabId));
@@ -305,10 +318,11 @@ export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
- * Opens a saved website and shows its live page settings panel.
+ * Opens a saved website and shows its live page settings footer panel.
  *
- * Ensures a linked browser tab exists first, then opens the settings panel under
- * that tab's address bar so injection and hc.* scripts can be edited.
+ * Ensures a linked browser tab exists first, closes other footer panels (same
+ * mutual exclusivity as the live server editor), then opens the settings panel
+ * so injection and hc.* scripts can be edited.
  *
  * @param id - Saved website id.
  */
@@ -320,6 +334,15 @@ export const openWebsiteSettings = createAsyncThunk<void, number, ThunkApiConfig
     if (!tab || !isBrowserTab(tab)) {
       return;
     }
+    dispatch(setShowConsole(false));
+    dispatch(setShowVariables(false));
+    dispatch(setShowMcp(false));
+    dispatch(setShowTerminal(false));
+    if (getState().navigation.liveServerLogsPlacement === 'footer') {
+      dispatch(setShowLiveServerLogs(false));
+    }
+    dispatch(setActivePluginFooterPanelId(null));
+    dispatch(closeLiveServerModal());
     dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: true }));
   }
 );

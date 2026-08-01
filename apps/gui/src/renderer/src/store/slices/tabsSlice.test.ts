@@ -1286,7 +1286,7 @@ describe('browser tabs', () => {
     expect(cleanTab && isBrowserTab(cleanTab) && !hasBrowserPendingSave(cleanTab)).toBe(true);
   });
 
-  it('toggles the live page settings panel on a browser tab', () => {
+  it('toggles the live page settings footer panel on a browser tab', () => {
     let state = tabsReducer(undefined, { type: 'unknown' });
     state = tabsReducer(state, newBrowserTab());
     const browserTabId = state.activeTabId;

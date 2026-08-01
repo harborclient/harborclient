@@ -113,6 +113,16 @@ export interface Props extends Omit<
    * @param open - Whether suggestions are open.
    */
   onSuggestionsOpenChange?: (open: boolean) => void;
+
+  /**
+   * Called after a suggestion is applied via click or keyboard selection.
+   *
+   * Runs after {@link Props.onChange} with the same value so hosts can treat
+   * autocomplete acceptance as a commit (for example navigating a browser).
+   *
+   * @param item - Selected suggestion value.
+   */
+  onSuggestionSelect?: (item: string) => void;
 }
 
 /**
@@ -136,6 +146,7 @@ export function VariableInput({
   source,
   beforeSuggestionsOpen,
   onSuggestionsOpenChange,
+  onSuggestionSelect,
   ...props
 }: Props): JSX.Element {
   const safeValue = value ?? '';
@@ -151,10 +162,29 @@ export function VariableInput({
   const tooltipEntered = useRef(false);
   const tooltipSourceRef = useRef<TooltipSource | null>(null);
   const activeTokenIndexRef = useRef<number | null>(null);
+  const onSuggestionSelectRef = useRef(onSuggestionSelect);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [tooltipSource, setTooltipSource] = useState<TooltipSource | null>(null);
   const [activeTokenIndex, setActiveTokenIndex] = useState<number | null>(null);
   const tooltipId = useId();
+
+  /**
+   * Keeps the suggestion-select callback current without retriggering autocomplete setup.
+   */
+  useEffect(() => {
+    onSuggestionSelectRef.current = onSuggestionSelect;
+  }, [onSuggestionSelect]);
+
+  /**
+   * Applies a suggestion to the controlled value, then notifies hosts that accept
+   * autocomplete as a commit action.
+   *
+   * @param item - Selected suggestion value.
+   */
+  function handleSuggestionSelect(item: string): void {
+    onChange(item);
+    onSuggestionSelectRef.current?.(item);
+  }
 
   const {
     open: autocompleteOpen,
@@ -170,7 +200,7 @@ export function VariableInput({
   } = useAutocomplete({
     source,
     value: safeValue,
-    onSelect: onChange,
+    onSelect: handleSuggestionSelect,
     anchorRef: inputRef,
     beforeOpen: beforeSuggestionsOpen,
     onOpenChange: onSuggestionsOpenChange
