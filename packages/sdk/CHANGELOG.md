@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(VariableInput): portal tooltip to document body for improved positioning. (`65430293`)
+
 ## 1.5.0 - 2026-08-01
 
 - feat(live-page): introduce live page functionality and refactor related components. (`16f1f304`)

@@ -14,6 +14,7 @@ import { useAutocomplete } from '../Autocomplete/useAutocomplete.js';
 import { Button } from '../Button/index.js';
 import { VariableTooltipValue } from '../VariableTooltip/index.js';
 import { Input } from '../forms/index.js';
+import { portalToBody } from '../portalToBody.js';
 import { getFocusableElements } from '../useDialogFocus.js';
 import { cn } from '../utils.js';
 
@@ -127,6 +128,9 @@ export interface Props extends Omit<
 
 /**
  * Text input that highlights {{variable}} tokens and shows resolved values on hover.
+ *
+ * The variable tooltip is portaled to `document.body` so fixed positioning is not
+ * trapped under host chrome (for example request tabs above a scroll container).
  *
  * Token highlight color (`text-[#32D2E2]`) and the tooltip `app-no-drag` class rely on
  * host styling in HarborClient `styles.css`.
@@ -573,7 +577,7 @@ export function VariableInput({
   };
 
   /**
-   * Closes any open tooltip when focus leaves the field.
+   * Closes any open tooltip when focus leaves the field and its portaled tooltip.
    */
   const handleWrapperBlur = (): void => {
     const wrapper = wrapperRef.current;
@@ -582,11 +586,14 @@ export function VariableInput({
     }
 
     queueMicrotask(() => {
-      if (!wrapper.contains(document.activeElement)) {
-        cancelHide();
-        cancelShow();
-        dismissTooltip();
+      const active = document.activeElement;
+      if (wrapper.contains(active) || tooltipRef.current?.contains(active)) {
+        return;
       }
+
+      cancelHide();
+      cancelShow();
+      dismissTooltip();
     });
   };
 
@@ -730,47 +737,49 @@ export function VariableInput({
         />
       )}
 
-      {tooltip && tooltipContent && (
-        <div
-          ref={tooltipRef}
-          id={tooltipId}
-          role="tooltip"
-          className="hc-variable-input-tooltip pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-lg border border-separator bg-surface px-4 py-3 text-text shadow-md after:pointer-events-auto after:absolute after:right-0 after:-bottom-2 after:left-0 after:h-2 after:content-['']"
-          style={{ position: 'fixed', top: tooltip.top - 4, left: tooltip.left }}
-          onMouseEnter={cancelHide}
-          onMouseLeave={scheduleHide}
-        >
-          <VariableTooltipValue
-            value={tooltipContent.text}
-            variableKey={tooltip.key}
-            muted={tooltipContent.muted}
-            onClose={() => {
-              if (tooltipSource === 'focus') {
-                dismissFocusTooltip(true);
-              } else {
-                dismissTooltip();
-              }
-            }}
-          />
-          {onEditVariable && (
-            <Button
-              variant="secondary"
-              className="hc-variable-input-tooltip-edit self-start"
-              aria-label={`Edit value for ${tooltip.key}`}
-              onClick={() => {
-                onEditVariable(tooltip.key);
-                if (tooltipSource === 'focus') {
-                  dismissFocusTooltip(true);
-                } else {
-                  dismissTooltip();
-                }
-              }}
+      {tooltip && tooltipContent
+        ? portalToBody(
+            <div
+              ref={tooltipRef}
+              id={tooltipId}
+              role="tooltip"
+              className="hc-variable-input-tooltip pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-2 rounded-lg border border-separator bg-surface px-4 py-3 text-text shadow-md after:pointer-events-auto after:absolute after:right-0 after:-bottom-2 after:left-0 after:h-2 after:content-['']"
+              style={{ position: 'fixed', top: tooltip.top - 4, left: tooltip.left }}
+              onMouseEnter={cancelHide}
+              onMouseLeave={scheduleHide}
             >
-              Edit value
-            </Button>
-          )}
-        </div>
-      )}
+              <VariableTooltipValue
+                value={tooltipContent.text}
+                variableKey={tooltip.key}
+                muted={tooltipContent.muted}
+                onClose={() => {
+                  if (tooltipSource === 'focus') {
+                    dismissFocusTooltip(true);
+                  } else {
+                    dismissTooltip();
+                  }
+                }}
+              />
+              {onEditVariable && (
+                <Button
+                  variant="secondary"
+                  className="hc-variable-input-tooltip-edit self-start"
+                  aria-label={`Edit value for ${tooltip.key}`}
+                  onClick={() => {
+                    onEditVariable(tooltip.key);
+                    if (tooltipSource === 'focus') {
+                      dismissFocusTooltip(true);
+                    } else {
+                      dismissTooltip();
+                    }
+                  }}
+                >
+                  Edit value
+                </Button>
+              )}
+            </div>
+          )
+        : null}
     </div>
   );
 }

@@ -95,7 +95,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeTruthy();
+    expect(document.querySelector('[role="tooltip"]')).toBeTruthy();
     expect(token.getAttribute('aria-expanded')).toBe('true');
     expect(token.getAttribute('aria-describedby')).toBeTruthy();
   });
@@ -111,7 +111,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const tooltip = container.querySelector('[role="tooltip"]') as HTMLElement;
+    const tooltip = document.querySelector('[role="tooltip"]') as HTMLElement;
     expect(tooltip).toBeTruthy();
 
     const valueField = tooltip.querySelector('input[readonly]') as HTMLInputElement;
@@ -143,7 +143,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const tooltip = container.querySelector('[role="tooltip"]') as HTMLElement;
+    const tooltip = document.querySelector('[role="tooltip"]') as HTMLElement;
     expect(tooltip).toBeTruthy();
 
     const valueField = tooltip.querySelector('input[readonly]') as HTMLInputElement;
@@ -173,7 +173,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const closeButton = container.querySelector(
+    const closeButton = document.querySelector(
       'button[aria-label^="Close tooltip"]'
     ) as HTMLButtonElement;
     expect(closeButton).toBeTruthy();
@@ -191,7 +191,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const tooltip = container.querySelector('[role="tooltip"]') as HTMLElement;
+    const tooltip = document.querySelector('[role="tooltip"]') as HTMLElement;
     const valueField = tooltip.querySelector('input[readonly]') as HTMLInputElement;
     const copyButton = tooltip.querySelector(
       'button[aria-label^="Copy value"]'
@@ -241,7 +241,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const closeButton = container.querySelector(
+    const closeButton = document.querySelector(
       'button[aria-label^="Close tooltip"]'
     ) as HTMLButtonElement;
     expect(closeButton).toBeTruthy();
@@ -254,7 +254,7 @@ describe('VariableInput keyboard', () => {
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
     expect(document.activeElement).toBe(token);
     expect(token.getAttribute('aria-expanded')).toBeNull();
   });
@@ -275,7 +275,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const tooltip = container.querySelector('[role="tooltip"]') as HTMLElement;
+    const tooltip = document.querySelector('[role="tooltip"]') as HTMLElement;
     expect(tooltip).toBeTruthy();
 
     const valueField = tooltip.querySelector('input[readonly]') as HTMLInputElement;
@@ -332,7 +332,7 @@ describe('VariableInput keyboard', () => {
       token.focus();
     });
 
-    const tooltip = container.querySelector('[role="tooltip"]');
+    const tooltip = document.querySelector('[role="tooltip"]');
     expect(tooltip).toBeTruthy();
 
     act(() => {
@@ -341,7 +341,7 @@ describe('VariableInput keyboard', () => {
       );
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
     expect(document.activeElement).toBe(token);
     expect(token.getAttribute('aria-expanded')).toBeNull();
   });
@@ -367,13 +367,13 @@ describe('VariableInput keyboard', () => {
       );
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
 
     act(() => {
       second.focus();
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeTruthy();
+    expect(document.querySelector('[role="tooltip"]')).toBeTruthy();
     expect(document.activeElement).toBe(second);
     expect(second.getAttribute('aria-expanded')).toBe('true');
   });
@@ -409,14 +409,14 @@ describe('VariableInput keyboard', () => {
       input.dispatchEvent(new Event('select', { bubbles: true }));
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
 
     await act(async () => {
       outside.focus();
       await Promise.resolve();
     });
 
-    expect(container.querySelector('[role="tooltip"]')).toBeNull();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
 
     outside.remove();
   });

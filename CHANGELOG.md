@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(VariableInput): portal tooltip to document body for improved positioning. (`65430293`)
 - style(theme): update dark and light theme colors for sidebar and accent. (`93f706fa`)
 
 ## 2.10.0 - 2026-08-01
