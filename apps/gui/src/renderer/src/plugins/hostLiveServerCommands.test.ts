@@ -77,6 +77,7 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
       watch: saved.watch,
       cors: saved.cors,
       openPath: saved.openPath,
+      openPathOnStartup: saved.openPathOnStartup,
       rememberLastUrl: saved.rememberLastUrl,
       lastOpenedPath: saved.lastOpenedPath,
       indexFiles: saved.indexFiles,
@@ -178,6 +179,7 @@ describe('hostLiveServerCommands', () => {
             maxAge: '600'
           },
           openPath: '/docs/',
+          openPathOnStartup: true,
           rememberLastUrl: true,
           lastOpenedPath: null,
           indexFiles: ['index.html', 'app.html'],
@@ -206,6 +208,7 @@ describe('hostLiveServerCommands', () => {
       expect.objectContaining({
         config: expect.objectContaining({
           openPath: '/docs/',
+          openPathOnStartup: true,
           rememberLastUrl: true,
           indexFiles: ['index.html', 'app.html'],
           host: '0.0.0.0',

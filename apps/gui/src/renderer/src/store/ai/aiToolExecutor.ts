@@ -2067,6 +2067,7 @@ type LiveServerSummary = {
   watch: boolean;
   cors: LiveServerCorsSettings;
   openPath: string;
+  openPathOnStartup: boolean;
   rememberLastUrl: boolean;
   indexFiles: string[];
   host: string;
@@ -2092,6 +2093,7 @@ type RunningLiveServerSummary = {
   aliases: LiveServerAlias[];
   cors: LiveServerCorsSettings;
   openPath: string;
+  openPathOnStartup: boolean;
   rememberLastUrl: boolean;
   indexFiles: string[];
   host: string;
@@ -2132,6 +2134,7 @@ function summarizeSavedLiveServer(server: LiveServer): LiveServerSummary {
     watch: server.watch,
     cors: server.cors,
     openPath: server.openPath,
+    openPathOnStartup: server.openPathOnStartup,
     rememberLastUrl: server.rememberLastUrl,
     indexFiles: server.indexFiles,
     host: server.host,
@@ -2162,6 +2165,7 @@ function summarizeRunningLiveServer(server: RunningLiveServer): RunningLiveServe
     aliases: server.config.aliases,
     cors: server.config.cors,
     openPath: server.config.openPath,
+    openPathOnStartup: server.config.openPathOnStartup,
     rememberLastUrl: server.config.rememberLastUrl,
     indexFiles: server.config.indexFiles,
     host: server.config.host,
@@ -2384,7 +2388,12 @@ async function startLiveServerTool(
   | { error: string }
 > {
   const parsed = args as StartLiveServerToolArgs;
-  const openBrowser = parsed.openBrowser !== false;
+  /**
+   * Explicit tool override when set; otherwise {@link startLiveServer} uses
+   * `config.openPathOnStartup`.
+   */
+  const openBrowserOverride =
+    typeof parsed.openBrowser === 'boolean' ? parsed.openBrowser : undefined;
   const hasSavedId = typeof parsed.savedId === 'number' && Number.isFinite(parsed.savedId);
 
   if (hasSavedId) {
@@ -2395,33 +2404,36 @@ async function startLiveServerTool(
     if (!saved) {
       return { error: 'Saved live server not found.' };
     }
+    const config = toLiveServerConfig({
+      name: saved.name,
+      root: saved.root,
+      port: saved.port,
+      aliases: saved.aliases,
+      watch: saved.watch,
+      cors: saved.cors,
+      openPath: saved.openPath,
+      openPathOnStartup: saved.openPathOnStartup,
+      rememberLastUrl: saved.rememberLastUrl,
+      lastOpenedPath: saved.lastOpenedPath,
+      indexFiles: saved.indexFiles,
+      host: saved.host,
+      headers: saved.headers,
+      routes: saved.routes,
+      proxies: saved.proxies,
+      ssl: saved.ssl,
+      runCommand: saved.runCommand,
+      restartOnCrash: saved.restartOnCrash,
+      urlVariable: saved.urlVariable,
+      preRequestScripts: saved.preRequestScripts,
+      postRequestScripts: saved.postRequestScripts
+    });
+    const openBrowser = openBrowserOverride ?? config.openPathOnStartup;
     const running = await ctx
       .dispatch(
         startLiveServer({
           savedId: saved.id,
-          config: toLiveServerConfig({
-            name: saved.name,
-            root: saved.root,
-            port: saved.port,
-            aliases: saved.aliases,
-            watch: saved.watch,
-            cors: saved.cors,
-            openPath: saved.openPath,
-            rememberLastUrl: saved.rememberLastUrl,
-            lastOpenedPath: saved.lastOpenedPath,
-            indexFiles: saved.indexFiles,
-            host: saved.host,
-            headers: saved.headers,
-            routes: saved.routes,
-            proxies: saved.proxies,
-            ssl: saved.ssl,
-            runCommand: saved.runCommand,
-            restartOnCrash: saved.restartOnCrash,
-            urlVariable: saved.urlVariable,
-            preRequestScripts: saved.preRequestScripts,
-            postRequestScripts: saved.postRequestScripts
-          }),
-          openBrowser
+          config,
+          openBrowser: openBrowserOverride
         })
       )
       .unwrap();
@@ -2460,32 +2472,35 @@ async function startLiveServerTool(
   const proxies = parseLiveServerProxies(parsed.proxies);
   const ssl = parseLiveServerSsl(parsed.ssl);
 
+  const config = toLiveServerConfig({
+    name,
+    root,
+    port,
+    aliases,
+    watch,
+    cors,
+    openPath: parsed.openPath,
+    openPathOnStartup: parsed.openPathOnStartup,
+    rememberLastUrl: parsed.rememberLastUrl,
+    indexFiles: parsed.indexFiles,
+    host: parsed.host,
+    headers,
+    routes,
+    proxies,
+    ssl,
+    runCommand: parsed.runCommand,
+    restartOnCrash: parsed.restartOnCrash,
+    urlVariable: parsed.urlVariable,
+    preRequestScripts: parsed.preRequestScripts as LiveServerScriptRef[] | undefined,
+    postRequestScripts: parsed.postRequestScripts as LiveServerScriptRef[] | undefined
+  });
+  const openBrowser = openBrowserOverride ?? config.openPathOnStartup;
   const running = await ctx
     .dispatch(
       startLiveServer({
         savedId: null,
-        config: toLiveServerConfig({
-          name,
-          root,
-          port,
-          aliases,
-          watch,
-          cors,
-          openPath: parsed.openPath,
-          rememberLastUrl: parsed.rememberLastUrl,
-          indexFiles: parsed.indexFiles,
-          host: parsed.host,
-          headers,
-          routes,
-          proxies,
-          ssl,
-          runCommand: parsed.runCommand,
-          restartOnCrash: parsed.restartOnCrash,
-          urlVariable: parsed.urlVariable,
-          preRequestScripts: parsed.preRequestScripts as LiveServerScriptRef[] | undefined,
-          postRequestScripts: parsed.postRequestScripts as LiveServerScriptRef[] | undefined
-        }),
-        openBrowser
+        config,
+        openBrowser: openBrowserOverride
       })
     )
     .unwrap();
@@ -2585,6 +2600,7 @@ async function createLiveServerTool(
         watch,
         cors,
         openPath: parsed.openPath,
+        openPathOnStartup: parsed.openPathOnStartup,
         rememberLastUrl: parsed.rememberLastUrl,
         indexFiles: parsed.indexFiles,
         host: parsed.host,
@@ -2655,6 +2671,7 @@ async function updateLiveServerTool(
     watch: parsed.watch,
     cors,
     openPath: parsed.openPath ?? existing?.openPath,
+    openPathOnStartup: parsed.openPathOnStartup ?? existing?.openPathOnStartup,
     rememberLastUrl: parsed.rememberLastUrl ?? existing?.rememberLastUrl,
     lastOpenedPath: existing?.lastOpenedPath,
     indexFiles: parsed.indexFiles ?? existing?.indexFiles,

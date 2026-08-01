@@ -57,6 +57,11 @@ export interface CreateLiveServerToolArgs {
   openPath?: string;
 
   /**
+   * Whether to open a Live Page on start. Defaults to true.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * Whether to remember the last opened URL within the origin.
    */
   rememberLastUrl?: boolean;

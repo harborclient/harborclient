@@ -48,6 +48,11 @@ interface Props {
   openPath: string;
 
   /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
+
+  /**
    * When true, restore the last navigated path within this server’s origin.
    */
   rememberLastUrl: boolean;
@@ -126,6 +131,13 @@ interface Props {
   onOpenPathChange: (value: string) => void;
 
   /**
+   * Called when the open-path-on-startup checkbox changes.
+   *
+   * @param value - Next open-on-startup flag.
+   */
+  onOpenPathOnStartupChange: (value: boolean) => void;
+
+  /**
    * Called when the remember-last-path checkbox changes.
    *
    * @param value - Next remember flag.
@@ -175,6 +187,7 @@ export function GeneralSettings({
   port,
   watch,
   openPath,
+  openPathOnStartup,
   rememberLastUrl,
   indexFiles,
   host,
@@ -188,6 +201,7 @@ export function GeneralSettings({
   onPortChange,
   onWatchChange,
   onOpenPathChange,
+  onOpenPathOnStartupChange,
   onRememberLastUrlChange,
   onIndexFilesChange,
   onHostChange,
@@ -199,6 +213,7 @@ export function GeneralSettings({
   const rootId = useId();
   const portId = useId();
   const openPathId = useId();
+  const openPathOnStartupId = useId();
   const rememberLastUrlId = useId();
   const indexFilesId = useId();
   const hostId = useId();
@@ -207,6 +222,7 @@ export function GeneralSettings({
   const watchId = useId();
   const showLanWarning = !isLiveServerLoopbackHost(host);
   const runCommandConfigured = runCommand.trim() !== '';
+  const pathControlsDisabled = disabled || !openPathOnStartup;
 
   return (
     <div className="flex flex-col gap-4">
@@ -364,17 +380,31 @@ export function GeneralSettings({
         </FormGroup>
       </div>
 
-      <label htmlFor={rememberLastUrlId} className="flex items-center gap-2">
+      <label htmlFor={openPathOnStartupId} className="flex items-center gap-2">
+        <Checkbox
+          id={openPathOnStartupId}
+          checked={openPathOnStartup}
+          disabled={disabled}
+          onChange={(event) => onOpenPathOnStartupChange(event.target.checked)}
+        />
+        <span>Open path on startup</span>
+      </label>
+
+      <label
+        htmlFor={rememberLastUrlId}
+        className={`flex items-center gap-2${pathControlsDisabled ? ' opacity-60' : ''}`}
+      >
         <Checkbox
           id={rememberLastUrlId}
-          checked={rememberLastUrl}
-          disabled={disabled}
+          checked={rememberLastUrl && openPathOnStartup}
+          disabled={pathControlsDisabled}
           onChange={(event) => onRememberLastUrlChange(event.target.checked)}
         />
         <span>Remember last path</span>
       </label>
 
       <FormGroup
+        className={pathControlsDisabled ? 'opacity-60' : undefined}
         label="Start path"
         htmlFor={openPathId}
         description="Path or file opened in Live Page when the server starts (for example / or /docs/)."
@@ -382,7 +412,7 @@ export function GeneralSettings({
         <Input
           id={openPathId}
           value={openPath}
-          disabled={disabled}
+          disabled={pathControlsDisabled}
           placeholder="/"
           onChange={(event) => onOpenPathChange(event.target.value)}
         />

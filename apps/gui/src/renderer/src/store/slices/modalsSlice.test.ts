@@ -533,6 +533,7 @@ describe('selectHasBlockingModal', () => {
     const state = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
     expect(state.liveServerModal).toMatchObject({
       openPath: '/',
+      openPathOnStartup: true,
       rememberLastUrl: false,
       lastOpenedPath: null,
       indexFiles: 'index.html',
@@ -558,6 +559,7 @@ describe('selectHasBlockingModal', () => {
         mode: 'edit',
         savedId: 7,
         openPath: '/docs/',
+        openPathOnStartup: false,
         rememberLastUrl: true,
         lastOpenedPath: '/docs/guide.html',
         runCommand: '/usr/bin/node ./server.js',
@@ -585,6 +587,7 @@ describe('selectHasBlockingModal', () => {
     expect(state.liveServerModal).toMatchObject({
       savedId: 7,
       openPath: '/docs/',
+      openPathOnStartup: false,
       rememberLastUrl: true,
       lastOpenedPath: '/docs/guide.html',
       indexFiles: 'index.html, app.html',

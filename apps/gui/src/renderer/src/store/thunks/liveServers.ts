@@ -44,7 +44,11 @@ import {
   setShowTerminal,
   setShowVariables
 } from '#/renderer/src/store/slices/navigationSlice';
-import { newBrowserTab, setActiveTab } from '#/renderer/src/store/slices/tabsSlice';
+import {
+  newBrowserTab,
+  setActiveTab,
+  updateBrowserTab
+} from '#/renderer/src/store/slices/tabsSlice';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
@@ -72,6 +76,7 @@ export type OpenLiveServerEditorInput = {
   watch?: boolean;
   cors?: LiveServerCorsSettings;
   openPath?: string;
+  openPathOnStartup?: boolean;
   rememberLastUrl?: boolean;
   lastOpenedPath?: string | null;
   /**
@@ -332,6 +337,7 @@ export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
       watch: server.watch,
       cors: server.cors,
       openPath: server.openPath,
+      openPathOnStartup: server.openPathOnStartup,
       rememberLastUrl: server.rememberLastUrl,
       lastOpenedPath: server.lastOpenedPath,
       indexFiles: server.indexFiles,
@@ -361,7 +367,8 @@ export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
  */
 export type StartLiveServerThunkArg = StartLiveServerInput & {
   /**
-   * When true (default), opens a browser tab at the server origin after start.
+   * When set, overrides {@link LiveServerConfig.openPathOnStartup} for this start.
+   * When omitted, uses `config.openPathOnStartup` (defaults to true).
    */
   openBrowser?: boolean;
 };
@@ -369,7 +376,8 @@ export type StartLiveServerThunkArg = StartLiveServerInput & {
 /**
  * Starts a live server, optionally opens a browser tab, and tracks the binding.
  *
- * When `openBrowser` is true, the tab’s initial `url` is
+ * Opens a Live Page when `openBrowser` is true, or when it is omitted and
+ * `config.openPathOnStartup` is true. The tab’s initial `url` is
  * {@link resolveLiveServerOpenUrl} (honors remember-last-URL). `homeUrl` is
  * always `origin + openPath` so the address-bar Home control returns to the
  * configured entry, not a remembered deep link.
@@ -379,7 +387,8 @@ export const startLiveServer = createAsyncThunk<
   StartLiveServerThunkArg,
   ThunkApiConfig
 >('liveServers/start', async (input, { dispatch }) => {
-  const { openBrowser = true, ...startInput } = input;
+  const { openBrowser, ...startInput } = input;
+  const shouldOpenBrowser = openBrowser ?? startInput.config.openPathOnStartup;
   const running = await window.api.startLiveServer(startInput);
   const refreshed = await window.api.listRunningLiveServers();
   dispatch(setRunningLiveServers(refreshed));
@@ -389,7 +398,7 @@ export const startLiveServer = createAsyncThunk<
     await setGlobalVariable(urlVariable, running.origin);
   }
 
-  if (openBrowser) {
+  if (shouldOpenBrowser) {
     const tabId = crypto.randomUUID();
     dispatch(
       newBrowserTab({
@@ -420,11 +429,12 @@ export const stopLiveServer = createAsyncThunk<void, string, ThunkApiConfig>(
  * Returns whether draft settings that are baked into the Express app / listen
  * differ from a running instance’s start-time config snapshot.
  *
- * Display-only and open-URL fields (`name`, `openPath`, `rememberLastUrl`,
- * `lastOpenedPath`) are ignored — changing them does not require a restart to
- * affect serving. Pre/post request scripts are also ignored because they
- * hot-apply on Save. Both sides are normalized via {@link toLiveServerConfig}
- * before compare so empty vs default does not false-positive.
+ * Display-only and open-URL fields (`name`, `openPath`, `openPathOnStartup`,
+ * `rememberLastUrl`, `lastOpenedPath`) are ignored — changing them does not
+ * require a restart to affect serving. Pre/post request scripts are also
+ * ignored because they hot-apply on Save. Both sides are normalized via
+ * {@link toLiveServerConfig} before compare so empty vs default does not
+ * false-positive.
  *
  * @param draft - Editor or saved config the user wants applied.
  * @param running - Config snapshot from the currently running instance.
@@ -523,6 +533,71 @@ export function openLiveServerInBrowser(
 }
 
 /**
+ * Opens a Live Page at the configured start path for a running live server.
+ *
+ * Unlike {@link openLiveServerInBrowser}, always targets `origin + openPath`
+ * (never the remembered last path) and navigates an existing bound or
+ * same-origin tab via `browserLoadURL` so the guest loads the start path.
+ *
+ * @param origin - Server origin such as `http://127.0.0.1:5500`.
+ * @param serverId - Runtime id used to record the tab binding.
+ * @param openPath - Start path from the editor draft or saved config.
+ * @returns Thunk that opens or navigates a browser tab to the start path.
+ */
+export function openLiveServerStartPathInBrowser(
+  origin: string,
+  serverId: string,
+  openPath: string
+): (dispatch: AppDispatch, getState: () => RootState) => void {
+  return (dispatch, getState) => {
+    const state = getState();
+    const url = resolveLiveServerHomeUrl(origin, openPath);
+    const homeUrl = url;
+
+    /**
+     * Activates an existing browser tab and loads the start path in the guest.
+     *
+     * @param tabId - Browser tab to navigate.
+     */
+    function navigateExisting(tabId: string): void {
+      dispatch(setActiveTab(tabId));
+      dispatch(updateBrowserTab({ tabId, updates: { url, homeUrl } }));
+      void window.api.browserLoadURL(tabId, url);
+      dispatch(bindLiveServerTab({ serverId, tabId }));
+    }
+
+    const boundTabId = state.liveServers.tabIdsByServerId[serverId];
+    if (boundTabId) {
+      const bound = state.tabs.tabs.find((tab) => tab.tabId === boundTabId);
+      if (bound && isBrowserTab(bound)) {
+        navigateExisting(boundTabId);
+        return;
+      }
+    }
+
+    const matching = state.tabs.tabs.find((tab) => {
+      if (!isBrowserTab(tab)) {
+        return false;
+      }
+      try {
+        return new URL(tab.url).origin === origin;
+      } catch {
+        return false;
+      }
+    });
+
+    if (matching) {
+      navigateExisting(matching.tabId);
+      return;
+    }
+
+    const tabId = crypto.randomUUID();
+    dispatch(newBrowserTab({ tabId, url, homeUrl }));
+    dispatch(bindLiveServerTab({ serverId, tabId }));
+  };
+}
+
+/**
  * Arguments for {@link restartLiveServer}: stop a runtime instance, then start
  * again with the given config without opening a duplicate Live Page by default.
  */
@@ -547,8 +622,8 @@ export type RestartLiveServerThunkArg = {
  * Stops a running live server and starts it again with a new config snapshot.
  *
  * Uses `openBrowser: false` on start, then focuses or rebinds an existing Live
- * Page via {@link openLiveServerInBrowser} so restart does not spawn a
- * duplicate tab when one already exists for the origin.
+ * Page via {@link openLiveServerInBrowser} when `config.openPathOnStartup` is
+ * true so restart does not spawn a duplicate tab when one already exists.
  *
  * @param input - Runtime id to stop plus config (and optional saved id) for start.
  * @returns The new running instance.
@@ -566,13 +641,15 @@ export const restartLiveServer = createAsyncThunk<
       openBrowser: false
     })
   ).unwrap();
-  (dispatch as AppDispatch)(
-    openLiveServerInBrowser(running.origin, running.id, {
-      openPath: running.config.openPath,
-      rememberLastUrl: running.config.rememberLastUrl,
-      lastOpenedPath: running.config.lastOpenedPath
-    })
-  );
+  if (input.config.openPathOnStartup) {
+    (dispatch as AppDispatch)(
+      openLiveServerInBrowser(running.origin, running.id, {
+        openPath: running.config.openPath,
+        rememberLastUrl: running.config.rememberLastUrl,
+        lastOpenedPath: running.config.lastOpenedPath
+      })
+    );
+  }
   return running;
 });
 
@@ -687,6 +764,7 @@ export const persistLiveServerLastOpenedPath = createAsyncThunk<
       watch: saved.watch,
       cors: saved.cors,
       openPath: saved.openPath,
+      openPathOnStartup: saved.openPathOnStartup,
       rememberLastUrl: saved.rememberLastUrl,
       lastOpenedPath: input.lastOpenedPath,
       indexFiles: saved.indexFiles,

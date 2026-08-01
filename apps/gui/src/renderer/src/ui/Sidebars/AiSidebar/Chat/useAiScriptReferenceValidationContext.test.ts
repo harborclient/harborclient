@@ -233,6 +233,7 @@ describe('buildAiScriptReferenceValidationContext', () => {
         watch: saved.watch,
         cors: saved.cors,
         openPath: saved.openPath,
+        openPathOnStartup: saved.openPathOnStartup,
         rememberLastUrl: saved.rememberLastUrl,
         lastOpenedPath: saved.lastOpenedPath,
         indexFiles: saved.indexFiles,

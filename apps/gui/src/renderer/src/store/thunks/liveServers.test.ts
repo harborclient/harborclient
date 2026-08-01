@@ -35,6 +35,7 @@ describe('toLiveServerConfig', () => {
     });
     expect(config.indexFiles).toEqual(['index.html', 'app.html']);
     expect(config.openPath).toBe('/');
+    expect(config.openPathOnStartup).toBe(true);
     expect(config.host).toBe('127.0.0.1');
     expect(config.rememberLastUrl).toBe(false);
   });
@@ -148,6 +149,7 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     watch: true,
     cors: defaultLiveServerCorsSettings(),
     openPath: '/',
+    openPathOnStartup: true,
     rememberLastUrl: true,
     lastOpenedPath: null,
     indexFiles: ['index.html'],
@@ -519,6 +521,208 @@ describe('startLiveServer urlVariable', () => {
     await store.dispatch(startLiveServer({ config, openBrowser: false }) as never);
 
     expect(setGlobalVariableMock).not.toHaveBeenCalled();
+  });
+
+  it('skips opening a Live Page when openPathOnStartup is false', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { startLiveServer } = await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 6004,
+      aliases: [],
+      watch: true,
+      openPathOnStartup: false
+    });
+    const running: RunningLiveServer = {
+      id: 'run-no-open',
+      savedId: null,
+      config,
+      port: 6004,
+      origin: 'http://127.0.0.1:6004',
+      startedAt: 1
+    };
+    startLiveServerApiMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    const tabCountBefore = store.getState().tabs.tabs.length;
+    await store.dispatch(startLiveServer({ config }) as never);
+    expect(store.getState().tabs.tabs).toHaveLength(tabCountBefore);
+  });
+
+  it('opens a Live Page when openPathOnStartup is true and openBrowser is omitted', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { startLiveServer } = await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 6005,
+      aliases: [],
+      watch: true,
+      openPath: '/docs/',
+      openPathOnStartup: true
+    });
+    const running: RunningLiveServer = {
+      id: 'run-open',
+      savedId: null,
+      config,
+      port: 6005,
+      origin: 'http://127.0.0.1:6005',
+      startedAt: 1
+    };
+    startLiveServerApiMock.mockResolvedValue(running);
+    listRunningLiveServersMock.mockResolvedValue([running]);
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    const tabCountBefore = store.getState().tabs.tabs.length;
+    await store.dispatch(startLiveServer({ config }) as never);
+    expect(store.getState().tabs.tabs).toHaveLength(tabCountBefore + 1);
+    const tab = store.getState().tabs.tabs[tabCountBefore] as { url?: string; homeUrl?: string };
+    expect(tab.url).toBe('http://127.0.0.1:6005/docs/');
+    expect(tab.homeUrl).toBe('http://127.0.0.1:6005/docs/');
+  });
+});
+
+describe('openLiveServerStartPathInBrowser', () => {
+  const browserLoadURLMock = vi.fn();
+
+  beforeEach(() => {
+    browserLoadURLMock.mockReset();
+    browserLoadURLMock.mockResolvedValue(undefined);
+    vi.stubGlobal('window', {
+      api: {
+        browserLoadURL: browserLoadURLMock
+      }
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('navigates an existing bound tab to the start path', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { bindLiveServerTab, setRunningLiveServers } =
+      await import('#/renderer/src/store/slices/liveServersSlice');
+    const { newBrowserTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { openLiveServerStartPathInBrowser } =
+      await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 5500,
+      aliases: [],
+      watch: true,
+      openPath: '/docs/'
+    });
+    const running: RunningLiveServer = {
+      id: 'run-1',
+      savedId: 1,
+      config,
+      port: 5500,
+      origin: 'http://127.0.0.1:5500',
+      startedAt: 1
+    };
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    store.dispatch(setRunningLiveServers([running]));
+    store.dispatch(
+      newBrowserTab({
+        tabId: 'tab-1',
+        url: 'http://127.0.0.1:5500/other',
+        homeUrl: 'http://127.0.0.1:5500/'
+      })
+    );
+    store.dispatch(bindLiveServerTab({ serverId: 'run-1', tabId: 'tab-1' }));
+
+    store.dispatch(
+      openLiveServerStartPathInBrowser('http://127.0.0.1:5500', 'run-1', '/docs/') as never
+    );
+
+    expect(browserLoadURLMock).toHaveBeenCalledWith('tab-1', 'http://127.0.0.1:5500/docs/');
+    const tab = store.getState().tabs.tabs.find((entry) => entry.tabId === 'tab-1') as {
+      url: string;
+      homeUrl: string;
+    };
+    expect(tab.url).toBe('http://127.0.0.1:5500/docs/');
+    expect(tab.homeUrl).toBe('http://127.0.0.1:5500/docs/');
+    expect(store.getState().tabs.activeTabId).toBe('tab-1');
+  });
+
+  it('opens a new tab at the start path when none exists', async () => {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
+    const { setRunningLiveServers } = await import('#/renderer/src/store/slices/liveServersSlice');
+    const { openLiveServerStartPathInBrowser } =
+      await import('#/renderer/src/store/thunks/liveServers');
+
+    const config = toLiveServerConfig({
+      name: 'Site',
+      root: '/tmp/site',
+      port: 5500,
+      aliases: [],
+      watch: true
+    });
+    const running: RunningLiveServer = {
+      id: 'run-1',
+      savedId: 1,
+      config,
+      port: 5500,
+      origin: 'http://127.0.0.1:5500',
+      startedAt: 1
+    };
+
+    const store = configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        tabs: tabsReducer
+      }
+    });
+
+    store.dispatch(setRunningLiveServers([running]));
+    const tabCountBefore = store.getState().tabs.tabs.length;
+    store.dispatch(
+      openLiveServerStartPathInBrowser('http://127.0.0.1:5500', 'run-1', '/preview.html') as never
+    );
+
+    expect(store.getState().tabs.tabs).toHaveLength(tabCountBefore + 1);
+    const tab = store.getState().tabs.tabs[tabCountBefore] as { url?: string; homeUrl?: string };
+    expect(tab.url).toBe('http://127.0.0.1:5500/preview.html');
+    expect(tab.homeUrl).toBe('http://127.0.0.1:5500/preview.html');
+    expect(browserLoadURLMock).not.toHaveBeenCalled();
   });
 });
 

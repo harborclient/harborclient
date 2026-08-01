@@ -169,6 +169,11 @@ export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
     description:
       'Path or file opened when the Live Page starts (e.g. `/` or `/docs/`). Defaults to `/`.'
   },
+  openPathOnStartup: {
+    type: 'boolean',
+    description:
+      'When true (default), open a Live Page at the start path when the server starts. When false, the server starts without opening a browser tab.'
+  },
   rememberLastUrl: {
     type: 'boolean',
     description:
@@ -300,6 +305,7 @@ export const liveServerCorsShape = z.object({
  */
 export const liveServerExpandedConfigShape = {
   openPath: z.string().optional(),
+  openPathOnStartup: z.boolean().optional(),
   rememberLastUrl: z.boolean().optional(),
   indexFiles: z.array(z.string()).optional(),
   host: z.string().optional(),

@@ -91,6 +91,7 @@ interface LiveServerPayloadJson {
   watch: boolean;
   cors: LiveServerCorsSettings;
   openPath: string;
+  openPathOnStartup: boolean;
   rememberLastUrl: boolean;
   lastOpenedPath: string | null;
   indexFiles: string[];
@@ -3311,6 +3312,7 @@ export class LocalDatabase {
         watch: payload.watch,
         cors: payload.cors,
         openPath: payload.openPath,
+        openPathOnStartup: payload.openPathOnStartup,
         rememberLastUrl: payload.rememberLastUrl,
         lastOpenedPath: payload.lastOpenedPath,
         indexFiles: payload.indexFiles,

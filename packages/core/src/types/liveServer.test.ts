@@ -320,6 +320,7 @@ describe('normalizeLiveServerConfigFields', () => {
   it('applies defaults when value is missing', () => {
     expect(normalizeLiveServerConfigFields(undefined)).toEqual({
       openPath: '/',
+      openPathOnStartup: true,
       rememberLastUrl: false,
       lastOpenedPath: null,
       indexFiles: ['index.html'],
@@ -340,6 +341,7 @@ describe('normalizeLiveServerConfigFields', () => {
     expect(
       normalizeLiveServerConfigFields({
         openPath: 'app.html',
+        openPathOnStartup: false,
         rememberLastUrl: true,
         lastOpenedPath: 'docs/?q=1',
         indexFiles: 'index.htm, app.html',
@@ -354,6 +356,7 @@ describe('normalizeLiveServerConfigFields', () => {
       })
     ).toEqual({
       openPath: '/app.html',
+      openPathOnStartup: false,
       rememberLastUrl: true,
       lastOpenedPath: '/docs/?q=1',
       indexFiles: ['index.htm', 'app.html'],
@@ -375,6 +378,10 @@ describe('normalizeLiveServerConfigFields', () => {
       preRequestScripts: [],
       postRequestScripts: []
     });
+  });
+
+  it('defaults openPathOnStartup to true when omitted', () => {
+    expect(normalizeLiveServerConfigFields({ openPath: '/' }).openPathOnStartup).toBe(true);
   });
 
   it('normalizes pre/post request scripts with default matchPath and main stage', () => {

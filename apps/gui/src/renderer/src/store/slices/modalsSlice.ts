@@ -396,6 +396,11 @@ export interface LiveServerModalState {
   openPath: string;
 
   /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
+
+  /**
    * When true, restore {@link lastOpenedPath} on the next start/open.
    */
   rememberLastUrl: boolean;
@@ -582,6 +587,7 @@ const modalsSlice = createSlice({
         watch?: boolean;
         cors?: LiveServerCorsSettings;
         openPath?: string;
+        openPathOnStartup?: boolean;
         rememberLastUrl?: boolean;
         lastOpenedPath?: string | null;
         /**
@@ -642,6 +648,7 @@ const modalsSlice = createSlice({
         watch: action.payload.watch !== false,
         cors: action.payload.cors ?? defaultLiveServerCorsSettings(),
         openPath: action.payload.openPath ?? '/',
+        openPathOnStartup: action.payload.openPathOnStartup !== false,
         rememberLastUrl: action.payload.rememberLastUrl === true,
         lastOpenedPath: action.payload.lastOpenedPath ?? null,
         indexFiles: action.payload.indexFiles ?? defaultLiveServerIndexFiles().join(', '),
@@ -735,6 +742,14 @@ const modalsSlice = createSlice({
     setLiveServerModalOpenPath(state, action: PayloadAction<string>) {
       if (state.liveServerModal) {
         state.liveServerModal.openPath = action.payload;
+      }
+    },
+    /**
+     * Updates the “Open path on startup” checkbox.
+     */
+    setLiveServerModalOpenPathOnStartup(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.openPathOnStartup = action.payload;
       }
     },
     /**
@@ -1545,6 +1560,7 @@ export const {
   setLiveServerModalWatch,
   setLiveServerModalCors,
   setLiveServerModalOpenPath,
+  setLiveServerModalOpenPathOnStartup,
   setLiveServerModalRememberLastUrl,
   setLiveServerModalLastOpenedPath,
   setLiveServerModalIndexFiles,

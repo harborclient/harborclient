@@ -62,6 +62,11 @@ export interface UpdateLiveServerToolArgs {
   openPath?: string;
 
   /**
+   * Whether to open a Live Page on start. When omitted, the existing value is kept.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * Whether to remember the last opened URL. When omitted, the existing value is kept.
    */
   rememberLastUrl?: boolean;

@@ -23,6 +23,7 @@ import {
   setLiveServerModalName,
   setLiveServerModalUrlVariable,
   setLiveServerModalOpenPath,
+  setLiveServerModalOpenPathOnStartup,
   setLiveServerModalPort,
   setLiveServerModalPostRequestScripts,
   setLiveServerModalPreRequestScripts,
@@ -44,6 +45,7 @@ import { isValidLiveServerProxyTarget } from '@harborclient/core/types';
 import {
   createSavedLiveServer,
   liveServerRuntimeConfigNeedsRestart,
+  openLiveServerStartPathInBrowser,
   restartLiveServer,
   startLiveServer,
   stopLiveServer,
@@ -164,6 +166,7 @@ function tryBuildConfigFromModal(
       watch: modal.watch,
       cors: modal.cors,
       openPath: modal.openPath,
+      openPathOnStartup: modal.openPathOnStartup,
       rememberLastUrl: modal.rememberLastUrl,
       lastOpenedPath: modal.lastOpenedPath,
       indexFiles: modal.indexFiles,
@@ -442,6 +445,20 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
     }
   }, [dispatch, runningInstance]);
 
+  /**
+   * Opens (or navigates) a Live Page to the editor’s current Start path.
+   *
+   * Uses the draft `openPath` so unsaved Start path edits apply immediately.
+   */
+  const handleOpen = useCallback((): void => {
+    if (!modal || runningInstance == null) {
+      return;
+    }
+    dispatch(
+      openLiveServerStartPathInBrowser(runningInstance.origin, runningInstance.id, modal.openPath)
+    );
+  }, [dispatch, modal, runningInstance]);
+
   const busy = modal?.busy ?? false;
   const tab: LiveServerModalTab = modal?.tab ?? 'general';
   const isRunning = runningInstance != null;
@@ -478,6 +495,15 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
         </Button>,
         ...(isRunning
           ? [
+              <Button
+                key="open"
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={handleOpen}
+              >
+                Open
+              </Button>,
               <Button
                 key="restart"
                 type="button"
@@ -575,6 +601,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   port={modal.port}
                   watch={modal.watch}
                   openPath={modal.openPath}
+                  openPathOnStartup={modal.openPathOnStartup}
                   rememberLastUrl={modal.rememberLastUrl}
                   indexFiles={modal.indexFiles}
                   host={modal.host}
@@ -588,6 +615,9 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
                   onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
                   onOpenPathChange={(value) => dispatch(setLiveServerModalOpenPath(value))}
+                  onOpenPathOnStartupChange={(value) =>
+                    dispatch(setLiveServerModalOpenPathOnStartup(value))
+                  }
                   onRememberLastUrlChange={(value) =>
                     dispatch(setLiveServerModalRememberLastUrl(value))
                   }

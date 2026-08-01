@@ -352,6 +352,7 @@ function runningLiveServerFixture(id: string, saved: LiveServer | null): Running
       cors: saved?.cors ?? defaultLiveServerCorsSettings(),
       ...normalizeLiveServerConfigFields({
         openPath: saved?.openPath,
+        openPathOnStartup: saved?.openPathOnStartup,
         rememberLastUrl: saved?.rememberLastUrl,
         lastOpenedPath: saved?.lastOpenedPath,
         indexFiles: saved?.indexFiles,

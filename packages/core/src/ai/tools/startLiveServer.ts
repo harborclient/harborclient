@@ -62,6 +62,11 @@ export interface StartLiveServerToolArgs {
   openPath?: string;
 
   /**
+   * Whether to open a Live Page on start (ad-hoc only). Defaults to true.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * Whether to remember the last opened URL (ad-hoc only; rarely useful without savedId).
    */
   rememberLastUrl?: boolean;

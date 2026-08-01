@@ -684,6 +684,11 @@ export interface LiveServerConfigFieldInput {
   openPath?: unknown;
 
   /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup?: unknown;
+
+  /**
    * When true, persist and reuse the last opened path within the origin.
    */
   rememberLastUrl?: unknown;
@@ -757,6 +762,12 @@ export interface LiveServerConfigFields {
    * Path or file opened when the Live Page starts (always leading `/`).
    */
   openPath: string;
+
+  /**
+   * When true, open a Live Page at {@link openPath} (or the remembered path)
+   * when the server starts.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
@@ -844,6 +855,7 @@ export function normalizeLiveServerConfigFields(
   if (value == null || typeof value !== 'object') {
     return {
       openPath: normalizeLiveServerOpenPath(undefined),
+      openPathOnStartup: true,
       rememberLastUrl: false,
       lastOpenedPath: null,
       indexFiles: defaultLiveServerIndexFiles(),
@@ -861,6 +873,7 @@ export function normalizeLiveServerConfigFields(
   }
   return {
     openPath: normalizeLiveServerOpenPath(value.openPath),
+    openPathOnStartup: value.openPathOnStartup !== false,
     rememberLastUrl: value.rememberLastUrl === true,
     lastOpenedPath: normalizeLiveServerLastOpenedPath(value.lastOpenedPath),
     indexFiles: normalizeLiveServerIndexFiles(value.indexFiles),
@@ -925,6 +938,11 @@ export interface LiveServerConfig {
    * Path or file opened when the Live Page starts (always leading `/`).
    */
   openPath: string;
+
+  /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
@@ -1007,6 +1025,7 @@ export interface ToLiveServerConfigInput {
   watch: boolean;
   cors?: LiveServerCorsSettings;
   openPath?: string;
+  openPathOnStartup?: boolean;
   rememberLastUrl?: boolean;
   lastOpenedPath?: string | null;
   /**
@@ -1103,6 +1122,11 @@ export interface LiveServer {
    * Path or file opened when the Live Page starts (always leading `/`).
    */
   openPath: string;
+
+  /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
@@ -1234,6 +1258,11 @@ export interface CreateLiveServerInput {
   openPath?: string;
 
   /**
+   * Whether to open a Live Page on start. Defaults to true.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * Whether to remember the last opened URL. Defaults to false.
    */
   rememberLastUrl?: boolean;
@@ -1345,6 +1374,11 @@ export interface UpdateLiveServerInput {
    * Entry / open path relative to the server origin.
    */
   openPath: string;
+
+  /**
+   * Whether to open a Live Page on start.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * Whether to remember the last opened URL.
@@ -1783,6 +1817,11 @@ export interface LiveServerExport {
   openPath?: string;
 
   /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
    */
   rememberLastUrl?: boolean;
@@ -1927,6 +1966,7 @@ export const liveServerExportSchema = z.object({
   watch: z.boolean().optional(),
   cors: liveServerCorsExportSchema.optional(),
   openPath: z.string().optional(),
+  openPathOnStartup: z.boolean().optional(),
   rememberLastUrl: z.boolean().optional(),
   lastOpenedPath: z.union([z.string(), z.null()]).optional(),
   indexFiles: z.array(z.string()).optional(),
@@ -1996,6 +2036,11 @@ export interface BuildLiveServerExportInput {
    * Entry / open path.
    */
   openPath?: string;
+
+  /**
+   * Whether to open a Live Page on start.
+   */
+  openPathOnStartup?: boolean;
 
   /**
    * Whether to remember the last opened URL.
@@ -2081,6 +2126,7 @@ export function buildLiveServerExport(input: BuildLiveServerExportInput): LiveSe
     ...(input.watch != null ? { watch: input.watch } : {}),
     ...(input.cors != null ? { cors: input.cors } : {}),
     ...(input.openPath != null && input.openPath !== '' ? { openPath: input.openPath } : {}),
+    ...(input.openPathOnStartup != null ? { openPathOnStartup: input.openPathOnStartup } : {}),
     ...(input.rememberLastUrl != null ? { rememberLastUrl: input.rememberLastUrl } : {}),
     ...(input.lastOpenedPath !== undefined ? { lastOpenedPath: input.lastOpenedPath } : {}),
     ...(input.indexFiles != null && input.indexFiles.length > 0

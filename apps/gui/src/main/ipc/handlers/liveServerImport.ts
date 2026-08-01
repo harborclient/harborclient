@@ -44,6 +44,7 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
   const watch = exportData.watch !== false;
   const cors = exportData.cors ?? defaultLiveServerCorsSettings();
   const openPath = exportData.openPath ?? '/';
+  const openPathOnStartup = exportData.openPathOnStartup !== false;
   const rememberLastUrl = exportData.rememberLastUrl === true;
   const lastOpenedPath = exportData.lastOpenedPath ?? null;
   const indexFiles = exportData.indexFiles ?? ['index.html'];
@@ -68,6 +69,7 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
       watch,
       cors,
       openPath,
+      openPathOnStartup,
       rememberLastUrl,
       lastOpenedPath,
       indexFiles,
@@ -98,6 +100,7 @@ export function importLiveServerData(parsed: unknown): LiveServerImportResult | 
     watch,
     cors,
     openPath,
+    openPathOnStartup,
     rememberLastUrl,
     lastOpenedPath,
     indexFiles,

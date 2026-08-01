@@ -1796,6 +1796,11 @@ export interface LiveServerConfig {
   openPath: string;
 
   /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
+
+  /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
    */
   rememberLastUrl: boolean;
@@ -1910,6 +1915,11 @@ export interface LiveServer {
    * Path or file opened when the Live Page starts (always leading `/`).
    */
   openPath: string;
+
+  /**
+   * When true, open a Live Page at the start path when the server starts.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * When true, navigations within the origin update {@link lastOpenedPath}.
@@ -2033,6 +2043,11 @@ export interface CreateLiveServerInput {
   openPath?: string;
 
   /**
+   * Whether to open a Live Page on start. Defaults to true.
+   */
+  openPathOnStartup?: boolean;
+
+  /**
    * Whether to remember the last opened URL. Defaults to false.
    */
   rememberLastUrl?: boolean;
@@ -2143,6 +2158,11 @@ export interface UpdateLiveServerInput {
    * Entry / open path relative to the server origin.
    */
   openPath: string;
+
+  /**
+   * Whether to open a Live Page on start.
+   */
+  openPathOnStartup: boolean;
 
   /**
    * Whether to remember the last opened URL.
