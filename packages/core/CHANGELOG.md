@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.4 - 2026-08-01
+
 - feat(websites): implement Add Live Page modal and import functionality. (`1bdbf8a4`)
 - feat(live-server): implement Add Live Server modal and import functionality. (`a36916fb`)
 - feat(live-server): enhance live server and live page management. (`fba086b7`)
