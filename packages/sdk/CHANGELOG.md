@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.5.0 - 2026-08-01
+
 - feat(live-page): introduce live page functionality and refactor related components. (`16f1f304`)
 
 ## 1.4.5 - 2026-08-01
