@@ -216,6 +216,51 @@ describe('SidebarRail keyboard', () => {
     expect(tablist?.contains(expand)).toBe(false);
   });
 
+  it('renders optional footer content above the expand control and outside the tablist', () => {
+    act(() => {
+      root.render(
+        createElement(SidebarRail, {
+          items: railItems,
+          activeId: 'collections',
+          expanded: false,
+          onExpandedChange: () => undefined,
+          onSelect: () => undefined,
+          ariaLabel: 'Sidebar modes',
+          footer: createElement('div', { className: 'hc-test-rail-footer' }, 'Footer')
+        })
+      );
+    });
+
+    const tablist = container.querySelector('[role="tablist"]');
+    const footerContent = container.querySelector('.hc-test-rail-footer');
+    const footer = container.querySelector('.hc-sidebar-rail-footer');
+    const expand = container.querySelector('.hc-sidebar-rail-expand');
+
+    expect(footerContent).not.toBeNull();
+    expect(footer?.contains(footerContent)).toBe(true);
+    expect(footer?.contains(expand)).toBe(true);
+    expect(tablist?.contains(footerContent)).toBe(false);
+
+    const footerChildren = [...(footer?.children ?? [])];
+    const footerIndex = footerChildren.findIndex((child) =>
+      child.classList.contains('hc-sidebar-rail-footer-content')
+    );
+    const expandIndex = footerChildren.findIndex((child) =>
+      child.classList.contains('hc-sidebar-rail-expand')
+    );
+    expect(footerIndex).toBeGreaterThanOrEqual(0);
+    expect(expandIndex).toBeGreaterThan(footerIndex);
+  });
+
+  it('omits the footer content wrapper when footer is not provided', () => {
+    act(() => {
+      root.render(createElement(StatefulRail));
+    });
+
+    expect(container.querySelector('.hc-sidebar-rail-footer-content')).toBeNull();
+    expect(container.querySelector('.hc-sidebar-rail-expand')).not.toBeNull();
+  });
+
   it('announces badge status in the collapsed accessible name', () => {
     act(() => {
       root.render(createElement(StatefulRail, { initialActiveId: 'environments' }));

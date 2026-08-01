@@ -107,7 +107,12 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
         pluginCatalog,
         snippets
       },
-      managementApi: session.capabilities.managementApi
+      managementApi: session.capabilities.managementApi,
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        role: session.user.role
+      }
     };
   } catch (err) {
     const message =

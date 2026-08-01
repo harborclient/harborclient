@@ -287,11 +287,13 @@ export function useProviders(
             kind: 'database' as const,
             type: connection.type
           })),
-          ...hubs.map((hub) => ({
-            id: hub.id,
-            name: hub.name,
-            kind: 'team-hub' as const
-          }))
+          ...hubs
+            .filter((hub) => hub.connected !== false)
+            .map((hub) => ({
+              id: hub.id,
+              name: hub.name,
+              kind: 'team-hub' as const
+            }))
         ];
         let visibleProviders = merged;
         if (excludeAdminTeamHubs) {

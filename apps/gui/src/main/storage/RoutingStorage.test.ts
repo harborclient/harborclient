@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -947,6 +947,44 @@ describeSqlite('RoutingStorage listCollections pruning', () => {
 
     expect(collections.some((item) => item.id === registryId)).toBe(false);
     expect(database.getRegistryEntry(registryId)).toBeUndefined();
+  });
+});
+
+describeSqlite('RoutingStorage disconnectTeamHub', () => {
+  it('unmounts the hub and purges registry while preserving id map and detached settings', async () => {
+    const listCollections = vi.fn().mockResolvedValue([SERVER_COLLECTION_RECORD]);
+    const { router, database, rootDir } = await createRoutingFixtureWithHub({
+      listCollections
+    });
+
+    await router.syncTeamHub(HUB_A.id);
+    expect(database.listRegistry()).toHaveLength(1);
+    expect(router.isConnectionMounted(HUB_A.id)).toBe(true);
+
+    database.setSetting(
+      detachedSettingKey(HUB_A.id),
+      JSON.stringify([SERVER_COLLECTION_RECORD.id])
+    );
+    database.addSnippetRegistryEntry({
+      name: 'Auth header',
+      connectionId: HUB_A.id,
+      providerSnippetId: 1,
+      uuid: '550e8400-e29b-41d4-a716-446655440099',
+      scope: 'any'
+    });
+
+    const idMapPath = teamHubIdMapPath(rootDir, HUB_A.id);
+    writeFileSync(idMapPath, 'preserved');
+
+    await router.disconnectTeamHub(HUB_A.id);
+
+    expect(router.isConnectionMounted(HUB_A.id)).toBe(false);
+    expect(database.listRegistry()).toEqual([]);
+    expect(database.listSnippetRegistry()).toEqual([]);
+    expect(JSON.parse(database.getSetting(detachedSettingKey(HUB_A.id)) ?? '[]')).toEqual([
+      SERVER_COLLECTION_RECORD.id
+    ]);
+    expect(existsSync(idMapPath)).toBe(true);
   });
 });
 

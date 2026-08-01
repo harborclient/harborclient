@@ -144,12 +144,14 @@ describe('scanTeamHubSessions', () => {
       {
         hubId: 'hub-user',
         services: userServices,
-        managementApi: false
+        managementApi: false,
+        user: { id: 'user-alice', name: 'alice', role: 'user' }
       },
       {
         hubId: 'hub-admin',
         services: adminServices,
-        managementApi: true
+        managementApi: true,
+        user: { id: 'user-admin', name: 'ops', role: 'admin' }
       }
     ]);
   });
@@ -206,7 +208,8 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: true,
           snippets: true
         },
-        managementApi: false
+        managementApi: false,
+        user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);
   });
@@ -258,7 +261,8 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: false,
           snippets: true
         },
-        managementApi: false
+        managementApi: false,
+        user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);
   });
@@ -310,7 +314,8 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: false,
           snippets: false
         },
-        managementApi: false
+        managementApi: false,
+        user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);
   });

@@ -24,6 +24,7 @@ import {
   getSlotForConnection,
   removeSlotForConnection
 } from '#/main/settings/storageSlots';
+import { setTeamHubConnected, setTeamHubUserName } from '#/main/settings/teamHubConnectionState';
 import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 import { refreshTeamHubPluginSources } from '#/main/settings/teamHubPluginSources';
 import { clearTrustedKeysCache } from '#/main/plugins/pluginSignature';
@@ -360,7 +361,39 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('teamHubs:list', ipcArgSchemas.none, () => listTeamHubs());
 
   // Probes configured team hubs for session capabilities.
-  handle('teamHubs:scanSessions', ipcArgSchemas.none, () => scanTeamHubSessions(listTeamHubs()));
+  handle('teamHubs:scanSessions', ipcArgSchemas.none, async () => {
+    const hubs = listTeamHubs();
+    const connectedHubs = hubs.filter((hub) => hub.connected !== false);
+    const scanResults = await scanTeamHubSessions(connectedHubs);
+    const resultsByHubId = new Map(scanResults.map((result) => [result.hubId, result]));
+
+    for (const result of scanResults) {
+      if (result.user?.name) {
+        setTeamHubUserName(result.hubId, result.user.name);
+      }
+    }
+
+    return hubs.map((hub) => {
+      const scanned = resultsByHubId.get(hub.id);
+      if (scanned) {
+        return scanned;
+      }
+
+      return {
+        hubId: hub.id,
+        services: {
+          storage: false,
+          llm: false,
+          openai: false,
+          pluginCatalog: false,
+          snippets: false,
+          admin: false
+        },
+        managementApi: false,
+        error: 'Disconnected'
+      };
+    });
+  });
 
   // Lists Team Hub user accounts using an admin token on the given hub connection.
   handle('teamHubs:listUsers', ipcArgSchemas.connectionId, async (_event, hubId) => {
@@ -771,7 +804,7 @@ export function registerSettingsHandlers(db: IStorage): void {
   });
 
   // Creates or updates a team hub.
-  handle('teamHubs:save', ipcArgSchemas.teamHub, async (_event, hub) => {
+  handle('teamHubs:save', ipcArgSchemas.teamHub, async (event, hub) => {
     const existingHubs = listTeamHubs();
     const trimmedId = hub.id.trim();
     const isNew = trimmedId.length === 0 || !existingHubs.some((item) => item.id === trimmedId);
@@ -780,7 +813,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       hubs.find((item) => item.id === trimmedId) ??
       (trimmedId.length === 0 ? hubs[hubs.length - 1] : undefined);
 
-    if (saved && db instanceof RoutingStorage) {
+    if (saved && db instanceof RoutingStorage && saved.connected !== false) {
       if (isNew) {
         assignSlotForNewTeamHub(saved.id);
       }
@@ -795,8 +828,40 @@ export function registerSettingsHandlers(db: IStorage): void {
       console.warn('Failed to refresh Team Hub plugin sources:', err);
     });
     clearTrustedKeysCache();
+    notifyStorageConnectionsChanged(event.sender);
 
     return hubs;
+  });
+
+  // Soft-connects or soft-disconnects a team hub without deleting its configuration.
+  handle('teamHubs:setConnected', ipcArgSchemas.teamHubConnected, async (event, id, connected) => {
+    const hub = listTeamHubs().find((entry) => entry.id === id);
+    if (!hub) {
+      throw new Error(`Unknown team hub: ${id}`);
+    }
+
+    setTeamHubConnected(id, connected);
+
+    if (db instanceof RoutingStorage) {
+      if (connected) {
+        assignSlotForNewTeamHub(id);
+        const slot = getSlotForConnection(id);
+        if (slot != null) {
+          await db.mountTeamHub(hub, slot);
+          await db.syncTeamHub(id);
+        }
+      } else {
+        await db.disconnectTeamHub(id);
+      }
+    }
+
+    await refreshTeamHubPluginSources().catch((err) => {
+      console.warn('Failed to refresh Team Hub plugin sources:', err);
+    });
+    clearTrustedKeysCache();
+    notifyStorageConnectionsChanged(event.sender);
+
+    return listTeamHubs();
   });
 
   // Re-reads collection data from a single provider (database or team hub).
@@ -846,7 +911,7 @@ export function registerSettingsHandlers(db: IStorage): void {
   );
 
   // Deletes a team hub by id.
-  handle('teamHubs:delete', ipcArgSchemas.connectionId, async (_event, id) => {
+  handle('teamHubs:delete', ipcArgSchemas.connectionId, async (event, id) => {
     if (db instanceof RoutingStorage) {
       await db.removeTeamHub(id);
       removeSlotForConnection(id);
@@ -856,6 +921,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       console.warn('Failed to refresh Team Hub plugin sources:', err);
     });
     clearTrustedKeysCache();
+    notifyStorageConnectionsChanged(event.sender);
     return hubs;
   });
 

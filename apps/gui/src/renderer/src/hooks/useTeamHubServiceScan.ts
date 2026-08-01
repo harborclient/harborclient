@@ -11,6 +11,12 @@ export interface TeamHubServiceScanState {
   serviceFlagsByHubId: Map<string, TeamHubServiceFlags>;
 
   /**
+   * Authenticated user display names keyed by hub connection id when the scan
+   * succeeded.
+   */
+  userNameByHubId: Map<string, string>;
+
+  /**
    * Hub ids whose tokens report management API capabilities.
    */
   adminHubIds: Set<string>;
@@ -56,6 +62,7 @@ export function useTeamHubServiceScan(
   const [serviceFlagsByHubId, setServiceFlagsByHubId] = useState(
     () => new Map<string, TeamHubServiceFlags>()
   );
+  const [userNameByHubId, setUserNameByHubId] = useState(() => new Map<string, string>());
   const [adminHubIds, setAdminHubIds] = useState<Set<string>>(() => new Set());
   const [scanning, setScanning] = useState(false);
   const [scanToken, setScanToken] = useState(0);
@@ -80,6 +87,7 @@ export function useTeamHubServiceScan(
         if (cancelled) return;
         setScanning(true);
         setServiceFlagsByHubId(new Map());
+        setUserNameByHubId(new Map());
         setAdminHubIds(new Set());
         return window.api.scanTeamHubSessions();
       })
@@ -87,10 +95,14 @@ export function useTeamHubServiceScan(
         if (cancelled || results === undefined) return;
 
         const nextServiceFlags = new Map<string, TeamHubServiceFlags>();
+        const nextUserNames = new Map<string, string>();
         const nextAdminHubIds = new Set<string>();
 
         for (const result of results) {
           nextServiceFlags.set(result.hubId, result.services);
+          if (result.user?.name) {
+            nextUserNames.set(result.hubId, result.user.name);
+          }
           if (result.managementApi) {
             nextAdminHubIds.add(result.hubId);
           }
@@ -103,12 +115,14 @@ export function useTeamHubServiceScan(
         }
 
         setServiceFlagsByHubId(nextServiceFlags);
+        setUserNameByHubId(nextUserNames);
         setAdminHubIds(nextAdminHubIds);
         setScanning(false);
       })
       .catch(() => {
         if (cancelled) return;
         setServiceFlagsByHubId(new Map(teamHubs.map((hub) => [hub.id, emptyServices()])));
+        setUserNameByHubId(new Map());
         setAdminHubIds(new Set());
         setScanning(false);
       });
@@ -121,11 +135,12 @@ export function useTeamHubServiceScan(
   if (!shouldScan) {
     return {
       serviceFlagsByHubId: new Map(),
+      userNameByHubId: new Map(),
       adminHubIds: new Set(),
       scanning: false,
       rescanServices
     };
   }
 
-  return { serviceFlagsByHubId, adminHubIds, scanning, rescanServices };
+  return { serviceFlagsByHubId, userNameByHubId, adminHubIds, scanning, rescanServices };
 }

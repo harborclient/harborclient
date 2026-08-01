@@ -26,6 +26,20 @@ export interface TeamHub {
    * Bearer token prefixed with `hbk_` for protected routes.
    */
   token: string;
+
+  /**
+   * When false, the hub is soft-disconnected: config and token remain but the
+   * storage backend is unmounted. Omitted or true means connected. Populated
+   * by the main process when listing hubs; not persisted on save.
+   */
+  connected?: boolean;
+
+  /**
+   * Last known authenticated user display name from session introspection.
+   * Used for avatar initials. Populated by the main process when listing hubs;
+   * not persisted on save.
+   */
+  userName?: string;
 }
 
 /**
@@ -116,6 +130,26 @@ export interface TeamHubSessionScanResult {
    * When true, the hub token has management API capabilities.
    */
   managementApi: boolean;
+
+  /**
+   * Authenticated session user when the probe succeeded.
+   */
+  user?: {
+    /**
+     * Stable user account identifier.
+     */
+    id: string;
+
+    /**
+     * Display name for the authenticated account.
+     */
+    name: string;
+
+    /**
+     * Account role determining API capabilities.
+     */
+    role: 'admin' | 'user';
+  };
 
   /**
    * Human-readable error when the scan failed; omitted on success.

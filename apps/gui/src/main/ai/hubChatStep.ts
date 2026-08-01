@@ -2,7 +2,7 @@ import { TeamHubClient } from '@harborclient/team-hub-api';
 import { getHubOpenAiCapability, setHubOpenAiCapability } from './hubCapabilities';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
-import { listTeamHubs } from '#/main/settings/teamHubSettings';
+import { listConnectedTeamHubs } from '#/main/settings/teamHubSettings';
 import { resolveChatStepMode } from '@harborclient/core/ai/chatStepMode';
 import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '@harborclient/core/types';
 
@@ -148,7 +148,7 @@ async function fetchHubChatStep(
  * Hubs that are unreachable or have LLM disabled are skipped silently.
  */
 export async function listHubLlmModels(): Promise<HubLlmModelGroup[]> {
-  const hubs = listTeamHubs();
+  const hubs = listConnectedTeamHubs();
   const groups: HubLlmModelGroup[] = [];
 
   await Promise.all(
@@ -194,9 +194,9 @@ export async function runHubChatCompletionStep(
     throw new Error('Team Hub id is required for hub-proxied models.');
   }
 
-  const hub = listTeamHubs().find((entry) => entry.id === hubId);
+  const hub = listConnectedTeamHubs().find((entry) => entry.id === hubId);
   if (!hub) {
-    throw new Error('Team Hub not found.');
+    throw new Error('Team Hub is not connected.');
   }
 
   const connection: HubConnection = {

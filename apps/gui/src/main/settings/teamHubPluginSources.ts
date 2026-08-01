@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { listTeamHubs } from './teamHubSettings';
+import { listConnectedTeamHubs } from './teamHubSettings';
 import { TeamHubClient } from '@harborclient/team-hub-api';
 import { parseJson } from '@harborclient/core/parseJson';
 
@@ -111,7 +111,7 @@ export function getTeamHubPluginSourcesView(): TeamHubPluginSourcesView {
  * @returns Updated Team Hub plugin source view after refresh.
  */
 export async function refreshTeamHubPluginSources(): Promise<TeamHubPluginSourcesView> {
-  const hubs = listTeamHubs();
+  const hubs = listConnectedTeamHubs();
   const previous = readCache();
   const next: TeamHubPluginSourcesCache = { hubs: {} };
 

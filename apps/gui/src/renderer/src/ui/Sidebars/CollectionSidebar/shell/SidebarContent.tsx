@@ -48,6 +48,7 @@ import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIco
 import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
+import { TeamHubRailAvatars } from './TeamHubRailAvatars';
 import { WorkflowHistory } from '../History/WorkflowHistory';
 import { WorkflowHistoryHeaderActions } from '../History/WorkflowHistoryHeaderActions';
 import { RunResults, RunsHeaderActions } from '../RunResults';
@@ -497,6 +498,7 @@ export function SidebarContent(): JSX.Element {
             onSelect={handleRailSelect}
             ariaLabel="Sidebar modes"
             panelId={SIDEBAR_RAIL_PANEL_ID}
+            footer={<TeamHubRailAvatars expanded={sidebarRailExpanded} />}
           />
         ) : null}
         <Sidebar

@@ -47,6 +47,17 @@ export interface ApiTeamHub {
    */
   deleteTeamHub: (id: string) => Promise<TeamHub[]>;
   /**
+   * Soft-connects or soft-disconnects a team hub without deleting its configuration.
+   *
+   * When connected, mounts and syncs the hub storage backend. When disconnected,
+   * unmounts the backend and removes its collections/snippets from the sidebar.
+   *
+   * @param id - Team hub id to update.
+   * @param connected - Whether the hub should be mounted.
+   * @returns Updated list of all team hubs.
+   */
+  setTeamHubConnected: (id: string, connected: boolean) => Promise<TeamHub[]>;
+  /**
    * Probes each configured team hub for session capabilities via `GET /auth/session`.
    */
   scanTeamHubSessions: () => Promise<TeamHubSessionScanResult[]>;

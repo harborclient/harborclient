@@ -20,7 +20,7 @@ const hubOne = {
 };
 
 vi.mock('#/main/settings/teamHubSettings', () => ({
-  listTeamHubs: vi.fn(() => [hubOne])
+  listConnectedTeamHubs: vi.fn(() => [hubOne])
 }));
 
 vi.mock('@harborclient/team-hub-api', async (importOriginal) => ({

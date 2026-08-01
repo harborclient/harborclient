@@ -1,5 +1,10 @@
 import { randomUUID } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
+import {
+  getTeamHubUserName,
+  isTeamHubConnected,
+  removeTeamHubConnectionState
+} from './teamHubConnectionState';
 import { deleteTeamHubToken, getTeamHubToken, storeTeamHubToken } from './teamHubSecrets';
 import { parseJson } from '@harborclient/core/parseJson';
 import type { TeamHub } from '@harborclient/core/types';
@@ -65,11 +70,34 @@ function normalizeTeamHub(input: StoredTeamHub | TeamHub): TeamHub {
 /**
  * Lists all configured team hubs with bearer tokens resolved from encrypted storage.
  *
+ * Includes soft-connection flags (`connected`, `userName`) from the connection-state
+ * sidecar. Those fields are read-only for callers and are not written by save.
+ *
  * @returns Normalized team hub records from local storage.
  */
 export function listTeamHubs(): TeamHub[] {
   const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
-  return stored.map(normalizeTeamHub);
+  return stored.map((entry) => {
+    const hub = normalizeTeamHub(entry);
+    const userName = getTeamHubUserName(hub.id);
+    return {
+      ...hub,
+      connected: isTeamHubConnected(hub.id),
+      ...(userName ? { userName } : {})
+    };
+  });
+}
+
+/**
+ * Lists configured team hubs that are currently soft-connected.
+ *
+ * Used when mounting backends, refreshing LLM models, and scanning plugin sources
+ * so disconnected hubs stay out of runtime integrations.
+ *
+ * @returns Team hubs whose soft-connection flag is true (or unset).
+ */
+export function listConnectedTeamHubs(): TeamHub[] {
+  return listTeamHubs().filter((hub) => hub.connected !== false);
 }
 
 /**
@@ -124,5 +152,6 @@ export function deleteTeamHub(id: string): TeamHub[] {
 
   persistTeamHubMetadata(nextStored);
   deleteTeamHubToken(id);
+  removeTeamHubConnectionState(id);
   return listTeamHubs();
 }

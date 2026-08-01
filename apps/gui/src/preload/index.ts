@@ -2425,6 +2425,16 @@ function deleteTeamHub(id: string): Promise<TeamHub[]> {
 }
 
 /**
+ * Soft-connects or soft-disconnects a team hub via IPC without deleting it.
+ *
+ * @param id - Team hub id to update.
+ * @param connected - Whether the hub should be mounted.
+ */
+function setTeamHubConnected(id: string, connected: boolean): Promise<TeamHub[]> {
+  return ipcRenderer.invoke('teamHubs:setConnected', id, connected);
+}
+
+/**
  * Probes configured team hubs for session capabilities via IPC.
  */
 function scanTeamHubSessions(): Promise<TeamHubSessionScanResult[]> {
@@ -5104,6 +5114,7 @@ const api: Api = {
   listTeamHubs,
   saveTeamHub,
   deleteTeamHub,
+  setTeamHubConnected,
   scanTeamHubSessions,
   reloadTeamHubConfig,
   listTeamHubUsers,

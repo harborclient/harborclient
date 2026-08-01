@@ -4,7 +4,8 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { deleteTeamHub, listTeamHubs, saveTeamHub } from './teamHubSettings';
+import { setTeamHubConnected } from './teamHubConnectionState';
+import { deleteTeamHub, listConnectedTeamHubs, listTeamHubs, saveTeamHub } from './teamHubSettings';
 
 describe('teamHubSettings', () => {
   let settingsStore: Record<string, string>;
@@ -72,7 +73,8 @@ describe('teamHubSettings', () => {
         id,
         name: 'Updated',
         baseUrl: 'https://hub.example.com',
-        token: 'hbk_new'
+        token: 'hbk_new',
+        connected: true
       }
     ]);
   });
@@ -100,12 +102,35 @@ describe('teamHubSettings', () => {
         id: secondId,
         name: 'Second',
         baseUrl: 'http://127.0.0.1:8789',
-        token: 'hbk_two'
+        token: 'hbk_two',
+        connected: true
       }
     ]);
   });
 
   it('throws when deleting an unknown team hub', () => {
     expect(() => deleteTeamHub('missing-id')).toThrow('Unknown team hub: missing-id');
+  });
+
+  it('lists only soft-connected hubs from listConnectedTeamHubs', () => {
+    const created = saveTeamHub({
+      id: '',
+      name: 'Connected Hub',
+      baseUrl: 'http://127.0.0.1:8788',
+      token: 'hbk_one'
+    });
+    const other = saveTeamHub({
+      id: '',
+      name: 'Disconnected Hub',
+      baseUrl: 'http://127.0.0.1:8789',
+      token: 'hbk_two'
+    });
+    const connectedId = created[0]?.id ?? '';
+    const disconnectedId = other[1]?.id ?? '';
+
+    setTeamHubConnected(disconnectedId, false);
+
+    expect(listConnectedTeamHubs().map((hub) => hub.id)).toEqual([connectedId]);
+    expect(listTeamHubs().find((hub) => hub.id === disconnectedId)?.connected).toBe(false);
   });
 });

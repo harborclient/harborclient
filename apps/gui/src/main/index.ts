@@ -22,7 +22,7 @@ import {
 import { ensureStorageSlots } from '#/main/settings/storageSlots';
 import { migrateTeamHubSettings } from '#/main/settings/teamHubMigration';
 import { migrateStorageSettingsKeys } from '#/main/settings/storageSettingsMigration';
-import { listTeamHubs } from '#/main/settings/teamHubSettings';
+import { listConnectedTeamHubs, listTeamHubs } from '#/main/settings/teamHubSettings';
 import { ensureSharingKeys } from '#/main/sharing/sharingKeys';
 import { startGitWatchers } from '#/main/git/gitWatcher';
 import { rebuildAppMenu, setMenuActiveTheme, setMenuWindow } from './appMenu';
@@ -323,9 +323,10 @@ async function createStorage(): Promise<RoutingStorage> {
   migrateStorageSettingsKeys(database);
   const connections = listStorageConnections();
   const teamHubs = listTeamHubs();
+  const connectedTeamHubs = listConnectedTeamHubs();
   const primaryConnectionId = getActiveStorageId();
   logVerbose(
-    `createStorage: ${connections.length} connection(s), ${teamHubs.length} team hub(s), active="${primaryConnectionId}"`
+    `createStorage: ${connections.length} connection(s), ${teamHubs.length} team hub(s) (${connectedTeamHubs.length} connected), active="${primaryConnectionId}"`
   );
   const slots = ensureStorageSlots(
     connections,
@@ -340,7 +341,7 @@ async function createStorage(): Promise<RoutingStorage> {
       database,
       primaryConnectionId,
       connections,
-      teamHubs,
+      connectedTeamHubs,
       slots,
       userDataPath
     );

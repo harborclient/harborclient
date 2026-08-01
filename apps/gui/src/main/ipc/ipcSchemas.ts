@@ -1138,6 +1138,7 @@ export const ipcArgSchemas = {
   ]),
   storageConnection: z.tuple([storageConnection]),
   teamHub: z.tuple([teamHub]),
+  teamHubConnected: z.tuple([connectionId, z.boolean()]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
   teamHubUserDelete: z.tuple([connectionId, connectionId]),
   teamHubUserCreate: z.tuple([connectionId, createHubUserInput]),

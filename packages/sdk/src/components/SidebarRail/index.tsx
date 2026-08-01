@@ -3,6 +3,7 @@ import {
   type ComponentPropsWithoutRef,
   type JSX,
   type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useRef
 } from 'react';
@@ -61,6 +62,14 @@ interface Props extends Omit<
    * Id of the sidebar panel controlled by each rail tab (`aria-controls`).
    */
   panelId?: string;
+
+  /**
+   * Optional content rendered in the rail footer above the expand/collapse
+   * button (for example Team Hub connection avatars). Callers that need a
+   * hairline above the expand control should include a separator in this
+   * content. Kept outside the tablist so it does not join the roving tabindex.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -71,7 +80,8 @@ interface Props extends Omit<
  * last item, so the list has a bottom border before the footer); active chrome
  * uses the sidebar-rail-active token. Items form a vertical tablist with
  * roving tabindex; Arrow keys move focus and selection; Home/End jump to the
- * first/last item. Expand/collapse sits outside the tablist as its own Tab stop.
+ * first/last item. Optional footer content and expand/collapse sit outside the
+ * tablist as their own Tab stops.
  */
 export function SidebarRail({
   items,
@@ -81,6 +91,7 @@ export function SidebarRail({
   onExpandedChange,
   ariaLabel = 'Sidebar modes',
   panelId,
+  footer,
   className,
   ...props
 }: Props): JSX.Element {
@@ -165,6 +176,7 @@ export function SidebarRail({
         ])}
       </div>
       <div className="hc-sidebar-rail-footer shrink-0">
+        {footer != null ? <div className="hc-sidebar-rail-footer-content">{footer}</div> : null}
         <button
           type="button"
           className={cn(

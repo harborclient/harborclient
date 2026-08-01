@@ -2275,14 +2275,50 @@ export class RoutingStorage implements IStorage {
    * Removes all sidebar registry entries for a team hub without deleting server data.
    *
    * @param hubId - Team hub connection id.
-   * @param hubDb - Team hub storage backend for the connection.
+   * @param hubDb - Team hub storage backend for the connection, when still mounted.
    */
-  private purgeTeamHubSidebarCollections(hubId: string, hubDb: TeamHubStorage): void {
+  private purgeTeamHubSidebarCollections(hubId: string, hubDb?: TeamHubStorage): void {
     for (const entry of this.database.listRegistry()) {
       if (entry.connectionId !== hubId) continue;
-      hubDb.forgetLocalCollection(entry.providerCollectionId);
+      hubDb?.forgetLocalCollection(entry.providerCollectionId);
       this.database.deleteRegistryEntry(entry.id);
     }
+  }
+
+  /**
+   * Removes all snippet registry entries for a team hub without deleting server data.
+   *
+   * @param hubId - Team hub connection id.
+   * @param hubDb - Team hub storage backend for the connection, when still mounted.
+   */
+  private purgeTeamHubSidebarSnippets(hubId: string, hubDb?: TeamHubStorage): void {
+    for (const entry of this.database.listSnippetRegistry()) {
+      if (entry.connectionId !== hubId) continue;
+      hubDb?.forgetLocalSnippet(entry.providerSnippetId);
+      this.database.deleteSnippetRegistryEntry(entry.id);
+    }
+  }
+
+  /**
+   * Soft-disconnects a team hub: unmounts the backend and purges sidebar registry
+   * entries while preserving the id map file and detached-collection settings so
+   * reconnect can remount without reconfiguring the hub.
+   *
+   * Registry rows are removed without calling `forgetLocal*` so the on-disk id
+   * map stays intact for the next mount.
+   *
+   * @param hubId - Team hub connection id.
+   */
+  async disconnectTeamHub(hubId: string): Promise<void> {
+    const backend = this.byConnectionId.get(hubId);
+    if (backend) {
+      await backend.db.close();
+      this.byConnectionId.delete(hubId);
+      this.bySlot.delete(backend.slot);
+    }
+
+    this.purgeTeamHubSidebarCollections(hubId);
+    this.purgeTeamHubSidebarSnippets(hubId);
   }
 
   /**
@@ -2301,6 +2337,12 @@ export class RoutingStorage implements IStorage {
     for (const entry of this.database.listRegistry()) {
       if (entry.connectionId === hubId) {
         this.database.deleteRegistryEntry(entry.id);
+      }
+    }
+
+    for (const entry of this.database.listSnippetRegistry()) {
+      if (entry.connectionId === hubId) {
+        this.database.deleteSnippetRegistryEntry(entry.id);
       }
     }
 

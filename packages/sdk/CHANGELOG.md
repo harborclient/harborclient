@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- refactor(teamHub): introduce soft-connection handling for team hubs. (`5fc744ec`)
+
 ## 1.4.3 - 2026-08-01
 
 - feat(live-server): integrate live-server package and enhance CLI functionality. (`890d9cd7`)

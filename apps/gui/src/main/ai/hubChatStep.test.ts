@@ -8,7 +8,7 @@ const completeChatStep = vi.fn().mockResolvedValue({
 });
 
 vi.mock('#/main/settings/teamHubSettings', () => ({
-  listTeamHubs: vi.fn(() => [
+  listConnectedTeamHubs: vi.fn(() => [
     {
       id: 'hub-1',
       name: 'Team Hub',
