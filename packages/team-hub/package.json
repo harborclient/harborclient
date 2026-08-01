@@ -1,6 +1,6 @@
 {
   "name": "@harborclient/team-hub",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Team Hub - central server for HarborClient",
   "homepage": "https://harborclient.com/team-hub/",
   "bugs": {
