@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.5 - 2026-08-01
+
 - feat(live-server): enhance live server and live page management. (`fba086b7`)
 
 ## 0.4.8 - 2026-07-28
