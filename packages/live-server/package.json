@@ -1,6 +1,6 @@
 {
   "name": "@harborclient/live-server",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Headless live-server host for HarborClient (Express static server, scripts, run command).",
   "keywords": [
     "harborclient",
