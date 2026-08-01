@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- style(theme): update dark and light theme colors for sidebar and accent. (`93f706fa`)
+
 ## 2.10.0 - 2026-08-01
 
 - feat(live-page): introduce live page functionality and refactor related components. (`16f1f304`)
