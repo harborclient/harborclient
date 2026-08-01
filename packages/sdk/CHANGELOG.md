@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.4.3 - 2026-08-01
+
 - feat(live-server): integrate live-server package and enhance CLI functionality. (`890d9cd7`)
 
 ## 1.4.2 - 2026-07-31
