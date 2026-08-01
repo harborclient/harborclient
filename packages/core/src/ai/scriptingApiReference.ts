@@ -181,6 +181,31 @@ await hc.sleep(2000);
 
 Do not invent \`setTimeout\` / \`setInterval\` in the sandbox; use \`await hc.sleep(...)\`.
 
+## hc.send(text, statusCode?, contentType?) / hc.sendJSON(value, statusCode?)
+
+Treats the given value as the HTTP response for the current send (replaces what
+the remote server returned). Available in both pre-request and post-request
+scripts. Last call in the phase wins.
+
+- \`hc.send(text, statusCode = 200, contentType = 'text/plain; charset=utf-8')\`
+- \`hc.sendJSON(value, statusCode = 200)\` — body is \`JSON.stringify(value)\`,
+  Content-Type is \`application/json\`
+- Status must be an integer between 100 and 599 (throws otherwise)
+- Does **not** skip the HTTP call by itself. In a pre-request script, also call
+  \`hc.execution.skipRequest()\` when the remote request should not run.
+- \`hc.execution.skipRequest()\` still skips post-request scripts (unchanged)
+
+\`\`\`js
+await hc.sendJSON({
+  error: 'Something happened.'
+}, 400);
+hc.execution.skipRequest();
+\`\`\`
+
+When used in a post-request script without skipping, the real response is
+discarded after post scripts finish and the override is shown instead. Request
+history and plugin \`afterSend\` still see the real response when a send occurred.
+
 ## AI script edits (update_request_script)
 
 The \`replace_range\` mode performs a literal splice:

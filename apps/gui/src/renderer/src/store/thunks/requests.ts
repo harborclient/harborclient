@@ -6,6 +6,7 @@ import type {
   RequestExport,
   SavedRequest,
   ScriptRequestContext,
+  ScriptResponseOverride,
   ScriptRunResult,
   ScriptTestResult,
   ScriptExecutionEvent,
@@ -18,6 +19,7 @@ import { defaultAuth } from '@harborclient/core/auth';
 import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { buildSendInput } from '@harborclient/core/requestRunner';
 import { enrichScriptLogLines } from '@harborclient/core/scripting/scriptLogs';
+import { applyScriptResponseOverride } from '@harborclient/core/scripting/scriptResponseOverride';
 import { normalizeRequestTags } from '@harborclient/core/requestTags';
 import { toPluginHttpRequest, toPluginHttpResponse } from '@harborclient/core/plugin/httpRequest';
 import { emitPluginAfterSend } from '#/renderer/src/plugins/pluginAfterSendBus';
@@ -630,6 +632,7 @@ export async function executeRequestDraft(
   let cookieVarClears: string[] = [];
   let scriptNextRequest: string | null | undefined;
   let scriptSkipRequest = false;
+  let scriptResponseOverride: ScriptResponseOverride | undefined;
   let scriptWorkflowNextAction: string | undefined;
   let scriptWorkflowSkipAction = false;
   let collectionHeaderRows: KeyValue[] = collection
@@ -817,6 +820,9 @@ export async function executeRequestDraft(
       if (result.skipRequest) {
         scriptSkipRequest = true;
       }
+      if (result.responseOverride) {
+        scriptResponseOverride = result.responseOverride;
+      }
       if (result.workflowNextAction !== undefined) {
         scriptWorkflowNextAction = result.workflowNextAction;
       }
@@ -875,8 +881,18 @@ export async function executeRequestDraft(
           void dispatch(recordRequestHistoryFromSend({ sendInput, result }));
         }
       }
+    }
 
+    if (scriptResponseOverride) {
+      result = applyScriptResponseOverride(result, scriptResponseOverride);
+    }
+
+    if (!scriptSkipRequest) {
+      scriptResponseOverride = undefined;
       await runScriptPhase('post', result);
+      if (scriptResponseOverride) {
+        result = applyScriptResponseOverride(result, scriptResponseOverride);
+      }
     }
 
     const persistErrors: string[] = [];

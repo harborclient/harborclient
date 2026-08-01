@@ -15,6 +15,9 @@ export const GIT_SIDEBAR_SECTION_ID = 'git-sidebar';
 /** Stable id of the Shortcuts sidebar skip target wrapper in the app shell. */
 export const SHORTCUTS_SIDEBAR_SECTION_ID = 'shortcuts-sidebar';
 
+/** Stable id of the live-server logs sidebar skip target wrapper in the app shell. */
+export const LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID = 'live-server-logs-sidebar';
+
 /** Stable id of the persistent footer bar skip target. */
 export const APP_FOOTER_SECTION_ID = 'app-footer';
 
@@ -76,6 +79,11 @@ export interface SkipNavigationVisibility {
    * Whether the Shortcuts sidebar panel is open.
    */
   shortcutsSidebarVisible: boolean;
+
+  /**
+   * Whether the live-server logs right sidebar is open.
+   */
+  liveServerLogsSidebarVisible: boolean;
 
   /**
    * Whether the active tab is a request tab rather than a settings/page tab.
@@ -142,6 +150,14 @@ export function resolveSkipNavigationLinks(
       id: 'shortcuts-sidebar',
       label: 'Skip to Shortcuts sidebar',
       targetId: SHORTCUTS_SIDEBAR_SECTION_ID
+    });
+  }
+
+  if (visibility.liveServerLogsSidebarVisible) {
+    links.push({
+      id: 'live-server-logs-sidebar',
+      label: 'Skip to Live server logs',
+      targetId: LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID
     });
   }
 

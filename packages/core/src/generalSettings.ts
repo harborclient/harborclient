@@ -7,6 +7,7 @@ import {
   normalizeCodeEditorTheme
 } from './codeEditorSettings';
 import { normalizeEditorTab } from './requestEditorTab';
+import { DEFAULT_TERMINAL_SETTINGS, normalizeTerminalSettings } from './terminalSettings';
 import type {
   EditorTab,
   GeneralSettings,
@@ -18,6 +19,15 @@ import type {
 import { DEFAULT_USER_AGENT, normalizeCustomUserAgents, normalizeUserAgent } from './userAgent';
 
 export { HARD_MAX_RESPONSE_SIZE_MB, DEFAULT_PROXY_SETTINGS };
+export {
+  DEFAULT_TERMINAL_FONT_FAMILY,
+  DEFAULT_TERMINAL_SETTINGS,
+  TERMINAL_CURSOR_STYLES,
+  TERMINAL_FONT_WEIGHTS,
+  isTerminalCursorStyle,
+  isTerminalFontWeight,
+  normalizeTerminalSettings
+} from './terminalSettings';
 
 /**
  * Default general settings applied when storage is empty or fields are invalid.
@@ -62,6 +72,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   codeEditorTheme: 'monokai',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
+  terminal: { ...DEFAULT_TERMINAL_SETTINGS },
   proxy: { ...DEFAULT_PROXY_SETTINGS },
   globalVariables: [],
   logFilePath: ''
@@ -335,6 +346,7 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     codeEditorTheme: normalizeCodeEditorTheme(input.codeEditorTheme),
     codeEditorSetup: normalizeCodeEditorSetup(input.codeEditorSetup),
     codeEditorFontSize: normalizeCodeEditorFontSize(input.codeEditorFontSize),
+    terminal: normalizeTerminalSettings(input.terminal),
     proxy: normalizeProxySettings(input.proxy),
     globalVariables: normalizeGlobalVariables(input.globalVariables),
     logFilePath: typeof input.logFilePath === 'string' ? input.logFilePath.trim() : ''

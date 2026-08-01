@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { LiveServerLogsPlacement } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -99,7 +100,7 @@ export interface SidebarFooterLayoutSnapshot {
   showTerminal: boolean;
 
   /**
-   * Whether the footer live-server logs panel was open when recorded.
+   * Whether the live-server logs viewer was open when recorded.
    */
   showLiveServerLogs: boolean;
 
@@ -115,6 +116,7 @@ export interface NavigationState {
   folderSettingsDirty: boolean;
   workspaceSettingsDirty: boolean;
   showSidebar: boolean;
+  showRail: boolean;
   showAiSidebar: boolean;
   showGitSidebar: boolean;
   showShortcutsSidebar: boolean;
@@ -126,6 +128,14 @@ export interface NavigationState {
   showMcp: boolean;
   showTerminal: boolean;
   showLiveServerLogs: boolean;
+  /**
+   * Active dock placement for the currently open live-server logs viewer.
+   */
+  liveServerLogsPlacement: LiveServerLogsPlacement;
+  /**
+   * Per saved-server dock placement keyed by `String(savedLiveServerId)`.
+   */
+  liveServerLogsPlacements: Record<string, LiveServerLogsPlacement>;
   activePluginFooterPanelId: string | null;
   /**
    * Active plugin sidebar panel id (`plugin:<pluginId>:<contributionId>`), or
@@ -159,6 +169,7 @@ const initialState: NavigationState = {
   folderSettingsDirty: false,
   workspaceSettingsDirty: false,
   showSidebar: true,
+  showRail: true,
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -170,6 +181,8 @@ const initialState: NavigationState = {
   showMcp: false,
   showTerminal: false,
   showLiveServerLogs: false,
+  liveServerLogsPlacement: 'footer',
+  liveServerLogsPlacements: {},
   activePluginFooterPanelId: null,
   activeSidebarPanelId: null,
   activeSidebarRailItemId: null,
@@ -251,6 +264,18 @@ const navigationSlice = createSlice({
       state.showSidebar = action.payload;
     },
     /**
+     * Toggles collections sidebar activity-rail visibility.
+     */
+    toggleRail(state) {
+      state.showRail = !state.showRail;
+    },
+    /**
+     * Sets collections sidebar activity-rail visibility explicitly.
+     */
+    setShowRail(state, action: PayloadAction<boolean>) {
+      state.showRail = action.payload;
+    },
+    /**
      * Toggles AI sidebar visibility and closes other right sidebars when opening.
      */
     toggleAiSidebar(state) {
@@ -259,6 +284,9 @@ const navigationSlice = createSlice({
       if (next) {
         state.showGitSidebar = false;
         state.showShortcutsSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -269,6 +297,9 @@ const navigationSlice = createSlice({
       if (action.payload) {
         state.showGitSidebar = false;
         state.showShortcutsSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -280,6 +311,9 @@ const navigationSlice = createSlice({
       if (next) {
         state.showAiSidebar = false;
         state.showShortcutsSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -290,6 +324,9 @@ const navigationSlice = createSlice({
       if (action.payload) {
         state.showAiSidebar = false;
         state.showShortcutsSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -299,6 +336,9 @@ const navigationSlice = createSlice({
       state.showGitSidebar = true;
       state.showAiSidebar = false;
       state.showShortcutsSidebar = false;
+      if (state.liveServerLogsPlacement === 'sidebar') {
+        state.showLiveServerLogs = false;
+      }
     },
     /**
      * Toggles Shortcuts sidebar visibility and closes other right sidebars when opening.
@@ -309,6 +349,9 @@ const navigationSlice = createSlice({
       if (next) {
         state.showAiSidebar = false;
         state.showGitSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -319,6 +362,9 @@ const navigationSlice = createSlice({
       if (action.payload) {
         state.showAiSidebar = false;
         state.showGitSidebar = false;
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -366,7 +412,9 @@ const navigationSlice = createSlice({
         state.showVariables = false;
         state.showMcp = false;
         state.showTerminal = false;
-        state.showLiveServerLogs = false;
+        if (state.liveServerLogsPlacement === 'footer') {
+          state.showLiveServerLogs = false;
+        }
         state.activePluginFooterPanelId = null;
       }
     },
@@ -385,7 +433,9 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showMcp = false;
         state.showTerminal = false;
-        state.showLiveServerLogs = false;
+        if (state.liveServerLogsPlacement === 'footer') {
+          state.showLiveServerLogs = false;
+        }
         state.activePluginFooterPanelId = null;
       }
     },
@@ -404,7 +454,9 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
         state.showTerminal = false;
-        state.showLiveServerLogs = false;
+        if (state.liveServerLogsPlacement === 'footer') {
+          state.showLiveServerLogs = false;
+        }
         state.activePluginFooterPanelId = null;
       }
     },
@@ -423,7 +475,9 @@ const navigationSlice = createSlice({
         state.showConsole = false;
         state.showVariables = false;
         state.showMcp = false;
-        state.showLiveServerLogs = false;
+        if (state.liveServerLogsPlacement === 'footer') {
+          state.showLiveServerLogs = false;
+        }
         state.activePluginFooterPanelId = null;
       }
     },
@@ -434,29 +488,99 @@ const navigationSlice = createSlice({
       state.showTerminal = action.payload;
     },
     /**
-     * Toggles the footer live-server logs panel.
+     * Toggles the live-server logs viewer and closes the competing host panels.
      */
     toggleLiveServerLogs(state) {
       state.showLiveServerLogs = !state.showLiveServerLogs;
       if (state.showLiveServerLogs) {
+        if (state.liveServerLogsPlacement === 'sidebar') {
+          state.showAiSidebar = false;
+          state.showGitSidebar = false;
+          state.showShortcutsSidebar = false;
+        } else {
+          state.showConsole = false;
+          state.showVariables = false;
+          state.showMcp = false;
+          state.showTerminal = false;
+          state.activePluginFooterPanelId = null;
+        }
+      }
+    },
+    /**
+     * Sets live-server logs viewer visibility explicitly.
+     */
+    setShowLiveServerLogs(state, action: PayloadAction<boolean>) {
+      state.showLiveServerLogs = action.payload;
+    },
+    /**
+     * Sets the active live-server logs dock placement (does not update the per-server map).
+     */
+    setLiveServerLogsPlacement(state, action: PayloadAction<LiveServerLogsPlacement>) {
+      state.liveServerLogsPlacement = action.payload;
+    },
+    /**
+     * Replaces the per-server live-server logs dock map.
+     */
+    setLiveServerLogsPlacements(
+      state,
+      action: PayloadAction<Record<string, LiveServerLogsPlacement>>
+    ) {
+      state.liveServerLogsPlacements = action.payload;
+    },
+    /**
+     * Applies the remembered dock placement for a saved live server before opening logs.
+     *
+     * @param action - Saved live server id, or null when none is selected.
+     */
+    applyLiveServerLogsPlacementForSavedId(state, action: PayloadAction<number | null>) {
+      const savedId = action.payload;
+      if (savedId == null) {
+        state.liveServerLogsPlacement = 'footer';
+        return;
+      }
+      state.liveServerLogsPlacement = state.liveServerLogsPlacements[String(savedId)] ?? 'footer';
+    },
+    /**
+     * Toggles live-server logs between footer and right sidebar while keeping the
+     * viewer open, closing panels that compete with the destination host.
+     *
+     * When a saved server id is provided, the new placement is remembered for that
+     * server so the next open restores it.
+     *
+     * @param action - Saved live server id to remember, or null/undefined to skip.
+     */
+    toggleLiveServerLogsPlacement(state, action: PayloadAction<number | null | undefined>) {
+      if (state.liveServerLogsPlacement === 'footer') {
+        state.liveServerLogsPlacement = 'sidebar';
+        state.showAiSidebar = false;
+        state.showGitSidebar = false;
+        state.showShortcutsSidebar = false;
+      } else {
+        state.liveServerLogsPlacement = 'footer';
         state.showConsole = false;
         state.showVariables = false;
         state.showMcp = false;
         state.showTerminal = false;
         state.activePluginFooterPanelId = null;
       }
+
+      const savedId = action.payload;
+      if (savedId != null) {
+        state.liveServerLogsPlacements[String(savedId)] = state.liveServerLogsPlacement;
+      }
     },
     /**
-     * Sets footer live-server logs panel visibility explicitly.
-     */
-    setShowLiveServerLogs(state, action: PayloadAction<boolean>) {
-      state.showLiveServerLogs = action.payload;
-    },
-    /**
-     * Opens the live-server logs panel and closes other footer panels.
+     * Opens the live-server logs viewer and closes panels that compete with its
+     * current dock placement.
      */
     openLiveServerLogs(state) {
       state.showLiveServerLogs = true;
+      if (state.liveServerLogsPlacement === 'sidebar') {
+        state.showAiSidebar = false;
+        state.showGitSidebar = false;
+        state.showShortcutsSidebar = false;
+        return;
+      }
       state.showConsole = false;
       state.showVariables = false;
       state.showMcp = false;
@@ -474,7 +598,9 @@ const navigationSlice = createSlice({
         state.showVariables = false;
         state.showMcp = false;
         state.showTerminal = false;
-        state.showLiveServerLogs = false;
+        if (state.liveServerLogsPlacement === 'footer') {
+          state.showLiveServerLogs = false;
+        }
       }
     },
     /**
@@ -574,6 +700,8 @@ export const {
   setWorkspaceSettingsDirty,
   toggleSidebar,
   setShowSidebar,
+  toggleRail,
+  setShowRail,
   toggleAiSidebar,
   setShowAiSidebar,
   toggleGitSidebar,
@@ -596,6 +724,10 @@ export const {
   setShowTerminal,
   toggleLiveServerLogs,
   setShowLiveServerLogs,
+  setLiveServerLogsPlacement,
+  setLiveServerLogsPlacements,
+  applyLiveServerLogsPlacementForSavedId,
+  toggleLiveServerLogsPlacement,
   openLiveServerLogs,
   togglePluginFooterPanel,
   setActivePluginFooterPanelId,
@@ -642,6 +774,10 @@ export const selectShowSidebar = (state: RootState): boolean => state.navigation
  * Returns effective sidebar visibility for layout rendering.
  */
 export const selectSidebarVisible = (state: RootState): boolean => state.navigation.showSidebar;
+/**
+ * Returns the user activity-rail visibility preference.
+ */
+export const selectShowRail = (state: RootState): boolean => state.navigation.showRail;
 /**
  * Returns the user AI sidebar visibility preference.
  */
@@ -701,10 +837,31 @@ export const selectShowMcp = (state: RootState): boolean => state.navigation.sho
  */
 export const selectShowTerminal = (state: RootState): boolean => state.navigation.showTerminal;
 /**
- * Returns whether the live-server logs panel is open.
+ * Returns whether the live-server logs viewer is open.
  */
 export const selectShowLiveServerLogs = (state: RootState): boolean =>
   state.navigation.showLiveServerLogs;
+/**
+ * Returns the active dock placement for the open live-server logs viewer.
+ */
+export const selectLiveServerLogsPlacement = (state: RootState): LiveServerLogsPlacement =>
+  state.navigation.liveServerLogsPlacement;
+/**
+ * Returns remembered dock placements keyed by saved live server id string.
+ */
+export const selectLiveServerLogsPlacements = (
+  state: RootState
+): Record<string, LiveServerLogsPlacement> => state.navigation.liveServerLogsPlacements;
+/**
+ * Returns whether the live-server logs footer panel should mount.
+ */
+export const selectLiveServerLogsFooterOpen = (state: RootState): boolean =>
+  state.navigation.showLiveServerLogs && state.navigation.liveServerLogsPlacement === 'footer';
+/**
+ * Returns whether the live-server logs right sidebar should mount.
+ */
+export const selectLiveServerLogsSidebarOpen = (state: RootState): boolean =>
+  state.navigation.showLiveServerLogs && state.navigation.liveServerLogsPlacement === 'sidebar';
 /**
  * Returns the active plugin footer panel id, if any.
  */

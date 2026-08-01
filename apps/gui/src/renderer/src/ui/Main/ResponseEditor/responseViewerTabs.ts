@@ -5,9 +5,9 @@ export const RESPONSE_VIEWER_TABS = [
   'body',
   'preview',
   'headers',
-  'timing',
   'console',
   'logs',
+  'timing',
   'redirects',
   'tests'
 ] as const;
@@ -24,9 +24,9 @@ export const RESPONSE_VIEWER_TAB_LABELS: Record<ResponseViewerTab, string> = {
   body: 'Body',
   preview: 'Preview',
   headers: 'Headers',
-  timing: 'Timing',
   console: 'Console',
   logs: 'Logs',
+  timing: 'Timing',
   redirects: 'Redirects',
   tests: 'Tests'
 };

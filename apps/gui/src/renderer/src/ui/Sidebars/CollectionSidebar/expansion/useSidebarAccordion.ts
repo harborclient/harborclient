@@ -50,6 +50,7 @@ export function useSidebarAccordion(): Result {
     workflowsSectionExpanded,
     websitesSectionExpanded,
     liveServersSectionExpanded,
+    liveServerLogsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     setCollectionsSectionExpanded,
@@ -60,6 +61,7 @@ export function useSidebarAccordion(): Result {
     setWorkflowsSectionExpanded,
     setWebsitesSectionExpanded,
     setLiveServersSectionExpanded,
+    setLiveServerLogsSectionExpanded,
     setArchiveSectionExpanded,
     setTrashSectionExpanded,
     activeSidebarMode
@@ -113,6 +115,11 @@ export function useSidebarAccordion(): Result {
         return;
       }
 
+      if (key === 'liveServerLogs') {
+        setLiveServerLogsSectionExpanded((current) => (current === isEnter ? current : isEnter));
+        return;
+      }
+
       if (key === 'archive') {
         setArchiveSectionExpanded((current) => (current === isEnter ? current : isEnter));
         return;
@@ -140,6 +147,7 @@ export function useSidebarAccordion(): Result {
       setWorkflowsSectionExpanded,
       setWebsitesSectionExpanded,
       setLiveServersSectionExpanded,
+      setLiveServerLogsSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]
@@ -163,6 +171,7 @@ export function useSidebarAccordion(): Result {
       workflows: workflowsSectionExpanded,
       websites: websitesSectionExpanded,
       liveServers: liveServersSectionExpanded,
+      liveServerLogs: liveServerLogsSectionExpanded,
       archive: archiveSectionExpanded,
       trash: trashSectionExpanded
     };
@@ -194,6 +203,7 @@ export function useSidebarAccordion(): Result {
     workflowsSectionExpanded,
     websitesSectionExpanded,
     liveServersSectionExpanded,
+    liveServerLogsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     pluginSectionExpanded,
@@ -220,6 +230,7 @@ export function useSidebarAccordion(): Result {
         workflows: setWorkflowsSectionExpanded,
         websites: setWebsitesSectionExpanded,
         liveServers: setLiveServersSectionExpanded,
+        liveServerLogs: setLiveServerLogsSectionExpanded,
         archive: setArchiveSectionExpanded,
         trash: setTrashSectionExpanded
       };
@@ -241,6 +252,7 @@ export function useSidebarAccordion(): Result {
       setWorkflowsSectionExpanded,
       setWebsitesSectionExpanded,
       setLiveServersSectionExpanded,
+      setLiveServerLogsSectionExpanded,
       setArchiveSectionExpanded,
       setTrashSectionExpanded
     ]

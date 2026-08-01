@@ -17,12 +17,26 @@ import { spawn } from 'node:child_process';
 const spawnMock = vi.mocked(spawn);
 
 /**
+ * Minimal readable stream stand-in for child stdout/stderr.
+ */
+class MockPipe extends EventEmitter {
+  /**
+   * Accepts encoding like Node Readable.setEncoding (no-op for the mock).
+   */
+  setEncoding(): void {
+    // Encoding is applied by callers; the mock emits strings directly.
+  }
+}
+
+/**
  * Minimal mock child process that emits close/error like Node's ChildProcess.
  */
 class MockChild extends EventEmitter {
   exitCode: number | null = null;
   signalCode: NodeJS.Signals | null = null;
   killed = false;
+  stdout = new MockPipe();
+  stderr = new MockPipe();
 
   /**
    * Records the kill signal and emits close.
@@ -133,6 +147,60 @@ describe('startLiveServerRunCommand', () => {
     );
     expect(onStatus).toHaveBeenCalledWith('running');
     await handle.stop();
+  });
+
+  it('resolves command variables before argv parse on start', async () => {
+    nextMockChild();
+    const resolveCommand = vi.fn((command: string) =>
+      command.replace('{{node_bin}}', '/usr/bin/node')
+    );
+    const onStatus = vi.fn();
+    const handle = await startLiveServerRunCommand({
+      command: '{{node_bin}} ./server.js',
+      cwd: '/tmp/site',
+      restartOnCrash: false,
+      resolveCommand,
+      onStatus
+    });
+    expect(resolveCommand).toHaveBeenCalledWith('{{node_bin}} ./server.js');
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/usr/bin/node',
+      ['./server.js'],
+      expect.objectContaining({ cwd: '/tmp/site' })
+    );
+    await handle.stop();
+  });
+
+  it('re-resolves command variables on crash restart', async () => {
+    vi.useFakeTimers();
+    const first = nextMockChild();
+    const resolveCommand = vi
+      .fn()
+      .mockReturnValueOnce('/usr/bin/node ./server.js')
+      .mockReturnValueOnce('/opt/node ./server.js');
+    const onStatus = vi.fn();
+    await startLiveServerRunCommand({
+      command: '{{node_bin}} ./server.js',
+      cwd: '/tmp',
+      restartOnCrash: true,
+      resolveCommand,
+      onStatus
+    });
+    expect(spawnMock).toHaveBeenNthCalledWith(
+      1,
+      '/usr/bin/node',
+      ['./server.js'],
+      expect.anything()
+    );
+
+    first.closeWithCode(1);
+    await Promise.resolve();
+    nextMockChild();
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+
+    expect(resolveCommand).toHaveBeenCalledTimes(2);
+    expect(spawnMock).toHaveBeenNthCalledWith(2, '/opt/node', ['./server.js'], expect.anything());
   });
 
   it('does not restart on clean exit 0', async () => {
@@ -251,5 +319,23 @@ describe('startLiveServerRunCommand', () => {
       })
     ).rejects.toThrow(/Failed to start run command/);
     expect(onStatus).toHaveBeenCalledWith('failed', expect.stringContaining('ENOENT'));
+  });
+
+  it('forwards stdout and stderr chunks via onOutput', async () => {
+    const child = nextMockChild();
+    const onStatus = vi.fn();
+    const onOutput = vi.fn();
+    const handle = await startLiveServerRunCommand({
+      command: '/usr/bin/node server.js',
+      cwd: '/tmp',
+      restartOnCrash: false,
+      onStatus,
+      onOutput
+    });
+    child.stdout.emit('data', 'out-a');
+    child.stderr.emit('data', Buffer.from('err-b'));
+    expect(onOutput).toHaveBeenCalledWith('stdout', 'out-a');
+    expect(onOutput).toHaveBeenCalledWith('stderr', 'err-b');
+    await handle.stop();
   });
 });

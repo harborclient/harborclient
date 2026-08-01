@@ -11,26 +11,32 @@ import type {
   UpdateLiveServerInput
 } from '@harborclient/core/types';
 import {
+  buildLiveServerExport,
   liveServerOpenedPathFromUrl,
-  normalizeLiveServerConfigFields,
-  normalizeLiveServerCorsSettings,
   resolveLiveServerHomeUrl,
-  resolveLiveServerOpenUrl
+  resolveLiveServerOpenUrl,
+  toLiveServerConfig
 } from '@harborclient/core/types';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
 import {
   bindLiveServerTab,
+  setLiveServerLogSessions,
+  setLiveServerLogsSavedId,
+  setLiveServerLogsSessionId,
   setRunningLiveServers,
   setSavedLiveServers,
   unbindLiveServerTab
 } from '#/renderer/src/store/slices/liveServersSlice';
 import {
+  closeLiveServerModal,
   openLiveServerModal,
   setLiveServerModalLastOpenedPath,
   type LiveServerModalMode
 } from '#/renderer/src/store/slices/modalsSlice';
 import { setGlobalVariable } from '#/renderer/src/plugins/hostGlobalsCommands';
 import {
+  applyLiveServerLogsPlacementForSavedId,
+  openLiveServerLogs,
   setActivePluginFooterPanelId,
   setShowConsole,
   setShowLiveServerLogs,
@@ -101,6 +107,14 @@ export type OpenLiveServerEditorInput = {
    * Global variable name set to the server origin URL on start.
    */
   urlVariable?: string;
+  /**
+   * Pre-request path-match scripts for the Scripts tab.
+   */
+  preRequestScripts?: LiveServerConfig['preRequestScripts'];
+  /**
+   * Post-request path-match scripts for the Scripts tab.
+   */
+  postRequestScripts?: LiveServerConfig['postRequestScripts'];
 };
 
 /**
@@ -136,64 +150,121 @@ export const refreshRunningLiveServers = createAsyncThunk<void, void, ThunkApiCo
 );
 
 /**
- * Builds a {@link LiveServerConfig} from saved or editor fields.
- *
- * Expanded fields (`openPath`, `host`, `headers`, `ssl`, …) are optional on
- * the input and filled via {@link normalizeLiveServerConfigFields} so callers
- * that predate those settings still produce a complete config. `indexFiles`
- * may be a `string[]` or a comma-separated editor string.
- *
- * @param input - Partial config fields.
- * @returns Normalized config suitable for start/save.
+ * Reloads retained live-server log sessions from the main process into the store.
  */
-export function toLiveServerConfig(input: {
-  name: string;
-  root: string;
-  port: number | null;
-  aliases: LiveServerConfig['aliases'];
-  watch: boolean;
-  cors?: LiveServerCorsSettings;
-  openPath?: string;
-  rememberLastUrl?: boolean;
-  lastOpenedPath?: string | null;
-  indexFiles?: string | string[];
-  host?: string;
-  headers?: LiveServerConfig['headers'];
-  routes?: LiveServerConfig['routes'];
-  proxies?: LiveServerConfig['proxies'];
-  ssl?: LiveServerConfig['ssl'];
-  runCommand?: string;
-  restartOnCrash?: boolean;
-  urlVariable?: string;
-}): LiveServerConfig {
-  const fields = normalizeLiveServerConfigFields(input);
-  return {
-    name: input.name.trim() || 'Live Server',
-    root: input.root.trim(),
-    port: input.port,
-    aliases: input.aliases,
-    watch: input.watch,
-    cors: normalizeLiveServerCorsSettings(input.cors),
-    ...fields
-  };
-}
+export const refreshLiveServerLogSessions = createAsyncThunk<void, void, ThunkApiConfig>(
+  'liveServers/refreshLogSessions',
+  async (_arg, { dispatch }) => {
+    const sessions = await window.api.listLiveServerLogSessions();
+    dispatch(setLiveServerLogSessions(sessions));
+  }
+);
+
+/**
+ * Clears retained live-server log sessions in the main process and refreshes the store.
+ *
+ * Inactive sessions are removed; active sessions remain with empty buffers.
+ */
+export const clearAllLiveServerLogSessions = createAsyncThunk<void, void, ThunkApiConfig>(
+  'liveServers/clearAllLogSessions',
+  async (_arg, { dispatch }) => {
+    await window.api.clearAllLiveServerLogSessions();
+    const sessions = await window.api.listLiveServerLogSessions();
+    dispatch(setLiveServerLogSessions(sessions));
+  }
+);
+
+/**
+ * Arguments for opening the footer logs panel for one log session.
+ */
+export type OpenLiveServerLogSessionArg = {
+  /**
+   * Runtime / session id whose lines to show.
+   */
+  sessionId: string;
+
+  /**
+   * Saved live server id for AI/`@logs` targeting when known.
+   */
+  savedId?: number | null;
+};
+
+/**
+ * Opens the live-server logs viewer for a retained log session.
+ *
+ * Closes the live-server editor only when logs open in the footer (they share
+ * that host). Sidebar-docked logs stay open alongside the editor.
+ *
+ * @param arg - Session id and optional saved id.
+ */
+export const openLiveServerLogSession = createAsyncThunk<
+  void,
+  OpenLiveServerLogSessionArg,
+  ThunkApiConfig
+>('liveServers/openLogSession', async (arg, { dispatch, getState }) => {
+  dispatch(setLiveServerLogsSessionId(arg.sessionId));
+  if (arg.savedId !== undefined) {
+    dispatch(setLiveServerLogsSavedId(arg.savedId ?? null));
+  }
+  const savedId =
+    arg.savedId !== undefined ? (arg.savedId ?? null) : getState().liveServers.logsSavedId;
+  dispatch(applyLiveServerLogsPlacementForSavedId(savedId));
+  // Footer logs share the slide-up host with the editor; sidebar logs can stay open with it.
+  if (getState().navigation.liveServerLogsPlacement === 'footer') {
+    dispatch(closeLiveServerModal());
+  }
+  dispatch(openLiveServerLogs());
+});
+
+/**
+ * Opens the logs viewer for a saved live server’s best matching session.
+ *
+ * Prefers the active session, then the latest session for that saved id.
+ * Closes the live-server editor only when logs open in the footer.
+ *
+ * @param savedId - Saved `live_servers.id`.
+ */
+export const openLiveServerLogsForSavedId = createAsyncThunk<void, number, ThunkApiConfig>(
+  'liveServers/openLogsForSavedId',
+  async (savedId, { dispatch, getState }) => {
+    const sessions = getState().liveServers.logSessions;
+    const active = sessions.find((session) => session.savedId === savedId && session.active);
+    const latest = sessions
+      .filter((session) => session.savedId === savedId)
+      .sort((a, b) => b.startedAt - a.startedAt)[0];
+    const session = active ?? latest ?? null;
+
+    dispatch(setLiveServerLogsSavedId(savedId));
+    dispatch(setLiveServerLogsSessionId(session?.id ?? null));
+    dispatch(applyLiveServerLogsPlacementForSavedId(savedId));
+    // Footer logs share the slide-up host with the editor; sidebar logs can stay open with it.
+    if (getState().navigation.liveServerLogsPlacement === 'footer') {
+      dispatch(closeLiveServerModal());
+    }
+    dispatch(openLiveServerLogs());
+  }
+);
+
+export { toLiveServerConfig };
 
 /**
  * Closes other footer panels, then opens the live server create/edit editor.
  *
  * Mutual exclusivity matches console/variables/MCP/terminal so drafts do not
- * stack under another slide-up panel.
+ * stack under another slide-up panel. Sidebar-docked live-server logs stay open.
  */
 export const openLiveServerEditor = createAsyncThunk<
   void,
   OpenLiveServerEditorInput,
   ThunkApiConfig
->('liveServers/openEditor', async (payload, { dispatch }) => {
+>('liveServers/openEditor', async (payload, { dispatch, getState }) => {
   dispatch(setShowConsole(false));
   dispatch(setShowVariables(false));
   dispatch(setShowMcp(false));
   dispatch(setShowTerminal(false));
-  dispatch(setShowLiveServerLogs(false));
+  if (getState().navigation.liveServerLogsPlacement === 'footer') {
+    dispatch(setShowLiveServerLogs(false));
+  }
   dispatch(setActivePluginFooterPanelId(null));
   dispatch(openLiveServerModal(payload));
 });
@@ -235,6 +306,53 @@ export const deleteSavedLiveServer = createAsyncThunk<void, number, ThunkApiConf
   async (id, { dispatch }) => {
     const items = await window.api.deleteLiveServer(id);
     dispatch(setSavedLiveServers(items));
+  }
+);
+
+/**
+ * Exports a live server as a HarborClient JSON file via the save dialog.
+ *
+ * @param id - Saved live-server database id.
+ */
+export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
+  'liveServers/export',
+  async (id, { getState }) => {
+    const server = getState().liveServers.saved.find((item) => item.id === id);
+    if (!server) {
+      toast.error('Live server not found');
+      return;
+    }
+
+    const envelope = buildLiveServerExport({
+      uuid: server.uuid,
+      name: server.name,
+      root: server.root,
+      port: server.port,
+      aliases: server.aliases,
+      watch: server.watch,
+      cors: server.cors,
+      openPath: server.openPath,
+      rememberLastUrl: server.rememberLastUrl,
+      lastOpenedPath: server.lastOpenedPath,
+      indexFiles: server.indexFiles,
+      host: server.host,
+      headers: server.headers,
+      routes: server.routes,
+      proxies: server.proxies,
+      ssl: server.ssl,
+      runCommand: server.runCommand,
+      restartOnCrash: server.restartOnCrash,
+      urlVariable: server.urlVariable,
+      preRequestScripts: server.preRequestScripts,
+      postRequestScripts: server.postRequestScripts
+    });
+    const saved = await window.api.saveTextFile(
+      JSON.stringify(envelope, null, 2),
+      `${envelope.name}.json`
+    );
+    if (saved) {
+      toast.success('Live server exported');
+    }
   }
 );
 
@@ -304,7 +422,8 @@ export const stopLiveServer = createAsyncThunk<void, string, ThunkApiConfig>(
  *
  * Display-only and open-URL fields (`name`, `openPath`, `rememberLastUrl`,
  * `lastOpenedPath`) are ignored — changing them does not require a restart to
- * affect serving. Both sides are normalized via {@link toLiveServerConfig}
+ * affect serving. Pre/post request scripts are also ignored because they
+ * hot-apply on Save. Both sides are normalized via {@link toLiveServerConfig}
  * before compare so empty vs default does not false-positive.
  *
  * @param draft - Editor or saved config the user wants applied.
@@ -578,7 +697,9 @@ export const persistLiveServerLastOpenedPath = createAsyncThunk<
       ssl: saved.ssl,
       runCommand: saved.runCommand,
       restartOnCrash: saved.restartOnCrash,
-      urlVariable: saved.urlVariable
+      urlVariable: saved.urlVariable,
+      preRequestScripts: saved.preRequestScripts,
+      postRequestScripts: saved.postRequestScripts
     })
   ).unwrap();
 

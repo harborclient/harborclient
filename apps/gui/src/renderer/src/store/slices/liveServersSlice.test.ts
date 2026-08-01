@@ -6,7 +6,9 @@ import {
 } from '@harborclient/core/types';
 import liveServersReducer, {
   bindLiveServerTab,
+  setLiveServerLogSessions,
   setLiveServerLogsSelection,
+  setLiveServerLogsSessionId,
   setRunningLiveServers,
   setSavedLiveServers,
   unbindLiveServerTab
@@ -67,7 +69,9 @@ describe('liveServersSlice', () => {
       saved: [],
       running: [],
       tabIdsByServerId: {},
+      logSessions: [],
       logsSavedId: null,
+      logsSessionId: null,
       logsSelections: {}
     });
   });
@@ -95,6 +99,29 @@ describe('liveServersSlice', () => {
     expect(state.saved).toHaveLength(1);
     state = liveServersReducer(state, setRunningLiveServers([runningServer('a')]));
     expect(state.running).toHaveLength(1);
+  });
+
+  it('stores log sessions and clears a removed selected session id', () => {
+    let state = liveServersReducer(
+      undefined,
+      setLiveServerLogSessions([
+        {
+          id: 'sess-1',
+          savedId: 1,
+          serverName: 'Demo',
+          origin: 'http://127.0.0.1:5500',
+          startedAt: 1,
+          stoppedAt: null,
+          active: true
+        }
+      ])
+    );
+    state = liveServersReducer(state, setLiveServerLogsSessionId('sess-1'));
+    expect(state.logsSessionId).toBe('sess-1');
+
+    state = liveServersReducer(state, setLiveServerLogSessions([]));
+    expect(state.logSessions).toEqual([]);
+    expect(state.logsSessionId).toBeNull();
   });
 
   it('binds and unbinds browser tabs for running servers', () => {

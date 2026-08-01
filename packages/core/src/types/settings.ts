@@ -17,6 +17,7 @@ export type SidebarSectionKey =
   | 'workflows'
   | 'websites'
   | 'liveServers'
+  | 'liveServerLogs'
   | 'archive'
   | 'trash';
 
@@ -91,6 +92,11 @@ export interface SidebarExpansionState {
      * Whether the saved Live Servers section body is visible.
      */
     liveServers: boolean;
+
+    /**
+     * Whether the Server Logs section body is visible.
+     */
+    liveServerLogs: boolean;
 
     /**
      * Whether the Archive section body is visible.
@@ -168,6 +174,11 @@ export interface SidebarExpansionState {
 export const DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT = 340;
 
 /**
+ * Where the live-server logs viewer is docked when open.
+ */
+export type LiveServerLogsPlacement = 'footer' | 'sidebar';
+
+/**
  * Persisted visibility for sidebars, request/response editors, and footer panels.
  */
 export interface PanelLayoutState {
@@ -175,6 +186,11 @@ export interface PanelLayoutState {
    * Whether the collections sidebar is shown when not hidden by an overlay.
    */
   showSidebar: boolean;
+
+  /**
+   * Whether the collections sidebar activity rail is shown when chrome allows it.
+   */
+  showRail: boolean;
 
   /**
    * Whether the AI sidebar is shown when not hidden by an overlay.
@@ -227,9 +243,19 @@ export interface PanelLayoutState {
   showTerminal: boolean;
 
   /**
-   * Whether the footer live-server logs panel is open.
+   * Whether the live-server logs viewer is open (footer or right sidebar).
    */
   showLiveServerLogs: boolean;
+
+  /**
+   * Active dock placement for the currently open live-server logs viewer.
+   */
+  liveServerLogsPlacement: LiveServerLogsPlacement;
+
+  /**
+   * Per saved-server dock placement keyed by `String(savedLiveServerId)`.
+   */
+  liveServerLogsPlacements: Record<string, LiveServerLogsPlacement>;
 
   /**
    * Active plugin footer panel id, when a plugin panel is open.
@@ -509,6 +535,11 @@ export interface GeneralSettings {
   codeEditorFontSize: string;
 
   /**
+   * Footer terminal xterm.js appearance and buffer options.
+   */
+  terminal: TerminalSettings;
+
+  /**
    * Global HTTP proxy applied to every outbound request.
    */
   proxy: ProxySettings;
@@ -525,6 +556,83 @@ export interface GeneralSettings {
 }
 
 /**
+ * Cursor style when the footer terminal is focused (xterm.js `cursorStyle`).
+ */
+export type TerminalCursorStyle = 'block' | 'underline' | 'bar';
+
+/**
+ * Font weight for terminal text (xterm.js `fontWeight`).
+ */
+export type TerminalFontWeight =
+  | 'normal'
+  | 'bold'
+  | '100'
+  | '200'
+  | '300'
+  | '400'
+  | '500'
+  | '600'
+  | '700'
+  | '800'
+  | '900';
+
+/**
+ * Persisted xterm.js options for the footer terminal panel.
+ */
+export interface TerminalSettings {
+  /**
+   * Rows retained beyond the viewport when content scrolls off-screen.
+   */
+  scrollback: number;
+
+  /**
+   * Whether the cursor blinks when the terminal is focused.
+   */
+  cursorBlink: boolean;
+
+  /**
+   * Blink attribute interval in milliseconds; 0 disables blinking text.
+   * Applied only when the installed xterm.js build exposes the option.
+   */
+  blinkIntervalDuration: number;
+
+  /**
+   * Cursor shape when the terminal is focused.
+   */
+  cursorStyle: TerminalCursorStyle;
+
+  /**
+   * Scroll speed multiplier used for fast scrolling when Alt is held.
+   */
+  fastScrollSensitivity: number;
+
+  /**
+   * Terminal font size in CSS pixels.
+   */
+  fontSize: number;
+
+  /**
+   * CSS font-family stack for terminal text.
+   */
+  fontFamily: string;
+
+  /**
+   * Font weight used to render non-bold terminal text.
+   */
+  fontWeight: TerminalFontWeight;
+
+  /**
+   * Minimum contrast ratio for dynamically adjusted foreground colors.
+   */
+  minimumContrastRatio: number;
+
+  /**
+   * When true, exposes DOM elements that support screen readers.
+   */
+  screenReaderMode: boolean;
+}
+
+/**
  * Settings sidebar section identifiers.
  */
 export type SettingsSection =
@@ -534,6 +642,7 @@ export type SettingsSection =
   | 'proxy'
   | 'globals'
   | 'ai'
+  | 'terminal'
   | 'backup-restore'
   | 'git'
   | `plugin:${string}:${string}`;

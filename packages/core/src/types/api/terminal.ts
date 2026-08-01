@@ -111,4 +111,24 @@ export interface ApiTerminal {
    * @param callback - Handler invoked when a shell process exits.
    */
   onTerminalExit: (callback: (event: TerminalExitEvent) => void) => () => void;
+
+  /**
+   * Reads the system clipboard text (Electron main clipboard via preload).
+   *
+   * Used by the footer terminal OSC 52 clipboard provider so PTY apps can
+   * query the clipboard without relying on `navigator.clipboard` user activation.
+   *
+   * @returns Current clipboard text, or an empty string when unavailable.
+   */
+  readClipboardText: () => string;
+
+  /**
+   * Writes text to the system clipboard (Electron main clipboard via preload).
+   *
+   * Used by the footer terminal OSC 52 clipboard provider for PTY-driven
+   * clipboard writes that lack a browser user gesture.
+   *
+   * @param text - Plain text to store on the clipboard.
+   */
+  writeClipboardText: (text: string) => void;
 }

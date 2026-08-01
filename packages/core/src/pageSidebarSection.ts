@@ -18,6 +18,7 @@ const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'proxy',
   'globals',
   'ai',
+  'terminal',
   'backup-restore',
   'git'
 ]);

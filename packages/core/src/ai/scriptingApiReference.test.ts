@@ -17,6 +17,9 @@ describe('scriptingApiReference', () => {
     expect(text).toContain('page.screenshot');
     expect(text).toContain('fullPage');
     expect(text).toContain('hc.sleep');
+    expect(text).toContain('hc.send');
+    expect(text).toContain('hc.sendJSON');
+    expect(text).toContain('hc.execution.skipRequest()');
   });
 
   it('documents replace_range edits that preserve surrounding script code', () => {

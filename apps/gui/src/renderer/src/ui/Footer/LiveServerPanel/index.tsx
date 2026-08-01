@@ -6,7 +6,8 @@ import {
   FooterPanel,
   SegmentedTabPanel,
   SegmentedTabs,
-  SegmentedTabsGroup
+  SegmentedTabsGroup,
+  StatusDot
 } from '@harborclient/sdk/components';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunningLiveServers } from '#/renderer/src/store/selectors';
@@ -23,6 +24,8 @@ import {
   setLiveServerModalUrlVariable,
   setLiveServerModalOpenPath,
   setLiveServerModalPort,
+  setLiveServerModalPostRequestScripts,
+  setLiveServerModalPreRequestScripts,
   setLiveServerModalProxies,
   setLiveServerModalRememberLastUrl,
   setLiveServerModalRoot,
@@ -47,6 +50,7 @@ import {
   toLiveServerConfig,
   updateSavedLiveServer
 } from '#/renderer/src/store/thunks/liveServers';
+import { selectSnippets } from '#/renderer/src/store/selectors';
 import { faCircleExclamation } from '#/renderer/src/fontawesome';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
@@ -57,6 +61,7 @@ import { HeadersSettings } from './HeadersSettings';
 import { filterLiveServerHeadersForSave } from './liveServerHeaderRows';
 import { ProxySettings } from './ProxySettings';
 import { RoutingSettings } from './RoutingSettings';
+import { LiveServerScriptsSettings } from './Scripts';
 import { SslSettings } from './SslSettings';
 
 interface Props {
@@ -169,7 +174,9 @@ function tryBuildConfigFromModal(
       ssl: modal.ssl,
       runCommand: modal.runCommand,
       restartOnCrash: modal.restartOnCrash,
-      urlVariable: modal.urlVariable
+      urlVariable: modal.urlVariable,
+      preRequestScripts: modal.preRequestScripts,
+      postRequestScripts: modal.postRequestScripts
     })
   };
 }
@@ -181,6 +188,8 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const modal = useAppSelector(selectLiveServerModal);
   const runningServers = useAppSelector(selectRunningLiveServers);
+  const snippets = useAppSelector(selectSnippets);
+  const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const { setActiveSidebarMode } = useSidebarExpansion();
 
   /**
@@ -433,10 +442,25 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
     }
   }, [dispatch, runningInstance]);
 
-  const title = modal?.mode === 'edit' ? 'Edit Live Server' : 'New Live Server';
   const busy = modal?.busy ?? false;
   const tab: LiveServerModalTab = modal?.tab ?? 'general';
   const isRunning = runningInstance != null;
+  const statusLabel = isRunning ? 'Running' : 'Stopped';
+
+  /**
+   * Panel heading with a green/red status dot matching the sidebar live-server rows.
+   */
+  const title = (
+    <>
+      <span>{modal?.mode === 'edit' ? 'Edit Live Server' : 'New Live Server'}</span>
+      <StatusDot
+        variant={isRunning ? 'success' : 'danger'}
+        size="sm"
+        label={statusLabel}
+        title={statusLabel}
+      />
+    </>
+  );
 
   /**
    * Header actions rendered beside the close button when the editor is open.
@@ -499,16 +523,15 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
       unmountWhenClosed
     >
       {modal ? (
-        <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="flex h-full min-h-0 flex-col">
           <SegmentedTabsGroup
             value={tab}
             onChange={(next) => dispatch(setLiveServerModalTab(next))}
             ariaLabel="Live server settings"
           >
-            <div className="-mx-4 -mt-4 mb-4">
+            <div className="shrink-0">
               <SegmentedTabs
                 fullWidth
-                editable={false}
                 tabs={[
                   { value: 'general', label: 'General' },
                   { value: 'headers', label: 'Headers' },
@@ -516,111 +539,130 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   { value: 'proxy', label: 'Proxy' },
                   { value: 'aliases', label: 'Aliases' },
                   { value: 'cors', label: 'CORS' },
-                  { value: 'ssl', label: 'SSL' }
+                  { value: 'ssl', label: 'SSL' },
+                  { value: 'scripts', label: 'Scripts' }
                 ]}
               />
             </div>
 
-            {modal.submitError ? (
-              <p className="m-0 mb-4 text-danger" role="alert">
-                {modal.submitError}
-              </p>
-            ) : null}
+            <div className="min-h-0 flex-1 overflow-auto p-4">
+              {modal.submitError ? (
+                <p className="m-0 mb-4 text-danger" role="alert">
+                  {modal.submitError}
+                </p>
+              ) : null}
 
-            {isRunning && needsRestart ? (
-              <p
-                className="m-0 mb-4 flex items-start gap-2 text-[14px] text-warning"
-                role="status"
-                aria-live="polite"
-              >
-                <FaIcon icon={faCircleExclamation} className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  These changes require a restart to take effect. Use Restart to apply them to the
-                  running server.
-                </span>
-              </p>
-            ) : null}
+              {isRunning && needsRestart ? (
+                <p
+                  className="m-0 mb-4 flex items-start gap-2 text-[14px] text-warning"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <FaIcon icon={faCircleExclamation} className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    These changes require a restart to take effect. Use Restart to apply them to the
+                    running server.
+                  </span>
+                </p>
+              ) : null}
 
-            <SegmentedTabPanel value="general">
-              <GeneralSettings
-                name={modal.name}
-                urlVariable={modal.urlVariable}
-                root={modal.root}
-                port={modal.port}
-                watch={modal.watch}
-                openPath={modal.openPath}
-                rememberLastUrl={modal.rememberLastUrl}
-                indexFiles={modal.indexFiles}
-                host={modal.host}
-                runCommand={modal.runCommand}
-                restartOnCrash={modal.restartOnCrash}
-                disabled={busy}
-                onNameChange={(value) => dispatch(setLiveServerModalName(value))}
-                onUrlVariableChange={(value) => dispatch(setLiveServerModalUrlVariable(value))}
-                onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
-                onBrowse={handleBrowse}
-                onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
-                onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
-                onOpenPathChange={(value) => dispatch(setLiveServerModalOpenPath(value))}
-                onRememberLastUrlChange={(value) =>
-                  dispatch(setLiveServerModalRememberLastUrl(value))
-                }
-                onIndexFilesChange={(value) => dispatch(setLiveServerModalIndexFiles(value))}
-                onHostChange={(value) => dispatch(setLiveServerModalHost(value))}
-                onRunCommandChange={(value) => dispatch(setLiveServerModalRunCommand(value))}
-                onRestartOnCrashChange={(value) =>
-                  dispatch(setLiveServerModalRestartOnCrash(value))
-                }
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="general">
+                <GeneralSettings
+                  name={modal.name}
+                  variables={globalVariables}
+                  urlVariable={modal.urlVariable}
+                  root={modal.root}
+                  port={modal.port}
+                  watch={modal.watch}
+                  openPath={modal.openPath}
+                  rememberLastUrl={modal.rememberLastUrl}
+                  indexFiles={modal.indexFiles}
+                  host={modal.host}
+                  runCommand={modal.runCommand}
+                  restartOnCrash={modal.restartOnCrash}
+                  disabled={busy}
+                  onNameChange={(value) => dispatch(setLiveServerModalName(value))}
+                  onUrlVariableChange={(value) => dispatch(setLiveServerModalUrlVariable(value))}
+                  onRootChange={(value) => dispatch(setLiveServerModalRoot(value))}
+                  onBrowse={handleBrowse}
+                  onPortChange={(value) => dispatch(setLiveServerModalPort(value))}
+                  onWatchChange={(value) => dispatch(setLiveServerModalWatch(value))}
+                  onOpenPathChange={(value) => dispatch(setLiveServerModalOpenPath(value))}
+                  onRememberLastUrlChange={(value) =>
+                    dispatch(setLiveServerModalRememberLastUrl(value))
+                  }
+                  onIndexFilesChange={(value) => dispatch(setLiveServerModalIndexFiles(value))}
+                  onHostChange={(value) => dispatch(setLiveServerModalHost(value))}
+                  onRunCommandChange={(value) => dispatch(setLiveServerModalRunCommand(value))}
+                  onRestartOnCrashChange={(value) =>
+                    dispatch(setLiveServerModalRestartOnCrash(value))
+                  }
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="headers">
-              <HeadersSettings
-                headers={modal.headers}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalHeaders(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="headers">
+                <HeadersSettings
+                  headers={modal.headers}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalHeaders(next))}
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="routing">
-              <RoutingSettings
-                routes={modal.routes}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="routing">
+                <RoutingSettings
+                  routes={modal.routes}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="proxy">
-              <ProxySettings
-                proxies={modal.proxies}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalProxies(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="proxy">
+                <ProxySettings
+                  proxies={modal.proxies}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalProxies(next))}
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="aliases">
-              <AliasSettings
-                aliases={modal.aliases}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalAliases(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="aliases">
+                <AliasSettings
+                  aliases={modal.aliases}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalAliases(next))}
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="cors">
-              <CorsSettings
-                cors={modal.cors}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalCors(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="cors">
+                <CorsSettings
+                  cors={modal.cors}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalCors(next))}
+                />
+              </SegmentedTabPanel>
 
-            <SegmentedTabPanel value="ssl">
-              <SslSettings
-                ssl={modal.ssl}
-                disabled={busy}
-                onChange={(next) => dispatch(setLiveServerModalSsl(next))}
-              />
-            </SegmentedTabPanel>
+              <SegmentedTabPanel value="ssl">
+                <SslSettings
+                  ssl={modal.ssl}
+                  disabled={busy}
+                  onChange={(next) => dispatch(setLiveServerModalSsl(next))}
+                />
+              </SegmentedTabPanel>
+
+              <SegmentedTabPanel value="scripts">
+                <LiveServerScriptsSettings
+                  preRequestScripts={modal.preRequestScripts}
+                  postRequestScripts={modal.postRequestScripts}
+                  onPreRequestScriptsChange={(next) =>
+                    dispatch(setLiveServerModalPreRequestScripts(next))
+                  }
+                  onPostRequestScriptsChange={(next) =>
+                    dispatch(setLiveServerModalPostRequestScripts(next))
+                  }
+                  snippets={snippets}
+                  variables={[]}
+                />
+              </SegmentedTabPanel>
+            </div>
           </SegmentedTabsGroup>
         </div>
       ) : null}

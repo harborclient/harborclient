@@ -56,6 +56,18 @@ const HC_ROOT: HcCompletionOption[] = [
     detail: '(ms) => Promise<void> — delay before continuing'
   },
   {
+    label: 'send',
+    type: 'function',
+    detail:
+      '(text, statusCode?, contentType?) => Promise<void> — treat as the HTTP response (pair with skipRequest to avoid the real send)'
+  },
+  {
+    label: 'sendJSON',
+    type: 'function',
+    detail:
+      '(value, statusCode?) => Promise<void> — JSON body as the HTTP response (pair with skipRequest to avoid the real send)'
+  },
+  {
     label: 'fs',
     type: 'property',
     detail: 'Read/write files under the script root — requires Settings → General'
@@ -192,6 +204,11 @@ const HC_INFO: HcCompletionOption[] = [
     label: 'livepageId',
     type: 'property',
     detail: 'Live page UUID, or empty outside a live page'
+  },
+  {
+    label: 'liveserverId',
+    type: 'property',
+    detail: 'Live server database id as a string, or empty outside a live server'
   }
 ];
 

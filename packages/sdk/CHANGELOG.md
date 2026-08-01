@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(live-server): integrate live-server package and enhance CLI functionality. (`890d9cd7`)
+
 ## 1.4.2 - 2026-07-31
 
 - feat(live-server): add reverse proxy support and enhance server configuration. (`dc483636`)

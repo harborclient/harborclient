@@ -14,13 +14,14 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from '@harborclient/core/codeEditorSettings';
+import { normalizeTerminalSettings } from '@harborclient/core/generalSettings';
 import type { GeneralSettings } from '@harborclient/core/types';
 
 /** Monotonic token so only the latest settings load may commit to the draft. */
 let settingsDraftLoadGeneration = 0;
 
 /**
- * Normalizes CodeMirror-related general settings before persistence.
+ * Normalizes CodeMirror- and terminal-related general settings before persistence.
  *
  * @param general - Draft general settings about to be saved.
  */
@@ -29,7 +30,8 @@ function normalizeDraftGeneralForSave(general: GeneralSettings): GeneralSettings
     ...general,
     codeEditorTheme: normalizeCodeEditorTheme(general.codeEditorTheme),
     codeEditorSetup: normalizeCodeEditorSetup(general.codeEditorSetup),
-    codeEditorFontSize: normalizeCodeEditorFontSize(general.codeEditorFontSize)
+    codeEditorFontSize: normalizeCodeEditorFontSize(general.codeEditorFontSize),
+    terminal: normalizeTerminalSettings(general.terminal)
   };
 }
 

@@ -46,7 +46,7 @@ export function getUserArgv(argv: string[] = process.argv): string[] {
  * Classifies user argv into a product route.
  *
  * Empty argv and GUI-only flags open the desktop app. CLI is selected only when
- * the first positional token is an HTTP method, `run`, or `workflow`.
+ * the first positional token is an HTTP method, `run`, `workflow`, or `servers`.
  *
  * @param userArgv - Arguments from {@link getUserArgv} (no exec/script path).
  * @returns Route for the product bootstrap to follow.
@@ -73,7 +73,7 @@ export function classifyArgv(userArgv: string[]): ArgvRoute {
     return 'gui';
   }
 
-  if (first === 'run' || first === 'workflow' || isHttpMethod(first)) {
+  if (first === 'run' || first === 'workflow' || first === 'servers' || isHttpMethod(first)) {
     return 'cli';
   }
 

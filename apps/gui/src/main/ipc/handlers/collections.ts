@@ -41,6 +41,7 @@ import { importEnvironmentData } from './environments';
 import { importWorkspaceData } from './workspaces';
 import { importCustomThemeData } from './customThemeImport';
 import { importSnippetData } from './snippetImport';
+import { importLiveServerData } from './liveServerImport';
 import { importWebsiteData } from './websiteImport';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
@@ -772,6 +773,19 @@ export function registerCollectionHandlers(db: IStorage): void {
             kind: 'website',
             website: websiteResult.website,
             action: websiteResult.action
+          } satisfies ImportEntityResult;
+        }
+
+        if (exportKind === 'server') {
+          logImportVerbose('imports:auto classified', { kind: 'server' });
+          const serverResult = importLiveServerData(parsed);
+          if (!serverResult) {
+            return null;
+          }
+          return {
+            kind: 'server',
+            server: serverResult.server,
+            action: serverResult.action
           } satisfies ImportEntityResult;
         }
       }

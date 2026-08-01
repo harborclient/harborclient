@@ -36,6 +36,7 @@ import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
 import { openLiveServerEditor } from '#/renderer/src/store/thunks/liveServers';
 import {
   selectActiveSidebarRailItemId,
+  selectShowRail,
   setActiveSidebarPanel,
   setActiveSidebarRailItem
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -54,6 +55,7 @@ import { Workspaces, WorkspacesHeaderActions } from '../Workspaces';
 import { Workflows } from '../Workflows';
 import { Websites } from '../Websites';
 import { LiveServers } from '../LiveServers';
+import { ServerLogs, ServerLogsHeaderActions } from '../ServerLogs';
 import { Archive, ArchiveHeaderActions } from '../Archive';
 import { WorkflowArchive } from '../Archive/WorkflowArchive';
 import { WorkflowArchiveHeaderActions } from '../Archive/WorkflowArchiveHeaderActions';
@@ -118,6 +120,7 @@ export function SidebarContent(): JSX.Element {
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const runningLiveServers = useAppSelector(selectRunningLiveServers);
   const activeSidebarRailItemId = useAppSelector(selectActiveSidebarRailItemId);
+  const userShowRail = useAppSelector(selectShowRail);
   const sidebarSelection = useAppSelector(selectionFromState, selectionsEqual);
   /**
    * Stable view context for sidebar panel and rail-item HostedSurface mounts.
@@ -141,6 +144,7 @@ export function SidebarContent(): JSX.Element {
     workflowsSectionExpanded,
     websitesSectionExpanded,
     liveServersSectionExpanded,
+    liveServerLogsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     activeSidebarMode,
@@ -190,10 +194,11 @@ export function SidebarContent(): JSX.Element {
     return mergeSidebarRailItems(builtIn, pluginSidebarRailItems, resolvePluginTabIcon);
   }, [pluginSidebarRailItems, anyLiveServerRunning]);
 
-  const { showSearch, showRail } = resolveSidebarChromeVisibility(
+  const { showSearch, showRail: chromeShowRail } = resolveSidebarChromeVisibility(
     displayedPanel != null && activeRailItem == null,
     activeRailItem != null
   );
+  const showRail = userShowRail && chromeShowRail;
 
   /**
    * Highlighted rail destination: plugin item when selected, otherwise the built-in mode.
@@ -376,6 +381,17 @@ export function SidebarContent(): JSX.Element {
       };
     }
 
+    if (isSectionMounted('liveServerLogs')) {
+      byKey.liveServerLogs = {
+        key: 'liveServerLogs',
+        title: 'Server Logs',
+        ariaLabel: 'Server logs',
+        initialEntered: liveServerLogsSectionExpanded,
+        headerActions: <ServerLogsHeaderActions />,
+        children: <ServerLogs />
+      };
+    }
+
     if (isSectionMounted('archive')) {
       byKey.archive = {
         key: 'archive',
@@ -458,7 +474,8 @@ export function SidebarContent(): JSX.Element {
     workspacesSectionExpanded,
     workflowsSectionExpanded,
     websitesSectionExpanded,
-    liveServersSectionExpanded
+    liveServersSectionExpanded,
+    liveServerLogsSectionExpanded
   ]);
 
   const showPluginBody = activeRailItem != null || displayedPanel != null;

@@ -18,6 +18,7 @@ import {
 function panelLayout(overrides: Partial<PanelLayoutState> = {}): PanelLayoutState {
   return {
     showSidebar: true,
+    showRail: true,
     showAiSidebar: false,
     showGitSidebar: false,
     showShortcutsSidebar: false,
@@ -29,6 +30,8 @@ function panelLayout(overrides: Partial<PanelLayoutState> = {}): PanelLayoutStat
     showMcp: false,
     showTerminal: false,
     showLiveServerLogs: false,
+    liveServerLogsPlacement: 'footer',
+    liveServerLogsPlacements: {},
     activePluginFooterPanelId: null,
     ...overrides
   };

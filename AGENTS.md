@@ -280,6 +280,10 @@ Changelogs are kept up to date automatically by the `post-commit` hook in
   touch `packages/http/**`. Renamed by
   [`.github/workflows/http-release.yml`](.github/workflows/http-release.yml)
   when publishing `@harborclient/http` to npm (`http-v*` tags).
+- [`packages/live-server/CHANGELOG.md`](packages/live-server/CHANGELOG.md) — commits that
+  touch `packages/live-server/**`. Renamed by
+  [`.github/workflows/live-server-release.yml`](.github/workflows/live-server-release.yml)
+  when publishing `@harborclient/live-server` to npm (`live-server-v*` tags).
 - [`packages/team-hub/CHANGELOG.md`](packages/team-hub/CHANGELOG.md) — commits that
   touch `packages/team-hub/**`. Renamed by
   [`.github/workflows/team-hub-release.yml`](.github/workflows/team-hub-release.yml)
@@ -308,8 +312,9 @@ What this means for you:
   yourself and stage the changelog as part of the commit. The hook will detect
   it and leave your entry alone.
 - Don't add version numbers or dates manually. The desktop release workflow
-  bumps `apps/harborclient/package.json`; the core, SDK, http, team-hub, and
-  team-hub-api workflows bump their package `package.json` files and publish to npm.
+  bumps `apps/harborclient/package.json`; the core, SDK, http, live-server,
+  team-hub, and team-hub-api workflows bump their package `package.json` files
+  and publish to npm.
 - Don't run version-bump commands locally (`pnpm version`, `npm version`,
   etc.); use the release workflows instead so the changelog and tags stay in sync.
 - Core npm releases: `pnpm release:core` (or `release:core:minor` /
@@ -318,6 +323,9 @@ What this means for you:
   `release:sdk:major`). Requires the same `NPM_TOKEN` secret.
 - http npm releases: `pnpm release:http` (or `release:http:minor` /
   `release:http:major`). Requires the same `NPM_TOKEN` secret.
+- Live-server npm releases: `pnpm release:live-server` (or
+  `release:live-server:minor` / `release:live-server:major`). Requires the same
+  `NPM_TOKEN` secret.
 - Team Hub npm releases: `pnpm release:team-hub` (or `release:team-hub:minor` /
   `release:team-hub:major`). Requires the same `NPM_TOKEN` secret.
 - Team Hub API npm releases: `pnpm release:team-hub-api` (or

@@ -27,6 +27,7 @@ export type ShortcutId =
   | 'paste'
   | 'select-all'
   | 'toggle-sidebar'
+  | 'toggle-rail'
   | 'hide-sidebars'
   | 'show-sidebars'
   | 'focus-sidebar-search'
@@ -320,6 +321,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+B',
     kind: 'action',
     actionId: 'toggle-sidebar'
+  },
+  {
+    id: 'toggle-rail',
+    label: 'Toggle rail',
+    defaultAccelerator: 'Alt+Shift+A',
+    kind: 'action',
+    actionId: 'toggle-rail'
   },
   {
     id: 'hide-sidebars',

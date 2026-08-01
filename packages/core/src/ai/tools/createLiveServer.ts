@@ -114,6 +114,16 @@ export interface CreateLiveServerToolArgs {
    * Global variable name set to the server origin URL on start.
    */
   urlVariable?: string;
+
+  /**
+   * Pre-request scripts keyed by path-match patterns.
+   */
+  preRequestScripts?: Array<Record<string, unknown>>;
+
+  /**
+   * Post-request scripts keyed by path-match patterns.
+   */
+  postRequestScripts?: Array<Record<string, unknown>>;
 }
 
 /**

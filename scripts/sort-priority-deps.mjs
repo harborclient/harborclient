@@ -12,6 +12,7 @@ const packageJsonPath = path.join(projectRoot, 'package.json')
 const PRIORITY_DEPENDENCIES = [
   '@harborclient/core',
   '@harborclient/http',
+  '@harborclient/live-server',
   '@harborclient/sdk',
   '@harborclient/team-hub-api'
 ]

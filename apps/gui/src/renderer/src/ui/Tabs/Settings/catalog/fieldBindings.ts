@@ -3,9 +3,10 @@
  *
  * ## Supported draft field ids (`SETTING_FIELD_BINDINGS`)
  *
- * All 33 ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, AI API keys):
- * `general.*`, `proxy.*`, `syntax.*`, `ai.openaiApiKey`, `ai.claudeApiKey`,
- * `ai.geminiApiKey`. Values read/write `settingsDraft`.
+ * All ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, Terminal,
+ * AI API keys): `general.*`, `proxy.*`, `syntax.*`, `terminal.*`,
+ * `ai.openaiApiKey`, `ai.claudeApiKey`, `ai.geminiApiKey`. Values read/write
+ * `settingsDraft`.
  *
  * ## Supported group ids (`SETTING_GROUP_BINDINGS`)
  *
@@ -30,12 +31,16 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from '@harborclient/core/codeEditorSettings';
-import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import {
+  DEFAULT_GENERAL_SETTINGS,
+  DEFAULT_TERMINAL_SETTINGS
+} from '@harborclient/core/generalSettings';
 import type {
   AiSettings,
   CodeEditorSetup,
   GeneralSettings,
   ProxySettings,
+  TerminalSettings,
   TrustedExternalDomain
 } from '@harborclient/core/types';
 import { DEFAULT_USER_AGENT, isGeneratedHarborClientUserAgent } from '@harborclient/core/userAgent';
@@ -46,7 +51,8 @@ import {
   setDraftCodeEditorSetupField,
   setDraftCodeEditorTheme,
   setDraftGeneralField,
-  setDraftProxyField
+  setDraftProxyField,
+  setDraftTerminalField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import {
@@ -180,6 +186,27 @@ function createCodeEditorSetupBinding(key: keyof CodeEditorSetup): SettingFieldB
     reset: (dispatch) => {
       const normalized = normalizeCodeEditorSetup(DEFAULT_CODE_EDITOR_SETUP);
       dispatch(setDraftCodeEditorSetupField({ key, value: normalized[key] }));
+    }
+  };
+}
+
+/**
+ * Builds a binding for a nested terminal settings field.
+ *
+ * @param key - Key on {@link TerminalSettings}.
+ * @returns Binding that reads and resets that key via {@link setDraftTerminalField}.
+ */
+function createTerminalBinding<K extends keyof TerminalSettings>(key: K): SettingFieldBinding {
+  return {
+    getValue: (state) => state.settingsDraft.general.terminal[key],
+    getDefault: () => DEFAULT_TERMINAL_SETTINGS[key],
+    reset: (dispatch) => {
+      dispatch(
+        setDraftTerminalField({
+          key,
+          value: cloneDefaultValue(DEFAULT_TERMINAL_SETTINGS[key])
+        })
+      );
     }
   };
 }
@@ -432,6 +459,16 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
   'syntax.foldGutter': createCodeEditorSetupBinding('foldGutter'),
   'syntax.highlightActiveLine': createCodeEditorSetupBinding('highlightActiveLine'),
   'syntax.highlightActiveLineGutter': createCodeEditorSetupBinding('highlightActiveLineGutter'),
+  'terminal.scrollback': createTerminalBinding('scrollback'),
+  'terminal.cursorBlink': createTerminalBinding('cursorBlink'),
+  'terminal.blinkIntervalDuration': createTerminalBinding('blinkIntervalDuration'),
+  'terminal.cursorStyle': createTerminalBinding('cursorStyle'),
+  'terminal.fastScrollSensitivity': createTerminalBinding('fastScrollSensitivity'),
+  'terminal.fontSize': createTerminalBinding('fontSize'),
+  'terminal.fontFamily': createTerminalBinding('fontFamily'),
+  'terminal.fontWeight': createTerminalBinding('fontWeight'),
+  'terminal.minimumContrastRatio': createTerminalBinding('minimumContrastRatio'),
+  'terminal.screenReaderMode': createTerminalBinding('screenReaderMode'),
   'ai.openaiApiKey': createAiBinding('openaiApiKey'),
   'ai.claudeApiKey': createAiBinding('claudeApiKey'),
   'ai.geminiApiKey': createAiBinding('geminiApiKey')

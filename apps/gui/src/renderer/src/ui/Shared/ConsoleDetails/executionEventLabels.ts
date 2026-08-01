@@ -43,6 +43,8 @@ export function formatFlowExecutionLabel(
       return event.nextRequest == null ? 'Stop collection run' : 'Set next request';
     case 'skip-request':
       return 'Skip request';
+    case 'send-response':
+      return 'Send response';
     case 'workflow-next-action':
       return 'Set next workflow action';
     case 'workflow-skip-action':
@@ -76,6 +78,9 @@ export function formatFlowExecutionDetail(
 ): string | undefined {
   if (event.action === 'set-next-request' && event.nextRequest != null) {
     return event.nextRequest;
+  }
+  if (event.action === 'send-response' && event.status != null) {
+    return String(event.status);
   }
   if (event.action === 'workflow-next-action' && event.workflowNextAction != null) {
     return event.workflowNextAction;

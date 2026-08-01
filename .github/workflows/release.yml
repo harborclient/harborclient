@@ -113,6 +113,10 @@ jobs:
           dispatch_workflow core-release.yml
           wait_for_workflow core-release.yml
 
+          # Live-server depends on core and SDK, so publish it after core.
+          dispatch_workflow live-server-release.yml
+          wait_for_workflow live-server-release.yml
+
   ci:
     needs: package-releases
     uses: ./.github/workflows/ci.yml

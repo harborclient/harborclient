@@ -1,3 +1,67 @@
+import { z } from 'zod';
+import { normalizeScriptRefs } from '../scriptRefs';
+import type { ScriptRef } from './script';
+
+/**
+ * Default path-match pattern for a newly added live-server script row.
+ */
+export const DEFAULT_LIVE_SERVER_SCRIPT_MATCH_PATH = 'index.html';
+
+/**
+ * One pre/post request script on a live server, keyed by a path-match pattern.
+ *
+ * Extends {@link ScriptRef} so the shared script list editor and snippet flows
+ * can reuse the same row model. `stage` is always coerced to `main` — the
+ * Before/Main/After axis is unused for live servers.
+ */
+export interface LiveServerScriptRef extends ScriptRef {
+  /**
+   * Glob matched against the request path; only matching requests run the script.
+   *
+   * Examples: `index.html`, `/api/*`, `*.png`, `*`.
+   */
+  matchPath: string;
+}
+
+/**
+ * Normalizes a path-match pattern for a live-server script row.
+ *
+ * Empty or non-string values fall back to {@link DEFAULT_LIVE_SERVER_SCRIPT_MATCH_PATH}.
+ *
+ * @param value - Raw match path from storage or the editor.
+ * @returns Trimmed match path, or the default when blank.
+ */
+export function normalizeLiveServerScriptMatchPath(value: unknown): string {
+  if (typeof value !== 'string') {
+    return DEFAULT_LIVE_SERVER_SCRIPT_MATCH_PATH;
+  }
+  const trimmed = value.trim();
+  return trimmed === '' ? DEFAULT_LIVE_SERVER_SCRIPT_MATCH_PATH : trimmed;
+}
+
+/**
+ * Normalizes live-server pre/post script rows from storage or IPC.
+ *
+ * Coerces each row through {@link normalizeScriptRefs}, forces `stage` to `main`,
+ * and defaults blank `matchPath` values to {@link DEFAULT_LIVE_SERVER_SCRIPT_MATCH_PATH}.
+ *
+ * @param value - Raw script array from storage, IPC, or create/update input.
+ * @returns Normalized {@link LiveServerScriptRef} list (empty when missing/invalid).
+ */
+export function normalizeLiveServerScriptRefs(value: unknown): LiveServerScriptRef[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return normalizeScriptRefs(value as ScriptRef[]).map((ref, index) => {
+    const raw = value[index] as { matchPath?: unknown } | undefined;
+    return {
+      ...ref,
+      stage: 'main',
+      matchPath: normalizeLiveServerScriptMatchPath(raw?.matchPath)
+    };
+  });
+}
+
 /**
  * URL-path-to-filesystem alias for a live server.
  */
@@ -673,6 +737,16 @@ export interface LiveServerConfigFieldInput {
    * Global variable name set to the server origin URL on start.
    */
   urlVariable?: unknown;
+
+  /**
+   * Pre-request scripts keyed by path-match patterns.
+   */
+  preRequestScripts?: unknown;
+
+  /**
+   * Post-request scripts keyed by path-match patterns.
+   */
+  postRequestScripts?: unknown;
 }
 
 /**
@@ -725,7 +799,8 @@ export interface LiveServerConfigFields {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command template (absolute binary + args). Empty means
+   * none. May include `{{variables}}` resolved from globals at Start/restart.
    */
   runCommand: string;
 
@@ -740,12 +815,22 @@ export interface LiveServerConfigFields {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
 }
 
 /**
  * Normalizes the expanded live-server config fields added for open path, index
  * files, bind host, response headers, routing rules, reverse proxies, SSL,
- * optional companion run command, and URL variable.
+ * optional companion run command, URL variable, and pre/post request scripts.
  *
  * Pure and dependency-free so storage, IPC, and UI can share one code path.
  * Callers still merge these onto name/root/port/aliases/watch/cors separately.
@@ -769,7 +854,9 @@ export function normalizeLiveServerConfigFields(
       ssl: defaultLiveServerSslSettings(),
       runCommand: normalizeLiveServerRunCommand(undefined),
       restartOnCrash: false,
-      urlVariable: normalizeLiveServerUrlVariable(undefined)
+      urlVariable: normalizeLiveServerUrlVariable(undefined),
+      preRequestScripts: [],
+      postRequestScripts: []
     };
   }
   return {
@@ -788,7 +875,9 @@ export function normalizeLiveServerConfigFields(
     ),
     runCommand: normalizeLiveServerRunCommand(value.runCommand),
     restartOnCrash: value.restartOnCrash === true,
-    urlVariable: normalizeLiveServerUrlVariable(value.urlVariable)
+    urlVariable: normalizeLiveServerUrlVariable(value.urlVariable),
+    preRequestScripts: normalizeLiveServerScriptRefs(value.preRequestScripts),
+    postRequestScripts: normalizeLiveServerScriptRefs(value.postRequestScripts)
   };
 }
 
@@ -892,6 +981,75 @@ export interface LiveServerConfig {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
+}
+
+/**
+ * Input accepted by {@link toLiveServerConfig}.
+ *
+ * Mirrors saved live-server rows and editor drafts. Expanded fields may be
+ * omitted; {@link normalizeLiveServerConfigFields} fills defaults.
+ */
+export interface ToLiveServerConfigInput {
+  name: string;
+  root: string;
+  port: number | null;
+  aliases: LiveServerConfig['aliases'];
+  watch: boolean;
+  cors?: LiveServerCorsSettings;
+  openPath?: string;
+  rememberLastUrl?: boolean;
+  lastOpenedPath?: string | null;
+  /**
+   * Directory index filenames as an array or comma-separated editor string.
+   */
+  indexFiles?: string | string[];
+  host?: string;
+  headers?: LiveServerConfig['headers'];
+  routes?: LiveServerConfig['routes'];
+  proxies?: LiveServerConfig['proxies'];
+  ssl?: LiveServerConfig['ssl'];
+  runCommand?: string;
+  restartOnCrash?: boolean;
+  urlVariable?: string;
+  preRequestScripts?: LiveServerConfig['preRequestScripts'];
+  postRequestScripts?: LiveServerConfig['postRequestScripts'];
+}
+
+/**
+ * Builds a {@link LiveServerConfig} from saved or editor fields.
+ *
+ * Expanded fields (`openPath`, `host`, `headers`, `ssl`, …) are optional on
+ * the input and filled via {@link normalizeLiveServerConfigFields} so callers
+ * that predate those settings still produce a complete config. `indexFiles`
+ * may be a `string[]` or a comma-separated editor string.
+ *
+ * Pure and browser-safe — keep this in core so the renderer never imports the
+ * Node/Express live-server host package.
+ *
+ * @param input - Partial config fields.
+ * @returns Normalized config suitable for start/save.
+ */
+export function toLiveServerConfig(input: ToLiveServerConfigInput): LiveServerConfig {
+  const fields = normalizeLiveServerConfigFields(input);
+  return {
+    name: input.name.trim() || 'Live Server',
+    root: input.root.trim(),
+    port: input.port,
+    aliases: input.aliases,
+    watch: input.watch,
+    cors: normalizeLiveServerCorsSettings(input.cors),
+    ...fields
+  };
 }
 
 /**
@@ -1003,6 +1161,16 @@ export interface LiveServer {
   urlVariable: string;
 
   /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
+
+  /**
    * Sort order within the Live Servers sidebar section.
    */
   sortOrder: number;
@@ -1029,6 +1197,11 @@ export interface CreateLiveServerInput {
    * Display name for the saved server.
    */
   name: string;
+
+  /**
+   * Optional portable uuid; generated when omitted.
+   */
+  uuid?: string;
 
   /**
    * Absolute path to the directory served as the document root.
@@ -1114,6 +1287,16 @@ export interface CreateLiveServerInput {
    * Global variable name set to the server origin URL on start. Defaults to `''`.
    */
   urlVariable?: string;
+
+  /**
+   * Pre-request scripts. Defaults to `[]`.
+   */
+  preRequestScripts?: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts. Defaults to `[]`.
+   */
+  postRequestScripts?: LiveServerScriptRef[];
 }
 
 /**
@@ -1218,6 +1401,16 @@ export interface UpdateLiveServerInput {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
 }
 
 /**
@@ -1316,6 +1509,11 @@ export interface LiveServerFileChangedEvent {
  */
 export interface LiveServerRequestLogEntry {
   /**
+   * Discriminator for mixed log buffers; omitted on legacy access-only entries.
+   */
+  kind?: 'access';
+
+  /**
    * Runtime instance id of the server that handled the request.
    */
   id: string;
@@ -1357,6 +1555,554 @@ export interface LiveServerRequestLogEntry {
 }
 
 /**
- * Query used to read or clear buffered request logs for one running instance.
+ * One script console / test / error line from a live-server pre or post script.
+ */
+export interface LiveServerScriptLogEntry {
+  /**
+   * Discriminator for mixed log buffers.
+   */
+  kind: 'script';
+
+  /**
+   * Runtime instance id of the server that ran the script.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when the instance was started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Unix timestamp (ms) when the line was emitted.
+   */
+  timestamp: number;
+
+  /**
+   * Script phase that produced the line.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * Request pathname the script was matched against.
+   */
+  url: string;
+
+  /**
+   * Display label of the script row (match path or name).
+   */
+  scriptLabel: string;
+
+  /**
+   * Line kind within the script run.
+   */
+  level: 'log' | 'info' | 'warn' | 'error' | 'test' | 'script-error';
+
+  /**
+   * Human-readable message (console args joined, test name, or error text).
+   */
+  message: string;
+
+  /**
+   * For `test` lines: whether the assertion passed.
+   */
+  passed?: boolean;
+}
+
+/**
+ * One companion run-command stdout, stderr, or lifecycle line.
+ */
+export interface LiveServerProcessLogEntry {
+  /**
+   * Discriminator for mixed log buffers.
+   */
+  kind: 'process';
+
+  /**
+   * Runtime instance id of the server that owns the companion process.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when the instance was started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Unix timestamp (ms) when the line was emitted.
+   */
+  timestamp: number;
+
+  /**
+   * Child stdout/stderr, or `system` for lifecycle messages (start/exit/fail).
+   */
+  stream: 'stdout' | 'stderr' | 'system';
+
+  /**
+   * One logical line of process output or a short lifecycle message.
+   */
+  message: string;
+}
+
+/**
+ * One line in a live server's mixed access + script + process log buffer.
+ */
+export type LiveServerLogEntry =
+  | LiveServerRequestLogEntry
+  | LiveServerScriptLogEntry
+  | LiveServerProcessLogEntry;
+
+/**
+ * One retained log session created when a live server starts.
+ *
+ * Sessions outlive the running instance so the Server Logs sidebar can show
+ * stopped runs until the user clears them. Metadata only — log lines are not
+ * included in list payloads.
+ */
+export interface LiveServerLogSession {
+  /**
+   * Runtime instance id (uuid) for this start; also used as the session key.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Display name of the server at start time.
+   */
+  serverName: string;
+
+  /**
+   * Listen origin while running, or the last origin after stop.
+   */
+  origin: string;
+
+  /**
+   * Unix timestamp (ms) when the instance started.
+   */
+  startedAt: number;
+
+  /**
+   * Unix timestamp (ms) when the instance stopped, or null while still active.
+   */
+  stoppedAt: number | null;
+
+  /**
+   * True while the runtime instance is still accepting requests and appending logs.
+   */
+  active: boolean;
+}
+
+/**
+ * Query used to read or clear buffered request logs for one session.
+ *
+ * `{ id }` matches a session by runtime id (active or stopped). `{ savedId }`
+ * resolves to the active session for that saved server, else the latest session.
  */
 export type LiveServerLogsQuery = { savedId: number } | { id: string };
+
+/**
+ * Returns whether a log entry is a script console/test/error line.
+ *
+ * @param entry - Mixed log buffer entry.
+ * @returns True when the entry is a {@link LiveServerScriptLogEntry}.
+ */
+export function isLiveServerScriptLogEntry(
+  entry: LiveServerLogEntry
+): entry is LiveServerScriptLogEntry {
+  return entry.kind === 'script';
+}
+
+/**
+ * Returns whether a log entry is a companion run-command process line.
+ *
+ * @param entry - Mixed log buffer entry.
+ * @returns True when the entry is a {@link LiveServerProcessLogEntry}.
+ */
+export function isLiveServerProcessLogEntry(
+  entry: LiveServerLogEntry
+): entry is LiveServerProcessLogEntry {
+  return entry.kind === 'process';
+}
+
+/**
+ * Portable HarborClient live-server export envelope.
+ */
+export interface LiveServerExport {
+  /**
+   * HarborClient export schema version.
+   */
+  harborclientVersion: 1;
+
+  /**
+   * Discriminator identifying this file as a live-server export.
+   */
+  harborclientExport: 'server';
+
+  /**
+   * Stable portable identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display name for the live server.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select.
+   */
+  port: number | null;
+
+  /**
+   * Path aliases mounted before the document root static middleware.
+   */
+  aliases?: LiveServerAlias[];
+
+  /**
+   * When true, file watching is enabled when this server is started.
+   */
+  watch?: boolean;
+
+  /**
+   * CORS middleware settings.
+   */
+  cors?: LiveServerCorsSettings;
+
+  /**
+   * Path or file opened when the Live Page starts.
+   */
+  openPath?: string;
+
+  /**
+   * When true, navigations within the origin update {@link lastOpenedPath}.
+   */
+  rememberLastUrl?: boolean;
+
+  /**
+   * Last opened path+search+hash within the origin; null when never recorded.
+   */
+  lastOpenedPath?: string | null;
+
+  /**
+   * Ordered directory index filenames.
+   */
+  indexFiles?: string[];
+
+  /**
+   * Listen bind host.
+   */
+  host?: string;
+
+  /**
+   * Custom response headers.
+   */
+  headers?: LiveServerResponseHeader[];
+
+  /**
+   * Path routing / SPA fallback rules.
+   */
+  routes?: LiveServerRoute[];
+
+  /**
+   * Reverse-proxy rules.
+   */
+  proxies?: LiveServerProxy[];
+
+  /**
+   * TLS certificate settings.
+   */
+  ssl?: LiveServerSslSettings;
+
+  /**
+   * Companion process command.
+   */
+  runCommand?: string;
+
+  /**
+   * When true, restart the companion process after an unexpected crash.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable?: string;
+
+  /**
+   * Pre-request scripts keyed by path-match patterns.
+   */
+  pre_request_scripts?: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts keyed by path-match patterns.
+   */
+  post_request_scripts?: LiveServerScriptRef[];
+}
+
+const liveServerAliasExportSchema = z.object({
+  path: z.string(),
+  target: z.string()
+}) satisfies z.ZodType<LiveServerAlias>;
+
+const liveServerResponseHeaderExportSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+  enabled: z.boolean().optional()
+}) satisfies z.ZodType<LiveServerResponseHeader>;
+
+const liveServerRouteExportSchema = z.object({
+  match: z.string(),
+  target: z.string(),
+  enabled: z.boolean().optional()
+}) satisfies z.ZodType<LiveServerRoute>;
+
+const liveServerProxyExportSchema = z.object({
+  path: z.string(),
+  target: z.string(),
+  stripPath: z.boolean().optional(),
+  enabled: z.boolean().optional()
+}) satisfies z.ZodType<LiveServerProxy>;
+
+const liveServerSslExportSchema = z.object({
+  enabled: z.boolean(),
+  certPath: z.string(),
+  keyPath: z.string()
+}) satisfies z.ZodType<LiveServerSslSettings>;
+
+const liveServerCorsExportSchema = z.object({
+  enabled: z.boolean(),
+  origin: z.string(),
+  methods: z.string(),
+  allowedHeaders: z.string(),
+  exposedHeaders: z.string(),
+  maxAge: z.string(),
+  credentials: z.boolean()
+}) satisfies z.ZodType<LiveServerCorsSettings>;
+
+const scriptStageSchema = z.enum(['before-all', 'before-each', 'main', 'after-each', 'after-all']);
+
+const liveServerScriptRefExportSchema = z.discriminatedUnion('kind', [
+  z.object({
+    id: z.string().min(1),
+    enabled: z.boolean(),
+    kind: z.literal('inline'),
+    name: z.string().optional(),
+    code: z.string().optional(),
+    expanded: z.boolean().optional(),
+    stage: scriptStageSchema.optional(),
+    matchPath: z.string()
+  }),
+  z.object({
+    id: z.string().min(1),
+    enabled: z.boolean(),
+    kind: z.literal('snippet'),
+    name: z.string().optional(),
+    snippetUuid: z.string().min(1),
+    expanded: z.boolean().optional(),
+    stage: scriptStageSchema.optional(),
+    matchPath: z.string()
+  })
+]) satisfies z.ZodType<LiveServerScriptRef>;
+
+/**
+ * Zod schema for validating live-server export files.
+ */
+export const liveServerExportSchema = z.object({
+  harborclientVersion: z.literal(1),
+  harborclientExport: z.literal('server'),
+  uuid: z.string().trim().min(1),
+  name: z.string().trim().min(1),
+  root: z.string().trim().min(1),
+  port: z.number().int().positive().max(65535).nullable(),
+  aliases: z.array(liveServerAliasExportSchema).optional(),
+  watch: z.boolean().optional(),
+  cors: liveServerCorsExportSchema.optional(),
+  openPath: z.string().optional(),
+  rememberLastUrl: z.boolean().optional(),
+  lastOpenedPath: z.union([z.string(), z.null()]).optional(),
+  indexFiles: z.array(z.string()).optional(),
+  host: z.string().optional(),
+  headers: z.array(liveServerResponseHeaderExportSchema).optional(),
+  routes: z.array(liveServerRouteExportSchema).optional(),
+  proxies: z.array(liveServerProxyExportSchema).optional(),
+  ssl: liveServerSslExportSchema.optional(),
+  runCommand: z.string().optional(),
+  restartOnCrash: z.boolean().optional(),
+  urlVariable: z.string().optional(),
+  pre_request_scripts: z.array(liveServerScriptRefExportSchema).optional(),
+  post_request_scripts: z.array(liveServerScriptRefExportSchema).optional()
+}) satisfies z.ZodType<LiveServerExport>;
+
+/**
+ * Validates a parsed live-server export payload.
+ *
+ * @param data - Unknown parsed JSON.
+ * @returns Normalized live-server export.
+ * @throws When validation fails.
+ */
+export function validateLiveServerExport(data: unknown): LiveServerExport {
+  return liveServerExportSchema.parse(data);
+}
+
+/**
+ * Input fields for {@link buildLiveServerExport}.
+ */
+export interface BuildLiveServerExportInput {
+  /**
+   * Stable portable identifier.
+   */
+  uuid: string;
+
+  /**
+   * Display name for the live server.
+   */
+  name: string;
+
+  /**
+   * Absolute path to the directory served as the document root.
+   */
+  root: string;
+
+  /**
+   * Explicit listen port, or null to auto-select.
+   */
+  port: number | null;
+
+  /**
+   * Path aliases.
+   */
+  aliases?: LiveServerAlias[];
+
+  /**
+   * Whether file watching is enabled when started.
+   */
+  watch?: boolean;
+
+  /**
+   * CORS middleware settings.
+   */
+  cors?: LiveServerCorsSettings;
+
+  /**
+   * Entry / open path.
+   */
+  openPath?: string;
+
+  /**
+   * Whether to remember the last opened URL.
+   */
+  rememberLastUrl?: boolean;
+
+  /**
+   * Last opened path+search+hash, or null.
+   */
+  lastOpenedPath?: string | null;
+
+  /**
+   * Directory index filenames.
+   */
+  indexFiles?: string[];
+
+  /**
+   * Listen bind host.
+   */
+  host?: string;
+
+  /**
+   * Custom response headers.
+   */
+  headers?: LiveServerResponseHeader[];
+
+  /**
+   * Path routing rules.
+   */
+  routes?: LiveServerRoute[];
+
+  /**
+   * Reverse-proxy rules.
+   */
+  proxies?: LiveServerProxy[];
+
+  /**
+   * TLS settings.
+   */
+  ssl?: LiveServerSslSettings;
+
+  /**
+   * Companion process command.
+   */
+  runCommand?: string;
+
+  /**
+   * Whether to restart the companion on crash.
+   */
+  restartOnCrash?: boolean;
+
+  /**
+   * Global variable name set to the server origin URL on start.
+   */
+  urlVariable?: string;
+
+  /**
+   * Pre-request scripts.
+   */
+  preRequestScripts?: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts.
+   */
+  postRequestScripts?: LiveServerScriptRef[];
+}
+
+/**
+ * Builds a portable live-server export envelope.
+ *
+ * @param input - Live server fields to serialize.
+ * @returns Live-server export object.
+ */
+export function buildLiveServerExport(input: BuildLiveServerExportInput): LiveServerExport {
+  return {
+    harborclientVersion: 1,
+    harborclientExport: 'server',
+    uuid: input.uuid,
+    name: input.name,
+    root: input.root,
+    port: input.port,
+    ...(input.aliases != null && input.aliases.length > 0 ? { aliases: input.aliases } : {}),
+    ...(input.watch != null ? { watch: input.watch } : {}),
+    ...(input.cors != null ? { cors: input.cors } : {}),
+    ...(input.openPath != null && input.openPath !== '' ? { openPath: input.openPath } : {}),
+    ...(input.rememberLastUrl != null ? { rememberLastUrl: input.rememberLastUrl } : {}),
+    ...(input.lastOpenedPath !== undefined ? { lastOpenedPath: input.lastOpenedPath } : {}),
+    ...(input.indexFiles != null && input.indexFiles.length > 0
+      ? { indexFiles: input.indexFiles }
+      : {}),
+    ...(input.host != null && input.host !== '' ? { host: input.host } : {}),
+    ...(input.headers != null && input.headers.length > 0 ? { headers: input.headers } : {}),
+    ...(input.routes != null && input.routes.length > 0 ? { routes: input.routes } : {}),
+    ...(input.proxies != null && input.proxies.length > 0 ? { proxies: input.proxies } : {}),
+    ...(input.ssl != null ? { ssl: input.ssl } : {}),
+    ...(input.runCommand != null && input.runCommand !== ''
+      ? { runCommand: input.runCommand }
+      : {}),
+    ...(input.restartOnCrash != null ? { restartOnCrash: input.restartOnCrash } : {}),
+    ...(input.urlVariable != null && input.urlVariable !== ''
+      ? { urlVariable: input.urlVariable }
+      : {}),
+    ...(input.preRequestScripts != null && input.preRequestScripts.length > 0
+      ? { pre_request_scripts: input.preRequestScripts }
+      : {}),
+    ...(input.postRequestScripts != null && input.postRequestScripts.length > 0
+      ? { post_request_scripts: input.postRequestScripts }
+      : {})
+  };
+}

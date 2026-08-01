@@ -11,7 +11,7 @@ import type {
   Folder,
   KeyValue,
   LiveServer,
-  LiveServerRequestLogEntry,
+  LiveServerLogEntry,
   RunningLiveServer,
   SaveRequestInput,
   SavedRequest,
@@ -99,7 +99,7 @@ const writeTerminalMock = vi.fn<(id: string, data: string) => void>();
 const listLiveServersMock = vi.fn<() => Promise<LiveServer[]>>();
 const listRunningLiveServersMock = vi.fn<() => Promise<RunningLiveServer[]>>();
 const getLiveServerLogsMock =
-  vi.fn<(query: { savedId: number } | { id: string }) => Promise<LiveServerRequestLogEntry[]>>();
+  vi.fn<(query: { savedId: number } | { id: string }) => Promise<LiveServerLogEntry[]>>();
 const clearLiveServerLogsMock =
   vi.fn<(query: { savedId: number } | { id: string }) => Promise<void>>();
 const startLiveServerApiMock = vi.fn<(input: StartLiveServerInput) => Promise<RunningLiveServer>>();
@@ -3242,7 +3242,7 @@ hc.test("Status code is 2xx", () => {
   });
 
   it('returns capped live server logs and clears them', async () => {
-    const entries: LiveServerRequestLogEntry[] = Array.from({ length: 3 }, (_, index) => ({
+    const entries: LiveServerLogEntry[] = Array.from({ length: 3 }, (_, index) => ({
       id: 'runtime-1',
       savedId: 1,
       timestamp: index,

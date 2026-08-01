@@ -4,12 +4,16 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from '@harborclient/core/codeEditorSettings';
-import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import {
+  DEFAULT_GENERAL_SETTINGS,
+  normalizeTerminalSettings
+} from '@harborclient/core/generalSettings';
 import type {
   AiSettings,
   CodeEditorSetup,
   GeneralSettings,
-  ProxySettings
+  ProxySettings,
+  TerminalSettings
 } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
@@ -63,7 +67,8 @@ function normalizeDraftGeneral(general: GeneralSettings): GeneralSettings {
     ...general,
     codeEditorTheme: normalizeCodeEditorTheme(general.codeEditorTheme),
     codeEditorSetup: normalizeCodeEditorSetup(general.codeEditorSetup),
-    codeEditorFontSize: normalizeCodeEditorFontSize(general.codeEditorFontSize)
+    codeEditorFontSize: normalizeCodeEditorFontSize(general.codeEditorFontSize),
+    terminal: normalizeTerminalSettings(general.terminal)
   };
 }
 
@@ -137,6 +142,15 @@ const settingsDraftSlice = createSlice({
       state.general.codeEditorSetup[action.payload.key] = action.payload.value;
     },
     /**
+     * Updates one footer terminal xterm.js option in the draft.
+     */
+    setDraftTerminalField<K extends keyof TerminalSettings>(
+      state: SettingsDraftState,
+      action: PayloadAction<{ key: K; value: TerminalSettings[K] }>
+    ) {
+      state.general.terminal[action.payload.key] = action.payload.value;
+    },
+    /**
      * Updates an AI settings field in the draft.
      */
     setDraftAiField<K extends keyof AiSettings>(
@@ -171,6 +185,7 @@ export const {
   setDraftProxyField,
   setDraftCodeEditorTheme,
   setDraftCodeEditorSetupField,
+  setDraftTerminalField,
   setDraftAiField,
   resetSettingsDraftToBaseline
 } = settingsDraftSlice.actions;

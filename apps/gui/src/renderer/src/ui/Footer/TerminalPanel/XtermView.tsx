@@ -1,18 +1,29 @@
 import { Terminal } from '@xterm/xterm';
+import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { FitAddon } from '@xterm/addon-fit';
+import { SearchAddon } from '@xterm/addon-search';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import { CopyToChatButton } from '@harborclient/sdk/components';
+import type { TerminalSettings } from '@harborclient/core/types';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
 import { useAiAvailability } from '#/renderer/src/hooks/useAiAvailability';
-import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppDispatch, useAppSelector, useAppStore } from '#/renderer/src/store/hooks';
 import {
   selectActiveChatId,
   setPendingComposerText
 } from '#/renderer/src/store/slices/aiChatSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
+import { selectTerminalSettings } from '#/renderer/src/store/slices/settingsSlice';
 import { setTerminalSelection } from '#/renderer/src/store/slices/terminalsSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
 import { subscribeThemeColorsApplied } from '#/renderer/src/plugins/themeRuntime';
-import { registerTerminalInstance, unregisterTerminalInstance } from './terminalRegistry';
+import { ElectronClipboardProvider } from './electronClipboardProvider';
+import { openTerminalWebLink } from './openTerminalWebLink';
+import {
+  registerTerminalInstance,
+  registerTerminalSearchAddon,
+  unregisterTerminalInstance
+} from './terminalRegistry';
 import {
   buildTerminalReferenceToken,
   captureTerminalSelection,
@@ -107,6 +118,33 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/**
+ * Applies persisted terminal settings to a live xterm instance.
+ *
+ * `blinkIntervalDuration` is set only when the installed xterm.js build exposes
+ * the option (present on master / 6.1+, absent on 6.0.0).
+ *
+ * @param terminal - Active xterm instance.
+ * @param settings - Persisted terminal appearance options.
+ */
+function applyTerminalSettings(terminal: Terminal, settings: TerminalSettings): void {
+  terminal.options.scrollback = settings.scrollback;
+  terminal.options.cursorBlink = settings.cursorBlink && !prefersReducedMotion();
+  terminal.options.cursorStyle = settings.cursorStyle;
+  terminal.options.fastScrollSensitivity = settings.fastScrollSensitivity;
+  terminal.options.fontSize = settings.fontSize;
+  terminal.options.fontFamily = settings.fontFamily;
+  terminal.options.fontWeight = settings.fontWeight;
+  terminal.options.minimumContrastRatio = settings.minimumContrastRatio;
+  terminal.options.screenReaderMode = settings.screenReaderMode;
+
+  if ('blinkIntervalDuration' in terminal.options) {
+    (
+      terminal.options as Terminal['options'] & { blinkIntervalDuration?: number }
+    ).blinkIntervalDuration = settings.blinkIntervalDuration;
+  }
+}
+
 /** Lines from the buffer bottom before auto-scroll stops following new output. */
 const SCROLL_PIN_THRESHOLD_LINES = 3;
 
@@ -194,8 +232,10 @@ function writelnTerminalOutput(terminal: Terminal, data: string): void {
  */
 export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): JSX.Element {
   const dispatch = useAppDispatch();
+  const store = useAppStore();
   const { aiAvailable, aiSettings } = useAiAvailability();
   const activeChatId = useAppSelector(selectActiveChatId);
+  const terminalSettings = useAppSelector(selectTerminalSettings);
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -203,9 +243,15 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
   const unmountingRef = useRef(false);
   const sessionDisposingRef = useRef(false);
   const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * True while FitAddon is applying a size so ResizeObserver can ignore the
+   * layout thrash that would otherwise schedule another fit.
+   */
+  const fittingRef = useRef(false);
   const selectionToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRef = useRef(active);
   const aiAvailableRef = useRef(aiAvailable);
+  const terminalSettingsRef = useRef(terminalSettings);
   const handleCopySelectionToChatRef = useRef<() => Promise<void>>(async () => {});
   const [selectionToolbarVisible, setSelectionToolbarVisible] = useState(false);
   const [selectionToolbarCoords, setSelectionToolbarCoords] = useState<{
@@ -214,6 +260,14 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
   } | null>(null);
 
   const shouldAttach = active && panelOpen;
+
+  /**
+   * Keeps the latest terminal settings on a ref so the create effect can seed
+   * new xterm instances without recreating them when settings change.
+   */
+  useEffect(() => {
+    terminalSettingsRef.current = terminalSettings;
+  }, [terminalSettings]);
 
   /**
    * Keeps latest active/AI-availability values on refs so the selection-change
@@ -285,6 +339,9 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
 
   /**
    * Fits the terminal to its container and notifies the main process of the new size.
+   *
+   * Skips the PTY resize IPC when cols/rows are unchanged, and briefly ignores
+   * ResizeObserver callbacks that fire as a side effect of the fit itself.
    */
   const fitTerminal = useCallback((): void => {
     const terminal = terminalRef.current;
@@ -300,7 +357,22 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
       return;
     }
 
+    const prevCols = terminal.cols;
+    const prevRows = terminal.rows;
+    fittingRef.current = true;
     fitAddon.fit();
+    // Two frames: let FitAddon DOM updates settle and any ResizeObserver
+    // callbacks from this fit drain before accepting new resize signals.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        fittingRef.current = false;
+      });
+    });
+
+    if (terminal.cols === prevCols && terminal.rows === prevRows) {
+      return;
+    }
+
     window.api.resizeTerminal(id, terminal.cols, terminal.rows);
   }, [id]);
 
@@ -308,6 +380,10 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
    * Debounces resize handling so rapid panel drags do not flood IPC.
    */
   const scheduleFit = useCallback((): void => {
+    if (fittingRef.current) {
+      return;
+    }
+
     if (resizeTimerRef.current != null) {
       clearTimeout(resizeTimerRef.current);
     }
@@ -329,19 +405,41 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
 
     unmountingRef.current = false;
 
+    const settings = terminalSettingsRef.current;
     const terminal = new Terminal({
-      cursorBlink: !prefersReducedMotion(),
-      fontSize: 16,
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-      screenReaderMode: true,
+      // SearchAddon decorations use xterm proposed APIs (registerDecoration / markers).
+      allowProposedApi: true,
+      scrollback: settings.scrollback,
+      cursorBlink: settings.cursorBlink && !prefersReducedMotion(),
+      cursorStyle: settings.cursorStyle,
+      fastScrollSensitivity: settings.fastScrollSensitivity,
+      fontSize: settings.fontSize,
+      fontFamily: settings.fontFamily,
+      fontWeight: settings.fontWeight,
+      minimumContrastRatio: settings.minimumContrastRatio,
+      screenReaderMode: settings.screenReaderMode,
       theme: buildXtermTheme()
     });
+    if ('blinkIntervalDuration' in terminal.options) {
+      (
+        terminal.options as Terminal['options'] & { blinkIntervalDuration?: number }
+      ).blinkIntervalDuration = settings.blinkIntervalDuration;
+    }
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
+    const searchAddon = new SearchAddon();
+    terminal.loadAddon(searchAddon);
+    terminal.loadAddon(
+      new WebLinksAddon((_event, uri) => {
+        openTerminalWebLink(dispatch, () => store.getState(), uri);
+      })
+    );
+    terminal.loadAddon(new ClipboardAddon(undefined, new ElectronClipboardProvider()));
     terminal.open(container);
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
     registerTerminalInstance(id, terminal);
+    registerTerminalSearchAddon(id, searchAddon);
 
     terminal.attachCustomKeyEventHandler((event) => {
       if (!isCopyToChatShortcutEvent(event)) {
@@ -440,7 +538,21 @@ export function XtermView({ id, index, title, cwd, active, panelOpen }: Props): 
       terminalRef.current = null;
       fitAddonRef.current = null;
     };
-  }, [hideSelectionToolbar, id, scheduleFit]);
+  }, [dispatch, hideSelectionToolbar, id, scheduleFit, store]);
+
+  /**
+   * Applies live terminal settings changes without recreating the PTY session.
+   * Font metric changes trigger a fit/resize so cols/rows stay accurate.
+   */
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) {
+      return;
+    }
+
+    applyTerminalSettings(terminal, terminalSettings);
+    scheduleFit();
+  }, [scheduleFit, terminalSettings]);
 
   /**
    * Spawns or tears down the shell session when this tab becomes visible in the open panel.

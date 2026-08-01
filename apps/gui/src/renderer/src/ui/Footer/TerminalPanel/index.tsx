@@ -6,8 +6,9 @@ import {
   useResizable
 } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useId, useState, type JSX, type KeyboardEvent } from 'react';
-import { faPlus, faTrash } from '#/renderer/src/fontawesome';
+import { faGear, faMagnifyingGlass, faPlus, faTrash } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import {
   addTerminal,
   removeTerminal,
@@ -17,6 +18,10 @@ import {
   selectTerminalsHydrated,
   setActiveTerminal
 } from '#/renderer/src/store/slices/terminalsSlice';
+import { AnimatedCollapse } from '#/renderer/src/ui/Shared/Animated/AnimatedCollapse';
+import { registerTerminalFindToggle, TERMINAL_PANEL_ID } from './terminalFindShortcut';
+import { getTerminalInstance } from './terminalRegistry';
+import { TerminalSearchBar } from './TerminalSearchBar';
 import { TerminalTabButton } from './TerminalTabButton';
 import { XtermView } from './XtermView';
 
@@ -43,6 +48,16 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
   const tablistId = useId();
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpenForPanel, setSearchOpenForPanel] = useState(open);
+
+  // Close search when the terminal panel closes (adjust state during render).
+  if (searchOpenForPanel !== open) {
+    setSearchOpenForPanel(open);
+    if (!open) {
+      setSearchOpen(false);
+    }
+  }
 
   /**
    * Drives the draggable width of the terminal tab switcher, persisting the
@@ -73,6 +88,41 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
 
     dispatch(addTerminal());
   }, [dispatch, open, terminals.length, terminalsHydrated]);
+
+  /**
+   * Returns focus to the active xterm instance after the search bar closes.
+   */
+  const focusActiveTerminal = useCallback((): void => {
+    if (activeTerminalId == null) {
+      return;
+    }
+
+    const terminalId = activeTerminalId;
+    requestAnimationFrame(() => {
+      getTerminalInstance(terminalId)?.focus();
+    });
+  }, [activeTerminalId]);
+
+  /**
+   * Registers the find-shortcut toggle while the terminal panel is open so
+   * CmdOrCtrl+F (or the configured accelerator) slides search down/up instead
+   * of focusing sidebar search.
+   */
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    return registerTerminalFindToggle(() => {
+      setSearchOpen((current) => {
+        const next = !current;
+        if (!next) {
+          focusActiveTerminal();
+        }
+        return next;
+      });
+    });
+  }, [focusActiveTerminal, open]);
 
   /**
    * Selects a terminal tab from the vertical switcher.
@@ -178,6 +228,55 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
       [nextIndex]?.focus();
   };
 
+  /**
+   * Opens the Settings tab focused on the Terminal section.
+   */
+  const handleOpenTerminalSettings = (): void => {
+    dispatch(openPageTab({ type: 'settings', section: 'terminal' }));
+  };
+
+  /**
+   * Toggles the slide-down terminal search bar and restores terminal focus when closing.
+   */
+  const handleToggleSearch = (): void => {
+    setSearchOpen((current) => {
+      const next = !current;
+      if (!next) {
+        focusActiveTerminal();
+      }
+      return next;
+    });
+  };
+
+  /**
+   * Closes the slide-down terminal search bar and returns focus to the active terminal.
+   */
+  const handleCloseSearch = (): void => {
+    setSearchOpen(false);
+    focusActiveTerminal();
+  };
+
+  const settingsButton = (
+    <RoundButton
+      key="terminal-settings"
+      icon={faGear}
+      ariaLabel="Terminal settings"
+      title="Terminal settings"
+      onClick={handleOpenTerminalSettings}
+    />
+  );
+
+  const searchButton = (
+    <RoundButton
+      key="terminal-search"
+      icon={faMagnifyingGlass}
+      ariaLabel="Search terminal"
+      title="Search terminal"
+      aria-pressed={searchOpen}
+      onClick={handleToggleSearch}
+    />
+  );
+
   const addButton = (
     <RoundButton
       key="add-terminal"
@@ -205,70 +304,79 @@ export function TerminalPanel({ open, onClose }: Props): JSX.Element {
 
   return (
     <FooterPanel
-      id="footer-terminal-panel"
+      id={TERMINAL_PANEL_ID}
       open={open}
       onClose={onClose}
       closeLabel="terminal"
       storageKey="hc.terminalPanelHeight"
       title="Terminal"
-      buttons={[addButton, trashButton]}
+      buttons={[settingsButton, searchButton, addButton, trashButton]}
     >
-      <div className="flex h-full min-h-0 w-full">
-        <div
-          id={tablistId}
-          role="tablist"
-          aria-orientation="vertical"
-          aria-label="Terminal tabs"
-          className="flex h-full shrink-0 flex-col gap-1 overflow-auto bg-sidebar-toolbar p-2"
-          style={{ width: tabListWidth }}
-        >
-          {terminals.map((terminal, index) => (
-            <TerminalTabButton
-              key={terminal.id}
-              terminal={terminal}
-              selected={terminal.id === activeTerminalId}
-              index={index}
-              editing={editingTabId === terminal.id}
-              draftTitle={draftTitle}
-              onSelect={() => handleSelectTerminal(terminal.id)}
-              onStartEdit={() => handleStartEdit(terminal.id, terminal.title)}
-              onDraftChange={setDraftTitle}
-              onCommit={handleCommitEdit}
-              onCancel={handleCancelEdit}
-              onClose={() => handleRemoveTerminal(terminal.id)}
-              onKeyDown={handleTabKeyDown}
-            />
-          ))}
+      <div className="relative h-full min-h-0 w-full min-w-0">
+        <div className="absolute inset-x-0 top-0 z-20">
+          <AnimatedCollapse open={searchOpen}>
+            <div className="bg-sidebar shadow-sm">
+              <TerminalSearchBar activeTerminalId={activeTerminalId} onClose={handleCloseSearch} />
+            </div>
+          </AnimatedCollapse>
         </div>
-
-        <ResizeHandle
-          orientation="vertical"
-          value={tabListWidth}
-          min={tabListMinSize}
-          max={tabListMaxSize}
-          onResizeStart={onTabListResizeStart}
-          onKeyboardResize={onTabListKeyboardResize}
-          ariaLabel="Resize terminal tabs list"
-        />
-
-        <div className="relative h-full min-h-0 min-w-0 flex-1">
-          {terminals.length === 0 ? (
-            <EmptyState variant="centered" className="h-full">
-              No terminals yet. Use the add button to open a shell session.
-            </EmptyState>
-          ) : (
-            terminals.map((terminal, index) => (
-              <XtermView
+        <div className="flex h-full min-h-0 min-w-0">
+          <div
+            id={tablistId}
+            role="tablist"
+            aria-orientation="vertical"
+            aria-label="Terminal tabs"
+            className="flex h-full shrink-0 flex-col gap-1 overflow-y-auto overflow-x-hidden bg-sidebar-toolbar p-2"
+            style={{ width: tabListWidth }}
+          >
+            {terminals.map((terminal, index) => (
+              <TerminalTabButton
                 key={terminal.id}
-                id={terminal.id}
-                index={index + 1}
-                title={terminal.title}
-                cwd={terminal.cwd}
-                active={terminal.id === activeTerminalId}
-                panelOpen={open}
+                terminal={terminal}
+                selected={terminal.id === activeTerminalId}
+                index={index}
+                editing={editingTabId === terminal.id}
+                draftTitle={draftTitle}
+                onSelect={() => handleSelectTerminal(terminal.id)}
+                onStartEdit={() => handleStartEdit(terminal.id, terminal.title)}
+                onDraftChange={setDraftTitle}
+                onCommit={handleCommitEdit}
+                onCancel={handleCancelEdit}
+                onClose={() => handleRemoveTerminal(terminal.id)}
+                onKeyDown={handleTabKeyDown}
               />
-            ))
-          )}
+            ))}
+          </div>
+
+          <ResizeHandle
+            orientation="vertical"
+            value={tabListWidth}
+            min={tabListMinSize}
+            max={tabListMaxSize}
+            onResizeStart={onTabListResizeStart}
+            onKeyboardResize={onTabListKeyboardResize}
+            ariaLabel="Resize terminal tabs list"
+          />
+
+          <div className="relative h-full min-h-0 min-w-0 flex-1">
+            {terminals.length === 0 ? (
+              <EmptyState variant="centered" className="h-full">
+                No terminals yet. Use the add button to open a shell session.
+              </EmptyState>
+            ) : (
+              terminals.map((terminal, index) => (
+                <XtermView
+                  key={terminal.id}
+                  id={terminal.id}
+                  index={index + 1}
+                  title={terminal.title}
+                  cwd={terminal.cwd}
+                  active={terminal.id === activeTerminalId}
+                  panelOpen={open}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </FooterPanel>

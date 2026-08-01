@@ -241,6 +241,8 @@ interface HcInfoApi {
   readonly workflowActionIteration: number;
   /** UUID of the live page (website) for this script run, or empty when not a live page. */
   readonly livepageId: string;
+  /** Saved live server database id as a string, or empty when not a live-server script run. */
+  readonly liveserverId: string;
 }
 
 /**
@@ -476,6 +478,27 @@ interface HcScriptApi {
    * @param milliseconds - Non-negative finite delay in milliseconds.
    */
   sleep(milliseconds: number): Promise<void>;
+  /**
+   * Treats the given text as the HTTP response for this send (replaces the real
+   * response). Does not skip the network call by itself — call
+   * `hc.execution.skipRequest()` in a pre-request script when the remote request
+   * should not run. Last call wins within the phase.
+   *
+   * @param text - Response body text.
+   * @param statusCode - Optional HTTP status (default 200).
+   * @param contentType - Optional Content-Type (default `text/plain; charset=utf-8`).
+   */
+  send(text: string, statusCode?: number, contentType?: string): Promise<void>;
+  /**
+   * Treats a JSON-serialized value as the HTTP response for this send (replaces
+   * the real response). Content-Type is `application/json`. Does not skip the
+   * network call by itself — call `hc.execution.skipRequest()` in a pre-request
+   * script when the remote request should not run. Last call wins within the phase.
+   *
+   * @param value - Value to JSON-serialize as the response body.
+   * @param statusCode - Optional HTTP status (default 200).
+   */
+  sendJSON(value: unknown, statusCode?: number): Promise<void>;
   test(name: string, fn: () => void): void;
   /** Chai BDD expect; see https://www.chaijs.com/api/bdd/ */
   expect: HcExpectStatic;

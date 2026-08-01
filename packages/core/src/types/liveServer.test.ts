@@ -11,6 +11,7 @@ import {
   liveServerOpenedPathFromUrl,
   normalizeLiveServerConfigFields,
   normalizeLiveServerCorsSettings,
+  toLiveServerConfig,
   normalizeLiveServerHeaders,
   normalizeLiveServerHost,
   normalizeLiveServerIndexFiles,
@@ -329,7 +330,9 @@ describe('normalizeLiveServerConfigFields', () => {
       ssl: defaultLiveServerSslSettings(),
       runCommand: '',
       restartOnCrash: false,
-      urlVariable: ''
+      urlVariable: '',
+      preRequestScripts: [],
+      postRequestScripts: []
     });
   });
 
@@ -368,8 +371,85 @@ describe('normalizeLiveServerConfigFields', () => {
       ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
       runCommand: '/usr/bin/node ./server.js',
       restartOnCrash: true,
-      urlVariable: 'server_url'
+      urlVariable: 'server_url',
+      preRequestScripts: [],
+      postRequestScripts: []
     });
+  });
+
+  it('normalizes pre/post request scripts with default matchPath and main stage', () => {
+    const fields = normalizeLiveServerConfigFields({
+      preRequestScripts: [
+        {
+          id: 's1',
+          enabled: true,
+          kind: 'inline',
+          code: 'hc.log("pre");',
+          stage: 'before-all',
+          matchPath: ''
+        }
+      ],
+      postRequestScripts: [
+        {
+          id: 's2',
+          enabled: true,
+          kind: 'inline',
+          code: 'hc.log("post");',
+          matchPath: '  *.png  '
+        }
+      ]
+    });
+    expect(fields.preRequestScripts).toEqual([
+      {
+        id: 's1',
+        enabled: true,
+        kind: 'inline',
+        code: 'hc.log("pre");',
+        stage: 'main',
+        matchPath: 'index.html'
+      }
+    ]);
+    expect(fields.postRequestScripts).toEqual([
+      {
+        id: 's2',
+        enabled: true,
+        kind: 'inline',
+        code: 'hc.log("post");',
+        stage: 'main',
+        matchPath: '*.png'
+      }
+    ]);
+  });
+});
+
+describe('toLiveServerConfig', () => {
+  it('builds a complete config from required fields and defaults', () => {
+    const config = toLiveServerConfig({
+      name: '  Docs  ',
+      root: '  /tmp/site  ',
+      port: 5500,
+      aliases: [],
+      watch: true
+    });
+    expect(config.name).toBe('Docs');
+    expect(config.root).toBe('/tmp/site');
+    expect(config.port).toBe(5500);
+    expect(config.watch).toBe(true);
+    expect(config.host).toBe('127.0.0.1');
+    expect(config.openPath).toBe('/');
+    expect(config.cors.enabled).toBe(true);
+  });
+
+  it('defaults blank name to Live Server', () => {
+    expect(
+      toLiveServerConfig({
+        name: '   ',
+        root: '/tmp',
+        port: null,
+        aliases: [],
+        watch: false
+      }).name
+    ).toBe('Live Server');
   });
 });
 

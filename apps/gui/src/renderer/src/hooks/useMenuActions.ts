@@ -18,6 +18,7 @@ import {
   selectShortcutsSidebarVisible,
   selectShowConsole,
   selectShowMcp,
+  selectShowRail,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowTerminal,
@@ -26,6 +27,7 @@ import {
   toggleAiSidebar,
   toggleConsole,
   toggleGitSidebar,
+  toggleRail,
   toggleShortcutsSidebar,
   toggleMcp,
   toggleRequestEditor,
@@ -59,6 +61,7 @@ import { isRequestTab } from '#/renderer/src/store/tabs';
 import { restoreLastFocusWithoutRing, useLastFocusedElement } from './useLastFocusedElement';
 import { focusSkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/focusSidebarSearch';
+import { tryToggleTerminalFind } from '#/renderer/src/ui/Footer/TerminalPanel/terminalFindShortcut';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 import { runBrowserNavMenuAction } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/runBrowserNavMenuAction';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
@@ -104,6 +107,7 @@ export function useMenuActions(): void {
   const dispatch = useAppDispatch();
   const store = useStore<RootState>();
   const sidebarVisible = useAppSelector(selectSidebarVisible);
+  const railVisible = useAppSelector(selectShowRail);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const shortcutsSidebarVisible = useAppSelector(selectShortcutsSidebarVisible);
@@ -121,6 +125,13 @@ export function useMenuActions(): void {
   useEffect(() => {
     void window.api.setMenuSidebarVisible(sidebarVisible);
   }, [sidebarVisible]);
+
+  /**
+   * Keeps the View > Appearance submenu Rail checkbox aligned with activity-rail visibility.
+   */
+  useEffect(() => {
+    void window.api.setMenuRailVisible(railVisible);
+  }, [railVisible]);
 
   /**
    * Keeps the View > Appearance submenu AI checkbox aligned with effective AI sidebar visibility.
@@ -272,6 +283,9 @@ export function useMenuActions(): void {
         case 'toggle-sidebar':
           dispatch(toggleSidebar());
           break;
+        case 'toggle-rail':
+          dispatch(toggleRail());
+          break;
         case 'hide-sidebars':
           void dispatch(hideSidebarsAndFooterPanels());
           break;
@@ -279,7 +293,9 @@ export function useMenuActions(): void {
           void dispatch(showSidebarsAndFooterPanels());
           break;
         case 'focus-sidebar-search':
-          focusSidebarSearch(dispatch);
+          if (!tryToggleTerminalFind()) {
+            focusSidebarSearch(dispatch);
+          }
           break;
         case 'focus-request-url':
           focusRequestUrl(dispatch);

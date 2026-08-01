@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import navigationReducer, {
+  applyLiveServerLogsPlacementForSavedId,
   consumePendingPluginInstall,
+  openLiveServerLogs,
   setCollectionSettingsDirty,
   setEnvironmentSettingsDirty,
+  setLiveServerLogsPlacement,
   setPendingPluginInstall,
   toggleAiSidebar,
   toggleGitSidebar,
@@ -10,11 +13,13 @@ import navigationReducer, {
   openGitSidebar,
   toggleConsole,
   toggleLiveServerLogs,
+  toggleLiveServerLogsPlacement,
   toggleMcp,
   toggleTerminal,
   toggleRequestEditor,
   toggleResponseEditor,
   setRequestEditorSplitHeight,
+  toggleRail,
   toggleSidebar,
   toggleVariables
 } from './navigationSlice';
@@ -23,6 +28,7 @@ describe('navigationSlice', () => {
   it('starts with sidebar visible and panels closed', () => {
     const state = navigationReducer(undefined, { type: 'unknown' });
     expect(state.showSidebar).toBe(true);
+    expect(state.showRail).toBe(true);
     expect(state.showAiSidebar).toBe(false);
     expect(state.showGitSidebar).toBe(false);
     expect(state.showShortcutsSidebar).toBe(false);
@@ -34,6 +40,7 @@ describe('navigationSlice', () => {
     expect(state.showMcp).toBe(false);
     expect(state.showTerminal).toBe(false);
     expect(state.showLiveServerLogs).toBe(false);
+    expect(state.liveServerLogsPlacement).toBe('footer');
     expect(state.collectionSettingsDirty).toBe(false);
     expect(state.environmentSettingsDirty).toBe(false);
   });
@@ -79,6 +86,60 @@ describe('navigationSlice', () => {
     expect(state.showLiveServerLogs).toBe(false);
   });
 
+  it('toggles live-server logs placement while keeping the viewer open', () => {
+    let state = navigationReducer(undefined, openLiveServerLogs());
+    expect(state.showLiveServerLogs).toBe(true);
+    expect(state.liveServerLogsPlacement).toBe('footer');
+
+    state = navigationReducer(state, toggleLiveServerLogsPlacement(5));
+    expect(state.showLiveServerLogs).toBe(true);
+    expect(state.liveServerLogsPlacement).toBe('sidebar');
+    expect(state.liveServerLogsPlacements).toEqual({ '5': 'sidebar' });
+    expect(state.showAiSidebar).toBe(false);
+
+    state = navigationReducer(state, toggleAiSidebar());
+    expect(state.showAiSidebar).toBe(true);
+    expect(state.showLiveServerLogs).toBe(false);
+
+    state = navigationReducer(state, setLiveServerLogsPlacement('sidebar'));
+    state = navigationReducer(state, openLiveServerLogs());
+    expect(state.showLiveServerLogs).toBe(true);
+    expect(state.showAiSidebar).toBe(false);
+
+    state = navigationReducer(state, toggleConsole());
+    expect(state.showConsole).toBe(true);
+    expect(state.showLiveServerLogs).toBe(true);
+
+    state = navigationReducer(state, toggleLiveServerLogsPlacement(5));
+    expect(state.liveServerLogsPlacement).toBe('footer');
+    expect(state.liveServerLogsPlacements).toEqual({ '5': 'footer' });
+    expect(state.showLiveServerLogs).toBe(true);
+    expect(state.showConsole).toBe(false);
+  });
+
+  it('remembers dock placement per saved live server', () => {
+    let state = navigationReducer(undefined, toggleLiveServerLogsPlacement(1));
+    expect(state.liveServerLogsPlacement).toBe('sidebar');
+    expect(state.liveServerLogsPlacements).toEqual({ '1': 'sidebar' });
+
+    state = navigationReducer(state, applyLiveServerLogsPlacementForSavedId(2));
+    expect(state.liveServerLogsPlacement).toBe('footer');
+
+    state = navigationReducer(state, toggleLiveServerLogsPlacement(2));
+    expect(state.liveServerLogsPlacement).toBe('sidebar');
+    expect(state.liveServerLogsPlacements).toEqual({ '1': 'sidebar', '2': 'sidebar' });
+
+    state = navigationReducer(state, toggleLiveServerLogsPlacement(2));
+    expect(state.liveServerLogsPlacement).toBe('footer');
+    expect(state.liveServerLogsPlacements).toEqual({ '1': 'sidebar', '2': 'footer' });
+
+    state = navigationReducer(state, applyLiveServerLogsPlacementForSavedId(1));
+    expect(state.liveServerLogsPlacement).toBe('sidebar');
+
+    state = navigationReducer(state, applyLiveServerLogsPlacementForSavedId(null));
+    expect(state.liveServerLogsPlacement).toBe('footer');
+  });
+
   it('toggles MCP panel exclusively with console', () => {
     let state = navigationReducer(undefined, toggleConsole());
     expect(state.showConsole).toBe(true);
@@ -103,6 +164,13 @@ describe('navigationSlice', () => {
     expect(state.showSidebar).toBe(false);
     state = navigationReducer(state, toggleSidebar());
     expect(state.showSidebar).toBe(true);
+  });
+
+  it('toggles activity-rail visibility', () => {
+    let state = navigationReducer(undefined, toggleRail());
+    expect(state.showRail).toBe(false);
+    state = navigationReducer(state, toggleRail());
+    expect(state.showRail).toBe(true);
   });
 
   it('toggles AI sidebar visibility', () => {

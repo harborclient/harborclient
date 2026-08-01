@@ -1,64 +1,17 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  DEFAULT_CODE_EDITOR_FONT_SIZE,
-  DEFAULT_CODE_EDITOR_SETUP
-} from '@harborclient/core/codeEditorSettings';
-import type { CodeEditorSetup, CodeEditorTheme, GeneralSettings } from '@harborclient/core/types';
-import { DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
+import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
+import type {
+  CodeEditorSetup,
+  CodeEditorTheme,
+  GeneralSettings,
+  TerminalSettings
+} from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
-export const defaultGeneralSettings: GeneralSettings = {
-  requestTimeoutMs: 30000,
-  scriptTimeoutMs: 5000,
-  allowScriptNetworkRequests: false,
-  allowedNetworkPlugins: [],
-  allowScriptFileRead: false,
-  allowScriptFileWrite: false,
-  allowScriptWebpage: false,
-  scriptFileRoot: '',
-  workflowResultsDirectory: '',
-  maxResponseSizeMb: 50,
-  verifySsl: true,
-  followRedirects: true,
-  startWebpageUrl: 'about:blank',
-  scrollbarAutoHide: false,
-  wrapTabs: true,
-  closeToTray: false,
-  spellCheckEnabled: true,
-  warnWhenSwitchingThemes: true,
-  warnWhenExitingWithUnsavedChanges: true,
-  warnWhenClosingUnsavedRequests: true,
-  warnWhenEditingSnippet: true,
-  warnWhenCloningSnippet: true,
-  warnWhenClickingReadonlySnippet: true,
-  warnWhenCreatingWorkspace: true,
-  warnWhenOpeningWorkspace: true,
-  warnWhenAgentUsesTerminal: true,
-  trustedExternalDomains: [],
-  allowAllExternalDomains: false,
-  dismissedRequestEditorNotices: [],
-  gitAutoAdd: true,
-  externalMergeEditorPath: '',
-  gitCommitAuthorName: '',
-  gitCommitAuthorEmail: '',
-  gitCommitAuthorPrompted: false,
-  codeEditorTheme: 'monokai',
-  codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
-  codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
-  proxy: {
-    enabled: false,
-    protocol: 'http',
-    host: '',
-    port: 8080,
-    authEnabled: false,
-    username: '',
-    password: ''
-  },
-  globalVariables: [],
-  logFilePath: '',
-  userAgent: DEFAULT_USER_AGENT,
-  customUserAgents: []
-};
+/**
+ * Renderer copy of factory general settings (same object as core defaults).
+ */
+export const defaultGeneralSettings = DEFAULT_GENERAL_SETTINGS;
 
 export interface SettingsState {
   general: GeneralSettings;
@@ -111,5 +64,11 @@ export const selectScrollbarAutoHide = (state: RootState): boolean =>
  * Returns whether open request tabs and AI chat tabs should wrap instead of scrolling horizontally.
  */
 export const selectWrapTabs = (state: RootState): boolean => state.settings.general.wrapTabs;
+
+/**
+ * Returns footer terminal xterm.js options from general settings.
+ */
+export const selectTerminalSettings = (state: RootState): TerminalSettings =>
+  state.settings.general.terminal;
 
 export default settingsSlice.reducer;

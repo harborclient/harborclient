@@ -34,6 +34,7 @@ function buildState(overrides?: {
   return {
     navigation: {
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: true,
       showShortcutsSidebar: false,
@@ -45,6 +46,8 @@ function buildState(overrides?: {
       showMcp: false,
       showTerminal: true,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
       activePluginFooterPanelId: null
     },
     environments: {
@@ -71,6 +74,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
   return {
     panels: {
       showSidebar: false,
+      showRail: true,
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -82,6 +86,8 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showMcp: false,
       showTerminal: false,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
       activePluginFooterPanelId: null
     },
     panelSizes: { 'hc.sidebarWidth': 500 },

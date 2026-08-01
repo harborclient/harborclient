@@ -14,6 +14,7 @@ describe('buildAppearanceMenuItems', () => {
     const item = buildAppearanceMenuItems(
       window,
       true,
+      true,
       false,
       true,
       true,
@@ -34,13 +35,14 @@ describe('buildAppearanceMenuItems', () => {
 
     expect(item.label).toBe('Appearance');
     const submenu = item.submenu as MenuItemConstructorOptions[];
-    expect(submenu).toHaveLength(18);
-    expect(submenu[6]).toEqual({ type: 'separator' });
-    expect(submenu[11]).toEqual({ type: 'separator' });
+    expect(submenu).toHaveLength(19);
+    expect(submenu[7]).toEqual({ type: 'separator' });
+    expect(submenu[12]).toEqual({ type: 'separator' });
 
     const sidebarItem = submenu.find(
       (entry) => entry.label === 'Collections Sidebar'
     ) as MenuItemConstructorOptions;
+    const railItem = submenu.find((entry) => entry.label === 'Rail') as MenuItemConstructorOptions;
     const responseItem = submenu.find(
       (entry) => entry.label === 'Response'
     ) as MenuItemConstructorOptions;
@@ -78,6 +80,9 @@ describe('buildAppearanceMenuItems', () => {
 
     expect(sidebarItem.type).toBe('checkbox');
     expect(sidebarItem.checked).toBe(true);
+    expect(railItem.type).toBe('checkbox');
+    expect(railItem.checked).toBe(true);
+    expect(railItem.accelerator).toBe(accelerators.get('toggle-rail'));
     expect(responseItem.checked).toBe(false);
     expect(shortcutsItem.checked).toBe(true);
     expect(shortcutsItem.accelerator).toBe(accelerators.get('toggle-shortcuts-sidebar'));

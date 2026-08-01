@@ -3,8 +3,8 @@ import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
 import {
   selectActivePluginFooterPanelId,
+  selectLiveServerLogsFooterOpen,
   selectShowConsole,
-  selectShowLiveServerLogs,
   selectShowMcp,
   selectShowTerminal,
   selectShowVariables
@@ -78,7 +78,7 @@ export function useBrowserGuestOverlayCover(): void {
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
-  const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
+  const liveServerLogsFooterOpen = useAppSelector(selectLiveServerLogsFooterOpen);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const liveServerEditorOpen = useAppSelector(selectLiveServerModal) != null;
   const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
@@ -90,7 +90,7 @@ export function useBrowserGuestOverlayCover(): void {
     showTerminal,
     activePluginFooterPanelId,
     liveServerEditorOpen,
-    showLiveServerLogs
+    liveServerLogsFooterOpen
   );
   const needsCover = shouldCoverBrowserGuest({ hasBlockingModal, footerOpen });
   const browserTabId = activeBrowserTab?.tabId ?? null;

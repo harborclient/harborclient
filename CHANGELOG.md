@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(live-server): integrate live-server package and enhance CLI functionality. (`890d9cd7`)
+
 ## 2.9.2 - 2026-07-31
 
 - refactor(live-server): update live server logs handling. (`70ce1e9a`)

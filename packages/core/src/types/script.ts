@@ -198,6 +198,11 @@ export interface ScriptRunInfo {
    * UUID of the live page (website) for this script run, or empty when not a live page.
    */
   livepageId: string;
+
+  /**
+   * Saved live server database id as a string, or empty when not a live-server script run.
+   */
+  liveserverId: string;
 }
 
 /**
@@ -227,6 +232,10 @@ export function buildScriptRunInfo(
     workflowActionId?: string;
     workflowActionIteration?: number;
     livepageId?: string | null;
+    /**
+     * Saved live server id, or empty/omitted when not a live-server script run.
+     */
+    liveserverId?: string | number | null;
   } = {}
 ): ScriptRunInfo {
   const requestName = typeof options.requestName === 'string' ? options.requestName.trim() : '';
@@ -250,6 +259,12 @@ export function buildScriptRunInfo(
       ? Math.floor(options.workflowActionIteration)
       : -1;
   const livepageId = typeof options.livepageId === 'string' ? options.livepageId.trim() : '';
+  const liveserverId =
+    typeof options.liveserverId === 'number' && Number.isFinite(options.liveserverId)
+      ? String(options.liveserverId)
+      : typeof options.liveserverId === 'string'
+        ? options.liveserverId.trim()
+        : '';
 
   return {
     eventName: scriptEventNameFromPhase(phase),
@@ -259,7 +274,8 @@ export function buildScriptRunInfo(
     workflowId,
     workflowActionId,
     workflowActionIteration,
-    livepageId
+    livepageId,
+    liveserverId
   };
 }
 
@@ -335,6 +351,7 @@ export type ScriptExecutionVariableAction = 'set' | 'update' | 'clear';
 export type ScriptExecutionFlowAction =
   | 'set-next-request'
   | 'skip-request'
+  | 'send-response'
   | 'workflow-next-action'
   | 'workflow-skip-action';
 
@@ -365,10 +382,39 @@ export type ScriptExecutionEvent =
        */
       workflowNextAction?: string;
       /**
+       * HTTP status code when action is send-response (hc.send / hc.sendJSON).
+       */
+      status?: number;
+      /**
        * Display label of the pre/post script that produced this event.
        */
       scriptName?: string;
     };
+
+/**
+ * Synthetic HTTP response supplied by hc.send or hc.sendJSON during a script run.
+ *
+ * When present on {@link ScriptRunResult}, the request runner replaces the real
+ * (or skipped) SendResult status, headers, and body with these values.
+ */
+export interface ScriptResponseOverride {
+  /**
+   * HTTP status code (100–599).
+   */
+  status: number;
+  /**
+   * Reason phrase for {@link ScriptResponseOverride.status}.
+   */
+  statusText: string;
+  /**
+   * Response headers (keys lowercased to match Requester).
+   */
+  headers: Record<string, string>;
+  /**
+   * Response body text.
+   */
+  body: string;
+}
 
 /**
  * Ownership scope of the script slot that produced a test result.
@@ -680,6 +726,11 @@ export interface ScriptRunResult {
    * When true via hc.execution.skipRequest(), the current request send should be skipped.
    */
   skipRequest?: boolean;
+  /**
+   * When set via hc.send / hc.sendJSON, replaces the HTTP response for this send.
+   * Last call in the phase wins; does not skip the send by itself.
+   */
+  responseOverride?: ScriptResponseOverride;
   /**
    * When set via hc.execution.workflowNextAction, UUID of the next workflow action to play.
    * Undefined means no directive was issued.

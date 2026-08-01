@@ -89,6 +89,7 @@ describe('matchActionSuggestions', () => {
     const ids = matches.map((action) => action.id);
 
     expect(ids).toContain('builtin:toggle-sidebar');
+    expect(ids).toContain('builtin:toggle-rail');
     expect(ids).toContain('builtin:hide-sidebars');
     expect(ids).toContain('builtin:show-sidebars');
     expect(ids).toContain('builtin:toggle-filters');

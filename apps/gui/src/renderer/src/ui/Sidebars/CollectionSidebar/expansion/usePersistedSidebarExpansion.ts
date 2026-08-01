@@ -82,6 +82,11 @@ interface Result {
   liveServersSectionExpanded: boolean;
 
   /**
+   * Whether the Server Logs section body is visible.
+   */
+  liveServerLogsSectionExpanded: boolean;
+
+  /**
    * Whether the Trash section body is visible.
    */
   trashSectionExpanded: boolean;
@@ -132,6 +137,11 @@ interface Result {
   toggleLiveServersSection: () => void;
 
   /**
+   * Toggles the Server Logs section expanded state.
+   */
+  toggleLiveServerLogsSection: () => void;
+
+  /**
    * Toggles the Trash section expanded state.
    */
   toggleTrashSection: () => void;
@@ -180,6 +190,11 @@ interface Result {
    * Sets the saved Live Servers section expanded state explicitly.
    */
   setLiveServersSectionExpanded: Dispatch<SetStateAction<boolean>>;
+
+  /**
+   * Sets the Server Logs section expanded state explicitly.
+   */
+  setLiveServerLogsSectionExpanded: Dispatch<SetStateAction<boolean>>;
 
   /**
    * Sets the Trash section expanded state explicitly.
@@ -480,6 +495,9 @@ export function usePersistedSidebarExpansion({
   const [liveServersSectionExpanded, setLiveServersSectionExpanded] = useState(
     defaults.sections.liveServers
   );
+  const [liveServerLogsSectionExpanded, setLiveServerLogsSectionExpanded] = useState(
+    defaults.sections.liveServerLogs
+  );
   const [trashSectionExpanded, setTrashSectionExpanded] = useState(defaults.sections.trash);
   const [archiveSectionExpanded, setArchiveSectionExpanded] = useState(defaults.sections.archive);
   const [activeSidebarMode, setActiveSidebarMode] = useState<SidebarMode>(
@@ -531,6 +549,7 @@ export function usePersistedSidebarExpansion({
       setWorkflowsSectionExpanded(stored.sections.workflows);
       setWebsitesSectionExpanded(stored.sections.websites);
       setLiveServersSectionExpanded(stored.sections.liveServers);
+      setLiveServerLogsSectionExpanded(stored.sections.liveServerLogs);
       setTrashSectionExpanded(stored.sections.trash);
       setArchiveSectionExpanded(stored.sections.archive);
       setActiveSidebarMode(stored.activeSidebarMode);
@@ -615,6 +634,7 @@ export function usePersistedSidebarExpansion({
         workflows: workflowsSectionExpanded,
         websites: websitesSectionExpanded,
         liveServers: liveServersSectionExpanded,
+        liveServerLogs: liveServerLogsSectionExpanded,
         archive: archiveSectionExpanded,
         trash: trashSectionExpanded
       },
@@ -643,6 +663,7 @@ export function usePersistedSidebarExpansion({
     workflowsSectionExpanded,
     websitesSectionExpanded,
     liveServersSectionExpanded,
+    liveServerLogsSectionExpanded,
     archiveSectionExpanded,
     trashSectionExpanded,
     activeSidebarMode,
@@ -779,6 +800,13 @@ export function usePersistedSidebarExpansion({
   }, []);
 
   /**
+   * Toggles the Server Logs section expanded state.
+   */
+  const toggleLiveServerLogsSection = useCallback(() => {
+    setLiveServerLogsSectionExpanded((open) => !open);
+  }, []);
+
+  /**
    * Toggles the Trash section expanded state.
    */
   const toggleTrashSection = useCallback(() => {
@@ -887,6 +915,7 @@ export function usePersistedSidebarExpansion({
     workflowsSectionExpanded,
     websitesSectionExpanded,
     liveServersSectionExpanded,
+    liveServerLogsSectionExpanded,
     trashSectionExpanded,
     archiveSectionExpanded,
     toggleCollectionsSection,
@@ -897,6 +926,7 @@ export function usePersistedSidebarExpansion({
     toggleWorkflowsSection,
     toggleWebsitesSection,
     toggleLiveServersSection,
+    toggleLiveServerLogsSection,
     toggleTrashSection,
     toggleArchiveSection,
     setCollectionsSectionExpanded,
@@ -907,6 +937,7 @@ export function usePersistedSidebarExpansion({
     setWorkflowsSectionExpanded,
     setWebsitesSectionExpanded,
     setLiveServersSectionExpanded,
+    setLiveServerLogsSectionExpanded,
     setTrashSectionExpanded,
     setArchiveSectionExpanded,
     activeSidebarMode,

@@ -60,6 +60,20 @@ describe('executionEventLabels', () => {
     expect(
       formatFlowExecutionLabel({
         type: 'flow',
+        action: 'send-response',
+        status: 400
+      })
+    ).toBe('Send response');
+    expect(
+      formatFlowExecutionDetail({
+        type: 'flow',
+        action: 'send-response',
+        status: 400
+      })
+    ).toBe('400');
+    expect(
+      formatFlowExecutionLabel({
+        type: 'flow',
         action: 'workflow-next-action',
         workflowNextAction: 'act-uuid'
       })

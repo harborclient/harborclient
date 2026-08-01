@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type {
   AiSettings,
   HubLlmModelGroup,
@@ -7,6 +8,26 @@ import type {
 } from '@harborclient/core/types';
 import type { ScriptStage } from '@harborclient/sdk';
 import type { RegisteredScriptEditorAction } from '@harborclient/core/plugin/types';
+
+/**
+ * Props passed to a custom script-row header renderer.
+ */
+export interface ScriptRowHeaderRenderProps {
+  /**
+   * Script reference for the row.
+   */
+  script: ScriptRef;
+
+  /**
+   * Snippet library used for labels and snippet previews.
+   */
+  snippets: Snippet[];
+
+  /**
+   * Called when the optional display name changes.
+   */
+  onNameChange: (name: string) => void;
+}
 
 /**
  * Props for one sortable script row with expandable editor body.
@@ -217,4 +238,11 @@ export interface SortableScriptRowProps {
    * Changes whenever a new reveal is requested so the editor remounts.
    */
   revealNonce?: number;
+
+  /**
+   * Optional custom header; when set, replaces the default name {@link ScriptRowHeader}.
+   *
+   * Used by live-server script rows to edit `matchPath` instead of the display name.
+   */
+  renderHeader?: (props: ScriptRowHeaderRenderProps) => ReactNode;
 }

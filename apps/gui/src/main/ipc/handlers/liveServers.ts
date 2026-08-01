@@ -1,6 +1,9 @@
 import type {
   LiveServerFileChangedEvent,
+  LiveServerLogSession,
+  LiveServerProcessLogEntry,
   LiveServerRequestLogEntry,
+  LiveServerScriptLogEntry,
   RunningLiveServer
 } from '@harborclient/core/types';
 import { getRegisteredMainWindow } from '#/main/window/mainWindowReveal';
@@ -12,11 +15,19 @@ import {
   getLiveServerLogs,
   listRunningLiveServers,
   setLiveServerFileChangedHandler,
+  setLiveServerProcessLogHandler,
   setLiveServerRequestLogHandler,
+  setLiveServerScriptLogHandler,
   setLiveServersChangedHandler,
   startLiveServer,
-  stopLiveServer
+  stopLiveServer,
+  updateLiveServerScripts
 } from '#/main/liveServer/liveServerHost';
+import {
+  clearAllLiveServerLogSessions,
+  listLiveServerLogSessions,
+  setLiveServerLogSessionsChangedHandler
+} from '#/main/liveServer/liveServerLogSessions';
 
 /**
  * Sends a payload to the main window renderer when it is available.
@@ -44,8 +55,20 @@ export function registerLiveServerHandlers(): void {
     sendToMainWindow('liveServers:changed', running);
   });
 
+  setLiveServerLogSessionsChangedHandler((sessions: LiveServerLogSession[]) => {
+    sendToMainWindow('liveServer:log-sessions-changed', sessions);
+  });
+
   setLiveServerRequestLogHandler((entry: LiveServerRequestLogEntry) => {
     sendToMainWindow('liveServer:request-log', entry);
+  });
+
+  setLiveServerScriptLogHandler((entry: LiveServerScriptLogEntry) => {
+    sendToMainWindow('liveServer:script-log', entry);
+  });
+
+  setLiveServerProcessLogHandler((entry: LiveServerProcessLogEntry) => {
+    sendToMainWindow('liveServer:process-log', entry);
   });
 
   handle('liveServer:start', ipcArgSchemas.liveServerStart, (_event, input) =>
@@ -55,6 +78,12 @@ export function registerLiveServerHandlers(): void {
   handle('liveServer:stop', ipcArgSchemas.liveServerStop, (_event, id) => stopLiveServer(id));
 
   handle('liveServer:listRunning', ipcArgSchemas.none, () => listRunningLiveServers());
+
+  handle('liveServer:listLogSessions', ipcArgSchemas.none, () => listLiveServerLogSessions());
+
+  handle('liveServer:clearAllLogSessions', ipcArgSchemas.none, () => {
+    clearAllLiveServerLogSessions();
+  });
 
   handle('liveServer:getLogs', ipcArgSchemas.liveServerLogsQuery, (_event, query) =>
     getLiveServerLogs(query)
@@ -70,9 +99,14 @@ export function registerLiveServerHandlers(): void {
     getLocalDatabase().createLiveServer(input)
   );
 
-  handle('liveServers:update', ipcArgSchemas.liveServersUpdate, (_event, input) =>
-    getLocalDatabase().updateLiveServer(input)
-  );
+  handle('liveServers:update', ipcArgSchemas.liveServersUpdate, (_event, input) => {
+    const list = getLocalDatabase().updateLiveServer(input);
+    updateLiveServerScripts(input.id, {
+      preRequestScripts: input.preRequestScripts,
+      postRequestScripts: input.postRequestScripts
+    });
+    return list;
+  });
 
   handle('liveServers:delete', ipcArgSchemas.liveServersDelete, (_event, id) =>
     getLocalDatabase().deleteLiveServer(id)

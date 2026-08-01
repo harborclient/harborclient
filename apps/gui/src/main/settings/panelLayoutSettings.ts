@@ -1,6 +1,7 @@
 import Store from 'electron-store';
 import {
   DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  type LiveServerLogsPlacement,
   type PanelLayoutState
 } from '@harborclient/core/types';
 
@@ -14,6 +15,7 @@ export const MAX_REQUEST_EDITOR_SPLIT_HEIGHT = 2000;
 
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
+  showRail: true,
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -25,6 +27,8 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showMcp: false,
   showTerminal: false,
   showLiveServerLogs: false,
+  liveServerLogsPlacement: 'footer',
+  liveServerLogsPlacements: {},
   activePluginFooterPanelId: null
 };
 
@@ -63,13 +67,53 @@ function normalizeRequestEditorSplitHeight(value: unknown): number {
 }
 
 /**
+ * Normalizes live-server logs dock placement from storage or user input.
+ *
+ * @param value - Raw placement candidate.
+ * @returns Sanitized placement, defaulting to footer.
+ */
+function normalizeLiveServerLogsPlacement(value: unknown): LiveServerLogsPlacement {
+  return value === 'sidebar' ? 'sidebar' : 'footer';
+}
+
+/**
+ * Normalizes the per-server live-server logs dock map.
+ *
+ * @param value - Raw placements object keyed by saved server id string.
+ * @returns Sanitized map containing only footer/sidebar values.
+ */
+function normalizeLiveServerLogsPlacements(
+  value: unknown
+): Record<string, LiveServerLogsPlacement> {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const result: Record<string, LiveServerLogsPlacement> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (key.length === 0) {
+      continue;
+    }
+    if (raw === 'footer' || raw === 'sidebar') {
+      result[key] = raw;
+    }
+  }
+  return result;
+}
+
+/**
  * Normalizes footer panel visibility so at most one built-in or plugin panel is open.
  *
+ * When live-server logs are docked to the sidebar, {@link PanelLayoutState.showLiveServerLogs}
+ * does not participate in footer exclusivity.
+ *
  * @param input - Raw footer panel flags from storage or user input.
+ * @param liveServerLogsPlacement - Dock placement for the logs viewer.
  * @returns Footer panel visibility with mutual exclusivity enforced.
  */
 function normalizeFooterPanels(
-  input: Partial<PanelLayoutState>
+  input: Partial<PanelLayoutState>,
+  liveServerLogsPlacement: LiveServerLogsPlacement
 ): Pick<
   PanelLayoutState,
   | 'showConsole'
@@ -89,6 +133,8 @@ function normalizeFooterPanels(
   const showMcp = input.showMcp === true;
   const showTerminal = input.showTerminal === true;
   const showLiveServerLogs = input.showLiveServerLogs === true;
+  const logsAsFooter = showLiveServerLogs && liveServerLogsPlacement === 'footer';
+  const logsAsSidebar = showLiveServerLogs && liveServerLogsPlacement === 'sidebar';
 
   if (activePluginFooterPanelId) {
     return {
@@ -96,7 +142,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId
     };
   }
@@ -107,7 +153,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -117,7 +163,7 @@ function normalizeFooterPanels(
       showVariables: true,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -127,7 +173,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: true,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -137,11 +183,11 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: true,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
-  if (showLiveServerLogs) {
+  if (logsAsFooter) {
     return {
       showConsole: false,
       showVariables: false,
@@ -157,7 +203,7 @@ function normalizeFooterPanels(
     showVariables: false,
     showMcp: false,
     showTerminal: false,
-    showLiveServerLogs: false,
+    showLiveServerLogs: logsAsSidebar,
     activePluginFooterPanelId: null
   };
 }
@@ -169,21 +215,29 @@ function normalizeFooterPanels(
  * @returns Sanitized panel layout state.
  */
 function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutState {
-  const footerPanels = normalizeFooterPanels(input);
+  const liveServerLogsPlacement = normalizeLiveServerLogsPlacement(input.liveServerLogsPlacement);
+  const liveServerLogsPlacements = normalizeLiveServerLogsPlacements(
+    input.liveServerLogsPlacements
+  );
+  const footerPanels = normalizeFooterPanels(input, liveServerLogsPlacement);
+  const logsAsSidebar = footerPanels.showLiveServerLogs && liveServerLogsPlacement === 'sidebar';
 
-  const showGitSidebar = input.showGitSidebar === true;
-  const showAiSidebar = !showGitSidebar && input.showAiSidebar === true;
+  const showGitSidebar = !logsAsSidebar && input.showGitSidebar === true;
+  const showAiSidebar = !logsAsSidebar && !showGitSidebar && input.showAiSidebar === true;
   const showShortcutsSidebar =
-    !showGitSidebar && !showAiSidebar && input.showShortcutsSidebar === true;
+    !logsAsSidebar && !showGitSidebar && !showAiSidebar && input.showShortcutsSidebar === true;
 
   return {
     showSidebar: input.showSidebar !== false,
+    showRail: input.showRail !== false,
     showAiSidebar,
     showGitSidebar,
     showShortcutsSidebar,
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight),
+    liveServerLogsPlacement,
+    liveServerLogsPlacements,
     ...footerPanels
   };
 }

@@ -4,7 +4,12 @@ import {
   type GitSidebarExpansionState
 } from '../gitSidebarExpansion';
 import { normalizeSidebarExpansion } from '../sidebarExpansion';
-import type { PanelLayoutState, SidebarExpansionState, ThemeSource } from './settings';
+import type {
+  LiveServerLogsPlacement,
+  PanelLayoutState,
+  SidebarExpansionState,
+  ThemeSource
+} from './settings';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from './settings';
 
 /**
@@ -21,7 +26,8 @@ export const WORKSPACE_PANEL_SIZE_KEYS = [
   'hc.mcpPanelHeight',
   'hc.terminalPanelHeight',
   'hc.terminalTabListWidth',
-  'hc.liveServerLogsHeight'
+  'hc.liveServerLogsHeight',
+  'hc.liveServerLogsSidebarWidth'
 ] as const;
 
 /**
@@ -34,6 +40,7 @@ export type WorkspacePanelSizeKey = (typeof WORKSPACE_PANEL_SIZE_KEYS)[number];
  */
 const DEFAULT_WORKSPACE_PANELS: PanelLayoutState = {
   showSidebar: true,
+  showRail: true,
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -45,6 +52,8 @@ const DEFAULT_WORKSPACE_PANELS: PanelLayoutState = {
   showMcp: false,
   showTerminal: false,
   showLiveServerLogs: false,
+  liveServerLogsPlacement: 'footer',
+  liveServerLogsPlacements: {},
   activePluginFooterPanelId: null
 };
 
@@ -194,6 +203,7 @@ const workspaceSidebarSortMode = z.enum([
  */
 const workspacePanelsSchema = z.object({
   showSidebar: z.boolean(),
+  showRail: z.boolean().default(true),
   showAiSidebar: z.boolean(),
   showGitSidebar: z.boolean(),
   showShortcutsSidebar: z.boolean(),
@@ -205,6 +215,8 @@ const workspacePanelsSchema = z.object({
   showMcp: z.boolean(),
   showTerminal: z.boolean(),
   showLiveServerLogs: z.boolean(),
+  liveServerLogsPlacement: z.enum(['footer', 'sidebar']).default('footer'),
+  liveServerLogsPlacements: z.record(z.string(), z.enum(['footer', 'sidebar'])).default({}),
   activePluginFooterPanelId: z.string().nullable()
 }) satisfies z.ZodType<PanelLayoutState>;
 
@@ -221,6 +233,7 @@ const workspaceSidebarExpansionSchema = z.object({
     workflows: z.boolean(),
     websites: z.boolean(),
     liveServers: z.boolean(),
+    liveServerLogs: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -242,6 +255,7 @@ const workspaceSidebarExpansionSchema = z.object({
     workflows: workspaceSidebarSortMode,
     websites: workspaceSidebarSortMode,
     liveServers: workspaceSidebarSortMode,
+    liveServerLogs: workspaceSidebarSortMode,
     archive: workspaceSidebarSortMode,
     trash: workspaceSidebarSortMode
   }),
@@ -372,12 +386,52 @@ function isThemeSource(value: string): value is ThemeSource {
 }
 
 /**
+ * Normalizes live-server logs dock placement from storage or user input.
+ *
+ * @param value - Raw placement candidate.
+ * @returns Sanitized placement, defaulting to footer.
+ */
+function normalizeLiveServerLogsPlacement(value: unknown): LiveServerLogsPlacement {
+  return value === 'sidebar' ? 'sidebar' : 'footer';
+}
+
+/**
+ * Normalizes the per-server live-server logs dock map.
+ *
+ * @param value - Raw placements object keyed by saved server id string.
+ * @returns Sanitized map containing only footer/sidebar values.
+ */
+function normalizeLiveServerLogsPlacements(
+  value: unknown
+): Record<string, LiveServerLogsPlacement> {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const result: Record<string, LiveServerLogsPlacement> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (key.length === 0) {
+      continue;
+    }
+    if (raw === 'footer' || raw === 'sidebar') {
+      result[key] = raw;
+    }
+  }
+  return result;
+}
+
+/**
  * Normalizes footer panel flags so at most one built-in or plugin panel is open.
  *
+ * When live-server logs are docked to the sidebar, {@link PanelLayoutState.showLiveServerLogs}
+ * does not participate in footer exclusivity.
+ *
  * @param input - Partial panel layout fields.
+ * @param liveServerLogsPlacement - Dock placement for the logs viewer.
  */
 function normalizeFooterPanels(
-  input: Partial<PanelLayoutState>
+  input: Partial<PanelLayoutState>,
+  liveServerLogsPlacement: LiveServerLogsPlacement
 ): Pick<
   PanelLayoutState,
   | 'showConsole'
@@ -397,6 +451,8 @@ function normalizeFooterPanels(
   const showMcp = input.showMcp === true;
   const showTerminal = input.showTerminal === true;
   const showLiveServerLogs = input.showLiveServerLogs === true;
+  const logsAsFooter = showLiveServerLogs && liveServerLogsPlacement === 'footer';
+  const logsAsSidebar = showLiveServerLogs && liveServerLogsPlacement === 'sidebar';
 
   if (activePluginFooterPanelId) {
     return {
@@ -404,7 +460,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId
     };
   }
@@ -414,7 +470,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -424,7 +480,7 @@ function normalizeFooterPanels(
       showVariables: true,
       showMcp: false,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -434,7 +490,7 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: true,
       showTerminal: false,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
@@ -444,11 +500,11 @@ function normalizeFooterPanels(
       showVariables: false,
       showMcp: false,
       showTerminal: true,
-      showLiveServerLogs: false,
+      showLiveServerLogs: logsAsSidebar,
       activePluginFooterPanelId: null
     };
   }
-  if (showLiveServerLogs) {
+  if (logsAsFooter) {
     return {
       showConsole: false,
       showVariables: false,
@@ -464,7 +520,7 @@ function normalizeFooterPanels(
     showVariables: false,
     showMcp: false,
     showTerminal: false,
-    showLiveServerLogs: false,
+    showLiveServerLogs: logsAsSidebar,
     activePluginFooterPanelId: null
   };
 }
@@ -480,16 +536,25 @@ function normalizeWorkspacePanels(value: unknown): PanelLayoutState {
   const requestEditorSplitHeight = Number.isFinite(splitHeight)
     ? Math.round(splitHeight)
     : DEFAULT_WORKSPACE_PANELS.requestEditorSplitHeight;
+  const liveServerLogsPlacement = normalizeLiveServerLogsPlacement(input.liveServerLogsPlacement);
+  const liveServerLogsPlacements = normalizeLiveServerLogsPlacements(
+    input.liveServerLogsPlacements
+  );
+  const footerPanels = normalizeFooterPanels(input, liveServerLogsPlacement);
+  const logsAsSidebar = footerPanels.showLiveServerLogs && liveServerLogsPlacement === 'sidebar';
 
   return {
     showSidebar: input.showSidebar !== false,
-    showAiSidebar: input.showAiSidebar === true,
-    showGitSidebar: input.showGitSidebar === true,
-    showShortcutsSidebar: input.showShortcutsSidebar === true,
+    showRail: input.showRail !== false,
+    showAiSidebar: !logsAsSidebar && input.showAiSidebar === true,
+    showGitSidebar: !logsAsSidebar && input.showGitSidebar === true,
+    showShortcutsSidebar: !logsAsSidebar && input.showShortcutsSidebar === true,
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight,
-    ...normalizeFooterPanels(input)
+    liveServerLogsPlacement,
+    liveServerLogsPlacements,
+    ...footerPanels
   };
 }
 

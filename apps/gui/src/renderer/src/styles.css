@@ -878,6 +878,23 @@
     overflow: hidden;
   }
 
+  /**
+   * Keep the xterm scrollbar gutter reserved so FitAddon does not oscillate
+   * when the buffer is near the viewport height threshold.
+   */
+  #footer-terminal-panel .xterm .xterm-viewport {
+    scrollbar-gutter: stable;
+  }
+
+  /**
+   * Live server logs keeps a pinned filter row above a self-scrolling terminal.
+   * The shared footer-panel body defaults to overflow-auto, which would scroll
+   * the filter away with the log lines.
+   */
+  #footer-live-server-logs-panel .hc-footer-panel-body {
+    overflow: hidden;
+  }
+
   :root[data-theme='high-contrast'] .hc-action-menu-toggle {
     background-color: var(--mac-resize-handle) !important;
     color: #000000 !important;

@@ -73,11 +73,31 @@ interface Props {
    * Grouped menu entries for adding scripts and inserting snippets.
    */
   menuGroups: MenuItem[][];
+
+  /**
+   * Optional heading text; when set, replaces {@link SCRIPT_EDITOR_GROUP_HEADINGS} for `group`.
+   */
+  heading?: string;
+
+  /**
+   * Optional accessible name for the section hamburger; when set, replaces
+   * {@link SCRIPT_GROUP_MENU_LABELS} for `group`.
+   */
+  menuLabel?: string;
+
+  /**
+   * Optional accessible name for the bulk-enable checkbox; when set, replaces
+   * {@link SCRIPT_GROUP_ENABLE_LABELS} for `group`.
+   */
+  enableLabel?: string;
 }
 
 /**
  * Renders a Before/Main/After section header matching collection sidebar chrome:
  * dark band, chevron expand/collapse, bulk-enable checkbox, and hamburger actions.
+ *
+ * Callers may override heading / menu / enable labels (e.g. live-server PreRequest
+ * and PostRequest sections) while reusing the same chrome.
  */
 export function ScriptGroupHeading({
   group,
@@ -90,7 +110,10 @@ export function ScriptGroupHeading({
   menuId,
   openMenuId,
   onOpenChange,
-  menuGroups
+  menuGroups,
+  heading,
+  menuLabel,
+  enableLabel
 }: Props): JSX.Element {
   const checkboxRef = useRef<HTMLInputElement>(null);
   /**
@@ -99,7 +122,9 @@ export function ScriptGroupHeading({
   const enabledState = useMemo(() => scriptGroupEnabledState(scripts), [scripts]);
   const checked = enabledState === 'all' && scripts.length > 0;
   const enableDisabled = scripts.length === 0;
-  const menuLabel = SCRIPT_GROUP_MENU_LABELS[group];
+  const resolvedHeading = heading ?? SCRIPT_EDITOR_GROUP_HEADINGS[group];
+  const resolvedMenuLabel = menuLabel ?? SCRIPT_GROUP_MENU_LABELS[group];
+  const resolvedEnableLabel = enableLabel ?? SCRIPT_GROUP_ENABLE_LABELS[group];
 
   /**
    * Reflects mixed enablement across rows via the native indeterminate checkbox state.
@@ -129,7 +154,7 @@ export function ScriptGroupHeading({
           id={headingId}
           className="m-0 text-[15px] leading-none font-medium tracking-wide text-sidebar-section-text uppercase"
         >
-          {SCRIPT_EDITOR_GROUP_HEADINGS[group]}
+          {resolvedHeading}
         </h3>
       </button>
       <div className="hc-sidebar-section-header-actions flex shrink-0 items-center gap-1">
@@ -139,7 +164,7 @@ export function ScriptGroupHeading({
           checked={checked}
           disabled={enableDisabled}
           onChange={(event) => onEnabledChange(event.target.checked)}
-          aria-label={SCRIPT_GROUP_ENABLE_LABELS[group]}
+          aria-label={resolvedEnableLabel}
           className="shrink-0"
         />
         <RowActionsMenu
@@ -147,8 +172,8 @@ export function ScriptGroupHeading({
           openMenuId={openMenuId}
           onOpenChange={onOpenChange}
           groups={menuGroups}
-          triggerAriaLabel={menuLabel}
-          triggerTitle={menuLabel}
+          triggerAriaLabel={resolvedMenuLabel}
+          triggerTitle={resolvedMenuLabel}
         />
       </div>
     </div>

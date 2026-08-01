@@ -15,10 +15,13 @@ import {
   setShowConsole,
   setShowGitSidebar,
   setShowMcp,
+  setShowRail,
   setShowRequestEditor,
   setShowResponseEditor,
   setShowShortcutsSidebar,
   setShowSidebar,
+  setLiveServerLogsPlacement,
+  setLiveServerLogsPlacements,
   setShowLiveServerLogs,
   setShowTerminal,
   setShowVariables
@@ -174,6 +177,7 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
   return {
     panels: {
       showSidebar: navigation.showSidebar,
+      showRail: navigation.showRail,
       showAiSidebar: navigation.showAiSidebar,
       showGitSidebar: navigation.showGitSidebar,
       showShortcutsSidebar: navigation.showShortcutsSidebar,
@@ -185,6 +189,8 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
       showMcp: navigation.showMcp,
       showTerminal: navigation.showTerminal,
       showLiveServerLogs: navigation.showLiveServerLogs,
+      liveServerLogsPlacement: navigation.liveServerLogsPlacement,
+      liveServerLogsPlacements: navigation.liveServerLogsPlacements,
       activePluginFooterPanelId: navigation.activePluginFooterPanelId
     },
     panelSizes: readPanelSizes(),
@@ -210,6 +216,7 @@ export async function applyWorkspaceLayout(
   const { panels } = layout;
 
   dispatch(setShowSidebar(panels.showSidebar));
+  dispatch(setShowRail(panels.showRail));
   if (panels.showGitSidebar) {
     dispatch(setShowGitSidebar(true));
   } else if (panels.showAiSidebar) {
@@ -228,6 +235,8 @@ export async function applyWorkspaceLayout(
   dispatch(setShowVariables(panels.showVariables));
   dispatch(setShowMcp(panels.showMcp));
   dispatch(setShowTerminal(panels.showTerminal));
+  dispatch(setLiveServerLogsPlacement(panels.liveServerLogsPlacement));
+  dispatch(setLiveServerLogsPlacements(panels.liveServerLogsPlacements));
   dispatch(setShowLiveServerLogs(false));
   dispatch(setActivePluginFooterPanelId(panels.activePluginFooterPanelId));
 

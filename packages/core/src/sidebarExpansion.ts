@@ -14,6 +14,7 @@ const DEFAULT_SECTIONS = {
   workflows: true,
   websites: true,
   liveServers: true,
+  liveServerLogs: true,
   archive: true,
   trash: true
 } as const;
@@ -27,6 +28,7 @@ const DEFAULT_SECTION_SORT: Record<SidebarSectionKey, SidebarSortMode> = {
   workflows: 'default',
   websites: 'default',
   liveServers: 'default',
+  liveServerLogs: 'default',
   archive: 'default',
   trash: 'default'
 };
@@ -40,6 +42,7 @@ const SIDEBAR_SECTION_KEYS: readonly SidebarSectionKey[] = [
   'workflows',
   'websites',
   'liveServers',
+  'liveServerLogs',
   'archive',
   'trash'
 ];
@@ -87,7 +90,7 @@ export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionK
   environments: ['environments'],
   workspaces: ['workspaces'],
   workflows: ['workflows', 'history', 'archive'],
-  servers: ['liveServers', 'websites'],
+  servers: ['liveServers', 'liveServerLogs', 'websites'],
   trash: ['trash']
 };
 
@@ -304,6 +307,10 @@ export function normalizeSidebarExpansion(value: unknown): SidebarExpansionState
         sectionsRaw && typeof sectionsRaw.liveServers === 'boolean'
           ? sectionsRaw.liveServers
           : DEFAULT_SECTIONS.liveServers,
+      liveServerLogs:
+        sectionsRaw && typeof sectionsRaw.liveServerLogs === 'boolean'
+          ? sectionsRaw.liveServerLogs
+          : DEFAULT_SECTIONS.liveServerLogs,
       archive:
         sectionsRaw && typeof sectionsRaw.archive === 'boolean'
           ? sectionsRaw.archive

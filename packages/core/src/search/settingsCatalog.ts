@@ -33,6 +33,16 @@ export type SettingId =
   | 'syntax.foldGutter'
   | 'syntax.highlightActiveLine'
   | 'syntax.highlightActiveLineGutter'
+  | 'terminal.screenReaderMode'
+  | 'terminal.minimumContrastRatio'
+  | 'terminal.scrollback'
+  | 'terminal.cursorBlink'
+  | 'terminal.blinkIntervalDuration'
+  | 'terminal.cursorStyle'
+  | 'terminal.fastScrollSensitivity'
+  | 'terminal.fontSize'
+  | 'terminal.fontFamily'
+  | 'terminal.fontWeight'
   | 'ai.enterToSend'
   | 'ai.openaiApiKey'
   | 'ai.claudeApiKey'
@@ -64,7 +74,7 @@ export type FieldSettingId = Exclude<
 /**
  * Built-in settings sections rendered by the main Settings layout engine.
  */
-export type MainFormSettingsSection = 'general' | 'proxy' | 'syntax' | 'ai';
+export type MainFormSettingsSection = 'general' | 'proxy' | 'syntax' | 'ai' | 'terminal';
 
 /**
  * Built-in settings sections that expose individual field entries in the catalog.
@@ -134,6 +144,8 @@ export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini, and configure MCP server and client connections.',
+  terminal:
+    'Configure the footer terminal appearance, cursor behavior, scrollback buffer, and accessibility options.',
   plugins: 'Configure marketplace catalog and trusted publisher key endpoints for plugin sources.'
 };
 
@@ -413,6 +425,88 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     keywords: ['gutter', 'current line']
   },
   {
+    id: 'terminal.screenReaderMode',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Screen reader mode',
+    description: 'Expose DOM elements that support screen readers such as NVDA and VoiceOver.',
+    keywords: ['accessibility', 'a11y', 'screen reader', 'nvda', 'voiceover']
+  },
+  {
+    id: 'terminal.minimumContrastRatio',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Minimum contrast ratio',
+    description:
+      'Minimum contrast ratio for text colors. Use 1 to disable adjustment, 4.5 for WCAG AA, or 7 for AAA.',
+    keywords: ['contrast', 'accessibility', 'wcag', 'colors']
+  },
+  {
+    id: 'terminal.scrollback',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Scrollback',
+    description: 'Number of rows retained when lines scroll beyond the viewport.',
+    keywords: ['buffer', 'history', 'lines', 'xterm']
+  },
+  {
+    id: 'terminal.cursorBlink',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Cursor blink',
+    description: 'Blink the cursor when the terminal is focused (respects reduced-motion).',
+    keywords: ['cursor', 'blink', 'caret']
+  },
+  {
+    id: 'terminal.blinkIntervalDuration',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Blink interval (ms)',
+    description:
+      'Interval in milliseconds for blinking text attributes. Set to 0 to disable. Requires a newer xterm.js build to take effect.',
+    keywords: ['blink', 'text', 'interval', 'duration']
+  },
+  {
+    id: 'terminal.cursorStyle',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Cursor style',
+    description: 'Shape of the cursor when the terminal is focused.',
+    keywords: ['cursor', 'block', 'underline', 'bar', 'caret']
+  },
+  {
+    id: 'terminal.fastScrollSensitivity',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Fast scroll sensitivity',
+    description: 'Scroll speed multiplier used for fast scrolling when Alt is held.',
+    keywords: ['scroll', 'speed', 'alt', 'sensitivity']
+  },
+  {
+    id: 'terminal.fontSize',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Font size',
+    description: 'Font size in pixels for terminal text.',
+    keywords: ['font', 'size', 'text']
+  },
+  {
+    id: 'terminal.fontFamily',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Font family',
+    description: 'CSS font-family stack used for terminal text.',
+    keywords: ['font', 'monospace', 'typeface']
+  },
+  {
+    id: 'terminal.fontWeight',
+    section: 'terminal',
+    kind: 'field',
+    label: 'Font weight',
+    description: 'Font weight used for non-bold terminal text.',
+    keywords: ['font', 'weight', 'bold']
+  },
+  {
     id: 'ai.enterToSend',
     section: 'ai',
     kind: 'field',
@@ -618,5 +712,11 @@ export function sectionEntryBySection(section: SettingsSection): SectionSettingE
 export function isFormSettingsSection(
   section: SettingsSection
 ): section is MainFormSettingsSection {
-  return section === 'general' || section === 'proxy' || section === 'syntax' || section === 'ai';
+  return (
+    section === 'general' ||
+    section === 'proxy' ||
+    section === 'syntax' ||
+    section === 'ai' ||
+    section === 'terminal'
+  );
 }

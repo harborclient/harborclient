@@ -33,6 +33,7 @@ import type {
   LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
+  LiveServerScriptRef,
   LiveServerSslSettings,
   RequestHistoryEntry,
   ScriptRef,
@@ -101,6 +102,8 @@ interface LiveServerPayloadJson {
   runCommand: string;
   restartOnCrash: boolean;
   urlVariable: string;
+  preRequestScripts: LiveServerScriptRef[];
+  postRequestScripts: LiveServerScriptRef[];
 }
 
 /**
@@ -3319,6 +3322,8 @@ export class LocalDatabase {
         runCommand: payload.runCommand,
         restartOnCrash: payload.restartOnCrash,
         urlVariable: payload.urlVariable,
+        preRequestScripts: payload.preRequestScripts,
+        postRequestScripts: payload.postRequestScripts,
         sortOrder: row.sort_order,
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -3351,7 +3356,7 @@ export class LocalDatabase {
       throw new Error('Root directory is required');
     }
     const now = Date.now();
-    const uuid = generateDocumentUuid();
+    const uuid = input.uuid?.trim() ? input.uuid.trim() : generateDocumentUuid();
     const fields = normalizeLiveServerConfigFields(input);
     const payload = JSON.stringify({
       root,

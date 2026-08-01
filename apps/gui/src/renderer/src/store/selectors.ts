@@ -87,6 +87,20 @@ export const selectLiveServerLogsSavedId = (
 ): RootState['liveServers']['logsSavedId'] => state.liveServers.logsSavedId;
 
 /**
+ * Returns retained live-server log sessions for the Server Logs sidebar.
+ */
+export const selectLiveServerLogSessions = (
+  state: RootState
+): RootState['liveServers']['logSessions'] => state.liveServers.logSessions;
+
+/**
+ * Returns the runtime / session id whose logs the footer panel displays.
+ */
+export const selectLiveServerLogsSessionId = (
+  state: RootState
+): RootState['liveServers']['logsSessionId'] => state.liveServers.logsSessionId;
+
+/**
  * Returns workflows marked archived (shown in the Archive sidebar under Workflows mode).
  */
 export const selectArchivedWorkflows = createSelector([selectAllWorkflows], (workflows) =>

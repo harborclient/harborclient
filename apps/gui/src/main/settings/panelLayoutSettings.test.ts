@@ -25,6 +25,7 @@ describe('panelLayoutSettings', () => {
 
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -36,13 +37,33 @@ describe('panelLayoutSettings', () => {
       showMcp: false,
       showTerminal: false,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
       activePluginFooterPanelId: null
     });
+  });
+
+  it('defaults missing live-server logs placement to footer', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showLiveServerLogs: true,
+      liveServerLogsPlacement: 'sidebar',
+      liveServerLogsPlacements: { '3': 'sidebar', 'bad': 'nope' }
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    const layout = getPanelLayout();
+    expect(layout.liveServerLogsPlacement).toBe('sidebar');
+    expect(layout.liveServerLogsPlacements).toEqual({ '3': 'sidebar' });
+    expect(layout.showLiveServerLogs).toBe(true);
+    expect(layout.showAiSidebar).toBe(false);
+    expect(layout.showGitSidebar).toBe(false);
   });
 
   it('clamps request editor split height to supported bounds', async () => {
     mockGet.mockReturnValue({
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -60,6 +81,7 @@ describe('panelLayoutSettings', () => {
 
     setPanelLayout({
       showSidebar: false,
+      showRail: false,
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -71,11 +93,14 @@ describe('panelLayoutSettings', () => {
       showMcp: false,
       showTerminal: true,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: { '7': 'sidebar' },
       activePluginFooterPanelId: null
     });
 
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
       showSidebar: false,
+      showRail: false,
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -87,6 +112,8 @@ describe('panelLayoutSettings', () => {
       showMcp: false,
       showTerminal: true,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: { '7': 'sidebar' },
       activePluginFooterPanelId: null
     });
   });
@@ -94,6 +121,7 @@ describe('panelLayoutSettings', () => {
   it('enforces mutual exclusivity among footer panels', async () => {
     mockGet.mockReturnValue({
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -111,6 +139,7 @@ describe('panelLayoutSettings', () => {
 
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -122,7 +151,50 @@ describe('panelLayoutSettings', () => {
       showMcp: false,
       showTerminal: false,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
       activePluginFooterPanelId: 'plugin-panel-1'
+    });
+  });
+
+  it('keeps sidebar-docked logs open alongside a footer console panel', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showRail: true,
+      showAiSidebar: true,
+      showGitSidebar: false,
+      showShortcutsSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      showConsole: true,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: true,
+      liveServerLogsPlacement: 'sidebar',
+      liveServerLogsPlacements: { '1': 'sidebar' },
+      activePluginFooterPanelId: null
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout()).toEqual({
+      showSidebar: true,
+      showRail: true,
+      showAiSidebar: false,
+      showGitSidebar: false,
+      showShortcutsSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      showConsole: true,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: true,
+      liveServerLogsPlacement: 'sidebar',
+      liveServerLogsPlacements: { '1': 'sidebar' },
+      activePluginFooterPanelId: null
     });
   });
 });

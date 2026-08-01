@@ -70,6 +70,7 @@ describe('bootstrapShellForReveal', () => {
   }));
   const getPanelLayout = vi.fn(async () => ({
     showSidebar: true,
+    showRail: true,
     showAiSidebar: false,
     showGitSidebar: false,
     showShortcutsSidebar: false,
@@ -81,6 +82,8 @@ describe('bootstrapShellForReveal', () => {
     showMcp: false,
     showTerminal: false,
     showLiveServerLogs: false,
+    liveServerLogsPlacement: 'footer' as const,
+    liveServerLogsPlacements: {},
     activePluginFooterPanelId: null
   }));
   const getGeneralSettings = vi.fn(async () => ({ requestTimeoutMs: 30_000 }));

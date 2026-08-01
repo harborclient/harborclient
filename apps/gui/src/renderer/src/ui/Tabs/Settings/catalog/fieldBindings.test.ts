@@ -8,7 +8,8 @@ import settingsDraftReducer, {
   setDraftAiField,
   setDraftCodeEditorSetupField,
   setDraftGeneralField,
-  setDraftProxyField
+  setDraftProxyField,
+  setDraftTerminalField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import { BUILTIN_USER_AGENT_PRESETS, DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
@@ -62,6 +63,16 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
   'syntax.foldGutter',
   'syntax.highlightActiveLine',
   'syntax.highlightActiveLineGutter',
+  'terminal.scrollback',
+  'terminal.cursorBlink',
+  'terminal.blinkIntervalDuration',
+  'terminal.cursorStyle',
+  'terminal.fastScrollSensitivity',
+  'terminal.fontSize',
+  'terminal.fontFamily',
+  'terminal.fontWeight',
+  'terminal.minimumContrastRatio',
+  'terminal.screenReaderMode',
   'ai.openaiApiKey',
   'ai.claudeApiKey',
   'ai.geminiApiKey'
@@ -119,7 +130,7 @@ function createDraftDispatch(draft: {
 
 describe('SETTING_FIELD_BINDINGS', () => {
   it('registers a binding for every SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(35);
+    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(45);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
       [...SETTINGS_FIELD_REGISTRY_IDS].sort()
     );
@@ -205,6 +216,19 @@ describe('isFieldModified / resetFieldToDefault', () => {
     resetFieldToDefault(createDraftDispatch(holder) as never, 'syntax.lineNumbers');
     expect(holder.current.general.codeEditorSetup.lineNumbers).toBe(true);
     expect(isFieldModified(buildState(holder.current), 'syntax.lineNumbers')).toBe(false);
+  });
+
+  it('detects and resets terminal.scrollback', () => {
+    let draft = initDefaultDraft();
+    expect(isFieldModified(buildState(draft), 'terminal.scrollback')).toBe(false);
+
+    draft = settingsDraftReducer(draft, setDraftTerminalField({ key: 'scrollback', value: 5000 }));
+    expect(isFieldModified(buildState(draft), 'terminal.scrollback')).toBe(true);
+
+    const holder = { current: draft };
+    resetFieldToDefault(createDraftDispatch(holder) as never, 'terminal.scrollback');
+    expect(holder.current.general.terminal.scrollback).toBe(1000);
+    expect(isFieldModified(buildState(holder.current), 'terminal.scrollback')).toBe(false);
   });
 
   it('detects and resets general.trustedDomains as a composite', () => {

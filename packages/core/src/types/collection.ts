@@ -4,6 +4,7 @@ import type { CustomTheme } from './customTheme';
 import type { Environment } from './environment';
 import type { SavedRequest } from './request';
 import type { Snippet } from './snippet';
+import type { LiveServer } from './liveServer';
 import type { Website } from './website';
 import type { Workspace } from './workspace';
 import type { ScriptRef } from './script';
@@ -671,6 +672,7 @@ export type ImportEntityResult =
   | { kind: 'snippet'; snippet: Snippet; action: ImportAction }
   | { kind: 'theme'; theme: CustomTheme; action: ImportAction }
   | { kind: 'website'; website: Website; action: ImportAction }
+  | { kind: 'server'; server: LiveServer; action: ImportAction }
   | { kind: 'run-results'; data: RunResultsExport }
   | { kind: 'openapi-spec'; file: ImportFilePayload }
   | { kind: 'plugin-file'; file: ImportFilePayload };

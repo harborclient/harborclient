@@ -1,6 +1,6 @@
 import { CopyToChatButton } from '@harborclient/sdk/components';
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import type { LiveServerRequestLogEntry } from '@harborclient/core/types';
+import type { LiveServerLogEntry } from '@harborclient/core/types';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { setLiveServerLogsSelection } from '#/renderer/src/store/slices/liveServersSlice';
@@ -12,11 +12,26 @@ import {
   LIVE_SERVER_LOG_SELECTION_TOOLBAR_DELAY_MS
 } from './captureLiveServerLogSelection';
 
+/**
+ * One filtered terminal row with its original 1-based buffer line number.
+ */
+export interface LiveServerLogTerminalRow {
+  /**
+   * Log entry to render.
+   */
+  entry: LiveServerLogEntry;
+
+  /**
+   * 1-based line index in the full unfiltered session buffer (for `@logs`).
+   */
+  line: number;
+}
+
 interface Props {
   /**
-   * Ordered access-log entries to render (oldest first).
+   * Filtered log rows with original 1-based buffer line numbers (oldest first).
    */
-  entries: LiveServerRequestLogEntry[];
+  rows: LiveServerLogTerminalRow[];
 
   /**
    * When true, the empty-state copy assumes the server is currently running.
@@ -27,6 +42,16 @@ interface Props {
    * When true, no saved server is selected for the panel yet.
    */
   noServerSelected: boolean;
+
+  /**
+   * When true, a non-empty filter is applied (empty list means no matches).
+   */
+  filterActive: boolean;
+
+  /**
+   * Number of buffer lines hidden by the active filter (0 when none hidden).
+   */
+  hiddenCount: number;
 
   /**
    * Saved live server UUID used for `@logs` chat pointers, when known.
@@ -51,13 +76,15 @@ const AUTO_SCROLL_THRESHOLD_PX = 48;
  * When AI is available, a floating Copy-to-chat control appears for text
  * selections and inserts `@logs.<uuid>#start.end`.
  *
- * @param props - Log entries, server identity, and empty-state context.
+ * @param props - Log rows, server identity, and empty-state context.
  * @returns Scrollable log region.
  */
 export function LiveServerLogTerminal({
-  entries,
+  rows,
   isRunning,
   noServerSelected,
+  filterActive,
+  hiddenCount,
   liveServerUuid,
   serverName
 }: Props): JSX.Element {
@@ -142,10 +169,10 @@ export function LiveServerLogTerminal({
     return () => {
       element.removeEventListener('scroll', handleScroll);
     };
-  }, [entries.length]);
+  }, [rows.length]);
 
   /**
-   * Scrolls to the latest line when entries change and the user is pinned to the bottom.
+   * Scrolls to the latest line when rows change and the user is pinned to the bottom.
    */
   useEffect(() => {
     const element = containerRef.current;
@@ -153,7 +180,7 @@ export function LiveServerLogTerminal({
       return;
     }
     element.scrollTop = element.scrollHeight;
-  }, [entries]);
+  }, [rows]);
 
   /**
    * Shows a floating Copy-to-chat toolbar after the user finishes selecting log text.
@@ -208,12 +235,14 @@ export function LiveServerLogTerminal({
       container.removeEventListener('mouseup', scheduleToolbarUpdate);
       document.removeEventListener('selectionchange', handleSelectionChange);
     };
-  }, [aiAvailable, hideSelectionToolbar, liveServerUuid, entries.length]);
+  }, [aiAvailable, hideSelectionToolbar, liveServerUuid, rows.length]);
 
-  if (entries.length === 0) {
+  if (rows.length === 0) {
     let emptyMessage = 'Server is stopped. Start it to begin streaming Express request logs.';
     if (noServerSelected) {
       emptyMessage = 'Choose Logs from a live server in the sidebar to stream access logs here.';
+    } else if (filterActive) {
+      emptyMessage = 'No matching logs.';
     } else if (isRunning) {
       emptyMessage =
         'No requests logged yet. Load a page from this live server to see access logs.';
@@ -245,15 +274,20 @@ export function LiveServerLogTerminal({
         aria-relevant="additions"
         aria-label="Live server request log"
       >
-        {entries.map((entry, index) => (
+        {rows.map(({ entry, line }) => (
           <div
-            key={`${entry.timestamp}-${entry.method}-${entry.url}-${entry.statusCode}-${entry.durationMs}-${index}`}
-            data-line={index + 1}
+            key={`${entry.kind ?? 'access'}-${entry.timestamp}-${line}`}
+            data-line={line}
             className="whitespace-pre-wrap break-all"
           >
             {formatLiveServerLogLine(entry)}
           </div>
         ))}
+        {hiddenCount > 0 ? (
+          <div className="text-muted pt-1 font-sans text-[14px]" role="status" aria-live="polite">
+            {hiddenCount === 1 ? '1 result hidden' : `${hiddenCount} results hidden`}
+          </div>
+        ) : null}
       </div>
       {showSelectionToolbar ? (
         <CopyToChatButton

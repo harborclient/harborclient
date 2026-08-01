@@ -121,6 +121,16 @@ export interface StartLiveServerToolArgs {
   urlVariable?: string;
 
   /**
+   * Pre-request scripts keyed by path-match patterns.
+   */
+  preRequestScripts?: Array<Record<string, unknown>>;
+
+  /**
+   * Post-request scripts keyed by path-match patterns.
+   */
+  postRequestScripts?: Array<Record<string, unknown>>;
+
+  /**
    * When true (default), opens a browser tab at the resolved open URL after start.
    */
   openBrowser?: boolean;

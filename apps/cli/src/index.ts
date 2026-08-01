@@ -1,5 +1,6 @@
 import type { HttpMethod } from '@harborclient/core/types';
 import { runCollection } from './runCollection';
+import { runServersCommand } from './runServers';
 import { runWorkflowCommand } from './runWorkflow';
 import { sendAdHocRequest } from './sendAdHoc';
 
@@ -18,6 +19,7 @@ Usage:
   harborclient <METHOD> <url> [options]
   harborclient run <collection> [options]
   harborclient workflow run <workflow> [options]
+  harborclient servers run <server> [options]
 
 Ad-hoc options:
   -H, --header <Name: value>   Add a request header (repeatable)
@@ -36,15 +38,59 @@ Collection run options:
 Workflow run options:
   workflow run <name-or-uuid>  Run a saved workflow headlessly
   --user-data <path>           Override Electron userData directory
-  --stop-on-failure            Stop after the first failed request.send
+  --stop-on-failure            Stop after the first failed request
   --export <dir>               Write a workflow-run JSON export to this directory
+
+Live server options:
+  servers run <name-or-uuid>   Start a saved live server until Ctrl+C
+  --user-data <path>           Override Electron userData directory
 
 Examples:
   harborclient GET https://httpbin.org/get
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
   harborclient workflow run "My Workflow" --export ./results
+  harborclient servers run "Echo Server"
 `);
+}
+
+/**
+ * Parses `servers …` subcommands after the leading `servers` token.
+ *
+ * @param argv - Arguments following `servers`.
+ * @returns Process exit code.
+ */
+async function runServersArgv(argv: string[]): Promise<number> {
+  if (argv[0] !== 'run') {
+    console.error(`Unknown servers subcommand: ${argv[0] ?? '(missing)'}`);
+    printHelp();
+    return 1;
+  }
+
+  const serverRef = argv[1];
+  if (!serverRef) {
+    console.error('Missing live server name or uuid');
+    printHelp();
+    return 1;
+  }
+
+  let userDataPath: string | undefined;
+
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg === '--user-data') {
+      userDataPath = argv[++i];
+      if (userDataPath == null) {
+        console.error('Missing value for --user-data');
+        return 1;
+      }
+    } else {
+      console.error(`Unknown option: ${arg}`);
+      return 1;
+    }
+  }
+
+  return runServersCommand({ serverRef, userDataPath });
 }
 
 /**
@@ -97,7 +143,8 @@ async function runWorkflowArgv(argv: string[]): Promise<number> {
 }
 
 /**
- * Parses CLI argv into an ad-hoc, collection-run, or workflow-run command and executes it.
+ * Parses CLI argv into an ad-hoc, collection-run, workflow-run, or servers-run
+ * command and executes it.
  *
  * @param argv - Process arguments excluding node and script path.
  * @returns Process exit code.
@@ -110,6 +157,10 @@ export async function runCli(argv: string[]): Promise<number> {
 
   if (argv[0] === 'workflow') {
     return runWorkflowArgv(argv.slice(1));
+  }
+
+  if (argv[0] === 'servers') {
+    return runServersArgv(argv.slice(1));
   }
 
   if (argv[0] === 'run') {

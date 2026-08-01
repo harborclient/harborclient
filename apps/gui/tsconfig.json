@@ -18,6 +18,8 @@
       "#/*": ["./src/*"],
       "@harborclient/core": ["../../packages/core/src/index.ts"],
       "@harborclient/core/*": ["../../packages/core/src/*"],
+      "@harborclient/live-server": ["../../packages/live-server/src/index.ts"],
+      "@harborclient/live-server/*": ["../../packages/live-server/src/*"],
       "@harborclient/storage-sqlite": ["../../packages/storage-sqlite/src/index.ts"],
       "@harborclient/storage-sqlite/*": ["../../packages/storage-sqlite/src/*"]
     }

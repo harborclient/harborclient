@@ -6,6 +6,7 @@ import type {
   LiveServerProxy,
   LiveServerResponseHeader,
   LiveServerRoute,
+  LiveServerScriptRef,
   LiveServerSslSettings,
   SavedRequest,
   ScriptExecutionEvent,
@@ -19,6 +20,7 @@ import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
   normalizeLiveServerHeaders,
+  normalizeLiveServerScriptRefs,
   normalizeLiveServerSslSettings
 } from '@harborclient/core/types';
 import type {
@@ -331,7 +333,8 @@ export type LiveServerModalTab =
   | 'proxy'
   | 'aliases'
   | 'cors'
-  | 'ssl';
+  | 'ssl'
+  | 'scripts';
 
 /**
  * Live server editor draft state for create and edit footer-panel flows.
@@ -441,6 +444,16 @@ export interface LiveServerModalState {
    * When true, restart the companion after an unexpected crash.
    */
   restartOnCrash: boolean;
+
+  /**
+   * Pre-request scripts keyed by path match (Scripts tab).
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts keyed by path match (Scripts tab).
+   */
+  postRequestScripts: LiveServerScriptRef[];
 
   /**
    * Inline submit error shown above the panel actions.
@@ -604,6 +617,14 @@ const modalsSlice = createSlice({
          * Global variable name for the server origin URL, or omit for none.
          */
         urlVariable?: string;
+        /**
+         * Pre-request path-match scripts, or omit for an empty list.
+         */
+        preRequestScripts?: LiveServerScriptRef[];
+        /**
+         * Post-request path-match scripts, or omit for an empty list.
+         */
+        postRequestScripts?: LiveServerScriptRef[];
       }>
     ) {
       const port =
@@ -632,6 +653,8 @@ const modalsSlice = createSlice({
         runCommand: action.payload.runCommand?.trim() ?? '',
         restartOnCrash: action.payload.restartOnCrash === true,
         urlVariable: action.payload.urlVariable?.trim() ?? '',
+        preRequestScripts: normalizeLiveServerScriptRefs(action.payload.preRequestScripts),
+        postRequestScripts: normalizeLiveServerScriptRefs(action.payload.postRequestScripts),
         submitError: null,
         busy: false
       };
@@ -643,7 +666,7 @@ const modalsSlice = createSlice({
       state.liveServerModal = null;
     },
     /**
-     * Switches the live server editor among General, Headers, Routing, Proxy, CORS, and SSL tabs.
+     * Switches the live server editor among General, Headers, Routing, Proxy, CORS, SSL, and Scripts tabs.
      */
     setLiveServerModalTab(state, action: PayloadAction<LiveServerModalTab>) {
       if (state.liveServerModal) {
@@ -792,6 +815,22 @@ const modalsSlice = createSlice({
     setLiveServerModalRestartOnCrash(state, action: PayloadAction<boolean>) {
       if (state.liveServerModal) {
         state.liveServerModal.restartOnCrash = action.payload;
+      }
+    },
+    /**
+     * Replaces the live server pre-request script list in the editor.
+     */
+    setLiveServerModalPreRequestScripts(state, action: PayloadAction<LiveServerScriptRef[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.preRequestScripts = normalizeLiveServerScriptRefs(action.payload);
+      }
+    },
+    /**
+     * Replaces the live server post-request script list in the editor.
+     */
+    setLiveServerModalPostRequestScripts(state, action: PayloadAction<LiveServerScriptRef[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.postRequestScripts = normalizeLiveServerScriptRefs(action.payload);
       }
     },
     /**
@@ -1516,6 +1555,8 @@ export const {
   setLiveServerModalSsl,
   setLiveServerModalRunCommand,
   setLiveServerModalRestartOnCrash,
+  setLiveServerModalPreRequestScripts,
+  setLiveServerModalPostRequestScripts,
   setLiveServerModalSubmitError,
   setLiveServerModalBusy
 } = modalsSlice.actions;

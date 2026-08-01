@@ -96,6 +96,7 @@ export function buildThemeMenuItems(
  *
  * @param window - Browser window that receives menu action events.
  * @param sidebarVisible - Whether the collections sidebar checkbox should appear checked.
+ * @param railVisible - Whether the activity rail checkbox should appear checked.
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
  * @param gitSidebarVisible - Whether the Git sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
@@ -117,6 +118,7 @@ export function buildThemeMenuItems(
 export function buildAppearanceMenuItems(
   window: BrowserWindow,
   sidebarVisible: boolean,
+  railVisible: boolean,
   aiSidebarVisible: boolean,
   gitSidebarVisible: boolean,
   requestEditorVisible: boolean,
@@ -143,6 +145,13 @@ export function buildAppearanceMenuItems(
         checked: sidebarVisible,
         accelerator: acceleratorFor(accelerators, 'toggle-sidebar'),
         click: () => sendMenuAction(window, 'toggle-sidebar')
+      },
+      {
+        label: 'Rail',
+        type: 'checkbox',
+        checked: railVisible,
+        accelerator: acceleratorFor(accelerators, 'toggle-rail'),
+        click: () => sendMenuAction(window, 'toggle-rail')
       },
       {
         label: 'Agent Chat',
@@ -271,6 +280,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
  *
  * @param window - Browser window that receives custom menu actions.
  * @param sidebarVisible - Whether the sidebar checkbox should appear checked.
+ * @param railVisible - Whether the activity rail checkbox should appear checked.
  * @param aiSidebarVisible - Whether the AI sidebar checkbox should appear checked.
  * @param requestEditorVisible - Whether the request editor checkbox should appear checked.
  * @param responseEditorVisible - Whether the response editor checkbox should appear checked.
@@ -299,6 +309,7 @@ function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): 
 export function buildMenu(
   window: BrowserWindow,
   sidebarVisible = true,
+  railVisible = true,
   aiSidebarVisible = false,
   gitSidebarVisible = false,
   requestEditorVisible = true,
@@ -471,6 +482,7 @@ export function buildMenu(
         buildAppearanceMenuItems(
           window,
           sidebarVisible,
+          railVisible,
           aiSidebarVisible,
           gitSidebarVisible,
           requestEditorVisible,

@@ -8,9 +8,12 @@ import {
   setShowShortcutsSidebar,
   setShowConsole,
   setShowMcp,
+  setShowRail,
   setShowRequestEditor,
   setShowResponseEditor,
   setShowSidebar,
+  setLiveServerLogsPlacement,
+  setLiveServerLogsPlacements,
   setShowLiveServerLogs,
   setShowTerminal,
   setShowVariables
@@ -91,6 +94,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   }
 
   dispatch(setShowSidebar(layout.showSidebar));
+  dispatch(setShowRail(layout.showRail));
   if (layout.showGitSidebar) {
     dispatch(setShowGitSidebar(true));
   } else if (layout.showAiSidebar) {
@@ -109,6 +113,8 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   dispatch(setShowVariables(layout.showVariables));
   dispatch(setShowMcp(layout.showMcp));
   dispatch(setShowTerminal(layout.showTerminal));
+  dispatch(setLiveServerLogsPlacement(layout.liveServerLogsPlacement));
+  dispatch(setLiveServerLogsPlacements(layout.liveServerLogsPlacements));
   dispatch(setShowLiveServerLogs(false));
   dispatch(setActivePluginFooterPanelId(layout.activePluginFooterPanelId));
   panelLayoutHydrated = true;
@@ -116,6 +122,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   if (legacyHeight != null && splitHeight === legacyHeight) {
     void window.api.setPanelLayout({
       showSidebar: layout.showSidebar,
+      showRail: layout.showRail,
       showAiSidebar: layout.showAiSidebar,
       showGitSidebar: layout.showGitSidebar,
       showShortcutsSidebar: layout.showShortcutsSidebar,
@@ -127,6 +134,8 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
       showMcp: layout.showMcp,
       showTerminal: layout.showTerminal,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: layout.liveServerLogsPlacement,
+      liveServerLogsPlacements: layout.liveServerLogsPlacements,
       activePluginFooterPanelId: layout.activePluginFooterPanelId
     });
     try {

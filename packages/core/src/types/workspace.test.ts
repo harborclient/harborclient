@@ -17,6 +17,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
   return {
     panels: {
       showSidebar: true,
+      showRail: true,
       showAiSidebar: false,
       showGitSidebar: true,
       showShortcutsSidebar: false,
@@ -28,6 +29,8 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showMcp: false,
       showTerminal: false,
       showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
       activePluginFooterPanelId: null
     },
     panelSizes: {

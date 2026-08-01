@@ -13,7 +13,7 @@ import {
 
 const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'backup-restore'] as const;
 
-const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'plugins'] as const;
+const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'terminal', 'plugins'] as const;
 
 const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.requestTimeoutMs',
@@ -48,6 +48,16 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'syntax.foldGutter',
   'syntax.highlightActiveLine',
   'syntax.highlightActiveLineGutter',
+  'terminal.screenReaderMode',
+  'terminal.minimumContrastRatio',
+  'terminal.scrollback',
+  'terminal.cursorBlink',
+  'terminal.blinkIntervalDuration',
+  'terminal.cursorStyle',
+  'terminal.fastScrollSensitivity',
+  'terminal.fontSize',
+  'terminal.fontFamily',
+  'terminal.fontWeight',
   'ai.enterToSend',
   'ai.openaiApiKey',
   'ai.claudeApiKey',

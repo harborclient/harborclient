@@ -222,6 +222,18 @@ export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
     type: 'string',
     description:
       'Optional global variable name set to the server origin URL (e.g. `http://localhost:5500`) when the server starts. Empty means none. Use as `{{ server_url }}` in requests.'
+  },
+  preRequestScripts: {
+    type: 'array',
+    items: { type: 'object' },
+    description:
+      'Optional pre-request scripts keyed by path-match patterns (`matchPath`, plus inline/snippet script ref fields). Defaults to `[]`.'
+  },
+  postRequestScripts: {
+    type: 'array',
+    items: { type: 'object' },
+    description:
+      'Optional post-request scripts keyed by path-match patterns (`matchPath`, plus inline/snippet script ref fields). Defaults to `[]`.'
   }
 } as const;
 
@@ -297,5 +309,7 @@ export const liveServerExpandedConfigShape = {
   ssl: liveServerSslShape.optional(),
   runCommand: z.string().optional(),
   restartOnCrash: z.boolean().optional(),
-  urlVariable: z.string().optional()
+  urlVariable: z.string().optional(),
+  preRequestScripts: z.array(z.record(z.string(), z.unknown())).optional(),
+  postRequestScripts: z.array(z.record(z.string(), z.unknown())).optional()
 } as const;

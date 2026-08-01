@@ -246,7 +246,9 @@ export function FooterPanels({
           />
           <McpPanel open={mcpOpen} onClose={handleToggleMcp} onStatusChange={onMcpStatusChange} />
           <TerminalPanel open={terminalOpen} onClose={handleToggleTerminal} />
-          <LiveServerLogsPanel open={liveServerLogsOpen} onClose={handleCloseLiveServerLogs} />
+          {liveServerLogsOpen ? (
+            <LiveServerLogsPanel open onClose={handleCloseLiveServerLogs} />
+          ) : null}
           {pluginFooterPanels.map((panel) => (
             <HostedFooterPanel
               key={panel.id}

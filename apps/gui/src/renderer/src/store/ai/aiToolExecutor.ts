@@ -145,9 +145,10 @@ import type {
   LiveServer,
   LiveServerAlias,
   LiveServerCorsSettings,
+  LiveServerLogEntry,
   LiveServerLogsQuery,
   LiveServerProxy,
-  LiveServerRequestLogEntry,
+  LiveServerScriptRef,
   LiveServerResponseHeader,
   LiveServerRoute,
   LiveServerSslSettings,
@@ -2251,7 +2252,7 @@ async function getLiveServerLogsTool(args: unknown): Promise<
   | {
       query: LiveServerLogsQuery;
       totalLines: number;
-      lines: LiveServerRequestLogEntry[];
+      lines: LiveServerLogEntry[];
       truncated: boolean;
     }
   | { error: string }
@@ -2416,7 +2417,9 @@ async function startLiveServerTool(
             ssl: saved.ssl,
             runCommand: saved.runCommand,
             restartOnCrash: saved.restartOnCrash,
-            urlVariable: saved.urlVariable
+            urlVariable: saved.urlVariable,
+            preRequestScripts: saved.preRequestScripts,
+            postRequestScripts: saved.postRequestScripts
           }),
           openBrowser
         })
@@ -2478,7 +2481,9 @@ async function startLiveServerTool(
           ssl,
           runCommand: parsed.runCommand,
           restartOnCrash: parsed.restartOnCrash,
-          urlVariable: parsed.urlVariable
+          urlVariable: parsed.urlVariable,
+          preRequestScripts: parsed.preRequestScripts as LiveServerScriptRef[] | undefined,
+          postRequestScripts: parsed.postRequestScripts as LiveServerScriptRef[] | undefined
         }),
         openBrowser
       })
@@ -2589,7 +2594,9 @@ async function createLiveServerTool(
         ssl,
         runCommand: parsed.runCommand,
         restartOnCrash: parsed.restartOnCrash,
-        urlVariable: parsed.urlVariable
+        urlVariable: parsed.urlVariable,
+        preRequestScripts: parsed.preRequestScripts as LiveServerScriptRef[] | undefined,
+        postRequestScripts: parsed.postRequestScripts as LiveServerScriptRef[] | undefined
       })
     )
     .unwrap();
@@ -2658,7 +2665,13 @@ async function updateLiveServerTool(
     ssl: ssl ?? existing?.ssl,
     runCommand: parsed.runCommand ?? existing?.runCommand,
     restartOnCrash: parsed.restartOnCrash ?? existing?.restartOnCrash,
-    urlVariable: parsed.urlVariable ?? existing?.urlVariable
+    urlVariable: parsed.urlVariable ?? existing?.urlVariable,
+    preRequestScripts:
+      (parsed.preRequestScripts as LiveServerScriptRef[] | undefined) ??
+      existing?.preRequestScripts,
+    postRequestScripts:
+      (parsed.postRequestScripts as LiveServerScriptRef[] | undefined) ??
+      existing?.postRequestScripts
   });
 
   await ctx

@@ -19,6 +19,11 @@ import {
   normalizeLiveServerProxies,
   normalizeLiveServerRoutes
 } from '@harborclient/core/types';
+import {
+  mountLiveServerScriptsMiddleware,
+  type LiveServerScriptAwareRequest,
+  type MountLiveServerScriptsOptions
+} from './liveServerScripts.js';
 
 /**
  * Access-log fields emitted when a live-server HTTP response finishes.
@@ -102,6 +107,14 @@ export interface CreateLiveServerAppOptions {
    * Optional callback for completed request access lines.
    */
   onRequestLog?: LiveServerRequestLogCallback;
+
+  /**
+   * Optional pre/post request script middleware options.
+   *
+   * When set, scripts mount after the access log and before CORS/proxy/static
+   * so pre scripts finish before the Run command companion sees traffic.
+   */
+  scripts?: MountLiveServerScriptsOptions;
 }
 
 /**
@@ -270,10 +283,11 @@ function mountRequestLogMiddleware(app: Express, onRequestLog: LiveServerRequest
         return;
       }
       logged = true;
+      const scriptReq = req as LiveServerScriptAwareRequest;
       onRequestLog({
         timestamp,
         method: req.method,
-        url: req.originalUrl || req.url,
+        url: scriptReq.hcInboundUrl ?? (req.originalUrl || req.url),
         statusCode: res.statusCode,
         durationMs: Date.now() - timestamp,
         contentLength: parseContentLength(res.getHeader('content-length'))
@@ -752,7 +766,8 @@ export function createLiveServerApp(
     headers = [],
     proxies: proxiesInput,
     routes: routesInput,
-    onRequestLog
+    onRequestLog,
+    scripts
   } = options;
 
   const resolvedRoot = path.resolve(root);
@@ -782,6 +797,10 @@ export function createLiveServerApp(
 
   if (onRequestLog != null) {
     mountRequestLogMiddleware(app, onRequestLog);
+  }
+
+  if (scripts != null) {
+    mountLiveServerScriptsMiddleware(app, scripts);
   }
 
   if (corsSettings.enabled) {

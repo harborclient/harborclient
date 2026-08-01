@@ -8,7 +8,9 @@ import {
 } from '@harborclient/sdk/components';
 import {
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type JSX,
   type KeyboardEvent,
@@ -20,14 +22,13 @@ import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunningLiveServers, selectSavedLiveServers } from '#/renderer/src/store/selectors';
-import { setLiveServerLogsSavedId } from '#/renderer/src/store/slices/liveServersSlice';
-import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
-import { openLiveServerLogs } from '#/renderer/src/store/slices/navigationSlice';
 import {
   deleteSavedLiveServer,
+  exportLiveServer,
   formatLiveServerIndexFilesInput,
   openLiveServerEditor,
   openLiveServerInBrowser,
+  openLiveServerLogsForSavedId,
   reportLiveServerError,
   restartLiveServer,
   startLiveServer,
@@ -42,6 +43,9 @@ import {
   toSortTimestamp
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 
+/** Delay before single-click starts/opens a server so double-click can open settings instead. */
+const LIVE_SERVER_OPEN_CLICK_DELAY_MS = 250;
+
 /**
  * Live Servers section listing saved configs with running/stopped status.
  */
@@ -53,7 +57,28 @@ export function LiveServers(): JSX.Element {
   const running = useAppSelector(selectRunningLiveServers);
   const { sectionSort } = useSidebarExpansion();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sortMode = sectionSort.liveServers;
+
+  /**
+   * Clears any pending delayed start/open so double-click can open settings alone.
+   */
+  const cancelPendingOpen = useCallback((): void => {
+    if (openClickTimerRef.current == null) {
+      return;
+    }
+    clearTimeout(openClickTimerRef.current);
+    openClickTimerRef.current = null;
+  }, []);
+
+  /**
+   * Clears a pending start/open timer when the Live Servers section unmounts.
+   */
+  useEffect(() => {
+    return () => {
+      cancelPendingOpen();
+    };
+  }, [cancelPendingOpen]);
 
   /**
    * Saved servers ordered by the Live Servers section sort mode.
@@ -131,12 +156,34 @@ export function LiveServers(): JSX.Element {
   );
 
   /**
+   * Schedules starting or opening a live server after a short delay so double-click can cancel it.
+   *
+   * @param server - Saved config to start, or open when already running.
+   */
+  const scheduleStartOrOpen = useCallback(
+    (server: LiveServer): void => {
+      cancelPendingOpen();
+      openClickTimerRef.current = setTimeout(() => {
+        openClickTimerRef.current = null;
+        const instance = runningBySavedId.get(server.id);
+        if (instance != null) {
+          handleOpen(instance);
+          return;
+        }
+        void handleStart(server);
+      }, LIVE_SERVER_OPEN_CLICK_DELAY_MS);
+    },
+    [cancelPendingOpen, handleOpen, handleStart, runningBySavedId]
+  );
+
+  /**
    * Opens the edit footer panel for a saved live server.
    *
    * @param server - Saved config to edit.
    */
   const handleEdit = useCallback(
     (server: LiveServer): void => {
+      cancelPendingOpen();
       void dispatch(
         openLiveServerEditor({
           mode: 'edit',
@@ -158,11 +205,13 @@ export function LiveServers(): JSX.Element {
           ssl: server.ssl,
           runCommand: server.runCommand,
           restartOnCrash: server.restartOnCrash,
-          urlVariable: server.urlVariable
+          urlVariable: server.urlVariable,
+          preRequestScripts: server.preRequestScripts,
+          postRequestScripts: server.postRequestScripts
         })
       );
     },
-    [dispatch]
+    [cancelPendingOpen, dispatch]
   );
 
   /**
@@ -321,11 +370,10 @@ export function LiveServers(): JSX.Element {
               ariaLabel: `${server.name}, ${statusLabel}, ${subtitle}`,
               onClick: (event: MouseEvent) => {
                 event.preventDefault();
-                if (instance != null) {
-                  handleOpen(instance);
-                  return;
-                }
-                void handleStart(server);
+                scheduleStartOrOpen(server);
+              },
+              onDoubleClick: () => {
+                handleEdit(server);
               },
               onKeyDown: handleKeyDown
             }}
@@ -366,9 +414,7 @@ export function LiveServers(): JSX.Element {
                     {
                       label: 'Logs',
                       onSelect: () => {
-                        dispatch(closeLiveServerModal());
-                        dispatch(setLiveServerLogsSavedId(server.id));
-                        dispatch(openLiveServerLogs());
+                        void dispatch(openLiveServerLogsForSavedId(server.id));
                       }
                     },
                     buildCopyIdMenuItem(server.uuid),
@@ -381,7 +427,13 @@ export function LiveServers(): JSX.Element {
                             }
                           }
                         ]
-                      : [])
+                      : []),
+                    {
+                      label: 'Export',
+                      onSelect: () => {
+                        void dispatch(exportLiveServer(server.id));
+                      }
+                    }
                   ],
                   [
                     ...(isRunning

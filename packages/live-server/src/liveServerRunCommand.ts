@@ -22,11 +22,20 @@ export type LiveServerRunCommandStatusListener = (
 ) => void;
 
 /**
+ * Callback for raw stdout/stderr chunks from the companion process.
+ */
+export type LiveServerRunCommandOutputListener = (
+  stream: 'stdout' | 'stderr',
+  chunk: string
+) => void;
+
+/**
  * Options for starting a supervised companion process.
  */
 export interface StartLiveServerRunCommandOptions {
   /**
-   * Trimmed command string (absolute binary + args).
+   * Command template (absolute binary + args). May contain `{{variables}}`.
+   * Stored unsubstituted; {@link resolveCommand} runs before each spawn.
    */
   command: string;
 
@@ -44,6 +53,20 @@ export interface StartLiveServerRunCommandOptions {
    * Called when status transitions (running / exited / restarting / failed).
    */
   onStatus: LiveServerRunCommandStatusListener;
+
+  /**
+   * Called with UTF-8 chunks from child stdout/stderr when provided.
+   */
+  onOutput?: LiveServerRunCommandOutputListener;
+
+  /**
+   * Resolves `{{variables}}` (and similar) in {@link command} before each spawn.
+   * Defaults to identity when omitted.
+   *
+   * @param command - Unsubstituted command template from config.
+   * @returns Command string ready for argv parsing.
+   */
+  resolveCommand?: (command: string) => string;
 }
 
 /**
@@ -159,22 +182,22 @@ export function liveServerRunCommandBackoffMs(attemptIndex: number): number {
 /**
  * Starts a supervised companion process for a live server.
  *
- * Spawns without a shell. Resolves only after the child successfully emits
+ * Spawns without a shell. Calls {@link StartLiveServerRunCommandOptions.resolveCommand}
+ * (when provided) and re-parses argv before every spawn so variable substitution
+ * can refresh on crash restart. Resolves only after the child successfully emits
  * `spawn` so ENOENT and similar launch failures reject the caller. On unexpected
  * crash (non-zero / signal), optionally restarts with backoff until the attempt
  * cap. Intentional {@link LiveServerRunCommandHandle.stop} never triggers a
  * restart. Stale-generation exits are ignored after a respawn.
  *
- * @param options - Command, cwd, restart policy, and status listener.
+ * @param options - Command, cwd, restart policy, optional resolver, status, and output listeners.
  * @returns Handle used to stop the process.
  * @throws When argv cannot be parsed or the initial spawn fails.
  */
 export async function startLiveServerRunCommand(
   options: StartLiveServerRunCommandOptions
 ): Promise<LiveServerRunCommandHandle> {
-  const argv = parseRunCommandArgv(options.command);
-  const file = argv[0]!;
-  const args = argv.slice(1);
+  const resolveCommand = options.resolveCommand ?? ((command: string): string => command);
 
   let generation = 0;
   let intentionalStop = false;
@@ -206,17 +229,51 @@ export async function startLiveServerRunCommand(
   }
 
   /**
+   * Forwards UTF-8 stdout/stderr chunks to {@link StartLiveServerRunCommandOptions.onOutput}.
+   *
+   * @param spawned - Child whose pipes should be read.
+   */
+  function attachOutput(spawned: ChildProcess): void {
+    const onOutput = options.onOutput;
+    if (onOutput == null) {
+      return;
+    }
+    spawned.stdout?.setEncoding('utf8');
+    spawned.stdout?.on('data', (chunk: string | Buffer) => {
+      onOutput('stdout', typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+    });
+    spawned.stderr?.setEncoding('utf8');
+    spawned.stderr?.on('data', (chunk: string | Buffer) => {
+      onOutput('stderr', typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+    });
+  }
+
+  /**
    * Spawns one child generation and wires exit handling.
+   *
+   * Resolves {@link StartLiveServerRunCommandOptions.command} and re-parses argv
+   * on every spawn so crash restarts pick up updated global variables.
    *
    * @param waitForSpawn - When true, wait for the `spawn` event (initial start).
    * @returns Resolves when the child is running (or immediately when not waiting).
-   * @throws When spawn fails (sync throw or async `error` while waiting).
+   * @throws When argv cannot be parsed or spawn fails (sync throw or async `error` while waiting).
    */
   function spawnChild(waitForSpawn: boolean): Promise<void> {
     clearRestartTimer();
     generation += 1;
     const thisGeneration = generation;
     startedAt = Date.now();
+
+    let argv: string[];
+    try {
+      argv = parseRunCommandArgv(resolveCommand(options.command));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      options.onStatus('failed', message);
+      return Promise.reject(new Error(`Failed to start run command: ${message}`));
+    }
+    const file = argv[0]!;
+    const args = argv.slice(1);
 
     let spawned: ChildProcess;
     try {
@@ -233,6 +290,7 @@ export async function startLiveServerRunCommand(
     }
 
     child = spawned;
+    attachOutput(spawned);
 
     /**
      * Wires close/error handlers shared by initial and restart spawns.

@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { LogsSelectionSnapshot } from '@harborclient/core/ai/scriptReferences';
-import type { LiveServer, RunningLiveServer } from '@harborclient/core/types';
+import type { LiveServer, LiveServerLogSession, RunningLiveServer } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -23,9 +23,19 @@ export interface LiveServersState {
   tabIdsByServerId: Record<string, string>;
 
   /**
-   * Saved live server id whose Express logs the footer panel displays.
+   * Retained log sessions for the Server Logs sidebar (newest starts first).
+   */
+  logSessions: LiveServerLogSession[];
+
+  /**
+   * Saved live server id whose Express logs the footer panel targets for AI/`@logs`.
    */
   logsSavedId: number | null;
+
+  /**
+   * Runtime / session id whose logs the footer panel displays.
+   */
+  logsSessionId: string | null;
 
   /**
    * Access-log selection snapshots keyed by the full `@logs` reference token.
@@ -37,7 +47,9 @@ const initialState: LiveServersState = {
   saved: [],
   running: [],
   tabIdsByServerId: {},
+  logSessions: [],
   logsSavedId: null,
+  logsSessionId: null,
   logsSelections: {}
 };
 
@@ -92,6 +104,22 @@ const liveServersSlice = createSlice({
     },
 
     /**
+     * Replaces the retained live-server log session list.
+     *
+     * @param state - Live servers slice draft.
+     * @param action - Session metadata from the main process.
+     */
+    setLiveServerLogSessions(state, action: PayloadAction<LiveServerLogSession[]>) {
+      state.logSessions = action.payload;
+      if (
+        state.logsSessionId != null &&
+        !action.payload.some((session) => session.id === state.logsSessionId)
+      ) {
+        state.logsSessionId = null;
+      }
+    },
+
+    /**
      * Sets which saved live server the footer logs panel should display.
      *
      * @param state - Live servers slice draft.
@@ -99,6 +127,16 @@ const liveServersSlice = createSlice({
      */
     setLiveServerLogsSavedId(state, action: PayloadAction<number | null>) {
       state.logsSavedId = action.payload;
+    },
+
+    /**
+     * Sets which log session the footer logs panel should display.
+     *
+     * @param state - Live servers slice draft.
+     * @param action - Runtime / session id, or null when none selected.
+     */
+    setLiveServerLogsSessionId(state, action: PayloadAction<string | null>) {
+      state.logsSessionId = action.payload;
     },
 
     /**
@@ -121,7 +159,9 @@ export const {
   setRunningLiveServers,
   bindLiveServerTab,
   unbindLiveServerTab,
+  setLiveServerLogSessions,
   setLiveServerLogsSavedId,
+  setLiveServerLogsSessionId,
   setLiveServerLogsSelection
 } = liveServersSlice.actions;
 

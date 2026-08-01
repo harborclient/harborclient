@@ -50,11 +50,12 @@ describe('classifyArgv', () => {
     expect(classifyArgv(['--version'])).toBe('version');
   });
 
-  it('selects CLI for HTTP methods, run, and workflow', () => {
+  it('selects CLI for HTTP methods, run, workflow, and servers', () => {
     expect(classifyArgv(['GET', 'https://example.com'])).toBe('cli');
     expect(classifyArgv(['post', 'https://example.com'])).toBe('cli');
     expect(classifyArgv(['run', 'My Collection'])).toBe('cli');
     expect(classifyArgv(['workflow', 'run', 'My Workflow'])).toBe('cli');
+    expect(classifyArgv(['servers', 'run', 'Echo Server'])).toBe('cli');
     expect(classifyArgv(['OPTIONS', 'https://example.com', '-v'])).toBe('cli');
   });
 

@@ -4,6 +4,7 @@ import {
   APP_FOOTER_SECTION_ID,
   COLLECTIONS_SIDEBAR_SECTION_ID,
   GIT_SIDEBAR_SECTION_ID,
+  LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID,
   REQUEST_EDITOR_SECTION_ID,
   RESPONSE_EDITOR_SECTION_ID,
   SHORTCUTS_SIDEBAR_SECTION_ID,
@@ -24,6 +25,7 @@ function allVisibleRequestTab(
     aiSidebarVisible: true,
     gitSidebarVisible: true,
     shortcutsSidebarVisible: true,
+    liveServerLogsSidebarVisible: true,
     isRequestTab: true,
     ...overrides
   };
@@ -63,6 +65,11 @@ describe('resolveSkipNavigationLinks', () => {
         targetId: SHORTCUTS_SIDEBAR_SECTION_ID
       },
       {
+        id: 'live-server-logs-sidebar',
+        label: 'Skip to Live server logs',
+        targetId: LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID
+      },
+      {
         id: 'app-footer',
         label: 'Skip to Footer',
         targetId: APP_FOOTER_SECTION_ID
@@ -76,7 +83,8 @@ describe('resolveSkipNavigationLinks', () => {
         sidebarVisible: false,
         aiSidebarVisible: false,
         gitSidebarVisible: false,
-        shortcutsSidebarVisible: false
+        shortcutsSidebarVisible: false,
+        liveServerLogsSidebarVisible: false
       })
     );
 
@@ -99,6 +107,7 @@ describe('resolveSkipNavigationLinks', () => {
       'ai-sidebar',
       'git-sidebar',
       'shortcuts-sidebar',
+      'live-server-logs-sidebar',
       'app-footer'
     ]);
   });
@@ -116,6 +125,7 @@ describe('resolveSkipNavigationLinks', () => {
       'ai-sidebar',
       'git-sidebar',
       'shortcuts-sidebar',
+      'live-server-logs-sidebar',
       'app-footer'
     ]);
   });
@@ -128,7 +138,8 @@ describe('resolveSkipNavigationLinks', () => {
         responseEditorVisible: false,
         aiSidebarVisible: false,
         gitSidebarVisible: false,
-        shortcutsSidebarVisible: false
+        shortcutsSidebarVisible: false,
+        liveServerLogsSidebarVisible: false
       })
     );
 

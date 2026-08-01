@@ -6,18 +6,74 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerSslSettings,
+  isLiveServerProcessLogEntry,
   normalizeLiveServerConfigFields,
-  type LiveServerConfig
+  type LiveServerConfig,
+  type RunningLiveServer,
+  type ScriptRunResult,
+  type StartLiveServerInput
 } from '@harborclient/core/types';
 import {
   clearLiveServerLogs,
   getLiveServerLogs,
+  listRunningLiveServers,
   resolveLiveServerOrigin,
   resolveLiveServerOriginHost,
   startLiveServer,
   stopAllLiveServers,
   stopLiveServer
 } from './liveServerHost';
+import {
+  listLiveServerLogSessions,
+  resetLiveServerLogSessionsForTests
+} from './liveServerLogSessions';
+import type { LiveServerHostProviders } from './providers';
+
+/**
+ * Empty providers for host tests that do not exercise scripts.
+ */
+const testProviders: LiveServerHostProviders = {
+  listSnippets: () => [],
+  getVariables: () => ({}),
+  /**
+   * No-op script runner for tests that do not attach scripts.
+   *
+   * @param input - Script run payload (unused).
+   * @returns Empty script result echoing the request.
+   */
+  runScript: async (input): Promise<ScriptRunResult> =>
+    ({
+      request: input.request,
+      variableSets: {},
+      variableClears: [],
+      collectionVariableSets: {},
+      collectionVariableClears: [],
+      collectionHeaders: [],
+      folderVariableSets: {},
+      folderVariableClears: [],
+      folderHeaders: [],
+      environmentVariableSets: {},
+      environmentVariableClears: [],
+      globalVariableSets: {},
+      globalVariableClears: [],
+      cookieSets: {},
+      cookieClears: [],
+      console: [],
+      tests: [],
+      error: null,
+      scriptData: {}
+    }) as ScriptRunResult
+};
+
+/**
+ * Starts a live server with {@link testProviders}.
+ *
+ * @param input - Start input.
+ * @returns Running instance.
+ */
+function startTestLiveServer(input: StartLiveServerInput): Promise<RunningLiveServer> {
+  return startLiveServer(input, testProviders);
+}
 
 const tempRoots: string[] = [];
 
@@ -166,6 +222,7 @@ function makeConfig(
 
 afterEach(async () => {
   await stopAllLiveServers();
+  resetLiveServerLogSessionsForTests();
   for (const dir of tempRoots.splice(0)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -192,7 +249,7 @@ describe('resolveLiveServerOrigin', () => {
 describe('liveServerHost listen / origin', () => {
   it('serves HTTP on 127.0.0.1 with an http origin', async () => {
     const root = makeTempRoot();
-    const running = await startLiveServer({
+    const running = await startTestLiveServer({
       config: makeConfig(root)
     });
 
@@ -207,7 +264,7 @@ describe('liveServerHost listen / origin', () => {
 
   it('binds 0.0.0.0 but reports a 127.0.0.1 origin', async () => {
     const root = makeTempRoot();
-    const running = await startLiveServer({
+    const running = await startTestLiveServer({
       config: makeConfig(root, { host: '0.0.0.0' })
     });
 
@@ -221,7 +278,7 @@ describe('liveServerHost listen / origin', () => {
   it('serves HTTPS with cert/key files and reports an https origin', async () => {
     const root = makeTempRoot();
     const { certPath, keyPath } = writeTempSslFiles();
-    const running = await startLiveServer({
+    const running = await startTestLiveServer({
       config: makeConfig(root, {
         ssl: {
           enabled: true,
@@ -244,7 +301,7 @@ describe('liveServerHost listen / origin', () => {
     const { keyPath } = writeTempSslFiles();
 
     await expect(
-      startLiveServer({
+      startTestLiveServer({
         config: makeConfig(root, {
           ssl: {
             enabled: true,
@@ -260,7 +317,7 @@ describe('liveServerHost listen / origin', () => {
     const root = makeTempRoot();
 
     await expect(
-      startLiveServer({
+      startTestLiveServer({
         config: makeConfig(root, {
           ssl: {
             ...defaultLiveServerSslSettings(),
@@ -275,7 +332,7 @@ describe('liveServerHost listen / origin', () => {
 describe('liveServerHost request logs', () => {
   it('buffers request logs and clears them by saved id', async () => {
     const root = makeTempRoot();
-    const running = await startLiveServer({
+    const running = await startTestLiveServer({
       savedId: 42,
       config: makeConfig(root)
     });
@@ -288,10 +345,12 @@ describe('liveServerHost request logs', () => {
 
     const logs = getLiveServerLogs({ savedId: 42 });
     expect(logs).toHaveLength(1);
-    expect(logs[0]?.method).toBe('GET');
-    expect(logs[0]?.url).toBe('/');
-    expect(logs[0]?.savedId).toBe(42);
-    expect(logs[0]?.id).toBe(running.id);
+    expect(logs[0]).toMatchObject({
+      method: 'GET',
+      url: '/',
+      savedId: 42,
+      id: running.id
+    });
 
     clearLiveServerLogs({ savedId: 42 });
     expect(getLiveServerLogs({ savedId: 42 })).toEqual([]);
@@ -303,6 +362,86 @@ describe('liveServerHost request logs', () => {
   it('returns an empty list when the server is not running', () => {
     expect(getLiveServerLogs({ savedId: 99 })).toEqual([]);
     expect(getLiveServerLogs({ id: 'missing' })).toEqual([]);
+  });
+
+  it('retains a log session and lines after stop', async () => {
+    const root = makeTempRoot();
+    const running = await startTestLiveServer({
+      savedId: 55,
+      config: makeConfig(root, { name: 'Session Keep' })
+    });
+
+    const response = await fetch(`${running.origin}/`);
+    expect(response.status).toBe(200);
+    await waitForLogs(55, 1);
+
+    await stopLiveServer(running.id);
+
+    const sessions = listLiveServerLogSessions();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      id: running.id,
+      savedId: 55,
+      serverName: 'Session Keep',
+      active: false
+    });
+    expect(sessions[0]?.stoppedAt).toEqual(expect.any(Number));
+
+    const logs = getLiveServerLogs({ id: running.id });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({ method: 'GET', url: '/', savedId: 55 });
+  });
+});
+
+describe('liveServerHost run command process logs', () => {
+  it('keeps the HTTP server up and logs when the companion binary is missing', async () => {
+    const root = makeTempRoot();
+    const running = await startTestLiveServer({
+      savedId: 77,
+      config: makeConfig(root, {
+        runCommand: '/nonexistent/harborclient-run-cmd-missing',
+        restartOnCrash: false
+      })
+    });
+
+    expect(listRunningLiveServers().map((server) => server.id)).toContain(running.id);
+    expect(running.runCommandStatus).toBe('failed');
+    expect(running.runCommandError).toMatch(/ENOENT|not found|Failed to start|spawn/i);
+
+    const processLogs = getLiveServerLogs({ savedId: 77 }).filter(isLiveServerProcessLogEntry);
+    expect(processLogs.some((entry) => entry.stream === 'system')).toBe(true);
+    expect(
+      processLogs.some(
+        (entry) => entry.stream === 'system' && /failed|ENOENT|not found|spawn/i.test(entry.message)
+      )
+    ).toBe(true);
+
+    const response = await fetch(`${running.origin}/`);
+    expect(response.status).toBe(200);
+
+    await stopLiveServer(running.id);
+  });
+
+  it('logs when the companion exits immediately with a non-zero code', async () => {
+    const root = makeTempRoot();
+    const running = await startTestLiveServer({
+      savedId: 78,
+      config: makeConfig(root, {
+        runCommand: `${JSON.stringify(process.execPath)} -e ${JSON.stringify('process.exit(1)')}`,
+        restartOnCrash: false
+      })
+    });
+
+    await waitForProcessLog(78, (entry) => /exited with code 1|failed/i.test(entry.message));
+
+    const listed = listRunningLiveServers().find((server) => server.id === running.id);
+    expect(listed).toBeDefined();
+    expect(listed?.runCommandStatus).toBe('failed');
+
+    const processLogs = getLiveServerLogs({ savedId: 78 }).filter(isLiveServerProcessLogEntry);
+    expect(processLogs.some((entry) => entry.stream === 'system')).toBe(true);
+
+    await stopLiveServer(running.id);
   });
 });
 
@@ -321,4 +460,25 @@ async function waitForLogs(savedId: number, count: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   throw new Error(`Timed out waiting for ${count} live-server log(s)`);
+}
+
+/**
+ * Polls until a process log line matching `predicate` appears.
+ *
+ * @param savedId - Saved live server id to query.
+ * @param predicate - Match function for process log messages.
+ */
+async function waitForProcessLog(
+  savedId: number,
+  predicate: (entry: { message: string }) => boolean
+): Promise<void> {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const processLogs = getLiveServerLogs({ savedId }).filter(isLiveServerProcessLogEntry);
+    if (processLogs.some(predicate)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error('Timed out waiting for run-command process log');
 }

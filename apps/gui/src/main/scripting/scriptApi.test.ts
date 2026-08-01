@@ -29,7 +29,8 @@ describe('createScriptApi hc.info', () => {
         workflowId: '',
         workflowActionId: '',
         workflowActionIteration: -1,
-        livepageId: ''
+        livepageId: '',
+        liveserverId: ''
       }
     });
     const info = api.hc.info as {
@@ -87,7 +88,8 @@ describe('createScriptApi hc.info', () => {
         workflowId: 'wf-1',
         workflowActionId: 'act-2',
         workflowActionIteration: 4,
-        livepageId: ''
+        livepageId: '',
+        liveserverId: ''
       }
     });
     const info = api.hc.info as {
@@ -112,7 +114,8 @@ describe('createScriptApi hc.info', () => {
         workflowId: '',
         workflowActionId: '',
         workflowActionIteration: -1,
-        livepageId: 'website-uuid'
+        livepageId: 'website-uuid',
+        liveserverId: ''
       }
     });
     const info = api.hc.info as { livepageId: string };
@@ -375,7 +378,8 @@ describe('createScriptApi execution', () => {
         workflowId: 'wf-uuid',
         workflowActionId: 'act-current',
         workflowActionIteration: 1,
-        livepageId: ''
+        livepageId: '',
+        liveserverId: ''
       }
     });
     const hc = api.hc as {
@@ -848,6 +852,90 @@ describe('createScriptApi hc.sleep', () => {
     expect(() => sleep('nope')).toThrow(
       'hc.sleep requires a non-negative finite number of milliseconds'
     );
+  });
+});
+
+describe('createScriptApi hc.send / hc.sendJSON', () => {
+  it('records a text override with default status and content type', async () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      send: (text: string, statusCode?: number, contentType?: string) => Promise<void>;
+    };
+
+    await hc.send('hello');
+
+    expect(api.readResult().responseOverride).toEqual({
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+      body: 'hello'
+    });
+    expect(api.readResult().executionEvents).toEqual([
+      { type: 'flow', action: 'send-response', status: 200 }
+    ]);
+  });
+
+  it('records an explicit status and content type', async () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      send: (text: string, statusCode?: number, contentType?: string) => Promise<void>;
+    };
+
+    await hc.send('oops', 400, 'text/html');
+
+    expect(api.readResult().responseOverride).toEqual({
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'text/html' },
+      body: 'oops'
+    });
+  });
+
+  it('serializes JSON and sets application/json', async () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      sendJSON: (value: unknown, statusCode?: number) => Promise<void>;
+    };
+
+    await hc.sendJSON({ error: 'Something happened.' }, 400);
+
+    expect(api.readResult().responseOverride).toEqual({
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+      body: '{"error":"Something happened."}'
+    });
+  });
+
+  it('keeps the last call when send and sendJSON are both used', async () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      send: (text: string) => Promise<void>;
+      sendJSON: (value: unknown, statusCode?: number) => Promise<void>;
+    };
+
+    await hc.send('first');
+    await hc.sendJSON({ ok: true }, 201);
+
+    const result = api.readResult();
+    expect(result.responseOverride?.body).toBe('{"ok":true}');
+    expect(result.responseOverride?.status).toBe(201);
+    expect(result.executionEvents).toEqual([
+      { type: 'flow', action: 'send-response', status: 200 },
+      { type: 'flow', action: 'send-response', status: 201 }
+    ]);
+  });
+
+  it('throws for an invalid status code', async () => {
+    const api = createScriptApi(baseInput);
+    const hc = api.hc as {
+      send: (text: string, statusCode?: number) => Promise<void>;
+      sendJSON: (value: unknown, statusCode?: number) => Promise<void>;
+    };
+
+    await expect(hc.send('x', 99)).rejects.toThrow(/100 and 599/);
+    await expect(hc.sendJSON({}, 600)).rejects.toThrow(/100 and 599/);
+    expect(api.readResult().responseOverride).toBeUndefined();
   });
 });
 

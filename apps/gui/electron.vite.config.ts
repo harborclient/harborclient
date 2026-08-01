@@ -114,6 +114,10 @@ function copyPluginStaticAssets(): Plugin {
 const harborWorkspaceAliases = {
   '@harborclient/core': resolve(__dirname, '../../packages/core/src'),
   '@harborclient/http': resolve(__dirname, '../../packages/http/src'),
+  // Directory alias (not index.ts) so deep imports like
+  // `@harborclient/live-server/toLiveServerConfig` resolve under `src/`.
+  // The renderer must not import the package barrel — it pulls Express.
+  '@harborclient/live-server': resolve(__dirname, '../../packages/live-server/src'),
   '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src'),
   '@harborclient/team-hub-api': resolve(__dirname, '../../packages/team-hub-api/src'),
   ...buildHarborSdkSourceAliases()
@@ -127,6 +131,7 @@ export default defineConfig({
           'ses',
           '@harborclient/core',
           '@harborclient/http',
+          '@harborclient/live-server',
           '@harborclient/storage-sqlite',
           '@harborclient/team-hub-api',
           '@harborclient/sdk'
@@ -159,6 +164,7 @@ export default defineConfig({
         exclude: [
           '@harborclient/core',
           '@harborclient/http',
+          '@harborclient/live-server',
           '@harborclient/storage-sqlite',
           '@harborclient/team-hub-api',
           '@harborclient/sdk'

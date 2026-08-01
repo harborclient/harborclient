@@ -66,6 +66,21 @@ function stripExpandedFromScriptRef(ref: ScriptRef): ScriptRef {
 export const ipcScriptRefArray = z.array(scriptRef).max(MAX_SCRIPT_REFS);
 
 /**
+ * Live-server script reference: a {@link scriptRef} plus a path-match pattern.
+ *
+ * `matchPath` is required on the wire; blank values are normalized later to
+ * `index.html` when persisting.
+ */
+export const liveServerScriptRef = scriptRef.and(
+  z.object({
+    matchPath: z.string()
+  })
+);
+
+/** Ordered live-server script reference arrays bounded for IPC payloads. */
+export const ipcLiveServerScriptRefArray = z.array(liveServerScriptRef).max(MAX_SCRIPT_REFS);
+
+/**
  * Optional script reference arrays for portable export/import files.
  *
  * Strips {@link ScriptRef.expanded} because it is editor UI state, not portable data.

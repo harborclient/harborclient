@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
 
 import {
+  faBars,
   faInbox,
   faKeyboard,
   faPaperPlane,
@@ -122,6 +123,16 @@ interface Props {
   onToggleSidebar: () => void;
 
   /**
+   * Whether the collections sidebar activity rail is currently visible.
+   */
+  railOpen: boolean;
+
+  /**
+   * Toggles the activity rail visible/hidden.
+   */
+  onToggleRail: () => void;
+
+  /**
    * Whether the AI sidebar is currently visible.
    */
   aiSidebarOpen: boolean;
@@ -212,6 +223,8 @@ export function Footer({
   environmentVariables,
   sidebarOpen,
   onToggleSidebar,
+  railOpen,
+  onToggleRail,
   aiSidebarOpen,
   onToggleAiSidebar,
   gitSidebarOpen,
@@ -470,6 +483,13 @@ export function Footer({
               active={responseEditorOpen}
               activeStyle="selection"
               label="response editor"
+            />
+            <FooterIcon
+              onClick={onToggleRail}
+              icon={faBars}
+              active={railOpen}
+              activeStyle="selection"
+              label="rail"
             />
             <FooterIcon
               onClick={onToggleSidebar}

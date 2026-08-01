@@ -159,6 +159,8 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     runCommand: '',
     restartOnCrash: false,
     urlVariable: '',
+    preRequestScripts: [],
+    postRequestScripts: [],
     sortOrder: 0,
     createdAt: 0,
     updatedAt: 0,
@@ -283,6 +285,38 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
         toLiveServerConfig({
           ...running,
           urlVariable: 'server_url'
+        }),
+        running
+      )
+    ).toBe(false);
+  });
+
+  it('ignores pre/post request script changes for restart detection (hot-apply)', () => {
+    const running = baseConfig();
+    expect(
+      liveServerRuntimeConfigNeedsRestart(
+        toLiveServerConfig({
+          ...running,
+          preRequestScripts: [
+            {
+              id: 's1',
+              enabled: true,
+              kind: 'inline',
+              code: 'hc.log("pre");',
+              stage: 'main',
+              matchPath: '*'
+            }
+          ],
+          postRequestScripts: [
+            {
+              id: 's2',
+              enabled: true,
+              kind: 'inline',
+              code: 'hc.log("post");',
+              stage: 'main',
+              matchPath: 'index.html'
+            }
+          ]
         }),
         running
       )
@@ -485,5 +519,90 @@ describe('startLiveServer urlVariable', () => {
     await store.dispatch(startLiveServer({ config, openBrowser: false }) as never);
 
     expect(setGlobalVariableMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('live server editor and logs sidebar coexistence', () => {
+  /**
+   * Builds a store with navigation, liveServers, and modals for open exclusivity tests.
+   *
+   * @returns Configured Redux store for editor/logs coexistence checks.
+   */
+  async function createOpenExclusivityStore(): Promise<
+    ReturnType<typeof import('@reduxjs/toolkit').configureStore>
+  > {
+    const { configureStore } = await import('@reduxjs/toolkit');
+    const liveServersReducer = (await import('#/renderer/src/store/slices/liveServersSlice'))
+      .default;
+    const navigationReducer = (await import('#/renderer/src/store/slices/navigationSlice')).default;
+    const modalsReducer = (await import('#/renderer/src/store/slices/modalsSlice')).default;
+    return configureStore({
+      reducer: {
+        liveServers: liveServersReducer,
+        navigation: navigationReducer,
+        modals: modalsReducer
+      }
+    });
+  }
+
+  it('keeps sidebar-docked logs open when opening the live server editor', async () => {
+    const { openLiveServerEditor } = await import('#/renderer/src/store/thunks/liveServers');
+    const { openLiveServerLogs, setLiveServerLogsPlacement, setShowLiveServerLogs } =
+      await import('#/renderer/src/store/slices/navigationSlice');
+    const store = await createOpenExclusivityStore();
+
+    store.dispatch(setLiveServerLogsPlacement('sidebar'));
+    store.dispatch(setShowLiveServerLogs(true));
+    store.dispatch(openLiveServerLogs());
+    await store.dispatch(openLiveServerEditor({ mode: 'create' }) as never);
+
+    const state = store.getState() as {
+      navigation: { showLiveServerLogs: boolean; liveServerLogsPlacement: string };
+      modals: { liveServerModal: unknown };
+    };
+    expect(state.navigation.showLiveServerLogs).toBe(true);
+    expect(state.navigation.liveServerLogsPlacement).toBe('sidebar');
+    expect(state.modals.liveServerModal).not.toBeNull();
+  });
+
+  it('closes footer-docked logs when opening the live server editor', async () => {
+    const { openLiveServerEditor } = await import('#/renderer/src/store/thunks/liveServers');
+    const { openLiveServerLogs, setLiveServerLogsPlacement, setShowLiveServerLogs } =
+      await import('#/renderer/src/store/slices/navigationSlice');
+    const store = await createOpenExclusivityStore();
+
+    store.dispatch(setLiveServerLogsPlacement('footer'));
+    store.dispatch(setShowLiveServerLogs(true));
+    store.dispatch(openLiveServerLogs());
+    await store.dispatch(openLiveServerEditor({ mode: 'create' }) as never);
+
+    const state = store.getState() as {
+      navigation: { showLiveServerLogs: boolean };
+      modals: { liveServerModal: unknown };
+    };
+    expect(state.navigation.showLiveServerLogs).toBe(false);
+    expect(state.modals.liveServerModal).not.toBeNull();
+  });
+
+  it('keeps the editor open when opening sidebar-docked logs for a saved server', async () => {
+    const { openLiveServerEditor, openLiveServerLogsForSavedId } =
+      await import('#/renderer/src/store/thunks/liveServers');
+    const { setLiveServerLogsPlacements } =
+      await import('#/renderer/src/store/slices/navigationSlice');
+    const store = await createOpenExclusivityStore();
+
+    store.dispatch(setLiveServerLogsPlacements({ '9': 'sidebar' }));
+    await store.dispatch(openLiveServerEditor({ mode: 'edit', savedId: 9 }) as never);
+    await store.dispatch(openLiveServerLogsForSavedId(9) as never);
+
+    const state = store.getState() as {
+      navigation: { showLiveServerLogs: boolean; liveServerLogsPlacement: string };
+      liveServers: { logsSavedId: number | null };
+      modals: { liveServerModal: unknown };
+    };
+    expect(state.modals.liveServerModal).not.toBeNull();
+    expect(state.navigation.showLiveServerLogs).toBe(true);
+    expect(state.navigation.liveServerLogsPlacement).toBe('sidebar');
+    expect(state.liveServers.logsSavedId).toBe(9);
   });
 });

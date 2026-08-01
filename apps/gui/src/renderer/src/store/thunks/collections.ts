@@ -735,6 +735,13 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
         toast.success(result.action === 'updated' ? 'Live page updated' : 'Live page imported');
         break;
       }
+      case 'server': {
+        await dispatch(
+          (await import('#/renderer/src/store/thunks/liveServers')).refreshLiveServers()
+        );
+        toast.success(result.action === 'updated' ? 'Live server updated' : 'Live server imported');
+        break;
+      }
     }
 
     return result;

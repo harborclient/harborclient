@@ -4,7 +4,7 @@ import type { HarborDeepLink } from '@harborclient/core/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '@harborclient/core/themes';
 import type { ScriptWebpageRequest } from '@harborclient/core/scripting/scriptApi';
 import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
-import { contextBridge, ipcRenderer } from 'electron';
+import { clipboard, contextBridge, ipcRenderer } from 'electron';
 import os from 'node:os';
 import { normalize, resolve } from 'path';
 import type {
@@ -113,8 +113,12 @@ import type {
   StartLiveServerInput,
   LiveServer,
   LiveServerFileChangedEvent,
+  LiveServerLogEntry,
+  LiveServerLogSession,
   LiveServerLogsQuery,
+  LiveServerProcessLogEntry,
   LiveServerRequestLogEntry,
+  LiveServerScriptLogEntry,
   RunningLiveServer,
   Workflow,
   Website,
@@ -659,21 +663,53 @@ function deleteLiveServer(id: number): Promise<LiveServer[]> {
 }
 
 /**
- * Returns buffered Express request logs for a running live server.
+ * Returns buffered access and script logs for a running live server.
  *
  * @param query - Saved id or runtime instance id.
  */
-function getLiveServerLogs(query: LiveServerLogsQuery): Promise<LiveServerRequestLogEntry[]> {
+function getLiveServerLogs(query: LiveServerLogsQuery): Promise<LiveServerLogEntry[]> {
   return ipcRenderer.invoke('liveServer:getLogs', query);
 }
 
 /**
- * Clears the in-memory request log buffer for a running live server.
+ * Clears the in-memory request log buffer for a live-server log session.
  *
- * @param query - Saved id or runtime instance id.
+ * @param query - Saved id or runtime / session id.
  */
 function clearLiveServerLogs(query: LiveServerLogsQuery): Promise<void> {
   return ipcRenderer.invoke('liveServer:clearLogs', query);
+}
+
+/**
+ * Lists retained live-server log sessions (metadata only) via IPC.
+ */
+function listLiveServerLogSessions(): Promise<LiveServerLogSession[]> {
+  return ipcRenderer.invoke('liveServer:listLogSessions');
+}
+
+/**
+ * Clears retained live-server log sessions via IPC.
+ *
+ * Drops inactive sessions and empties active buffers (active rows remain).
+ */
+function clearAllLiveServerLogSessions(): Promise<void> {
+  return ipcRenderer.invoke('liveServer:clearAllLogSessions');
+}
+
+/**
+ * Subscribes to live-server log session list changes (start/stop/clear).
+ *
+ * @param callback - Handler invoked with the refreshed session metadata list.
+ * @returns Unsubscribe function.
+ */
+function onLiveServerLogSessionsChanged(
+  callback: (sessions: LiveServerLogSession[]) => void
+): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, sessions: LiveServerLogSession[]): void => {
+    callback(sessions);
+  };
+  ipcRenderer.on('liveServer:log-sessions-changed', listener);
+  return () => ipcRenderer.removeListener('liveServer:log-sessions-changed', listener);
 }
 
 /**
@@ -724,6 +760,37 @@ function onLiveServerRequestLog(callback: (entry: LiveServerRequestLogEntry) => 
   };
   ipcRenderer.on('liveServer:request-log', listener);
   return () => ipcRenderer.removeListener('liveServer:request-log', listener);
+}
+
+/**
+ * Subscribes to live-server script console/test/error log lines.
+ *
+ * @param callback - Handler invoked for each script log line.
+ * @returns Unsubscribe function.
+ */
+function onLiveServerScriptLog(callback: (entry: LiveServerScriptLogEntry) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: LiveServerScriptLogEntry): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('liveServer:script-log', listener);
+  return () => ipcRenderer.removeListener('liveServer:script-log', listener);
+}
+
+/**
+ * Subscribes to companion run-command stdout/stderr/lifecycle log lines.
+ *
+ * @param callback - Handler invoked for each process log line.
+ * @returns Unsubscribe function.
+ */
+function onLiveServerProcessLog(callback: (entry: LiveServerProcessLogEntry) => void): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: LiveServerProcessLogEntry
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('liveServer:process-log', listener);
+  return () => ipcRenderer.removeListener('liveServer:process-log', listener);
 }
 
 /**
@@ -1481,6 +1548,15 @@ function setMenuSidebarVisible(visible: boolean): Promise<void> {
 }
 
 /**
+ * Syncs activity-rail visibility to the View > Appearance submenu checkbox in the main process.
+ *
+ * @param visible - Whether the activity rail is currently visible in the renderer.
+ */
+function setMenuRailVisible(visible: boolean): Promise<void> {
+  return ipcRenderer.invoke('menu:setRailVisible', visible);
+}
+
+/**
  * Syncs AI sidebar visibility to the View > Appearance submenu checkbox in the main process.
  *
  * @param visible - Whether the AI sidebar is currently visible in the renderer.
@@ -2136,6 +2212,24 @@ function onTerminalData(callback: (event: TerminalDataEvent) => void): () => voi
   };
   ipcRenderer.on('terminal:data', listener);
   return () => ipcRenderer.removeListener('terminal:data', listener);
+}
+
+/**
+ * Reads the system clipboard text for terminal OSC 52 support.
+ *
+ * @returns Current clipboard text, or an empty string when unavailable.
+ */
+function readClipboardText(): string {
+  return clipboard.readText();
+}
+
+/**
+ * Writes text to the system clipboard for terminal OSC 52 support.
+ *
+ * @param text - Plain text to store on the clipboard.
+ */
+function writeClipboardText(text: string): void {
+  clipboard.writeText(text);
 }
 
 /**
@@ -4838,9 +4932,14 @@ const api: Api = {
   deleteLiveServer,
   getLiveServerLogs,
   clearLiveServerLogs,
+  listLiveServerLogSessions,
+  clearAllLiveServerLogSessions,
   onLiveServerFileChanged,
   onLiveServersChanged,
+  onLiveServerLogSessionsChanged,
   onLiveServerRequestLog,
+  onLiveServerScriptLog,
+  onLiveServerProcessLog,
   listWorkflowRunHistory,
   addWorkflowRunHistory,
   clearWorkflowRunHistory,
@@ -4908,6 +5007,7 @@ const api: Api = {
   onMenuAction,
   onDeepLink,
   setMenuSidebarVisible,
+  setMenuRailVisible,
   setMenuAiSidebarVisible,
   setMenuGitSidebarVisible,
   setMenuRequestEditorVisible,
@@ -4981,6 +5081,8 @@ const api: Api = {
   killTerminal,
   onTerminalData,
   onTerminalExit,
+  readClipboardText,
+  writeClipboardText,
   listChats,
   createChat,
   getChat,

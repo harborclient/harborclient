@@ -4,8 +4,12 @@ import {
   emitPluginLiveServerRequestLog,
   emitPluginLiveServersRunningChanged
 } from '#/renderer/src/plugins/pluginLiveServersBus';
-import { setRunningLiveServers } from '#/renderer/src/store/slices/liveServersSlice';
 import {
+  setLiveServerLogSessions,
+  setRunningLiveServers
+} from '#/renderer/src/store/slices/liveServersSlice';
+import {
+  refreshLiveServerLogSessions,
   refreshLiveServers,
   refreshRunningLiveServers,
   reloadBrowserTabsForLiveServerOrigin
@@ -21,15 +25,20 @@ export function LiveServersHost(): JSX.Element | null {
   const dispatch = useAppDispatch();
 
   /**
-   * Loads saved/running servers on mount and subscribes to main-process push events.
+   * Loads saved/running servers and log sessions on mount; subscribes to push events.
    */
   useEffect(() => {
     void dispatch(refreshLiveServers());
     void dispatch(refreshRunningLiveServers());
+    void dispatch(refreshLiveServerLogSessions());
 
     const unsubscribeChanged = window.api.onLiveServersChanged((running) => {
       dispatch(setRunningLiveServers(running));
       emitPluginLiveServersRunningChanged(running);
+    });
+
+    const unsubscribeLogSessions = window.api.onLiveServerLogSessionsChanged((sessions) => {
+      dispatch(setLiveServerLogSessions(sessions));
     });
 
     const unsubscribeRequestLog = window.api.onLiveServerRequestLog((entry) => {
@@ -42,6 +51,7 @@ export function LiveServersHost(): JSX.Element | null {
 
     return () => {
       unsubscribeChanged();
+      unsubscribeLogSessions();
       unsubscribeRequestLog();
       unsubscribeFileChanged();
     };

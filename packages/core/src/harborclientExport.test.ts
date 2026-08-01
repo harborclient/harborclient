@@ -22,6 +22,7 @@ describe('readHarborclientExport', () => {
   it('returns the export kind from a valid payload', () => {
     expect(readHarborclientExport({ harborclientExport: 'snippet' })).toBe('snippet');
     expect(readHarborclientExport({ harborclientExport: 'theme' })).toBe('theme');
+    expect(readHarborclientExport({ harborclientExport: 'server' })).toBe('server');
     expect(readHarborclientExport({ harborclientExport: 'collection-run-results' })).toBe(
       'collection-run-results'
     );

@@ -103,7 +103,8 @@ export function SortableScriptRow({
   revealColumn,
   revealMessage,
   revealSource,
-  revealNonce
+  revealNonce,
+  renderHeader
 }: SortableScriptRowProps): JSX.Element {
   const snippet =
     script.kind === 'snippet'
@@ -642,7 +643,15 @@ export function SortableScriptRow({
                     />
                   </Button>
                 ) : null}
-                <ScriptRowHeader script={script} snippets={snippets} onNameChange={onNameChange} />
+                {renderHeader ? (
+                  renderHeader({ script, snippets, onNameChange })
+                ) : (
+                  <ScriptRowHeader
+                    script={script}
+                    snippets={snippets}
+                    onNameChange={onNameChange}
+                  />
+                )}
               </div>
 
               <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">

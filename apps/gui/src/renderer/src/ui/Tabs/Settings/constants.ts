@@ -18,6 +18,7 @@ import {
   faGlobe,
   faGithub,
   faServer,
+  faTerminal,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import type { SettingsSection } from './types';
@@ -127,6 +128,7 @@ export const SETTINGS_SECTIONS: Array<{
   { value: 'syntax', label: 'Scripting', icon: faCode },
   { value: 'ai', label: 'AI & MCP', icon: faWandMagicSparkles },
   { value: 'proxy', label: 'Proxy', icon: faServer },
+  { value: 'terminal', label: 'Terminal', icon: faTerminal },
   { value: 'backup-restore', label: 'Backup & Restore', icon: faFloppyDisk }
 ];
 

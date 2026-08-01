@@ -3,10 +3,12 @@ import type {
   KeyValue,
   ScriptLogEntry,
   ScriptRequestContext,
+  ScriptResponseOverride,
   ScriptRunResult,
   SendResult
 } from '../types';
 import { enrichScriptLogLines } from '../scripting/scriptLogs';
+import { applyScriptResponseOverride } from '../scripting/scriptResponseOverride';
 import { getActiveWorkflowScriptContext } from '../workflowRunner/workflowScriptContext';
 import { buildSendInput, resolveRequestVariables, substituteRequestVariables } from './helpers';
 import type { RequestRunnerDeps, RunRequestInput, RunRequestResult } from './types';
@@ -40,6 +42,7 @@ export class RequestRunner {
     const scriptErrors: string[] = [];
     let scriptNextRequest: string | null | undefined;
     let scriptSkipRequest = false;
+    let scriptResponseOverride: ScriptResponseOverride | undefined;
     let workflowNextAction: string | undefined;
     let workflowSkipAction = false;
     const cookieDomain = resolveCookieDomain(substituteRequestVariables(request.url, variables));
@@ -102,6 +105,9 @@ export class RequestRunner {
           scriptNextRequest = result.nextRequest;
         }
         scriptSkipRequest ||= result.skipRequest === true;
+        if (result.responseOverride) {
+          scriptResponseOverride = result.responseOverride;
+        }
         if (result.workflowNextAction !== undefined) {
           workflowNextAction = result.workflowNextAction;
         }
@@ -112,8 +118,12 @@ export class RequestRunner {
     try {
       await runPhase('pre');
       if (scriptSkipRequest) {
+        let skipped = skippedResult();
+        if (scriptResponseOverride) {
+          skipped = applyScriptResponseOverride(skipped, scriptResponseOverride);
+        }
         return buildResult(
-          skippedResult(),
+          skipped,
           undefined,
           testResults,
           scriptLogs,
@@ -130,11 +140,18 @@ export class RequestRunner {
       const transportInput = this.deps.pluginHooks?.beforeSend
         ? await this.deps.pluginHooks.beforeSend(sendInput)
         : sendInput;
-      const response = await this.deps.transport(transportInput, input.signal);
+      let response = await this.deps.transport(transportInput, input.signal);
       if (!response.error && this.deps.pluginHooks?.afterSend) {
         await this.deps.pluginHooks.afterSend(transportInput, response);
       }
+      if (scriptResponseOverride) {
+        response = applyScriptResponseOverride(response, scriptResponseOverride);
+      }
+      scriptResponseOverride = undefined;
       await runPhase('post', response);
+      if (scriptResponseOverride) {
+        response = applyScriptResponseOverride(response, scriptResponseOverride);
+      }
       if (cookieDomain && hasScriptCookieChanges(input, cookies)) {
         await this.saveCookies(cookieDomain, cookies);
       }

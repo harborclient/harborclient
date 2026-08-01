@@ -5,6 +5,7 @@ import type { ThemeSource } from '@harborclient/core/types';
 
 let mainWindow: BrowserWindow | null = null;
 let sidebarVisible = true;
+let railVisible = true;
 let gitSidebarVisible = false;
 let aiSidebarVisible = false;
 let requestEditorVisible = true;
@@ -34,6 +35,13 @@ let gitCollectionActive = false;
  */
 export function getMenuSidebarVisible(): boolean {
   return sidebarVisible;
+}
+
+/**
+ * Returns the activity-rail visibility state reflected in the View > Appearance submenu checkbox.
+ */
+export function getMenuRailVisible(): boolean {
+  return railVisible;
 }
 
 /**
@@ -81,6 +89,19 @@ export function setMenuSidebarVisible(visible: boolean): void {
     return;
   }
   sidebarVisible = visible;
+  rebuildAppMenu();
+}
+
+/**
+ * Updates the View > Appearance submenu Rail checkbox and rebuilds the menu when the value changes.
+ *
+ * @param visible - Whether the activity rail is currently visible in the renderer.
+ */
+export function setMenuRailVisible(visible: boolean): void {
+  if (railVisible === visible) {
+    return;
+  }
+  railVisible = visible;
   rebuildAppMenu();
 }
 
@@ -422,6 +443,7 @@ export function rebuildAppMenu(): void {
     buildMenu(
       mainWindow,
       sidebarVisible,
+      railVisible,
       aiSidebarVisible,
       gitSidebarVisible,
       requestEditorVisible,

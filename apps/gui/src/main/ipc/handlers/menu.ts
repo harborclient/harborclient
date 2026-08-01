@@ -3,6 +3,7 @@ import { activateAppSubmenuItem, getAppSubmenuSnapshot } from '#/main/appMenuSna
 import {
   setMenuAiSidebarVisible,
   setMenuGitSidebarVisible,
+  setMenuRailVisible,
   setMenuRequestEditorVisible,
   setMenuResponseEditorVisible,
   setMenuSidebarVisible,
@@ -35,6 +36,11 @@ export function registerMenuHandlers(): void {
   // Updates the View > Appearance submenu checkmark for sidebar visibility.
   handle('menu:setSidebarVisible', ipcArgSchemas.menuSidebarVisible, (_event, visible) => {
     setMenuSidebarVisible(visible);
+  });
+
+  // Updates the View > Appearance submenu checkmark for activity-rail visibility.
+  handle('menu:setRailVisible', ipcArgSchemas.menuRailVisible, (_event, visible) => {
+    setMenuRailVisible(visible);
   });
 
   // Updates the View > Appearance submenu checkmark for AI sidebar visibility.

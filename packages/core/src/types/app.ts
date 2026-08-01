@@ -20,6 +20,7 @@ export type MenuActionId =
   | 'join-shared-collection'
   | 'sync'
   | 'toggle-sidebar'
+  | 'toggle-rail'
   | 'hide-sidebars'
   | 'show-sidebars'
   | 'focus-sidebar-search'

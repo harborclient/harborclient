@@ -34,6 +34,12 @@ export interface ApiWindow {
    */
   setMenuSidebarVisible: (visible: boolean) => Promise<void>;
   /**
+   * Syncs activity-rail visibility to the View > Appearance submenu checkbox in the main process.
+   *
+   * @param visible - Whether the activity rail is currently visible in the renderer.
+   */
+  setMenuRailVisible: (visible: boolean) => Promise<void>;
+  /**
    * Syncs AI sidebar visibility to the View > Appearance submenu checkbox in the main process.
    *
    * @param visible - Whether the AI sidebar is currently visible in the renderer.

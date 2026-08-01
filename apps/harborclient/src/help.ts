@@ -14,6 +14,7 @@ Usage:
   harborclient <METHOD> <url> [opts]   Send an ad-hoc HTTP request
   harborclient run <collection> [opts] Run a saved collection
   harborclient workflow run <wf> [opts] Run a saved workflow
+  harborclient servers run <server>    Start a saved live server
   harborclient -h, --help              Show this help
   harborclient -V, --version           Show version
 
@@ -39,8 +40,12 @@ Collection run options:
 Workflow run options:
   workflow run <name-or-uuid>  Run a saved workflow headlessly
   --user-data <path>           Override Electron userData directory
-  --stop-on-failure            Stop after the first failed request.send
+  --stop-on-failure            Stop after the first failed request
   --export <dir>               Write a workflow-run JSON export to this directory
+
+Live server options:
+  servers run <name-or-uuid>   Start a saved live server until Ctrl+C
+  --user-data <path>           Override Electron userData directory
 
 Examples:
   harborclient
@@ -48,6 +53,7 @@ Examples:
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
   harborclient workflow run "My Workflow" --export ./results
+  harborclient servers run "Echo Server"
 `);
 }
 

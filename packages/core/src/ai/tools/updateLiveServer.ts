@@ -119,6 +119,16 @@ export interface UpdateLiveServerToolArgs {
    * Global variable name set to the server origin URL on start. When omitted, kept.
    */
   urlVariable?: string;
+
+  /**
+   * Pre-request scripts keyed by path-match patterns. When omitted, kept.
+   */
+  preRequestScripts?: Array<Record<string, unknown>>;
+
+  /**
+   * Post-request scripts keyed by path-match patterns. When omitted, kept.
+   */
+  postRequestScripts?: Array<Record<string, unknown>>;
 }
 
 /**

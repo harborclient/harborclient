@@ -29,6 +29,7 @@ import {
   toggleAiSidebar,
   toggleConsole,
   toggleGitSidebar,
+  toggleRail,
   toggleShortcutsSidebar,
   toggleMcp,
   toggleRequestEditor,
@@ -200,6 +201,9 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:toggle-sidebar': () => {
         dispatch(toggleSidebar());
+      },
+      'builtin:toggle-rail': () => {
+        dispatch(toggleRail());
       },
       'builtin:hide-sidebars': () => {
         void dispatch(hideSidebarsAndFooterPanels());

@@ -18,6 +18,7 @@ const defaultAppearanceAndSort = {
     workflows: 'default',
     websites: 'default',
     liveServers: 'default',
+    liveServerLogs: 'default',
     archive: 'default',
     trash: 'default'
   },
@@ -40,7 +41,7 @@ describe('SIDEBAR_MODE_SECTIONS', () => {
     expect(SIDEBAR_MODE_SECTIONS.environments).toEqual(['environments']);
     expect(SIDEBAR_MODE_SECTIONS.workspaces).toEqual(['workspaces']);
     expect(SIDEBAR_MODE_SECTIONS.workflows).toEqual(['workflows', 'history', 'archive']);
-    expect(SIDEBAR_MODE_SECTIONS.servers).toEqual(['liveServers', 'websites']);
+    expect(SIDEBAR_MODE_SECTIONS.servers).toEqual(['liveServers', 'liveServerLogs', 'websites']);
     expect(SIDEBAR_MODE_SECTIONS.trash).toEqual(['trash']);
   });
 });
@@ -57,6 +58,7 @@ describe('defaultSidebarExpansion', () => {
         workflows: true,
         websites: true,
         liveServers: true,
+        liveServerLogs: true,
         archive: true,
         trash: true
       },
@@ -94,6 +96,7 @@ describe('normalizeSidebarExpansion', () => {
         workflows: true,
         websites: true,
         liveServers: true,
+        liveServerLogs: true,
         archive: true,
         trash: true
       },
@@ -126,6 +129,7 @@ describe('normalizeSidebarExpansion', () => {
         workflows: true,
         websites: true,
         liveServers: true,
+        liveServerLogs: true,
         archive: true,
         trash: true
       },
@@ -277,6 +281,7 @@ describe('normalizeSidebarExpansion', () => {
         workflows: 'default',
         websites: 'default',
         liveServers: 'default',
+        liveServerLogs: 'default',
         archive: 'created-asc',
         trash: 'default'
       }

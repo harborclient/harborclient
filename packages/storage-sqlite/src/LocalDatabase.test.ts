@@ -765,6 +765,7 @@ describeSqlite('LocalDatabase workspaces', () => {
     const layout: WorkspaceLayout = {
       panels: {
         showSidebar: true,
+        showRail: true,
         showAiSidebar: false,
         showGitSidebar: false,
         showShortcutsSidebar: false,
@@ -776,6 +777,8 @@ describeSqlite('LocalDatabase workspaces', () => {
         showMcp: false,
         showTerminal: false,
         showLiveServerLogs: false,
+        liveServerLogsPlacement: 'footer',
+        liveServerLogsPlacements: {},
         activePluginFooterPanelId: null
       },
       panelSizes: { 'hc.sidebarWidth': 480 },

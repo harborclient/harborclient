@@ -268,6 +268,18 @@ describe('generalSettings', () => {
       highlightActiveLineGutter: true
     },
     codeEditorFontSize: '16px',
+    terminal: {
+      scrollback: 1000,
+      cursorBlink: true,
+      blinkIntervalDuration: 0,
+      cursorStyle: 'block' as const,
+      fastScrollSensitivity: 5,
+      fontSize: 16,
+      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+      fontWeight: 'normal' as const,
+      minimumContrastRatio: 1,
+      screenReaderMode: true
+    },
     proxy: {
       enabled: false,
       protocol: 'http' as const,

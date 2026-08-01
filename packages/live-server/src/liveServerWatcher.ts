@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { LiveServerAlias } from '@harborclient/core/types';
-import { resolveAliasTarget } from './liveServerApp';
+import { resolveAliasTarget } from './liveServerApp.js';
 
 /** Debounce window before a file-change callback fires. */
 export const LIVE_SERVER_WATCH_DEBOUNCE_MS = 120;

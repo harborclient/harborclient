@@ -2,6 +2,8 @@ import type {
   CreateLiveServerInput,
   LiveServer,
   LiveServerFileChangedEvent,
+  LiveServerLogEntry,
+  LiveServerLogSession,
   LiveServerLogsQuery,
   LiveServerRequestLogEntry,
   RunningLiveServer,
@@ -49,19 +51,31 @@ export interface ApiLiveServer {
   deleteLiveServer: (id: number) => Promise<LiveServer[]>;
 
   /**
-   * Returns buffered Express request logs for a running live server.
+   * Returns buffered access and script log lines for a log session.
    *
-   * @param query - Saved id or runtime instance id.
-   * @returns Snapshot of recent access-log entries (empty when not running).
+   * @param query - Saved id or runtime / session id.
+   * @returns Snapshot of recent mixed log entries (empty when unknown).
    */
-  getLiveServerLogs: (query: LiveServerLogsQuery) => Promise<LiveServerRequestLogEntry[]>;
+  getLiveServerLogs: (query: LiveServerLogsQuery) => Promise<LiveServerLogEntry[]>;
 
   /**
-   * Clears the in-memory request log buffer for a running live server.
+   * Clears the in-memory request log buffer for a log session without removing it.
    *
-   * @param query - Saved id or runtime instance id.
+   * @param query - Saved id or runtime / session id.
    */
   clearLiveServerLogs: (query: LiveServerLogsQuery) => Promise<void>;
+
+  /**
+   * Lists retained live-server log sessions (metadata only).
+   */
+  listLiveServerLogSessions: () => Promise<LiveServerLogSession[]>;
+
+  /**
+   * Clears retained live-server log sessions.
+   *
+   * Drops inactive sessions and empties active session buffers (active rows remain).
+   */
+  clearAllLiveServerLogSessions: () => Promise<void>;
 
   /**
    * Subscribes to file-change notifications from watched live servers.
@@ -80,10 +94,42 @@ export interface ApiLiveServer {
   onLiveServersChanged: (callback: (running: RunningLiveServer[]) => void) => () => void;
 
   /**
-   * Subscribes to Express request log lines from running live servers.
+   * Subscribes to live-server log session list changes (start/stop/clear).
+   *
+   * @param callback - Handler invoked with the refreshed session metadata list.
+   * @returns Unsubscribe function.
+   */
+  onLiveServerLogSessionsChanged: (
+    callback: (sessions: LiveServerLogSession[]) => void
+  ) => () => void;
+
+  /**
+   * Subscribes to Express access-log lines from running live servers.
+   *
+   * Access-only; script console/test lines are not delivered here.
    *
    * @param callback - Handler invoked for each completed request.
    * @returns Unsubscribe function.
    */
   onLiveServerRequestLog: (callback: (entry: LiveServerRequestLogEntry) => void) => () => void;
+
+  /**
+   * Subscribes to live-server script console/test/error log lines.
+   *
+   * @param callback - Handler invoked for each script log line.
+   * @returns Unsubscribe function.
+   */
+  onLiveServerScriptLog: (
+    callback: (entry: import('../liveServer').LiveServerScriptLogEntry) => void
+  ) => () => void;
+
+  /**
+   * Subscribes to companion run-command stdout/stderr/lifecycle log lines.
+   *
+   * @param callback - Handler invoked for each process log line.
+   * @returns Unsubscribe function.
+   */
+  onLiveServerProcessLog: (
+    callback: (entry: import('../liveServer').LiveServerProcessLogEntry) => void
+  ) => () => void;
 }

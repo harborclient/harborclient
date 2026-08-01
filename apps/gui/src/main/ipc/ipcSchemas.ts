@@ -16,7 +16,11 @@ import {
   oauth2Config,
   variable
 } from '#/main/schemas/common';
-import { ipcScriptRefArray, scriptSource } from '#/main/schemas/scriptRef';
+import {
+  ipcLiveServerScriptRefArray,
+  ipcScriptRefArray,
+  scriptSource
+} from '#/main/schemas/scriptRef';
 import { CODE_EDITOR_THEME_IDS } from '@harborclient/core/codeEditorSettings';
 import { workspaceLayoutSchema } from '@harborclient/core/types/workspace';
 import { MAX_ZOOM_FACTOR, MIN_ZOOM_FACTOR } from '@harborclient/core/zoomPresets';
@@ -151,7 +155,7 @@ export const adminSnippetInput = z.object({
   stage: scriptStage.optional()
 });
 
-export { scriptRef, scriptStage } from '#/main/schemas/scriptRef';
+export { liveServerScriptRef, scriptRef, scriptStage } from '#/main/schemas/scriptRef';
 
 /** URL string bounded for IPC. */
 const ipcUrl = z.string().max(MAX_IPC_URL_CHARS);
@@ -277,7 +281,8 @@ export const scriptRunInput = z.object({
       workflowId: z.string(),
       workflowActionId: z.string(),
       workflowActionIteration: z.number().int(),
-      livepageId: z.string()
+      livepageId: z.string(),
+      liveserverId: z.string()
     })
     .optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -333,6 +338,30 @@ export const generalSettings = z.object({
     highlightActiveLineGutter: z.boolean()
   }),
   codeEditorFontSize: z.string(),
+  terminal: z.object({
+    scrollback: z.number().min(0),
+    cursorBlink: z.boolean(),
+    blinkIntervalDuration: z.number().min(0),
+    cursorStyle: z.enum(['block', 'underline', 'bar']),
+    fastScrollSensitivity: z.number().min(0),
+    fontSize: z.number().min(1),
+    fontFamily: z.string(),
+    fontWeight: z.enum([
+      'normal',
+      'bold',
+      '100',
+      '200',
+      '300',
+      '400',
+      '500',
+      '600',
+      '700',
+      '800',
+      '900'
+    ]),
+    minimumContrastRatio: z.number().min(0),
+    screenReaderMode: z.boolean()
+  }),
   proxy: z.object({
     enabled: z.boolean(),
     protocol: z.enum(['http', 'https']),
@@ -642,6 +671,7 @@ export const sidebarExpansion = z.object({
     workflows: z.boolean(),
     websites: z.boolean(),
     liveServers: z.boolean(),
+    liveServerLogs: z.boolean(),
     archive: z.boolean(),
     trash: z.boolean()
   }),
@@ -663,6 +693,7 @@ export const sidebarExpansion = z.object({
     workflows: sidebarSortModeEnum,
     websites: sidebarSortModeEnum,
     liveServers: sidebarSortModeEnum,
+    liveServerLogs: sidebarSortModeEnum,
     archive: sidebarSortModeEnum,
     trash: sidebarSortModeEnum
   }),
@@ -867,7 +898,9 @@ export const liveServerConfig = z.object({
   ssl: liveServerSslSettings,
   runCommand: z.string(),
   restartOnCrash: z.boolean(),
-  urlVariable: z.string()
+  urlVariable: z.string(),
+  preRequestScripts: ipcLiveServerScriptRefArray,
+  postRequestScripts: ipcLiveServerScriptRefArray
 });
 
 /**
@@ -884,6 +917,7 @@ export const startLiveServerInput = z.object({
  */
 export const createLiveServerInput = z.object({
   name: z.string().trim().min(1),
+  uuid: z.string().trim().min(1).optional(),
   root: z.string().trim().min(1),
   port: z.number().int().positive().max(65535).nullable().optional(),
   aliases: z.array(liveServerAlias).optional(),
@@ -900,7 +934,9 @@ export const createLiveServerInput = z.object({
   ssl: liveServerSslSettings.optional(),
   runCommand: z.string().optional(),
   restartOnCrash: z.boolean().optional(),
-  urlVariable: z.string().optional()
+  urlVariable: z.string().optional(),
+  preRequestScripts: ipcLiveServerScriptRefArray.optional().default([]),
+  postRequestScripts: ipcLiveServerScriptRefArray.optional().default([])
 }) satisfies z.ZodType<CreateLiveServerInput>;
 
 /**
@@ -925,7 +961,9 @@ export const updateLiveServerInput = z.object({
   ssl: liveServerSslSettings,
   runCommand: z.string(),
   restartOnCrash: z.boolean(),
-  urlVariable: z.string()
+  urlVariable: z.string(),
+  preRequestScripts: ipcLiveServerScriptRefArray,
+  postRequestScripts: ipcLiveServerScriptRefArray
 }) satisfies z.ZodType<UpdateLiveServerInput>;
 
 /**
@@ -988,6 +1026,7 @@ export const workflowRunHistoryAddInput = z.object({
 
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
+  showRail: z.boolean(),
   showAiSidebar: z.boolean(),
   showGitSidebar: z.boolean(),
   showShortcutsSidebar: z.boolean(),
@@ -999,6 +1038,8 @@ export const panelLayout = z.object({
   showMcp: z.boolean(),
   showTerminal: z.boolean(),
   showLiveServerLogs: z.boolean(),
+  liveServerLogsPlacement: z.enum(['footer', 'sidebar']),
+  liveServerLogsPlacements: z.record(z.string(), z.enum(['footer', 'sidebar'])),
   activePluginFooterPanelId: z.string().nullable()
 }) satisfies z.ZodType<PanelLayoutState>;
 
@@ -1044,6 +1085,7 @@ export const ipcArgSchemas = {
   zoomSet: z.tuple([zoomFactor]),
   closeDecision: z.tuple([z.boolean()]),
   menuSidebarVisible: z.tuple([z.boolean()]),
+  menuRailVisible: z.tuple([z.boolean()]),
   menuAiSidebarVisible: z.tuple([z.boolean()]),
   menuGitSidebarVisible: z.tuple([z.boolean()]),
   menuRequestEditorVisible: z.tuple([z.boolean()]),

@@ -12,9 +12,12 @@ import {
   selectShowShortcutsSidebar,
   selectShowConsole,
   selectShowMcp,
+  selectShowRail,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowSidebar,
+  selectLiveServerLogsPlacement,
+  selectLiveServerLogsPlacements,
   selectShowLiveServerLogs,
   selectShowTerminal,
   selectShowVariables
@@ -26,6 +29,7 @@ import {
 export function usePersistedPanelLayout(): void {
   const dispatch = useAppDispatch();
   const showSidebar = useAppSelector(selectShowSidebar);
+  const showRail = useAppSelector(selectShowRail);
   const showAiSidebar = useAppSelector(selectShowAiSidebar);
   const showGitSidebar = useAppSelector(selectShowGitSidebar);
   const showShortcutsSidebar = useAppSelector(selectShowShortcutsSidebar);
@@ -37,6 +41,8 @@ export function usePersistedPanelLayout(): void {
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
   const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
+  const liveServerLogsPlacement = useAppSelector(selectLiveServerLogsPlacement);
+  const liveServerLogsPlacements = useAppSelector(selectLiveServerLogsPlacements);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const hydratedRef = useRef(isPanelLayoutHydrated());
 
@@ -71,6 +77,7 @@ export function usePersistedPanelLayout(): void {
     hydratedRef.current = true;
     void window.api.setPanelLayout({
       showSidebar,
+      showRail,
       showAiSidebar,
       showGitSidebar,
       showShortcutsSidebar,
@@ -82,10 +89,13 @@ export function usePersistedPanelLayout(): void {
       showMcp,
       showTerminal,
       showLiveServerLogs,
+      liveServerLogsPlacement,
+      liveServerLogsPlacements,
       activePluginFooterPanelId
     });
   }, [
     showSidebar,
+    showRail,
     showAiSidebar,
     showGitSidebar,
     showShortcutsSidebar,
@@ -97,6 +107,8 @@ export function usePersistedPanelLayout(): void {
     showMcp,
     showTerminal,
     showLiveServerLogs,
+    liveServerLogsPlacement,
+    liveServerLogsPlacements,
     activePluginFooterPanelId
   ]);
 }

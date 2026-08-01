@@ -23,6 +23,7 @@ describe('normalizePageSidebarKey', () => {
 describe('normalizePageSidebarSection', () => {
   it('accepts built-in settings sections and plugin ids', () => {
     expect(normalizePageSidebarSection('settings', 'proxy')).toBe('proxy');
+    expect(normalizePageSidebarSection('settings', 'terminal')).toBe('terminal');
     expect(normalizePageSidebarSection('settings', 'plugin:demo:settings')).toBe(
       'plugin:demo:settings'
     );
@@ -55,6 +56,7 @@ describe('normalizePageSidebarSection', () => {
 describe('isAllowedPageSidebarSection', () => {
   it('mirrors normalizePageSidebarSection allowlists', () => {
     expect(isAllowedPageSidebarSection('settings', 'ai')).toBe(true);
+    expect(isAllowedPageSidebarSection('settings', 'terminal')).toBe(true);
     expect(isAllowedPageSidebarSection('themes', 'settings')).toBe(false);
   });
 });

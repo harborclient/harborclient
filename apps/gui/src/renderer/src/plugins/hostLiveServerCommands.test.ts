@@ -87,7 +87,9 @@ function makeRunning(overrides: Partial<RunningLiveServer> = {}): RunningLiveSer
       ssl: saved.ssl,
       runCommand: saved.runCommand,
       restartOnCrash: saved.restartOnCrash,
-      urlVariable: saved.urlVariable
+      urlVariable: saved.urlVariable,
+      preRequestScripts: saved.preRequestScripts,
+      postRequestScripts: saved.postRequestScripts
     },
     port: 5500,
     origin: 'http://127.0.0.1:5500',
@@ -193,7 +195,9 @@ describe('hostLiveServerCommands', () => {
           ssl: { enabled: false, certPath: '', keyPath: '' },
           runCommand: '',
           restartOnCrash: false,
-          urlVariable: ''
+          urlVariable: '',
+          preRequestScripts: [],
+          postRequestScripts: []
         }
       })
     ).resolves.toEqual(running);
@@ -219,6 +223,8 @@ describe('hostLiveServerCommands', () => {
           runCommand: '',
           restartOnCrash: false,
           urlVariable: '',
+          preRequestScripts: [],
+          postRequestScripts: [],
           cors: expect.objectContaining({
             exposedHeaders: 'X-Request-Id',
             maxAge: '600'

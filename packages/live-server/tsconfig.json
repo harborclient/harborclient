@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
+    "paths": {
+      "@harborclient/core": ["../core/src/index.ts"],
+      "@harborclient/core/*": ["../core/src/*"],
+      "@harborclient/sdk": ["../sdk/src/index.ts"],
+      "@harborclient/sdk/*": ["../sdk/src/*"],
+      "@harborclient/sdk/variables": ["../sdk/src/variables/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

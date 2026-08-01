@@ -45,6 +45,16 @@ import { SyntaxFoldGutterField } from '../fields/SyntaxFoldGutterField';
 import { SyntaxHighlightActiveLineField } from '../fields/SyntaxHighlightActiveLineField';
 import { SyntaxHighlightActiveLineGutterField } from '../fields/SyntaxHighlightActiveLineGutterField';
 import { SyntaxLineNumbersField } from '../fields/SyntaxLineNumbersField';
+import { TerminalBlinkIntervalDurationField } from '../fields/TerminalBlinkIntervalDurationField';
+import { TerminalCursorBlinkField } from '../fields/TerminalCursorBlinkField';
+import { TerminalCursorStyleField } from '../fields/TerminalCursorStyleField';
+import { TerminalFastScrollSensitivityField } from '../fields/TerminalFastScrollSensitivityField';
+import { TerminalFontFamilyField } from '../fields/TerminalFontFamilyField';
+import { TerminalFontSizeField } from '../fields/TerminalFontSizeField';
+import { TerminalFontWeightField } from '../fields/TerminalFontWeightField';
+import { TerminalMinimumContrastRatioField } from '../fields/TerminalMinimumContrastRatioField';
+import { TerminalScreenReaderModeField } from '../fields/TerminalScreenReaderModeField';
+import { TerminalScrollbackField } from '../fields/TerminalScrollbackField';
 import type { FieldSettingId, FormSettingsSection } from './catalog';
 
 export type SettingsSectionComponentProps = {
@@ -105,6 +115,16 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'syntax.foldGutter': SyntaxFoldGutterField,
   'syntax.highlightActiveLine': SyntaxHighlightActiveLineField,
   'syntax.highlightActiveLineGutter': SyntaxHighlightActiveLineGutterField,
+  'terminal.scrollback': TerminalScrollbackField,
+  'terminal.cursorBlink': TerminalCursorBlinkField,
+  'terminal.blinkIntervalDuration': TerminalBlinkIntervalDurationField,
+  'terminal.cursorStyle': TerminalCursorStyleField,
+  'terminal.fastScrollSensitivity': TerminalFastScrollSensitivityField,
+  'terminal.fontSize': TerminalFontSizeField,
+  'terminal.fontFamily': TerminalFontFamilyField,
+  'terminal.fontWeight': TerminalFontWeightField,
+  'terminal.minimumContrastRatio': TerminalMinimumContrastRatioField,
+  'terminal.screenReaderMode': TerminalScreenReaderModeField,
   'ai.openaiApiKey': AiOpenAiApiKeyField,
   'ai.claudeApiKey': AiClaudeApiKeyField,
   'ai.geminiApiKey': AiGeminiApiKeyField

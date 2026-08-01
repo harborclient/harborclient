@@ -1682,6 +1682,61 @@ export interface LiveServerProxy {
 }
 
 /**
+ * One pre/post request script on a Harbor Live Server, keyed by a path-match pattern.
+ *
+ * `stage` is always coerced to `main` at persistence time — the Before/Main/After
+ * axis is unused for live servers.
+ */
+export interface LiveServerScriptRef {
+  /**
+   * Stable list key used for reordering and React keys.
+   */
+  id: string;
+
+  /**
+   * When false, the script is skipped.
+   */
+  enabled: boolean;
+
+  /**
+   * Inline JavaScript source or a live reference to a saved snippet.
+   */
+  kind: 'inline' | 'snippet';
+
+  /**
+   * Optional display label for inline scripts.
+   */
+  name?: string;
+
+  /**
+   * JavaScript source when {@link kind} is `inline`.
+   */
+  code?: string;
+
+  /**
+   * Snippet uuid when {@link kind} is `snippet`.
+   */
+  snippetUuid?: string;
+
+  /**
+   * When true, the script editor body is expanded in the list UI.
+   */
+  expanded?: boolean;
+
+  /**
+   * Stage within a request stage list. Live servers coerce this to `main`.
+   */
+  stage?: ScriptStage;
+
+  /**
+   * Glob matched against the request path; only matching requests run the script.
+   *
+   * Examples: `index.html`, `/api/*`, `*.png`, `*`.
+   */
+  matchPath: string;
+}
+
+/**
  * TLS certificate settings for serving a Harbor Live Server over HTTPS.
  */
 export interface LiveServerSslSettings {
@@ -1795,6 +1850,16 @@ export interface LiveServerConfig {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
 }
 
 /**
@@ -1901,6 +1966,16 @@ export interface LiveServer {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
 
   /**
    * Sort order within the Live Servers sidebar section.
@@ -2011,6 +2086,16 @@ export interface CreateLiveServerInput {
    * Global variable name set to the server origin URL on start. Defaults to `''`.
    */
   urlVariable?: string;
+
+  /**
+   * Pre-request scripts. Defaults to `[]`.
+   */
+  preRequestScripts?: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts. Defaults to `[]`.
+   */
+  postRequestScripts?: LiveServerScriptRef[];
 }
 
 /**
@@ -2114,6 +2199,16 @@ export interface UpdateLiveServerInput {
    * Empty means do not write a variable.
    */
   urlVariable: string;
+
+  /**
+   * Pre-request scripts that run before proxy/static for matching paths.
+   */
+  preRequestScripts: LiveServerScriptRef[];
+
+  /**
+   * Post-request scripts that run after the response finishes for matching paths.
+   */
+  postRequestScripts: LiveServerScriptRef[];
 }
 
 /**
@@ -2195,6 +2290,11 @@ export interface RunningLiveServer {
  */
 export interface LiveServerRequestLogEntry {
   /**
+   * Discriminator for mixed log buffers; omitted on legacy access-only entries.
+   */
+  kind?: 'access';
+
+  /**
    * Runtime instance id of the server that handled the request.
    */
   id: string;
@@ -2234,6 +2334,104 @@ export interface LiveServerRequestLogEntry {
    */
   contentLength: number | null;
 }
+
+/**
+ * One script console / test / error line from a live-server pre or post script.
+ */
+export interface LiveServerScriptLogEntry {
+  /**
+   * Discriminator for mixed log buffers.
+   */
+  kind: 'script';
+
+  /**
+   * Runtime instance id of the server that ran the script.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when the instance was started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Unix timestamp (ms) when the line was emitted.
+   */
+  timestamp: number;
+
+  /**
+   * Script phase that produced the line.
+   */
+  phase: 'pre' | 'post';
+
+  /**
+   * Request pathname the script was matched against.
+   */
+  url: string;
+
+  /**
+   * Display label of the script row (match path or name).
+   */
+  scriptLabel: string;
+
+  /**
+   * Line kind within the script run.
+   */
+  level: 'log' | 'info' | 'warn' | 'error' | 'test' | 'script-error';
+
+  /**
+   * Human-readable message (console args joined, test name, or error text).
+   */
+  message: string;
+
+  /**
+   * For `test` lines: whether the assertion passed.
+   */
+  passed?: boolean;
+}
+
+/**
+ * One companion run-command stdout, stderr, or lifecycle line.
+ */
+export interface LiveServerProcessLogEntry {
+  /**
+   * Discriminator for mixed log buffers.
+   */
+  kind: 'process';
+
+  /**
+   * Runtime instance id of the server that owns the companion process.
+   */
+  id: string;
+
+  /**
+   * Saved `live_servers.id` when the instance was started from a saved config.
+   */
+  savedId: number | null;
+
+  /**
+   * Unix timestamp (ms) when the line was emitted.
+   */
+  timestamp: number;
+
+  /**
+   * Child stdout/stderr, or `system` for lifecycle messages (start/exit/fail).
+   */
+  stream: 'stdout' | 'stderr' | 'system';
+
+  /**
+   * One logical line of process output or a short lifecycle message.
+   */
+  message: string;
+}
+
+/**
+ * One line in a live server's mixed access + script + process log buffer.
+ */
+export type LiveServerLogEntry =
+  | LiveServerRequestLogEntry
+  | LiveServerScriptLogEntry
+  | LiveServerProcessLogEntry;
 
 /**
  * Query used to read or clear buffered request logs for one running instance.
@@ -2337,12 +2535,12 @@ export interface PluginLiveServers {
   getStatus(query: LiveServerInstanceQuery): Promise<RunningLiveServer | null>;
 
   /**
-   * Returns buffered Express request logs for a running live server.
+   * Returns buffered access and script log lines for a running live server.
    *
    * @param query - Runtime `id` or `savedId`, plus optional `limit`.
-   * @returns Trailing access-log entries (empty when not running).
+   * @returns Trailing mixed log entries (empty when not running).
    */
-  getLogs(query: LiveServerGetLogsQuery): Promise<LiveServerRequestLogEntry[]>;
+  getLogs(query: LiveServerGetLogsQuery): Promise<LiveServerLogEntry[]>;
 
   /**
    * Clears the in-memory request log buffer for a running live server.
@@ -2360,7 +2558,10 @@ export interface PluginLiveServers {
   onRunningChanged(listener: (running: RunningLiveServer[]) => void): Disposable;
 
   /**
-   * Subscribes to Express request log lines from running live servers.
+   * Subscribes to Express access-log lines from running live servers.
+   *
+   * Access-only; script console/test lines are not delivered here. Use
+   * {@link getLogs} for the mixed buffer.
    *
    * @param listener - Called for each completed request.
    * @returns A {@link Disposable} that removes the listener.

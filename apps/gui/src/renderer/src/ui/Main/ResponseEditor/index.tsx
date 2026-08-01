@@ -339,9 +339,9 @@ export function ResponseEditor({
       { value: 'body', label: 'Body' },
       ...(showPreviewTab ? [{ value: 'preview', label: 'Preview' }] : []),
       { value: 'headers', label: 'Headers' },
-      { value: 'timing', label: 'Timing' },
       { value: 'console', label: 'Console' },
       { value: 'logs', label: 'Logs' },
+      { value: 'timing', label: 'Timing' },
       { value: 'redirects', label: 'Redirects', hidden: !hasRedirects },
       {
         value: 'tests',
@@ -490,14 +490,14 @@ export function ResponseEditor({
       <SegmentedTabPanel value="headers">
         <ResponseViewerPanel viewerTab="headers" {...panelProps} />
       </SegmentedTabPanel>
-      <SegmentedTabPanel value="timing">
-        <ResponseViewerPanel viewerTab="timing" {...panelProps} />
-      </SegmentedTabPanel>
       <SegmentedTabPanel value="console">
         <ResponseViewerPanel viewerTab="console" {...panelProps} />
       </SegmentedTabPanel>
       <SegmentedTabPanel value="logs">
         <ResponseViewerPanel viewerTab="logs" {...panelProps} />
+      </SegmentedTabPanel>
+      <SegmentedTabPanel value="timing">
+        <ResponseViewerPanel viewerTab="timing" {...panelProps} />
       </SegmentedTabPanel>
       {hasRedirects && (
         <SegmentedTabPanel value="redirects">
@@ -549,7 +549,11 @@ export function ResponseEditor({
 
       <div className="flex min-h-0 flex-1 flex-col">
         <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-          <div className="mb-4 -mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator">
+          <div
+            className={`-mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator${
+              effectiveTab === 'console' || effectiveTab === 'logs' ? '' : ' mb-4'
+            }`}
+          >
             <SegmentedTabs tabs={tabs} className="border-none" />
           </div>
 

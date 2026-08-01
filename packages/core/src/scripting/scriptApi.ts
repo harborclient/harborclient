@@ -6,6 +6,7 @@ import type {
   ScriptLogLine,
   ScriptPhase,
   ScriptRequestContext,
+  ScriptResponseOverride,
   ScriptRunInfo,
   ScriptRunInput,
   ScriptRunResult,
@@ -35,6 +36,7 @@ import type {
   ScriptFileRequest,
   ScriptJsonWriteOptions
 } from './scriptFileOperations';
+import { buildScriptResponseOverride } from './scriptResponseOverride';
 import { resolveStackToOriginalLocation, type ScriptCompileMap } from './scriptSourceMap';
 import { variableKeyIsCleared } from './variableClearMatch';
 
@@ -161,6 +163,7 @@ interface ScriptApiState {
   phase: ScriptPhase;
   nextRequest: string | null | undefined;
   skipRequest: boolean;
+  responseOverride: ScriptResponseOverride | undefined;
   workflowNextAction: string | undefined;
   workflowSkipAction: boolean;
   data: Record<string, unknown>;
@@ -925,6 +928,7 @@ export function createScriptApi(
     phase: input.phase,
     nextRequest: undefined,
     skipRequest: false,
+    responseOverride: undefined,
     workflowNextAction: undefined,
     workflowSkipAction: false,
     data: input.data ? { ...input.data } : {}
@@ -979,6 +983,9 @@ export function createScriptApi(
       },
       get livepageId() {
         return info.livepageId;
+      },
+      get liveserverId() {
+        return info.liveserverId;
       }
     },
     request: {
@@ -1211,6 +1218,54 @@ export function createScriptApi(
     }
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
+    });
+  };
+
+  /**
+   * Records a synthetic response that replaces the real HTTP response for this send.
+   *
+   * Does not skip the HTTP call by itself — pair with hc.execution.skipRequest() in a
+   * pre-request script when the remote request should not run. Last call wins within the phase.
+   *
+   * @param text - Response body text.
+   * @param statusCode - Optional HTTP status (default 200).
+   * @param contentType - Optional Content-Type (default text/plain; charset=utf-8).
+   * @returns Resolves when the override is recorded.
+   * @throws When statusCode is not an integer between 100 and 599.
+   */
+  hc.send = async (text: unknown, statusCode?: unknown, contentType?: unknown): Promise<void> => {
+    const override = buildScriptResponseOverride(String(text ?? ''), statusCode, contentType);
+    state.responseOverride = override;
+    emitExecutionEvent({
+      type: 'flow',
+      action: 'send-response',
+      status: override.status
+    });
+  };
+
+  /**
+   * Records a JSON synthetic response that replaces the real HTTP response for this send.
+   *
+   * Serializes value with JSON.stringify and sets Content-Type to application/json.
+   * Does not skip the HTTP call by itself — pair with hc.execution.skipRequest() in a
+   * pre-request script when the remote request should not run. Last call wins within the phase.
+   *
+   * @param value - Value to JSON-serialize as the response body.
+   * @param statusCode - Optional HTTP status (default 200).
+   * @returns Resolves when the override is recorded.
+   * @throws When statusCode is not an integer between 100 and 599, or value is not JSON-serializable.
+   */
+  hc.sendJSON = async (value: unknown, statusCode?: unknown): Promise<void> => {
+    const override = buildScriptResponseOverride(
+      JSON.stringify(value),
+      statusCode,
+      'application/json'
+    );
+    state.responseOverride = override;
+    emitExecutionEvent({
+      type: 'flow',
+      action: 'send-response',
+      status: override.status
     });
   };
 
@@ -1457,6 +1512,7 @@ export function createScriptApi(
       folderAuth: state.folderAuth,
       nextRequest: state.nextRequest,
       skipRequest: state.skipRequest || undefined,
+      responseOverride: state.responseOverride,
       workflowNextAction: state.workflowNextAction,
       workflowSkipAction: state.workflowSkipAction || undefined,
       tests: state.tests ?? [],

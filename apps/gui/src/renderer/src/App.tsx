@@ -29,9 +29,11 @@ import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
   selectShortcutsSidebarVisible,
+  selectLiveServerLogsFooterOpen,
+  selectLiveServerLogsSidebarOpen,
   selectShowConsole,
-  selectShowLiveServerLogs,
   selectShowMcp,
+  selectShowRail,
   selectShowTerminal,
   selectShowRequestEditor,
   selectShowResponseEditor,
@@ -39,6 +41,7 @@ import {
   selectSidebarVisible,
   toggleAiSidebar,
   toggleGitSidebar,
+  toggleRail,
   toggleShortcutsSidebar,
   toggleConsole,
   setShowLiveServerLogs,
@@ -72,6 +75,7 @@ import { QuitPrompt } from '#/renderer/src/ui/Modals/QuitPrompt';
 import { UnsavedLoadPrompt } from '#/renderer/src/ui/Modals/UnsavedLoadPrompt';
 import { AiSidebar } from '#/renderer/src/ui/Sidebars/AiSidebar';
 import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
+import { LiveServerLogsSidebar } from '#/renderer/src/ui/Sidebars/LiveServerLogsSidebar';
 import { ShortcutsSidebar } from '#/renderer/src/ui/Sidebars/ShortcutsSidebar';
 import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
 import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
@@ -97,6 +101,7 @@ import {
   AI_SIDEBAR_SECTION_ID,
   COLLECTIONS_SIDEBAR_SECTION_ID,
   GIT_SIDEBAR_SECTION_ID,
+  LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID,
   SHORTCUTS_SIDEBAR_SECTION_ID,
   type SkipNavigationVisibility
 } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
@@ -134,6 +139,7 @@ export default function App(): JSX.Element {
   const activeTab = useAppSelector(selectActiveTab);
   const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
+  const railVisible = useAppSelector(selectShowRail);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const shortcutsSidebarVisible = useAppSelector(selectShortcutsSidebarVisible);
@@ -143,7 +149,8 @@ export default function App(): JSX.Element {
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
   const showTerminal = useAppSelector(selectShowTerminal);
-  const showLiveServerLogs = useAppSelector(selectShowLiveServerLogs);
+  const liveServerLogsFooterOpen = useAppSelector(selectLiveServerLogsFooterOpen);
+  const liveServerLogsSidebarOpen = useAppSelector(selectLiveServerLogsSidebarOpen);
   const mcpServerStatus = useMcpServerStatus();
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -354,12 +361,14 @@ export default function App(): JSX.Element {
       aiSidebarVisible,
       gitSidebarVisible,
       shortcutsSidebarVisible,
+      liveServerLogsSidebarVisible: liveServerLogsSidebarOpen,
       isRequestTab: activeTab != null && isRequestTab(activeTab)
     };
   }, [
     activeTab,
     aiSidebarVisible,
     gitSidebarVisible,
+    liveServerLogsSidebarOpen,
     shortcutsSidebarVisible,
     requestEditorVisible,
     responseEditorVisible,
@@ -480,7 +489,7 @@ export default function App(): JSX.Element {
                         dispatch(closeLiveServerModal());
                         dispatch(toggleTerminal());
                       }}
-                      liveServerLogsOpen={showLiveServerLogs}
+                      liveServerLogsOpen={liveServerLogsFooterOpen}
                       onCloseLiveServerLogs={() => dispatch(setShowLiveServerLogs(false))}
                       onMcpStatusChange={() => void mcpServerStatus.refresh()}
                       globalVariables={globalVariables}
@@ -516,6 +525,14 @@ export default function App(): JSX.Element {
                   >
                     <ShortcutsSidebar />
                   </AnimatedHorizontalPanel>
+
+                  <AnimatedHorizontalPanel
+                    id={LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID}
+                    tabIndex={-1}
+                    open={liveServerLogsSidebarOpen}
+                  >
+                    {liveServerLogsSidebarOpen ? <LiveServerLogsSidebar /> : null}
+                  </AnimatedHorizontalPanel>
                 </div>
               </SidebarModalsProvider>
 
@@ -548,6 +565,8 @@ export default function App(): JSX.Element {
                 environmentVariables={activeEnvironmentVariables}
                 sidebarOpen={sidebarVisible}
                 onToggleSidebar={() => dispatch(toggleSidebar())}
+                railOpen={railVisible}
+                onToggleRail={() => dispatch(toggleRail())}
                 aiSidebarOpen={aiSidebarVisible}
                 onToggleAiSidebar={() => dispatch(toggleAiSidebar())}
                 gitSidebarOpen={gitSidebarVisible}

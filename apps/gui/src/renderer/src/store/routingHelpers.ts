@@ -13,6 +13,7 @@ const SETTINGS_SECTIONS = new Set<string>([
   'proxy',
   'globals',
   'ai',
+  'terminal',
   'backup-restore',
   'git'
 ]);

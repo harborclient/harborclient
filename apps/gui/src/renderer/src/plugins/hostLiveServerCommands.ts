@@ -4,8 +4,8 @@ import type {
   LiveServerConfig,
   LiveServerGetLogsQuery,
   LiveServerInstanceQuery,
+  LiveServerLogEntry,
   LiveServerLogsQuery,
-  LiveServerRequestLogEntry,
   RunningLiveServer,
   StartLiveServerInput,
   UpdateLiveServerInput
@@ -53,7 +53,9 @@ function configFromSaved(server: LiveServer): LiveServerConfig {
     ssl: server.ssl,
     runCommand: server.runCommand,
     restartOnCrash: server.restartOnCrash,
-    urlVariable: server.urlVariable
+    urlVariable: server.urlVariable,
+    preRequestScripts: server.preRequestScripts,
+    postRequestScripts: server.postRequestScripts
   });
 }
 
@@ -117,7 +119,9 @@ async function resolveStartInput(input: StartLiveServerInput): Promise<{
       ssl: input.config.ssl,
       runCommand: input.config.runCommand,
       restartOnCrash: input.config.restartOnCrash,
-      urlVariable: input.config.urlVariable
+      urlVariable: input.config.urlVariable,
+      preRequestScripts: input.config.preRequestScripts,
+      postRequestScripts: input.config.postRequestScripts
     });
     if (!config.root.trim()) {
       throw new Error('hc.liveServers.start requires config.root when providing config.');
@@ -289,14 +293,14 @@ export async function getLiveServerStatusForPlugin(
 }
 
 /**
- * Returns buffered Express request logs for a running live server.
+ * Returns buffered access and script logs for a running live server.
  *
  * @param query - Runtime `id` or `savedId`, plus optional `limit`.
- * @returns Trailing access-log entries.
+ * @returns Trailing mixed log entries.
  */
 export async function getLiveServerLogsForPlugin(
   query: LiveServerGetLogsQuery
-): Promise<LiveServerRequestLogEntry[]> {
+): Promise<LiveServerLogEntry[]> {
   const { limit, ...logsQuery } = query;
   const all = await window.api.getLiveServerLogs(logsQuery);
   const maxLines = resolveLogLimit(limit);
