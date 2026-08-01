@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.4.4 - 2026-08-01
+
 - refactor(teamHub): introduce soft-connection handling for team hubs. (`5fc744ec`)
 
 ## 1.4.3 - 2026-08-01
