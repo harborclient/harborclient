@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.4.5 - 2026-08-01
+
 - feat(websites): implement Add Live Page modal and import functionality. (`1bdbf8a4`)
 - feat(live-page): refactor live page settings panel and update related functionality. (`6a3dfb3e`)
 - feat(live-server): implement Add Live Server modal and import functionality. (`a36916fb`)
