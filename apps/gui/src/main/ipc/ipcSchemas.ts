@@ -675,14 +675,7 @@ export const sidebarExpansion = z.object({
     archive: z.boolean(),
     trash: z.boolean()
   }),
-  activeSidebarMode: z.enum([
-    'collections',
-    'environments',
-    'workspaces',
-    'workflows',
-    'servers',
-    'trash'
-  ]),
+  activeSidebarMode: z.enum(['collections', 'environments', 'workflows', 'servers', 'trash']),
   sidebarRailExpanded: z.boolean(),
   sectionSort: z.object({
     collections: sidebarSortModeEnum,

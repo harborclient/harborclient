@@ -61,7 +61,6 @@ const SIDEBAR_SORT_MODES: readonly SidebarSortMode[] = [
 const SIDEBAR_MODES: readonly SidebarMode[] = [
   'collections',
   'environments',
-  'workspaces',
   'workflows',
   'servers',
   'trash'
@@ -87,8 +86,7 @@ const DEFAULT_SHOW_SORTING = false;
  */
 export const SIDEBAR_MODE_SECTIONS: Record<SidebarMode, readonly SidebarSectionKey[]> = {
   collections: ['collections', 'runResults', 'history', 'archive'],
-  environments: ['environments'],
-  workspaces: ['workspaces'],
+  environments: ['environments', 'workspaces'],
   workflows: ['workflows', 'history', 'archive'],
   servers: ['liveServers', 'liveServerLogs', 'websites'],
   trash: ['trash']
@@ -183,9 +181,10 @@ function readWorkspacesBoolean(
 /**
  * Derives an activity-rail mode from a legacy multi-boolean `sectionVisibility` blob.
  *
- * Rule: `trash` only when trash is visible and the four primary modes are all
- * hidden; otherwise first match among workflows → workspaces → environments →
- * collections (default).
+ * Rule: `trash` only when trash is visible and the primary modes are all
+ * hidden; otherwise first match among workflows → environments/workspaces →
+ * collections (default). Legacy workspaces visibility maps to environments
+ * because Workspaces now lives under the Environments rail mode.
  *
  * @param visibilityRaw - Legacy sectionVisibility object, if present.
  * @returns Migrated {@link SidebarMode}.
@@ -209,10 +208,7 @@ function deriveModeFromLegacyVisibility(
   if (workflows) {
     return 'workflows';
   }
-  if (workspaces) {
-    return 'workspaces';
-  }
-  if (environments) {
+  if (environments || workspaces) {
     return 'environments';
   }
   return 'collections';
@@ -220,12 +216,17 @@ function deriveModeFromLegacyVisibility(
 
 /**
  * Resolves the active sidebar mode from persisted state, migrating legacy
- * `sectionVisibility` when `activeSidebarMode` is absent.
+ * `sectionVisibility` when `activeSidebarMode` is absent, and remapping the
+ * removed `workspaces` rail mode onto `environments`.
  *
  * @param raw - Partial expansion state object.
  * @returns Normalized {@link SidebarMode}.
  */
 function normalizeActiveSidebarMode(raw: Partial<Record<string, unknown>>): SidebarMode {
+  if (raw.activeSidebarMode === 'workspaces') {
+    return 'environments';
+  }
+
   if (isSidebarMode(raw.activeSidebarMode)) {
     return raw.activeSidebarMode;
   }

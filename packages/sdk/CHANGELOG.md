@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(live-server): implement Add Live Server modal and import functionality. (`a36916fb`)
 - feat(live-server): enhance live server and live page management. (`fba086b7`)
 - feat(live-server): add openPathOnStartup configuration for live server. (`039b74dc`)
 

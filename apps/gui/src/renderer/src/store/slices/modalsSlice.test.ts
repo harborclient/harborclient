@@ -5,6 +5,7 @@ import modalsReducer, {
   appendCollectionRunnerResult,
   cancelCollectionRunner,
   closeAboutModal,
+  closeAddLiveServerModal,
   closeCollectionModal,
   closeCollectionRunner,
   closeShareModal,
@@ -14,6 +15,7 @@ import modalsReducer, {
   importCollectionRunnerResults,
   incrementSyncCompleted,
   openAboutModal,
+  openAddLiveServerModal,
   openCollectionModal,
   openCollectionRunner,
   openLiveServerModal,
@@ -21,6 +23,12 @@ import modalsReducer, {
   openSyncModal,
   selectHasBlockingModal,
   setAboutVersion,
+  setAddLiveServerModalGitConnectionCommitted,
+  setAddLiveServerModalGitCreatedConnectionId,
+  setAddLiveServerModalName,
+  setAddLiveServerModalProviderId,
+  setAddLiveServerModalSubmitError,
+  setAddLiveServerModalTab,
   setCollectionModalShareTokenInput,
   setCollectionModalName,
   setCollectionModalTab,
@@ -48,6 +56,7 @@ describe('modalsSlice', () => {
   it('starts with all modals closed', () => {
     const state = modalsReducer(undefined, { type: 'unknown' });
     expect(state.collectionModal).toBeNull();
+    expect(state.addLiveServerModal).toBeNull();
     expect(state.share).toBeNull();
     expect(state.pendingLoadRequest).toBeNull();
     expect(state.quitPrompt).toBeNull();
@@ -110,6 +119,53 @@ describe('modalsSlice', () => {
 
     state = modalsReducer(state, closeCollectionModal());
     expect(state.collectionModal).toBeNull();
+  });
+
+  it('opens and closes the Add Live Server modal', () => {
+    let state = modalsReducer(undefined, openAddLiveServerModal());
+    expect(state.addLiveServerModal).toEqual({
+      tab: 'storage',
+      name: '',
+      providerId: '',
+      submitError: null,
+      gitDraft: {
+        id: '',
+        name: '',
+        type: 'git',
+        settings: {
+          repoPath: '',
+          url: '',
+          branch: 'main',
+          subdir: '',
+          auth: { kind: 'pat', username: 'token' }
+        }
+      },
+      gitCreatedConnectionId: null,
+      gitConnectionCommitted: false
+    });
+
+    state = modalsReducer(state, setAddLiveServerModalName('Docs'));
+    expect(state.addLiveServerModal?.name).toBe('Docs');
+
+    state = modalsReducer(state, setAddLiveServerModalProviderId('conn-1'));
+    expect(state.addLiveServerModal?.providerId).toBe('conn-1');
+    expect(state.addLiveServerModal?.submitError).toBeNull();
+
+    state = modalsReducer(state, setAddLiveServerModalTab('git'));
+    expect(state.addLiveServerModal?.tab).toBe('git');
+
+    state = modalsReducer(state, setAddLiveServerModalSubmitError('Import failed'));
+    expect(state.addLiveServerModal?.submitError).toBe('Import failed');
+
+    state = modalsReducer(state, setAddLiveServerModalGitCreatedConnectionId('git-1'));
+    expect(state.addLiveServerModal?.gitCreatedConnectionId).toBe('git-1');
+    expect(state.addLiveServerModal?.submitError).toBeNull();
+
+    state = modalsReducer(state, setAddLiveServerModalGitConnectionCommitted(true));
+    expect(state.addLiveServerModal?.gitConnectionCommitted).toBe(true);
+
+    state = modalsReducer(state, closeAddLiveServerModal());
+    expect(state.addLiveServerModal).toBeNull();
   });
 
   it('opens share modal and clears token when recipient changes', () => {

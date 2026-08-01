@@ -1,11 +1,4 @@
-import {
-  faFolder,
-  faLeaf,
-  faRoute,
-  faServer,
-  faTrash,
-  faWindowRestore
-} from '@fortawesome/free-solid-svg-icons';
+import { faFolder, faLeaf, faRoute, faServer, faTrash } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { type JSX, useState } from 'react';
 import { fn } from 'storybook/test';
@@ -14,7 +7,6 @@ import { SidebarRail, type SidebarRailItemData } from './index.js';
 const railItems: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
   { id: 'environments', icon: faLeaf, label: 'Environments' },
-  { id: 'workspaces', icon: faWindowRestore, label: 'Workspaces' },
   { id: 'workflows', icon: faRoute, label: 'Workflows' },
   { id: 'servers', icon: faServer, label: 'Servers' },
   { id: 'trash', icon: faTrash, label: 'Trash' }

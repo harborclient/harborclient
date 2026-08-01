@@ -11,14 +11,7 @@ import {
   usePluginSidebarRailItems,
   usePluginSidebarSections
 } from '#/renderer/src/plugins/pluginHooks';
-import {
-  faFolder,
-  faLeaf,
-  faRoute,
-  faServer,
-  faTrash,
-  faWindowRestore
-} from '#/renderer/src/fontawesome';
+import { faFolder, faLeaf, faRoute, faServer, faTrash } from '#/renderer/src/fontawesome';
 import {
   Sidebar,
   SidebarRail,
@@ -32,8 +25,10 @@ import {
   selectRunningLiveServers,
   selectSelectedCollectionId
 } from '#/renderer/src/store/selectors';
-import { openCollectionModal } from '#/renderer/src/store/slices/modalsSlice';
-import { openLiveServerEditor } from '#/renderer/src/store/thunks/liveServers';
+import {
+  openAddLiveServerModal,
+  openCollectionModal
+} from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectActiveSidebarRailItemId,
   selectShowRail,
@@ -78,7 +73,6 @@ import { useSidebarAccordion } from '../expansion/useSidebarAccordion';
 const SIDEBAR_RAIL_ITEMS: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
   { id: 'environments', icon: faLeaf, label: 'Environments' },
-  { id: 'workspaces', icon: faWindowRestore, label: 'Workspaces' },
   { id: 'workflows', icon: faRoute, label: 'Workflows' },
   { id: 'servers', icon: faServer, label: 'Servers' },
   { id: 'trash', icon: faTrash, label: 'Trash' }
@@ -98,7 +92,6 @@ function isSidebarMode(value: string): value is SidebarMode {
   return (
     value === 'collections' ||
     value === 'environments' ||
-    value === 'workspaces' ||
     value === 'workflows' ||
     value === 'servers' ||
     value === 'trash'
@@ -375,7 +368,7 @@ export function SidebarContent(): JSX.Element {
         ariaLabel: 'Live servers',
         initialEntered: liveServersSectionExpanded,
         onAdd: () => {
-          void dispatch(openLiveServerEditor({ mode: 'create' }));
+          dispatch(openAddLiveServerModal());
         },
         addLabel: 'New Live Server',
         children: <LiveServers />

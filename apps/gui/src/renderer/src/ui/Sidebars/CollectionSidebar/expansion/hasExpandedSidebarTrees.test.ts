@@ -43,10 +43,10 @@ describe('hasExpandedSidebarTreesForMode', () => {
 
   it('returns false for modes without expandable trees', () => {
     expect(
-      hasExpandedSidebarTreesForMode('workspaces', new Set([1]), new Set([2]), new Set([3]))
+      hasExpandedSidebarTreesForMode('workflows', new Set([1]), new Set([2]), new Set([3]))
     ).toBe(false);
     expect(
-      hasExpandedSidebarTreesForMode('workflows', new Set([1]), new Set([2]), new Set([3]))
+      hasExpandedSidebarTreesForMode('servers', new Set([1]), new Set([2]), new Set([3]))
     ).toBe(false);
     expect(hasExpandedSidebarTreesForMode('trash', new Set([1]), new Set([2]), new Set([3]))).toBe(
       false

@@ -36,7 +36,7 @@ import { StatusMessage } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 
-import { GitTabPanel } from './GitTabPanel';
+import { GitCreateForm } from '#/renderer/src/ui/Shared/Git/GitCreateForm';
 import { PublicCollectionsTabPanel } from './PublicCollections';
 
 /**
@@ -359,7 +359,7 @@ export function CollectionModal(): JSX.Element | null {
           </SegmentedTabPanel>
 
           <SegmentedTabPanel value="git">
-            <GitTabPanel
+            <GitCreateForm
               name={collectionModal.name}
               gitDraft={collectionModal.gitDraft}
               busy={gitBusy}

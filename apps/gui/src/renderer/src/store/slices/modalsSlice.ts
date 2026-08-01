@@ -41,9 +41,14 @@ export type CollectionModalMode = 'create' | 'create-and-save';
 export type CollectionModalTab = 'create' | 'git' | 'import' | 'join' | 'public';
 
 /**
- * Blank git connection draft used when creating a git-backed collection.
+ * Tab values for the Add Live Server modal.
  */
-function createCollectionModalGitDraft(): StorageConnection & { type: 'git' } {
+export type AddLiveServerModalTab = 'storage' | 'git' | 'import';
+
+/**
+ * Blank git connection draft used when creating a git-backed collection or live server.
+ */
+function createModalGitDraft(): StorageConnection & { type: 'git' } {
   return {
     id: '',
     name: '',
@@ -56,6 +61,47 @@ function createCollectionModalGitDraft(): StorageConnection & { type: 'git' } {
       auth: { kind: 'pat', username: 'token' }
     }
   };
+}
+
+/**
+ * Draft state for the Add Live Server modal (Storage / Git / Import).
+ */
+export interface AddLiveServerModalState {
+  /**
+   * Active segmented tab.
+   */
+  tab: AddLiveServerModalTab;
+
+  /**
+   * Server display name entered on Storage or Git.
+   */
+  name: string;
+
+  /**
+   * Selected non-git storage provider connection id.
+   */
+  providerId: string;
+
+  /**
+   * Inline submit/import error shown in the modal.
+   */
+  submitError: string | null;
+
+  /**
+   * Git repository settings entered on the Git tab before the connection is saved.
+   */
+  gitDraft: StorageConnection & { type: 'git' };
+
+  /**
+   * Persisted git connection id after the repo phase saves; used for orphan cleanup on cancel.
+   */
+  gitCreatedConnectionId: string | null;
+
+  /**
+   * True after the git connection was handed off to the live-server editor so cancel
+   * cleanup does not remove it.
+   */
+  gitConnectionCommitted: boolean;
 }
 
 export interface CollectionModalState {
@@ -485,6 +531,10 @@ export interface LiveServerModalState {
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
   workspaceModal: WorkspaceModalState | null;
+  /**
+   * Add Live Server modal (create entry); separate from the footer editor draft.
+   */
+  addLiveServerModal: AddLiveServerModalState | null;
   liveServerModal: LiveServerModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
@@ -507,6 +557,7 @@ export interface ModalsState {
 const initialState: ModalsState = {
   collectionModal: null,
   workspaceModal: null,
+  addLiveServerModal: null,
   liveServerModal: null,
   share: null,
   pendingLoadRequest: null,
@@ -546,7 +597,7 @@ const modalsSlice = createSlice({
         submitError: null,
         importUrlOpen: false,
         importUrlInput: '',
-        gitDraft: createCollectionModalGitDraft(),
+        gitDraft: createModalGitDraft(),
         gitCreatedConnectionId: null,
         gitCollectionCreated: false
       };
@@ -556,6 +607,93 @@ const modalsSlice = createSlice({
      */
     closeCollectionModal(state) {
       state.collectionModal = null;
+    },
+    /**
+     * Opens the Add Live Server modal (Storage / Git / Import).
+     */
+    openAddLiveServerModal(
+      state,
+      action: PayloadAction<{ tab?: AddLiveServerModalTab } | undefined>
+    ) {
+      state.addLiveServerModal = {
+        tab: action.payload?.tab ?? 'storage',
+        name: '',
+        providerId: '',
+        submitError: null,
+        gitDraft: createModalGitDraft(),
+        gitCreatedConnectionId: null,
+        gitConnectionCommitted: false
+      };
+    },
+    /**
+     * Closes the Add Live Server modal.
+     */
+    closeAddLiveServerModal(state) {
+      state.addLiveServerModal = null;
+    },
+    /**
+     * Switches the active tab within the Add Live Server modal.
+     */
+    setAddLiveServerModalTab(state, action: PayloadAction<AddLiveServerModalTab>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.tab = action.payload;
+        state.addLiveServerModal.submitError = null;
+      }
+    },
+    /**
+     * Updates the server name field in the Add Live Server modal.
+     */
+    setAddLiveServerModalName(state, action: PayloadAction<string>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.name = action.payload;
+        state.addLiveServerModal.submitError = null;
+      }
+    },
+    /**
+     * Updates the selected storage provider in the Add Live Server modal.
+     */
+    setAddLiveServerModalProviderId(state, action: PayloadAction<string>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.providerId = action.payload;
+        state.addLiveServerModal.submitError = null;
+      }
+    },
+    /**
+     * Stores a submit error shown inline in the Add Live Server modal.
+     */
+    setAddLiveServerModalSubmitError(state, action: PayloadAction<string | null>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.submitError = action.payload;
+      }
+    },
+    /**
+     * Replaces the git connection draft on the Add Live Server Git tab.
+     */
+    setAddLiveServerModalGitDraft(
+      state,
+      action: PayloadAction<StorageConnection & { type: 'git' }>
+    ) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.gitDraft = action.payload;
+        state.addLiveServerModal.submitError = null;
+      }
+    },
+    /**
+     * Stores the connection id created during git live-server creation for orphan cleanup.
+     */
+    setAddLiveServerModalGitCreatedConnectionId(state, action: PayloadAction<string | null>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.gitCreatedConnectionId = action.payload;
+        state.addLiveServerModal.submitError = null;
+      }
+    },
+    /**
+     * Marks that the git connection was handed off to the live-server editor.
+     */
+    setAddLiveServerModalGitConnectionCommitted(state, action: PayloadAction<boolean>) {
+      if (state.addLiveServerModal) {
+        state.addLiveServerModal.gitConnectionCommitted = action.payload;
+      }
     },
     /**
      * Opens the workspace modal for create, rename, or clone.
@@ -1531,6 +1669,15 @@ export const {
   setCollectionModalGitDraft,
   setCollectionModalGitCreatedConnectionId,
   setCollectionModalGitCollectionCreated,
+  openAddLiveServerModal,
+  closeAddLiveServerModal,
+  setAddLiveServerModalTab,
+  setAddLiveServerModalName,
+  setAddLiveServerModalProviderId,
+  setAddLiveServerModalSubmitError,
+  setAddLiveServerModalGitDraft,
+  setAddLiveServerModalGitCreatedConnectionId,
+  setAddLiveServerModalGitConnectionCommitted,
   openShareModal,
   closeShareModal,
   setShareRecipientKid,
@@ -1626,6 +1773,12 @@ export const selectWorkspaceModal = (state: RootState): WorkspaceModalState | nu
   state.modals.workspaceModal;
 
 /**
+ * Returns Add Live Server modal state when open.
+ */
+export const selectAddLiveServerModal = (state: RootState): AddLiveServerModalState | null =>
+  state.modals.addLiveServerModal;
+
+/**
  * Returns live server create/edit footer panel draft when open.
  */
 export const selectLiveServerModal = (state: RootState): LiveServerModalState | null =>
@@ -1718,6 +1871,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   const modals = state.modals;
   return (
     modals.collectionModal != null ||
+    modals.addLiveServerModal != null ||
     modals.workspaceModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||

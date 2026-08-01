@@ -1,3 +1,4 @@
+import { BrowserWindow } from 'electron';
 import type {
   LiveServerFileChangedEvent,
   LiveServerLogSession,
@@ -6,6 +7,7 @@ import type {
   LiveServerScriptLogEntry,
   RunningLiveServer
 } from '@harborclient/core/types';
+import { readHarborclientExport } from '@harborclient/core/harborclientExport';
 import { getRegisteredMainWindow } from '#/main/window/mainWindowReveal';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type { IStorage } from '#/main/storage/IStorage';
@@ -30,6 +32,8 @@ import {
   listLiveServerLogSessions,
   setLiveServerLogSessionsChangedHandler
 } from '#/main/liveServer/liveServerLogSessions';
+import { openImportFile } from './importDialogs';
+import { importLiveServerData } from './liveServerImport';
 
 /**
  * Sends a payload to the main window renderer when it is available.
@@ -151,4 +155,24 @@ export function registerLiveServerHandlers(db: IStorage): void {
       db.setLiveServerLastOpenedPath(id, path);
     }
   );
+
+  // Imports a HarborClient live-server export from a file selected via a native dialog.
+  handle('liveServers:import', ipcArgSchemas.none, async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const file = await openImportFile(win);
+    if (!file) {
+      return null;
+    }
+
+    if (file.parsed == null || readHarborclientExport(file.parsed) !== 'server') {
+      throw new Error('Selected file is not a HarborClient live server export.');
+    }
+
+    const result = await importLiveServerData(file.parsed, db);
+    if (!result) {
+      throw new Error('Failed to import live server export.');
+    }
+
+    return result.server;
+  });
 }

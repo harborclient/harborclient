@@ -41,6 +41,13 @@ export interface ApiLiveServer {
   createLiveServer: (input: CreateLiveServerInput) => Promise<LiveServer[]>;
 
   /**
+   * Imports a HarborClient live-server export from a file selected via a native dialog.
+   *
+   * @returns The imported or updated live server, or null when the dialog was canceled.
+   */
+  importLiveServer: () => Promise<LiveServer | null>;
+
+  /**
    * Updates a saved live server and returns the refreshed list.
    */
   updateLiveServer: (input: UpdateLiveServerInput) => Promise<LiveServer[]>;

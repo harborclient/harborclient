@@ -11,12 +11,22 @@ import {
 
 interface Props {
   /**
-   * Collection display name entered on the repo phase.
+   * Display name entered on the repo phase.
    */
   name: string;
 
   /**
-   * Git connection draft used when creating the collection.
+   * Label for the name field (e.g. "Collection name" or "Server name").
+   */
+  nameLabel?: string;
+
+  /**
+   * Noun used in auth and subdirectory helper copy (e.g. "collection" or "live server").
+   */
+  entityNoun?: string;
+
+  /**
+   * Git connection draft used when creating the entity.
    */
   gitDraft: StorageConnection & { type: 'git' };
 
@@ -31,26 +41,34 @@ interface Props {
   createAndSave: boolean;
 
   /**
-   * Updates the collection name field.
+   * Updates the display name field.
+   *
+   * @param name - Next display name.
    */
   onNameChange: (name: string) => void;
 
   /**
    * Called when repository fields change.
+   *
+   * @param connection - Updated git connection draft.
    */
   onGitDraftChange: (connection: StorageConnection) => void;
 
   /**
-   * Creates the git-backed collection after optional auth and repo initialization.
+   * Creates the git-backed entity after optional auth and repo initialization.
+   *
+   * @param options - Whether to initialize a new git repository at the path.
    */
   onCreate: (options: { initGitRepo: boolean }) => void;
 }
 
 /**
- * Git-backed collection creation flow inside the Add collection modal.
+ * Shared git-backed create form used by Add collection and Add Live Server modals.
  */
-export function GitTabPanel({
+export function GitCreateForm({
   name,
+  nameLabel = 'Collection name',
+  entityNoun = 'collection',
   gitDraft,
   busy,
   createAndSave,
@@ -174,6 +192,8 @@ export function GitTabPanel({
 
   /**
    * Returns whether a saved identity exists for the repository host.
+   *
+   * @returns True when credentials already exist for the host (or no host is set).
    */
   const hostHasIdentity = useCallback(async (): Promise<boolean> => {
     if (!gitHost) {
@@ -184,7 +204,7 @@ export function GitTabPanel({
   }, [gitHost]);
 
   /**
-   * Starts collection creation, prompting for host credentials when needed.
+   * Starts creation, prompting for host credentials when needed.
    */
   const handleCreateClick = useCallback(async (): Promise<void> => {
     if (!repoPhaseReady) {
@@ -237,7 +257,7 @@ export function GitTabPanel({
     <>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <FormGroup label="Collection name" labelTone="muted">
+          <FormGroup label={nameLabel} labelTone="muted">
             <Input
               className="w-full"
               type="text"
@@ -345,7 +365,7 @@ export function GitTabPanel({
           label="Subdirectory"
           htmlFor={subdirId}
           labelTone="muted"
-          description="Optional. Leave blank to store the collection at the repository root."
+          description={`Optional. Leave blank to store the ${entityNoun} at the repository root.`}
         >
           <Input
             id={subdirId}
@@ -383,7 +403,7 @@ export function GitTabPanel({
           className="w-[50rem]"
           labelledBy="git-auth-modal-title"
           title="Git authentication"
-          description={`Authorize with ${gitHost} before creating this collection, or skip for local-only work.`}
+          description={`Authorize with ${gitHost} before creating this ${entityNoun}, or skip for local-only work.`}
         >
           <GitAuthForm
             host={gitHost}

@@ -24,13 +24,7 @@ export type SidebarSectionKey =
 /**
  * Activity-rail mode that selects which sidebar sections are shown together.
  */
-export type SidebarMode =
-  | 'collections'
-  | 'environments'
-  | 'workspaces'
-  | 'workflows'
-  | 'servers'
-  | 'trash';
+export type SidebarMode = 'collections' | 'environments' | 'workflows' | 'servers' | 'trash';
 
 /**
  * Persisted sort mode for a collections sidebar section.

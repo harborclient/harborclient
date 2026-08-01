@@ -64,6 +64,7 @@ import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
 import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
+import { AddLiveServerModal } from '#/renderer/src/ui/Modals/AddLiveServerModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
 import { SaveWorkflowNameModal } from '#/renderer/src/ui/Modals/SaveWorkflowNameModal';
@@ -580,6 +581,7 @@ export default function App(): JSX.Element {
               />
 
               <CollectionModal />
+              <AddLiveServerModal />
               <WorkspaceModal />
               <WorkflowPanel />
               <SaveWorkflowNameModal />

@@ -28,6 +28,7 @@ import {
   unbindLiveServerTab
 } from '#/renderer/src/store/slices/liveServersSlice';
 import {
+  closeAddLiveServerModal,
   closeLiveServerModal,
   openLiveServerModal,
   setLiveServerModalLastOpenedPath,
@@ -146,6 +147,24 @@ export const refreshLiveServers = createAsyncThunk<void, void, ThunkApiConfig>(
   async (_arg, { dispatch }) => {
     const items = await window.api.listLiveServers();
     dispatch(setSavedLiveServers(items));
+  }
+);
+
+/**
+ * Imports a live server from a HarborClient export file and refreshes the list.
+ *
+ * @returns The imported or updated live server, or null when the dialog was canceled.
+ */
+export const importLiveServer = createAsyncThunk<LiveServer | null, void, ThunkApiConfig>(
+  'liveServers/import',
+  async (_arg, { dispatch }) => {
+    const server = await window.api.importLiveServer();
+    if (!server) {
+      return null;
+    }
+    await dispatch(refreshLiveServers());
+    dispatch(closeAddLiveServerModal());
+    return server;
   }
 );
 

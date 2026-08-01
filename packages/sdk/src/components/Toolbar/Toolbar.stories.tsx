@@ -8,7 +8,6 @@ import {
   faPlus,
   faSquareMinus,
   faTrash,
-  faWindowRestore,
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import type { Decorator, Meta, StoryObj } from '@storybook/react-vite';
@@ -173,7 +172,6 @@ export const WrapsWhenNarrow: Story = {
       { id: 'runs', icon: faPlay, label: 'Runs', onClick: fn() },
       { id: 'history', icon: faClockRotateLeft, label: 'History', onClick: fn() },
       { id: 'environments', icon: faLeaf, label: 'Environments', onClick: fn() },
-      { id: 'workspaces', icon: faWindowRestore, label: 'Workspaces', onClick: fn() },
       { id: 'trash', icon: faTrash, label: 'Trash', onClick: fn() }
     ],
     toggles: [

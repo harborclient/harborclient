@@ -38,8 +38,7 @@ describe('SIDEBAR_MODE_SECTIONS', () => {
       'history',
       'archive'
     ]);
-    expect(SIDEBAR_MODE_SECTIONS.environments).toEqual(['environments']);
-    expect(SIDEBAR_MODE_SECTIONS.workspaces).toEqual(['workspaces']);
+    expect(SIDEBAR_MODE_SECTIONS.environments).toEqual(['environments', 'workspaces']);
     expect(SIDEBAR_MODE_SECTIONS.workflows).toEqual(['workflows', 'history', 'archive']);
     expect(SIDEBAR_MODE_SECTIONS.servers).toEqual(['liveServers', 'liveServerLogs', 'websites']);
     expect(SIDEBAR_MODE_SECTIONS.trash).toEqual(['trash']);
@@ -174,6 +173,28 @@ describe('normalizeSidebarExpansion', () => {
         }
       }).activeSidebarMode
     ).toBe('workflows');
+
+    expect(
+      normalizeSidebarExpansion({
+        sectionVisibility: {
+          collections: false,
+          environments: false,
+          workspaces: true,
+          workflows: false
+        }
+      }).activeSidebarMode
+    ).toBe('environments');
+  });
+
+  it('migrates removed workspaces rail mode to environments', () => {
+    expect(
+      normalizeSidebarExpansion({
+        activeSidebarMode: 'workspaces',
+        collectionIds: [],
+        folderIds: [],
+        environmentIds: []
+      }).activeSidebarMode
+    ).toBe('environments');
   });
 
   it('preserves persisted storage badge visibility flag', () => {

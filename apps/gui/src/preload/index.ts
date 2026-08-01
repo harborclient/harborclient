@@ -655,6 +655,15 @@ function createLiveServer(input: CreateLiveServerInput): Promise<LiveServer[]> {
 }
 
 /**
+ * Imports a HarborClient live-server export from a JSON file via IPC.
+ *
+ * @returns The imported or updated live server, or null when the dialog was canceled.
+ */
+function importLiveServer(): Promise<LiveServer | null> {
+  return ipcRenderer.invoke('liveServers:import');
+}
+
+/**
  * Updates a saved live server and returns the refreshed list.
  *
  * @param input - Live server id and fields to persist.
@@ -4979,6 +4988,7 @@ const api: Api = {
   listRunningLiveServers,
   listLiveServers,
   createLiveServer,
+  importLiveServer,
   updateLiveServer,
   deleteLiveServer,
   moveLiveServer,

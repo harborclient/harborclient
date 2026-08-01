@@ -1,7 +1,6 @@
 import {
   EmptySectionLabel,
   RowActionsMenu,
-  SidebarBadge,
   SidebarWebsiteItem
 } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
@@ -120,46 +119,42 @@ export function Websites(): JSX.Element {
             name={website.name}
             faviconDataUrl={website.faviconDataUrl}
             fallbackIcon={faGlobe}
+            connectionBadge={
+              showStorageLocationBadges && connectionName != null ? connectionName : undefined
+            }
             selected={selected}
             actions={
-              <>
-                {showStorageLocationBadges && connectionName ? (
-                  <SidebarBadge variant="info" title={`Stored in ${connectionName}`}>
-                    {connectionName}
-                  </SidebarBadge>
-                ) : null}
-                <RowActionsMenu
-                  menuId={menuId}
-                  openMenuId={openMenuId}
-                  onOpenChange={setOpenMenuId}
-                  groups={[
-                    [
-                      {
-                        label: 'Edit',
-                        onSelect: () => {
-                          handleEdit(website);
-                        }
-                      },
-                      buildCopyIdMenuItem(website.uuid),
-                      {
-                        label: 'Export',
-                        onSelect: () => {
-                          void dispatch(exportWebsite(website.id));
-                        }
+              <RowActionsMenu
+                menuId={menuId}
+                openMenuId={openMenuId}
+                onOpenChange={setOpenMenuId}
+                groups={[
+                  [
+                    {
+                      label: 'Edit',
+                      onSelect: () => {
+                        handleEdit(website);
                       }
-                    ],
-                    [
-                      {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onSelect: () => {
-                          void handleDelete(website);
-                        }
+                    },
+                    buildCopyIdMenuItem(website.uuid),
+                    {
+                      label: 'Export',
+                      onSelect: () => {
+                        void dispatch(exportWebsite(website.id));
                       }
-                    ]
-                  ]}
-                />
-              </>
+                    }
+                  ],
+                  [
+                    {
+                      label: 'Delete',
+                      variant: 'danger',
+                      onSelect: () => {
+                        void handleDelete(website);
+                      }
+                    }
+                  ]
+                ]}
+              />
             }
             onClick={(event: MouseEvent) => {
               event.preventDefault();

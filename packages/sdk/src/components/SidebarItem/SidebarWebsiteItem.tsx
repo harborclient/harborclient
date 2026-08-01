@@ -1,6 +1,7 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { type JSX, type KeyboardEvent, type MouseEvent, type ReactNode, useState } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
+import { SidebarBadge } from './SidebarBadge.js';
 import { SidebarItem } from './SidebarItem.js';
 import { SIDEBAR_ITEM_BUTTON_CLASS } from './sidebarItemClasses.js';
 
@@ -19,6 +20,11 @@ interface Props {
    * Globe (or other) icon used when no favicon is available.
    */
   fallbackIcon: IconDefinition;
+
+  /**
+   * Optional connection badge text (e.g. storage location name).
+   */
+  connectionBadge?: string;
 
   /**
    * Whether this row is part of a multi-selection or is the active open website.
@@ -55,12 +61,14 @@ interface Props {
  * Renders a website row in the Collections sidebar Websites section.
  *
  * Shows the site favicon when available, otherwise a globe fallback icon, plus
- * the last known page title.
+ * the last known page title and an optional storage-location badge inline with
+ * the name.
  */
 export function SidebarWebsiteItem({
   name,
   faviconDataUrl,
   fallbackIcon,
+  connectionBadge,
   selected = false,
   onContextMenu,
   onClick,
@@ -121,7 +129,14 @@ export function SidebarWebsiteItem({
         ) : (
           <FaIcon icon={fallbackIcon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
         )}
-        <span className="min-w-0 flex-1 truncate">{name}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="min-w-0 truncate">{name}</span>
+          {connectionBadge != null ? (
+            <SidebarBadge variant="info" title={`Stored in ${connectionBadge}`}>
+              {connectionBadge}
+            </SidebarBadge>
+          ) : null}
+        </span>
       </span>
     </SidebarItem>
   );
