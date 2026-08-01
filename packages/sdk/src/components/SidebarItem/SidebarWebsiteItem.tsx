@@ -42,6 +42,11 @@ interface Props {
   onClick?: (event: MouseEvent<HTMLElement>) => void;
 
   /**
+   * Called when the primary row area is double-clicked (e.g. open page settings).
+   */
+  onDoubleClick?: (event: MouseEvent<HTMLElement>) => void;
+
+  /**
    * Called when Enter is pressed on the primary row area.
    */
   onEnter?: () => void;
@@ -72,6 +77,7 @@ export function SidebarWebsiteItem({
   selected = false,
   onContextMenu,
   onClick,
+  onDoubleClick,
   onEnter,
   actions,
   as = 'li'
@@ -112,6 +118,7 @@ export function SidebarWebsiteItem({
         useListboxOption
           ? {
               onClick,
+              onDoubleClick,
               onKeyDown: onEnter != null ? handleKeyDown : undefined
             }
           : undefined

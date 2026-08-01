@@ -1,9 +1,13 @@
+import { BrowserWindow } from 'electron';
+import { readHarborclientExport } from '@harborclient/core/harborclientExport';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { getTrashService } from '#/main/storage/trashServiceInstance';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { openImportFile } from './importDialogs';
+import { importWebsiteData } from './websiteImport';
 
 /**
  * Registers IPC handlers for routed live pages.
@@ -42,5 +46,25 @@ export function registerWebsiteHandlers(db: IStorage): void {
     }
     await db.moveLivePage(id, targetConnectionId);
     return db.listLivePages();
+  });
+
+  // Imports a HarborClient live-page export from a file selected via a native dialog.
+  handle('websites:import', ipcArgSchemas.none, async () => {
+    const win = BrowserWindow.getFocusedWindow();
+    const file = await openImportFile(win);
+    if (!file) {
+      return null;
+    }
+
+    if (file.parsed == null || readHarborclientExport(file.parsed) !== 'website') {
+      throw new Error('Selected file is not a HarborClient live page export.');
+    }
+
+    const result = await importWebsiteData(file.parsed, db);
+    if (!result) {
+      throw new Error('Failed to import live page export.');
+    }
+
+    return result.website;
   });
 }

@@ -30,7 +30,8 @@ export type BrowserGuestCoverOwner =
   | 'footer-modals'
   | 'address-suggestions'
   | 'downloads-menu'
-  | 'linux-menu';
+  | 'linux-menu'
+  | 'tab-context-menu';
 
 let activeCover: BrowserGuestCover | null = null;
 /** Owners that currently require the guest to stay covered. */

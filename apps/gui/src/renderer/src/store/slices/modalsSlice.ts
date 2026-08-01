@@ -46,6 +46,11 @@ export type CollectionModalTab = 'create' | 'git' | 'import' | 'join' | 'public'
 export type AddLiveServerModalTab = 'storage' | 'git' | 'import';
 
 /**
+ * Tab values for the Add Live Page modal.
+ */
+export type AddLivePageModalTab = 'storage' | 'git' | 'import';
+
+/**
  * Blank git connection draft used when creating a git-backed collection or live server.
  */
 function createModalGitDraft(): StorageConnection & { type: 'git' } {
@@ -100,6 +105,52 @@ export interface AddLiveServerModalState {
   /**
    * True after the git connection was handed off to the live-server editor so cancel
    * cleanup does not remove it.
+   */
+  gitConnectionCommitted: boolean;
+}
+
+/**
+ * Draft state for the Add Live Page modal (Storage / Git / Import).
+ */
+export interface AddLivePageModalState {
+  /**
+   * Active segmented tab.
+   */
+  tab: AddLivePageModalTab;
+
+  /**
+   * Live page display name entered on Storage or Git.
+   */
+  name: string;
+
+  /**
+   * Start URL for the live page (also used as home URL on create).
+   */
+  url: string;
+
+  /**
+   * Selected non-git storage provider connection id.
+   */
+  providerId: string;
+
+  /**
+   * Inline submit/import error shown in the modal.
+   */
+  submitError: string | null;
+
+  /**
+   * Git repository settings entered on the Git tab before the connection is saved.
+   */
+  gitDraft: StorageConnection & { type: 'git' };
+
+  /**
+   * Persisted git connection id after the repo phase saves; used for orphan cleanup on cancel.
+   */
+  gitCreatedConnectionId: string | null;
+
+  /**
+   * True after the git connection was used to create a live page so cancel cleanup
+   * does not remove it.
    */
   gitConnectionCommitted: boolean;
 }
@@ -535,6 +586,10 @@ export interface ModalsState {
    * Add Live Server modal (create entry); separate from the footer editor draft.
    */
   addLiveServerModal: AddLiveServerModalState | null;
+  /**
+   * Add Live Page modal (create / import entry).
+   */
+  addLivePageModal: AddLivePageModalState | null;
   liveServerModal: LiveServerModalState | null;
   share: ShareModalState | null;
   pendingLoadRequest: PendingLoadRequest | null;
@@ -558,6 +613,7 @@ const initialState: ModalsState = {
   collectionModal: null,
   workspaceModal: null,
   addLiveServerModal: null,
+  addLivePageModal: null,
   liveServerModal: null,
   share: null,
   pendingLoadRequest: null,
@@ -693,6 +749,100 @@ const modalsSlice = createSlice({
     setAddLiveServerModalGitConnectionCommitted(state, action: PayloadAction<boolean>) {
       if (state.addLiveServerModal) {
         state.addLiveServerModal.gitConnectionCommitted = action.payload;
+      }
+    },
+    /**
+     * Opens the Add Live Page modal (Storage / Git / Import), optionally prefilled.
+     */
+    openAddLivePageModal(
+      state,
+      action: PayloadAction<{ tab?: AddLivePageModalTab; name?: string; url?: string } | undefined>
+    ) {
+      state.addLivePageModal = {
+        tab: action.payload?.tab ?? 'storage',
+        name: action.payload?.name ?? '',
+        url: action.payload?.url ?? '',
+        providerId: '',
+        submitError: null,
+        gitDraft: createModalGitDraft(),
+        gitCreatedConnectionId: null,
+        gitConnectionCommitted: false
+      };
+    },
+    /**
+     * Closes the Add Live Page modal.
+     */
+    closeAddLivePageModal(state) {
+      state.addLivePageModal = null;
+    },
+    /**
+     * Switches the active tab within the Add Live Page modal.
+     */
+    setAddLivePageModalTab(state, action: PayloadAction<AddLivePageModalTab>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.tab = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Updates the page name field in the Add Live Page modal.
+     */
+    setAddLivePageModalName(state, action: PayloadAction<string>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.name = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Updates the URL field in the Add Live Page modal.
+     */
+    setAddLivePageModalUrl(state, action: PayloadAction<string>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.url = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Updates the selected storage provider in the Add Live Page modal.
+     */
+    setAddLivePageModalProviderId(state, action: PayloadAction<string>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.providerId = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Stores a submit error shown inline in the Add Live Page modal.
+     */
+    setAddLivePageModalSubmitError(state, action: PayloadAction<string | null>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.submitError = action.payload;
+      }
+    },
+    /**
+     * Replaces the git connection draft on the Add Live Page Git tab.
+     */
+    setAddLivePageModalGitDraft(state, action: PayloadAction<StorageConnection & { type: 'git' }>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.gitDraft = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Stores the connection id created during git live-page creation for orphan cleanup.
+     */
+    setAddLivePageModalGitCreatedConnectionId(state, action: PayloadAction<string | null>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.gitCreatedConnectionId = action.payload;
+        state.addLivePageModal.submitError = null;
+      }
+    },
+    /**
+     * Marks that the git connection was used to create a live page.
+     */
+    setAddLivePageModalGitConnectionCommitted(state, action: PayloadAction<boolean>) {
+      if (state.addLivePageModal) {
+        state.addLivePageModal.gitConnectionCommitted = action.payload;
       }
     },
     /**
@@ -1678,6 +1828,16 @@ export const {
   setAddLiveServerModalGitDraft,
   setAddLiveServerModalGitCreatedConnectionId,
   setAddLiveServerModalGitConnectionCommitted,
+  openAddLivePageModal,
+  closeAddLivePageModal,
+  setAddLivePageModalTab,
+  setAddLivePageModalName,
+  setAddLivePageModalUrl,
+  setAddLivePageModalProviderId,
+  setAddLivePageModalSubmitError,
+  setAddLivePageModalGitDraft,
+  setAddLivePageModalGitCreatedConnectionId,
+  setAddLivePageModalGitConnectionCommitted,
   openShareModal,
   closeShareModal,
   setShareRecipientKid,
@@ -1779,6 +1939,12 @@ export const selectAddLiveServerModal = (state: RootState): AddLiveServerModalSt
   state.modals.addLiveServerModal;
 
 /**
+ * Returns Add Live Page modal state when open.
+ */
+export const selectAddLivePageModal = (state: RootState): AddLivePageModalState | null =>
+  state.modals.addLivePageModal;
+
+/**
  * Returns live server create/edit footer panel draft when open.
  */
 export const selectLiveServerModal = (state: RootState): LiveServerModalState | null =>
@@ -1872,6 +2038,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   return (
     modals.collectionModal != null ||
     modals.addLiveServerModal != null ||
+    modals.addLivePageModal != null ||
     modals.workspaceModal != null ||
     modals.share != null ||
     modals.pendingLoadRequest != null ||

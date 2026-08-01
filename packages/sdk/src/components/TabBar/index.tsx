@@ -16,7 +16,7 @@ import {
   rectSortingStrategy,
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
-import { useEffect, useMemo, useState } from '@harborclient/sdk/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from '@harborclient/sdk/react';
 import type { ComponentProps, JSX, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import type { MenuItem } from '../RowActionsMenu/index.js';
 import { cn, resolveTabListKeyAction } from '../utils.js';
@@ -118,6 +118,18 @@ interface Props<TId extends string | number> {
   buildContextMenuGroups?: (targetId: TId, orderedIds: TId[]) => MenuItem[][];
 
   /**
+   * Awaited before the context menu paints. Hosts use this to prepare overlays
+   * that must sit above native layers (for example Electron WebContentsView).
+   */
+  beforeContextMenuOpen?: () => void | Promise<void>;
+
+  /**
+   * Called when the tab context menu closes, or when the tab bar unmounts after a
+   * beforeOpen cover may have been applied.
+   */
+  onContextMenuClose?: () => void;
+
+  /**
    * When ArrowDown is pressed on a focused tab, returns true if focus moved into
    * the linked panel (for example request editor content).
    */
@@ -217,6 +229,8 @@ export function TabBar<TId extends string | number>({
   onClose,
   onReorder,
   buildContextMenuGroups,
+  beforeContextMenuOpen,
+  onContextMenuClose,
   onArrowDownIntoPanel,
   onFocusTab,
   renderScrollContainer,
@@ -227,6 +241,17 @@ export function TabBar<TId extends string | number>({
   const resolvedSortablePrefix = sortablePrefix ?? `${tabIdPrefix}sort:`;
   const [activeDragId, setActiveDragId] = useState<TId | null>(null);
   const [contextMenu, setContextMenu] = useState<TabContextMenuState<TId> | null>(null);
+  const contextMenuOpenRequestRef = useRef(0);
+  const beforeContextMenuOpenRef = useRef(beforeContextMenuOpen);
+  const onContextMenuCloseRef = useRef(onContextMenuClose);
+
+  /**
+   * Keeps context-menu lifecycle callbacks current without rebinding open/close helpers.
+   */
+  useEffect(() => {
+    beforeContextMenuOpenRef.current = beforeContextMenuOpen;
+    onContextMenuCloseRef.current = onContextMenuClose;
+  }, [beforeContextMenuOpen, onContextMenuClose]);
 
   const getId = useMemo(
     () =>
@@ -236,6 +261,49 @@ export function TabBar<TId extends string | number>({
   );
   const sortableEnabled = tabs.length >= 2;
   const { completeExit, getExitingBefore, removedIds } = useExitingTabItems(tabs, getId);
+
+  /**
+   * Closes the tab context menu and notifies the host so overlay covers can release.
+   */
+  const closeContextMenu = useCallback((): void => {
+    contextMenuOpenRequestRef.current += 1;
+    setContextMenu(null);
+    onContextMenuCloseRef.current?.();
+  }, []);
+
+  /**
+   * Opens the tab context menu after awaiting any host preparation (guest cover, etc.).
+   *
+   * @param targetId - Tab that was right-clicked.
+   * @param x - Viewport X for the menu anchor.
+   * @param y - Viewport Y for the menu anchor.
+   */
+  const openContextMenu = useCallback(
+    async (targetId: TId, x: number, y: number): Promise<void> => {
+      const requestId = ++contextMenuOpenRequestRef.current;
+      const gate = beforeContextMenuOpenRef.current;
+      if (gate) {
+        await gate();
+        // A newer open or close owns lifecycle; do not uncover here (close already did,
+        // or the in-flight open still needs the host cover).
+        if (requestId !== contextMenuOpenRequestRef.current) {
+          return;
+        }
+      }
+      setContextMenu({ targetId, x, y });
+    },
+    []
+  );
+
+  /**
+   * Releases host overlay covers on unmount, including opens still awaiting beforeOpen.
+   */
+  useEffect(() => {
+    return () => {
+      contextMenuOpenRequestRef.current += 1;
+      onContextMenuCloseRef.current?.();
+    };
+  }, []);
 
   /**
    * Stable sortable ids for open tabs.
@@ -471,11 +539,7 @@ export function TabBar<TId extends string | number>({
                     buildContextMenuGroups == null
                       ? undefined
                       : (id, event) => {
-                          setContextMenu({
-                            targetId: id,
-                            x: event.clientX,
-                            y: event.clientY
-                          });
+                          void openContextMenu(id, event.clientX, event.clientY);
                         }
                   }
                 />
@@ -529,7 +593,7 @@ export function TabBar<TId extends string | number>({
         <TabContextMenu
           groups={contextMenuGroups}
           position={{ x: contextMenu.x, y: contextMenu.y }}
-          onClose={() => setContextMenu(null)}
+          onClose={closeContextMenu}
         />
       )}
     </div>

@@ -613,6 +613,15 @@ function moveWebsite(id: number, targetConnectionId: string): Promise<Website[]>
 }
 
 /**
+ * Imports a HarborClient live-page export via a native file dialog.
+ *
+ * @returns The imported or updated website, or null when the dialog was canceled.
+ */
+function importWebsite(): Promise<Website | null> {
+  return ipcRenderer.invoke('websites:import');
+}
+
+/**
  * Starts a live server instance via IPC.
  *
  * @param input - Runtime id (optional), saved id, and server config.
@@ -4983,6 +4992,7 @@ const api: Api = {
   updateWebsite,
   deleteWebsite,
   moveWebsite,
+  importWebsite,
   startLiveServer,
   stopLiveServer,
   listRunningLiveServers,

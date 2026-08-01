@@ -7,7 +7,6 @@ import {
   faAngleRight,
   faArrowsRotate,
   faCamera,
-  faFloppyDisk,
   faHouse,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -82,11 +81,6 @@ interface Props {
   onHome: () => void;
 
   /**
-   * Saves a new live page or updates the linked live page from the current tab.
-   */
-  onSave: () => void;
-
-  /**
    * Captures a viewport screenshot and prompts to save it.
    */
   onScreenshot: () => void;
@@ -124,7 +118,7 @@ interface Props {
 }
 
 /**
- * Navigation toolbar for an embedded browser tab (save, back, forward, reload, home, address,
+ * Navigation toolbar for an embedded browser tab (back, forward, reload, home, address,
  * open external, downloads, AI, screenshot).
  *
  * Address autocomplete is gated on {@link Props.beforeSuggestionsOpen} so the parent can cover
@@ -142,7 +136,6 @@ export function BrowserChrome({
   onForward,
   onReload,
   onHome,
-  onSave,
   onScreenshot,
   screenshotDisabled = false,
   onAskAi,
@@ -158,8 +151,6 @@ export function BrowserChrome({
   const addressValue = editingAddress ?? tab.url;
   const runtimeVars = buildRuntimeVars(variables);
   const externalUrl = resolveBrowserExternalUrl(addressValue, runtimeVars);
-  const linked = tab.websiteId != null;
-  const saveLabel = linked ? 'Update live page' : 'Save live page';
 
   /**
    * Resolves address-bar text and navigates when it is a valid URL.
@@ -259,13 +250,6 @@ export function BrowserChrome({
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-separator bg-sidebar-toolbar p-2">
-      <RoundButton
-        icon={faFloppyDisk}
-        ariaLabel={saveLabel}
-        onClick={onSave}
-        className={chromeButtonClassName}
-        iconClassName={chromeIconClassName}
-      />
       <RoundButton
         icon={faAngleLeft}
         ariaLabel="Back"

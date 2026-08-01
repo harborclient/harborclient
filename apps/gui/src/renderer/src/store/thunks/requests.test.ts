@@ -1003,50 +1003,13 @@ describe('saveFromMenu', () => {
     expect(saveDocumentMock.mock.calls[0]?.[0].content).toBe('# Edited');
   });
 
-  it('saves the active browser tab as a website', async () => {
-    const createWebsiteMock = vi
-      .fn()
-      .mockImplementation(
-        async (input: { uuid?: string; name: string; url: string; homeUrl: string }) => [
-          {
-            id: 42,
-            uuid: input.uuid ?? 'website-uuid',
-            name: input.name,
-            url: input.url,
-            homeUrl: input.homeUrl,
-            faviconDataUrl: null,
-            scripts: [],
-            preRequestScripts: [],
-            postRequestScripts: [],
-            variables: [],
-            headers: [],
-            userAgent: '',
-            auth: {
-              type: 'none',
-              basic: { username: '', password: '' },
-              bearer: { token: '' },
-              oauth2: {
-                tokenUrl: '',
-                clientId: '',
-                clientSecret: '',
-                scope: '',
-                audience: '',
-                clientAuth: 'body' as const
-              }
-            },
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        ]
-      );
+  it('opens the Add Live Page modal when saving an unlinked browser tab', async () => {
     vi.stubGlobal('window', {
       api: {
         saveRequest: saveRequestMock,
         listRequests: listRequestsMock,
         listFolders: listFoldersMock,
-        cancelRequest: cancelRequestMock,
-        createWebsite: createWebsiteMock,
-        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+        cancelRequest: cancelRequestMock
       }
     });
 
@@ -1064,8 +1027,9 @@ describe('saveFromMenu', () => {
 
     await store.dispatch(saveFromMenu());
 
-    expect(createWebsiteMock).toHaveBeenCalledTimes(1);
-    expect(createWebsiteMock.mock.calls[0]?.[0].url).toBe('https://example.com/');
+    const modal = store.getState().modals.addLivePageModal;
+    expect(modal).not.toBeNull();
+    expect(modal?.url).toBe('https://example.com/');
     expect(saveRequestMock).not.toHaveBeenCalled();
   });
 

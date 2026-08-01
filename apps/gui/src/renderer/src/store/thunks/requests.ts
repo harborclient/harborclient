@@ -103,7 +103,7 @@ import {
   updateCollection,
   updateFolder
 } from './collections';
-import { saveOrUpdateBrowserWebsite } from './websites';
+import { openAddLivePageModalWithPrefill, updateWebsiteFromTab } from './websites';
 import { updateEnvironment } from './environments';
 import { tryInvokeTabSave } from '#/renderer/src/hooks/tabSaveRegistry';
 import { saveMarkdownTab } from './documents';
@@ -1378,7 +1378,11 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
     }
 
     if (activeTab && isBrowserTab(activeTab)) {
-      await dispatch(saveOrUpdateBrowserWebsite(activeTab.tabId));
+      if (activeTab.websiteId != null) {
+        await dispatch(updateWebsiteFromTab(activeTab.tabId));
+        return;
+      }
+      dispatch(openAddLivePageModalWithPrefill());
       return;
     }
 

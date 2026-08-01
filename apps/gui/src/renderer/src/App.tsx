@@ -16,6 +16,7 @@ import {
   selectActivePage,
   selectActiveTab,
   selectActiveTabId,
+  selectBrowserTabWithSettingsOpen,
   selectCollections,
   selectConsoleEntries,
   selectDraft,
@@ -69,6 +70,7 @@ import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
 import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
+import { AddLivePageModal } from '#/renderer/src/ui/Modals/AddLivePageModal';
 import { AddLiveServerModal } from '#/renderer/src/ui/Modals/AddLiveServerModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
@@ -149,6 +151,7 @@ export default function App(): JSX.Element {
    * — WebContentsView paints above bottom-center HTML overlays.
    */
   const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
+  const settingsBrowserTab = useAppSelector(selectBrowserTabWithSettingsOpen);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
   const railVisible = useAppSelector(selectShowRail);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
@@ -177,14 +180,14 @@ export default function App(): JSX.Element {
   useBrowserGuestOverlayCover();
 
   /**
-   * Closes the live page settings footer panel for the active browser tab, if open.
+   * Closes the live page settings footer panel when open, even if that browser tab is not active.
    */
   const closeLivePageSettings = useCallback((): void => {
-    if (activeBrowserTab?.settingsPanelOpen !== true) {
+    if (settingsBrowserTab == null) {
       return;
     }
-    dispatch(setBrowserSettingsPanelOpen({ tabId: activeBrowserTab.tabId, open: false }));
-  }, [activeBrowserTab, dispatch]);
+    dispatch(setBrowserSettingsPanelOpen({ tabId: settingsBrowserTab.tabId, open: false }));
+  }, [dispatch, settingsBrowserTab]);
 
   /**
    * Loads folders and requests when a collection tree is expanded in the sidebar,
@@ -609,6 +612,7 @@ export default function App(): JSX.Element {
               />
 
               <CollectionModal />
+              <AddLivePageModal />
               <AddLiveServerModal />
               <WorkspaceModal />
               <WorkflowPanel />

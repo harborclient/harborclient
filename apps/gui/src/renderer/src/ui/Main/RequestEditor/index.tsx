@@ -83,6 +83,7 @@ import {
 } from '#/renderer/src/store/thunks';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { maybePersistLiveServerLastOpenedFromNavigation } from '#/renderer/src/store/thunks/liveServers';
+import { maybePersistWebsiteFaviconFromNavigation } from '#/renderer/src/store/thunks/websites';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { mergeRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
@@ -248,12 +249,13 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   /**
    * Forwards guest navigation/title updates into browser tab Redux state, and
    * may debounce-persist `lastOpenedPath` for bound live servers with remember
-   * enabled.
+   * enabled. Also syncs late-arriving favicons onto linked live pages.
    */
   useEffect(() => {
     return window.api.onBrowserNavigation((state) => {
       dispatch(updateBrowserNavigation(state));
       dispatch(maybePersistLiveServerLastOpenedFromNavigation(state.tabId, state.url));
+      dispatch(maybePersistWebsiteFaviconFromNavigation(state.tabId, state.faviconDataUrl));
     });
   }, [dispatch]);
 

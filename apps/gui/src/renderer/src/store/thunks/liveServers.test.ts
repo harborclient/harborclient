@@ -751,11 +751,13 @@ describe('live server editor and logs sidebar coexistence', () => {
       .default;
     const navigationReducer = (await import('#/renderer/src/store/slices/navigationSlice')).default;
     const modalsReducer = (await import('#/renderer/src/store/slices/modalsSlice')).default;
+    const tabsReducer = (await import('#/renderer/src/store/slices/tabsSlice')).default;
     return configureStore({
       reducer: {
         liveServers: liveServersReducer,
         navigation: navigationReducer,
-        modals: modalsReducer
+        modals: modalsReducer,
+        tabs: tabsReducer
       }
     });
   }

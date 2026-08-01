@@ -36,7 +36,7 @@ import {
   setActiveSidebarRailItem
 } from '#/renderer/src/store/slices/navigationSlice';
 import { requestCreateWorkspaceFromOpenTabs } from '#/renderer/src/store/thunks/workspaces';
-import { openNewBrowserTab } from '#/renderer/src/store/thunks/websites';
+import { openAddLivePageModalWithPrefill } from '#/renderer/src/store/thunks/websites';
 import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
@@ -354,7 +354,7 @@ export function SidebarContent(): JSX.Element {
         ariaLabel: 'Live pages',
         initialEntered: websitesSectionExpanded,
         onAdd: () => {
-          dispatch(openNewBrowserTab());
+          dispatch(openAddLivePageModalWithPrefill());
         },
         addLabel: 'New live page',
         children: <Websites />

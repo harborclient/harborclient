@@ -54,7 +54,7 @@ import {
   sendRequest,
   showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
-import { openNewBrowserTab } from '#/renderer/src/store/thunks/websites';
+import { openAddLivePageModalWithPrefill } from '#/renderer/src/store/thunks/websites';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import { isRequestTab } from '#/renderer/src/store/tabs';
@@ -212,7 +212,7 @@ export function useMenuActions(): void {
           dispatchNewRequest(dispatch);
           break;
         case 'new-browser':
-          dispatch(openNewBrowserTab());
+          dispatch(openAddLivePageModalWithPrefill());
           break;
         case 'new-live-server':
           dispatch(openAddLiveServerModal());

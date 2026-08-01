@@ -2,7 +2,7 @@ import { useCallback, useMemo, type JSX } from 'react';
 import type { Variable } from '@harborclient/core/types';
 import type { ConsoleEntry } from '#/renderer/src/store';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
+import { selectBrowserTabWithSettingsOpen } from '#/renderer/src/store/selectors';
 import {
   closeLiveServerModal,
   selectLiveServerModal
@@ -155,9 +155,9 @@ export function FooterPanels({
   const pluginFooterPanels = usePluginFooterPanels();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const liveServerModal = useAppSelector(selectLiveServerModal);
-  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
+  const settingsBrowserTab = useAppSelector(selectBrowserTabWithSettingsOpen);
   const liveServerOpen = liveServerModal != null;
-  const livePageSettingsOpen = activeBrowserTab?.settingsPanelOpen === true;
+  const livePageSettingsOpen = settingsBrowserTab != null;
 
   /**
    * Merges scoped variables for the variables panel content.
@@ -184,11 +184,11 @@ export function FooterPanels({
    * Closes the live page settings panel when another footer panel is toggled open.
    */
   const closeLivePageSettings = useCallback((): void => {
-    if (activeBrowserTab?.settingsPanelOpen !== true) {
+    if (settingsBrowserTab == null) {
       return;
     }
-    dispatch(setBrowserSettingsPanelOpen({ tabId: activeBrowserTab.tabId, open: false }));
-  }, [activeBrowserTab, dispatch]);
+    dispatch(setBrowserSettingsPanelOpen({ tabId: settingsBrowserTab.tabId, open: false }));
+  }, [dispatch, settingsBrowserTab]);
 
   /**
    * Closes exclusive editors, then toggles the console panel.
@@ -254,10 +254,10 @@ export function FooterPanels({
     <div className="absolute inset-x-0 bottom-0">
       {liveServerOpen ? (
         <LiveServerPanel open onClose={handleCloseLiveServer} />
-      ) : livePageSettingsOpen && activeBrowserTab != null ? (
+      ) : livePageSettingsOpen && settingsBrowserTab != null ? (
         <LivePageSettingsPanel
           open
-          browserTab={activeBrowserTab}
+          browserTab={settingsBrowserTab}
           onClose={handleCloseLivePageSettings}
         />
       ) : (

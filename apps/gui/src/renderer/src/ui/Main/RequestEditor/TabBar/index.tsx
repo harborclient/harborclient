@@ -4,11 +4,12 @@ import {
   buildTabCloseMenuGroups,
   type TabBarItem
 } from '@harborclient/sdk/components';
-import { useMemo, type JSX, type ReactNode } from 'react';
+import { useCallback, useMemo, type JSX, type ReactNode } from 'react';
 import { isMarkdownTab, isPageTab, isRequestTab, type Tab } from '#/renderer/src/store/tabs';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectWrapTabs } from '#/renderer/src/store/slices/settingsSlice';
 import {
+  selectActiveBrowserTab,
   selectCollections,
   selectEnvironments,
   selectFoldersByCollection,
@@ -24,6 +25,11 @@ import {
 import { selectThemeDesignerIsDirty } from '#/renderer/src/store/slices/themeDesignerSlice';
 import { selectWorkspaces } from '#/renderer/src/store/slices/workspaceSlice';
 import { selectWorkflows } from '#/renderer/src/store/slices/workflowsSlice';
+import {
+  coverBrowserGuestForOverlay,
+  uncoverBrowserGuest
+} from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserGuestCover';
+import { hasBrowserGuest } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserGuestRegistry';
 
 import { pageTabMeta } from './pageTabMeta';
 import { focusRequestTabControl } from './focusFirstRequestTab';
@@ -102,6 +108,27 @@ export function TabBar({
   const themeDesignerDirty = useAppSelector(selectThemeDesignerIsDirty);
   const { teamHubs } = useTeamHubs();
   const wrapTabs = useAppSelector(selectWrapTabs);
+  const activeBrowserTab = useAppSelector(selectActiveBrowserTab);
+
+  /**
+   * Freezes the active live-page guest so the tab context menu can paint above it.
+   *
+   * Native WebContentsView always composites above renderer HTML; without a cover the
+   * menu is clipped by the browser viewport under the tab bar.
+   */
+  const beforeContextMenuOpen = useCallback(async (): Promise<void> => {
+    if (!activeBrowserTab || !hasBrowserGuest(activeBrowserTab.tabId)) {
+      return;
+    }
+    await coverBrowserGuestForOverlay(activeBrowserTab.tabId, 'tab-context-menu');
+  }, [activeBrowserTab]);
+
+  /**
+   * Restores the live-page guest after the tab context menu closes.
+   */
+  const handleContextMenuClose = useCallback((): void => {
+    void uncoverBrowserGuest('tab-context-menu');
+  }, []);
 
   /**
    * Resolves display metadata for each page tab using current entity names.
@@ -240,6 +267,8 @@ export function TabBar({
           onCloseSaved
         })
       }
+      beforeContextMenuOpen={beforeContextMenuOpen}
+      onContextMenuClose={handleContextMenuClose}
       onFocusTab={focusRequestTabControl}
       onArrowDownIntoPanel={(tabId) => {
         const tab = tabs.find((entry) => entry.tabId === tabId);

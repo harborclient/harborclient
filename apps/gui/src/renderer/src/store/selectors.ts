@@ -286,6 +286,21 @@ export const selectActiveBrowserTab = (state: RootState): BrowserTab | null => {
 };
 
 /**
+ * Returns the browser tab whose live page settings footer panel is open, if any.
+ *
+ * Settings can stay open without that tab being active (same idea as the live
+ * server editor overlaying whatever tab is focused).
+ */
+export const selectBrowserTabWithSettingsOpen = (state: RootState): BrowserTab | null => {
+  for (const tab of selectTabs(state)) {
+    if (isBrowserTab(tab) && tab.settingsPanelOpen) {
+      return tab;
+    }
+  }
+  return null;
+};
+
+/**
  * Returns the draft for the active request tab.
  */
 export const selectDraft = (state: RootState): RequestDraft => {

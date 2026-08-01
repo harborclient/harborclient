@@ -3,7 +3,15 @@ import {
   RowActionsMenu,
   SidebarWebsiteItem
 } from '@harborclient/sdk/components';
-import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type JSX,
+  type MouseEvent
+} from 'react';
 import type { Website } from '@harborclient/core/types';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
@@ -25,6 +33,9 @@ import {
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarProviders } from '#/renderer/src/ui/Sidebars/CollectionSidebar/providers/sidebarProvidersContext';
 
+/** Delay before single-click opens a live page so double-click can open settings instead. */
+const LIVE_PAGE_OPEN_CLICK_DELAY_MS = 250;
+
 /**
  * Websites sidebar section listing saved embedded browser tabs with open, edit, copy-id, export, and delete actions.
  */
@@ -37,7 +48,28 @@ export function Websites(): JSX.Element {
   const { sectionSort, showStorageLocationBadges } = useSidebarExpansion();
   const { primaryConnectionId, connectionNamesById } = useSidebarProviders();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const openClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sortMode = sectionSort.websites;
+
+  /**
+   * Clears any pending delayed open so double-click can open settings alone.
+   */
+  const cancelPendingOpen = useCallback((): void => {
+    if (openClickTimerRef.current == null) {
+      return;
+    }
+    clearTimeout(openClickTimerRef.current);
+    openClickTimerRef.current = null;
+  }, []);
+
+  /**
+   * Clears a pending open timer when the Live Pages section unmounts.
+   */
+  useEffect(() => {
+    return () => {
+      cancelPendingOpen();
+    };
+  }, [cancelPendingOpen]);
 
   /**
    * Websites ordered by the Websites section sort mode.
@@ -95,15 +127,32 @@ export function Websites(): JSX.Element {
   );
 
   /**
+   * Schedules opening a live page after a short delay so double-click can cancel it.
+   *
+   * @param website - Website to open.
+   */
+  const scheduleOpen = useCallback(
+    (website: Website): void => {
+      cancelPendingOpen();
+      openClickTimerRef.current = setTimeout(() => {
+        openClickTimerRef.current = null;
+        handleOpen(website);
+      }, LIVE_PAGE_OPEN_CLICK_DELAY_MS);
+    },
+    [cancelPendingOpen, handleOpen]
+  );
+
+  /**
    * Opens a website and shows its webpage settings page.
    *
    * @param website - Website whose scripts/settings to edit.
    */
   const handleEdit = useCallback(
     (website: Website): void => {
+      cancelPendingOpen();
       void dispatch(openWebsiteSettings(website.id));
     },
-    [dispatch]
+    [cancelPendingOpen, dispatch]
   );
 
   return (
@@ -113,11 +162,17 @@ export function Websites(): JSX.Element {
         const menuId = `website-${website.id}`;
         const selected = activeWebsiteId === website.id;
         const connectionName = connectionNamesById[website.connectionId ?? primaryConnectionId];
+        const openTab = tabs.find(
+          (tab) => isBrowserTab(tab) && tab.websiteId === website.id && tab.faviconDataUrl
+        );
+        const faviconDataUrl =
+          (openTab && isBrowserTab(openTab) ? openTab.faviconDataUrl : null) ??
+          website.faviconDataUrl;
         return (
           <SidebarWebsiteItem
             key={website.id}
             name={website.name}
-            faviconDataUrl={website.faviconDataUrl}
+            faviconDataUrl={faviconDataUrl}
             fallbackIcon={faGlobe}
             connectionBadge={
               showStorageLocationBadges && connectionName != null ? connectionName : undefined
@@ -158,7 +213,16 @@ export function Websites(): JSX.Element {
             }
             onClick={(event: MouseEvent) => {
               event.preventDefault();
-              handleOpen(website);
+              // Ignore the second click of a double-click so only settings open.
+              if (event.detail > 1) {
+                cancelPendingOpen();
+                return;
+              }
+              scheduleOpen(website);
+            }}
+            onDoubleClick={(event: MouseEvent) => {
+              event.preventDefault();
+              handleEdit(website);
             }}
             onContextMenu={(event: MouseEvent) => {
               event.preventDefault();

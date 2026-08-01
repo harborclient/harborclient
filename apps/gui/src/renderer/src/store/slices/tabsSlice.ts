@@ -750,7 +750,11 @@ const tabsSlice = createSlice({
       };
     },
     /**
-     * Opens a browser tab hydrated from a saved website entity and selects it.
+     * Ensures a browser tab hydrated from a saved website entity exists.
+     *
+     * When {@link activate} is true (default), the tab becomes active so the
+     * live page opens in the editor. Pass `activate: false` for settings-only
+     * flows that need a draft host without switching the editor.
      */
     openBrowserTabFromWebsite(
       state,
@@ -768,13 +772,20 @@ const tabsSlice = createSlice({
         headers?: KeyValue[];
         userAgent?: string;
         auth?: AuthConfig;
+        /**
+         * When false, create or reuse the tab without selecting it.
+         */
+        activate?: boolean;
       }>
     ) {
+      const activate = action.payload.activate !== false;
       const existing = state.tabs.find(
         (t) => isBrowserTab(t) && t.websiteId === action.payload.websiteId
       );
       if (existing && isBrowserTab(existing)) {
-        state.activeTabId = existing.tabId;
+        if (activate) {
+          state.activeTabId = existing.tabId;
+        }
         return;
       }
 
@@ -817,7 +828,9 @@ const tabsSlice = createSlice({
         savedFaviconDataUrl: action.payload.faviconDataUrl
       });
       state.tabs.push(tab);
-      state.activeTabId = tab.tabId;
+      if (activate) {
+        state.activeTabId = tab.tabId;
+      }
     },
     /**
      * Discards draft live-page settings and restores the last saved baselines.

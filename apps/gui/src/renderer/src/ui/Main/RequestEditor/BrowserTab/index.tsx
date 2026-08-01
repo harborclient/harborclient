@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'rea
 import type { Variable } from '@harborclient/core/types';
 import type { BrowserTab } from '#/renderer/src/store/tabs';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
-import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
-import { saveOrUpdateBrowserWebsite } from '#/renderer/src/store/thunks/websites';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 import { BrowserChrome } from './BrowserChrome';
 import { BrowserGuestBoundsSync } from './BrowserGuestBoundsSync';
@@ -66,7 +65,6 @@ interface Props {
  * @returns Browser chrome and guest host.
  */
 export function BrowserTabContent({ tab, variables, onEditVariables }: Props): JSX.Element {
-  const dispatch = useAppDispatch();
   const snippets = useAppSelector(selectSnippets);
   const { aiAvailable, copyToChat } = useCopyToChat();
   const hostRef = useRef<HTMLDivElement>(null);
@@ -240,13 +238,6 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
   }
 
   /**
-   * Saves a new live page or updates the linked live page from this tab.
-   */
-  function handleSave(): void {
-    void dispatch(saveOrUpdateBrowserWebsite(tab.tabId));
-  }
-
-  /**
    * Opens the screenshot mode chooser when a capture is not already running.
    */
   function handleScreenshotClick(): void {
@@ -309,7 +300,6 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
         onForward={() => void window.api.browserGoForward(tab.tabId)}
         onReload={() => void window.api.browserReload(tab.tabId)}
         onHome={() => void window.api.browserGoHome(tab.tabId)}
-        onSave={handleSave}
         onScreenshot={handleScreenshotClick}
         screenshotDisabled={screenshotBusy}
         onAskAi={aiAvailable ? handleAskAi : undefined}

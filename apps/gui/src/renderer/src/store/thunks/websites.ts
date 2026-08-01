@@ -1,13 +1,19 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
 import { buildWebsiteExport } from '@harborclient/core/types/website';
-import type { KeyValue, ScriptRef, Snippet, Variable } from '@harborclient/core/types';
+import type { KeyValue, ScriptRef, Snippet, Variable, Website } from '@harborclient/core/types';
 import type { AuthConfig } from '@harborclient/core/auth';
 import type { BrowserInjectionScript } from '#/browser/browserScripts';
+import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
-import { selectSnippets } from '#/renderer/src/store/selectors';
+import { selectActiveBrowserTab, selectSnippets } from '#/renderer/src/store/selectors';
 import { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
-import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
+import {
+  closeAddLivePageModal,
+  closeLiveServerModal,
+  openAddLivePageModal,
+  type AddLivePageModalTab
+} from '#/renderer/src/store/slices/modalsSlice';
 import {
   setActivePluginFooterPanelId,
   setShowConsole,
@@ -18,18 +24,56 @@ import {
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   bindBrowserTabToWebsite,
-  newBrowserTab,
   openBrowserTabFromWebsite,
   saveBrowserScripts,
   setBrowserSettingsPanelOpen,
   updateBrowserTab
 } from '#/renderer/src/store/slices/tabsSlice';
-import { isBrowserTab, hasBrowserPendingSave } from '#/renderer/src/store/tabs';
+import { isBrowserTab } from '#/renderer/src/store/tabs';
 import { syncTrash } from '#/renderer/src/store/thunks/trash';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { buildBrowserHcScriptsPayload } from '#/renderer/src/store/browser/browserGuestPayload';
 import { getActiveBaseVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
 import { withOfflineTeamHubLivePageError } from './liveServerThunkErrors';
+
+/**
+ * Website ids with an in-flight favicon persist so navigation events do not stack writes.
+ */
+const faviconPersistInFlight = new Set<number>();
+
+/**
+ * Returns true when a browser URL should be treated as empty for modal prefill.
+ *
+ * @param url - Candidate URL from the focused browser tab.
+ */
+function isBlankBrowserUrl(url: string): boolean {
+  const trimmed = url.trim();
+  return trimmed.length === 0 || trimmed === 'about:blank';
+}
+
+/**
+ * Returns whether a tab favicon is safe to attach to a live page for the given URL.
+ *
+ * Favicons are origin-scoped; only reuse the tab icon when both URLs share an http(s) origin.
+ *
+ * @param tabUrl - URL that produced the favicon.
+ * @param pageUrl - Live page URL that would store the favicon.
+ */
+export function canReuseTabFaviconForUrl(tabUrl: string, pageUrl: string): boolean {
+  try {
+    const tab = new URL(tabUrl);
+    const page = new URL(pageUrl);
+    if (
+      (tab.protocol !== 'http:' && tab.protocol !== 'https:') ||
+      (page.protocol !== 'http:' && page.protocol !== 'https:')
+    ) {
+      return false;
+    }
+    return tab.origin === page.origin;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Pushes the browser tab's current scripts and request defaults to the main-process guest.
@@ -69,16 +113,31 @@ async function pushBrowserTabScriptsToGuest(
 }
 
 /**
- * Opens a new Live Page using the Start webpage general setting for url and home.
+ * Opens the Add Live Page modal, prefilling name/url from the focused browser tab when present.
  *
- * Falls back to about:blank when the setting is empty.
+ * Blank / about:blank URLs are left empty so the user can enter a destination.
  *
- * @returns Thunk that reads settings and dispatches {@link newBrowserTab}.
+ * @param options - Optional initial segmented tab.
+ * @returns Thunk that reads the active browser tab and opens the modal.
  */
-export function openNewBrowserTab(): (dispatch: AppDispatch, getState: () => RootState) => void {
+export function openAddLivePageModalWithPrefill(options?: {
+  tab?: AddLivePageModalTab;
+}): (dispatch: Dispatch<UnknownAction>, getState: () => RootState) => void {
   return (dispatch, getState) => {
-    const startWebpageUrl = getState().settings.general.startWebpageUrl || 'about:blank';
-    dispatch(newBrowserTab({ url: startWebpageUrl, homeUrl: startWebpageUrl }));
+    const browserTab = selectActiveBrowserTab(getState());
+    let name = '';
+    let url = '';
+    if (browserTab) {
+      name = websiteNameFromBrowserTab(browserTab);
+      url = isBlankBrowserUrl(browserTab.url) ? '' : browserTab.url;
+    }
+    dispatch(
+      openAddLivePageModal({
+        tab: options?.tab,
+        name,
+        url
+      })
+    );
   };
 }
 
@@ -136,70 +195,226 @@ export const refreshWebsites = createAsyncThunk<void, void, ThunkApiConfig>(
 );
 
 /**
- * Creates a website from the current browser tab state and binds the tab to it.
+ * Input for creating a live page from the Add Live Page modal.
  */
-export const saveBrowserTabAsWebsite = createAsyncThunk<void, string, ThunkApiConfig>(
-  'websites/saveFromTab',
-  async (tabId, { dispatch, getState }) => {
-    const tab = getState().tabs.tabs.find((item) => item.tabId === tabId);
-    if (!tab || !isBrowserTab(tab)) {
-      toast.error('Browser tab not found');
-      return;
-    }
-    if (tab.websiteId != null) {
-      await dispatch(updateWebsiteFromTab(tabId));
-      return;
-    }
+export interface CreateLivePageFromModalInput {
+  /**
+   * Display name for the live page.
+   */
+  name: string;
 
-    try {
-      const uuid = crypto.randomUUID();
-      const name = websiteNameFromBrowserTab(tab);
-      const items = await withOfflineTeamHubLivePageError(() =>
-        window.api.createWebsite({
-          uuid,
-          name,
-          url: tab.url,
-          homeUrl: tab.homeUrl,
-          faviconDataUrl: tab.faviconDataUrl,
-          scripts: tab.scripts,
-          preRequestScripts: tab.pre_request_scripts,
-          postRequestScripts: tab.post_request_scripts,
-          variables: tab.variables,
-          headers: tab.headers,
-          userAgent: tab.userAgent,
-          auth: tab.auth
-        })
-      );
-      dispatch(setWebsites(items));
-      const created = items.find((item) => item.uuid === uuid);
-      if (!created) {
-        throw new Error('Website was not created');
+  /**
+   * Start URL (also used as home URL).
+   */
+  url: string;
+
+  /**
+   * Destination storage connection id.
+   */
+  connectionId?: string;
+}
+
+/**
+ * Creates a live page from the Add Live Page modal and opens or binds a browser tab.
+ *
+ * When the focused tab is an unlinked browser tab, binds that tab instead of opening another.
+ *
+ * @returns The created website.
+ */
+export const createLivePageFromModal = createAsyncThunk<
+  Website,
+  CreateLivePageFromModalInput,
+  ThunkApiConfig
+>('websites/createFromModal', async (input, { dispatch, getState }) => {
+  const name = input.name.trim();
+  if (!name) {
+    throw new Error('Name is required');
+  }
+  const url = input.url.trim() || 'about:blank';
+  const homeUrl = url;
+  const sourceTab = selectActiveBrowserTab(getState());
+  const bindSource = sourceTab != null && sourceTab.websiteId == null ? sourceTab : null;
+  const faviconDataUrl =
+    bindSource?.faviconDataUrl != null &&
+    bindSource.faviconDataUrl.length > 0 &&
+    canReuseTabFaviconForUrl(bindSource.url, url)
+      ? bindSource.faviconDataUrl
+      : null;
+
+  const uuid = crypto.randomUUID();
+  const items = await withOfflineTeamHubLivePageError(() =>
+    window.api.createWebsite({
+      uuid,
+      name,
+      url,
+      homeUrl,
+      connectionId: input.connectionId,
+      faviconDataUrl,
+      scripts: bindSource?.scripts,
+      preRequestScripts: bindSource?.pre_request_scripts,
+      postRequestScripts: bindSource?.post_request_scripts,
+      variables: bindSource?.variables,
+      headers: bindSource?.headers,
+      userAgent: bindSource?.userAgent,
+      auth: bindSource?.auth
+    })
+  );
+  dispatch(setWebsites(items));
+  const created = items.find((item) => item.uuid === uuid);
+  if (!created) {
+    throw new Error('Live page was not created');
+  }
+
+  if (bindSource) {
+    const previousUrl = bindSource.url;
+    dispatch(
+      updateBrowserTab({
+        tabId: bindSource.tabId,
+        updates: {
+          title: name,
+          settingsName: name,
+          url,
+          homeUrl
+        }
+      })
+    );
+    dispatch(
+      bindBrowserTabToWebsite({
+        tabId: bindSource.tabId,
+        websiteId: created.id,
+        websiteUuid: created.uuid
+      })
+    );
+    if (url !== previousUrl) {
+      try {
+        await window.api.browserLoadURL(bindSource.tabId, url);
+      } catch {
+        // Guest may not exist yet for a background/unmounted tab.
       }
-      dispatch(
-        bindBrowserTabToWebsite({
-          tabId,
-          websiteId: created.id,
-          websiteUuid: created.uuid
-        })
-      );
-      const snippets = selectSnippets(getState());
+    }
+    const snippets = selectSnippets(getState());
+    const updated = getState().tabs.tabs.find((item) => item.tabId === bindSource.tabId);
+    if (updated && isBrowserTab(updated)) {
       try {
         await pushBrowserTabScriptsToGuest(
-          tabId,
-          tab,
+          bindSource.tabId,
+          updated,
           snippets,
           getActiveBaseVariables(getState())
         );
       } catch {
         // Guest may not exist yet for a background/unmounted tab.
       }
-      toast.success('Live page saved');
-    } catch (error) {
-      toast.error(formatErrorMessage(error, 'Failed to save live page'));
-      throw error;
     }
+  } else {
+    await dispatch(openWebsite(created.id));
+  }
+
+  toast.success('Live page created');
+  return created;
+});
+
+/**
+ * Imports a HarborClient live-page export via the native file dialog.
+ *
+ * @returns The imported or updated website, or null when the dialog was canceled.
+ */
+export const importWebsite = createAsyncThunk<Website | null, void, ThunkApiConfig>(
+  'websites/import',
+  async (_arg, { dispatch }) => {
+    const website = await window.api.importWebsite();
+    if (!website) {
+      return null;
+    }
+    await dispatch(refreshWebsites());
+    dispatch(closeAddLivePageModal());
+    return website;
   }
 );
+
+/**
+ * Quietly persists a resolved favicon onto a linked live page when navigation provides one.
+ *
+ * Live pages are often saved before Chromium finishes favicon resolution. Once the guest
+ * reports a favicon for the saved page origin, write it to the website registry so the
+ * sidebar can show the site icon without requiring another manual save.
+ *
+ * @param tabId - Browser tab that reported navigation state.
+ * @param faviconDataUrl - Resolved favicon data URL, or null when cleared.
+ * @returns Thunk that may schedule a best-effort website favicon update.
+ */
+export function maybePersistWebsiteFaviconFromNavigation(
+  tabId: string,
+  faviconDataUrl: string | null
+): (dispatch: AppDispatch, getState: () => RootState) => void {
+  return (dispatch, getState) => {
+    if (faviconDataUrl == null || faviconDataUrl.length === 0) {
+      return;
+    }
+
+    const state = getState();
+    const tab = state.tabs.tabs.find((item) => item.tabId === tabId);
+    if (!tab || !isBrowserTab(tab) || tab.websiteId == null) {
+      return;
+    }
+
+    const website = state.websites.items.find((item) => item.id === tab.websiteId);
+    if (!website || website.faviconDataUrl === faviconDataUrl) {
+      return;
+    }
+
+    const onSavedOrigin =
+      canReuseTabFaviconForUrl(tab.url, website.url) ||
+      canReuseTabFaviconForUrl(tab.url, website.homeUrl);
+    if (!onSavedOrigin) {
+      return;
+    }
+
+    const websiteId = website.id;
+    if (faviconPersistInFlight.has(websiteId)) {
+      return;
+    }
+    faviconPersistInFlight.add(websiteId);
+
+    void (async (): Promise<void> => {
+      try {
+        const items = await window.api.updateWebsite({
+          id: websiteId,
+          name: website.name,
+          url: website.url,
+          homeUrl: website.homeUrl,
+          faviconDataUrl,
+          scripts: website.scripts,
+          preRequestScripts: website.preRequestScripts,
+          postRequestScripts: website.postRequestScripts,
+          variables: website.variables,
+          headers: website.headers,
+          userAgent: website.userAgent,
+          auth: website.auth
+        });
+        dispatch(setWebsites(items));
+        const linkedTabs = getState().tabs.tabs.filter(
+          (item) => isBrowserTab(item) && item.websiteId === websiteId
+        );
+        for (const linked of linkedTabs) {
+          if (!isBrowserTab(linked) || linked.faviconDataUrl !== faviconDataUrl) {
+            continue;
+          }
+          dispatch(
+            updateBrowserTab({
+              tabId: linked.tabId,
+              updates: { savedFaviconDataUrl: faviconDataUrl }
+            })
+          );
+        }
+      } catch {
+        // Best-effort background sync; the open tab favicon still renders in the sidebar.
+      } finally {
+        faviconPersistInFlight.delete(websiteId);
+      }
+    })();
+  };
+}
 
 /**
  * Updates a linked website from the current browser tab state.
@@ -261,31 +476,6 @@ export const updateWebsiteFromTab = createAsyncThunk<void, string, ThunkApiConfi
 );
 
 /**
- * Saves or updates the active browser tab as a website depending on link state.
- *
- * Always shows a success toast when the chrome Save control is used: first create,
- * update with pending changes, or a no-op click on an already-saved live page.
- */
-export const saveOrUpdateBrowserWebsite = createAsyncThunk<void, string, ThunkApiConfig>(
-  'websites/saveOrUpdateFromTab',
-  async (tabId, { dispatch, getState }) => {
-    const tab = getState().tabs.tabs.find((item) => item.tabId === tabId);
-    if (!tab || !isBrowserTab(tab)) {
-      return;
-    }
-    if (tab.websiteId != null) {
-      if (!hasBrowserPendingSave(tab)) {
-        toast.success('Live page saved');
-        return;
-      }
-      await dispatch(updateWebsiteFromTab(tabId));
-      return;
-    }
-    await dispatch(saveBrowserTabAsWebsite(tabId));
-  }
-);
-
-/**
  * Opens a saved website in a browser tab (or focuses an already-open linked tab).
  */
 export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
@@ -318,22 +508,48 @@ export const openWebsite = createAsyncThunk<void, number, ThunkApiConfig>(
 );
 
 /**
- * Opens a saved website and shows its live page settings footer panel.
+ * Shows the live page settings footer panel for a saved website.
  *
- * Ensures a linked browser tab exists first, closes other footer panels (same
- * mutual exclusivity as the live server editor), then opens the settings panel
- * so injection and hc.* scripts can be edited.
+ * Ensures a linked browser tab exists as the draft host (without activating it,
+ * so the editor does not switch to the live page), closes other footer panels
+ * (same mutual exclusivity as the live server editor), then opens the settings
+ * panel so injection and hc.* scripts can be edited.
  *
  * @param id - Saved website id.
  */
 export const openWebsiteSettings = createAsyncThunk<void, number, ThunkApiConfig>(
   'websites/openSettings',
   async (id, { dispatch, getState }) => {
-    await dispatch(openWebsite(id));
+    const website = getState().websites.items.find((item) => item.id === id);
+    if (!website) {
+      toast.error('Live page not found');
+      return;
+    }
+
+    dispatch(
+      openBrowserTabFromWebsite({
+        websiteId: website.id,
+        websiteUuid: website.uuid,
+        title: website.name,
+        url: website.url,
+        homeUrl: website.homeUrl,
+        faviconDataUrl: website.faviconDataUrl,
+        scripts: website.scripts,
+        pre_request_scripts: website.preRequestScripts,
+        post_request_scripts: website.postRequestScripts,
+        variables: website.variables,
+        headers: website.headers,
+        userAgent: website.userAgent,
+        auth: website.auth,
+        activate: false
+      })
+    );
+
     const tab = getState().tabs.tabs.find((item) => isBrowserTab(item) && item.websiteId === id);
     if (!tab || !isBrowserTab(tab)) {
       return;
     }
+
     dispatch(setShowConsole(false));
     dispatch(setShowVariables(false));
     dispatch(setShowMcp(false));
@@ -343,6 +559,11 @@ export const openWebsiteSettings = createAsyncThunk<void, number, ThunkApiConfig
     }
     dispatch(setActivePluginFooterPanelId(null));
     dispatch(closeLiveServerModal());
+    for (const openTab of getState().tabs.tabs) {
+      if (isBrowserTab(openTab) && openTab.settingsPanelOpen && openTab.tabId !== tab.tabId) {
+        dispatch(setBrowserSettingsPanelOpen({ tabId: openTab.tabId, open: false }));
+      }
+    }
     dispatch(setBrowserSettingsPanelOpen({ tabId: tab.tabId, open: true }));
   }
 );

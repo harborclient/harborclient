@@ -28,4 +28,11 @@ export interface ApiWebsites {
    * Moves a live page to another provider and returns the refreshed list.
    */
   moveWebsite: (id: number, targetConnectionId: string) => Promise<Website[]>;
+
+  /**
+   * Imports a HarborClient live-page export from a file selected via a native dialog.
+   *
+   * @returns The imported or updated website, or null when the dialog was canceled.
+   */
+  importWebsite: () => Promise<Website | null>;
 }

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(websites): implement Add Live Page modal and import functionality. (`1bdbf8a4`)
 - feat(live-server): implement Add Live Server modal and import functionality. (`a36916fb`)
 - feat(live-server): enhance live server and live page management. (`fba086b7`)
 - feat(live-server): add openPathOnStartup configuration for live server. (`039b74dc`)

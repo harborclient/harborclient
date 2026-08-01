@@ -1,12 +1,25 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { Website } from '@harborclient/core/types';
 import type { AppDispatch } from '#/renderer/src/store/redux';
-import tabsReducer, { type TabsState } from '#/renderer/src/store/slices/tabsSlice';
+import modalsReducer, { type ModalsState } from '#/renderer/src/store/slices/modalsSlice';
+import tabsReducer, {
+  bindBrowserTabToWebsite,
+  newBrowserTab,
+  updateBrowserNavigation,
+  type TabsState
+} from '#/renderer/src/store/slices/tabsSlice';
 import websitesReducer, { setWebsites } from '#/renderer/src/store/slices/websitesSlice';
 import { isBrowserTab } from '#/renderer/src/store/tabs';
-import { openWebsiteSettings, websiteNameFromTab } from './websites';
+import {
+  canReuseTabFaviconForUrl,
+  createLivePageFromModal,
+  maybePersistWebsiteFaviconFromNavigation,
+  openAddLivePageModalWithPrefill,
+  openWebsiteSettings,
+  websiteNameFromTab
+} from './websites';
 
 // react-hot-toast pulls in the DOM at import time; stub it for the Node test env.
 vi.mock('react-hot-toast', () => ({
@@ -19,9 +32,10 @@ vi.mock('react-hot-toast', () => ({
 /**
  * Builds a minimal website entity for thunk tests.
  *
+ * @param overrides - Optional field overrides.
  * @returns Website with deterministic ids and empty scripts.
  */
-function sampleWebsite(): Website {
+function sampleWebsite(overrides: Partial<Website> = {}): Website {
   return {
     id: 7,
     uuid: 'website-uuid-7',
@@ -37,30 +51,78 @@ function sampleWebsite(): Website {
     userAgent: '',
     auth: defaultAuth(),
     createdAt: 1,
-    updatedAt: 1
+    updatedAt: 1,
+    ...overrides
   };
 }
 
 /**
- * Store with websites + tabs slices for openWebsiteSettings coverage.
+ * Store with websites + tabs (+ optional modals) slices for thunk coverage.
  *
- * @returns Typed dispatch and tab-state accessor.
+ * @param options - Whether to include the modals slice.
+ * @returns Typed dispatch and state accessors.
  */
-function createTestStore(): {
+function createTestStore(options?: { withModals?: boolean }): {
   dispatch: AppDispatch;
   getTabs: () => TabsState;
+  getModals: () => ModalsState | undefined;
+  getState: () => {
+    websites: { items: Website[] };
+    tabs: TabsState;
+    modals?: ModalsState;
+  };
 } {
   const store = configureStore({
     reducer: {
       websites: websitesReducer,
-      tabs: tabsReducer
+      tabs: tabsReducer,
+      snippets: () => ({ snippets: [] }),
+      collections: () => ({
+        collections: [],
+        selectedCollectionId: null,
+        foldersByCollection: {},
+        requestsByCollection: {}
+      }),
+      environments: () => ({
+        environments: [],
+        activeEnvironmentId: null
+      }),
+      settings: () => ({
+        general: { globalVariables: [] }
+      }),
+      navigation: () => ({
+        showConsole: false,
+        showVariables: false,
+        showMcp: false,
+        showTerminal: false,
+        showLiveServerLogs: false,
+        liveServerLogsPlacement: 'footer' as const
+      }),
+      ...(options?.withModals ? { modals: modalsReducer } : {})
     }
   });
   return {
     dispatch: store.dispatch as AppDispatch,
-    getTabs: (): TabsState => (store.getState() as { tabs: TabsState }).tabs
+    getTabs: (): TabsState => (store.getState() as { tabs: TabsState }).tabs,
+    getModals: (): ModalsState | undefined => (store.getState() as { modals?: ModalsState }).modals,
+    getState: () =>
+      store.getState() as {
+        websites: { items: Website[] };
+        tabs: TabsState;
+        modals?: ModalsState;
+      }
   };
 }
+
+beforeEach(() => {
+  vi.stubGlobal('window', {
+    api: {
+      createWebsite: vi.fn(),
+      browserLoadURL: vi.fn().mockResolvedValue(undefined),
+      browserSetScripts: vi.fn().mockResolvedValue(undefined)
+    }
+  });
+});
 
 describe('websiteNameFromTab', () => {
   it('prefers a meaningful page title', () => {
@@ -79,10 +141,31 @@ describe('websiteNameFromTab', () => {
   });
 });
 
+describe('canReuseTabFaviconForUrl', () => {
+  it('allows same-origin http(s) urls', () => {
+    expect(canReuseTabFaviconForUrl('https://example.com/a', 'https://example.com/b')).toBe(true);
+  });
+
+  it('rejects cross-origin and non-http urls', () => {
+    expect(canReuseTabFaviconForUrl('https://example.com/', 'https://other.example.com/')).toBe(
+      false
+    );
+    expect(canReuseTabFaviconForUrl('about:blank', 'https://example.com/')).toBe(false);
+  });
+});
+
 describe('openWebsiteSettings', () => {
-  it('opens the website browser tab with the settings footer panel open', async () => {
+  it('opens settings without activating the live page browser tab', async () => {
     const { dispatch, getTabs } = createTestStore();
     dispatch(setWebsites([sampleWebsite()]));
+    dispatch(
+      newBrowserTab({
+        tabId: 'keep-focused',
+        url: 'https://other.example.com/',
+        homeUrl: 'https://other.example.com/'
+      })
+    );
+    const previousActiveId = getTabs().activeTabId;
 
     await dispatch(openWebsiteSettings(7));
 
@@ -93,7 +176,271 @@ describe('openWebsiteSettings', () => {
       throw new Error('expected browser tab');
     }
 
-    expect(activeTabId).toBe(browserTab.tabId);
+    expect(activeTabId).toBe(previousActiveId);
+    expect(activeTabId).not.toBe(browserTab.tabId);
     expect(browserTab.settingsPanelOpen).toBe(true);
+  });
+});
+
+describe('openAddLivePageModalWithPrefill', () => {
+  it('prefills name and url from the focused browser tab', () => {
+    const { dispatch, getState } = createTestStore({ withModals: true });
+    dispatch(
+      newBrowserTab({
+        tabId: 'browser-prefill',
+        url: 'https://example.com/page',
+        homeUrl: 'https://example.com/'
+      })
+    );
+    dispatch(openAddLivePageModalWithPrefill());
+
+    const modal = getState().modals?.addLivePageModal;
+    expect(modal).not.toBeNull();
+    expect(modal?.url).toBe('https://example.com/page');
+    expect(modal?.name.length).toBeGreaterThan(0);
+  });
+
+  it('leaves name and url blank when no browser tab is focused', () => {
+    const { dispatch, getState } = createTestStore({ withModals: true });
+    dispatch(openAddLivePageModalWithPrefill());
+
+    const modal = getState().modals?.addLivePageModal;
+    expect(modal).not.toBeNull();
+    expect(modal?.name).toBe('');
+    expect(modal?.url).toBe('');
+  });
+
+  it('clears about:blank urls when prefilling', () => {
+    const { dispatch, getState } = createTestStore({ withModals: true });
+    dispatch(
+      newBrowserTab({
+        tabId: 'browser-blank',
+        url: 'about:blank',
+        homeUrl: 'about:blank'
+      })
+    );
+    dispatch(openAddLivePageModalWithPrefill());
+
+    const modal = getState().modals?.addLivePageModal;
+    expect(modal?.url).toBe('');
+  });
+});
+
+describe('createLivePageFromModal', () => {
+  it('binds the focused unlinked browser tab without opening another tab', async () => {
+    const createWebsiteMock = vi
+      .fn()
+      .mockImplementation(
+        async (input: {
+          uuid?: string;
+          name: string;
+          url: string;
+          faviconDataUrl?: string | null;
+        }) => [
+          sampleWebsite({
+            id: 99,
+            uuid: input.uuid ?? 'created-uuid',
+            name: input.name,
+            url: input.url,
+            homeUrl: input.url,
+            faviconDataUrl: input.faviconDataUrl ?? null
+          })
+        ]
+      );
+    vi.stubGlobal('window', {
+      api: {
+        createWebsite: createWebsiteMock,
+        browserLoadURL: vi.fn().mockResolvedValue(undefined),
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { dispatch, getTabs } = createTestStore();
+    dispatch(
+      newBrowserTab({
+        tabId: 'browser-bind',
+        url: 'https://docs.example.com/',
+        homeUrl: 'https://docs.example.com/'
+      })
+    );
+    dispatch(
+      updateBrowserNavigation({
+        tabId: 'browser-bind',
+        url: 'https://docs.example.com/',
+        title: 'Docs',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: 'data:image/png;base64,abc',
+        securityState: 'secure'
+      })
+    );
+
+    await dispatch(
+      createLivePageFromModal({
+        name: 'Docs',
+        url: 'https://docs.example.com/',
+        connectionId: 'local'
+      })
+    ).unwrap();
+
+    expect(createWebsiteMock).toHaveBeenCalledTimes(1);
+    expect(createWebsiteMock.mock.calls[0]?.[0].faviconDataUrl).toBe('data:image/png;base64,abc');
+    const { tabs } = getTabs();
+    const browserTabs = tabs.filter(isBrowserTab);
+    expect(browserTabs).toHaveLength(1);
+    expect(browserTabs[0]?.websiteId).toBe(99);
+    expect(browserTabs[0]?.websiteUuid).toBe(createWebsiteMock.mock.calls[0]?.[0].uuid);
+  });
+
+  it('does not reuse a tab favicon for a different origin url', async () => {
+    const createWebsiteMock = vi
+      .fn()
+      .mockImplementation(
+        async (input: {
+          uuid?: string;
+          name: string;
+          url: string;
+          faviconDataUrl?: string | null;
+        }) => [
+          sampleWebsite({
+            id: 88,
+            uuid: input.uuid ?? 'created-uuid',
+            name: input.name,
+            url: input.url,
+            homeUrl: input.url,
+            faviconDataUrl: input.faviconDataUrl ?? null
+          })
+        ]
+      );
+    vi.stubGlobal('window', {
+      api: {
+        createWebsite: createWebsiteMock,
+        browserLoadURL: vi.fn().mockResolvedValue(undefined),
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { dispatch } = createTestStore();
+    dispatch(
+      newBrowserTab({
+        tabId: 'browser-other-origin',
+        url: 'https://docs.example.com/',
+        homeUrl: 'https://docs.example.com/'
+      })
+    );
+    dispatch(
+      updateBrowserNavigation({
+        tabId: 'browser-other-origin',
+        url: 'https://docs.example.com/',
+        title: 'Docs',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: 'data:image/png;base64,abc',
+        securityState: 'secure'
+      })
+    );
+
+    await dispatch(
+      createLivePageFromModal({
+        name: 'Other',
+        url: 'https://other.example.com/'
+      })
+    ).unwrap();
+
+    expect(createWebsiteMock.mock.calls[0]?.[0].faviconDataUrl).toBeNull();
+  });
+
+  it('opens a browser tab when no unlinked browser tab is focused', async () => {
+    const createWebsiteMock = vi
+      .fn()
+      .mockImplementation(async (input: { uuid?: string; name: string; url: string }) => [
+        sampleWebsite({
+          id: 55,
+          uuid: input.uuid ?? 'opened-uuid',
+          name: input.name,
+          url: input.url,
+          homeUrl: input.url
+        })
+      ]);
+    vi.stubGlobal('window', {
+      api: {
+        createWebsite: createWebsiteMock,
+        browserLoadURL: vi.fn().mockResolvedValue(undefined),
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { dispatch, getTabs } = createTestStore();
+
+    await dispatch(
+      createLivePageFromModal({
+        name: 'Opened',
+        url: 'https://opened.example.com/'
+      })
+    ).unwrap();
+
+    const { tabs, activeTabId } = getTabs();
+    const browserTab = tabs.find((tab) => isBrowserTab(tab) && tab.websiteId === 55);
+    expect(browserTab).toBeDefined();
+    expect(activeTabId).toBe(browserTab?.tabId);
+  });
+});
+
+describe('maybePersistWebsiteFaviconFromNavigation', () => {
+  it('persists a late favicon onto the linked live page on the saved origin', async () => {
+    const updateWebsiteMock = vi
+      .fn()
+      .mockImplementation(async (input: { id: number; faviconDataUrl?: string | null }) => [
+        sampleWebsite({
+          id: input.id,
+          faviconDataUrl: input.faviconDataUrl ?? null
+        })
+      ]);
+    vi.stubGlobal('window', {
+      api: {
+        createWebsite: vi.fn(),
+        updateWebsite: updateWebsiteMock,
+        browserLoadURL: vi.fn().mockResolvedValue(undefined),
+        browserSetScripts: vi.fn().mockResolvedValue(undefined)
+      }
+    });
+
+    const { dispatch, getState } = createTestStore();
+    dispatch(setWebsites([sampleWebsite({ id: 7, faviconDataUrl: null })]));
+    dispatch(
+      newBrowserTab({
+        tabId: 'browser-favicon',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    );
+    dispatch(
+      bindBrowserTabToWebsite({
+        tabId: 'browser-favicon',
+        websiteId: 7,
+        websiteUuid: 'website-uuid-7'
+      })
+    );
+    dispatch(
+      updateBrowserNavigation({
+        tabId: 'browser-favicon',
+        url: 'https://example.com/',
+        title: 'Example',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: 'data:image/png;base64,xyz',
+        securityState: 'secure'
+      })
+    );
+
+    dispatch(
+      maybePersistWebsiteFaviconFromNavigation('browser-favicon', 'data:image/png;base64,xyz')
+    );
+
+    await vi.waitFor(() => {
+      expect(updateWebsiteMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateWebsiteMock.mock.calls[0]?.[0].faviconDataUrl).toBe('data:image/png;base64,xyz');
+    expect(getState().websites.items[0]?.faviconDataUrl).toBe('data:image/png;base64,xyz');
   });
 });
