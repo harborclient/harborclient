@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.2 - 2026-08-02
+
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)
 
 ## 0.5.5 - 2026-08-01
