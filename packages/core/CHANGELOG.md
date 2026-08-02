@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.1 - 2026-08-02
+
 - feat(theme): add page header color variables and update related styles. (`577ab426`)
 - feat(theme): introduce header color variable and update related styles. (`6b6637e3`)
 
