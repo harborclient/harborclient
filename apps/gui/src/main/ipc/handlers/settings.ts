@@ -19,6 +19,8 @@ import {
   saveStorageConnection,
   setActiveStorageId
 } from '#/main/settings/storageSettings';
+import { deleteRuntime, listRuntimes, saveRuntime } from '#/main/settings/runtimeSettings';
+import { verifyRuntime } from '#/main/runtime/verifyRuntime';
 import {
   assignSlotForNewTeamHub,
   getSlotForConnection,
@@ -326,6 +328,18 @@ export function registerSettingsHandlers(db: IStorage): void {
 
   // Lists configured database connections.
   handle('storageConnections:list', ipcArgSchemas.none, () => listStorageConnections());
+
+  // Lists machine-local companion-process runtimes.
+  handle('runtimes:list', ipcArgSchemas.none, () => listRuntimes());
+
+  // Creates or updates a companion-process runtime.
+  handle('runtimes:save', ipcArgSchemas.runtime, (_event, runtime) => saveRuntime(runtime));
+
+  // Deletes a companion-process runtime by id.
+  handle('runtimes:delete', ipcArgSchemas.connectionId, (_event, id) => deleteRuntime(id));
+
+  // Verifies a runtime executable path and declared version.
+  handle('runtimes:verify', ipcArgSchemas.verifyRuntime, (_event, input) => verifyRuntime(input));
 
   // Creates or updates a database connection.
   handle('storageConnections:save', ipcArgSchemas.storageConnection, async (event, conn) => {

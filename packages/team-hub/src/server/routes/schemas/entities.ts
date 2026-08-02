@@ -118,6 +118,17 @@ const liveServerPayloadFields = {
   proxies: z.unknown().optional(),
   ssl: z.unknown().optional(),
   runCommand: z.string().optional(),
+  runtimeId: z.string().optional(),
+  runCommandEnv: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.string(),
+        enabled: z.boolean()
+      })
+    )
+    .optional(),
+  runCommandEnabled: z.boolean().optional(),
   restartOnCrash: z.boolean().optional(),
   urlVariable: z.string().optional(),
   preRequestScripts: z.unknown().optional(),

@@ -1,6 +1,7 @@
 import type { LiveServerHostProviders } from '@harborclient/live-server';
-import type { ScriptRunInput, ScriptRunResult } from '@harborclient/core/types';
+import type { Runtime, ScriptRunInput, ScriptRunResult } from '@harborclient/core/types';
 import { getGeneralSettings } from '#/main/settings/generalSettings';
+import { getRuntime } from '#/main/settings/runtimeSettings';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { runScriptInProcess } from '#/main/scripting/scriptRunnerHost';
 
@@ -25,6 +26,16 @@ export function guiLiveServerVariablesMap(): Record<string, string> {
 }
 
 /**
+ * Looks up a machine-local runtime for live-server companion spawning.
+ *
+ * @param id - Runtime id from the live server config.
+ * @returns Matching runtime, or undefined when missing.
+ */
+function guiGetRuntime(id: string): Runtime | undefined {
+  return getRuntime(id);
+}
+
+/**
  * Runs a live-server script in the Electron SES utility process.
  *
  * @param input - Script run payload.
@@ -40,5 +51,6 @@ async function guiRunScript(input: ScriptRunInput): Promise<ScriptRunResult> {
 export const guiLiveServerProviders: LiveServerHostProviders = {
   listSnippets: () => getLocalDatabase().listSnippets(),
   getVariables: guiLiveServerVariablesMap,
+  getRuntime: guiGetRuntime,
   runScript: guiRunScript
 };

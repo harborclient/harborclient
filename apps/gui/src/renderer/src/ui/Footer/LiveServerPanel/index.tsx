@@ -34,6 +34,9 @@ import {
   setLiveServerModalRoutes,
   setLiveServerModalErrorPages,
   setLiveServerModalRunCommand,
+  setLiveServerModalRuntimeId,
+  setLiveServerModalRunCommandEnabled,
+  setLiveServerModalRunCommandEnv,
   setLiveServerModalRestartOnCrash,
   setLiveServerModalSsl,
   setLiveServerModalSubmitError,
@@ -61,13 +64,13 @@ import { selectSnippets } from '#/renderer/src/store/selectors';
 import { faCircleExclamation } from '#/renderer/src/fontawesome';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
-import { AliasSettings } from './AliasSettings';
-import { CorsSettings } from './CorsSettings';
 import { GeneralSettings } from './GeneralSettings';
 import { HeadersSettings } from './HeadersSettings';
+import { LiveServerNotice } from './LiveServerNotice';
 import { filterLiveServerHeadersForSave } from './liveServerHeaderRows';
 import { ProxySettings } from './ProxySettings';
 import { RoutingSettings } from './RoutingSettings';
+import { RunSettings } from './RunSettings';
 import { LiveServerScriptsSettings } from './Scripts';
 import { SslSettings } from './SslSettings';
 
@@ -198,6 +201,9 @@ function tryBuildConfigFromModal(
       proxies,
       ssl: modal.ssl,
       runCommand: modal.runCommand,
+      runtimeId: modal.runtimeId,
+      runCommandEnabled: modal.runCommandEnabled,
+      runCommandEnv: modal.runCommandEnv,
       restartOnCrash: modal.restartOnCrash,
       urlVariable: modal.urlVariable,
       preRequestScripts: modal.preRequestScripts,
@@ -588,11 +594,10 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                 fullWidth
                 tabs={[
                   { value: 'general', label: 'General' },
+                  { value: 'proxy', label: 'Proxy' },
                   { value: 'headers', label: 'Headers' },
                   { value: 'routing', label: 'Routing' },
-                  { value: 'proxy', label: 'Proxy' },
-                  { value: 'aliases', label: 'Aliases' },
-                  { value: 'cors', label: 'CORS' },
+                  { value: 'run', label: 'Command' },
                   { value: 'ssl', label: 'SSL' },
                   { value: 'scripts', label: 'Scripts' }
                 ]}
@@ -621,10 +626,10 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
               ) : null}
 
               <SegmentedTabPanel value="general">
+                <LiveServerNotice tab="general" />
                 <GeneralSettings
                   name={modal.name}
                   connectionId={modal.connectionId}
-                  variables={globalVariables}
                   urlVariable={modal.urlVariable}
                   root={modal.root}
                   port={modal.port}
@@ -634,8 +639,6 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   rememberLastUrl={modal.rememberLastUrl}
                   indexFiles={modal.indexFiles}
                   host={modal.host}
-                  runCommand={modal.runCommand}
-                  restartOnCrash={modal.restartOnCrash}
                   disabled={busy}
                   onNameChange={(value) => dispatch(setLiveServerModalName(value))}
                   onConnectionIdChange={(value) => dispatch(setLiveServerModalConnectionId(value))}
@@ -653,33 +656,11 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                   }
                   onIndexFilesChange={(value) => dispatch(setLiveServerModalIndexFiles(value))}
                   onHostChange={(value) => dispatch(setLiveServerModalHost(value))}
-                  onRunCommandChange={(value) => dispatch(setLiveServerModalRunCommand(value))}
-                  onRestartOnCrashChange={(value) =>
-                    dispatch(setLiveServerModalRestartOnCrash(value))
-                  }
-                />
-              </SegmentedTabPanel>
-
-              <SegmentedTabPanel value="headers">
-                <HeadersSettings
-                  headers={modal.headers}
-                  disabled={busy}
-                  onChange={(next) => dispatch(setLiveServerModalHeaders(next))}
-                />
-              </SegmentedTabPanel>
-
-              <SegmentedTabPanel value="routing">
-                <RoutingSettings
-                  routes={modal.routes}
-                  errorPages={modal.errorPages}
-                  root={modal.root}
-                  disabled={busy}
-                  onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
-                  onErrorPagesChange={(next) => dispatch(setLiveServerModalErrorPages(next))}
                 />
               </SegmentedTabPanel>
 
               <SegmentedTabPanel value="proxy">
+                <LiveServerNotice tab="proxy" />
                 <ProxySettings
                   proxies={modal.proxies}
                   disabled={busy}
@@ -687,23 +668,58 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
                 />
               </SegmentedTabPanel>
 
-              <SegmentedTabPanel value="aliases">
-                <AliasSettings
-                  aliases={modal.aliases}
+              <SegmentedTabPanel value="headers">
+                <LiveServerNotice tab="headers" />
+                <HeadersSettings
+                  headers={modal.headers}
+                  cors={modal.cors}
                   disabled={busy}
-                  onChange={(next) => dispatch(setLiveServerModalAliases(next))}
+                  onChange={(next) => dispatch(setLiveServerModalHeaders(next))}
+                  onCorsChange={(next) => dispatch(setLiveServerModalCors(next))}
                 />
               </SegmentedTabPanel>
 
-              <SegmentedTabPanel value="cors">
-                <CorsSettings
-                  cors={modal.cors}
+              <SegmentedTabPanel value="routing">
+                <LiveServerNotice tab="routing" />
+                <RoutingSettings
+                  routes={modal.routes}
+                  aliases={modal.aliases}
+                  errorPages={modal.errorPages}
+                  root={modal.root}
                   disabled={busy}
-                  onChange={(next) => dispatch(setLiveServerModalCors(next))}
+                  onChange={(next) => dispatch(setLiveServerModalRoutes(next))}
+                  onAliasesChange={(next) => dispatch(setLiveServerModalAliases(next))}
+                  onErrorPagesChange={(next) => dispatch(setLiveServerModalErrorPages(next))}
+                />
+              </SegmentedTabPanel>
+
+              <SegmentedTabPanel value="run">
+                <LiveServerNotice tab="run" />
+                <RunSettings
+                  variables={globalVariables}
+                  runCommand={modal.runCommand}
+                  runtimeId={modal.runtimeId}
+                  runCommandEnabled={modal.runCommandEnabled}
+                  runCommandEnv={modal.runCommandEnv}
+                  restartOnCrash={modal.restartOnCrash}
+                  unresolvedRuntime={modal.unresolvedRuntime}
+                  disabled={busy}
+                  onRunCommandEnabledChange={(value) =>
+                    dispatch(setLiveServerModalRunCommandEnabled(value))
+                  }
+                  onRunCommandChange={(value) => dispatch(setLiveServerModalRunCommand(value))}
+                  onRuntimeIdChange={(value) => dispatch(setLiveServerModalRuntimeId(value))}
+                  onRunCommandEnvChange={(value) =>
+                    dispatch(setLiveServerModalRunCommandEnv(value))
+                  }
+                  onRestartOnCrashChange={(value) =>
+                    dispatch(setLiveServerModalRestartOnCrash(value))
+                  }
                 />
               </SegmentedTabPanel>
 
               <SegmentedTabPanel value="ssl">
+                <LiveServerNotice tab="ssl" />
                 <SslSettings
                   ssl={modal.ssl}
                   disabled={busy}
@@ -712,6 +728,7 @@ export function LiveServerPanel({ open, onClose }: Props): JSX.Element {
               </SegmentedTabPanel>
 
               <SegmentedTabPanel value="scripts">
+                <LiveServerNotice tab="scripts" />
                 <LiveServerScriptsSettings
                   preRequestScripts={modal.preRequestScripts}
                   postRequestScripts={modal.postRequestScripts}

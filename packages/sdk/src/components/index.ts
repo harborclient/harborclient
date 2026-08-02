@@ -85,6 +85,8 @@ export { FooterPanel } from './FooterPanel/index.js';
 export { FormGroup } from './FormGroup/index.js';
 export { FormSection } from './FormSection/index.js';
 export type { Props as FormSectionProps } from './FormSection/index.js';
+export { HelpTip, HELP_TIP_HIDE_DELAY_MS, HELP_TIP_SHOW_DELAY_MS } from './HelpTip/index.js';
+export type { Props as HelpTipProps } from './HelpTip/index.js';
 export {
   Input,
   Checkbox,

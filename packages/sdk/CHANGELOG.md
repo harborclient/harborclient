@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)
+
 ## 1.5.1 - 2026-08-02
 
 - feat(theme): add page header color variables and update related styles. (`577ab426`)

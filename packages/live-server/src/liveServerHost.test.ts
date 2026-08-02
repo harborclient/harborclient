@@ -35,6 +35,7 @@ import type { LiveServerHostProviders } from './providers';
 const testProviders: LiveServerHostProviders = {
   listSnippets: () => [],
   getVariables: () => ({}),
+  getRuntime: () => undefined,
   /**
    * No-op script runner for tests that do not attach scripts.
    *
@@ -400,6 +401,7 @@ describe('liveServerHost run command process logs', () => {
       savedId: 77,
       config: makeConfig(root, {
         runCommand: '/nonexistent/harborclient-run-cmd-missing',
+        runCommandEnabled: true,
         restartOnCrash: false
       })
     });
@@ -428,6 +430,7 @@ describe('liveServerHost run command process logs', () => {
       savedId: 78,
       config: makeConfig(root, {
         runCommand: `${JSON.stringify(process.execPath)} -e ${JSON.stringify('process.exit(1)')}`,
+        runCommandEnabled: true,
         restartOnCrash: false
       })
     });

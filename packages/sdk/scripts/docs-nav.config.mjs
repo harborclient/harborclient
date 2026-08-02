@@ -46,6 +46,21 @@ export const docsNav = [
         title: 'Request logger'
       },
       {
+        name: 'baseline-tests',
+        source: 'docs/examples/baseline-tests.md',
+        title: 'Baseline tests'
+      },
+      {
+        name: 'trace-correlation',
+        source: 'docs/examples/trace-correlation.md',
+        title: 'Trace correlation'
+      },
+      {
+        name: 'production-guard',
+        source: 'docs/examples/production-guard.md',
+        title: 'Production guard'
+      },
+      {
         name: 'request-audit-tab',
         source: 'docs/examples/request-audit-tab.md',
         title: 'Request audit tab'

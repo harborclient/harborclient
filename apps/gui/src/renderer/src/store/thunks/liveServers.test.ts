@@ -160,6 +160,9 @@ function makeSaved(overrides: Partial<LiveServer> = {}): LiveServer {
     proxies: [],
     ssl: defaultLiveServerSslSettings(),
     runCommand: '',
+    runtimeId: '',
+    runCommandEnv: [],
+    runCommandEnabled: false,
     restartOnCrash: false,
     urlVariable: '',
     preRequestScripts: [],
@@ -283,7 +286,26 @@ describe('liveServerRuntimeConfigNeedsRestart', () => {
         toLiveServerConfig({
           ...running,
           runCommand: '/usr/bin/node ./server.js',
+          runCommandEnabled: true,
           restartOnCrash: true
+        }),
+        running
+      )
+    ).toBe(true);
+    expect(
+      liveServerRuntimeConfigNeedsRestart(
+        toLiveServerConfig({
+          ...running,
+          runtimeId: 'runtime-1'
+        }),
+        running
+      )
+    ).toBe(true);
+    expect(
+      liveServerRuntimeConfigNeedsRestart(
+        toLiveServerConfig({
+          ...running,
+          runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }]
         }),
         running
       )

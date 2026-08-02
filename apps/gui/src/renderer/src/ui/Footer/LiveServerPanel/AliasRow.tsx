@@ -40,7 +40,13 @@ export function AliasRow({ index, alias, disabled, onChange, onRemove }: Props):
 
   return (
     <div className="flex items-end gap-2">
-      <FormGroup label="URL path" htmlFor={pathId} className="min-w-0 flex-1" labelTone="muted">
+      <FormGroup
+        bordered={false}
+        label="URL path"
+        htmlFor={pathId}
+        className="min-w-0 flex-1"
+        labelTone="muted"
+      >
         <Input
           id={pathId}
           value={alias.path}
@@ -49,7 +55,13 @@ export function AliasRow({ index, alias, disabled, onChange, onRemove }: Props):
           onChange={(event) => onChange({ ...alias, path: event.target.value })}
         />
       </FormGroup>
-      <FormGroup label="Directory" htmlFor={targetId} className="min-w-0 flex-1" labelTone="muted">
+      <FormGroup
+        bordered={false}
+        label="Directory"
+        htmlFor={targetId}
+        className="min-w-0 flex-1"
+        labelTone="muted"
+      >
         <Input
           id={targetId}
           value={alias.target}

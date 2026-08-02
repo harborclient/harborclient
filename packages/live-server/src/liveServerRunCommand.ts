@@ -34,10 +34,19 @@ export type LiveServerRunCommandOutputListener = (
  */
 export interface StartLiveServerRunCommandOptions {
   /**
-   * Command template (absolute binary + args). May contain `{{variables}}`.
-   * Stored unsubstituted; {@link resolveCommand} runs before each spawn.
+   * Command template. When {@link executable} is set this is arguments only;
+   * otherwise it is the full command (absolute binary + args). May contain
+   * `{{variables}}`. Stored unsubstituted; {@link resolveCommand} runs before
+   * each spawn.
    */
   command: string;
+
+  /**
+   * Optional absolute executable path. When set, argv becomes
+   * `[executable, ...parseRunCommandArgv(resolvedArgs)]` so paths with spaces
+   * are safe and empty args are allowed.
+   */
+  executable?: string;
 
   /**
    * Working directory for the child (live server root).
@@ -67,6 +76,14 @@ export interface StartLiveServerRunCommandOptions {
    * @returns Command string ready for argv parsing.
    */
   resolveCommand?: (command: string) => string;
+
+  /**
+   * Builds the env overlay merged onto `process.env` before each spawn.
+   * Evaluated per spawn so crash restarts re-resolve `{{variables}}`.
+   *
+   * @returns Flat env map (values already substituted).
+   */
+  resolveEnv?: () => Record<string, string>;
 }
 
 /**
@@ -264,22 +281,32 @@ export async function startLiveServerRunCommand(
     const thisGeneration = generation;
     startedAt = Date.now();
 
-    let argv: string[];
+    const resolvedCommand = resolveCommand(options.command);
+    const executable = options.executable?.trim() ?? '';
+    let file: string;
+    let args: string[];
     try {
-      argv = parseRunCommandArgv(resolveCommand(options.command));
+      if (executable !== '') {
+        file = executable;
+        // Empty args are allowed when a runtime executable is provided.
+        args = resolvedCommand.trim() === '' ? [] : parseRunCommandArgv(resolvedCommand);
+      } else {
+        const argv = parseRunCommandArgv(resolvedCommand);
+        file = argv[0]!;
+        args = argv.slice(1);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       options.onStatus('failed', message);
       return Promise.reject(new Error(`Failed to start run command: ${message}`));
     }
-    const file = argv[0]!;
-    const args = argv.slice(1);
 
+    const envOverlay = options.resolveEnv?.() ?? {};
     let spawned: ChildProcess;
     try {
       spawned = spawn(file, args, {
         cwd: options.cwd,
-        env: process.env,
+        env: { ...process.env, ...envOverlay },
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true
       });

@@ -28,8 +28,8 @@ export interface ScriptEditorOwnerRef {
 /**
  * Returns whether a script log (or similar) row can open a request script editor.
  *
- * Only request-scoped slots with a stable script id are navigable; collection
- * and folder scripts have no per-request editor tab to reveal into.
+ * Only request-scoped slots with a stable script id are navigable; collection,
+ * folder, and plugin-injected scripts have no per-request editor tab to reveal into.
  *
  * @param entry - Log or ownership fields from the last send.
  * @returns True when jump-to-editor is available for this entry.

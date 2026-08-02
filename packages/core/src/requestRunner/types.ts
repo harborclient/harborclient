@@ -1,3 +1,4 @@
+import type { ScriptStage } from '@harborclient/sdk';
 import type { AuthConfig, OAuthFetchTokenResult } from '../auth';
 import type { ICookieJar, IScriptRunner, PluginHooks, SettingsProvider } from '../interfaces';
 import type {
@@ -40,8 +41,20 @@ export interface RequestRunnerScript {
 
   /**
    * Ownership scope of the script list this entry came from.
+   *
+   * `plugin` rows are injected at send time and have no editor row.
    */
-  scope?: 'collection' | 'folder' | 'request';
+  scope?: 'collection' | 'folder' | 'request' | 'plugin';
+
+  /**
+   * Stage within the phase list, used when merging plugin-injected scripts.
+   */
+  stage?: ScriptStage;
+
+  /**
+   * Injecting plugin id, set only when {@link scope} is `plugin`.
+   */
+  pluginId?: string;
 }
 
 /**

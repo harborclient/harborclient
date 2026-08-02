@@ -1,4 +1,4 @@
-import type { ScriptRunInput, ScriptRunResult, Snippet } from '@harborclient/core/types';
+import type { Runtime, ScriptRunInput, ScriptRunResult, Snippet } from '@harborclient/core/types';
 
 /**
  * Host-injected dependencies for starting a live server outside of Electron.
@@ -18,6 +18,14 @@ export interface LiveServerHostProviders {
    * `runCommand` `{{variable}}` substitution.
    */
   getVariables: () => Record<string, string>;
+
+  /**
+   * Looks up a machine-local runtime by id for companion-process spawning.
+   *
+   * @param id - Runtime id from the live server config.
+   * @returns Matching runtime, or undefined when missing/unconfigured.
+   */
+  getRuntime: (id: string) => Runtime | undefined;
 
   /**
    * Executes a pre/post request script (SES sandbox or Node adapter).

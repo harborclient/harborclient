@@ -3,6 +3,9 @@
 Complete walkthroughs for common plugin patterns:
 
 - [Request logger](/examples/request-logger) — main-only plugin that logs HTTP traffic to the terminal
+- [Baseline tests](/examples/baseline-tests) — inject shared post-request assertions into every send
+- [Trace correlation](/examples/trace-correlation) — seed a trace id via scripts, stamp a header, persist after send
+- [Production guard](/examples/production-guard) — skip sends to production hosts via injected `hc.execution.skipRequest()`
 - [Request audit tab](/examples/request-audit-tab) — read-only request editor tab
 - [Solarized theme](/examples/solarized-theme) — theme plugin via `registerTheme` or JSON `import` (no JavaScript)
 - [Import handler](/examples/import-handler) — **File → Import** handler with preview UI

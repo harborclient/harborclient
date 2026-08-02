@@ -1,4 +1,5 @@
 import 'ses';
+import { randomUUID } from 'node:crypto';
 import { createScriptContext } from './pluginScriptContext';
 import type { ScriptRunContextInput } from '@harborclient/core/scripting/scriptApi';
 import { runEchoRequestHandlers } from '#/main/plugins/echoServer/runEchoRequestHandlers';
@@ -10,6 +11,15 @@ import type {
   PluginPermission
 } from '@harborclient/core/plugin/types';
 import { createPluginDatabaseApi } from '@harborclient/core/plugin/pluginDatabaseApi';
+import type {
+  PluginAfterScriptsContext,
+  PluginBeforeScriptsContext,
+  PluginInjectedScript,
+  PluginScriptBag,
+  PluginScriptStageList,
+  ScriptPhase,
+  ScriptStage
+} from '@harborclient/sdk';
 
 lockdown();
 
@@ -40,6 +50,20 @@ interface AfterSendMessage {
   response: PluginHttpResponse;
 }
 
+interface BeforeScriptsMessage {
+  type: 'beforeScripts';
+  id: number;
+  phase: ScriptPhase;
+  request: PluginHttpRequest;
+  data: Record<string, unknown>;
+}
+
+interface AfterScriptsMessage {
+  type: 'afterScripts';
+  id: number;
+  context: PluginAfterScriptsContext;
+}
+
 interface InvokeMessage {
   type: 'invoke';
   id: number;
@@ -60,6 +84,8 @@ type IncomingMessage =
   | DeactivateMessage
   | BeforeSendMessage
   | AfterSendMessage
+  | BeforeScriptsMessage
+  | AfterScriptsMessage
   | InvokeMessage
   | EchoRequestMessage;
 
@@ -87,6 +113,8 @@ interface PluginState {
   afterSend: Array<
     (request: PluginHttpRequest, response: PluginHttpResponse) => void | Promise<void>
   >;
+  beforeScripts: Array<(context: PluginBeforeScriptsContext) => void | Promise<void>>;
+  afterScripts: Array<(context: PluginAfterScriptsContext) => void | Promise<void>>;
   ipcHandlers: Map<string, (...args: unknown[]) => unknown>;
   subscriptions: Array<{ dispose: () => void }>;
   onRequestHandlers: Array<(request: EchoServerIncomingRequest) => unknown | Promise<unknown>>;
@@ -256,6 +284,14 @@ function createMainPluginContext(state: PluginState): Record<string, unknown> {
       ) => {
         assertPermission('http');
         return subscribeHandler(subscriptions, state.afterSend, handler);
+      },
+      onBeforeScripts: (handler: (context: PluginBeforeScriptsContext) => void | Promise<void>) => {
+        assertPermission('scripts:inject');
+        return subscribeHandler(subscriptions, state.beforeScripts, handler);
+      },
+      onAfterScripts: (handler: (context: PluginAfterScriptsContext) => void | Promise<void>) => {
+        assertPermission('scripts:inject');
+        return subscribeHandler(subscriptions, state.afterScripts, handler);
       }
     },
     ipc: {
@@ -306,6 +342,8 @@ async function activatePlugin(
     permissions,
     beforeSend: [],
     afterSend: [],
+    beforeScripts: [],
+    afterScripts: [],
     ipcHandlers: new Map(),
     subscriptions: [],
     onRequestHandlers: []
@@ -404,6 +442,126 @@ async function runAfterSend(
 }
 
 /**
+ * Builds one plugin's append-and-lookup view over the shared injection sink.
+ *
+ * Lookups filter by `pluginId` so a plugin cannot read or rewrite another
+ * plugin's injected source, while a single flat sink preserves the global
+ * append order the host needs for stage merging.
+ *
+ * @param pluginId - Owning plugin id stamped onto each record.
+ * @param sink - Shared, append-only record list for this hook run.
+ * @param data - Shared ephemeral script data bag.
+ * @returns Injection surface handed to the plugin's handler.
+ */
+function createScriptBag(
+  pluginId: string,
+  sink: PluginInjectedScript[],
+  data: Record<string, unknown>
+): PluginScriptBag {
+  /**
+   * Creates an append-and-lookup list for one script stage.
+   *
+   * @param stage - Stage bucket this list writes into.
+   * @returns Stage list API for the calling plugin.
+   */
+  const stageList = (stage: ScriptStage): PluginScriptStageList => ({
+    push: (entry) => {
+      const record: PluginInjectedScript = {
+        uuid: randomUUID(),
+        pluginId,
+        name: entry.name,
+        stage,
+        script: entry.script
+      };
+      sink.push(record);
+      return record;
+    },
+    all: () => sink.filter((row) => row.pluginId === pluginId && row.stage === stage)
+  });
+
+  return {
+    beforeAll: stageList('before-all'),
+    beforeEach: stageList('before-each'),
+    main: stageList('main'),
+    afterEach: stageList('after-each'),
+    afterAll: stageList('after-all'),
+    data,
+    find: (uuid) => sink.find((row) => row.pluginId === pluginId && row.uuid === uuid),
+    findByName: (name) => sink.find((row) => row.pluginId === pluginId && row.name === name)
+  };
+}
+
+/**
+ * Runs all registered before-scripts hooks sequentially for one request stage.
+ *
+ * @param phase - Request stage about to run.
+ * @param request - Read-only request snapshot entering the stage.
+ * @param data - Incoming ephemeral script data bag.
+ * @returns Flat injected script list plus the possibly-mutated data bag.
+ */
+async function runBeforeScripts(
+  phase: ScriptPhase,
+  request: PluginHttpRequest,
+  data: Record<string, unknown>
+): Promise<{ scripts: PluginInjectedScript[]; data: Record<string, unknown> }> {
+  const sink: PluginInjectedScript[] = [];
+  const bag: Record<string, unknown> = JSON.parse(JSON.stringify(data));
+
+  for (const state of plugins.values()) {
+    if (!state.beforeScripts.length) {
+      continue;
+    }
+    const scripts = createScriptBag(state.pluginId, sink, bag);
+    const context: PluginBeforeScriptsContext = {
+      phase,
+      request: {
+        method: request.method,
+        url: request.url,
+        ...(request.sourceRequestId !== undefined
+          ? { sourceRequestId: request.sourceRequestId }
+          : {}),
+        ...(request.sourceRequestName !== undefined
+          ? { sourceRequestName: request.sourceRequestName }
+          : {})
+      },
+      scripts
+    };
+    for (const handler of state.beforeScripts) {
+      try {
+        await handler(context);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Plugin ${state.pluginId}: ${message}`);
+      }
+    }
+  }
+
+  return JSON.parse(JSON.stringify({ scripts: sink, data: bag })) as {
+    scripts: PluginInjectedScript[];
+    data: Record<string, unknown>;
+  };
+}
+
+/**
+ * Runs all registered after-scripts hooks sequentially for one request stage.
+ *
+ * @param context - Stage summary with data bag, tests, logs, and errors.
+ */
+async function runAfterScripts(context: PluginAfterScriptsContext): Promise<void> {
+  const snapshot: PluginAfterScriptsContext = JSON.parse(JSON.stringify(context));
+  for (const state of plugins.values()) {
+    for (const handler of state.afterScripts) {
+      try {
+        await handler(snapshot);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Plugin ${state.pluginId}: ${message}`);
+      }
+    }
+  }
+}
+
+/**
  * Invokes a plugin IPC handler registered in the main runtime.
  *
  * @param pluginId - Plugin manifest id.
@@ -468,6 +626,13 @@ async function handleMessage(message: IncomingMessage): Promise<SuccessReply | E
       }
       case 'afterSend':
         await runAfterSend(message.request, message.response);
+        return { id: message.id, ok: true };
+      case 'beforeScripts': {
+        const result = await runBeforeScripts(message.phase, message.request, message.data);
+        return { id: message.id, ok: true, result };
+      }
+      case 'afterScripts':
+        await runAfterScripts(message.context);
         return { id: message.id, ok: true };
       case 'invoke': {
         const result = await invokeIpc(message.pluginId, message.channel, message.args);

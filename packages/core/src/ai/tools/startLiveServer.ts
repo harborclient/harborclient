@@ -121,6 +121,21 @@ export interface StartLiveServerToolArgs {
   runCommand?: string;
 
   /**
+   * Machine-local runtime id for this run (ad-hoc only). Empty means None.
+   */
+  runtimeId?: string;
+
+  /**
+   * Companion process environment variables for this run (ad-hoc only).
+   */
+  runCommandEnv?: Array<{ key: string; value: string; enabled: boolean }>;
+
+  /**
+   * Whether to start the companion process (ad-hoc only).
+   */
+  runCommandEnabled?: boolean;
+
+  /**
    * Restart companion after unexpected crash (ad-hoc only).
    */
   restartOnCrash?: boolean;
@@ -166,6 +181,7 @@ export interface StartLiveServerToolArgs {
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules (ad-hoc).
  * @param {object} [ssl] - HTTPS cert/key paths (ad-hoc).
  * @param {string} [runCommand] - Companion process command (ad-hoc).
+ * @param {boolean} [runCommandEnabled] - Whether to start the companion process (ad-hoc).
  * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash (ad-hoc).
  * @param {string} [urlVariable] - Global variable name set to the server origin URL on start (ad-hoc).
  * @param {boolean} [openBrowser] - Whether to open a browser tab (default true).

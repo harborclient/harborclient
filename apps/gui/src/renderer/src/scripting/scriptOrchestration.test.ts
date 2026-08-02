@@ -361,6 +361,38 @@ describe('buildScriptSlots', () => {
       )
     ).toHaveLength(1);
   });
+
+  it('prepends plugin-injected scripts ahead of collection slots', () => {
+    const slots = buildScriptSlots(
+      [createInlineScriptRef('collection inline')],
+      [],
+      [],
+      [],
+      [createInlineScriptRef('request inline')],
+      [],
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'pre',
+      snippetLookup,
+      [
+        {
+          uuid: 'inj-1',
+          pluginId: 'com.example.inject',
+          name: 'Guard',
+          stage: 'before-all',
+          script: 'console.log("plugin");'
+        }
+      ]
+    );
+
+    expect(slots.map((slot) => slot.scope)).toEqual(['plugin', 'collection', 'request']);
+    expect(slots[0]?.label).toBe('Plugin com.example.inject: Guard');
+    expect(slots[0]?.scriptId).toBe('inj-1');
+  });
 });
 
 describe('script substitution chain', () => {

@@ -391,4 +391,60 @@ describe('RequestRunner', () => {
     expect(result.response.status).toBe(418);
     expect(result.response.body).toBe('overridden');
   });
+
+  it('injects plugin scripts ahead of host scripts and threads hc.data', async () => {
+    const transport = vi.fn(async () => okTransportResult());
+    const afterScripts = vi.fn(async () => undefined);
+    const seenSources: string[] = [];
+    const seenData: unknown[] = [];
+
+    await runRequest(
+      {
+        request: createRequest('https://example.test'),
+        scripts: [{ phase: 'pre', source: 'host-pre', label: 'Host pre' }]
+      },
+      {
+        settings: {} as never,
+        cookieJar: createCookieJar(),
+        transport,
+        pluginHooks: {
+          beforeScripts: async ({ phase, data }) => ({
+            scripts:
+              phase === 'pre'
+                ? [
+                    {
+                      uuid: 'plugin-1',
+                      pluginId: 'com.example.inject',
+                      name: 'Injected',
+                      stage: 'before-all',
+                      script: 'plugin-pre'
+                    }
+                  ]
+                : [],
+            data: phase === 'pre' ? { ...data, seeded: true } : data
+          }),
+          afterScripts
+        },
+        scriptRunner: {
+          run: async (input) => {
+            seenSources.push(input.script);
+            seenData.push(input.data);
+            return scriptResult(input.request, {
+              data: { ...(input.data ?? {}), fromScript: input.script }
+            });
+          },
+          dispose: () => undefined
+        }
+      }
+    );
+
+    expect(seenSources).toEqual(['plugin-pre', 'host-pre']);
+    expect(seenData[0]).toEqual({ seeded: true });
+    expect(afterScripts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phase: 'pre',
+        data: expect.objectContaining({ seeded: true, fromScript: 'host-pre' })
+      })
+    );
+  });
 });

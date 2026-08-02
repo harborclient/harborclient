@@ -1,3 +1,4 @@
+import type { PluginInjectedScript } from '@harborclient/sdk';
 import { buildScriptRunInfo } from '../types/script';
 import type {
   KeyValue,
@@ -9,9 +10,15 @@ import type {
 } from '../types';
 import { enrichScriptLogLines } from '../scripting/scriptLogs';
 import { applyScriptResponseOverride } from '../scripting/scriptResponseOverride';
+import { orderWithInjectedScripts } from '../scriptStage';
 import { getActiveWorkflowScriptContext } from '../workflowRunner/workflowScriptContext';
 import { buildSendInput, resolveRequestVariables, substituteRequestVariables } from './helpers';
-import type { RequestRunnerDeps, RunRequestInput, RunRequestResult } from './types';
+import type {
+  RequestRunnerDeps,
+  RequestRunnerScript,
+  RunRequestInput,
+  RunRequestResult
+} from './types';
 
 /**
  * Runs a request pipeline without depending on Redux, Electron, or browser globals.
@@ -45,6 +52,7 @@ export class RequestRunner {
     let scriptResponseOverride: ScriptResponseOverride | undefined;
     let workflowNextAction: string | undefined;
     let workflowSkipAction = false;
+    let scriptData: Record<string, unknown> = {};
     const cookieDomain = resolveCookieDomain(substituteRequestVariables(request.url, variables));
     let cookies = cookieDomain ? this.deps.cookieJar.getCookiesForDomain(cookieDomain) : [];
     const activeWorkflow = getActiveWorkflowScriptContext();
@@ -65,7 +73,28 @@ export class RequestRunner {
       if (!this.deps.scriptRunner) {
         return;
       }
-      for (const script of input.scripts?.filter((candidate) => candidate.phase === phase) ?? []) {
+
+      let phaseScripts = input.scripts?.filter((candidate) => candidate.phase === phase) ?? [];
+      const phaseLogStart = scriptLogs.length;
+      const phaseTestStart = testResults.length;
+      const phaseErrorStart = scriptErrors.length;
+
+      if (this.deps.pluginHooks?.beforeScripts) {
+        const injection = await this.deps.pluginHooks.beforeScripts({
+          phase,
+          request,
+          data: scriptData,
+          sourceRequestId: input.requestIdentity?.id,
+          sourceRequestName: input.requestIdentity?.name
+        });
+        scriptData = injection.data;
+        phaseScripts = orderWithInjectedScripts(
+          injection.scripts.map((entry) => toInjectedRunnerScript(phase, entry)),
+          phaseScripts
+        );
+      }
+
+      for (const script of phaseScripts) {
         const result = await this.deps.scriptRunner.run({
           phase,
           script: substituteRequestVariables(script.source, variables),
@@ -73,6 +102,7 @@ export class RequestRunner {
           response,
           variables,
           cookies,
+          data: scriptData,
           info: buildScriptRunInfo(phase, {
             requestName: input.requestIdentity?.name,
             requestId: input.requestIdentity?.id,
@@ -100,6 +130,7 @@ export class RequestRunner {
         request = cloneRequestContext(result.request);
         variables = applyScriptVariables(variables, result);
         cookies = applyCookieChanges(cookies, result);
+        scriptData = result.data;
         collectScriptResult(script, result, scriptLogs, testResults, executionEvents, scriptErrors);
         if (result.nextRequest !== undefined) {
           scriptNextRequest = result.nextRequest;
@@ -112,6 +143,25 @@ export class RequestRunner {
           workflowNextAction = result.workflowNextAction;
         }
         workflowSkipAction ||= result.workflowSkipAction === true;
+      }
+
+      if (this.deps.pluginHooks?.afterScripts) {
+        await this.deps.pluginHooks.afterScripts({
+          phase,
+          data: scriptData,
+          tests: testResults.slice(phaseTestStart).map((test) => ({
+            name: test.name,
+            passed: test.passed,
+            ...(test.error ? { error: test.error } : {})
+          })),
+          logs: scriptLogs.slice(phaseLogStart).map((entry) => ({
+            level: entry.level,
+            message: entry.message,
+            ...(entry.scriptName ? { scriptName: entry.scriptName } : {}),
+            ...(entry.scriptId ? { scriptId: entry.scriptId } : {})
+          })),
+          errors: scriptErrors.slice(phaseErrorStart)
+        });
       }
     };
 
@@ -213,6 +263,28 @@ export async function runRequest(
 }
 
 /**
+ * Converts a plugin-injected script into a runner script descriptor.
+ *
+ * @param phase - Request stage the injection belongs to.
+ * @param entry - Serialized injection record from beforeScripts.
+ * @returns Runner script with plugin ownership metadata.
+ */
+function toInjectedRunnerScript(
+  phase: 'pre' | 'post',
+  entry: PluginInjectedScript
+): RequestRunnerScript {
+  return {
+    phase,
+    label: `${entry.pluginId}: ${entry.name}`,
+    source: entry.script,
+    scriptId: entry.uuid,
+    scope: 'plugin',
+    pluginId: entry.pluginId,
+    stage: entry.stage
+  };
+}
+
+/**
  * Clones script-owned request data so a runner never mutates host state.
  *
  * @param request - Request context supplied by the host.
@@ -296,7 +368,7 @@ function collectScriptResult(
     label: string;
     scriptId?: string;
     phase: 'pre' | 'post';
-    scope?: 'collection' | 'folder' | 'request';
+    scope?: 'collection' | 'folder' | 'request' | 'plugin';
   },
   result: ScriptRunResult,
   logs: ScriptLogEntry[],

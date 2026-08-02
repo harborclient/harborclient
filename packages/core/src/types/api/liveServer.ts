@@ -2,6 +2,7 @@ import type {
   CreateLiveServerInput,
   LiveServer,
   LiveServerFileChangedEvent,
+  LiveServerImportResult,
   LiveServerLogEntry,
   LiveServerLogSession,
   LiveServerLogsQuery,
@@ -10,6 +11,8 @@ import type {
   StartLiveServerInput,
   UpdateLiveServerInput
 } from '../liveServer';
+
+export type { LiveServerImportResult };
 
 /**
  * IPC surface for live server runtime control and saved-config persistence.
@@ -43,9 +46,9 @@ export interface ApiLiveServer {
   /**
    * Imports a HarborClient live-server export from a file selected via a native dialog.
    *
-   * @returns The imported or updated live server, or null when the dialog was canceled.
+   * @returns Import result including any unresolved runtime requirement, or null when canceled.
    */
-  importLiveServer: () => Promise<LiveServer | null>;
+  importLiveServer: () => Promise<LiveServerImportResult | null>;
 
   /**
    * Updates a saved live server and returns the refreshed list.

@@ -9,6 +9,7 @@ import { AiSettingsExtras } from '../extras/AiSettingsExtras';
 import { BackupRestoreSection } from '../BackupRestoreSection';
 import { GitIdentitiesSection } from '../GitIdentitiesSection';
 import { GlobalsSection } from '../GlobalsSection';
+import { RuntimesSection } from '../RuntimesSection';
 import { StorageLocationsSection } from '../StorageLocationsSection';
 import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
@@ -134,12 +135,13 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
  * Maps management section ids to their existing panel components.
  */
 export const SETTINGS_SECTION_REGISTRY: Record<
-  'globals' | 'storage' | 'git' | 'backup-restore',
+  'globals' | 'storage' | 'git' | 'runtimes' | 'backup-restore',
   ComponentType<SettingsSectionComponentProps>
 > = {
   'globals': GlobalsSection,
   'storage': StorageLocationsSection,
   'git': GitIdentitiesSection,
+  'runtimes': RuntimesSection,
   'backup-restore': BackupRestoreSection
 };
 
@@ -193,11 +195,12 @@ export function renderSettingFields(ids: FieldSettingId[]): JSX.Element {
  */
 export function isManagementSettingsSection(
   section: SettingsSection
-): section is 'globals' | 'storage' | 'git' | 'backup-restore' {
+): section is 'globals' | 'storage' | 'git' | 'runtimes' | 'backup-restore' {
   return (
     section === 'globals' ||
     section === 'storage' ||
     section === 'git' ||
+    section === 'runtimes' ||
     section === 'backup-restore'
   );
 }

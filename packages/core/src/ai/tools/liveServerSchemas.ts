@@ -255,12 +255,35 @@ export const LIVE_SERVER_EXPANDED_CONFIG_PROPERTIES = {
   runCommand: {
     type: 'string',
     description:
-      'Optional companion process command: absolute binary path plus args (e.g. `/usr/bin/node ./server.js`). Spawned without a shell when the live server starts; cwd is the document root. Empty means none. Pair with proxy rules to forward to the app.'
+      'Optional companion process command. When runtimeId is set this is arguments only (e.g. `server.js -p 3000`); when runtimeId is empty this is the full command (absolute binary + args, e.g. `/usr/bin/node ./server.js`). Spawned without a shell; cwd is the document root. Empty means none.'
+  },
+  runtimeId: {
+    type: 'string',
+    description:
+      'Optional id of a machine-local runtime from Settings → Runtimes. Empty means None (run the command string directly).'
+  },
+  runCommandEnv: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        key: { type: 'string' },
+        value: { type: 'string' },
+        enabled: { type: 'boolean' }
+      }
+    },
+    description:
+      'Optional environment variables for the companion process. Values may include `{{variables}}`. Rows override matching keys from the selected runtime. Defaults to `[]`.'
+  },
+  runCommandEnabled: {
+    type: 'boolean',
+    description:
+      'When true, start the companion process with the live server. When omitted, enabled if runCommand or runtimeId is set. Defaults to false for new servers with no command.'
   },
   restartOnCrash: {
     type: 'boolean',
     description:
-      'When true and runCommand is set, restart the companion after an unexpected non-zero exit or signal (not on Stop or clean exit 0). Defaults to false.'
+      'When true and a run command or runtime is set, restart the companion after an unexpected non-zero exit or signal (not on Stop or clean exit 0). Defaults to false.'
   },
   urlVariable: {
     type: 'string',
@@ -368,6 +391,17 @@ export const liveServerExpandedConfigShape = {
   proxies: z.array(liveServerProxyShape).optional(),
   ssl: liveServerSslShape.optional(),
   runCommand: z.string().optional(),
+  runtimeId: z.string().optional(),
+  runCommandEnv: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.string(),
+        enabled: z.boolean()
+      })
+    )
+    .optional(),
+  runCommandEnabled: z.boolean().optional(),
   restartOnCrash: z.boolean().optional(),
   urlVariable: z.string().optional(),
   preRequestScripts: z.array(z.record(z.string(), z.unknown())).optional(),

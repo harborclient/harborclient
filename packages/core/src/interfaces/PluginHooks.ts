@@ -1,5 +1,25 @@
-import type { SendRequestInput } from '../types';
-import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
+import type {
+  PluginAfterScriptsContext,
+  PluginHttpRequest,
+  PluginHttpResponse,
+  PluginInjectedScript
+} from '@harborclient/sdk';
+import type { ScriptRequestContext, SendRequestInput } from '../types';
+
+/**
+ * Result of {@link PluginHooks.beforeScripts}: injected scripts plus the updated data bag.
+ */
+export interface PluginBeforeScriptsResult {
+  /**
+   * Stage-tagged plugin scripts in injection order.
+   */
+  scripts: PluginInjectedScript[];
+
+  /**
+   * Ephemeral bag after plugin writes (script-side `hc.data`).
+   */
+  data: Record<string, unknown>;
+}
 
 /**
  * Optional hooks applied around outbound HTTP sends (plugins in the GUI).
@@ -25,4 +45,25 @@ export interface PluginHooks {
     request: SendRequestInput | PluginHttpRequest,
     response: PluginHttpResponse
   ): Promise<void> | void;
+
+  /**
+   * Collects plugin-injected scripts and data-bag writes before one stage runs.
+   *
+   * @param input - Stage, request snapshot entering the stage, and current data bag.
+   * @returns Injected scripts in stage-tagged injection order plus the updated bag.
+   */
+  beforeScripts?(input: {
+    phase: 'pre' | 'post';
+    request: ScriptRequestContext;
+    data: Record<string, unknown>;
+    sourceRequestId?: number;
+    sourceRequestName?: string;
+  }): Promise<PluginBeforeScriptsResult> | PluginBeforeScriptsResult;
+
+  /**
+   * Observes the summary of one completed request stage.
+   *
+   * @param context - Stage, data bag, tests, logs, and errors from the stage.
+   */
+  afterScripts?(context: PluginAfterScriptsContext): Promise<void> | void;
 }

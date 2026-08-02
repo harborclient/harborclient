@@ -3,7 +3,13 @@ import type { SearchDocsToolArgs } from '@harborclient/core/ai/tools';
 import type { HarborDeepLink } from '@harborclient/core/deepLink';
 import type { MenuSelectThemePayload, ThemeMenuOption } from '@harborclient/core/themes';
 import type { ScriptLivePageRequest } from '@harborclient/core/scripting/scriptApi';
-import type { PluginHttpRequest, PluginHttpResponse } from '@harborclient/sdk';
+import type {
+  PluginAfterScriptsContext,
+  PluginHttpRequest,
+  PluginHttpResponse,
+  PluginInjectedScript,
+  ScriptPhase
+} from '@harborclient/sdk';
 import { clipboard, contextBridge, ipcRenderer } from 'electron';
 import os from 'node:os';
 import { normalize, resolve } from 'path';
@@ -17,6 +23,9 @@ import type {
   CollectionDocument,
   CollectionExportResult,
   StorageConnection,
+  Runtime,
+  VerifyRuntimeInput,
+  VerifyRuntimeResult,
   EditorTab,
   Environment,
   Folder,
@@ -669,7 +678,9 @@ function createLiveServer(input: CreateLiveServerInput): Promise<LiveServer[]> {
  *
  * @returns The imported or updated live server, or null when the dialog was canceled.
  */
-function importLiveServer(): Promise<LiveServer | null> {
+function importLiveServer(): Promise<
+  import('@harborclient/core/types').LiveServerImportResult | null
+> {
   return ipcRenderer.invoke('liveServers:import');
 }
 
@@ -2469,6 +2480,40 @@ function saveStorageConnection(conn: StorageConnection): Promise<StorageConnecti
  */
 function deleteStorageConnection(id: string): Promise<StorageConnection[]> {
   return ipcRenderer.invoke('storageConnections:delete', id);
+}
+
+/**
+ * Lists machine-local companion-process runtimes via IPC.
+ */
+function listRuntimes(): Promise<Runtime[]> {
+  return ipcRenderer.invoke('runtimes:list');
+}
+
+/**
+ * Creates or updates a companion-process runtime via IPC.
+ *
+ * @param runtime - Runtime to persist; empty id inserts a new runtime.
+ */
+function saveRuntime(runtime: Runtime): Promise<Runtime[]> {
+  return ipcRenderer.invoke('runtimes:save', runtime);
+}
+
+/**
+ * Deletes a companion-process runtime via IPC.
+ *
+ * @param id - Runtime id to remove.
+ */
+function deleteRuntime(id: string): Promise<Runtime[]> {
+  return ipcRenderer.invoke('runtimes:delete', id);
+}
+
+/**
+ * Verifies a runtime executable path and declared version via IPC.
+ *
+ * @param input - Kind, version, and path to verify.
+ */
+function verifyRuntime(input: VerifyRuntimeInput): Promise<VerifyRuntimeResult> {
+  return ipcRenderer.invoke('runtimes:verify', input);
 }
 
 /**
@@ -4745,6 +4790,29 @@ function pushPluginHttpAfterSend(payload: {
 }
 
 /**
+ * Runs main-entry before-scripts hooks and returns injected scripts for a stage.
+ *
+ * @param payload - Stage, request snapshot, and current `hc.data` bag.
+ * @returns Injected scripts plus the possibly-mutated data bag.
+ */
+function runPluginBeforeScripts(payload: {
+  phase: ScriptPhase;
+  request: PluginHttpRequest;
+  data: Record<string, unknown>;
+}): Promise<{ scripts: PluginInjectedScript[]; data: Record<string, unknown> }> {
+  return ipcRenderer.invoke('plugins:runBeforeScripts', payload);
+}
+
+/**
+ * Runs main-entry after-scripts hooks with the summary of a completed stage.
+ *
+ * @param payload - Stage summary with data bag, tests, logs, and errors.
+ */
+function runPluginAfterScripts(payload: PluginAfterScriptsContext): Promise<void> {
+  return ipcRenderer.invoke('plugins:runAfterScripts', payload);
+}
+
+/**
  * Pushes a coarse library invalidation to plugin webviews with the `ui` permission.
  */
 function pushPluginLibraryChanged(payload: {
@@ -5200,6 +5268,10 @@ const api: Api = {
   saveStorageConnection,
   deleteStorageConnection,
   onStorageConnectionsChanged,
+  listRuntimes,
+  saveRuntime,
+  deleteRuntime,
+  verifyRuntime,
   listTeamHubs,
   saveTeamHub,
   deleteTeamHub,
@@ -5407,6 +5479,8 @@ const api: Api = {
   pluginFsWatchFile,
   pushPluginViewContext,
   pushPluginHttpAfterSend,
+  runPluginBeforeScripts,
+  runPluginAfterScripts,
   pushPluginLibraryChanged,
   pushPluginWorkflowsChanged,
   pushPluginSidebarSelectionChanged,

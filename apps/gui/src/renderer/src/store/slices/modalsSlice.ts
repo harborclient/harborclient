@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   CollectionDocument,
+  KeyValue,
   LiveServerAlias,
   LiveServerCorsSettings,
   LiveServerErrorPage,
@@ -8,7 +9,9 @@ import type {
   LiveServerResponseHeader,
   LiveServerRoute,
   LiveServerScriptRef,
+  LiveServerSettingsTab,
   LiveServerSslSettings,
+  RuntimeRequirement,
   SavedRequest,
   ScriptExecutionEvent,
   ScriptLogEntry,
@@ -21,6 +24,9 @@ import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
   normalizeLiveServerHeaders,
+  normalizeLiveServerRunCommandEnabled,
+  normalizeLiveServerRunCommandEnv,
+  normalizeLiveServerRuntimeId,
   normalizeLiveServerScriptRefs,
   normalizeLiveServerSslSettings
 } from '@harborclient/core/types';
@@ -424,15 +430,7 @@ export type LiveServerModalMode = 'create' | 'edit';
 /**
  * Segmented tab in the live server create/edit footer panel.
  */
-export type LiveServerModalTab =
-  | 'general'
-  | 'headers'
-  | 'routing'
-  | 'proxy'
-  | 'aliases'
-  | 'cors'
-  | 'ssl'
-  | 'scripts';
+export type LiveServerModalTab = LiveServerSettingsTab;
 
 /**
  * Live server editor draft state for create and edit footer-panel flows.
@@ -549,9 +547,29 @@ export interface LiveServerModalState {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command (arguments when a runtime is set, else full command).
    */
   runCommand: string;
+
+  /**
+   * Selected machine-local runtime id, or empty for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables for the companion process.
+   */
+  runCommandEnv: KeyValue[];
+
+  /**
+   * Portable runtime requirement that could not be matched on import.
+   */
+  unresolvedRuntime: RuntimeRequirement | null;
 
   /**
    * When true, restart the companion after an unexpected crash.
@@ -920,6 +938,22 @@ const modalsSlice = createSlice({
          */
         runCommand?: string;
         /**
+         * Machine-local runtime id, or omit for None.
+         */
+        runtimeId?: string;
+        /**
+         * Whether the companion process is enabled, or omit to derive from command/runtime.
+         */
+        runCommandEnabled?: boolean;
+        /**
+         * Companion process environment variables.
+         */
+        runCommandEnv?: KeyValue[];
+        /**
+         * Unresolved portable runtime from import, when no local match exists.
+         */
+        unresolvedRuntime?: RuntimeRequirement | null;
+        /**
          * Restart-on-crash flag, or omit for false.
          */
         restartOnCrash?: boolean;
@@ -964,6 +998,14 @@ const modalsSlice = createSlice({
         proxies: action.payload.proxies ?? [],
         ssl: normalizeLiveServerSslSettings(action.payload.ssl),
         runCommand: action.payload.runCommand?.trim() ?? '',
+        runtimeId: normalizeLiveServerRuntimeId(action.payload.runtimeId),
+        runCommandEnabled: normalizeLiveServerRunCommandEnabled(
+          action.payload.runCommandEnabled,
+          action.payload.runCommand?.trim() ?? '',
+          normalizeLiveServerRuntimeId(action.payload.runtimeId)
+        ),
+        runCommandEnv: normalizeLiveServerRunCommandEnv(action.payload.runCommandEnv),
+        unresolvedRuntime: action.payload.unresolvedRuntime ?? null,
         restartOnCrash: action.payload.restartOnCrash === true,
         urlVariable: action.payload.urlVariable?.trim() ?? '',
         preRequestScripts: normalizeLiveServerScriptRefs(action.payload.preRequestScripts),
@@ -979,7 +1021,7 @@ const modalsSlice = createSlice({
       state.liveServerModal = null;
     },
     /**
-     * Switches the live server editor among General, Headers, Routing, Proxy, CORS, SSL, and Scripts tabs.
+     * Switches the live server editor among General, Proxy, Headers, Routing, Command, SSL, and Scripts tabs.
      */
     setLiveServerModalTab(state, action: PayloadAction<LiveServerModalTab>) {
       if (state.liveServerModal) {
@@ -1144,6 +1186,33 @@ const modalsSlice = createSlice({
     setLiveServerModalRunCommand(state, action: PayloadAction<string>) {
       if (state.liveServerModal) {
         state.liveServerModal.runCommand = action.payload;
+      }
+    },
+    /**
+     * Updates the selected runtime id.
+     */
+    setLiveServerModalRuntimeId(state, action: PayloadAction<string>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.runtimeId = action.payload;
+        if (action.payload.trim() !== '') {
+          state.liveServerModal.unresolvedRuntime = null;
+        }
+      }
+    },
+    /**
+     * Updates whether the companion process is enabled.
+     */
+    setLiveServerModalRunCommandEnabled(state, action: PayloadAction<boolean>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.runCommandEnabled = action.payload;
+      }
+    },
+    /**
+     * Updates companion-process environment variable rows.
+     */
+    setLiveServerModalRunCommandEnv(state, action: PayloadAction<KeyValue[]>) {
+      if (state.liveServerModal) {
+        state.liveServerModal.runCommandEnv = action.payload;
       }
     },
     /**
@@ -1913,6 +1982,9 @@ export const {
   setLiveServerModalProxies,
   setLiveServerModalSsl,
   setLiveServerModalRunCommand,
+  setLiveServerModalRuntimeId,
+  setLiveServerModalRunCommandEnv,
+  setLiveServerModalRunCommandEnabled,
   setLiveServerModalRestartOnCrash,
   setLiveServerModalPreRequestScripts,
   setLiveServerModalPostRequestScripts,

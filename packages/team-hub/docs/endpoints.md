@@ -900,7 +900,7 @@ Requires wildcard live-server access.
 All Live Server configuration fields are accepted: `root`, `port`, `aliases`,
 `watch`, `cors`, `openPath`, `openPathOnStartup`, `rememberLastUrl`,
 `lastOpenedPath`, `indexFiles`, `host`, `headers`, `routes`, `errorPages`,
-`proxies`, `ssl`, `runCommand`, `restartOnCrash`, `urlVariable`,
+`proxies`, `ssl`, `runCommand`, `runCommandEnabled`, `restartOnCrash`, `urlVariable`,
 `preRequestScripts`, and `postRequestScripts`.
 
 ### POST /live-pages

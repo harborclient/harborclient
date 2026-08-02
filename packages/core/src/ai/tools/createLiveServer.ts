@@ -123,6 +123,21 @@ export interface CreateLiveServerToolArgs {
   runCommand?: string;
 
   /**
+   * Machine-local runtime id from Settings → Runtimes. Empty means None.
+   */
+  runtimeId?: string;
+
+  /**
+   * Companion process environment variables. Defaults to `[]`.
+   */
+  runCommandEnv?: Array<{ key: string; value: string; enabled: boolean }>;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
    * When true, restart the companion after an unexpected crash.
    */
   restartOnCrash?: boolean;
@@ -163,6 +178,7 @@ export interface CreateLiveServerToolArgs {
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
  * @param {string} [runCommand] - Companion process command (absolute binary + args).
+ * @param {boolean} [runCommandEnabled] - Whether to start the companion process.
  * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash.
  * @param {string} [urlVariable] - Global variable name set to the server origin URL on start.
  */

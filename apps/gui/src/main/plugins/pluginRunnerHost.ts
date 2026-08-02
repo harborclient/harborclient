@@ -14,6 +14,11 @@ import type {
   PluginHttpResponse,
   PluginPermission
 } from '@harborclient/core/plugin/types';
+import type {
+  PluginAfterScriptsContext,
+  PluginInjectedScript,
+  ScriptPhase
+} from '@harborclient/sdk';
 
 const PLUGIN_TIMEOUT_MS = 10000;
 
@@ -739,6 +744,47 @@ export async function runPluginAfterSendHooks(
     type: 'afterSend',
     request,
     response
+  });
+}
+
+/**
+ * Runs registered plugin before-scripts hooks for one request stage.
+ *
+ * @param phase - Request stage about to run.
+ * @param request - Request snapshot entering the stage.
+ * @param data - Current ephemeral script data bag.
+ * @returns Injected scripts plus the possibly-mutated data bag.
+ */
+export async function runPluginBeforeScriptsHooks(
+  phase: ScriptPhase,
+  request: PluginHttpRequest,
+  data: Record<string, unknown>
+): Promise<{ scripts: PluginInjectedScript[]; data: Record<string, unknown> }> {
+  const result = await postMessage({
+    type: 'beforeScripts',
+    phase,
+    request,
+    data
+  });
+  return (
+    (result as { scripts: PluginInjectedScript[]; data: Record<string, unknown> } | undefined) ?? {
+      scripts: [],
+      data
+    }
+  );
+}
+
+/**
+ * Runs registered plugin after-scripts hooks for one completed request stage.
+ *
+ * @param context - Stage summary with data bag, tests, logs, and errors.
+ */
+export async function runPluginAfterScriptsHooks(
+  context: PluginAfterScriptsContext
+): Promise<void> {
+  await postMessage({
+    type: 'afterScripts',
+    context
   });
 }
 

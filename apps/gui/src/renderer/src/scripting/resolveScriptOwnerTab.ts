@@ -24,6 +24,7 @@ function tabHasScript(
  * Prefers the request tab that owned the send (`requestTabId`), then the effective
  * active request tab, then any open tab that still contains the script id. Script ids
  * are not globally unique (duplicates can share them), so owner preference matters.
+ * Plugin-injected scripts never appear in draft lists, so this returns undefined for them.
  *
  * @param state - Current renderer store state.
  * @param phase - Pre- or post-request phase of the script row.

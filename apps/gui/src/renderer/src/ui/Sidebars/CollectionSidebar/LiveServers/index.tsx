@@ -136,6 +136,9 @@ export function LiveServers(): JSX.Element {
               proxies: server.proxies,
               ssl: server.ssl,
               runCommand: server.runCommand,
+              runtimeId: server.runtimeId,
+              runCommandEnabled: server.runCommandEnabled,
+              runCommandEnv: server.runCommandEnv,
               restartOnCrash: server.restartOnCrash,
               urlVariable: server.urlVariable
             })
@@ -212,6 +215,9 @@ export function LiveServers(): JSX.Element {
           proxies: server.proxies,
           ssl: server.ssl,
           runCommand: server.runCommand,
+          runtimeId: server.runtimeId,
+          runCommandEnabled: server.runCommandEnabled,
+          runCommandEnv: server.runCommandEnv,
           restartOnCrash: server.restartOnCrash,
           urlVariable: server.urlVariable,
           preRequestScripts: server.preRequestScripts,
@@ -298,6 +304,9 @@ export function LiveServers(): JSX.Element {
               proxies: server.proxies,
               ssl: server.ssl,
               runCommand: server.runCommand,
+              runtimeId: server.runtimeId,
+              runCommandEnabled: server.runCommandEnabled,
+              runCommandEnv: server.runCommandEnv,
               restartOnCrash: server.restartOnCrash,
               urlVariable: server.urlVariable
             })

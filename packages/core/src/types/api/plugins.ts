@@ -2,9 +2,12 @@ import type { PluginCatalog, PluginSourcesSettings, ThemeCatalog } from '../../p
 import type {
   LibraryChangedEvent,
   LiveServerRequestLogEntry,
+  PluginAfterScriptsContext,
   PluginHttpRequest,
   PluginHttpResponse,
+  PluginInjectedScript,
   RunningLiveServer,
+  ScriptPhase,
   SidebarSelection,
   WorkflowsChangedEvent
 } from '@harborclient/sdk';
@@ -304,6 +307,22 @@ export interface ApiPlugins {
     request: PluginHttpRequest;
     response: PluginHttpResponse;
   }) => Promise<void>;
+  /**
+   * Runs main-entry `onBeforeScripts` hooks and returns injected scripts for a stage.
+   *
+   * @param payload - Stage, request snapshot, and current `hc.data` bag.
+   */
+  runPluginBeforeScripts: (payload: {
+    phase: ScriptPhase;
+    request: PluginHttpRequest;
+    data: Record<string, unknown>;
+  }) => Promise<{ scripts: PluginInjectedScript[]; data: Record<string, unknown> }>;
+  /**
+   * Runs main-entry `onAfterScripts` hooks with the summary of a completed stage.
+   *
+   * @param payload - Stage summary with data bag, tests, logs, and errors.
+   */
+  runPluginAfterScripts: (payload: PluginAfterScriptsContext) => Promise<void>;
   /**
    * Pushes a coarse library invalidation event to plugin webviews with the `ui` permission.
    */

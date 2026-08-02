@@ -81,6 +81,57 @@ Register a callback that runs after the response is received. Requires the `http
 
 For UI-only plugins that react to completed sends (history, recent-requests, response diff), prefer renderer-side `hc.http.onAfterSend` in the renderer entry — it fires in-process with no main entry, custom IPC channel, or polling. Use this main-process hook when you need to run logic in the SES-hardened utilityProcess or mutate shared main-side state.
 
+## hc.http.onBeforeScripts(handler)
+
+**Signature:** `(handler: (context) => void \| Promise<void>) => Disposable`
+
+Register a callback that runs before each request stage's scripts. Fires twice per send — once with `phase: 'pre'` and once with `phase: 'post'`. Requires the `scripts:inject` permission.
+
+Injected scripts run as a synthetic scope ahead of collection/folder/request scripts. Within each stage (`before-all`, `before-each`, `main`, `after-each`, `after-all`), plugin scripts run before host scripts in that stage. Use `context.scripts.data` to seed the shared `hc.data` bag visible to every script in the send.
+
+```typescript
+import type { MainPluginContext } from '@harborclient/sdk';
+
+export function activate(hc: MainPluginContext): void {
+  hc.http.onBeforeScripts((ctx) => {
+    if (ctx.phase !== 'pre') {
+      return;
+    }
+    ctx.scripts.data.traceId = crypto.randomUUID();
+    ctx.scripts.beforeAll.push({
+      name: 'Stamp trace id',
+      script: `hc.request.headers.set('X-Trace-Id', hc.data.traceId);`
+    });
+  });
+}
+```
+
+See [Baseline tests](/examples/baseline-tests), [Trace correlation](/examples/trace-correlation), and [Production guard](/examples/production-guard) for complete walkthroughs.
+
+## hc.http.onAfterScripts(handler)
+
+**Signature:** `(handler: (context) => void \| Promise<void>) => Disposable`
+
+Register a callback that runs after each request stage's scripts complete. Fires twice per send — once after pre-request scripts and once after post-request scripts. Requires the `scripts:inject` permission.
+
+The context includes the final `data` bag for the stage, named `hc.test` results, console lines, and script error messages. Use this to collect injected test results or correlate values scripts wrote into `hc.data`.
+
+```typescript
+import type { MainPluginContext } from '@harborclient/sdk';
+
+export function activate(hc: MainPluginContext): void {
+  hc.http.onAfterScripts(async (ctx) => {
+    if (ctx.phase !== 'post') {
+      return;
+    }
+    const failed = ctx.tests.filter((test) => !test.passed);
+    if (failed.length) {
+      await hc.storage.set('lastFailures', failed);
+    }
+  });
+}
+```
+
 ## hc.ipc.handle(channel, handler)
 
 **Signature:** `(channel: string, handler: (...args) => unknown) => Disposable`

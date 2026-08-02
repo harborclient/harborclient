@@ -7,6 +7,8 @@ import {
   toLiveServerConfig,
   type LiveServerHostProviders
 } from '@harborclient/live-server';
+import { normalizeRuntimes, type Runtime } from '@harborclient/core/types';
+import { parseJson } from '@harborclient/core/parseJson';
 import { initLocalDatabase } from '@harborclient/storage-sqlite';
 import { CliSettingsProvider } from './adapters/CliSettingsProvider.js';
 import { NodeScriptRunner } from './adapters/NodeScriptRunner.js';
@@ -116,9 +118,25 @@ export async function runServersCommand(options: RunServersOptions): Promise<num
   const config = toLiveServerConfig(saved);
   const overlays: Record<string, string> = {};
 
+  /**
+   * Looks up a machine-local runtime from the registry settings blob.
+   *
+   * @param id - Runtime id from the live server config.
+   * @returns Matching runtime, or undefined when missing.
+   */
+  function getRuntime(id: string): Runtime | undefined {
+    const trimmed = id.trim();
+    if (trimmed === '') {
+      return undefined;
+    }
+    const runtimes = normalizeRuntimes(parseJson<unknown>(database.getSetting('runtimes'), []));
+    return runtimes.find((runtime) => runtime.id === trimmed);
+  }
+
   const providers: LiveServerHostProviders = {
     listSnippets: () => database.listSnippets(),
     getVariables: () => buildVariablesMap(settingsProvider, overlays),
+    getRuntime,
     runScript: (input) => scriptRunner.run(input)
   };
 

@@ -267,11 +267,6 @@ export function LiveServerScriptsSettings({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <p className="m-0 text-muted">
-        Scripts run only when the request path matches. Pre-request scripts finish before proxy and
-        Run command traffic.
-      </p>
-
       <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
         <Button
           type="button"

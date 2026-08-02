@@ -418,8 +418,10 @@ export interface ScriptResponseOverride {
 
 /**
  * Ownership scope of the script slot that produced a test result.
+ *
+ * `plugin` rows are injected at send time and have no editor row to navigate to.
  */
-export type ScriptTestScope = 'collection' | 'folder' | 'request';
+export type ScriptTestScope = 'collection' | 'folder' | 'request' | 'plugin';
 
 /**
  * Severity of a captured script console line.

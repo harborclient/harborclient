@@ -13,7 +13,9 @@ export const HARBORCLIENT_EXPORT_KINDS = [
   'workflow',
   'workflow-run',
   'website',
-  'server'
+  'server',
+  'runtime',
+  'runtimes'
 ] as const;
 
 /**

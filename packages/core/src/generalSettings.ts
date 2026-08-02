@@ -6,11 +6,13 @@ import {
   normalizeCodeEditorSetup,
   normalizeCodeEditorTheme
 } from './codeEditorSettings';
+import { normalizeLiveServerSettingsTab } from './liveServerSettingsTab';
 import { normalizeEditorTab } from './requestEditorTab';
 import { DEFAULT_TERMINAL_SETTINGS, normalizeTerminalSettings } from './terminalSettings';
 import type {
   EditorTab,
   GeneralSettings,
+  LiveServerSettingsTab,
   ProxyProtocol,
   ProxySettings,
   TrustedExternalDomain,
@@ -64,6 +66,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   trustedExternalDomains: [],
   allowAllExternalDomains: false,
   dismissedRequestEditorNotices: [],
+  dismissedLiveServerNotices: [],
   gitAutoAdd: true,
   externalMergeEditorPath: '',
   gitCommitAuthorName: '',
@@ -238,6 +241,23 @@ function normalizeDismissedRequestEditorNotices(input: unknown): EditorTab[] {
 }
 
 /**
+ * Normalizes the list of Live Server panel tabs whose inline notice was dismissed,
+ * dropping unknown tab ids and duplicates.
+ *
+ * @param input - Raw tab id list from storage or user input.
+ * @returns Unique valid Live Server settings tab ids.
+ */
+function normalizeDismissedLiveServerNotices(input: unknown): LiveServerSettingsTab[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  const tabs = input
+    .map((entry) => normalizeLiveServerSettingsTab(entry))
+    .filter((entry): entry is LiveServerSettingsTab => entry != null);
+  return [...new Set(tabs)];
+}
+
+/**
  * Normalizes the Start webpage URL used for new Live Pages.
  *
  * Trims whitespace and falls back to about:blank when empty or missing.
@@ -334,6 +354,9 @@ export function normalizeGeneralSettings(input: Partial<GeneralSettings>): Gener
     allowAllExternalDomains,
     dismissedRequestEditorNotices: normalizeDismissedRequestEditorNotices(
       input.dismissedRequestEditorNotices
+    ),
+    dismissedLiveServerNotices: normalizeDismissedLiveServerNotices(
+      input.dismissedLiveServerNotices
     ),
     gitAutoAdd: input.gitAutoAdd !== false,
     externalMergeEditorPath:

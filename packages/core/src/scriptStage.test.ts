@@ -4,6 +4,7 @@ import {
   defaultScriptStageForGroup,
   mergeScriptRefGroups,
   orderScriptRefsByStage,
+  orderWithInjectedScripts,
   SCRIPT_STAGE_OPTIONS,
   scriptEditorGroupsForAllowedStages,
   scriptRowStageSuffix,
@@ -76,6 +77,26 @@ describe('orderScriptRefsByStage', () => {
     expect(orderScriptRefsByStage(refs).map((ref) => ref.stage)).toEqual([
       'before-all',
       'after-all'
+    ]);
+  });
+});
+
+describe('orderWithInjectedScripts', () => {
+  it('places stage-ordered injected scripts ahead of host scripts', () => {
+    const injected = [
+      createInlineScriptRef('plugin-main', 'Plugin main', 'main'),
+      createInlineScriptRef('plugin-before', 'Plugin before', 'before-all')
+    ];
+    const host = [
+      createInlineScriptRef('host-before', 'Host before', 'before-all'),
+      createInlineScriptRef('host-main', 'Host main', 'main')
+    ];
+
+    expect(orderWithInjectedScripts(injected, host).map((ref) => ref.code)).toEqual([
+      'plugin-before',
+      'plugin-main',
+      'host-before',
+      'host-main'
     ]);
   });
 });

@@ -70,6 +70,9 @@ interface CopyScriptFailureToChatInput {
 /**
  * Returns whether a failed test row can be copied to AI chat.
  *
+ * Request-scoped rows only — collection, folder, and plugin-injected scripts
+ * are not addressable as `@` script references in the AI sidebar.
+ *
  * @param test - hc.test result.
  * @returns True when the row has request scope, phase, and script id.
  */
@@ -79,6 +82,9 @@ export function canCopyTestResultToChat(test: ScriptTestResult): boolean {
 
 /**
  * Returns whether a script error row can be copied to AI chat.
+ *
+ * Request-scoped rows only — collection, folder, and plugin-injected scripts
+ * are not addressable as `@` script references in the AI sidebar.
  *
  * @param error - Structured script failure.
  * @returns True when the row has request scope, phase, and script id.

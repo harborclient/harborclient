@@ -90,6 +90,8 @@ beforeEach(() => {
       runScript: runScriptMock,
       getCookies: vi.fn().mockResolvedValue([]),
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
+      runPluginBeforeScripts: vi.fn().mockResolvedValue({ scripts: [], data: {} }),
+      runPluginAfterScripts: vi.fn().mockResolvedValue(undefined),
       setCollectionRunnerConfig: setCollectionRunnerConfigMock,
       getCollectionRunnerConfig: vi.fn().mockResolvedValue({
         delayMs: 0,

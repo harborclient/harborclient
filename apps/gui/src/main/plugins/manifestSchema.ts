@@ -30,6 +30,7 @@ const pluginPermission = z.enum([
   'filesystem:read',
   'filesystem:write',
   'http',
+  'scripts:inject',
   'network',
   'ipc',
   'server',

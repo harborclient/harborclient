@@ -5,6 +5,8 @@ import type {
   KeyValue
 } from '@harborclient/core/types';
 import { variableKeyIsCleared } from '@harborclient/core/scripting/variableClearMatch';
+import { orderScriptRefsByStage } from '@harborclient/core/scriptStage';
+import type { PluginInjectedScript } from '@harborclient/sdk';
 import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import type { ScriptRef, Snippet } from '@harborclient/core/types';
 import { buildScopedScriptSlots, type ScriptSlot } from './scriptResolution';
@@ -213,11 +215,36 @@ export function applyScriptRequestMutations(
 }
 
 /**
+ * Converts plugin-injected scripts into executable slots for a request stage.
+ *
+ * Injected scripts are stage-ordered among themselves and labeled with the
+ * owning plugin id. They have no editor row to navigate to.
+ *
+ * @param injected - Stage-tagged plugin scripts in injection order.
+ * @param phase - Request stage these slots belong to.
+ * @returns Ordered plugin slots ready to prepend ahead of host scopes.
+ */
+export function buildPluginScriptSlots(
+  injected: PluginInjectedScript[],
+  phase: 'pre' | 'post'
+): ScriptSlot[] {
+  return orderScriptRefsByStage(injected).map((entry) => ({
+    label: `Plugin ${entry.pluginId}: ${entry.name}`,
+    phase,
+    source: entry.script,
+    scriptId: entry.uuid,
+    scope: 'plugin',
+    kind: 'inline'
+  }));
+}
+
+/**
  * Builds the ordered list of scripts to run for a send operation.
  *
  * Collection scripts run before request scripts within each phase. Each scope
  * expands its script reference array (with legacy string fallback) and resolves
- * live snippet references at send time.
+ * live snippet references at send time. Optional plugin-injected scripts are
+ * prepended as a synthetic scope ahead of collection.
  *
  * @param collectionPreScripts - Collection pre-request script references.
  * @param collectionPostScripts - Collection post-request script references.
@@ -233,6 +260,7 @@ export function applyScriptRequestMutations(
  * @param requestPostLegacy - Legacy request post-request script string.
  * @param phase - Which phase to collect.
  * @param snippetLookup - Live snippet library lookup by uuid.
+ * @param injectedScripts - Optional plugin-injected scripts for this phase.
  * @returns Ordered script slots for the phase.
  */
 export function buildScriptSlots(
@@ -249,10 +277,14 @@ export function buildScriptSlots(
   requestPreLegacy: string,
   requestPostLegacy: string,
   phase: 'pre' | 'post',
-  snippetLookup: Map<string, Snippet>
+  snippetLookup: Map<string, Snippet>,
+  injectedScripts: PluginInjectedScript[] = []
 ): ScriptSlot[] {
+  const pluginSlots = buildPluginScriptSlots(injectedScripts, phase);
+
   if (phase === 'pre') {
     return [
+      ...pluginSlots,
       ...buildScopedScriptSlots(
         collectionPreScripts,
         collectionPreLegacy,
@@ -281,6 +313,7 @@ export function buildScriptSlots(
   }
 
   return [
+    ...pluginSlots,
     ...buildScopedScriptSlots(
       collectionPostScripts,
       collectionPostLegacy,

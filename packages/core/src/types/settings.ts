@@ -302,6 +302,18 @@ export type EditorTab =
   | 'comment';
 
 /**
+ * Live Server settings panel tab identifiers.
+ */
+export type LiveServerSettingsTab =
+  | 'general'
+  | 'proxy'
+  | 'headers'
+  | 'routing'
+  | 'run'
+  | 'ssl'
+  | 'scripts';
+
+/**
  * One hostname the user may open in the system browser without confirmation.
  */
 export interface TrustedExternalDomain {
@@ -484,6 +496,12 @@ export interface GeneralSettings {
   dismissedRequestEditorNotices: EditorTab[];
 
   /**
+   * Live Server settings panel tabs whose inline help notice the user dismissed.
+   * Empty means every tab still shows its notice.
+   */
+  dismissedLiveServerNotices: LiveServerSettingsTab[];
+
+  /**
    * When true, HarborClient automatically tracks all requests and files added to git-backed
    * collections before committing. When false, only files tracked via request Add actions are
    * included in commits.
@@ -639,6 +657,7 @@ export type SettingsSection =
   | 'terminal'
   | 'backup-restore'
   | 'git'
+  | 'runtimes'
   | `plugin:${string}:${string}`;
 
 /**

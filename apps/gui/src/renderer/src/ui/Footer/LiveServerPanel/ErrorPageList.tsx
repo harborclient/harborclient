@@ -85,8 +85,8 @@ export function ErrorPageList({ errorPages, disabled, root, onChange }: Props): 
             <th className="w-6 p-1">
               <span className="sr-only">Enable</span>
             </th>
-            <th className="p-1 font-normal">Status code</th>
-            <th className="p-1 font-normal">File path</th>
+            <th className="w-36 whitespace-nowrap p-1 font-normal">Status code</th>
+            <th className="min-w-0 p-1 font-normal">File path</th>
             <th className="w-7 p-1">
               <span className="sr-only">Remove</span>
             </th>

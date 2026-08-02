@@ -20,7 +20,8 @@ const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'ai',
   'terminal',
   'backup-restore',
-  'git'
+  'git',
+  'runtimes'
 ]);
 
 const PLUGINS_SECTIONS = new Set<string>(['installed', 'marketplace', 'install', 'settings']);

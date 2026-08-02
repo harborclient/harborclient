@@ -8,6 +8,7 @@ import type { ApiWindow } from './window';
 import type { ApiSettings } from './settings';
 import type { ApiChats } from './chats';
 import type { ApiStorage } from './storage';
+import type { ApiRuntimes } from './runtimes';
 import type { ApiTeamHub } from './teamHub';
 import type { ApiGit } from './git';
 import type { ApiSharing } from './sharing';
@@ -25,6 +26,8 @@ import type { ApiLiveServer } from './liveServer';
 import type { ApiTrash } from './trash';
 import type { ApiTerminal } from './terminal';
 import type { ApiBrowser } from './browser';
+
+export type { ApiRuntimes, VerifyRuntimeInput, VerifyRuntimeResult } from './runtimes';
 
 export type {
   ApiBrowser,
@@ -58,6 +61,7 @@ export interface Api
     ApiSettings,
     ApiChats,
     ApiStorage,
+    ApiRuntimes,
     ApiTeamHub,
     ApiGit,
     ApiSharing,

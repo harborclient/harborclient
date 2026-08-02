@@ -785,7 +785,10 @@ export function registerCollectionHandlers(db: IStorage): void {
           return {
             kind: 'server',
             server: serverResult.server,
-            action: serverResult.action
+            action: serverResult.action,
+            ...(serverResult.unresolvedRuntime != null
+              ? { unresolvedRuntime: serverResult.unresolvedRuntime }
+              : {})
           } satisfies ImportEntityResult;
         }
       }

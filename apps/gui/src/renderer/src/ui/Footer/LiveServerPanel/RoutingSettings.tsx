@@ -1,6 +1,11 @@
 import type { JSX } from 'react';
-import { FormSection } from '@harborclient/sdk/components';
-import type { LiveServerErrorPage, LiveServerRoute } from '@harborclient/core/types';
+import { FormGroup } from '@harborclient/sdk/components';
+import type {
+  LiveServerAlias,
+  LiveServerErrorPage,
+  LiveServerRoute
+} from '@harborclient/core/types';
+import { AliasList } from './AliasList';
 import { ErrorPageList } from './ErrorPageList';
 import { RouteList } from './RouteList';
 
@@ -9,6 +14,11 @@ interface Props {
    * Ordered routing rules from the editor draft.
    */
   routes: LiveServerRoute[];
+
+  /**
+   * Path aliases from the editor draft.
+   */
+  aliases: LiveServerAlias[];
 
   /**
    * Status-code → HTML file mappings from the editor draft.
@@ -33,6 +43,13 @@ interface Props {
   onChange: (next: LiveServerRoute[]) => void;
 
   /**
+   * Called with the full replacement alias list after any edit.
+   *
+   * @param next - Updated alias rows (may include incomplete draft rows).
+   */
+  onAliasesChange: (next: LiveServerAlias[]) => void;
+
+  /**
    * Called with the full replacement error-page list after any edit.
    *
    * @param next - Updated error-page rows (may include a trailing blank row).
@@ -41,25 +58,28 @@ interface Props {
 }
 
 /**
- * Routing tab: ordered path-match rules plus custom HTML error pages.
+ * Routing tab: path-match rules, path aliases, and custom HTML error pages.
  *
- * Path rules run after alias/document-root static miss (GET/HEAD). Error pages
- * replace plaintext bodies when the server would return status ≥ 400.
+ * Aliases resolve static files before the document root. Path rules run after
+ * alias/document-root static miss (GET/HEAD). Error pages replace plaintext
+ * bodies when the server would return status ≥ 400.
  *
- * @param props - Route/error-page rows, root, disabled flag, and change handlers.
+ * @param props - Route/alias/error-page rows, root, disabled flag, and change handlers.
  */
 export function RoutingSettings({
   routes,
+  aliases,
   errorPages,
   root,
   disabled,
   onChange,
+  onAliasesChange,
   onErrorPagesChange
 }: Props): JSX.Element {
   return (
     <fieldset disabled={disabled} className="m-0 flex min-w-0 flex-col gap-6 border-0 p-0">
-      <FormSection
-        title="Path routing"
+      <FormGroup
+        label="Path routing"
         description={
           <>
             Rules run only when no file matched under aliases or the document root (GET/HEAD). Match{' '}
@@ -70,10 +90,22 @@ export function RoutingSettings({
         }
       >
         <RouteList routes={routes} disabled={disabled} onChange={onChange} />
-      </FormSection>
+      </FormGroup>
 
-      <FormSection
-        title="Error pages"
+      <FormGroup
+        label="Path aliases"
+        description={
+          <>
+            Map a URL path such as <code>/assets</code> to a folder like <code>build/assets</code>.
+            Aliases are checked before the document root when resolving static files.
+          </>
+        }
+      >
+        <AliasList aliases={aliases} disabled={disabled} onChange={onAliasesChange} />
+      </FormGroup>
+
+      <FormGroup
+        label="Error pages"
         description={
           <>
             When the server would return status ≥ 400, serve the matching HTML file instead of the
@@ -89,7 +121,7 @@ export function RoutingSettings({
           root={root}
           onChange={onErrorPagesChange}
         />
-      </FormSection>
+      </FormGroup>
     </fieldset>
   );
 }

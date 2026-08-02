@@ -69,11 +69,6 @@ export function SslSettings({ ssl, disabled, onChange }: Props): JSX.Element {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="m-0 text-muted">
-        Supply your own PEM (or compatible) certificate and private key. HarborClient does not
-        generate self-signed certificates.
-      </p>
-
       <label htmlFor={enabledId} className="flex items-center gap-2">
         <Checkbox
           id={enabledId}

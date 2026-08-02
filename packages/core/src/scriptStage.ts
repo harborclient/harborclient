@@ -170,6 +170,24 @@ export function scriptStageBorderColor(stage: ScriptStage): string {
 }
 
 /**
+ * Places plugin-injected scripts ahead of host scripts within every stage bucket.
+ *
+ * Injected scripts are stage-ordered among themselves; host scripts keep their
+ * existing order (already expanded per scope). A flat prepend is sufficient —
+ * plugin scripts run as a synthetic scope before collection/folder/request.
+ *
+ * @param injected - Stage-tagged plugin scripts in injection order.
+ * @param hostRefs - Host script rows for the same request stage.
+ * @returns Execution-ordered list for the stage.
+ */
+export function orderWithInjectedScripts<T extends { stage?: ScriptStage }>(
+  injected: T[],
+  hostRefs: T[]
+): T[] {
+  return [...orderScriptRefsByStage(injected), ...hostRefs];
+}
+
+/**
  * Reorders script references into execution order for one phase list.
  *
  * Order: all `before-all`, then for each `main` script all `before-each`, the main

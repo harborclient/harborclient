@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { FormSection } from '@harborclient/sdk/components';
+import { FormGroup } from '@harborclient/sdk/components';
 import type { LiveServerProxy } from '@harborclient/core/types';
 import { ProxyList } from './ProxyList';
 
@@ -34,8 +34,8 @@ interface Props {
 export function ProxySettings({ proxies, disabled, onChange }: Props): JSX.Element {
   return (
     <fieldset disabled={disabled} className="m-0 min-w-0 border-0 p-0">
-      <FormSection
-        title="Reverse proxy"
+      <FormGroup
+        label="Reverse proxy"
         description={
           <>
             Rules run before aliases and the document root. Use <code>/</code> or <code>*</code> to
@@ -46,7 +46,7 @@ export function ProxySettings({ proxies, disabled, onChange }: Props): JSX.Eleme
         }
       >
         <ProxyList proxies={proxies} disabled={disabled} onChange={onChange} />
-      </FormSection>
+      </FormGroup>
     </fieldset>
   );
 }

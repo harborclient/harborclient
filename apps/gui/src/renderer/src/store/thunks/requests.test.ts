@@ -656,7 +656,9 @@ describe('sendRequest', () => {
         sendRequest: sendRequestApiMock,
         runScript: runScriptMock,
         getCookies: vi.fn().mockResolvedValue([]),
-        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined)
+        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
+        runPluginBeforeScripts: vi.fn().mockResolvedValue({ scripts: [], data: {} }),
+        runPluginAfterScripts: vi.fn().mockResolvedValue(undefined)
       }
     });
 
@@ -767,7 +769,9 @@ describe('executeRequestDraft hc.data threading', () => {
         sendRequest: sendRequestApiMock,
         runScript: runScriptMock,
         getCookies: vi.fn().mockResolvedValue([]),
-        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined)
+        pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
+        runPluginBeforeScripts: vi.fn().mockResolvedValue({ scripts: [], data: {} }),
+        runPluginAfterScripts: vi.fn().mockResolvedValue(undefined)
       }
     });
 

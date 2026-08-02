@@ -1,5 +1,6 @@
 import type { GeneralSettings } from '@harborclient/core/types';
 
+import { LIVE_SERVER_NOTICE_TABS } from '#/renderer/src/ui/Footer/LiveServerPanel/liveServerNotices';
 import { REQUEST_EDITOR_NOTICE_TABS } from '#/renderer/src/ui/Main/RequestEditor/Editor/requestEditorNotices';
 
 /**
@@ -116,8 +117,24 @@ export const REQUEST_EDITOR_NOTICES_ROW: ConfirmationTableRow = {
 };
 
 /**
+ * Aggregate row for the dismissible Live Server panel tab tips. Enabled only when
+ * no tab tip has been dismissed; enabling it restores every tip, disabling it
+ * dismisses every tip.
+ */
+export const LIVE_SERVER_NOTICES_ROW: ConfirmationTableRow = {
+  id: 'liveServerNotices',
+  label: 'Live Server tab tips',
+  description:
+    'When enabled, each Live Server settings tab (General, Proxy, Command, and so on) shows a short dismissible tip above its content.',
+  isEnabled: (general) => general.dismissedLiveServerNotices.length === 0,
+  patch: (enabled) => ({
+    dismissedLiveServerNotices: enabled ? [] : [...LIVE_SERVER_NOTICE_TABS]
+  })
+};
+
+/**
  * Every row shown in the Show confirmations table: boolean confirmation
- * prompts followed by the aggregate request editor tips row.
+ * prompts followed by the aggregate tip rows.
  */
 export const CONFIRMATION_TABLE_ROWS: ConfirmationTableRow[] = [
   ...CONFIRMATION_ROWS.map(
@@ -129,7 +146,8 @@ export const CONFIRMATION_TABLE_ROWS: ConfirmationTableRow[] = [
       patch: (enabled) => ({ [row.key]: enabled })
     })
   ),
-  REQUEST_EDITOR_NOTICES_ROW
+  REQUEST_EDITOR_NOTICES_ROW,
+  LIVE_SERVER_NOTICES_ROW
 ];
 
 /**
@@ -152,7 +170,8 @@ export function areAllConfirmationsDisabled(general: GeneralSettings): boolean {
 
 /**
  * Builds a partial {@link GeneralSettings} patch that sets every confirmation
- * row (including the aggregate request editor tips row) to the same state.
+ * row (including the aggregate request editor and Live Server tip rows) to the
+ * same state.
  *
  * @param enabled - When true, every confirmation prompt is shown; when false, all are suppressed.
  */

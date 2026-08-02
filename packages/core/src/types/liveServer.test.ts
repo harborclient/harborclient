@@ -376,6 +376,9 @@ describe('normalizeLiveServerConfigFields', () => {
       proxies: [],
       ssl: defaultLiveServerSslSettings(),
       runCommand: '',
+      runtimeId: '',
+      runCommandEnabled: false,
+      runCommandEnv: [],
       restartOnCrash: false,
       urlVariable: '',
       preRequestScripts: [],
@@ -398,6 +401,8 @@ describe('normalizeLiveServerConfigFields', () => {
         proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }],
         ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
         runCommand: '  /usr/bin/node ./server.js  ',
+        runtimeId: '  runtime-1  ',
+        runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
         restartOnCrash: true,
         urlVariable: '  server_url  '
       })
@@ -421,11 +426,23 @@ describe('normalizeLiveServerConfigFields', () => {
       ],
       ssl: { enabled: true, certPath: '/c.pem', keyPath: '/k.pem' },
       runCommand: '/usr/bin/node ./server.js',
+      runtimeId: 'runtime-1',
+      runCommandEnabled: true,
+      runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
       restartOnCrash: true,
       urlVariable: 'server_url',
       preRequestScripts: [],
       postRequestScripts: []
     });
+  });
+
+  it('preserves an explicit runCommandEnabled false even when a command is set', () => {
+    expect(
+      normalizeLiveServerConfigFields({
+        runCommand: './server.js',
+        runCommandEnabled: false
+      }).runCommandEnabled
+    ).toBe(false);
   });
 
   it('defaults openPathOnStartup to true when omitted', () => {

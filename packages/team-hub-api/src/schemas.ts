@@ -246,6 +246,15 @@ export const createLiveServerBodySchema = z.object({
     keyPath: z.string()
   }),
   runCommand: z.string(),
+  runtimeId: z.string(),
+  runCommandEnv: z.array(
+    z.object({
+      key: z.string(),
+      value: z.string(),
+      enabled: z.boolean()
+    })
+  ),
+  runCommandEnabled: z.boolean(),
   restartOnCrash: z.boolean(),
   urlVariable: z.string(),
   preRequestScripts: z.array(z.unknown()),

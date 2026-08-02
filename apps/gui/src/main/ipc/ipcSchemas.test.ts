@@ -14,6 +14,7 @@ import {
   generalSettings,
   httpMethod,
   ipcArgSchemas,
+  liveServerSettingsTab,
   saveRequestInput,
   sendRequestInput,
   scriptRunInput,
@@ -92,6 +93,12 @@ describe('enum schemas', () => {
     expect(editorTab.safeParse('tests').success).toBe(false);
     expect(editorTab.safeParse('headers').success).toBe(true);
     expect(editorTab.safeParse('auth').success).toBe(true);
+  });
+
+  it('liveServerSettingsTab rejects unknown values', () => {
+    expect(liveServerSettingsTab.safeParse('command').success).toBe(false);
+    expect(liveServerSettingsTab.safeParse('run').success).toBe(true);
+    expect(liveServerSettingsTab.safeParse('ssl').success).toBe(true);
   });
 });
 
@@ -255,6 +262,7 @@ describe('generalSettings', () => {
     trustedExternalDomains: [],
     allowAllExternalDomains: false,
     dismissedRequestEditorNotices: [],
+    dismissedLiveServerNotices: [],
     gitAutoAdd: true,
     externalMergeEditorPath: '',
     gitCommitAuthorName: '',
@@ -661,6 +669,35 @@ describe('object schema happy paths', () => {
 
   it('parses scriptRunInput with phase, script, request, and variables', () => {
     expect(scriptRunInput.safeParse(validScriptRun).success).toBe(true);
+  });
+
+  it('parses pluginRunBeforeScripts and pluginRunAfterScripts payloads', () => {
+    expect(
+      ipcArgSchemas.pluginRunBeforeScripts.safeParse([
+        {
+          phase: 'pre',
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: {},
+            body: ''
+          },
+          data: { seeded: true }
+        }
+      ]).success
+    ).toBe(true);
+
+    expect(
+      ipcArgSchemas.pluginRunAfterScripts.safeParse([
+        {
+          phase: 'post',
+          data: {},
+          tests: [{ name: 'ok', passed: true }],
+          logs: [{ level: 'log', message: 'hi' }],
+          errors: []
+        }
+      ]).success
+    ).toBe(true);
   });
 
   it('parses variable with key, value, defaultValue, and share flag', () => {

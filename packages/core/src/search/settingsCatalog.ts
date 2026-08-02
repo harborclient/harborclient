@@ -53,6 +53,7 @@ export type SettingId =
   | 'globals'
   | 'storage'
   | 'git'
+  | 'runtimes'
   | 'backup-restore'
   | 'backup-restore.confirmations'
   | 'git.autoTrack'
@@ -68,7 +69,7 @@ export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack' | 
  */
 export type FieldSettingId = Exclude<
   SettingId,
-  'globals' | 'storage' | 'git' | 'backup-restore' | GroupSettingId
+  'globals' | 'storage' | 'git' | 'runtimes' | 'backup-restore' | GroupSettingId
 >;
 
 /**
@@ -604,6 +605,26 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
       'host',
       'auto track',
       'tracking'
+    ]
+  },
+  {
+    id: 'runtimes',
+    section: 'runtimes',
+    kind: 'section',
+    label: 'Runtimes',
+    description:
+      'Define Node, PHP, and Python executables used by live server run commands. Paths stay on this machine so exported servers can match by kind and version.',
+    keywords: [
+      'runtime',
+      'node',
+      'php',
+      'python',
+      'executable',
+      'binary',
+      'live server',
+      'run command',
+      'env',
+      'environment'
     ]
   },
   {

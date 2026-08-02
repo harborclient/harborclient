@@ -67,7 +67,13 @@ export function RouteRow({
   return (
     <div className="flex flex-col gap-2 rounded border border-separator p-3">
       <div className="flex flex-wrap items-end gap-2">
-        <FormGroup label="Match" htmlFor={matchId} className="min-w-0 flex-1" labelTone="muted">
+        <FormGroup
+          bordered={false}
+          label="Match"
+          htmlFor={matchId}
+          className="min-w-0 flex-1"
+          labelTone="muted"
+        >
           <Input
             id={matchId}
             value={route.match}
@@ -77,7 +83,13 @@ export function RouteRow({
             onChange={(event) => onChange({ ...route, match: event.target.value })}
           />
         </FormGroup>
-        <FormGroup label="Target" htmlFor={targetId} className="min-w-0 flex-1" labelTone="muted">
+        <FormGroup
+          bordered={false}
+          label="Target"
+          htmlFor={targetId}
+          className="min-w-0 flex-1"
+          labelTone="muted"
+        >
           <Input
             id={targetId}
             value={route.target}

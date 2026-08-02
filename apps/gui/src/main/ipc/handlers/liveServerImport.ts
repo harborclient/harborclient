@@ -1,33 +1,22 @@
-import type { ImportAction, LiveServer } from '@harborclient/core/types';
+import type { LiveServerImportResult } from '@harborclient/core/types';
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerSslSettings,
+  findMatchingRuntime,
+  normalizeRuntimeRequirement,
   validateLiveServerExport
-} from '@harborclient/core/types/liveServer';
+} from '@harborclient/core/types';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type { IStorage } from '#/main/storage/IStorage';
 import { RoutingStorage } from '#/main/storage/RoutingStorage';
-
-/**
- * Result of importing a live-server export into the local registry.
- */
-export interface LiveServerImportResult {
-  /**
-   * Imported or updated live-server row.
-   */
-  server: LiveServer;
-
-  /**
-   * Whether the live server was created or updated.
-   */
-  action: ImportAction;
-}
+import { listRuntimes } from '#/main/settings/runtimeSettings';
 
 /**
  * Imports a HarborClient live-server export into the local registry.
  *
  * When a live server with the same uuid already exists it is updated in place;
- * otherwise a new live server is created.
+ * otherwise a new live server is created. Exported runtime requirements are
+ * matched against machine-local runtimes by kind+version, then by name.
  *
  * @param parsed - Parsed JSON payload from the import file.
  * @param db - Active storage facade used for routed imports.
@@ -64,10 +53,21 @@ export async function importLiveServerData(
   const proxies = exportData.proxies ?? [];
   const ssl = exportData.ssl ?? defaultLiveServerSslSettings();
   const runCommand = exportData.runCommand ?? '';
+  const runCommandEnv = exportData.runCommandEnv ?? [];
   const restartOnCrash = exportData.restartOnCrash === true;
   const urlVariable = exportData.urlVariable ?? '';
   const preRequestScripts = exportData.pre_request_scripts ?? [];
   const postRequestScripts = exportData.post_request_scripts ?? [];
+
+  const requirement = normalizeRuntimeRequirement(exportData.runtime);
+  const matchedRuntime =
+    requirement != null ? findMatchingRuntime(listRuntimes(), requirement) : undefined;
+  const runtimeId = matchedRuntime?.id ?? '';
+  const unresolvedRuntime = requirement != null && matchedRuntime == null ? requirement : undefined;
+  const runCommandEnabled =
+    typeof exportData.runCommandEnabled === 'boolean'
+      ? exportData.runCommandEnabled
+      : runCommand !== '' || runtimeId !== '';
 
   if (existing) {
     const server = router
@@ -91,6 +91,9 @@ export async function importLiveServerData(
           proxies,
           ssl,
           runCommand,
+          runtimeId,
+          runCommandEnabled,
+          runCommandEnv,
           restartOnCrash,
           urlVariable,
           preRequestScripts,
@@ -117,6 +120,9 @@ export async function importLiveServerData(
             proxies,
             ssl,
             runCommand,
+            runtimeId,
+            runCommandEnabled,
+            runCommandEnv,
             restartOnCrash,
             urlVariable,
             preRequestScripts,
@@ -126,7 +132,7 @@ export async function importLiveServerData(
     if (!server) {
       return null;
     }
-    return { server, action: 'updated' };
+    return { server, action: 'updated', unresolvedRuntime };
   }
 
   const server = router
@@ -150,6 +156,9 @@ export async function importLiveServerData(
         proxies,
         ssl,
         runCommand,
+        runtimeId,
+        runCommandEnabled,
+        runCommandEnv,
         restartOnCrash,
         urlVariable,
         preRequestScripts,
@@ -176,6 +185,9 @@ export async function importLiveServerData(
           proxies,
           ssl,
           runCommand,
+          runtimeId,
+          runCommandEnabled,
+          runCommandEnv,
           restartOnCrash,
           urlVariable,
           preRequestScripts,
@@ -185,5 +197,5 @@ export async function importLiveServerData(
   if (!server) {
     return null;
   }
-  return { server, action: 'created' };
+  return { server, action: 'created', unresolvedRuntime };
 }

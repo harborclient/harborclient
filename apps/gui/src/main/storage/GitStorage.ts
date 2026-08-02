@@ -76,6 +76,12 @@ import {
 } from './collectionImport';
 import { serializeSidebarMarker } from './sidebarMarkerMigration';
 import { buildLiveServerExport } from '@harborclient/core/types/liveServer';
+import {
+  findMatchingRuntime,
+  normalizeRuntimeRequirement,
+  runtimeRequirementFor
+} from '@harborclient/core/types/runtime';
+import { listRuntimes } from '#/main/settings/runtimeSettings';
 import { buildWebsiteExport } from '@harborclient/core/types/website';
 import {
   liveServerFromPayload,
@@ -745,10 +751,14 @@ export class GitStorage implements IStorage {
     if (!input.root.trim()) throw new Error('Root directory is required');
     const uuid = input.uuid?.trim() || generateDocumentUuid();
     const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
+    const { runtimeId, ...exportFields } = payload;
+    const matchedRuntime =
+      runtimeId !== '' ? listRuntimes().find((runtime) => runtime.id === runtimeId) : undefined;
     const exportData = buildLiveServerExport({
       uuid,
       name,
-      ...payload
+      ...exportFields,
+      runtime: matchedRuntime != null ? runtimeRequirementFor(matchedRuntime) : undefined
     });
     writeLiveServerFile(this.#root, exportData);
     const id = assignGitId(this.#idIndex, 'liveServerIds', 'nextLiveServerId', uuid);
@@ -768,10 +778,14 @@ export class GitStorage implements IStorage {
     const name = trimRequiredName(input.name, 'Live server name');
     if (!input.root.trim()) throw new Error('Root directory is required');
     const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
+    const { runtimeId, ...exportFields } = payload;
+    const matchedRuntime =
+      runtimeId !== '' ? listRuntimes().find((runtime) => runtime.id === runtimeId) : undefined;
     const updated = buildLiveServerExport({
       uuid: existing.uuid,
       name,
-      ...payload
+      ...exportFields,
+      runtime: matchedRuntime != null ? runtimeRequirementFor(matchedRuntime) : undefined
     });
     writeLiveServerFile(this.#root, updated);
     this.#liveServers.set(input.id, updated);
@@ -2561,6 +2575,9 @@ export class GitStorage implements IStorage {
    */
   private exportToLiveServer(id: number, server: LiveServerExport): LiveServer {
     const uuid = resolveImportUuid(server.uuid);
+    const requirement = normalizeRuntimeRequirement(server.runtime);
+    const matchedRuntime =
+      requirement != null ? findMatchingRuntime(listRuntimes(), requirement) : undefined;
     const payload = parseLiveServerPayload(
       serializeLiveServerPayload({
         name: server.name,
@@ -2581,6 +2598,9 @@ export class GitStorage implements IStorage {
         proxies: server.proxies,
         ssl: server.ssl,
         runCommand: server.runCommand,
+        runtimeId: matchedRuntime?.id ?? '',
+        runCommandEnabled: server.runCommandEnabled,
+        runCommandEnv: server.runCommandEnv,
         restartOnCrash: server.restartOnCrash,
         urlVariable: server.urlVariable,
         preRequestScripts: server.pre_request_scripts,

@@ -238,6 +238,8 @@ beforeEach(() => {
       saveRequest: saveRequestMock,
       sendRequest: sendRequestMock,
       pushPluginHttpAfterSend: vi.fn().mockResolvedValue(undefined),
+      runPluginBeforeScripts: vi.fn().mockResolvedValue({ scripts: [], data: {} }),
+      runPluginAfterScripts: vi.fn().mockResolvedValue(undefined),
       getCookies: getCookiesMock,
       setCookies: setCookiesMock,
       searchDocs: searchDocsMock,

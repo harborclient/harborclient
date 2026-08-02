@@ -601,6 +601,9 @@ describe('selectHasBlockingModal', () => {
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',
+      runtimeId: '',
+      runCommandEnv: [],
+      runCommandEnabled: false,
       restartOnCrash: false,
       urlVariable: ''
     });
@@ -621,6 +624,9 @@ describe('selectHasBlockingModal', () => {
         rememberLastUrl: true,
         lastOpenedPath: '/docs/guide.html',
         runCommand: '/usr/bin/node ./server.js',
+        runtimeId: 'runtime-node-22',
+        runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
+        runCommandEnabled: true,
         restartOnCrash: true,
         urlVariable: 'server_url',
         indexFiles: 'index.html, app.html',
@@ -668,6 +674,9 @@ describe('selectHasBlockingModal', () => {
         keyPath: '/tmp/key.pem'
       },
       runCommand: '/usr/bin/node ./server.js',
+      runtimeId: 'runtime-node-22',
+      runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
+      runCommandEnabled: true,
       restartOnCrash: true,
       urlVariable: 'server_url'
     });
@@ -691,10 +700,10 @@ describe('selectHasBlockingModal', () => {
     expect(state.liveServerModal?.tab).toBe('proxy');
   });
 
-  it('switches the live server modal to the Aliases tab', () => {
+  it('switches the live server modal to the Run tab', () => {
     const opened = modalsReducer(undefined, openLiveServerModal({ mode: 'create' }));
-    const state = modalsReducer(opened, setLiveServerModalTab('aliases'));
-    expect(state.liveServerModal?.tab).toBe('aliases');
+    const state = modalsReducer(opened, setLiveServerModalTab('run'));
+    expect(state.liveServerModal?.tab).toBe('run');
   });
 
   it('switches the live server modal to the SSL tab', () => {

@@ -12,6 +12,7 @@ import type {
 } from '@harborclient/core/types';
 import {
   faCode,
+  faCubes,
   faDatabase,
   faFloppyDisk,
   faGear,
@@ -125,6 +126,7 @@ export const SETTINGS_SECTIONS: Array<{
   { value: 'globals', label: 'Globals', icon: faGlobe },
   { value: 'storage', label: 'Storage', icon: faDatabase },
   { value: 'git', label: 'Git', icon: faGithub },
+  { value: 'runtimes', label: 'Runtimes', icon: faCubes },
   { value: 'syntax', label: 'Scripting', icon: faCode },
   { value: 'ai', label: 'AI & MCP', icon: faWandMagicSparkles },
   { value: 'proxy', label: 'Proxy', icon: faServer },

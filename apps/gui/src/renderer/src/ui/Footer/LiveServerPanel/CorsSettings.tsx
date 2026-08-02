@@ -23,7 +23,7 @@ interface Props {
  * Form fields for enabling CORS and editing the base Express `cors` options.
  *
  * Detail fields stay visible but disabled when CORS is off so users can see
- * the defaults before enabling. The parent tab already labels this section.
+ * the defaults before enabling. Rendered under the Headers tab CORS section.
  *
  * @param props - CORS value, disabled flag, and change handler.
  */
@@ -59,6 +59,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
       </label>
 
       <FormGroup
+        bordered={false}
         label="Origin"
         htmlFor={originId}
         description="Use * for any origin, or a comma-separated list."
@@ -73,6 +74,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
       </FormGroup>
 
       <FormGroup
+        bordered={false}
         label="Methods"
         htmlFor={methodsId}
         description="Comma-separated HTTP methods, or *."
@@ -87,6 +89,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
       </FormGroup>
 
       <FormGroup
+        bordered={false}
         label="Allowed headers"
         htmlFor={allowedHeadersId}
         description="Use * or leave blank to reflect requested headers."
@@ -101,6 +104,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
       </FormGroup>
 
       <FormGroup
+        bordered={false}
         label="Exposed headers"
         htmlFor={exposedHeadersId}
         description="Comma-separated response headers browsers may read, or *. Leave blank to omit."
@@ -115,6 +119,7 @@ export function CorsSettings({ cors, disabled, onChange }: Props): JSX.Element {
       </FormGroup>
 
       <FormGroup
+        bordered={false}
         label="Max age"
         htmlFor={maxAgeId}
         description="Preflight cache lifetime in seconds (e.g. 600). Leave blank to omit."

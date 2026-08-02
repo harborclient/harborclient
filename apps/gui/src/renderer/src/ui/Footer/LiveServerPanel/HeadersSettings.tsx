@@ -1,7 +1,12 @@
 import { useMemo, type JSX } from 'react';
-import { FormSection, KeyValueEditor } from '@harborclient/sdk/components';
-import type { KeyValue, LiveServerResponseHeader } from '@harborclient/core/types';
+import { FormGroup, KeyValueEditor } from '@harborclient/sdk/components';
+import type {
+  KeyValue,
+  LiveServerCorsSettings,
+  LiveServerResponseHeader
+} from '@harborclient/core/types';
 import { headerKeySource, headerValueSource } from '#/renderer/src/autocomplete/sources';
+import { CorsSettings } from './CorsSettings';
 import {
   keyValueRowsToLiveServerHeaders,
   liveServerHeadersToKeyValueRows
@@ -14,6 +19,11 @@ interface Props {
   headers: LiveServerResponseHeader[];
 
   /**
+   * Current CORS settings from the editor draft.
+   */
+  cors: LiveServerCorsSettings;
+
+  /**
    * When true, disables the table (save/start in flight).
    */
   disabled: boolean;
@@ -24,15 +34,28 @@ interface Props {
    * @param next - Updated header rows (may include a trailing empty name).
    */
   onChange: (next: LiveServerResponseHeader[]) => void;
+
+  /**
+   * Called with a full replacement CORS settings object after any field change.
+   *
+   * @param next - Updated CORS settings.
+   */
+  onCorsChange: (next: LiveServerCorsSettings) => void;
 }
 
 /**
- * Headers tab: editable list of response headers applied to every Live Server
- * response (including 404). Uses the shared key/value table pattern.
+ * Headers tab: editable response headers and CORS options for every Live Server
+ * response (including 404). Uses the shared key/value table pattern for headers.
  *
- * @param props - Header rows, disabled flag, and change handler.
+ * @param props - Header rows, CORS settings, disabled flag, and change handlers.
  */
-export function HeadersSettings({ headers, disabled, onChange }: Props): JSX.Element {
+export function HeadersSettings({
+  headers,
+  cors,
+  disabled,
+  onChange,
+  onCorsChange
+}: Props): JSX.Element {
   /**
    * KeyValueEditor rows derived from modal headers, with a trailing blank row.
    */
@@ -48,9 +71,9 @@ export function HeadersSettings({ headers, disabled, onChange }: Props): JSX.Ele
   }
 
   return (
-    <fieldset disabled={disabled} className="m-0 min-w-0 border-0 p-0">
-      <FormSection
-        title="Response headers"
+    <fieldset disabled={disabled} className="m-0 flex min-w-0 flex-col gap-6 border-0 p-0">
+      <FormGroup
+        label="Response headers"
         description={
           <>
             Applied to every response after CORS (including 404). Examples:{' '}
@@ -68,7 +91,14 @@ export function HeadersSettings({ headers, disabled, onChange }: Props): JSX.Ele
           keySource={headerKeySource}
           valueSource={headerValueSource}
         />
-      </FormSection>
+      </FormGroup>
+
+      <FormGroup
+        label="CORS"
+        description="Cross-Origin Resource Sharing options applied by the Express cors middleware before response headers."
+      >
+        <CorsSettings cors={cors} disabled={disabled} onChange={onCorsChange} />
+      </FormGroup>
     </fieldset>
   );
 }

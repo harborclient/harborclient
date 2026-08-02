@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
+import { RUNTIME_CATALOG, type RuntimeRequirement } from '@harborclient/core/types';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   closeAddLiveServerModal,
@@ -12,6 +13,7 @@ import {
   setAddLiveServerModalSubmitError,
   setAddLiveServerModalTab
 } from '#/renderer/src/store/slices/modalsSlice';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
 import { deleteOrphanGitConnection } from '#/renderer/src/store/thunks';
 import { createGitConnectionForCollection } from '#/renderer/src/store/thunks/collections';
 import { importLiveServer, openLiveServerEditor } from '#/renderer/src/store/thunks/liveServers';
@@ -26,6 +28,7 @@ import { StatusMessage } from '@harborclient/sdk/components';
 import { formatErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { GitCreateForm } from '#/renderer/src/ui/Shared/Git/GitCreateForm';
+import { setPendingRuntimeDraft } from '#/renderer/src/ui/Tabs/Settings/RuntimesSection/pendingRuntimeDraft';
 import { joinRepoDocumentRoot } from './joinRepoDocumentRoot';
 
 /**
@@ -37,6 +40,7 @@ export function AddLiveServerModal(): JSX.Element | null {
   const { refreshGitSidebar } = useSidebarGit();
   const [gitBusy, setGitBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
+  const [unresolvedRuntime, setUnresolvedRuntime] = useState<RuntimeRequirement | null>(null);
   const {
     providers,
     primaryProviderId,
@@ -153,10 +157,14 @@ export function AddLiveServerModal(): JSX.Element | null {
    */
   const handleImport = useCallback(async (): Promise<void> => {
     dispatch(setAddLiveServerModalSubmitError(null));
+    setUnresolvedRuntime(null);
     setImportBusy(true);
     try {
-      const server = await dispatch(importLiveServer()).unwrap();
-      if (!server) return;
+      const result = await dispatch(importLiveServer()).unwrap();
+      if (!result) return;
+      if (result.unresolvedRuntime != null) {
+        setUnresolvedRuntime(result.unresolvedRuntime);
+      }
       toast.success('Live server imported');
     } catch (err) {
       dispatch(
@@ -166,6 +174,22 @@ export function AddLiveServerModal(): JSX.Element | null {
       setImportBusy(false);
     }
   }, [dispatch]);
+
+  /**
+   * Opens Settings → Runtimes with the missing requirement prefilled.
+   */
+  const handleAddMissingRuntime = useCallback((): void => {
+    if (unresolvedRuntime == null) {
+      return;
+    }
+    setPendingRuntimeDraft({
+      kind: unresolvedRuntime.kind,
+      version: unresolvedRuntime.version,
+      name: unresolvedRuntime.name
+    });
+    dispatch(closeAddLiveServerModal());
+    dispatch(openPageTab({ type: 'settings', section: 'runtimes' }));
+  }, [dispatch, unresolvedRuntime]);
 
   if (!addLiveServerModal) return null;
 
@@ -203,6 +227,18 @@ export function AddLiveServerModal(): JSX.Element | null {
             {addLiveServerModal.submitError}
           </FieldError>
         )}
+
+        {unresolvedRuntime != null ? (
+          <p className="mb-3 text-danger" role="status">
+            This server needs a {RUNTIME_CATALOG[unresolvedRuntime.kind].label}{' '}
+            {unresolvedRuntime.version} runtime
+            {unresolvedRuntime.name ? ` (“${unresolvedRuntime.name}”)` : ''}.{' '}
+            <button type="button" className="underline" onClick={handleAddMissingRuntime}>
+              Add it in Settings → Runtimes
+            </button>
+            .
+          </p>
+        ) : null}
 
         <SegmentedTabPanel value="storage">
           <FormGroup label="Server name" htmlFor={serverNameId} labelTone="muted">

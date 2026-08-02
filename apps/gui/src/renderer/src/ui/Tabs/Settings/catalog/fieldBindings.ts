@@ -363,7 +363,7 @@ const userAgentBinding: SettingFieldBinding = {
  * Reads confirmation prompt keys from live general settings.
  *
  * @param state - Redux root state.
- * @returns Snapshot of warnWhen* flags and dismissed request-editor notices.
+ * @returns Snapshot of warnWhen* flags and dismissed tab-tip notice lists.
  */
 function getConfirmationsValue(state: RootState): ConfirmationsSnapshot {
   const general = state.settings.general;
@@ -372,6 +372,7 @@ function getConfirmationsValue(state: RootState): ConfirmationsSnapshot {
     snapshot[row.key] = general[row.key];
   }
   snapshot.dismissedRequestEditorNotices = [...general.dismissedRequestEditorNotices];
+  snapshot.dismissedLiveServerNotices = [...general.dismissedLiveServerNotices];
   return snapshot;
 }
 

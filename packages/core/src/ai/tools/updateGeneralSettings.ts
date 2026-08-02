@@ -63,6 +63,19 @@ const EDITOR_TAB_ENUM = [
 ] as const;
 
 /**
+ * Live Server panel tab identifiers that can appear in dismissedLiveServerNotices.
+ */
+const LIVE_SERVER_SETTINGS_TAB_ENUM = [
+  'general',
+  'proxy',
+  'headers',
+  'routing',
+  'run',
+  'ssl',
+  'scripts'
+] as const;
+
+/**
  * CodeMirror theme identifiers accepted by update_general_settings.
  */
 const CODE_EDITOR_THEME_ENUM = [
@@ -275,6 +288,12 @@ export const updateGeneralSettingsTool = {
             items: { type: 'string', enum: [...EDITOR_TAB_ENUM] },
             description: 'Built-in request editor tabs whose inline help notice the user dismissed.'
           },
+          dismissedLiveServerNotices: {
+            type: 'array',
+            items: { type: 'string', enum: [...LIVE_SERVER_SETTINGS_TAB_ENUM] },
+            description:
+              'Live Server settings panel tabs whose inline help notice the user dismissed.'
+          },
           gitAutoAdd: {
             type: 'boolean',
             description:
@@ -403,6 +422,7 @@ export const updateGeneralSettingsTool = {
     trustedExternalDomains: z.array(trustedDomainShape).optional(),
     allowAllExternalDomains: z.boolean().optional(),
     dismissedRequestEditorNotices: z.enum(EDITOR_TAB_ENUM).array().optional(),
+    dismissedLiveServerNotices: z.enum(LIVE_SERVER_SETTINGS_TAB_ENUM).array().optional(),
     gitAutoAdd: z.boolean().optional(),
     externalMergeEditorPath: z.string().optional(),
     gitCommitAuthorName: z.string().optional(),

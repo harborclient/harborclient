@@ -338,4 +338,89 @@ describe('startLiveServerRunCommand', () => {
     expect(onOutput).toHaveBeenCalledWith('stderr', 'err-b');
     await handle.stop();
   });
+
+  it('spawns with an explicit executable and merges resolveEnv onto process.env', async () => {
+    nextMockChild();
+    const resolveEnv = vi.fn(() => ({ NODE_ENV: 'test', CUSTOM: '1' }));
+    const onStatus = vi.fn();
+    const handle = await startLiveServerRunCommand({
+      command: 'server.js -p 3000',
+      cwd: '/tmp/site',
+      restartOnCrash: false,
+      executable: '/opt/node with spaces/bin/node',
+      resolveEnv,
+      onStatus
+    });
+    expect(resolveEnv).toHaveBeenCalledTimes(1);
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/opt/node with spaces/bin/node',
+      ['server.js', '-p', '3000'],
+      expect.objectContaining({
+        cwd: '/tmp/site',
+        env: expect.objectContaining({
+          NODE_ENV: 'test',
+          CUSTOM: '1'
+        })
+      })
+    );
+    await handle.stop();
+  });
+
+  it('allows empty arguments when an executable is provided', async () => {
+    nextMockChild();
+    const handle = await startLiveServerRunCommand({
+      command: '',
+      cwd: '/tmp/site',
+      restartOnCrash: false,
+      executable: '/usr/bin/php',
+      onStatus: vi.fn()
+    });
+    expect(spawnMock).toHaveBeenCalledWith(
+      '/usr/bin/php',
+      [],
+      expect.objectContaining({ cwd: '/tmp/site' })
+    );
+    await handle.stop();
+  });
+
+  it('re-resolves env on crash restart', async () => {
+    vi.useFakeTimers();
+    const first = nextMockChild();
+    const resolveEnv = vi
+      .fn()
+      .mockReturnValueOnce({ TOKEN: 'a' })
+      .mockReturnValueOnce({ TOKEN: 'b' });
+    await startLiveServerRunCommand({
+      command: 'server.js',
+      cwd: '/tmp',
+      restartOnCrash: true,
+      executable: '/usr/bin/node',
+      resolveEnv,
+      onStatus: vi.fn()
+    });
+    expect(spawnMock).toHaveBeenNthCalledWith(
+      1,
+      '/usr/bin/node',
+      ['server.js'],
+      expect.objectContaining({
+        env: expect.objectContaining({ TOKEN: 'a' })
+      })
+    );
+
+    first.closeWithCode(1);
+    await Promise.resolve();
+    nextMockChild();
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+
+    expect(resolveEnv).toHaveBeenCalledTimes(2);
+    expect(spawnMock).toHaveBeenNthCalledWith(
+      2,
+      '/usr/bin/node',
+      ['server.js'],
+      expect.objectContaining({
+        env: expect.objectContaining({ TOKEN: 'b' })
+      })
+    );
+  });
 });

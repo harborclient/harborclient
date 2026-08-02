@@ -68,7 +68,13 @@ export function ProxyRow({
   return (
     <div className="flex flex-col gap-2 rounded border border-separator p-3">
       <div className="flex flex-wrap items-end gap-2">
-        <FormGroup label="Path" htmlFor={pathId} className="min-w-0 flex-1" labelTone="muted">
+        <FormGroup
+          bordered={false}
+          label="Path"
+          htmlFor={pathId}
+          className="min-w-0 flex-1"
+          labelTone="muted"
+        >
           <Input
             id={pathId}
             value={proxy.path}
@@ -79,6 +85,7 @@ export function ProxyRow({
           />
         </FormGroup>
         <FormGroup
+          bordered={false}
           label="Target URL"
           htmlFor={targetId}
           className="min-w-0 flex-[2]"

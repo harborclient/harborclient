@@ -106,6 +106,9 @@ interface LiveServerPayloadJson {
   proxies: LiveServerProxy[];
   ssl: LiveServerSslSettings;
   runCommand: string;
+  runtimeId: string;
+  runCommandEnabled: boolean;
+  runCommandEnv: KeyValue[];
   restartOnCrash: boolean;
   urlVariable: string;
   preRequestScripts: LiveServerScriptRef[];
@@ -3900,6 +3903,9 @@ export class LocalDatabase {
         proxies: payload.proxies,
         ssl: payload.ssl,
         runCommand: payload.runCommand,
+        runtimeId: payload.runtimeId,
+        runCommandEnabled: payload.runCommandEnabled,
+        runCommandEnv: payload.runCommandEnv,
         restartOnCrash: payload.restartOnCrash,
         urlVariable: payload.urlVariable,
         preRequestScripts: payload.preRequestScripts,

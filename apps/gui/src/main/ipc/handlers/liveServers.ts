@@ -173,6 +173,6 @@ export function registerLiveServerHandlers(db: IStorage): void {
       throw new Error('Failed to import live server export.');
     }
 
-    return result.server;
+    return result;
   });
 }

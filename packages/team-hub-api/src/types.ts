@@ -1046,6 +1046,21 @@ export interface CreateLiveServerInput {
   runCommand: string;
 
   /**
+   * Machine-local runtime id, or empty for None.
+   */
+  runtimeId: string;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: Array<{ key: string; value: string; enabled: boolean }>;
+
+  /**
+   * Whether the companion process starts with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
    * Whether a failed companion command is restarted.
    */
   restartOnCrash: boolean;

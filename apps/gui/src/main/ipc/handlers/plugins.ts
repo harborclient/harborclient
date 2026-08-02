@@ -32,7 +32,9 @@ import {
   invokePluginIpc,
   isPluginRunnerShuttingDown,
   PluginRunnerUnavailableError,
+  runPluginAfterScriptsHooks,
   runPluginAfterSendHooks,
+  runPluginBeforeScriptsHooks,
   runPluginBeforeSendHooks,
   setPluginDatabaseAccess,
   setPluginStorageAccess
@@ -40,7 +42,24 @@ import {
 import type { PluginHttpResponse, PluginInfo } from '@harborclient/core/plugin/types';
 import { toPluginHttpRequest } from '@harborclient/core/plugin/httpRequest';
 import { parseHttpMethod } from '@harborclient/core/httpMethod';
+import { normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { KeyValue, SendRequestInput } from '@harborclient/core/types';
+import type {
+  PluginAfterScriptsContext,
+  PluginHttpRequest,
+  PluginInjectedScript,
+  ScriptPhase
+} from '@harborclient/sdk';
+
+/**
+ * Maximum number of scripts a single before-scripts round trip may inject.
+ */
+const MAX_INJECTED_SCRIPTS = 64;
+
+/**
+ * Maximum characters of inline source accepted for one injected script.
+ */
+const MAX_INJECTED_SCRIPT_LENGTH = 100_000;
 
 let manager: PluginManager | null = null;
 let databaseManager: PluginDatabaseManager | null = null;
@@ -554,6 +573,77 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
       return getPluginUiBroker().invokeImportHandler(pluginId, registrationId, phase, file);
     }
   );
+
+  handle(
+    'plugins:runBeforeScripts',
+    ipcArgSchemas.pluginRunBeforeScripts,
+    async (_event, payload) => applyPluginBeforeScriptsHooks(payload)
+  );
+
+  handle('plugins:runAfterScripts', ipcArgSchemas.pluginRunAfterScripts, async (_event, payload) =>
+    applyPluginAfterScriptsHooks(payload)
+  );
+}
+
+/**
+ * Returns whether any enabled plugin declares the scripts:inject permission.
+ *
+ * @returns True when at least one enabled plugin may inject scripts.
+ */
+function hasScriptsInjectPermission(): boolean {
+  if (!manager) {
+    return false;
+  }
+  return manager
+    .list()
+    .some((plugin) => plugin.enabled && plugin.permissions.includes('scripts:inject'));
+}
+
+/**
+ * Sanitizes injected script records returned from the SES runner.
+ *
+ * Caps count and source length, coerces stages, and drops malformed rows.
+ *
+ * @param scripts - Raw injection list from the utilityProcess.
+ * @returns Safe injection list for the send pipeline.
+ */
+export function sanitizeInjectedScripts(scripts: unknown): PluginInjectedScript[] {
+  if (!Array.isArray(scripts)) {
+    return [];
+  }
+
+  const sanitized: PluginInjectedScript[] = [];
+  for (const entry of scripts) {
+    if (sanitized.length >= MAX_INJECTED_SCRIPTS) {
+      break;
+    }
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    if (typeof record.uuid !== 'string' || record.uuid.trim() === '') {
+      continue;
+    }
+    if (typeof record.pluginId !== 'string' || record.pluginId.trim() === '') {
+      continue;
+    }
+    if (typeof record.script !== 'string') {
+      continue;
+    }
+    const script = record.script.slice(0, MAX_INJECTED_SCRIPT_LENGTH);
+    const name =
+      typeof record.name === 'string' && record.name.trim()
+        ? record.name.trim()
+        : 'Injected script';
+    sanitized.push({
+      uuid: record.uuid.trim(),
+      pluginId: record.pluginId.trim(),
+      name,
+      stage: normalizeScriptStage(record.stage),
+      script
+    });
+  }
+  return sanitized;
 }
 
 /**
@@ -595,5 +685,67 @@ export async function applyPluginAfterSendHooks(
   } catch (error) {
     recordPluginHookFailure(error);
     console.error('Plugin after-send hook failed:', error);
+  }
+}
+
+/**
+ * Runs plugin before-scripts hooks and returns sanitized injections.
+ *
+ * Short-circuits when no enabled plugin holds `scripts:inject`. Failures degrade
+ * to an empty injection list so the send continues.
+ *
+ * @param input - Stage, plugin request snapshot, and current data bag.
+ * @returns Injected scripts plus the possibly-mutated data bag.
+ */
+export async function applyPluginBeforeScriptsHooks(input: {
+  phase: ScriptPhase;
+  request: PluginHttpRequest;
+  data: Record<string, unknown>;
+}): Promise<{ scripts: PluginInjectedScript[]; data: Record<string, unknown> }> {
+  if (!hasScriptsInjectPermission()) {
+    return { scripts: [], data: input.data };
+  }
+
+  try {
+    const result = await withPluginRunner(() =>
+      runPluginBeforeScriptsHooks(input.phase, input.request, input.data)
+    );
+    if (!result) {
+      return { scripts: [], data: input.data };
+    }
+    return {
+      scripts: sanitizeInjectedScripts(result.scripts),
+      data:
+        result.data && typeof result.data === 'object' && !Array.isArray(result.data)
+          ? (result.data as Record<string, unknown>)
+          : input.data
+    };
+  } catch (error) {
+    recordPluginHookFailure(error);
+    console.error('Plugin before-scripts hook failed:', error);
+    return { scripts: [], data: input.data };
+  }
+}
+
+/**
+ * Runs plugin after-scripts hooks for a completed request stage.
+ *
+ * Short-circuits when no enabled plugin holds `scripts:inject`. Failures are
+ * recorded but do not fail the send.
+ *
+ * @param context - Stage summary with data bag, tests, logs, and errors.
+ */
+export async function applyPluginAfterScriptsHooks(
+  context: PluginAfterScriptsContext
+): Promise<void> {
+  if (!hasScriptsInjectPermission()) {
+    return;
+  }
+
+  try {
+    await withPluginRunner(() => runPluginAfterScriptsHooks(context));
+  } catch (error) {
+    recordPluginHookFailure(error);
+    console.error('Plugin after-scripts hook failed:', error);
   }
 }

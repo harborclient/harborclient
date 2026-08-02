@@ -498,6 +498,37 @@ describe('generalSettings', () => {
     expect(getGeneralSettings().dismissedRequestEditorNotices).toEqual([]);
   });
 
+  it('defaults dismissedLiveServerNotices to an empty list when unset', () => {
+    expect(getGeneralSettings().dismissedLiveServerNotices).toEqual([]);
+  });
+
+  it('persists dismissed Live Server notices', () => {
+    setGeneralSettings({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedLiveServerNotices: ['general', 'ssl']
+    });
+
+    expect(getGeneralSettings().dismissedLiveServerNotices).toEqual(['general', 'ssl']);
+  });
+
+  it('drops unknown and duplicate dismissed Live Server notices', () => {
+    settingsStore.general = JSON.stringify({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedLiveServerNotices: ['general', 'general', 'bogus', 42, 'scripts']
+    });
+
+    expect(getGeneralSettings().dismissedLiveServerNotices).toEqual(['general', 'scripts']);
+  });
+
+  it('returns empty dismissedLiveServerNotices when stored value is invalid', () => {
+    settingsStore.general = JSON.stringify({
+      ...DEFAULT_GENERAL_SETTINGS,
+      dismissedLiveServerNotices: 'not-an-array'
+    });
+
+    expect(getGeneralSettings().dismissedLiveServerNotices).toEqual([]);
+  });
+
   it('defaults codeEditorFontSize to 16px when unset', () => {
     expect(getGeneralSettings().codeEditorFontSize).toBe('16px');
   });

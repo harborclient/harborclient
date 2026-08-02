@@ -27,6 +27,7 @@ describe('buildLiveServerExport', () => {
       proxies: [{ path: '/api', target: 'http://127.0.0.1:3000' }],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '/usr/bin/npm start',
+      runCommandEnabled: true,
       restartOnCrash: true,
       urlVariable: 'LIVE_SERVER_URL',
       preRequestScripts: [
@@ -56,6 +57,7 @@ describe('buildLiveServerExport', () => {
       lastOpenedPath: '/about',
       host: '127.0.0.1',
       runCommand: '/usr/bin/npm start',
+      runCommandEnabled: true,
       restartOnCrash: true,
       urlVariable: 'LIVE_SERVER_URL'
     });
@@ -98,6 +100,45 @@ describe('buildLiveServerExport', () => {
 
     expect(envelope.lastOpenedPath).toBeNull();
   });
+
+  it('includes portable runtime requirement and runCommandEnv when set', () => {
+    const envelope = buildLiveServerExport({
+      uuid: '11111111-1111-4111-8111-111111111111',
+      name: 'With runtime',
+      root: '/tmp/site',
+      port: 3000,
+      runCommand: 'server.js -p 3000',
+      runtime: { kind: 'node', version: '22.14.0', name: 'Node v22' },
+      runCommandEnv: [
+        { key: 'NODE_ENV', value: 'development', enabled: true },
+        { key: 'SKIP', value: 'x', enabled: false }
+      ]
+    });
+
+    expect(envelope.runtime).toEqual({
+      kind: 'node',
+      version: '22.14',
+      name: 'Node v22'
+    });
+    expect(envelope.runCommandEnv).toEqual([
+      { key: 'NODE_ENV', value: 'development', enabled: true },
+      { key: 'SKIP', value: 'x', enabled: false }
+    ]);
+    expect(envelope.runCommand).toBe('server.js -p 3000');
+  });
+
+  it('omits runtime and runCommandEnv when empty', () => {
+    const envelope = buildLiveServerExport({
+      uuid: '11111111-1111-4111-8111-111111111111',
+      name: 'Minimal',
+      root: '/tmp/site',
+      port: null,
+      runCommandEnv: []
+    });
+
+    expect(envelope.runtime).toBeUndefined();
+    expect(envelope.runCommandEnv).toBeUndefined();
+  });
 });
 
 describe('validateLiveServerExport', () => {
@@ -114,6 +155,27 @@ describe('validateLiveServerExport', () => {
 
     expect(exportData.harborclientExport).toBe('server');
     expect(exportData.name).toBe('Docs');
+  });
+
+  it('accepts optional runtime and runCommandEnv fields', () => {
+    const exportData = validateLiveServerExport({
+      harborclientVersion: 1,
+      harborclientExport: 'server',
+      uuid: '11111111-1111-4111-8111-111111111111',
+      name: 'Docs',
+      root: '/var/www/docs',
+      port: 5500,
+      runCommand: 'server.js',
+      runtime: { kind: 'php', version: '8.3', name: 'PHP 8.3' },
+      runCommandEnv: [{ key: 'APP_ENV', value: 'local', enabled: true }]
+    });
+
+    expect(exportData.runtime).toEqual({
+      kind: 'php',
+      version: '8.3',
+      name: 'PHP 8.3'
+    });
+    expect(exportData.runCommandEnv).toHaveLength(1);
   });
 
   it('rejects an unknown discriminator', () => {

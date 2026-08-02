@@ -1200,6 +1200,9 @@ describeSqlite('LocalDatabase live servers', () => {
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',
+      runtimeId: '',
+      runCommandEnv: [],
+      runCommandEnabled: false,
       restartOnCrash: false,
       urlVariable: '',
       cors: {
@@ -1250,6 +1253,9 @@ describeSqlite('LocalDatabase live servers', () => {
         keyPath: '/tmp/key.pem'
       },
       runCommand: '/usr/bin/node ./server.js',
+      runtimeId: 'runtime-1',
+      runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
+      runCommandEnabled: true,
       restartOnCrash: true,
       urlVariable: 'server_url'
     });
@@ -1283,6 +1289,9 @@ describeSqlite('LocalDatabase live servers', () => {
         keyPath: '/tmp/key.pem'
       },
       runCommand: '/usr/bin/node ./server.js',
+      runtimeId: 'runtime-1',
+      runCommandEnv: [{ key: 'NODE_ENV', value: 'dev', enabled: true }],
+      runCommandEnabled: true,
       restartOnCrash: true,
       urlVariable: 'server_url',
       cors: {
@@ -1343,6 +1352,9 @@ describeSqlite('LocalDatabase live servers', () => {
       proxies: [],
       ssl: { enabled: false, certPath: '', keyPath: '' },
       runCommand: '',
+      runtimeId: '',
+      runCommandEnv: [],
+      runCommandEnabled: false,
       restartOnCrash: false,
       urlVariable: '',
       cors: {

@@ -22,6 +22,7 @@ export type PluginPermission =
   | 'filesystem:read'
   | 'filesystem:write'
   | 'http'
+  | 'scripts:inject'
   | 'network'
   | 'ipc'
   | 'server'

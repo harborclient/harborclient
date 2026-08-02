@@ -128,6 +128,21 @@ export interface UpdateLiveServerToolArgs {
   runCommand?: string;
 
   /**
+   * Machine-local runtime id. When omitted, the existing value is kept.
+   */
+  runtimeId?: string;
+
+  /**
+   * Companion process environment variables. When omitted, the existing value is kept.
+   */
+  runCommandEnv?: Array<{ key: string; value: string; enabled: boolean }>;
+
+  /**
+   * Whether the companion process is enabled. When omitted, the existing value is kept.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
    * Restart-on-crash flag. When omitted, the existing value is kept.
    */
   restartOnCrash?: boolean;
@@ -169,6 +184,7 @@ export interface UpdateLiveServerToolArgs {
  * @param {object[]} [proxies] - Reverse-proxy path-prefix rules.
  * @param {object} [ssl] - HTTPS cert/key paths.
  * @param {string} [runCommand] - Companion process command.
+ * @param {boolean} [runCommandEnabled] - Whether to start the companion process.
  * @param {boolean} [restartOnCrash] - Restart companion after unexpected crash.
  * @param {string} [urlVariable] - Global variable name set to the server origin URL on start.
  */

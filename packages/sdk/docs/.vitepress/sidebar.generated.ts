@@ -773,6 +773,14 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/main-api#hchttponaftersendhandler"
       },
       {
+        "text": "hc.http.onBeforeScripts(handler)",
+        "link": "/main-api#hchttponbeforescriptshandler"
+      },
+      {
+        "text": "hc.http.onAfterScripts(handler)",
+        "link": "/main-api#hchttponafterscriptshandler"
+      },
+      {
         "text": "hc.ipc.handle(channel, handler)",
         "link": "/main-api#hcipchandlechannel-handler"
       },
@@ -826,6 +834,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       {
         "text": "Request logger",
         "link": "/examples/request-logger"
+      },
+      {
+        "text": "Baseline tests",
+        "link": "/examples/baseline-tests"
+      },
+      {
+        "text": "Trace correlation",
+        "link": "/examples/trace-correlation"
+      },
+      {
+        "text": "Production guard",
+        "link": "/examples/production-guard"
       },
       {
         "text": "Request audit tab",

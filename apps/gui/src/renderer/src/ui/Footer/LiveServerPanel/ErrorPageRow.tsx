@@ -79,12 +79,13 @@ export function ErrorPageRow({
           onChange={(event) => onChange({ ...page, enabled: event.target.checked })}
         />
       </td>
-      <td className="min-w-0 p-1 align-middle">
+      <td className="w-36 p-1 align-middle">
         <label htmlFor={codeId} className="sr-only">
           {rowLabel} status code
         </label>
         <Input
           id={codeId}
+          className="w-full"
           value={page.code}
           disabled={disabled}
           placeholder="e.g. 404"
@@ -92,7 +93,7 @@ export function ErrorPageRow({
           onChange={(event) => onChange({ ...page, code: event.target.value })}
         />
       </td>
-      <td className="min-w-0 p-1 align-middle">
+      <td className="min-w-0 w-full p-1 align-middle">
         <label htmlFor={pathId} className="sr-only">
           {rowLabel} file path
         </label>

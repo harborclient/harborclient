@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Headers } from '@harborclient/http';
 import {
+  applyPluginAfterScriptsHooks,
   applyPluginAfterSendHooks,
+  applyPluginBeforeScriptsHooks,
   logPluginActivationFailureToTerminal,
   mergePluginHttpHeaders,
   parsePluginHookErrorId,
   recordPluginHookFailure,
+  sanitizeInjectedScripts,
   setPluginManager
 } from './plugins';
 import type { PluginInfo } from '@harborclient/core/plugin/types';
@@ -14,12 +17,19 @@ import type { PluginManager } from '#/main/plugins/PluginManager';
 vi.mock('#/main/plugins/pluginRunnerHost', () => ({
   runPluginAfterSendHooks: vi.fn(),
   runPluginBeforeSendHooks: vi.fn(),
+  runPluginBeforeScriptsHooks: vi.fn(),
+  runPluginAfterScriptsHooks: vi.fn(),
   activatePluginMain: vi.fn(),
   deactivatePluginMain: vi.fn(),
-  invokePluginIpc: vi.fn()
+  invokePluginIpc: vi.fn(),
+  isPluginRunnerShuttingDown: vi.fn(() => false)
 }));
 
-import { runPluginAfterSendHooks } from '#/main/plugins/pluginRunnerHost';
+import {
+  runPluginAfterScriptsHooks,
+  runPluginAfterSendHooks,
+  runPluginBeforeScriptsHooks
+} from '#/main/plugins/pluginRunnerHost';
 
 describe('mergePluginHttpHeaders', () => {
   it('disables enabled headers removed by a plugin hook', () => {
@@ -129,6 +139,113 @@ describe('plugin hook failures', () => {
           body: ''
         }
       )
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('sanitizeInjectedScripts', () => {
+  it('keeps well-formed rows and drops malformed ones', () => {
+    expect(
+      sanitizeInjectedScripts([
+        {
+          uuid: 'a',
+          pluginId: 'com.example',
+          name: 'Guard',
+          stage: 'before-all',
+          script: 'console.log(1);'
+        },
+        { uuid: '', pluginId: 'com.example', script: 'x' },
+        { uuid: 'b', pluginId: 'com.example', stage: 'not-a-stage', script: 'ok' }
+      ])
+    ).toEqual([
+      {
+        uuid: 'a',
+        pluginId: 'com.example',
+        name: 'Guard',
+        stage: 'before-all',
+        script: 'console.log(1);'
+      },
+      {
+        uuid: 'b',
+        pluginId: 'com.example',
+        name: 'Injected script',
+        stage: 'main',
+        script: 'ok'
+      }
+    ]);
+  });
+});
+
+describe('script injection hooks', () => {
+  it('short-circuits before-scripts when no plugin holds scripts:inject', async () => {
+    setPluginManager({
+      list: () => [{ id: 'com.example.http', enabled: true, permissions: ['http'] }]
+    } as unknown as PluginManager);
+
+    const result = await applyPluginBeforeScriptsHooks({
+      phase: 'pre',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: {},
+        body: ''
+      },
+      data: { keep: true }
+    });
+
+    expect(result).toEqual({ scripts: [], data: { keep: true } });
+    expect(runPluginBeforeScriptsHooks).not.toHaveBeenCalled();
+  });
+
+  it('returns sanitized injections when a plugin holds scripts:inject', async () => {
+    setPluginManager({
+      list: () => [{ id: 'com.example.inject', enabled: true, permissions: ['scripts:inject'] }]
+    } as unknown as PluginManager);
+    vi.mocked(runPluginBeforeScriptsHooks).mockResolvedValueOnce({
+      scripts: [
+        {
+          uuid: 'inj-1',
+          pluginId: 'com.example.inject',
+          name: 'Guard',
+          stage: 'before-all',
+          script: 'hc.execution.skipRequest();'
+        }
+      ],
+      data: { guarded: true }
+    });
+
+    const result = await applyPluginBeforeScriptsHooks({
+      phase: 'pre',
+      request: {
+        method: 'GET',
+        url: 'https://example.com',
+        headers: {},
+        body: ''
+      },
+      data: {}
+    });
+
+    expect(result.scripts).toHaveLength(1);
+    expect(result.scripts[0]?.stage).toBe('before-all');
+    expect(result.data).toEqual({ guarded: true });
+  });
+
+  it('does not throw when after-scripts hooks fail', async () => {
+    setPluginManager({
+      list: () => [{ id: 'com.example.inject', enabled: true, permissions: ['scripts:inject'] }]
+    } as unknown as PluginManager);
+    vi.mocked(runPluginAfterScriptsHooks).mockRejectedValueOnce(
+      new Error('Plugin com.example.inject: boom')
+    );
+
+    await expect(
+      applyPluginAfterScriptsHooks({
+        phase: 'post',
+        data: {},
+        tests: [],
+        logs: [],
+        errors: []
+      })
     ).resolves.toBeUndefined();
   });
 });

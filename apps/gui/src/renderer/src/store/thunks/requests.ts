@@ -683,6 +683,27 @@ export async function executeRequestDraft(
         currentDraft.post_request_scripts
       ]
     );
+
+    const phaseLogStart = allLogs.length;
+    const phaseTestStart = allTests.length;
+    const phaseErrorStart = scriptErrors.length;
+
+    const injection = await window.api.runPluginBeforeScripts({
+      phase,
+      request: toPluginHttpRequest({
+        method: scriptRequest.method,
+        url: scriptRequest.url,
+        headers: scriptRequest.headers,
+        body: scriptRequest.body,
+        bodyType: scriptRequest.bodyType,
+        params: scriptRequest.params,
+        sourceRequestId: currentDraft.id ?? undefined,
+        sourceRequestName: currentDraft.name
+      }),
+      data: scriptData
+    });
+    scriptData = injection.data;
+
     const slots = buildScriptSlots(
       collection?.pre_request_scripts,
       collection?.post_request_scripts,
@@ -697,7 +718,8 @@ export async function executeRequestDraft(
       currentDraft.pre_request_script,
       currentDraft.post_request_script,
       phase,
-      snippetLookup
+      snippetLookup,
+      injection.scripts
     );
 
     for (const slot of slots) {
@@ -832,6 +854,23 @@ export async function executeRequestDraft(
       }
       scriptData = result.data;
     }
+
+    await window.api.runPluginAfterScripts({
+      phase,
+      data: scriptData,
+      tests: allTests.slice(phaseTestStart).map((test) => ({
+        name: test.name,
+        passed: test.passed,
+        ...(test.error ? { error: test.error } : {})
+      })),
+      logs: allLogs.slice(phaseLogStart).map((entry) => ({
+        level: entry.level,
+        message: entry.message,
+        ...(entry.scriptName ? { scriptName: entry.scriptName } : {}),
+        ...(entry.scriptId ? { scriptId: entry.scriptId } : {})
+      })),
+      errors: scriptErrors.slice(phaseErrorStart)
+    });
   };
 
   try {

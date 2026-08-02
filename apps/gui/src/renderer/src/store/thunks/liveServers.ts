@@ -15,6 +15,7 @@ import {
   liveServerOpenedPathFromUrl,
   resolveLiveServerHomeUrl,
   resolveLiveServerOpenUrl,
+  runtimeRequirementFor,
   toLiveServerConfig
 } from '@harborclient/core/types';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
@@ -109,9 +110,25 @@ export type OpenLiveServerEditorInput = {
    */
   ssl?: LiveServerConfig['ssl'];
   /**
-   * Companion process command (absolute binary + args).
+   * Companion process command (arguments when a runtime is set, else full command).
    */
   runCommand?: string;
+  /**
+   * Machine-local runtime id, or empty for None.
+   */
+  runtimeId?: string;
+  /**
+   * Companion process environment variables.
+   */
+  runCommandEnv?: LiveServerConfig['runCommandEnv'];
+  /**
+   * Unresolved portable runtime from import, when no local match exists.
+   */
+  unresolvedRuntime?: import('@harborclient/core/types').RuntimeRequirement | null;
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled?: boolean;
   /**
    * When true, restart the companion after an unexpected crash.
    */
@@ -156,18 +173,57 @@ export const refreshLiveServers = createAsyncThunk<void, void, ThunkApiConfig>(
  *
  * @returns The imported or updated live server, or null when the dialog was canceled.
  */
-export const importLiveServer = createAsyncThunk<LiveServer | null, void, ThunkApiConfig>(
-  'liveServers/import',
-  async (_arg, { dispatch }) => {
-    const server = await window.api.importLiveServer();
-    if (!server) {
-      return null;
-    }
-    await dispatch(refreshLiveServers());
-    dispatch(closeAddLiveServerModal());
-    return server;
+export const importLiveServer = createAsyncThunk<
+  import('@harborclient/core/types').LiveServerImportResult | null,
+  void,
+  ThunkApiConfig
+>('liveServers/import', async (_arg, { dispatch }) => {
+  const result = await window.api.importLiveServer();
+  if (!result) {
+    return null;
   }
-);
+  await dispatch(refreshLiveServers());
+  const { server, unresolvedRuntime } = result;
+  // Keep the Add modal open when a runtime is missing so it can show the
+  // inline warning; otherwise close it after a successful import.
+  if (unresolvedRuntime == null) {
+    dispatch(closeAddLiveServerModal());
+  }
+  dispatch(
+    openLiveServerEditor({
+      mode: 'edit',
+      savedId: server.id,
+      connectionId: server.connectionId,
+      name: server.name,
+      root: server.root,
+      port: server.port,
+      aliases: server.aliases,
+      watch: server.watch,
+      cors: server.cors,
+      openPath: server.openPath,
+      openPathOnStartup: server.openPathOnStartup,
+      rememberLastUrl: server.rememberLastUrl,
+      lastOpenedPath: server.lastOpenedPath,
+      indexFiles: formatLiveServerIndexFilesInput(server.indexFiles),
+      host: server.host,
+      headers: server.headers,
+      routes: server.routes,
+      errorPages: server.errorPages,
+      proxies: server.proxies,
+      ssl: server.ssl,
+      runCommand: server.runCommand,
+      runtimeId: server.runtimeId,
+      runCommandEnabled: server.runCommandEnabled,
+      runCommandEnv: server.runCommandEnv,
+      unresolvedRuntime: unresolvedRuntime ?? null,
+      restartOnCrash: server.restartOnCrash,
+      urlVariable: server.urlVariable,
+      preRequestScripts: server.preRequestScripts,
+      postRequestScripts: server.postRequestScripts
+    })
+  );
+  return result;
+});
 
 /**
  * Reloads running live server instances from the main process into the store.
@@ -389,6 +445,11 @@ export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
       return;
     }
 
+    const runtimes = await window.api.listRuntimes();
+    const matchedRuntime =
+      server.runtimeId !== ''
+        ? runtimes.find((runtime) => runtime.id === server.runtimeId)
+        : undefined;
     const envelope = buildLiveServerExport({
       uuid: server.uuid,
       name: server.name,
@@ -409,6 +470,9 @@ export const exportLiveServer = createAsyncThunk<void, number, ThunkApiConfig>(
       proxies: server.proxies,
       ssl: server.ssl,
       runCommand: server.runCommand,
+      runtime: matchedRuntime != null ? runtimeRequirementFor(matchedRuntime) : undefined,
+      runCommandEnabled: server.runCommandEnabled,
+      runCommandEnv: server.runCommandEnv,
       restartOnCrash: server.restartOnCrash,
       urlVariable: server.urlVariable,
       preRequestScripts: server.preRequestScripts,
@@ -522,6 +586,9 @@ export function liveServerRuntimeConfigNeedsRestart(
     JSON.stringify(next.proxies) !== JSON.stringify(current.proxies) ||
     JSON.stringify(next.ssl) !== JSON.stringify(current.ssl) ||
     next.runCommand !== current.runCommand ||
+    next.runtimeId !== current.runtimeId ||
+    next.runCommandEnabled !== current.runCommandEnabled ||
+    JSON.stringify(next.runCommandEnv) !== JSON.stringify(current.runCommandEnv) ||
     next.restartOnCrash !== current.restartOnCrash
   );
 }

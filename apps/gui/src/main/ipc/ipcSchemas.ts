@@ -135,6 +135,16 @@ export const editorTab = z.enum([
   'comment'
 ]);
 
+export const liveServerSettingsTab = z.enum([
+  'general',
+  'proxy',
+  'headers',
+  'routing',
+  'run',
+  'ssl',
+  'scripts'
+]);
+
 export const scriptPhase = z.enum(['pre', 'post']);
 
 export const snippetScope = z.enum(['pre-request', 'post-request', 'any']);
@@ -325,6 +335,7 @@ export const generalSettings = z.object({
   ),
   allowAllExternalDomains: z.boolean(),
   dismissedRequestEditorNotices: z.array(editorTab),
+  dismissedLiveServerNotices: z.array(liveServerSettingsTab),
   gitAutoAdd: z.boolean(),
   externalMergeEditorPath: z.string(),
   gitCommitAuthorName: z.string(),
@@ -480,6 +491,27 @@ export const storageConnection = z.discriminatedUnion('type', [
     settings: gitSettings
   })
 ]) satisfies z.ZodType<StorageConnection>;
+
+/**
+ * Zod schema for a machine-local companion-process runtime.
+ */
+export const runtime = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: z.enum(['node', 'php', 'python']),
+  version: z.string(),
+  path: z.string(),
+  env: z.array(keyValue)
+});
+
+/**
+ * Zod schema for verifying a runtime executable path.
+ */
+export const verifyRuntimeInput = z.object({
+  kind: z.enum(['node', 'php', 'python']),
+  version: z.string(),
+  path: z.string()
+});
 
 /**
  * Zod schema for a persisted team hub connection.
@@ -905,6 +937,9 @@ export const liveServerConfig = z.object({
   proxies: z.array(liveServerProxy),
   ssl: liveServerSslSettings,
   runCommand: z.string(),
+  runtimeId: z.string(),
+  runCommandEnabled: z.boolean(),
+  runCommandEnv: z.array(keyValue),
   restartOnCrash: z.boolean(),
   urlVariable: z.string(),
   preRequestScripts: ipcLiveServerScriptRefArray,
@@ -944,6 +979,9 @@ export const createLiveServerInput = z.object({
   proxies: z.array(liveServerProxy).optional(),
   ssl: liveServerSslSettings.optional(),
   runCommand: z.string().optional(),
+  runtimeId: z.string().optional(),
+  runCommandEnabled: z.boolean().optional(),
+  runCommandEnv: z.array(keyValue).optional(),
   restartOnCrash: z.boolean().optional(),
   urlVariable: z.string().optional(),
   preRequestScripts: ipcLiveServerScriptRefArray.optional().default([]),
@@ -973,6 +1011,9 @@ export const updateLiveServerInput = z.object({
   proxies: z.array(liveServerProxy),
   ssl: liveServerSslSettings,
   runCommand: z.string(),
+  runtimeId: z.string(),
+  runCommandEnabled: z.boolean(),
+  runCommandEnv: z.array(keyValue),
   restartOnCrash: z.boolean(),
   urlVariable: z.string(),
   preRequestScripts: ipcLiveServerScriptRefArray,
@@ -1150,6 +1191,8 @@ export const ipcArgSchemas = {
     })
   ]),
   storageConnection: z.tuple([storageConnection]),
+  runtime: z.tuple([runtime]),
+  verifyRuntime: z.tuple([verifyRuntimeInput]),
   teamHub: z.tuple([teamHub]),
   teamHubConnected: z.tuple([connectionId, z.boolean()]),
   teamHubUserUpdate: z.tuple([connectionId, connectionId, updateHubUserInput]),
@@ -1642,6 +1685,44 @@ export const ipcArgSchemas = {
         headers: z.record(z.string(), z.string()),
         body: z.string()
       })
+    })
+  ]),
+  pluginRunBeforeScripts: z.tuple([
+    z.object({
+      phase: z.enum(['pre', 'post']),
+      request: z.object({
+        method: z.string(),
+        url: z.string(),
+        headers: z.record(z.string(), z.string()),
+        body: z.string(),
+        bodyType: z.string().optional(),
+        params: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+        sourceRequestId: z.number().optional(),
+        sourceRequestName: z.string().optional()
+      }),
+      data: z.record(z.string(), z.unknown())
+    })
+  ]),
+  pluginRunAfterScripts: z.tuple([
+    z.object({
+      phase: z.enum(['pre', 'post']),
+      data: z.record(z.string(), z.unknown()),
+      tests: z.array(
+        z.object({
+          name: z.string(),
+          passed: z.boolean(),
+          error: z.string().optional()
+        })
+      ),
+      logs: z.array(
+        z.object({
+          level: z.enum(['log', 'warn', 'error']),
+          message: z.string(),
+          scriptName: z.string().optional(),
+          scriptId: z.string().optional()
+        })
+      ),
+      errors: z.array(z.string())
     })
   ]),
   pluginPushLibraryChanged: z.tuple([

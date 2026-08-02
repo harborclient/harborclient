@@ -1,7 +1,12 @@
 import type { CodeEditorSetup } from '@harborclient/sdk';
 import type { ProxySettings } from '@harborclient/http';
 import type { Variable } from '../types/common.js';
-import type { EditorTab, GeneralSettings, TrustedExternalDomain } from '../types/settings.js';
+import type {
+  EditorTab,
+  GeneralSettings,
+  LiveServerSettingsTab,
+  TrustedExternalDomain
+} from '../types/settings.js';
 
 /**
  * Placeholder returned when a non-empty proxy password is present so secrets
@@ -170,6 +175,11 @@ export interface GeneralSettingsAiPatch {
    * Built-in request editor tabs whose inline help notice the user dismissed.
    */
   dismissedRequestEditorNotices?: EditorTab[];
+
+  /**
+   * Live Server settings panel tabs whose inline help notice the user dismissed.
+   */
+  dismissedLiveServerNotices?: LiveServerSettingsTab[];
 
   /**
    * When true, HarborClient auto-tracks files in git-backed collections before commit.
@@ -362,6 +372,9 @@ export function mergeGeneralSettingsAiPatch(
   if (patch.dismissedRequestEditorNotices !== undefined) {
     next.dismissedRequestEditorNotices = [...patch.dismissedRequestEditorNotices];
   }
+  if (patch.dismissedLiveServerNotices !== undefined) {
+    next.dismissedLiveServerNotices = [...patch.dismissedLiveServerNotices];
+  }
   if (patch.gitAutoAdd !== undefined) {
     next.gitAutoAdd = patch.gitAutoAdd;
   }
@@ -419,6 +432,7 @@ export function sanitizeGeneralSettingsForAi(
     customUserAgents: [...settings.customUserAgents],
     trustedExternalDomains: settings.trustedExternalDomains.map((entry) => ({ ...entry })),
     dismissedRequestEditorNotices: [...settings.dismissedRequestEditorNotices],
+    dismissedLiveServerNotices: [...settings.dismissedLiveServerNotices],
     codeEditorSetup: { ...settings.codeEditorSetup },
     proxy: { ...settings.proxy, password },
     globalVariables: settings.globalVariables.map((variable) => ({ ...variable }))

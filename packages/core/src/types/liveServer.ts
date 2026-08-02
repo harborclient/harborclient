@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { normalizeScriptRefs } from '../scriptRefs';
+import type { KeyValue } from './common';
+import {
+  normalizeRuntimeEnv,
+  normalizeRuntimeRequirement,
+  type RuntimeRequirement
+} from './runtime';
 import type { ScriptRef } from './script';
 
 /**
@@ -505,6 +511,8 @@ export function normalizeLiveServerHost(value: unknown): string {
  * Normalizes the optional companion process command string.
  *
  * Non-strings become `''`. Whitespace is trimmed; empty means no command.
+ * When a runtime is selected this holds arguments only; when runtime is
+ * `"None"` it holds the full command (absolute binary + args).
  *
  * @param value - Raw command from storage or the editor.
  * @returns Trimmed command string, or empty when unset.
@@ -514,6 +522,55 @@ export function normalizeLiveServerRunCommand(value: unknown): string {
     return '';
   }
   return value.trim();
+}
+
+/**
+ * Normalizes whether the companion process should start with the live server.
+ *
+ * Explicit booleans are preserved. Legacy payloads without the flag treat a
+ * non-empty command or runtime id as enabled so existing servers keep running
+ * their companion process after upgrade.
+ *
+ * @param value - Raw enable flag from storage or the editor.
+ * @param runCommand - Already-normalized companion command / arguments.
+ * @param runtimeId - Already-normalized runtime id (`''` for None).
+ * @returns Whether the companion process is enabled.
+ */
+export function normalizeLiveServerRunCommandEnabled(
+  value: unknown,
+  runCommand: string,
+  runtimeId: string
+): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return runCommand !== '' || runtimeId !== '';
+}
+
+/**
+ * Normalizes the optional runtime id selected for a live server run command.
+ *
+ * Non-strings become `''`. Whitespace is trimmed; empty means "None" (run the
+ * command string directly without a predefined runtime).
+ *
+ * @param value - Raw runtime id from storage or the editor.
+ * @returns Trimmed runtime id, or empty when unset.
+ */
+export function normalizeLiveServerRuntimeId(value: unknown): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim();
+}
+
+/**
+ * Normalizes run-command environment variable rows for a live server.
+ *
+ * @param value - Raw env rows from storage or the editor.
+ * @returns Normalized {@link KeyValue} rows (may be empty).
+ */
+export function normalizeLiveServerRunCommandEnv(value: unknown): KeyValue[] {
+  return normalizeRuntimeEnv(value);
 }
 
 /**
@@ -882,9 +939,25 @@ export interface LiveServerConfigFieldInput {
   ssl?: unknown;
 
   /**
-   * Optional companion process command (absolute binary + args).
+   * Optional companion process command (absolute binary + args, or args only
+   * when a runtime is selected).
    */
   runCommand?: unknown;
+
+  /**
+   * Id of a machine-local runtime, or empty for "None".
+   */
+  runtimeId?: unknown;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled?: unknown;
+
+  /**
+   * Environment variables applied when the companion process starts.
+   */
+  runCommandEnv?: unknown;
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -968,10 +1041,29 @@ export interface LiveServerConfigFields {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command template (absolute binary + args). Empty means
-   * none. May include `{{variables}}` resolved from globals at Start/restart.
+   * Companion process command template. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args). May include `{{variables}}`
+   * resolved from globals at Start/restart.
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local {@link import('./runtime').Runtime}, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   * Values may include `{{variables}}`. Child rows override runtime env vars.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected non-zero exit
@@ -999,7 +1091,7 @@ export interface LiveServerConfigFields {
 /**
  * Normalizes the expanded live-server config fields added for open path, index
  * files, bind host, response headers, routing rules, error pages, reverse proxies, SSL,
- * optional companion run command, URL variable, and pre/post request scripts.
+ * optional companion run command / runtime, URL variable, and pre/post request scripts.
  *
  * Pure and dependency-free so storage, IPC, and UI can share one code path.
  * Callers still merge these onto name/root/port/aliases/watch/cors separately.
@@ -1024,12 +1116,17 @@ export function normalizeLiveServerConfigFields(
       proxies: defaultLiveServerProxies(),
       ssl: defaultLiveServerSslSettings(),
       runCommand: normalizeLiveServerRunCommand(undefined),
+      runtimeId: normalizeLiveServerRuntimeId(undefined),
+      runCommandEnabled: false,
+      runCommandEnv: normalizeLiveServerRunCommandEnv(undefined),
       restartOnCrash: false,
       urlVariable: normalizeLiveServerUrlVariable(undefined),
       preRequestScripts: [],
       postRequestScripts: []
     };
   }
+  const runCommand = normalizeLiveServerRunCommand(value.runCommand);
+  const runtimeId = normalizeLiveServerRuntimeId(value.runtimeId);
   return {
     openPath: normalizeLiveServerOpenPath(value.openPath),
     openPathOnStartup: value.openPathOnStartup !== false,
@@ -1046,7 +1143,14 @@ export function normalizeLiveServerConfigFields(
         ? (value.ssl as Partial<LiveServerSslSettings>)
         : undefined
     ),
-    runCommand: normalizeLiveServerRunCommand(value.runCommand),
+    runCommand,
+    runtimeId,
+    runCommandEnabled: normalizeLiveServerRunCommandEnabled(
+      value.runCommandEnabled,
+      runCommand,
+      runtimeId
+    ),
+    runCommandEnv: normalizeLiveServerRunCommandEnv(value.runCommandEnv),
     restartOnCrash: value.restartOnCrash === true,
     urlVariable: normalizeLiveServerUrlVariable(value.urlVariable),
     preRequestScripts: normalizeLiveServerScriptRefs(value.preRequestScripts),
@@ -1150,9 +1254,27 @@ export interface LiveServerConfig {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -1204,6 +1326,9 @@ export interface ToLiveServerConfigInput {
   proxies?: LiveServerConfig['proxies'];
   ssl?: LiveServerConfig['ssl'];
   runCommand?: string;
+  runtimeId?: string;
+  runCommandEnabled?: boolean;
+  runCommandEnv?: KeyValue[];
   restartOnCrash?: boolean;
   urlVariable?: string;
   preRequestScripts?: LiveServerConfig['preRequestScripts'];
@@ -1340,9 +1465,27 @@ export interface LiveServer {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -1496,6 +1639,21 @@ export interface CreateLiveServerInput {
   runCommand?: string;
 
   /**
+   * Machine-local runtime id. Defaults to `''` (None).
+   */
+  runtimeId?: string;
+
+  /**
+   * Whether to start the companion process. Defaults from command/runtime when omitted.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
+   * Companion process environment variables. Defaults to `[]`.
+   */
+  runCommandEnv?: KeyValue[];
+
+  /**
    * Whether to restart the companion on crash. Defaults to false.
    */
   restartOnCrash?: boolean;
@@ -1614,9 +1772,27 @@ export interface UpdateLiveServerInput {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -1956,6 +2132,26 @@ export function isLiveServerProcessLogEntry(
 }
 
 /**
+ * Result of importing a live-server export into the local registry.
+ */
+export interface LiveServerImportResult {
+  /**
+   * Imported or updated live-server row.
+   */
+  server: LiveServer;
+
+  /**
+   * Whether the live server was created or updated.
+   */
+  action: 'created' | 'updated';
+
+  /**
+   * Portable runtime requirement that could not be matched on this machine.
+   */
+  unresolvedRuntime?: RuntimeRequirement;
+}
+
+/**
  * Portable HarborClient live-server export envelope.
  */
 export interface LiveServerExport {
@@ -2060,9 +2256,24 @@ export interface LiveServerExport {
   ssl?: LiveServerSslSettings;
 
   /**
-   * Companion process command.
+   * Companion process command (arguments when a runtime is set, else full command).
    */
   runCommand?: string;
+
+  /**
+   * Portable runtime requirement for the companion process.
+   */
+  runtime?: RuntimeRequirement;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv?: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -2120,6 +2331,18 @@ const liveServerSslExportSchema = z.object({
   certPath: z.string(),
   keyPath: z.string()
 }) satisfies z.ZodType<LiveServerSslSettings>;
+
+const liveServerKeyValueExportSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  enabled: z.boolean()
+}) satisfies z.ZodType<KeyValue>;
+
+const liveServerRuntimeRequirementExportSchema = z.object({
+  kind: z.enum(['node', 'php', 'python']),
+  version: z.string(),
+  name: z.string()
+}) satisfies z.ZodType<RuntimeRequirement>;
 
 const liveServerCorsExportSchema = z.object({
   enabled: z.boolean(),
@@ -2181,6 +2404,9 @@ export const liveServerExportSchema = z.object({
   proxies: z.array(liveServerProxyExportSchema).optional(),
   ssl: liveServerSslExportSchema.optional(),
   runCommand: z.string().optional(),
+  runtime: liveServerRuntimeRequirementExportSchema.optional(),
+  runCommandEnabled: z.boolean().optional(),
+  runCommandEnv: z.array(liveServerKeyValueExportSchema).optional(),
   restartOnCrash: z.boolean().optional(),
   urlVariable: z.string().optional(),
   pre_request_scripts: z.array(liveServerScriptRefExportSchema).optional(),
@@ -2298,6 +2524,21 @@ export interface BuildLiveServerExportInput {
   runCommand?: string;
 
   /**
+   * Portable runtime requirement for the companion process.
+   */
+  runtime?: RuntimeRequirement;
+
+  /**
+   * Whether to start the companion process.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
+   * Companion process environment variables.
+   */
+  runCommandEnv?: KeyValue[];
+
+  /**
    * Whether to restart the companion on crash.
    */
   restartOnCrash?: boolean;
@@ -2325,6 +2566,9 @@ export interface BuildLiveServerExportInput {
  * @returns Live-server export object.
  */
 export function buildLiveServerExport(input: BuildLiveServerExportInput): LiveServerExport {
+  const runtime = input.runtime != null ? normalizeRuntimeRequirement(input.runtime) : null;
+  const runCommandEnv =
+    input.runCommandEnv != null ? normalizeLiveServerRunCommandEnv(input.runCommandEnv) : [];
   return {
     harborclientVersion: 1,
     harborclientExport: 'server',
@@ -2353,6 +2597,9 @@ export function buildLiveServerExport(input: BuildLiveServerExportInput): LiveSe
     ...(input.runCommand != null && input.runCommand !== ''
       ? { runCommand: input.runCommand }
       : {}),
+    ...(runtime != null ? { runtime } : {}),
+    ...(input.runCommandEnabled != null ? { runCommandEnabled: input.runCommandEnabled } : {}),
+    ...(runCommandEnv.length > 0 ? { runCommandEnv } : {}),
     ...(input.restartOnCrash != null ? { restartOnCrash: input.restartOnCrash } : {}),
     ...(input.urlVariable != null && input.urlVariable !== ''
       ? { urlVariable: input.urlVariable }

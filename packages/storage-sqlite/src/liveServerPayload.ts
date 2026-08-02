@@ -32,6 +32,9 @@ export interface LiveServerPayloadJson {
   proxies: LiveServer['proxies'];
   ssl: LiveServer['ssl'];
   runCommand: string;
+  runtimeId: string;
+  runCommandEnabled: boolean;
+  runCommandEnv: LiveServer['runCommandEnv'];
   restartOnCrash: boolean;
   urlVariable: string;
   preRequestScripts: LiveServerScriptRef[];
@@ -168,6 +171,9 @@ export function liveServerFromPayload(
     proxies: payload.proxies,
     ssl: payload.ssl,
     runCommand: payload.runCommand,
+    runtimeId: payload.runtimeId,
+    runCommandEnabled: payload.runCommandEnabled,
+    runCommandEnv: payload.runCommandEnv,
     restartOnCrash: payload.restartOnCrash,
     urlVariable: payload.urlVariable,
     preRequestScripts: payload.preRequestScripts,

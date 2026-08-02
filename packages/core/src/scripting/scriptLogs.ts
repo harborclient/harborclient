@@ -213,7 +213,10 @@ export function coerceScriptLogs(raw: unknown): ScriptLogEntry[] {
           ? { scriptId: item.scriptId }
           : {}),
         ...(item.phase === 'pre' || item.phase === 'post' ? { phase: item.phase } : {}),
-        ...(item.scope === 'collection' || item.scope === 'folder' || item.scope === 'request'
+        ...(item.scope === 'collection' ||
+        item.scope === 'folder' ||
+        item.scope === 'request' ||
+        item.scope === 'plugin'
           ? { scope: item.scope }
           : {})
       });

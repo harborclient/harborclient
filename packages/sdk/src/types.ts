@@ -1623,6 +1623,74 @@ export interface PluginMcp {
 }
 
 /**
+ * Supported companion-process runtime kinds for live server run commands.
+ */
+export type RuntimeKind = 'node' | 'php' | 'python';
+
+/**
+ * Machine-local runtime definition (executable path + env vars).
+ *
+ * Paths differ per machine, so runtimes are stored in the local registry and
+ * referenced from live servers by id. Exports carry a portable
+ * {@link RuntimeRequirement} instead of the id/path.
+ */
+export interface Runtime {
+  /**
+   * Stable identifier for this runtime on the current machine.
+   */
+  id: string;
+
+  /**
+   * Display name shown in Settings and the live-server Runtime dropdown.
+   */
+  name: string;
+
+  /**
+   * Runtime family (Node, PHP, or Python).
+   */
+  kind: RuntimeKind;
+
+  /**
+   * Declared major.minor version (no patch), e.g. `"22.14"` or `"8.3"`.
+   */
+  version: string;
+
+  /**
+   * Absolute path to the executable file, or to a bin directory containing it.
+   */
+  path: string;
+
+  /**
+   * Environment variables applied when spawning this runtime.
+   * Values may include `{{variables}}` resolved at spawn time.
+   */
+  env: KeyValue[];
+}
+
+/**
+ * Portable runtime reference stored in live-server exports.
+ *
+ * On import, matched against the machine's configured runtimes by kind+version
+ * first, then by case-insensitive name.
+ */
+export interface RuntimeRequirement {
+  /**
+   * Required runtime family.
+   */
+  kind: RuntimeKind;
+
+  /**
+   * Required major.minor version.
+   */
+  version: string;
+
+  /**
+   * Display name from the exporting machine (fallback match key).
+   */
+  name: string;
+}
+
+/**
  * URL-path-to-filesystem alias for a Harbor Live Server.
  */
 export interface LiveServerAlias {
@@ -1933,9 +2001,27 @@ export interface LiveServerConfig {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -2066,9 +2152,27 @@ export interface LiveServer {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -2207,6 +2311,21 @@ export interface CreateLiveServerInput {
   runCommand?: string;
 
   /**
+   * Machine-local runtime id. Defaults to `''` (None).
+   */
+  runtimeId?: string;
+
+  /**
+   * Whether to start the companion process. Defaults from command/runtime when omitted.
+   */
+  runCommandEnabled?: boolean;
+
+  /**
+   * Companion process environment variables. Defaults to `[]`.
+   */
+  runCommandEnv?: KeyValue[];
+
+  /**
    * Whether to restart the companion on crash. Defaults to false.
    */
   restartOnCrash?: boolean;
@@ -2331,9 +2450,27 @@ export interface UpdateLiveServerInput {
   ssl: LiveServerSslSettings;
 
   /**
-   * Companion process command (absolute binary + args). Empty means none.
+   * Companion process command. Empty means none.
+   *
+   * When {@link runtimeId} is set this holds arguments only; when empty it
+   * holds the full command (absolute binary + args).
    */
   runCommand: string;
+
+  /**
+   * Id of a machine-local runtime, or `''` for None.
+   */
+  runtimeId: string;
+
+  /**
+   * When true, start the companion process with the live server.
+   */
+  runCommandEnabled: boolean;
+
+  /**
+   * Environment variables set when the companion process starts.
+   */
+  runCommandEnv: KeyValue[];
 
   /**
    * When true, restart the companion process after an unexpected crash.
@@ -5343,9 +5480,195 @@ export interface PluginHttpResponse {
 }
 
 /**
- * HTTP hook registration API available on {@link MainPluginContext.http}.
+ * One plugin-injected script row for a single request stage.
  *
- * Requires the `http` permission. Returned disposables are tracked automatically by the host.
+ * Injected scripts are always inline source; snippet references are not
+ * injectable because snippet resolution is a host/library concern.
+ */
+export interface PluginInjectedScript {
+  /**
+   * Host-minted id, stable for the duration of one hook run.
+   */
+  readonly uuid: string;
+
+  /**
+   * Owning plugin id, used for log and test-result attribution.
+   */
+  readonly pluginId: string;
+
+  /**
+   * Display label shown in console rows, test results, and error messages.
+   */
+  name: string;
+
+  /**
+   * Stage within the request stage's ordered script list.
+   */
+  readonly stage: ScriptStage;
+
+  /**
+   * Inline JavaScript source to evaluate.
+   */
+  script: string;
+}
+
+/**
+ * Append-and-lookup view over one stage bucket of injected scripts.
+ */
+export interface PluginScriptStageList {
+  /**
+   * Appends a script to this stage, after any earlier scripts from this plugin.
+   *
+   * @param entry - Display label and inline source.
+   * @returns Live handle whose `name` and `script` remain mutable until the hook returns.
+   */
+  push(entry: { name: string; script: string }): PluginInjectedScript;
+
+  /**
+   * Scripts this plugin has injected into this stage, in append order.
+   */
+  all(): readonly PluginInjectedScript[];
+}
+
+/**
+ * Script injection surface passed to before-scripts hooks.
+ *
+ * `find` and `findByName` only resolve scripts injected by the calling plugin —
+ * one plugin cannot read or rewrite another plugin's injected source.
+ */
+export interface PluginScriptBag {
+  /**
+   * Scripts that run once at the start of the request stage.
+   */
+  beforeAll: PluginScriptStageList;
+
+  /**
+   * Scripts that run before each `main` script.
+   */
+  beforeEach: PluginScriptStageList;
+
+  /**
+   * Primary scripts for the request stage.
+   */
+  main: PluginScriptStageList;
+
+  /**
+   * Scripts that run after each `main` script.
+   */
+  afterEach: PluginScriptStageList;
+
+  /**
+   * Scripts that run once at the end of the request stage.
+   */
+  afterAll: PluginScriptStageList;
+
+  /**
+   * Ephemeral bag threaded across every script in this send (script-side `hc.data`).
+   */
+  data: Record<string, unknown>;
+
+  /**
+   * Looks up one of this plugin's injected scripts by uuid, across all stages.
+   *
+   * @param uuid - Host-minted script id.
+   * @returns Matching script, or `undefined` when not found.
+   */
+  find(uuid: string): PluginInjectedScript | undefined;
+
+  /**
+   * Looks up this plugin's first injected script with a matching name.
+   *
+   * @param name - Display label to match.
+   * @returns Matching script, or `undefined` when not found.
+   */
+  findByName(name: string): PluginInjectedScript | undefined;
+}
+
+/**
+ * Context passed to {@link PluginHttp.onBeforeScripts} before a request stage runs.
+ */
+export interface PluginBeforeScriptsContext {
+  /**
+   * Request stage about to run: `pre` before the send, `post` after it.
+   */
+  phase: ScriptPhase;
+
+  /**
+   * Read-only request snapshot as it stands entering this stage.
+   *
+   * Not mutable here — the outbound payload is only final in `onBeforeSend`.
+   */
+  readonly request: Readonly<
+    Pick<PluginHttpRequest, 'method' | 'url' | 'sourceRequestId' | 'sourceRequestName'>
+  >;
+
+  /**
+   * Injection surface for this stage's script list.
+   */
+  scripts: PluginScriptBag;
+}
+
+/**
+ * One console line from a request stage, exposed to after-scripts hooks.
+ */
+export interface PluginScriptLogLine {
+  /**
+   * Console severity of the line (`log`, `warn`, or `error`).
+   */
+  level: 'log' | 'warn' | 'error';
+
+  /**
+   * Formatted console message.
+   */
+  message: string;
+
+  /**
+   * Display label of the script that produced the line.
+   */
+  scriptName?: string;
+
+  /**
+   * Script list id when available.
+   */
+  scriptId?: string;
+}
+
+/**
+ * Context passed to {@link PluginHttp.onAfterScripts} after a request stage completes.
+ */
+export interface PluginAfterScriptsContext {
+  /**
+   * Request stage that just finished: `pre` or `post`.
+   */
+  phase: ScriptPhase;
+
+  /**
+   * Ephemeral bag after every script in this stage ran.
+   */
+  data: Record<string, unknown>;
+
+  /**
+   * Named `hc.test` results accumulated during this stage.
+   */
+  tests: PluginScriptTestResult[];
+
+  /**
+   * Console lines produced during this stage.
+   */
+  logs: PluginScriptLogLine[];
+
+  /**
+   * Script error messages from this stage (label-prefixed).
+   */
+  errors: string[];
+}
+
+/**
+ * HTTP and script-lifecycle hook registration API available on {@link MainPluginContext.http}.
+ *
+ * `onBeforeSend` and `onAfterSend` require the `http` permission.
+ * `onBeforeScripts` and `onAfterScripts` require the `scripts:inject` permission.
+ * Returned disposables are tracked automatically by the host.
  */
 export interface PluginHttp {
   /**
@@ -5367,6 +5690,31 @@ export interface PluginHttp {
   onAfterSend(
     handler: (request: PluginHttpRequest, response: PluginHttpResponse) => void | Promise<void>
   ): Disposable;
+
+  /**
+   * Registers a callback that runs before each request stage's scripts.
+   *
+   * Fires twice per send — once with `phase: 'pre'` and once with `phase: 'post'`.
+   * Injected scripts run ahead of host scripts in the same stage.
+   * Requires the `scripts:inject` permission.
+   *
+   * @param handler - Called with the stage context and injection surface.
+   * @returns A {@link Disposable} that unregisters the handler when disposed.
+   */
+  onBeforeScripts(
+    handler: (context: PluginBeforeScriptsContext) => void | Promise<void>
+  ): Disposable;
+
+  /**
+   * Registers a callback that runs after each request stage's scripts complete.
+   *
+   * Fires twice per send — once after pre-request scripts and once after
+   * post-request scripts. Requires the `scripts:inject` permission.
+   *
+   * @param handler - Called with the stage summary (data bag, tests, logs, errors).
+   * @returns A {@link Disposable} that unregisters the handler when disposed.
+   */
+  onAfterScripts(handler: (context: PluginAfterScriptsContext) => void | Promise<void>): Disposable;
 }
 
 /**

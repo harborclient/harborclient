@@ -7,6 +7,7 @@ import {
   CONFIRMATION_ROWS,
   CONFIRMATION_TABLE_ROWS,
   confirmationSettingsPatch,
+  LIVE_SERVER_NOTICES_ROW,
   REQUEST_EDITOR_NOTICES_ROW
 } from './confirmations';
 
@@ -34,10 +35,11 @@ describe('confirmations helpers', () => {
     ]);
   });
 
-  it('appends the request editor tips aggregate row to the table rows', () => {
+  it('appends the tip aggregate rows to the table rows', () => {
     expect(CONFIRMATION_TABLE_ROWS.map((row) => row.id)).toEqual([
       ...CONFIRMATION_ROWS.map((row) => row.key),
-      'requestEditorNotices'
+      'requestEditorNotices',
+      'liveServerNotices'
     ]);
   });
 
@@ -55,6 +57,12 @@ describe('confirmations helpers', () => {
         dismissedRequestEditorNotices: ['params']
       })
     ).toBe(false);
+    expect(
+      areAllConfirmationsEnabled({
+        ...generalWithConfirmations(true),
+        dismissedLiveServerNotices: ['general']
+      })
+    ).toBe(false);
   });
 
   it('detects when all confirmations are disabled', () => {
@@ -69,6 +77,12 @@ describe('confirmations helpers', () => {
       areAllConfirmationsDisabled({
         ...generalWithConfirmations(false),
         dismissedRequestEditorNotices: []
+      })
+    ).toBe(false);
+    expect(
+      areAllConfirmationsDisabled({
+        ...generalWithConfirmations(false),
+        dismissedLiveServerNotices: []
       })
     ).toBe(false);
   });
@@ -93,18 +107,35 @@ describe('confirmations helpers', () => {
         'pre',
         'post',
         'comment'
+      ],
+      dismissedLiveServerNotices: [
+        'general',
+        'proxy',
+        'headers',
+        'routing',
+        'run',
+        'ssl',
+        'scripts'
       ]
     });
     expect(confirmationSettingsPatch(true).dismissedRequestEditorNotices).toEqual([]);
+    expect(confirmationSettingsPatch(true).dismissedLiveServerNotices).toEqual([]);
   });
 
-  it('treats the tips row as enabled only when no tab tip is dismissed', () => {
+  it('treats tip rows as enabled only when no tab tip is dismissed', () => {
     const general = generalWithConfirmations(true);
     expect(REQUEST_EDITOR_NOTICES_ROW.isEnabled(general)).toBe(true);
     expect(
       REQUEST_EDITOR_NOTICES_ROW.isEnabled({
         ...general,
         dismissedRequestEditorNotices: ['cookies']
+      })
+    ).toBe(false);
+    expect(LIVE_SERVER_NOTICES_ROW.isEnabled(general)).toBe(true);
+    expect(
+      LIVE_SERVER_NOTICES_ROW.isEnabled({
+        ...general,
+        dismissedLiveServerNotices: ['ssl']
       })
     ).toBe(false);
   });

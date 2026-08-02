@@ -591,7 +591,7 @@ const scriptTestResultRow = z.object({
   durationMs: z.number().nonnegative().optional(),
   scriptId: z.string().optional(),
   phase: z.enum(['pre', 'post']).optional(),
-  scope: z.enum(['collection', 'folder', 'request']).optional(),
+  scope: z.enum(['collection', 'folder', 'request', 'plugin']).optional(),
   scriptName: z.string().optional()
 }) satisfies z.ZodType<ScriptTestResult>;
 
@@ -623,7 +623,7 @@ const scriptLogEntryRow = z.object({
   scriptName: z.string(),
   scriptId: z.string().optional(),
   phase: z.enum(['pre', 'post']).optional(),
-  scope: z.enum(['collection', 'folder', 'request']).optional()
+  scope: z.enum(['collection', 'folder', 'request', 'plugin']).optional()
 }) satisfies z.ZodType<Omit<ScriptLogEntry, 'method'> & { method?: ScriptLogEntry['method'] }>;
 
 /**

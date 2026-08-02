@@ -17,9 +17,11 @@ import type {
   StartLiveServerInput
 } from '@harborclient/core/types';
 import {
+  mergeRuntimeEnv,
   normalizeLiveServerConfigFields,
   normalizeLiveServerCorsSettings,
-  normalizeLiveServerScriptRefs
+  normalizeLiveServerScriptRefs,
+  resolveRuntimeExecutable
 } from '@harborclient/core/types';
 import { substituteVariablesFromMap } from '@harborclient/sdk/variables';
 import { createLiveServerApp } from './liveServerApp';
@@ -579,7 +581,9 @@ export async function startLiveServer(
   );
   servers.set(id, { server, running, watcher, runCommand: null, logs, scriptsHolder });
 
-  if (config.runCommand !== '') {
+  const wantsRunCommand =
+    config.runCommandEnabled && (config.runtimeId !== '' || config.runCommand !== '');
+  if (wantsRunCommand) {
     const stdoutSplitter = createLiveServerLineSplitter((line) => {
       appendProcessLog('stdout', line);
     });
@@ -595,41 +599,91 @@ export async function startLiveServer(
       stderrSplitter.flush();
     }
 
-    try {
-      const runCommand = await startLiveServerRunCommand({
-        command: config.runCommand,
-        cwd: config.root,
-        restartOnCrash: config.restartOnCrash,
-        /**
-         * Substitutes global `{{variables}}` before each companion spawn (Start
-         * and crash restart) so updated Settings globals take effect.
-         *
-         * @param command - Unsubstituted run-command template from config.
-         * @returns Command with known globals resolved.
-         */
-        resolveCommand: (command) => substituteVariablesFromMap(command, providers.getVariables()),
-        onOutput: (stream, chunk) => {
-          if (stream === 'stdout') {
-            stdoutSplitter.push(chunk);
-          } else {
-            stderrSplitter.push(chunk);
+    let executable: string | undefined;
+    let runtimeMissing = false;
+    let runtimeEnv = mergeRuntimeEnv([], config.runCommandEnv);
+    if (config.runtimeId !== '') {
+      const runtime = providers.getRuntime(config.runtimeId);
+      if (runtime == null) {
+        runtimeMissing = true;
+        const message = `Runtime "${config.runtimeId}" is not configured on this machine`;
+        setRunCommandStatus(id, 'failed', message);
+        appendProcessLog('system', formatRunCommandSystemMessage('failed', message));
+      } else {
+        let pathKind: 'file' | 'directory' | undefined;
+        try {
+          const stats = fs.statSync(runtime.path);
+          if (stats.isFile()) {
+            pathKind = 'file';
+          } else if (stats.isDirectory()) {
+            pathKind = 'directory';
           }
-        },
-        onStatus: (status, error) => {
-          if (status !== 'running') {
-            flushProcessStreams();
-          }
-          setRunCommandStatus(id, status, error);
-          appendProcessLog('system', formatRunCommandSystemMessage(status, error));
+        } catch {
+          pathKind = undefined;
         }
-      });
-      const entry = servers.get(id);
-      if (entry != null) {
-        entry.runCommand = runCommand;
+        executable = resolveRuntimeExecutable(runtime, pathKind);
+        runtimeEnv = mergeRuntimeEnv(runtime.env, config.runCommandEnv);
+        if (executable === '') {
+          runtimeMissing = true;
+          const message = `Runtime "${runtime.name}" has an empty path`;
+          setRunCommandStatus(id, 'failed', message);
+          appendProcessLog('system', formatRunCommandSystemMessage('failed', message));
+        }
       }
-    } catch {
-      // onStatus('failed') already updated status and logged; keep HTTP up.
-      flushProcessStreams();
+    }
+
+    if (!runtimeMissing) {
+      try {
+        const runCommand = await startLiveServerRunCommand({
+          command: config.runCommand,
+          executable,
+          cwd: config.root,
+          restartOnCrash: config.restartOnCrash,
+          /**
+           * Substitutes global `{{variables}}` before each companion spawn (Start
+           * and crash restart) so updated Settings globals take effect.
+           *
+           * @param command - Unsubstituted run-command template from config.
+           * @returns Command with known globals resolved.
+           */
+          resolveCommand: (command) =>
+            substituteVariablesFromMap(command, providers.getVariables()),
+          /**
+           * Merges runtime + command env and substitutes `{{variables}}` per spawn.
+           *
+           * @returns Flat env overlay for the child process.
+           */
+          resolveEnv: () => {
+            const variables = providers.getVariables();
+            const substituted: Record<string, string> = {};
+            for (const [key, value] of Object.entries(runtimeEnv)) {
+              substituted[key] = substituteVariablesFromMap(value, variables);
+            }
+            return substituted;
+          },
+          onOutput: (stream, chunk) => {
+            if (stream === 'stdout') {
+              stdoutSplitter.push(chunk);
+            } else {
+              stderrSplitter.push(chunk);
+            }
+          },
+          onStatus: (status, error) => {
+            if (status !== 'running') {
+              flushProcessStreams();
+            }
+            setRunCommandStatus(id, status, error);
+            appendProcessLog('system', formatRunCommandSystemMessage(status, error));
+          }
+        });
+        const entry = servers.get(id);
+        if (entry != null) {
+          entry.runCommand = runCommand;
+        }
+      } catch {
+        // onStatus('failed') already updated status and logged; keep HTTP up.
+        flushProcessStreams();
+      }
     }
   }
 

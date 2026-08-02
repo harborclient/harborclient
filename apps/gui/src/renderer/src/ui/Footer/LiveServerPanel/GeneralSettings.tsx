@@ -6,11 +6,9 @@ import {
   FieldError,
   FormGroup,
   Input,
-  Select,
-  VariableInput,
-  fieldFrame
+  Select
 } from '@harborclient/sdk/components';
-import { isLiveServerLoopbackHost, type Variable } from '@harborclient/core/types';
+import { isLiveServerLoopbackHost } from '@harborclient/core/types';
 import { faCircleExclamation } from '#/renderer/src/fontawesome';
 import { providerOptionLabel, useProviders } from '#/renderer/src/hooks/useProviders';
 
@@ -24,11 +22,6 @@ interface Props {
    * Selected storage provider connection id.
    */
   connectionId: string;
-
-  /**
-   * Global variables for Run command `{{token}}` highlighting and tooltips.
-   */
-  variables: Variable[];
 
   /**
    * Global variable name set to the server origin URL on start.
@@ -74,17 +67,6 @@ interface Props {
    * Bind host for the HTTP(S) listen address.
    */
   host: string;
-
-  /**
-   * Companion process command template (absolute binary + args). Empty means
-   * none. May include `{{variables}}` resolved from globals at Start/restart.
-   */
-  runCommand: string;
-
-  /**
-   * When true, restart the companion after an unexpected crash.
-   */
-  restartOnCrash: boolean;
 
   /**
    * When true, disables all controls (save/start in flight).
@@ -172,32 +154,17 @@ interface Props {
    * @param value - Next host string.
    */
   onHostChange: (value: string) => void;
-
-  /**
-   * Called when the run-command field changes.
-   *
-   * @param value - Next command string.
-   */
-  onRunCommandChange: (value: string) => void;
-
-  /**
-   * Called when the restart-on-crash checkbox changes.
-   *
-   * @param value - Next restart flag.
-   */
-  onRestartOnCrashChange: (value: boolean) => void;
 }
 
 /**
  * General live server fields: name, URL variable, host/port, root, indexes,
- * run command, start path, and watch.
+ * start path, and watch.
  *
  * @param props - Field values, disabled flag, and change handlers.
  */
 export function GeneralSettings({
   name,
   connectionId,
-  variables,
   urlVariable,
   root,
   port,
@@ -207,8 +174,6 @@ export function GeneralSettings({
   rememberLastUrl,
   indexFiles,
   host,
-  runCommand,
-  restartOnCrash,
   disabled,
   onNameChange,
   onConnectionIdChange,
@@ -221,9 +186,7 @@ export function GeneralSettings({
   onOpenPathOnStartupChange,
   onRememberLastUrlChange,
   onIndexFilesChange,
-  onHostChange,
-  onRunCommandChange,
-  onRestartOnCrashChange
+  onHostChange
 }: Props): JSX.Element {
   const nameId = useId();
   const providerSelectId = useId();
@@ -246,11 +209,8 @@ export function GeneralSettings({
   const rememberLastUrlId = useId();
   const indexFilesId = useId();
   const hostId = useId();
-  const runCommandId = useId();
-  const restartOnCrashId = useId();
   const watchId = useId();
   const showLanWarning = !isLiveServerLoopbackHost(host);
-  const runCommandConfigured = runCommand.trim() !== '';
   const pathControlsDisabled = disabled || !openPathOnStartup;
 
   /**
@@ -356,6 +316,11 @@ export function GeneralSettings({
         </p>
       ) : null}
 
+      <hr
+        className="my-3 border-0 border-t border-[color-mix(in_srgb,var(--mac-text)_28%,var(--mac-separator))]"
+        aria-hidden="true"
+      />
+
       <label htmlFor={watchId} className="flex items-center gap-2">
         <Checkbox
           id={watchId}
@@ -396,43 +361,10 @@ export function GeneralSettings({
         />
       </FormGroup>
 
-      <div className="flex gap-4">
-        <FormGroup
-          className="min-w-0 flex-1"
-          label="Run command"
-          htmlFor={runCommandId}
-          description="Optional absolute binary and arguments started with the live server (for example /usr/bin/node ./server.js or {{node_bin}} ./server.js). {{name}} tokens resolve from global variables at Start and on crash restart. cwd is the root directory. No shell — use Proxy rules to forward to the app."
-        >
-          <VariableInput
-            id={runCommandId}
-            wrapperClassName={`${fieldFrame} w-full${disabled ? ' pointer-events-none opacity-60' : ''}`}
-            value={runCommand}
-            variables={variables}
-            placeholder="/usr/bin/node ./server.js"
-            className="app-no-drag"
-            onChange={(value) => {
-              if (!disabled) {
-                onRunCommandChange(value);
-              }
-            }}
-          />
-        </FormGroup>
-
-        <FormGroup
-          className={`min-w-0 flex-1 ${runCommandConfigured ? '' : 'opacity-60'}`}
-          label="Restart on crash"
-          htmlFor={restartOnCrashId}
-          layout="checkbox"
-          description="Restarts the run command after an unexpected non-zero exit or signal. Does not restart on Stop or a clean exit."
-        >
-          <Checkbox
-            id={restartOnCrashId}
-            checked={restartOnCrash && runCommandConfigured}
-            disabled={disabled || !runCommandConfigured}
-            onChange={(event) => onRestartOnCrashChange(event.target.checked)}
-          />
-        </FormGroup>
-      </div>
+      <hr
+        className="my-3 border-0 border-t border-[color-mix(in_srgb,var(--mac-text)_28%,var(--mac-separator))]"
+        aria-hidden="true"
+      />
 
       <label htmlFor={openPathOnStartupId} className="flex items-center gap-2">
         <Checkbox
