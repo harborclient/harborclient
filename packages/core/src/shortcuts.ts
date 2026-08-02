@@ -7,6 +7,8 @@ export type ShortcutId =
   | 'new-request'
   | 'new-collection'
   | 'new-browser'
+  | 'new-live-server'
+  | 'new-workflow'
   | 'new-environment'
   | 'create-workspace'
   | 'sync'
@@ -183,6 +185,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     actionId: 'new-browser'
   },
   {
+    id: 'new-live-server',
+    label: 'New live server',
+    defaultAccelerator: 'CmdOrCtrl+Alt+S',
+    kind: 'action',
+    actionId: 'new-live-server'
+  },
+  {
     id: 'new-environment',
     label: 'New environment',
     defaultAccelerator: 'CmdOrCtrl+Alt+E',
@@ -195,6 +204,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Alt+W',
     kind: 'action',
     actionId: 'create-workspace'
+  },
+  {
+    id: 'new-workflow',
+    label: 'New workflow',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Shift+W',
+    kind: 'action',
+    actionId: 'new-workflow'
   },
   {
     id: 'sync',

@@ -55,9 +55,11 @@ import {
   showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
 import { openAddLivePageModalWithPrefill } from '#/renderer/src/store/thunks/websites';
+import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import { isRequestTab } from '#/renderer/src/store/tabs';
+import { clearPlayback, stopPlayback } from '#/renderer/src/workflows/workflowPlayback';
 import { restoreLastFocusWithoutRing, useLastFocusedElement } from './useLastFocusedElement';
 import { focusSkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationInitialFocus';
 import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/focusSidebarSearch';
@@ -216,6 +218,11 @@ export function useMenuActions(): void {
           break;
         case 'new-live-server':
           dispatch(openAddLiveServerModal());
+          break;
+        case 'new-workflow':
+          stopPlayback();
+          clearPlayback();
+          dispatch(openWorkflowRecordDialog());
           break;
         case 'new-collection':
           dispatch(openCollectionModal({ mode: 'create' }));

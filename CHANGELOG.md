@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(menu): restructure File menu and add new workflow option. (`01cc3506`)
 - feat(mcp): enhance MCP server settings and logging capabilities. (`cfa194f2`)
 
 ## 2.10.1 - 2026-08-02

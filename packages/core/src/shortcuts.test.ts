@@ -39,10 +39,10 @@ describe('resolveShortcuts', () => {
   });
 
   it('applies overrides on top of defaults', () => {
-    const save = resolveShortcuts({ save: 'CmdOrCtrl+Alt+S' }).find(
+    const save = resolveShortcuts({ save: 'CmdOrCtrl+Alt+Q' }).find(
       (binding) => binding.id === 'save'
     );
-    expect(save?.accelerator).toBe('CmdOrCtrl+Alt+S');
+    expect(save?.accelerator).toBe('CmdOrCtrl+Alt+Q');
   });
 
   it('includes default bindings for File menu new-item shortcuts', () => {
@@ -56,11 +56,17 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'new-browser')?.accelerator).toBe(
       'CmdOrCtrl+Alt+N'
     );
+    expect(bindings.find((binding) => binding.id === 'new-live-server')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+S'
+    );
     expect(bindings.find((binding) => binding.id === 'new-environment')?.accelerator).toBe(
       'CmdOrCtrl+Alt+E'
     );
     expect(bindings.find((binding) => binding.id === 'create-workspace')?.accelerator).toBe(
       'CmdOrCtrl+Alt+W'
+    );
+    expect(bindings.find((binding) => binding.id === 'new-workflow')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+Shift+W'
     );
   });
 
@@ -284,16 +290,16 @@ describe('resolveShortcuts', () => {
 
 describe('bindingsToOverrides', () => {
   it('stores only values that differ from defaults', () => {
-    const bindings = resolveShortcuts({ save: 'CmdOrCtrl+Alt+S' });
+    const bindings = resolveShortcuts({ save: 'CmdOrCtrl+Alt+Q' });
     expect(bindingsToOverrides(bindings)).toEqual({
-      save: 'CmdOrCtrl+Alt+S'
+      save: 'CmdOrCtrl+Alt+Q'
     });
   });
 });
 
 describe('validateShortcutOverrides', () => {
   it('accepts valid overrides', () => {
-    expect(validateShortcutOverrides({ save: 'CmdOrCtrl+Alt+S' }).valid).toBe(true);
+    expect(validateShortcutOverrides({ save: 'CmdOrCtrl+Alt+Q' }).valid).toBe(true);
   });
 
   it('accepts all default bindings without conflicts', () => {
@@ -314,8 +320,8 @@ describe('validateShortcutOverrides', () => {
 
   it('rejects duplicate accelerators', () => {
     const result = validateShortcutOverrides({
-      save: 'CmdOrCtrl+Alt+S',
-      settings: 'CmdOrCtrl+Alt+S'
+      save: 'CmdOrCtrl+Alt+Q',
+      settings: 'CmdOrCtrl+Alt+Q'
     });
     expect(result.valid).toBe(false);
     expect(result.errors.save).toMatch(/already assigned/i);

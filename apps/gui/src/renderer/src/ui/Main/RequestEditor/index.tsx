@@ -239,7 +239,7 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const showSplitLayout = showRequestEditor && showResponseEditor;
 
   /**
-   * Keeps the native File menu New Workspace item in sync with open saved request tabs.
+   * Keeps the native File → New → Workspace item in sync with open saved request tabs.
    */
   useEffect(() => {
     const hasOpenSavedRequests = tabs.some((tab) => isRequestTab(tab) && tab.draft.id != null);

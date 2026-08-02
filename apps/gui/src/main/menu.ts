@@ -342,34 +342,45 @@ export function buildMenu(
       label: 'File',
       submenu: [
         {
-          label: 'New Collection',
-          accelerator: acceleratorFor(accelerators, 'new-collection'),
-          click: () => sendMenuAction(window, 'new-collection')
-        },
-        {
-          label: 'New Request',
-          accelerator: acceleratorFor(accelerators, 'new-request'),
-          click: () => sendMenuAction(window, 'new-request')
-        },
-        {
-          label: 'New Live Page',
-          accelerator: acceleratorFor(accelerators, 'new-browser'),
-          click: () => sendMenuAction(window, 'new-browser')
-        },
-        {
-          label: 'New Live Server',
-          click: () => sendMenuAction(window, 'new-live-server')
-        },
-        {
-          label: 'New Environment',
-          accelerator: acceleratorFor(accelerators, 'new-environment'),
-          click: () => sendMenuAction(window, 'new-environment')
-        },
-        {
-          label: 'New Workspace',
-          enabled: workspaceAvailable,
-          accelerator: acceleratorFor(accelerators, 'create-workspace'),
-          click: () => sendMenuAction(window, 'create-workspace')
+          label: 'New',
+          submenu: [
+            {
+              label: 'Collection',
+              accelerator: acceleratorFor(accelerators, 'new-collection'),
+              click: () => sendMenuAction(window, 'new-collection')
+            },
+            {
+              label: 'Request',
+              accelerator: acceleratorFor(accelerators, 'new-request'),
+              click: () => sendMenuAction(window, 'new-request')
+            },
+            {
+              label: 'Live Page',
+              accelerator: acceleratorFor(accelerators, 'new-browser'),
+              click: () => sendMenuAction(window, 'new-browser')
+            },
+            {
+              label: 'Live Server',
+              accelerator: acceleratorFor(accelerators, 'new-live-server'),
+              click: () => sendMenuAction(window, 'new-live-server')
+            },
+            {
+              label: 'Environment',
+              accelerator: acceleratorFor(accelerators, 'new-environment'),
+              click: () => sendMenuAction(window, 'new-environment')
+            },
+            {
+              label: 'Workspace',
+              enabled: workspaceAvailable,
+              accelerator: acceleratorFor(accelerators, 'create-workspace'),
+              click: () => sendMenuAction(window, 'create-workspace')
+            },
+            {
+              label: 'Workflow',
+              accelerator: acceleratorFor(accelerators, 'new-workflow'),
+              click: () => sendMenuAction(window, 'new-workflow')
+            }
+          ]
         },
         { type: 'separator' },
         {

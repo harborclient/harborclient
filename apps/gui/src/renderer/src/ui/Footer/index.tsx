@@ -16,9 +16,8 @@ import {
   faKeyboard,
   faPaperPlane,
   faCodeBranch,
-  faSun,
+  faLeaf,
   faTableColumns,
-  faTerminal,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
@@ -384,7 +383,7 @@ export function Footer({
               onOpenChange={setEnvMenuOpen}
               placement="up"
               triggerVariant="toolbar"
-              triggerIcon={faSun}
+              triggerIcon={faLeaf}
               triggerLabel={activeEnvironmentName ?? 'Environment'}
               triggerTitle={activeEnvironmentName ?? 'Environment'}
               triggerAriaLabel="Select environment"
@@ -419,10 +418,7 @@ export function Footer({
               onClick={onToggleTerminal}
               controlsId="footer-terminal-panel"
             >
-              <span className="inline-flex items-center gap-1">
-                <FaIcon icon={faTerminal} className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Terminal
-              </span>
+              <span className="inline-flex items-center gap-1">Terminal</span>
             </FooterButton>
             <FooterButton
               active={consoleOpen}

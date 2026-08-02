@@ -6,6 +6,7 @@ export type MenuActionId =
   | 'new-browser'
   | 'new-live-server'
   | 'new-collection'
+  | 'new-workflow'
   | 'new-environment'
   | 'import'
   | 'save'

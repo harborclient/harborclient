@@ -385,7 +385,7 @@ export function setMenuDesignerUndoRedo(active: boolean, canUndo: boolean, canRe
 }
 
 /**
- * Updates the File menu New Workspace item and rebuilds when the value changes.
+ * Updates the File > New > Workspace item and rebuilds when the value changes.
  *
  * @param available - Whether at least one saved request tab is open.
  */
