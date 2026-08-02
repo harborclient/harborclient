@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.2 - 2026-08-02
+
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)
 - feat(menu): restructure File menu and add new workflow option. (`01cc3506`)
 - feat(mcp): enhance MCP server settings and logging capabilities. (`cfa194f2`)
