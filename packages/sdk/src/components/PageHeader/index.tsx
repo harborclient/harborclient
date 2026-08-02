@@ -29,6 +29,9 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
  * Full-bleed page header with a bordered bottom edge, title block on the left,
  * and optional action controls on the right. Sticks to the top of its nearest
  * scroll ancestor so title and actions stay visible while page content scrolls.
+ *
+ * Colors come from the `page-header`, `page-header-text`, and `page-header-muted`
+ * theme tokens (`--mac-page-header*`).
  */
 export function PageHeader({
   title,
@@ -42,23 +45,25 @@ export function PageHeader({
     <div
       {...props}
       className={cn(
-        'hc-page-header sticky top-0 z-10 -mx-6 mb-4 flex flex-wrap items-center gap-2 border-b border-separator bg-surface px-6 py-4',
+        'hc-page-header sticky top-0 z-10 -mx-6 mb-4 flex flex-wrap items-center gap-2 border-b border-separator bg-page-header px-6 py-4',
         className
       )}
     >
       <div className="hc-page-header-content min-w-0 flex-1">
-        <h2 className="hc-page-header-title m-0 flex items-center gap-2 text-[22px] leading-[1.15] font-bold tracking-[-0.01em] text-text">
+        <h2 className="hc-page-header-title m-0 flex items-center gap-2 text-[22px] leading-[1.15] font-bold tracking-[-0.01em] text-page-header-text">
           {icon ? (
             <FaIcon
               icon={icon}
-              className="hc-page-header-title-icon h-4 w-4 shrink-0 text-muted"
+              className="hc-page-header-title-icon h-4 w-4 shrink-0 text-page-header-muted"
               aria-hidden
             />
           ) : null}
           {title}
         </h2>
         {description ? (
-          <p className="hc-page-header-description m-0 mt-1 leading-6 text-muted">{description}</p>
+          <p className="hc-page-header-description m-0 mt-1 leading-6 text-page-header-muted">
+            {description}
+          </p>
         ) : null}
       </div>
       {children ? (

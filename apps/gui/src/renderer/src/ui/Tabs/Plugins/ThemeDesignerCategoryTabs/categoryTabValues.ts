@@ -27,7 +27,7 @@ export interface ThemeDesignerCategoryTab {
  */
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'Layout':
-    'Main surfaces: app background, header (search + tabs), footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
+    'Main surfaces: app background, header (search + tabs), page header (title/icon/description), footer, controls, fields, separators, and the terminal — plus base font, border width, and radius.',
   'Rail & Sidebars':
     'Activity rail fills, text, and separators, plus the sidebar panel, toolbar strip, and section header colors.',
   'Breadcrumb':
@@ -37,7 +37,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'Interactive':
     'Accent for primary actions and focus, text selection, and documentation markdown links — plus interactive control typography, borders, radius, and focus ring.',
   'Chrome':
-    'Active footer icons and toolbar actions, the active tab underline, pane resize handles, and variable tokens in editors.',
+    'Active footer icons and toolbar actions, the active tab underline, pane resize separators and grips, and variable tokens in editors.',
   'Tabs':
     'Request and editor tab chrome: unsaved indicator color plus tab typography, borders, and radius.',
   'Status':

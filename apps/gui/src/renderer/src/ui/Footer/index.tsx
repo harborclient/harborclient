@@ -377,7 +377,7 @@ export function Footer({
               />
             </div>
           ))}
-          <div ref={leftGroupRef} className="inline-flex min-w-0 items-center">
+          <div ref={leftGroupRef} className="inline-flex min-w-0 items-center ps-2">
             <RowActionsMenu
               menuId={FOOTER_ENVIRONMENT_MENU_ID}
               openMenuId={envMenuOpen}

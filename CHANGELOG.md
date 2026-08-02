@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(theme): add page header color variables and update related styles. (`577ab426`)
 - feat(theme): introduce header color variable and update related styles. (`6b6637e3`)
 - feat(VariableInput): portal tooltip to document body for improved positioning. (`65430293`)
 - style(theme): update dark and light theme colors for sidebar and accent. (`93f706fa`)

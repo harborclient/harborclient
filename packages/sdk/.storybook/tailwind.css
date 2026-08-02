@@ -7,6 +7,9 @@
   --color-control: #3a3a3c;
   --color-surface: #2c2c2e;
   --color-header: #252526;
+  --color-page-header: #2c2c2e;
+  --color-page-header-text: #f5f5f7;
+  --color-page-header-muted: #98989d;
   --color-sidebar: #252526;
   --color-sidebar-toolbar: color-mix(in srgb, #252526 80%, black);
   --color-sidebar-rail: #313131;
@@ -29,7 +32,8 @@
   --color-muted: #98989d;
   --color-tab-underline: #4098dc;
   --color-tab-unsaved: #ffb340;
-  --color-resize-handle: #4098dc;
+  --color-resize-separator: #3a3a3c;
+  --color-resize-handle: rgba(255, 255, 255, 0.29);
   --color-variable-token: #4098dc;
   --color-danger: #ff453a;
   --color-success: #30d158;

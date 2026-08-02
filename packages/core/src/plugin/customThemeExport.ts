@@ -12,6 +12,9 @@ const customThemeTypeSchema = z.enum(['light', 'dark', 'high-contrast']);
 const themeColorTokenSchema = z.enum([
   'surface',
   'header',
+  'page-header',
+  'page-header-text',
+  'page-header-muted',
   'sidebar',
   'sidebar-toolbar',
   'sidebar-rail',
@@ -43,6 +46,7 @@ const themeColorTokenSchema = z.enum([
   'doc-markdown',
   'tab-unsaved',
   'tab-underline',
+  'resize-separator',
   'resize-handle',
   'variable-token',
   'danger',

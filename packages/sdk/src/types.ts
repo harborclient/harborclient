@@ -1078,6 +1078,9 @@ export interface StatusBarItemContribution {
  * Token usage:
  * - `surface` — main content background
  * - `header` — top header strip (sidebar search + request tab bar)
+ * - `page-header` — page title header background (`PageHeader`)
+ * - `page-header-text` — page title header primary text
+ * - `page-header-muted` — page title header description and decorative icons
  * - `sidebar` — left sidebar background
  * - `sidebar-toolbar` — sidebar/footer toolbar strip background
  * - `sidebar-rail` — activity rail background
@@ -1109,7 +1112,8 @@ export interface StatusBarItemContribution {
  * - `doc-markdown` — collection sidebar markdown document icon
  * - `tab-unsaved` — request/markdown tab title when the tab has unsaved changes
  * - `tab-underline` — active request tab underline
- * - `resize-handle` — borders, resize grips, and high-contrast chrome accents
+ * - `resize-separator` — resizable panel separator track and edge border
+ * - `resize-handle` — resizable panel grip (and high-contrast chrome accents)
  * - `variable-token` — `{{variable}}` syntax highlight in editors
  * - `danger`, `danger-light`, `warning`, `success`, `info` — status colors
  * - `method-get`, `method-post`, `method-put`, `method-patch`, `method-delete`, `method-head`, `method-options` — HTTP method badge colors
@@ -1120,6 +1124,9 @@ export interface StatusBarItemContribution {
 export type ThemeColorToken =
   | 'surface'
   | 'header'
+  | 'page-header'
+  | 'page-header-text'
+  | 'page-header-muted'
   | 'sidebar'
   | 'sidebar-toolbar'
   | 'sidebar-rail'
@@ -1151,6 +1158,7 @@ export type ThemeColorToken =
   | 'doc-markdown'
   | 'tab-unsaved'
   | 'tab-underline'
+  | 'resize-separator'
   | 'resize-handle'
   | 'variable-token'
   | 'danger'

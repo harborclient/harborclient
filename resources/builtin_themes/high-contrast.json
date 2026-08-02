@@ -6,6 +6,9 @@
   "theme": {
     "surface": "#000000",
     "header": "#000000",
+    "page-header": "#000000",
+    "page-header-text": "#ffffff",
+    "page-header-muted": "#d0d0d0",
     "sidebar": "#000000",
     "sidebar-toolbar": "#141414",
     "sidebar-rail": "#ffd60a",
@@ -37,6 +40,7 @@
     "doc-markdown": "#ffd60a",
     "tab-unsaved": "#5fe3f0",
     "tab-underline": "#ffd60a",
+    "resize-separator": "#000000",
     "resize-handle": "#ffd60a",
     "variable-token": "#5fe3f0",
     "danger": "#ff8a80",

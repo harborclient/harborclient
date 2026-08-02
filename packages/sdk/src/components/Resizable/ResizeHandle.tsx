@@ -54,6 +54,9 @@ interface Props extends Omit<
 
 /**
  * Draggable separator handle for resizable panels.
+ *
+ * Track and edge colors use the `resize-separator` theme token; the inner grip
+ * uses `resize-handle` (`--mac-resize-separator` / `--mac-resize-handle`).
  */
 export function ResizeHandle({
   orientation,
@@ -79,10 +82,10 @@ export function ResizeHandle({
       role="separator"
       tabIndex={0}
       className={cn(
-        'hc-resize-handle font-inherit app-no-drag m-0 flex shrink-0 items-center justify-center bg-control p-0 text-inherit hover:bg-selection/60',
+        'hc-resize-handle font-inherit app-no-drag m-0 flex shrink-0 items-center justify-center bg-resize-separator p-0 text-inherit hover:bg-selection/60',
         isHorizontal
-          ? 'h-1.5 w-full cursor-row-resize border-b border-separator'
-          : 'h-full w-1.5 cursor-col-resize border-r border-separator',
+          ? 'h-1.5 w-full cursor-row-resize border-b border-resize-separator'
+          : 'h-full w-1.5 cursor-col-resize border-r border-resize-separator',
         className
       )}
       onMouseDown={onResizeStart}
@@ -97,8 +100,8 @@ export function ResizeHandle({
       <div
         className={
           isHorizontal
-            ? 'hc-resize-handle-grip h-0.5 w-8 rounded-full bg-muted/50'
-            : 'hc-resize-handle-grip h-8 w-0.5 rounded-full bg-muted/50'
+            ? 'hc-resize-handle-grip h-0.5 w-8 rounded-full bg-resize-handle'
+            : 'hc-resize-handle-grip h-8 w-0.5 rounded-full bg-resize-handle'
         }
         aria-hidden
       />

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(theme): add page header color variables and update related styles. (`577ab426`)
 - feat(theme): introduce header color variable and update related styles. (`6b6637e3`)
 - feat(VariableInput): portal tooltip to document body for improved positioning. (`65430293`)
 

@@ -149,6 +149,9 @@ export interface StatusBarItemContribution {
 export type ThemeColorToken =
   | 'surface'
   | 'header'
+  | 'page-header'
+  | 'page-header-text'
+  | 'page-header-muted'
   | 'sidebar'
   | 'sidebar-toolbar'
   | 'sidebar-rail'
@@ -173,6 +176,7 @@ export type ThemeColorToken =
   | 'selection'
   | 'doc-markdown'
   | 'tab-underline'
+  | 'resize-separator'
   | 'resize-handle'
   | 'variable-token'
   | 'danger'

@@ -158,6 +158,9 @@ Override any of these keys in `colors`. Each maps to `--mac-<token>` on the docu
 | ------------------------------------------------------ | -------------------------------------------------------- |
 | `surface`                                              | Main content background                                  |
 | `header`                                               | Top header strip (sidebar search + request tab bar)      |
+| `page-header`                                          | Page title header background (`PageHeader`)              |
+| `page-header-text`                                     | Page title header primary text                           |
+| `page-header-muted`                                    | Page title header description and decorative icons       |
 | `sidebar`                                              | Left sidebar background                                  |
 | `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                  |
 | `sidebar-rail`                                         | Activity rail background                                 |
@@ -185,7 +188,8 @@ Override any of these keys in `colors`. Each maps to `--mac-<token>` on the docu
 | `accent`                                               | Links, focus rings, primary actions                      |
 | `selection`                                            | Selected row / highlight fill                            |
 | `tab-underline`                                        | Active request tab underline                             |
-| `resize-handle`                                        | Borders, resize grips, high-contrast chrome accents      |
+| `resize-separator`                                     | Resizable panel separator track and edge border          |
+| `resize-handle`                                        | Resizable panel grip (and high-contrast chrome accents)  |
 | `variable-token`                                       | `{{variable}}` syntax highlight in editors               |
 | `danger`, `danger-light`, `warning`, `success`, `info` | Status colors                                            |
 | `method-get`, `method-post`, …                         | HTTP method badge colors                                 |

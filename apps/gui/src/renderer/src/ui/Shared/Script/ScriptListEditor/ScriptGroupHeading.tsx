@@ -136,7 +136,7 @@ export function ScriptGroupHeading({
   }, [enabledState]);
 
   return (
-    <div className="hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 border-y border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5 pr-3">
+    <div className="hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 border-b border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5 pr-3">
       <button
         type="button"
         className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"

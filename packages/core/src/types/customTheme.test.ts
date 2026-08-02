@@ -23,6 +23,23 @@ describe('customTheme metric tokens', () => {
   });
 });
 
+describe('customTheme Chrome resize tokens', () => {
+  it('exposes resize separator and handle in the Designer Chrome group', () => {
+    const chrome = CUSTOM_THEME_TOKEN_GROUPS.find((group) => group.label === 'Chrome');
+
+    expect(chrome?.tokens).toEqual([
+      'footer-icon-active',
+      'toolbar-action-active',
+      'tab-underline',
+      'resize-separator',
+      'resize-handle',
+      'variable-token'
+    ]);
+    expect(CUSTOM_THEME_TOKEN_LABELS['resize-separator']).toBe('Resize separator');
+    expect(CUSTOM_THEME_TOKEN_LABELS['resize-handle']).toBe('Resize handle');
+  });
+});
+
 describe('customTheme Rail & Sidebars color tokens', () => {
   it('groups rail and sidebar colors in a dedicated Designer category', () => {
     const railGroup = CUSTOM_THEME_TOKEN_GROUPS.find((group) => group.label === 'Rail & Sidebars');
@@ -51,6 +68,9 @@ describe('customTheme Rail & Sidebars color tokens', () => {
     expect(layout?.tokens).toEqual([
       'surface',
       'header',
+      'page-header',
+      'page-header-text',
+      'page-header-muted',
       'footer',
       'control',
       'field',
@@ -58,6 +78,9 @@ describe('customTheme Rail & Sidebars color tokens', () => {
       'terminal'
     ]);
     expect(CUSTOM_THEME_TOKEN_LABELS.header).toBe('Header');
+    expect(CUSTOM_THEME_TOKEN_LABELS['page-header']).toBe('Page header');
+    expect(CUSTOM_THEME_TOKEN_LABELS['page-header-text']).toBe('Page header text');
+    expect(CUSTOM_THEME_TOKEN_LABELS['page-header-muted']).toBe('Page header muted');
     expect(text?.tokens).toEqual([
       'text',
       'text-secondary',

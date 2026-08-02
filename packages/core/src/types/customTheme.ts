@@ -157,6 +157,9 @@ export interface CustomThemeMetricGroup {
 export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'surface': 'Surface',
   'header': 'Header',
+  'page-header': 'Page header',
+  'page-header-text': 'Page header text',
+  'page-header-muted': 'Page header muted',
   'sidebar': 'Sidebar',
   'sidebar-toolbar': 'Sidebar toolbar',
   'sidebar-rail': 'Sidebar rail',
@@ -184,6 +187,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'doc-markdown': 'Markdown document',
   'tab-unsaved': 'Unsaved tab text',
   'tab-underline': 'Tab underline',
+  'resize-separator': 'Resize separator',
   'resize-handle': 'Resize handle',
   'variable-token': 'Variable token',
   'danger': 'Danger',
@@ -269,7 +273,18 @@ export const CUSTOM_THEME_METRIC_LABELS: Record<ThemeMetricToken, string> = {
 export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   {
     label: 'Layout',
-    tokens: ['surface', 'header', 'footer', 'control', 'field', 'separator', 'terminal']
+    tokens: [
+      'surface',
+      'header',
+      'page-header',
+      'page-header-text',
+      'page-header-muted',
+      'footer',
+      'control',
+      'field',
+      'separator',
+      'terminal'
+    ]
   },
   {
     label: 'Rail & Sidebars',
@@ -302,6 +317,7 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'footer-icon-active',
       'toolbar-action-active',
       'tab-underline',
+      'resize-separator',
       'resize-handle',
       'variable-token'
     ]

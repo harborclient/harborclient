@@ -31,7 +31,7 @@ export function SidebarCollapseAllHeader({
   title = 'Collapse all collections, folders, and sections'
 }: Props): JSX.Element {
   return (
-    <div className="hc-sidebar-section-header flex min-h-8 shrink-0 items-center justify-end gap-2 border-y border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5">
+    <div className="hc-sidebar-section-header flex min-h-8 shrink-0 items-center justify-end gap-2 border-b border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5">
       <div className="hc-sidebar-section-header-actions flex shrink-0 items-center gap-1">
         <button
           type="button"

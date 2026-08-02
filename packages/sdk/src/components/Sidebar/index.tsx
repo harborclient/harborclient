@@ -149,7 +149,7 @@ export function Sidebar({
       onKeyboardResize={onKeyboardResize}
       ariaLabel={resizeAriaLabel ?? 'Resize sidebar'}
       className={cn(
-        side === 'right' && 'border-r-0 border-l border-separator',
+        side === 'right' && 'border-r-0 border-l border-resize-separator',
         resizeHandleClassName
       )}
     />
