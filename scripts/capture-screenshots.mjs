@@ -6,10 +6,10 @@
  * menu (see src/main/menu.ts and src/shared/shortcuts.ts).
  */
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { _electron as electron } from 'playwright';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptsDir, '..');
@@ -19,11 +19,27 @@ const defaultOutDir = path.join(repoRoot, 'images', 'screenshots');
 const mainEntry = path.join(projectRoot, 'out', 'main', 'index.js');
 const mainSourceRoot = path.join(projectRoot, 'src', 'main');
 const rendererSourceRoot = path.join(projectRoot, 'src', 'renderer');
+/**
+ * Screenshot fixture profile (ATW collection, Github storage). Distinct from the
+ * live Electron `userData` path (`HarborClient`) used by `pnpm dev`.
+ */
 const defaultUserDataDir = path.join(
   process.env.HOME ?? process.env.USERPROFILE ?? '',
   '.config',
   'harborclient'
 );
+
+/**
+ * Loads Playwright from the GUI package (where it is declared) rather than from
+ * `scripts/`, which is outside that package's dependency tree under pnpm.
+ *
+ * @returns Playwright Electron launcher namespace.
+ */
+function loadPlaywrightElectron() {
+  const requireFromGui = createRequire(pathToFileURL(path.join(projectRoot, 'package.json')));
+  const playwright = requireFromGui('playwright');
+  return playwright._electron;
+}
 
 /**
  * Maps normalized Electron accelerators to menu actions.
@@ -48,8 +64,10 @@ function parseArgs() {
   const options = {
     macro: defaultMacroPath,
     out: defaultOutDir,
-    width: 1024,
-    height: 576,
+    /** @type {number | null} Explicit width; null means maximize. */
+    width: null,
+    /** @type {number | null} Explicit height; null means maximize. */
+    height: null,
     build: false,
     userDataDir: defaultUserDataDir,
     from: null,
@@ -323,7 +341,7 @@ async function waitForMainWindow(app) {
 }
 
 /**
- * Resizes the main HarborClient window to stable screenshot dimensions.
+ * Resizes the main HarborClient window to explicit screenshot dimensions.
  *
  * @param {import('playwright').ElectronApplication} app - Launched Electron app.
  * @param {number} width - Window width in pixels.
@@ -337,8 +355,94 @@ async function resizeMainWindow(app, width, height) {
     if (window == null) {
       throw new Error('Main window not found for resize');
     }
+    if (window.isFullScreen()) {
+      window.setFullScreen(false);
+    }
+    if (window.isMaximized()) {
+      window.unmaximize();
+    }
     window.setBounds({ x: 100, y: 100, width: size.width, height: size.height });
   }, { width, height });
+}
+
+/**
+ * Maximizes the main HarborClient window so screenshots fill the display.
+ *
+ * Linux window managers often ignore the first maximize after show; this fills
+ * the display work area with setBounds, then retries maximize until it sticks
+ * (same approach as restoreWindowPresentation in the app).
+ *
+ * @param {import('playwright').ElectronApplication} app - Launched Electron app.
+ */
+async function maximizeMainWindow(app) {
+  const alreadyMaximized = await app.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows().find(
+      (candidate) => !candidate.isDestroyed() && candidate.getTitle() === 'HarborClient'
+    );
+    if (window == null) {
+      throw new Error('Main window not found for maximize');
+    }
+    if (window.isFullScreen()) {
+      window.setFullScreen(false);
+    }
+    return window.isMaximized();
+  });
+  if (alreadyMaximized) {
+    return;
+  }
+
+  await app.evaluate(({ BrowserWindow, screen }) => {
+    const window = BrowserWindow.getAllWindows().find(
+      (candidate) => !candidate.isDestroyed() && candidate.getTitle() === 'HarborClient'
+    );
+    if (window == null) {
+      throw new Error('Main window not found for maximize');
+    }
+    const display = screen.getDisplayMatching(window.getBounds());
+    window.setBounds(display.workArea);
+    window.maximize();
+  });
+
+  // Retry maximize — some WMs drop the first call until the window is mapped.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const isMaximized = await app.evaluate(({ BrowserWindow }) => {
+      const window = BrowserWindow.getAllWindows().find(
+        (candidate) => !candidate.isDestroyed() && candidate.getTitle() === 'HarborClient'
+      );
+      return window != null && window.isMaximized();
+    });
+    if (isMaximized) {
+      break;
+    }
+    await app.evaluate(({ BrowserWindow, screen }) => {
+      const window = BrowserWindow.getAllWindows().find(
+        (candidate) => !candidate.isDestroyed() && candidate.getTitle() === 'HarborClient'
+      );
+      if (window == null) {
+        return;
+      }
+      const display = screen.getDisplayMatching(window.getBounds());
+      window.setBounds(display.workArea);
+      window.maximize();
+    });
+    await new Promise((resolve) => {
+      setTimeout(resolve, 250);
+    });
+  }
+}
+
+/**
+ * Applies either maximize (default) or an explicit width/height override.
+ *
+ * @param {import('playwright').ElectronApplication} app - Launched Electron app.
+ * @param {{ width: number | null; height: number | null }} options - CLI size options.
+ */
+async function applyMainWindowSize(app, options) {
+  if (options.width != null || options.height != null) {
+    await resizeMainWindow(app, options.width ?? 1024, options.height ?? 576);
+    return;
+  }
+  await maximizeMainWindow(app);
 }
 
 /**
@@ -359,26 +463,49 @@ async function sendMenuAction(app, action) {
   }, action);
 }
 
-/** Accessible names for configuration page tab close buttons. */
-const PAGE_TAB_CLOSE_PATTERN =
-  /^Close (General|Globals|Snippets|Storage|Shortcuts|Syntax highlighting|AI|Proxy|Backup & Restore|Plugins|Team Hub|Sharing Keys|Run |Collection|Environment)/;
-
 /**
- * Closes open configuration page tabs from the tab bar.
+ * Confirms discard when closing a dirty tab during screenshot reset.
  *
  * @param {import('playwright').Page} page - Main window page.
  */
-async function closePageTabs(page) {
+async function dismissUnsavedTabClosePrompt(page) {
+  const discardButton = page.getByRole('button', { name: 'Close without saving' });
+  if (await discardButton.isVisible().catch(() => false)) {
+    await discardButton.click();
+    await page.waitForTimeout(150);
+  }
+}
+
+/**
+ * Closes every open editor/page/browser tab so each macro starts from a clean tab bar.
+ *
+ * Request tabs use names like `Close Untitled Request`; page tabs use `Close Scripting`.
+ * Dirty tabs may prompt — those prompts are discarded without saving. Does not open a
+ * replacement blank tab; macros that open a saved request then have a single tab.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ */
+async function closeAllOpenTabs(page) {
   const tabList = page.getByRole('tablist', { name: 'Open tabs' });
-  const pageTabCloseButtons = tabList.getByRole('button', { name: PAGE_TAB_CLOSE_PATTERN });
-  const pageTabCloseCount = await pageTabCloseButtons.count().catch(() => 0);
-  for (let index = 0; index < pageTabCloseCount; index += 1) {
-    const closeButton = pageTabCloseButtons.first();
+  if (!(await tabList.isVisible().catch(() => false))) {
+    return;
+  }
+
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const closeButtons = tabList.getByRole('button', { name: /^Close / });
+    const closeCount = await closeButtons.count().catch(() => 0);
+    if (closeCount === 0) {
+      break;
+    }
+
+    const closeButton = closeButtons.first();
     if (!(await closeButton.isVisible().catch(() => false))) {
       break;
     }
+
     await closeButton.click();
-    await page.waitForTimeout(150);
+    await dismissUnsavedTabClosePrompt(page);
+    await page.waitForTimeout(100);
   }
 }
 
@@ -386,10 +513,14 @@ async function closePageTabs(page) {
  * Returns true when the main workspace shell is ready for macro steps.
  *
  * @param {import('playwright').Page} page - Main window page.
- * @returns Whether the collections sidebar or request editor is visible.
+ * @returns Whether the sidebar search, collections nav, or request editor is visible.
  */
 async function isMainWorkspaceReady(page) {
   if (await page.getByLabel('Request URL').isVisible().catch(() => false)) {
+    return true;
+  }
+
+  if (await page.locator('#sidebar-search').isVisible().catch(() => false)) {
     return true;
   }
 
@@ -401,7 +532,74 @@ async function isMainWorkspaceReady(page) {
 }
 
 /**
- * Clears persisted page tabs and modals so the workspace is reachable on startup.
+ * Switches the activity rail back to Collections so collection-scoped macros start cleanly.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ */
+async function selectCollectionsRail(page) {
+  const rail = page.getByRole('tablist', { name: 'Sidebar modes' });
+  if (!(await rail.isVisible().catch(() => false))) {
+    return;
+  }
+
+  const collectionsTab = rail.getByRole('tab', { name: /^Collections/ });
+  if (!(await collectionsTab.isVisible().catch(() => false))) {
+    return;
+  }
+
+  const selected = await collectionsTab.getAttribute('aria-selected').catch(() => null);
+  if (selected === 'true') {
+    return;
+  }
+
+  await collectionsTab.click();
+  await page.waitForTimeout(150);
+}
+
+/**
+ * Closes footer slide-up panels and right sidebars opened by screenshot macros.
+ *
+ * @param {import('playwright').Page} page - Main window page.
+ * @param {import('playwright').ElectronApplication} app - Launched Electron app.
+ */
+async function closeTransientPanels(page, app) {
+  const closeWorkflow = page.getByRole('button', { name: 'Close workflow dialog' });
+  if (await closeWorkflow.isVisible().catch(() => false)) {
+    await closeWorkflow.click();
+    await page.waitForTimeout(150);
+  }
+
+  for (const closeName of [
+    'Close MCP server',
+    'Close terminal',
+    'Close Live server',
+    'Close live page settings',
+    'Close live server logs',
+    'Close console',
+    'Close variables'
+  ]) {
+    const closeButton = page.getByRole('button', { name: closeName });
+    if (await closeButton.isVisible().catch(() => false)) {
+      await closeButton.click();
+      await page.waitForTimeout(150);
+    }
+  }
+
+  const gitSidebar = page.locator("aside[aria-label='Git source control']");
+  if (await gitSidebar.isVisible().catch(() => false)) {
+    await sendMenuAction(app, 'toggle-git-sidebar');
+    await page.waitForTimeout(150);
+  }
+
+  const shortcutsSidebar = page.locator("aside[aria-label='Shortcuts']");
+  if (await shortcutsSidebar.isVisible().catch(() => false)) {
+    await sendMenuAction(app, 'toggle-shortcuts-sidebar');
+    await page.waitForTimeout(150);
+  }
+}
+
+/**
+ * Clears persisted tabs and modals so the workspace is reachable on startup.
  *
  * @param {import('playwright').Page} page - Main window page.
  */
@@ -413,16 +611,17 @@ async function prepareMainWorkspace(page) {
     await page.waitForTimeout(100);
   }
 
-  await closePageTabs(page);
+  await closeAllOpenTabs(page);
 }
 
 /**
- * Resets UI state before each shot by closing page tabs, modals, and side panels.
+ * Resets UI state before each shot by closing all tabs, modals, and side panels.
  *
  * Settings, Plugins, Team Hub, and Sharing Keys open as page tabs rather than
- * overlays. Escape dismisses modals and tabs; nested Team Hub views also need
- * Back. Avoids the frameless Linux title-bar window Close control, which would
- * quit the app.
+ * overlays. Escape dismisses modals; nested Team Hub views also need Back.
+ * Request tabs are closed so macros do not accumulate Untitled Request rows.
+ * Avoids the frameless Linux title-bar window Close control, which would quit
+ * the app.
  *
  * @param {import('playwright').Page} page - Main window page.
  * @param {import('playwright').ElectronApplication} app - Launched Electron app.
@@ -435,19 +634,28 @@ async function resetState(page, app) {
     await page.waitForTimeout(100);
   }
 
+  await closeTransientPanels(page, app);
+
   const backButton = page.getByRole('button', { name: 'Back' });
-  while (await backButton.isVisible().catch(() => false)) {
+  while (
+    (await backButton.isVisible().catch(() => false)) &&
+    (await backButton.isEnabled().catch(() => false))
+  ) {
     await backButton.click();
     await page.waitForTimeout(150);
   }
 
   const cancelButton = page.getByRole('button', { name: 'Cancel' }).first();
-  if (await cancelButton.isVisible().catch(() => false)) {
+  if (
+    (await cancelButton.isVisible().catch(() => false)) &&
+    (await cancelButton.isEnabled().catch(() => false))
+  ) {
     await cancelButton.click();
     await page.waitForTimeout(150);
   }
 
-  await closePageTabs(page);
+  await closeAllOpenTabs(page);
+  await selectCollectionsRail(page);
 
   const aiSidebar = page.locator("aside[aria-label='AI']");
   if (await aiSidebar.isVisible().catch(() => false)) {
@@ -455,10 +663,29 @@ async function resetState(page, app) {
     await page.waitForTimeout(150);
   }
 
-  await page
-    .getByLabel('Request URL')
-    .waitFor({ state: 'visible', timeout: 5_000 })
-    .catch(() => undefined);
+  // Ensure the collections sidebar is shown (panel layout may persist hidden).
+  if (!(await page.locator('#sidebar-search').isVisible().catch(() => false))) {
+    await sendMenuAction(app, 'toggle-sidebar');
+    await page.waitForTimeout(200);
+    if (!(await page.locator('#sidebar-search').isVisible().catch(() => false))) {
+      await sendMenuAction(app, 'toggle-sidebar');
+      await page.waitForTimeout(200);
+    }
+  }
+
+  // Ensure the activity rail is visible for mode switches in macros.
+  if (
+    !(await page.getByRole('tablist', { name: 'Sidebar modes' }).isVisible().catch(() => false))
+  ) {
+    await sendMenuAction(app, 'toggle-rail');
+    await page.waitForTimeout(200);
+  }
+
+  // Reveal the response pane when a request editor is still active after reset.
+  if (await page.getByLabel('Request URL').isVisible().catch(() => false)) {
+    await sendMenuAction(app, 'focus-response-editor');
+    await page.waitForTimeout(100);
+  }
 
   await page
     .getByRole('navigation', { name: 'Collections' })
@@ -535,7 +762,7 @@ function buildLocator(page, target) {
       }
     }
     if (target.role && nameMatcher) {
-      return container.getByRole(target.stage, { name: nameMatcher }).first();
+      return container.getByRole(target.role, { name: nameMatcher }).first();
     }
     return container.first();
   }
@@ -543,14 +770,14 @@ function buildLocator(page, target) {
   if (target.role && nameMatcher) {
     if (target.nearText) {
       const collectionRow = collectionSidebarRow(page, target.nearText);
-      const collectionScoped = collectionRow.getByRole(target.stage, { name: nameMatcher });
+      const collectionScoped = collectionRow.getByRole(target.role, { name: nameMatcher });
       const genericScoped = page
         .locator('*')
         .filter({ hasText: target.nearText })
-        .getByRole(target.stage, { name: nameMatcher });
+        .getByRole(target.role, { name: nameMatcher });
       return collectionScoped.or(genericScoped).first();
     }
-    return page.getByRole(target.stage, { name: nameMatcher }).first();
+    return page.getByRole(target.role, { name: nameMatcher }).first();
   }
 
   if (target.text) {
@@ -604,7 +831,19 @@ async function runStep(page, app, step) {
     const timeout = stepTimeout(step, step.optional ? 2_000 : 10_000);
     try {
       await locator.waitFor({ state: 'visible', timeout });
-      await locator.click();
+      if (!(await locator.isEnabled().catch(() => false))) {
+        if (!step.optional) {
+          throw new Error(`Click target is disabled: ${JSON.stringify(step.click)}`);
+        }
+        return;
+      }
+      await locator.scrollIntoViewIfNeeded().catch(() => undefined);
+      try {
+        await locator.click({ timeout: Math.min(timeout, 5_000) });
+      } catch {
+        // Sticky page headers can intercept pointer events even after scroll.
+        await locator.click({ force: true });
+      }
     } catch (error) {
       if (!step.optional) {
         throw error;
@@ -796,6 +1035,7 @@ async function main() {
   console.log(
     `Launching Electron app (--theme ${options.theme}, --quit-without-warning)…`
   );
+  const electron = loadPlaywrightElectron();
   const app = await electron.launch({
     args: launchArgs,
     env: {
@@ -809,7 +1049,7 @@ async function main() {
     const page = await waitForMainWindow(app);
     console.log('Main window ready.');
 
-    await resizeMainWindow(app, options.width, options.height);
+    await applyMainWindowSize(app, options);
     await page.waitForTimeout(500);
 
     const written = [];
@@ -827,6 +1067,11 @@ async function main() {
 
       if (entry.reset !== false) {
         await resetState(page, app);
+      }
+
+      // Keep the window maximized; some Linux WMs drop maximize after layout changes.
+      if (options.width == null && options.height == null) {
+        await maximizeMainWindow(app);
       }
 
       await runEntrySteps(page, app, entry);

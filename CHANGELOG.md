@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(screenshots): update screenshot macros and add new settings actions. (`865835f7`)
+
 ## 2.10.2 - 2026-08-02
 
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)
