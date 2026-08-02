@@ -3,6 +3,7 @@ import type {
   McpClientServerListItem,
   McpClientServerStatus,
   McpClientToolInfo,
+  McpServerLogEntry,
   McpServerSettings,
   McpServerStatus
 } from '../mcp';
@@ -32,6 +33,16 @@ export interface ApiMcp {
    * Generates a new MCP server bearer token and persists it.
    */
   regenerateMcpServerToken: () => Promise<McpServerSettings>;
+
+  /**
+   * Returns persisted sanitized MCP server log entries (oldest first).
+   */
+  getMcpServerLogs: () => Promise<McpServerLogEntry[]>;
+
+  /**
+   * Subscribes to newly appended MCP server log entries while Keep logs is on.
+   */
+  onMcpServerLog: (callback: (entry: McpServerLogEntry) => void) => () => void;
 
   /**
    * Lists configured remote MCP client servers, including plugin registrations.

@@ -593,10 +593,13 @@ export const mcpClientServer = z.object({
  */
 export const mcpServerSettings = z.object({
   enabled: z.boolean(),
+  name: z.string(),
+  logoUrl: z.string(),
   host: z.string().trim().min(1),
   port: z.number().int().positive(),
   token: z.string(),
-  exposedTools: z.array(z.enum(AI_TOOL_NAMES))
+  exposedTools: z.array(z.enum(AI_TOOL_NAMES)),
+  keepLogs: z.boolean()
 }) satisfies z.ZodType<McpServerSettings>;
 
 export const chatRole = z.enum(['user', 'assistant']) satisfies z.ZodType<ChatRole>;

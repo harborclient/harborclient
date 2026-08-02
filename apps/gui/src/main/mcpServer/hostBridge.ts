@@ -1,5 +1,6 @@
 import type { BrowserWindow } from 'electron';
 import { logVerbose } from '#/main/logger';
+import { appendMcpServerLog } from './mcpServerLogBuffer';
 
 /**
  * Maximum wait for the renderer to execute an MCP server tool call.
@@ -8,6 +9,7 @@ const MCP_SERVER_TOOL_TIMEOUT_MS = 60_000;
 
 interface PendingMcpServerToolInvoke {
   name: string;
+  startedAt: number;
   resolve: (value: string) => void;
   reject: (reason?: unknown) => void;
   timeout: ReturnType<typeof setTimeout>;
@@ -56,14 +58,31 @@ export class McpToolBridge {
     }
 
     const requestId = this.#nextRequestId++;
+    const startedAt = Date.now();
     return new Promise<string>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.#pending.delete(requestId);
+        appendMcpServerLog({
+          timestamp: Date.now(),
+          direction: 'out',
+          kind: 'tool',
+          toolName: name,
+          ok: false,
+          durationMs: Math.max(0, Date.now() - startedAt),
+          error: 'timed out'
+        });
         reject(new Error(`MCP tool invocation timed out: ${name}`));
       }, MCP_SERVER_TOOL_TIMEOUT_MS);
 
-      this.#pending.set(requestId, { name, resolve, reject, timeout });
+      this.#pending.set(requestId, { name, startedAt, resolve, reject, timeout });
       logVerbose('mcp:server:tool', { name, requestId });
+      appendMcpServerLog({
+        timestamp: startedAt,
+        direction: 'in',
+        kind: 'tool',
+        toolName: name,
+        rpcMethod: 'tools/call'
+      });
       window.webContents.send('mcp:serverToolInvoke', {
         requestId,
         name,
@@ -90,6 +109,16 @@ export class McpToolBridge {
       requestId: message.requestId,
       name: pending.name,
       ok: message.ok,
+      ...(message.ok ? {} : { error: message.error ?? 'MCP tool invocation failed.' })
+    });
+
+    appendMcpServerLog({
+      timestamp: Date.now(),
+      direction: 'out',
+      kind: 'tool',
+      toolName: pending.name,
+      ok: message.ok,
+      durationMs: Math.max(0, Date.now() - pending.startedAt),
       ...(message.ok ? {} : { error: message.error ?? 'MCP tool invocation failed.' })
     });
 

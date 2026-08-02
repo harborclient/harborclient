@@ -6,10 +6,13 @@ describe('buildMcpConfigSnippet', () => {
     const snippet = buildMcpConfigSnippet(
       {
         enabled: true,
+        name: 'HarborClient',
+        logoUrl: 'https://harborclient.com/images/logo.png',
         host: '127.0.0.1',
         port: 8765,
         token: 'secret-token',
-        exposedTools: ['list_collections']
+        exposedTools: ['list_collections'],
+        keepLogs: false
       },
       { running: true, host: '127.0.0.1', port: 8765 }
     );

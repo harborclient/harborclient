@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AI_TOOL_NAMES } from '@harborclient/core/ai/tools';
+import type { McpServerSettings } from '@harborclient/core/types';
 import type { LocalDatabase } from '#/main/storage/LocalDatabase';
 import {
   clearLocalDatabaseForTesting,
@@ -53,19 +55,67 @@ describe('mcpSettings', () => {
   it('persists and reloads MCP server settings', () => {
     setMcpServerSettings({
       enabled: true,
+      name: 'My Harbor',
+      logoUrl: 'https://example.com/logo.svg',
       host: '0.0.0.0',
       port: 8088,
       token: 'secret-token',
-      exposedTools: ['list_collections']
+      exposedTools: ['list_collections'],
+      keepLogs: true
     });
 
     expect(getMcpServerSettings()).toEqual({
       enabled: true,
+      name: 'My Harbor',
+      logoUrl: 'https://example.com/logo.svg',
       host: '0.0.0.0',
       port: 8088,
       token: 'secret-token',
-      exposedTools: ['list_collections']
+      exposedTools: ['list_collections'],
+      keepLogs: true
     });
+  });
+
+  it('defaults name, logoUrl, and keepLogs when unset', () => {
+    setMcpServerSettings({
+      enabled: false,
+      host: '127.0.0.1',
+      port: 7333,
+      token: '',
+      exposedTools: [...AI_TOOL_NAMES]
+    } as Parameters<typeof setMcpServerSettings>[0]);
+
+    const settings = getMcpServerSettings();
+    expect(settings.name).toBe(DEFAULT_MCP_SERVER_SETTINGS.name);
+    expect(settings.logoUrl).toBe(DEFAULT_MCP_SERVER_SETTINGS.logoUrl);
+    expect(settings.keepLogs).toBe(true);
+  });
+
+  it('preserves a user allowlist in registry order and drops unknown names', () => {
+    setMcpServerSettings({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      enabled: true,
+      token: 'secret-token',
+      exposedTools: [
+        'send_active_request',
+        'list_collections',
+        'not_a_tool'
+      ] as McpServerSettings['exposedTools']
+    });
+
+    expect(getMcpServerSettings().exposedTools).toEqual([
+      'list_collections',
+      'send_active_request'
+    ]);
+  });
+
+  it('allows an empty exposedTools allowlist', () => {
+    setMcpServerSettings({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      exposedTools: []
+    });
+
+    expect(getMcpServerSettings().exposedTools).toEqual([]);
   });
 
   it('regenerates the MCP server token', () => {

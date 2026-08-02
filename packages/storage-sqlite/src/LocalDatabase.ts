@@ -36,6 +36,8 @@ import type {
   LiveServerRoute,
   LiveServerScriptRef,
   LiveServerSslSettings,
+  McpServerLogEntry,
+  McpServerLogInput,
   RequestHistoryEntry,
   ScriptRef,
   Snippet,
@@ -60,6 +62,7 @@ import {
   serializeWorkspaceLayout
 } from '@harborclient/core/types/workspace';
 import type { InsertTrashItemInput, TrashItem } from '@harborclient/core/types/trash';
+import { MCP_SERVER_LOG_CAP } from '@harborclient/core/types/mcp';
 import { REQUEST_HISTORY_CAP } from '@harborclient/core/types/requestHistory';
 import {
   WORKFLOW_RUN_HISTORY_CAP,
@@ -189,6 +192,53 @@ function emptyWebsitePayload(): WebsitePayloadJson {
     headers: [],
     userAgent: '',
     auth: defaultAuth()
+  };
+}
+
+/**
+ * Row shape returned from mcp_server_logs queries.
+ */
+interface McpServerLogRow {
+  id: number;
+  ts: number;
+  direction: string;
+  kind: string;
+  method: string | null;
+  path: string | null;
+  rpc_method: string | null;
+  tool_name: string | null;
+  status_code: number | null;
+  ok: number | null;
+  duration_ms: number | null;
+  session_id: string | null;
+  error: string | null;
+}
+
+/**
+ * Maps a database row to a {@link McpServerLogEntry}.
+ *
+ * @param row - SQLite row from mcp_server_logs.
+ * @returns Parsed MCP server log entry for the UI.
+ */
+function rowToMcpServerLogEntry(row: McpServerLogRow): McpServerLogEntry {
+  const direction = row.direction === 'out' ? 'out' : 'in';
+  const kind =
+    row.kind === 'session' || row.kind === 'tool' || row.kind === 'lifecycle' ? row.kind : 'http';
+
+  return {
+    id: row.id,
+    timestamp: row.ts,
+    direction,
+    kind,
+    ...(row.method != null ? { method: row.method } : {}),
+    ...(row.path != null ? { path: row.path } : {}),
+    ...(row.rpc_method != null ? { rpcMethod: row.rpc_method } : {}),
+    ...(row.tool_name != null ? { toolName: row.tool_name } : {}),
+    ...(row.status_code != null ? { statusCode: row.status_code } : {}),
+    ...(row.ok != null ? { ok: row.ok === 1 } : {}),
+    ...(row.duration_ms != null ? { durationMs: row.duration_ms } : {}),
+    ...(row.session_id != null ? { sessionId: row.session_id } : {}),
+    ...(row.error != null ? { error: row.error } : {})
   };
 }
 
@@ -753,6 +803,23 @@ export class LocalDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_request_history_ts ON request_history (ts DESC);
 
+      CREATE TABLE IF NOT EXISTS mcp_server_logs (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts           INTEGER NOT NULL,
+        direction    TEXT    NOT NULL,
+        kind         TEXT    NOT NULL,
+        method       TEXT,
+        path         TEXT,
+        rpc_method   TEXT,
+        tool_name    TEXT,
+        status_code  INTEGER,
+        ok           INTEGER,
+        duration_ms  INTEGER,
+        session_id   TEXT,
+        error        TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_mcp_server_logs_ts ON mcp_server_logs (ts DESC);
+
       CREATE TABLE IF NOT EXISTS workspaces (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
         name       TEXT    NOT NULL,
@@ -842,6 +909,7 @@ export class LocalDatabase {
     this.migrateLiveServerRegistryTables();
     this.migrateLivePageRegistryTable();
     this.migrateRequestHistoryTable();
+    this.migrateMcpServerLogsTable();
     this.migrateWorkspacesTable();
     this.migrateWorkflowsTable();
     this.migrateWorkflowsArchived();
@@ -1143,6 +1211,30 @@ export class LocalDatabase {
     if (!columns.some((col) => col.name === 'response_body')) {
       this.getDb().exec('ALTER TABLE request_history ADD COLUMN response_body TEXT');
     }
+  }
+
+  /**
+   * Ensures the MCP server logs table exists on legacy databases.
+   */
+  private migrateMcpServerLogsTable(): void {
+    this.getDb().exec(`
+      CREATE TABLE IF NOT EXISTS mcp_server_logs (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts           INTEGER NOT NULL,
+        direction    TEXT    NOT NULL,
+        kind         TEXT    NOT NULL,
+        method       TEXT,
+        path         TEXT,
+        rpc_method   TEXT,
+        tool_name    TEXT,
+        status_code  INTEGER,
+        ok           INTEGER,
+        duration_ms  INTEGER,
+        session_id   TEXT,
+        error        TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_mcp_server_logs_ts ON mcp_server_logs (ts DESC);
+    `);
   }
 
   /**
@@ -2717,6 +2809,75 @@ export class LocalDatabase {
    */
   deleteChat(id: number): void {
     this.getDb().prepare('DELETE FROM chats WHERE id = ?').run(id);
+  }
+
+  /**
+   * Loads persisted MCP server log entries, oldest first for terminal display.
+   *
+   * @param cap - Maximum number of entries to return.
+   * @returns MCP server log entries ordered oldest-first.
+   */
+  listMcpServerLogs(cap = MCP_SERVER_LOG_CAP): McpServerLogEntry[] {
+    const rows = this.getDb()
+      .prepare(
+        `SELECT id, ts, direction, kind, method, path, rpc_method, tool_name, status_code, ok,
+                duration_ms, session_id, error
+         FROM mcp_server_logs
+         ORDER BY ts DESC, id DESC
+         LIMIT ?`
+      )
+      .all(cap) as McpServerLogRow[];
+
+    return rows.map(rowToMcpServerLogEntry).reverse();
+  }
+
+  /**
+   * Inserts a sanitized MCP server log entry and prunes older rows beyond the cap.
+   *
+   * @param entry - Log fields to persist (id assigned by SQLite).
+   * @param cap - Maximum number of entries to retain.
+   * @returns The inserted row including its assigned id.
+   */
+  appendMcpServerLog(entry: McpServerLogInput, cap = MCP_SERVER_LOG_CAP): McpServerLogEntry {
+    const db = this.getDb();
+    const insert = db.prepare(
+      `INSERT INTO mcp_server_logs
+        (ts, direction, kind, method, path, rpc_method, tool_name, status_code, ok, duration_ms,
+         session_id, error)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const prune = db.prepare(
+      `DELETE FROM mcp_server_logs
+       WHERE id NOT IN (
+         SELECT id FROM mcp_server_logs ORDER BY ts DESC, id DESC LIMIT ?
+       )`
+    );
+
+    let insertedId = 0;
+    const transaction = db.transaction(() => {
+      const result = insert.run(
+        entry.timestamp,
+        entry.direction,
+        entry.kind,
+        entry.method ?? null,
+        entry.path ?? null,
+        entry.rpcMethod ?? null,
+        entry.toolName ?? null,
+        entry.statusCode ?? null,
+        entry.ok == null ? null : entry.ok ? 1 : 0,
+        entry.durationMs ?? null,
+        entry.sessionId ?? null,
+        entry.error ?? null
+      );
+      insertedId = Number(result.lastInsertRowid);
+      prune.run(cap);
+    });
+
+    transaction();
+    return {
+      ...entry,
+      id: insertedId
+    };
   }
 
   /**

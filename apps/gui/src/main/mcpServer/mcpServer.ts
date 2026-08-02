@@ -6,6 +6,7 @@ import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { logVerbose } from '#/main/logger';
 import { isValidMcpServerToken } from '#/main/settings/mcpSettings';
+import { appendMcpServerLog, readMcpJsonRpcMethod } from './mcpServerLogBuffer';
 import { registerHarborMcpTools, shouldRunMcpServer } from './tools';
 import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
 
@@ -16,6 +17,8 @@ interface RunningMcpServer {
   httpServer: ExpressListenServer;
   host: string;
   port: number;
+  /** Settings applied when the listener started (tool allowlist for new sessions). */
+  settings: McpServerSettings;
 }
 
 let runningServer: RunningMcpServer | null = null;
@@ -24,15 +27,59 @@ let runningServer: RunningMcpServer | null = null;
 const sessionTransports = new Map<string, StreamableHTTPServerTransport>();
 
 /**
- * Builds an MCP server instance with the currently exposed Harbor tools.
+ * Infers an image MIME type from a logo URL path extension.
  *
- * @param settings - Persisted MCP server settings.
+ * Falls back to `image/png` when the extension is missing or unrecognized so
+ * MCP clients still receive a usable icon descriptor.
+ *
+ * @param logoUrl - Logo image URL from MCP server settings.
+ * @returns MIME type string for `serverInfo.icons`.
+ */
+function mimeTypeForLogoUrl(logoUrl: string): string {
+  const pathname = logoUrl.split('?')[0]?.split('#')[0] ?? logoUrl;
+  const extension = pathname.includes('.')
+    ? pathname.slice(pathname.lastIndexOf('.') + 1).toLowerCase()
+    : '';
+
+  switch (extension) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    default:
+      return 'image/png';
+  }
+}
+
+/**
+ * Builds an MCP server instance with the current tool allowlist.
+ *
+ * Advertises the configured display name and logo via `serverInfo` so MCP
+ * clients can show a branded tile instead of a generic letter placeholder.
+ *
+ * @param settings - Persisted MCP server settings (identity, tool allowlist, auth).
  */
 function createHarborMcpServer(settings: McpServerSettings): McpServer {
   const server = new McpServer(
     {
       name: 'harborclient',
-      version: '1.0.0'
+      version: '1.0.0',
+      title: settings.name,
+      websiteUrl: 'https://harborclient.com',
+      icons: [
+        {
+          src: settings.logoUrl,
+          mimeType: mimeTypeForLogoUrl(settings.logoUrl),
+          sizes: ['any']
+        }
+      ]
     },
     {
       capabilities: {
@@ -66,6 +113,15 @@ function bearerAuthMiddleware(req: Request, res: Response, next: NextFunction): 
   const token = parseBearerToken(req.headers.authorization);
   if (!isValidMcpServerToken(token)) {
     logVerbose('mcp:server:unauthorized', { path: req.path });
+    appendMcpServerLog({
+      timestamp: Date.now(),
+      direction: 'in',
+      kind: 'http',
+      method: req.method,
+      path: req.path,
+      statusCode: 401,
+      error: 'Unauthorized'
+    });
     res.status(401).json({
       jsonrpc: '2.0',
       error: {
@@ -78,6 +134,34 @@ function bearerAuthMiddleware(req: Request, res: Response, next: NextFunction): 
   }
 
   next();
+}
+
+/**
+ * Records a sanitized HTTP access log line when the Express response finishes.
+ *
+ * Captures method, path, optional JSON-RPC method, status, and duration only —
+ * never Authorization headers or request/response bodies.
+ *
+ * @param req - Incoming Express request.
+ * @param res - Express response.
+ * @param sessionId - MCP session id when present.
+ */
+function trackMcpHttpAccessLog(req: Request, res: Response, sessionId?: string): void {
+  const startedAt = Date.now();
+  const rpcMethod = readMcpJsonRpcMethod(req.body);
+  res.on('finish', () => {
+    appendMcpServerLog({
+      timestamp: Date.now(),
+      direction: 'in',
+      kind: 'http',
+      method: req.method,
+      path: req.path,
+      ...(rpcMethod ? { rpcMethod } : {}),
+      statusCode: res.statusCode,
+      durationMs: Math.max(0, Date.now() - startedAt),
+      ...(sessionId ? { sessionId } : {})
+    });
+  });
 }
 
 /**
@@ -118,13 +202,10 @@ async function closeAllSessionTransports(): Promise<void> {
 /**
  * Handles POST /mcp for initialize and in-session JSON-RPC requests.
  *
- * @param settings - Persisted MCP server settings captured at listen time.
+ * @param req - Incoming Express request.
+ * @param res - Express response.
  */
-async function handleMcpPost(
-  req: Request,
-  res: Response,
-  settings: McpServerSettings
-): Promise<void> {
+async function handleMcpPost(req: Request, res: Response): Promise<void> {
   logVerbose('mcp:server:request', {
     method: req.method,
     path: req.path,
@@ -132,6 +213,7 @@ async function handleMcpPost(
   });
 
   const sessionId = readMcpSessionId(req);
+  trackMcpHttpAccessLog(req, res, sessionId);
 
   try {
     if (sessionId && sessionTransports.has(sessionId)) {
@@ -141,11 +223,23 @@ async function handleMcpPost(
     }
 
     if (!sessionId && isInitializeRequest(req.body)) {
-      const server = createHarborMcpServer(settings);
+      if (!runningServer) {
+        respondInvalidSession(res);
+        return;
+      }
+
+      const server = createHarborMcpServer(runningServer.settings);
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (initializedSessionId) => {
           logVerbose('mcp:server:session-init', { sessionId: initializedSessionId });
+          appendMcpServerLog({
+            timestamp: Date.now(),
+            direction: 'in',
+            kind: 'session',
+            rpcMethod: 'initialize',
+            sessionId: initializedSessionId
+          });
           sessionTransports.set(initializedSessionId, transport);
         }
       });
@@ -154,6 +248,13 @@ async function handleMcpPost(
         const closedSessionId = transport.sessionId;
         if (closedSessionId && sessionTransports.has(closedSessionId)) {
           logVerbose('mcp:server:session-close', { sessionId: closedSessionId });
+          appendMcpServerLog({
+            timestamp: Date.now(),
+            direction: 'out',
+            kind: 'session',
+            rpcMethod: 'close',
+            sessionId: closedSessionId
+          });
           sessionTransports.delete(closedSessionId);
         }
       };
@@ -187,6 +288,7 @@ async function handleMcpPost(
  */
 async function handleMcpGet(req: Request, res: Response): Promise<void> {
   const sessionId = readMcpSessionId(req);
+  trackMcpHttpAccessLog(req, res, sessionId);
   if (!sessionId || !sessionTransports.has(sessionId)) {
     res.status(400).send('Invalid or missing session ID');
     return;
@@ -204,6 +306,7 @@ async function handleMcpGet(req: Request, res: Response): Promise<void> {
  */
 async function handleMcpDelete(req: Request, res: Response): Promise<void> {
   const sessionId = readMcpSessionId(req);
+  trackMcpHttpAccessLog(req, res, sessionId);
   if (!sessionId || !sessionTransports.has(sessionId)) {
     res.status(400).send('Invalid or missing session ID');
     return;
@@ -223,7 +326,7 @@ function createHarborMcpExpressApp(settings: McpServerSettings): Express {
   app.use(bearerAuthMiddleware);
 
   app.post('/mcp', (req, res) => {
-    void handleMcpPost(req, res, settings);
+    void handleMcpPost(req, res);
   });
 
   app.get('/mcp', (req, res) => {
@@ -265,11 +368,18 @@ export async function startMcpServer(settings: McpServerSettings): Promise<McpSe
   const port = typeof address === 'object' && address !== null ? address.port : settings.port;
   const host = settings.host;
 
-  runningServer = { httpServer, host, port };
+  runningServer = { httpServer, host, port, settings };
   logVerbose('mcp:server:started', {
     host,
     port,
     exposedToolCount: settings.exposedTools.length
+  });
+  appendMcpServerLog({
+    timestamp: Date.now(),
+    direction: 'out',
+    kind: 'lifecycle',
+    rpcMethod: 'started',
+    path: `${host}:${port}`
   });
   return { running: true, host, port };
 }
@@ -287,6 +397,12 @@ export async function stopMcpServer(): Promise<void> {
 
   runningServer = null;
   logVerbose('mcp:server:stopped');
+  appendMcpServerLog({
+    timestamp: Date.now(),
+    direction: 'out',
+    kind: 'lifecycle',
+    rpcMethod: 'stopped'
+  });
   await new Promise<void>((resolve, reject) => {
     entry.httpServer.close((error) => {
       if (error) {

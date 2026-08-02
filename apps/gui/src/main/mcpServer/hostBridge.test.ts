@@ -1,11 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LocalDatabase } from '#/main/storage/LocalDatabase';
+import {
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { McpToolBridge } from './hostBridge';
 
 describe('McpToolBridge', () => {
   let bridge: McpToolBridge;
   let send: ReturnType<typeof vi.fn>;
+  let settingsStore: Record<string, string>;
 
   beforeEach(() => {
+    settingsStore = {};
+    setLocalDatabaseForTesting({
+      getSetting: (key: string) => settingsStore[key],
+      setSetting: (key: string, value: string) => {
+        settingsStore[key] = value;
+      }
+    } as LocalDatabase);
+
     bridge = new McpToolBridge();
     send = vi.fn();
     bridge.setMainWindow(
@@ -15,6 +29,10 @@ describe('McpToolBridge', () => {
           webContents: { send }
         }) as never
     );
+  });
+
+  afterEach(() => {
+    clearLocalDatabaseForTesting();
   });
 
   it('round-trips tool invocations through the renderer bridge channel', async () => {

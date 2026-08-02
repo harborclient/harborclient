@@ -1503,3 +1503,51 @@ describeSqlite('LocalDatabase trash items', () => {
     expect(database.listTrashItems()).toEqual([]);
   });
 });
+
+describeSqlite('LocalDatabase MCP server logs', () => {
+  it('appends logs oldest-first and prunes beyond the cap', async () => {
+    const { database } = await createRegistry();
+
+    const first = database.appendMcpServerLog(
+      {
+        timestamp: 1000,
+        direction: 'in',
+        kind: 'http',
+        method: 'POST',
+        path: '/mcp',
+        rpcMethod: 'initialize',
+        statusCode: 200,
+        durationMs: 3
+      },
+      2
+    );
+    const second = database.appendMcpServerLog(
+      {
+        timestamp: 2000,
+        direction: 'out',
+        kind: 'tool',
+        toolName: 'list_collections',
+        ok: true,
+        durationMs: 12
+      },
+      2
+    );
+    database.appendMcpServerLog(
+      {
+        timestamp: 3000,
+        direction: 'out',
+        kind: 'lifecycle',
+        rpcMethod: 'started',
+        path: '127.0.0.1:7333'
+      },
+      2
+    );
+
+    const logs = database.listMcpServerLogs(2);
+    expect(logs).toHaveLength(2);
+    expect(logs[0]?.id).toBe(second.id);
+    expect(logs[0]?.toolName).toBe('list_collections');
+    expect(logs[1]?.kind).toBe('lifecycle');
+    expect(logs.some((entry) => entry.id === first.id)).toBe(false);
+  });
+});

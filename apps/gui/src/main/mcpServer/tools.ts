@@ -1,18 +1,27 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { AI_TOOL_DEFINITIONS, getAiToolInputShape } from '@harborclient/core/ai/tools';
-import type { AiToolName } from '@harborclient/core/ai/tools';
+import {
+  AI_TOOL_DEFINITIONS,
+  type AiToolName,
+  getAiToolInputShape
+} from '@harborclient/core/ai/tools';
 import { getMcpToolBridge } from './hostBridge';
 import type { McpServerSettings } from '@harborclient/core/types';
 
 /**
- * Registers Harbor AI tools on an MCP server, filtered by the exposed-tool allowlist.
+ * Registers the allowlisted Harbor AI tools on an MCP server.
+ *
+ * Tools omitted from `exposedTools` are not advertised via `tools/list` and
+ * cannot be invoked through this server instance.
  *
  * @param server - MCP server instance to register tools on.
- * @param exposedTools - Harbor tool names the user opted into exposing.
+ * @param exposedTools - Allowlist of Harbor AI tool names to expose.
  */
-export function registerHarborMcpTools(server: McpServer, exposedTools: AiToolName[]): void {
-  const allowed = new Set(exposedTools);
+export function registerHarborMcpTools(
+  server: McpServer,
+  exposedTools: readonly AiToolName[]
+): void {
   const bridge = getMcpToolBridge();
+  const allowed = new Set(exposedTools);
 
   for (const definition of AI_TOOL_DEFINITIONS) {
     if (definition.type !== 'function') {
@@ -64,5 +73,5 @@ export function registerHarborMcpTools(server: McpServer, exposedTools: AiToolNa
  * @param settings - Persisted MCP server settings.
  */
 export function shouldRunMcpServer(settings: McpServerSettings): boolean {
-  return settings.enabled && settings.exposedTools.length > 0 && settings.token.trim().length > 0;
+  return settings.enabled && settings.token.trim().length > 0;
 }

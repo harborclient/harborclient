@@ -5,9 +5,19 @@ import type { AiToolName } from '../ai/tools/index';
  */
 export interface McpServerSettings {
   /**
-   * When true and at least one tool is exposed, the local MCP HTTP server listens.
+   * When true and a bearer token is set, the local MCP HTTP server listens.
    */
   enabled: boolean;
+
+  /**
+   * Display name advertised to MCP clients as `serverInfo.title`.
+   */
+  name: string;
+
+  /**
+   * Logo image URL advertised to MCP clients via `serverInfo.icons`.
+   */
+  logoUrl: string;
 
   /**
    * Network interface to bind (for example 127.0.0.1 or 0.0.0.0).
@@ -26,9 +36,112 @@ export interface McpServerSettings {
 
   /**
    * Harbor AI tool names exposed through the MCP server.
+   *
+   * User-selectable allowlist persisted in settings. Only listed tools are
+   * registered for MCP `tools/list` / `tools/call`. Defaults to the full
+   * {@link AiToolName} set; order matches the Harbor AI tool registry.
    */
   exposedTools: AiToolName[];
+
+  /**
+   * When true, sanitized MCP server request/response traffic is appended to the
+   * local database for the footer log viewer. Defaults to true.
+   */
+  keepLogs: boolean;
 }
+
+/**
+ * Maximum MCP server log rows retained in LocalDatabase.
+ */
+export const MCP_SERVER_LOG_CAP = 1000;
+
+/**
+ * Direction of an MCP server log line relative to Harbor.
+ */
+export type McpServerLogDirection = 'in' | 'out';
+
+/**
+ * Category of MCP server traffic captured in the log buffer.
+ */
+export type McpServerLogKind = 'http' | 'session' | 'tool' | 'lifecycle';
+
+/**
+ * One sanitized MCP server log entry persisted in LocalDatabase.
+ *
+ * Never includes Authorization headers, bearer tokens, JSON-RPC params/results,
+ * or tool argument/result bodies.
+ */
+export interface McpServerLogEntry {
+  /**
+   * Autoincrement row id.
+   */
+  id: number;
+
+  /**
+   * Unix epoch milliseconds when the event occurred.
+   */
+  timestamp: number;
+
+  /**
+   * Whether the event is inbound (client → Harbor) or outbound (Harbor → client).
+   */
+  direction: McpServerLogDirection;
+
+  /**
+   * High-level event category.
+   */
+  kind: McpServerLogKind;
+
+  /**
+   * HTTP method when {@link kind} is `http` (for example `POST`).
+   */
+  method?: string;
+
+  /**
+   * HTTP path when {@link kind} is `http` (for example `/mcp`).
+   */
+  path?: string;
+
+  /**
+   * JSON-RPC method name when known (for example `initialize`, `tools/call`).
+   */
+  rpcMethod?: string;
+
+  /**
+   * Harbor AI tool name for tool invoke/complete events.
+   */
+  toolName?: string;
+
+  /**
+   * HTTP status code when applicable.
+   */
+  statusCode?: number;
+
+  /**
+   * Whether a tool invoke completed successfully.
+   */
+  ok?: boolean;
+
+  /**
+   * Duration in milliseconds when measurable.
+   */
+  durationMs?: number;
+
+  /**
+   * MCP session id when known (UUID; not sensitive).
+   */
+  sessionId?: string;
+
+  /**
+   * Sanitized error message (never echoes tokens or request bodies).
+   */
+  error?: string;
+}
+
+/**
+ * Fields required to append a sanitized MCP server log row (id assigned by SQLite).
+ */
+export type McpServerLogInput = Omit<McpServerLogEntry, 'id'>;
 
 /**
  * One remote MCP server Harbor connects to as a client.

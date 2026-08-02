@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(mcp): enhance MCP server settings and logging capabilities. (`cfa194f2`)
+
 ## 2.10.1 - 2026-08-02
 
 - feat(theme): add page header color variables and update related styles. (`577ab426`)

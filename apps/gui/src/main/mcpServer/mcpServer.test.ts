@@ -53,8 +53,22 @@ async function parseMcpResponseBody(response: Response): Promise<unknown> {
 
 /**
  * Starts an MCP session via initialize and returns the assigned session id.
+ *
+ * @returns Session id plus the parsed initialize result for assertions.
  */
-async function initializeMcpSession(): Promise<string> {
+async function initializeMcpSession(): Promise<{
+  sessionId: string;
+  body: {
+    result?: {
+      serverInfo?: {
+        name?: string;
+        title?: string;
+        websiteUrl?: string;
+        icons?: Array<{ src?: string; mimeType?: string }>;
+      };
+    };
+  };
+}> {
   const response = await fetch(getMcpUrl(), {
     method: 'POST',
     headers: MCP_HEADERS,
@@ -76,7 +90,17 @@ async function initializeMcpSession(): Promise<string> {
   expect(response.ok).toBe(true);
   const sessionId = response.headers.get('mcp-session-id');
   expect(sessionId).toBeTruthy();
-  return sessionId!;
+  const body = (await parseMcpResponseBody(response)) as {
+    result?: {
+      serverInfo?: {
+        name?: string;
+        title?: string;
+        websiteUrl?: string;
+        icons?: Array<{ src?: string; mimeType?: string }>;
+      };
+    };
+  };
+  return { sessionId: sessionId!, body };
 }
 
 describe('mcpServer HTTP routes', () => {
@@ -97,8 +121,7 @@ describe('mcpServer HTTP routes', () => {
       enabled: true,
       host: '127.0.0.1',
       port: 0,
-      token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      token: TEST_TOKEN
     });
   });
 
@@ -109,11 +132,11 @@ describe('mcpServer HTTP routes', () => {
 
   it('returns 400 for GET /mcp without a session id', async () => {
     await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
       host: '127.0.0.1',
       port: 0,
-      token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      token: TEST_TOKEN
     });
 
     const response = await fetch(getMcpUrl(), {
@@ -127,11 +150,11 @@ describe('mcpServer HTTP routes', () => {
 
   it('returns 401 for GET /mcp without a bearer token', async () => {
     await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
       host: '127.0.0.1',
       port: 0,
-      token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      token: TEST_TOKEN
     });
 
     const response = await fetch(getMcpUrl());
@@ -146,27 +169,58 @@ describe('mcpServer HTTP routes', () => {
 
   it('accepts POST /mcp initialize requests and returns a session id', async () => {
     await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
       host: '127.0.0.1',
       port: 0,
-      token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      token: TEST_TOKEN
     });
 
-    const sessionId = await initializeMcpSession();
+    const { sessionId, body } = await initializeMcpSession();
     expect(sessionId.length).toBeGreaterThan(0);
+    expect(body.result?.serverInfo?.title).toBe('HarborClient');
+    expect(body.result?.serverInfo?.websiteUrl).toBe('https://harborclient.com');
+    expect(body.result?.serverInfo?.icons).toEqual([
+      {
+        src: 'https://harborclient.com/images/logo.png',
+        mimeType: 'image/png',
+        sizes: ['any']
+      }
+    ]);
+  });
+
+  it('advertises custom name and logo URL in initialize serverInfo', async () => {
+    await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      enabled: true,
+      name: 'Custom Harbor',
+      logoUrl: 'https://example.com/brand/logo.svg',
+      host: '127.0.0.1',
+      port: 0,
+      token: TEST_TOKEN
+    });
+
+    const { body } = await initializeMcpSession();
+    expect(body.result?.serverInfo?.title).toBe('Custom Harbor');
+    expect(body.result?.serverInfo?.icons).toEqual([
+      {
+        src: 'https://example.com/brand/logo.svg',
+        mimeType: 'image/svg+xml',
+        sizes: ['any']
+      }
+    ]);
   });
 
   it('lists exposed tools for an initialized session', async () => {
     await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
       host: '127.0.0.1',
       port: 0,
-      token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      token: TEST_TOKEN
     });
 
-    const sessionId = await initializeMcpSession();
+    const { sessionId } = await initializeMcpSession();
 
     const response = await fetch(getMcpUrl(), {
       method: 'POST',
@@ -190,16 +244,52 @@ describe('mcpServer HTTP routes', () => {
     expect(toolNames).toContain('list_collections');
   });
 
-  it('opens an SSE stream for GET /mcp with a valid session id', async () => {
-    await startMcpServer({
+  it('omits tools that are not in the exposedTools allowlist', async () => {
+    const allowlistSettings = {
+      ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN,
-      exposedTools: ['list_collections']
+      exposedTools: ['list_collections' as const]
+    };
+    setMcpServerSettings(allowlistSettings);
+    await startMcpServer(allowlistSettings);
+
+    const { sessionId } = await initializeMcpSession();
+
+    const response = await fetch(getMcpUrl(), {
+      method: 'POST',
+      headers: {
+        ...MCP_HEADERS,
+        'mcp-session-id': sessionId
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/list',
+        params: {}
+      })
     });
 
-    const sessionId = await initializeMcpSession();
+    expect(response.ok).toBe(true);
+    const body = (await parseMcpResponseBody(response)) as {
+      result?: { tools?: Array<{ name?: string }> };
+    };
+    const toolNames = body.result?.tools?.map((tool) => tool.name) ?? [];
+    expect(toolNames).toEqual(['list_collections']);
+  });
+
+  it('opens an SSE stream for GET /mcp with a valid session id', async () => {
+    await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      enabled: true,
+      host: '127.0.0.1',
+      port: 0,
+      token: TEST_TOKEN
+    });
+
+    const { sessionId } = await initializeMcpSession();
     const controller = new AbortController();
 
     const response = await fetch(getMcpUrl(), {

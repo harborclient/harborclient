@@ -18,14 +18,42 @@ const DEFAULT_MCP_SERVER_PORT = 7333;
 
 /**
  * Default MCP server settings when none are stored.
+ *
+ * New installs expose every Harbor AI agent tool; users can narrow the
+ * allowlist from the MCP panel Tools view or Settings.
  */
 export const DEFAULT_MCP_SERVER_SETTINGS: McpServerSettings = {
   enabled: false,
+  name: 'HarborClient',
+  logoUrl: 'https://harborclient.com/images/logo.png',
   host: '127.0.0.1',
   port: DEFAULT_MCP_SERVER_PORT,
   token: '',
-  exposedTools: []
+  exposedTools: [...AI_TOOL_NAMES],
+  keepLogs: true
 };
+
+/**
+ * Normalizes an MCP tool allowlist to valid {@link AiToolName} entries.
+ *
+ * Missing or non-array values default to the full registry. Arrays keep only
+ * known tool names, in registry order (empty allowlists are preserved).
+ *
+ * @param input - Raw `exposedTools` value from storage or user input.
+ * @returns Allowlist in {@link AI_TOOL_NAMES} order.
+ */
+export function normalizeExposedTools(input: unknown): AiToolName[] {
+  if (!Array.isArray(input)) {
+    return [...AI_TOOL_NAMES];
+  }
+
+  const allowed = new Set<string>(AI_TOOL_NAMES);
+  const selected = new Set(
+    input.filter((name): name is AiToolName => typeof name === 'string' && allowed.has(name))
+  );
+
+  return AI_TOOL_NAMES.filter((name) => selected.has(name));
+}
 
 /**
  * Generates a new MCP server bearer token.
@@ -52,24 +80,11 @@ function isEncryptedSecret(value: unknown): value is EncryptedSecret {
 }
 
 /**
- * Returns true when a tool name is a known Harbor AI tool.
- *
- * @param name - Tool name candidate.
- */
-function isAiToolName(name: string): name is AiToolName {
-  return (AI_TOOL_NAMES as readonly string[]).includes(name);
-}
-
-/**
  * Normalizes MCP server settings from storage or user input.
  *
  * @param input - Partial or raw MCP server settings.
  */
 function normalizeMcpServerSettings(input: Partial<McpServerSettings>): McpServerSettings {
-  const exposedTools = Array.isArray(input.exposedTools)
-    ? input.exposedTools.filter(isAiToolName)
-    : [];
-
   const port =
     typeof input.port === 'number' && Number.isInteger(input.port) && input.port > 0
       ? input.port
@@ -77,10 +92,17 @@ function normalizeMcpServerSettings(input: Partial<McpServerSettings>): McpServe
 
   return {
     enabled: Boolean(input.enabled),
+    name:
+      String(input.name ?? DEFAULT_MCP_SERVER_SETTINGS.name).trim() ||
+      DEFAULT_MCP_SERVER_SETTINGS.name,
+    logoUrl:
+      String(input.logoUrl ?? DEFAULT_MCP_SERVER_SETTINGS.logoUrl).trim() ||
+      DEFAULT_MCP_SERVER_SETTINGS.logoUrl,
     host: String(input.host ?? DEFAULT_MCP_SERVER_SETTINGS.host).trim() || '127.0.0.1',
     port,
     token: String(input.token ?? '').trim(),
-    exposedTools
+    exposedTools: normalizeExposedTools(input.exposedTools),
+    keepLogs: input.keepLogs ?? true
   };
 }
 

@@ -38,6 +38,7 @@ import type {
   McpClientServerListItem,
   McpClientServerStatus,
   McpClientToolInfo,
+  McpServerLogEntry,
   McpServerSettings,
   McpServerStatus,
   ImportEntityResult,
@@ -2083,6 +2084,29 @@ function getMcpServerStatus(): Promise<McpServerStatus> {
  */
 function regenerateMcpServerToken(): Promise<McpServerSettings> {
   return ipcRenderer.invoke('mcp:regenerateToken');
+}
+
+/**
+ * Returns persisted sanitized MCP server log entries (oldest first).
+ */
+function getMcpServerLogs(): Promise<McpServerLogEntry[]> {
+  return ipcRenderer.invoke('mcp:getServerLogs');
+}
+
+/**
+ * Subscribes to newly appended MCP server log entries while Keep logs is on.
+ *
+ * @param callback - Invoked with each newly persisted log entry.
+ * @returns Unsubscribe function.
+ */
+function onMcpServerLog(callback: (entry: McpServerLogEntry) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, entry: unknown): void => {
+    callback(entry as McpServerLogEntry);
+  };
+  ipcRenderer.on('mcp:serverLog', listener);
+  return () => {
+    ipcRenderer.removeListener('mcp:serverLog', listener);
+  };
 }
 
 /**
@@ -5136,6 +5160,8 @@ const api: Api = {
   setMcpServerSettings,
   getMcpServerStatus,
   regenerateMcpServerToken,
+  getMcpServerLogs,
+  onMcpServerLog,
   listMcpClientServers,
   saveMcpClientServer,
   deleteMcpClientServer,

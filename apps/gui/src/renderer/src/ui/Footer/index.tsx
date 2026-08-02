@@ -392,16 +392,6 @@ export function Footer({
               groups={environmentMenuGroups}
             />
             <FooterButton
-              active={consoleOpen}
-              onClick={onToggleConsole}
-              controlsId="footer-console-panel"
-            >
-              Console
-              {entryCount > 0 && (
-                <span className="ml-1 text-[14px] text-muted">({entryCount})</span>
-              )}
-            </FooterButton>
-            <FooterButton
               active={variablesOpen}
               onClick={onToggleVariables}
               controlsId="footer-variables-panel"
@@ -433,6 +423,16 @@ export function Footer({
                 <FaIcon icon={faTerminal} className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Terminal
               </span>
+            </FooterButton>
+            <FooterButton
+              active={consoleOpen}
+              onClick={onToggleConsole}
+              controlsId="footer-console-panel"
+            >
+              Console
+              {entryCount > 0 && (
+                <span className="ml-1 text-[14px] text-muted">({entryCount})</span>
+              )}
             </FooterButton>
 
             {pluginFooterPanels.map((panel) => {

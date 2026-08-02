@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { applyMcpServerSettings, getMcpServerStatus } from '#/main/mcpServer/mcpServer';
 import { getMcpToolBridge } from '#/main/mcpServer/hostBridge';
+import { listMcpServerLogs } from '#/main/mcpServer/mcpServerLogBuffer';
 import {
   callMcpClientTool,
   listMcpClientServerStatuses,
@@ -32,6 +33,8 @@ export function registerMcpHandlers(): void {
   });
 
   handle('mcp:getServerStatus', ipcArgSchemas.none, () => getMcpServerStatus());
+
+  handle('mcp:getServerLogs', ipcArgSchemas.none, () => listMcpServerLogs());
 
   handle('mcp:regenerateToken', ipcArgSchemas.none, async () => {
     const settings = regenerateMcpServerToken();

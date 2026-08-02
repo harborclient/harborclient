@@ -15,7 +15,6 @@ import {
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { AI_TOOL_NAMES, type AiToolName } from '@harborclient/core/ai/tools';
 import type {
   McpClientHeader,
   McpClientServer,
@@ -25,6 +24,7 @@ import type {
   McpServerStatus
 } from '@harborclient/core/types';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
+import { McpExposedToolsTable } from '#/renderer/src/ui/Shared/Mcp/McpExposedToolsTable';
 import { McpServerFormFields } from '#/renderer/src/ui/Shared/Mcp/McpServerFormFields';
 import { buildMcpConfigSnippet } from '#/renderer/src/ui/Shared/Mcp/buildMcpConfigSnippet';
 import {
@@ -37,26 +37,6 @@ import {
   parseMcpClientServerImportSnippet
 } from '#/renderer/src/ui/Shared/Mcp/parseMcpClientServerImport';
 import { formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
-
-const MCP_MUTATING_TOOLS: readonly AiToolName[] = [
-  'send_active_request',
-  'set_active_environment',
-  'update_active_request',
-  'update_request_script',
-  'create_collection',
-  'create_folder',
-  'create_request',
-  'start_live_server',
-  'stop_live_server',
-  'create_live_server',
-  'update_live_server',
-  'delete_live_server',
-  'clear_live_server_logs'
-];
-
-const MCP_READ_TOOLS = AI_TOOL_NAMES.filter(
-  (name) => !(MCP_MUTATING_TOOLS as readonly string[]).includes(name)
-);
 
 /**
  * Creates a blank MCP client server row for the add-server modal.
@@ -225,56 +205,6 @@ export function McpSettingsExtra(): JSX.Element {
   };
 
   /**
-   * Toggles one exposed Harbor tool in the MCP server allowlist.
-   *
-   * @param toolName - Harbor AI tool name.
-   * @param checked - Whether the tool should be exposed.
-   */
-  const handleToggleExposedTool = (toolName: AiToolName, checked: boolean): void => {
-    setServerSettings((current) => {
-      if (!current) {
-        return current;
-      }
-      const next = new Set(current.exposedTools);
-      if (checked) {
-        next.add(toolName);
-      } else {
-        next.delete(toolName);
-      }
-      return {
-        ...current,
-        exposedTools: [...next]
-      };
-    });
-  };
-
-  /**
-   * Toggles all tools in one MCP server tool section on or off.
-   *
-   * @param sectionTools - Tool names in the section being toggled.
-   * @param checked - Whether every tool in the section should be exposed.
-   */
-  const setSectionExposedTools = (sectionTools: readonly AiToolName[], checked: boolean): void => {
-    setServerSettings((current) => {
-      if (!current) {
-        return current;
-      }
-      const next = new Set(current.exposedTools);
-      for (const tool of sectionTools) {
-        if (checked) {
-          next.add(tool);
-        } else {
-          next.delete(tool);
-        }
-      }
-      return {
-        ...current,
-        exposedTools: [...next]
-      };
-    });
-  };
-
-  /**
    * Opens the MCP client server modal and initializes the headers draft text.
    *
    * @param server - Server row to edit, or a blank row for add.
@@ -427,7 +357,7 @@ export function McpSettingsExtra(): JSX.Element {
         <SettingSectionHeading
           settingId="mcp.server"
           title="MCP Server"
-          description="Expose selected Harbor tools to external MCP clients such as Claude Desktop or Cursor. Nothing is exposed until you enable the server and select tools below."
+          description="Expose the full Harbor AI tool surface to external MCP clients such as Claude Desktop or Cursor. Enable the server and keep the bearer token private — every agent tool is available to authenticated clients."
         />
 
         <div className="flex flex-col gap-4">
@@ -466,69 +396,21 @@ export function McpSettingsExtra(): JSX.Element {
           </div>
 
           <div>
-            <p className="mb-2 font-medium text-text">Read-only tools</p>
-            <div className="flex flex-col gap-2">
-              <FormGroup
-                className="border-none!"
-                label="Check all"
-                layout="checkbox"
-                htmlFor="mcp-read-tools-check-all"
-              >
-                <Checkbox
-                  id="mcp-read-tools-check-all"
-                  checked={MCP_READ_TOOLS.every((toolName) =>
-                    serverSettings.exposedTools.includes(toolName)
-                  )}
-                  disabled={saving}
-                  onChange={(event) => setSectionExposedTools(MCP_READ_TOOLS, event.target.checked)}
-                />
-              </FormGroup>
-              {MCP_READ_TOOLS.map((toolName) => (
-                <FormGroup key={toolName} label={toolName} layout="checkbox">
-                  <Checkbox
-                    checked={serverSettings.exposedTools.includes(toolName)}
-                    disabled={saving}
-                    onChange={(event) => handleToggleExposedTool(toolName, event.target.checked)}
-                  />
-                </FormGroup>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 font-medium text-text">Mutating tools</p>
-            <p className="m-0 mb-2 text-muted">
-              These can send HTTP requests or change editor drafts. Leave unchecked unless you trust
-              every MCP client that can reach this server.
+            <p className="mb-2 font-medium text-text">Exposed tools</p>
+            <p className="m-0 mb-3 text-muted">
+              Choose which Harbor AI agent tools are registered on the MCP server. Unchecked tools
+              are unavailable to MCP clients. Mutating tools can send requests, change drafts, run
+              terminals, and control live servers — only share the bearer token with clients you
+              trust.
             </p>
-            <div className="flex flex-col gap-2">
-              <FormGroup
-                className="border-none!"
-                label="Check all"
-                layout="checkbox"
-                htmlFor="mcp-mutating-tools-check-all"
-              >
-                <Checkbox
-                  id="mcp-mutating-tools-check-all"
-                  checked={MCP_MUTATING_TOOLS.every((toolName) =>
-                    serverSettings.exposedTools.includes(toolName)
-                  )}
-                  disabled={saving}
-                  onChange={(event) =>
-                    setSectionExposedTools(MCP_MUTATING_TOOLS, event.target.checked)
-                  }
-                />
-              </FormGroup>
-              {MCP_MUTATING_TOOLS.map((toolName) => (
-                <FormGroup key={toolName} label={toolName} layout="checkbox">
-                  <Checkbox
-                    checked={serverSettings.exposedTools.includes(toolName)}
-                    disabled={saving}
-                    onChange={(event) => handleToggleExposedTool(toolName, event.target.checked)}
-                  />
-                </FormGroup>
-              ))}
-            </div>
+            <McpExposedToolsTable
+              exposedTools={serverSettings.exposedTools}
+              disabled={saving}
+              idPrefix="settings-mcp-tool"
+              onChange={(exposedTools) => {
+                setServerSettings({ ...serverSettings, exposedTools });
+              }}
+            />
           </div>
 
           <Button type="button" disabled={saving} onClick={() => void handleSaveServer()}>

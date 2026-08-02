@@ -347,6 +347,9 @@ export default function App(): JSX.Element {
     }
   }, [activeEnvironment, environments]);
 
+  /**
+   * The active folder ID.
+   */
   const activeFolderId = useMemo(() => {
     if (activeCollectionId == null) return null;
     if (draft.id != null) {
@@ -358,6 +361,9 @@ export default function App(): JSX.Element {
     return draft.folder_id ?? null;
   }, [activeCollectionId, draft.folder_id, draft.id, requestsByCollection]);
 
+  /**
+   * The active folder.
+   */
   const activeFolder = useMemo(() => {
     if (activeCollectionId == null || activeFolderId == null) return undefined;
     return (foldersByCollection[activeCollectionId] ?? []).find(
