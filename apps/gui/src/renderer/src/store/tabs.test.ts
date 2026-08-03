@@ -86,6 +86,7 @@ describe('normalizeDraft', () => {
 
     expect(normalizeDraft(legacy as RequestDraft)).toEqual({
       ...legacy,
+      protocol: 'http',
       pre_request_script: '',
       post_request_script: '',
       pre_request_scripts: [],
@@ -510,6 +511,7 @@ describe('defaultDraft and emptyKeyValue', () => {
     expect(draft).toEqual({
       name: 'Untitled Request',
       method: 'GET',
+      protocol: 'http',
       url: '',
       headers: [emptyKeyValue()],
       params: [emptyKeyValue()],
@@ -631,6 +633,7 @@ describe('draftFromSaved', () => {
       folder_id: null,
       name: 'Saved',
       method: 'PUT',
+      protocol: 'http',
       url: 'https://api.example.com?q=search',
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],

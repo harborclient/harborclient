@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(gui): sync request protocol in plugin draft adapter and tab tests. (`2508b7fe`)
 - Fix. (`cd5eefce`)
 - feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
 - feat(mcp-server): enhance MCP server settings and functionality. (`cf36a22f`)

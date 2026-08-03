@@ -26,6 +26,7 @@ function toPluginAuthConfig(auth: ReturnType<typeof normalizeAuth>): PluginAuthC
 export function toPluginRequestDraft(draft: StoreRequestDraft): RequestDraft {
   return {
     method: draft.method,
+    protocol: draft.protocol === 'sse' ? 'sse' : 'http',
     url: draft.url,
     params: draft.params.map((row) => ({ ...row })),
     headers: draft.headers.map((row) => ({ ...row })),
