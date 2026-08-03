@@ -16,7 +16,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(packageDir, '../..');
 const docsDir = path.join(packageDir, 'docs');
-const manifestPath = path.join(docsDir, '.vitepress/static/hc_manifest.json');
+const manifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
 const DEFAULT_SINCE = '2.0.0';
 
 const API_PAGES = [
@@ -66,15 +66,11 @@ const titleToKey = (title) => {
  * Returns whether a heading is a namespace intro (children follow) vs a leaf API.
  *
  * @param {string} title Heading title.
- * @param {string} body Section body until the next heading.
+ * @param {string} _body Section body until the next equal/higher heading (unused).
  * @returns {boolean} True when this should become a manifest entry.
  */
-const isLeafApiHeading = (title, body) => {
+const isLeafApiHeading = (title, _body) => {
   if (/\(/.test(title)) {
-    return true;
-  }
-
-  if (/\*\*Signature:\*\*/.test(body)) {
     return true;
   }
 
@@ -271,21 +267,23 @@ const parseSectionBody = (body) => {
  */
 const parseLeafSections = (markdown) => {
   const lines = markdown.split('\n');
-  /** @type {{ title: string; level: number; start: number; lineIndex: number }[]} */
+  /** @type {{ title: string; level: number; start: number; isHc: boolean }[]} */
   const headings = [];
 
   for (let i = 0; i < lines.length; i += 1) {
-    const match = /^(#{2,4})\s+(hc\..+)$/.exec(lines[i]);
+    const match = /^(#{2,4})\s+(.+)$/.exec(lines[i]);
 
     if (!match) {
       continue;
     }
 
+    const title = match[2].trim();
+
     headings.push({
-      title: match[2].trim(),
+      title,
       level: match[1].length,
       start: i,
-      lineIndex: i
+      isHc: title.startsWith('hc.')
     });
   }
 
@@ -294,7 +292,22 @@ const parseLeafSections = (markdown) => {
 
   for (let i = 0; i < headings.length; i += 1) {
     const current = headings[i];
-    const end = i + 1 < headings.length ? headings[i + 1].start : lines.length;
+
+    if (!current.isHc) {
+      continue;
+    }
+
+    // End at the next heading of the same or higher level so nested narrative
+    // under a method (### / ####) stays in the body, but sibling sections do not.
+    let end = lines.length;
+
+    for (let j = i + 1; j < headings.length; j += 1) {
+      if (headings[j].level <= current.level) {
+        end = headings[j].start;
+        break;
+      }
+    }
+
     const body = lines.slice(current.start + 1, end).join('\n');
 
     if (!isLeafApiHeading(current.title, body)) {

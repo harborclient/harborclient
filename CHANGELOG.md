@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(docs): update SDK documentation and enhance plugin API guidelines. (`46a2a29e`)
 - refactor(ResponseEditor): simplify split pane wrapping and adjust padding. (`4b480786`)
 - feat(settings): enhance deep link handling for settings navigation. (`3d03652e`)
 - feat(settings): introduce appearance settings section and related fields. (`3a5b426e`)

@@ -7,11 +7,56 @@ import {
   groupOverviewSlugs,
   syncedPages
 } from './docs-nav.config.mjs';
-import { getHeadings, toAnchor } from './docs-slugger.mjs';
+import { getHeadings, listHcMethodNames, toAnchor } from './docs-slugger.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
+const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+
+/**
+ * Loads and validates `hc_manifest.json` entries used by `<HcMethod>`.
+ *
+ * @returns {Promise<Record<string, { title: string; level: number; since: string; description: string }>>}
+ */
+const loadHcManifest = async () => {
+  const raw = await readFile(hcManifestPath, 'utf8');
+  /** @type {Record<string, Record<string, unknown>>} */
+  const manifest = JSON.parse(raw);
+  const errors = [];
+
+  for (const [key, entry] of Object.entries(manifest)) {
+    if (typeof entry?.title !== 'string' || !entry.title) {
+      errors.push(`${key}: missing title`);
+    }
+
+    if (![2, 3, 4].includes(entry?.level)) {
+      errors.push(`${key}: level must be 2, 3, or 4`);
+    }
+
+    if (typeof entry?.since !== 'string' || !/^\d+\.\d+\.\d+$/.test(entry.since)) {
+      errors.push(`${key}: since must be a semver string (got ${JSON.stringify(entry?.since)})`);
+    }
+
+    if (typeof entry?.description !== 'string' || !entry.description.trim()) {
+      errors.push(`${key}: missing description`);
+    }
+
+    if (typeof entry?.signature !== 'string') {
+      errors.push(`${key}: signature must be a string (may be empty for property docs)`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('hc_manifest.json validation errors:');
+    console.error(errors);
+    process.exit(1);
+  }
+
+  return /** @type {Record<string, { title: string; level: number; since: string; description: string }>} */ (
+    manifest
+  );
+};
 
 const INTERNAL_LINK_PATTERN = /\]\((\/[^)#?]+)(#[^)#?]+)?\)/g;
 
@@ -61,9 +106,10 @@ const pathExists = async (filePath) => {
 /**
  * Loads canonical markdown pages referenced by the nav manifest.
  *
+ * @param {Record<string, { title: string; level: number }>} hcManifest HC method manifest.
  * @returns {Promise<Map<string, { label: string; markdown: string; headings: ReturnType<typeof getHeadings> }>>}
  */
-const loadCanonicalPages = async () => {
+const loadCanonicalPages = async (hcManifest) => {
   /** @type {Map<string, { label: string; markdown: string; headings: ReturnType<typeof getHeadings> }>} */
   const pages = new Map();
 
@@ -72,7 +118,7 @@ const loadCanonicalPages = async () => {
   pages.set('/', {
     label: 'docs/index.md',
     markdown: indexMarkdown,
-    headings: getHeadings(indexMarkdown)
+    headings: getHeadings(indexMarkdown, hcManifest)
   });
 
   for (const slug of canonicalPageSlugs) {
@@ -81,7 +127,7 @@ const loadCanonicalPages = async () => {
     pages.set(`/${slug}`, {
       label: `docs/${slug}.md`,
       markdown,
-      headings: getHeadings(markdown)
+      headings: getHeadings(markdown, hcManifest)
     });
   }
 
@@ -91,7 +137,7 @@ const loadCanonicalPages = async () => {
     pages.set(`/${slug}/`, {
       label: `docs/${slug}/index.md`,
       markdown,
-      headings: getHeadings(markdown)
+      headings: getHeadings(markdown, hcManifest)
     });
     pages.set(`/${slug}`, pages.get(`/${slug}/`));
   }
@@ -103,9 +149,10 @@ const loadCanonicalPages = async () => {
  * Builds the set of routable docs paths and their heading anchors.
  *
  * @param {Map<string, { label: string; markdown: string; headings: ReturnType<typeof getHeadings> }>} canonicalPages Canonical page metadata.
+ * @param {Record<string, { title: string; level: number }>} hcManifest HC method manifest.
  * @returns {Promise<Map<string, Set<string>>>}
  */
-const buildRouteAnchorMap = async (canonicalPages) => {
+const buildRouteAnchorMap = async (canonicalPages, hcManifest) => {
   /** @type {Map<string, Set<string>>} */
   const routeAnchors = new Map();
 
@@ -125,7 +172,7 @@ const buildRouteAnchorMap = async (canonicalPages) => {
         const markdown = await readFile(pagePath, 'utf8');
         routeAnchors.set(
           `/${entry.slug}/${page.name}`,
-          new Set(getHeadings(markdown).map((heading) => heading.anchor))
+          new Set(getHeadings(markdown, hcManifest).map((heading) => heading.anchor))
         );
       }
     }
@@ -142,6 +189,30 @@ const buildRouteAnchorMap = async (canonicalPages) => {
   }
 
   return routeAnchors;
+};
+
+/**
+ * Verifies every `<HcMethod>` tag resolves and required entry fields are present.
+ *
+ * @param {Map<string, { label: string; markdown: string }>} canonicalPages Canonical pages.
+ * @param {Record<string, unknown>} hcManifest Loaded manifest.
+ */
+const verifyHcMethodTags = (canonicalPages, hcManifest) => {
+  const errors = [];
+
+  for (const page of canonicalPages.values()) {
+    for (const name of listHcMethodNames(page.markdown)) {
+      if (!hcManifest[name]) {
+        errors.push(`${page.label}: <HcMethod name="${name}" /> missing from hc_manifest.json`);
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('HcMethod reference errors:');
+    console.error(errors);
+    process.exit(1);
+  }
 };
 
 /**
@@ -248,7 +319,7 @@ const verifyInternalLinks = (canonicalPages, routeAnchors) => {
     for (const match of page.markdown.matchAll(INTERNAL_LINK_PATTERN)) {
       const route = match[1];
 
-      if (route.startsWith('/images/') || route.startsWith('/storybook')) {
+      if (route.startsWith('/images/') || route.startsWith('/storybook') || route.startsWith('/components/')) {
         continue;
       }
 
@@ -295,16 +366,18 @@ const verifyGfmAlerts = (label, markdown) => {
 
 await verifyManifestParity();
 
-const canonicalPages = await loadCanonicalPages();
-const routeAnchors = await buildRouteAnchorMap(canonicalPages);
+const hcManifest = await loadHcManifest();
+const canonicalPages = await loadCanonicalPages(hcManifest);
+const routeAnchors = await buildRouteAnchorMap(canonicalPages, hcManifest);
 
 for (const page of canonicalPages.values()) {
   verifyHeadingSlugs(page.label, page.headings);
   verifyGfmAlerts(page.label, page.markdown);
 }
 
+verifyHcMethodTags(canonicalPages, hcManifest);
 verifyInternalLinks(canonicalPages, routeAnchors);
 
 console.log(
-  `Verified ${docsNav.length} manifest entries, ${canonicalPages.size} canonical docs routes, and ${routeAnchors.size} routable paths.`
+  `Verified ${docsNav.length} manifest entries, ${canonicalPages.size} canonical docs routes, ${Object.keys(hcManifest).length} hc APIs, and ${routeAnchors.size} routable paths.`
 );

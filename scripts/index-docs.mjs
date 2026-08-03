@@ -26,6 +26,13 @@ const EMBEDDING_DIMENSIONS = 1536;
 const BATCH_SIZE = 100;
 const ENV_PATH = path.join(scriptDir, '.env');
 const CACHE_PATH = path.join(scriptDir, '.cache', 'docs-embeddings.json');
+const HC_MANIFEST_PATH = path.join(
+  repoRoot,
+  'packages/sdk/docs/.vitepress/hc_manifest.json'
+);
+
+/** Cached hc_manifest.json contents (loaded once per run). */
+let hcManifestCache = null;
 
 const DOC_SOURCES = [
   {
@@ -223,6 +230,73 @@ function stripFrontmatter(markdown) {
 }
 
 /**
+ * Loads `hc_manifest.json` once for expanding `<HcMethod>` tags in docs.
+ *
+ * @returns Manifest map, or an empty object when the file is missing.
+ */
+async function loadHcManifest() {
+  if (hcManifestCache) {
+    return hcManifestCache;
+  }
+
+  try {
+    const raw = await readFile(HC_MANIFEST_PATH, 'utf8');
+    hcManifestCache = JSON.parse(raw);
+  } catch {
+    hcManifestCache = {};
+  }
+
+  return hcManifestCache;
+}
+
+/**
+ * Replaces `<HcMethod name="…" />` tags with searchable markdown sections.
+ *
+ * @param markdown - Raw markdown that may contain HcMethod tags.
+ * @param manifest - Loaded hc_manifest.json map.
+ * @returns Markdown with expanded method reference prose.
+ */
+function expandHcMethodTags(markdown, manifest) {
+  return markdown.replace(
+    /^<HcMethod\s+name="([^"]+)"(?:\s+:level="(\d)")?\s*\/>\s*$/gm,
+    (full, name, levelOverride) => {
+      const entry = manifest[name];
+
+      if (!entry) {
+        return full;
+      }
+
+      const level = Number(levelOverride) || entry.level || 2;
+      const hashes = '#'.repeat(level);
+      const lines = [`${hashes} ${entry.title}`, ''];
+
+      if (entry.since) {
+        lines.push(`Available since v${entry.since}`, '');
+      }
+
+      if (entry.signature) {
+        lines.push(`**Signature:** \`${entry.signature}\``, '');
+      }
+
+      if (entry.manifest) {
+        lines.push(`**Manifest:** \`${entry.manifest}\``, '');
+      }
+
+      if (entry.description) {
+        lines.push(entry.description, '');
+      }
+
+      for (const example of entry.examples ?? []) {
+        const lang = example.lang || 'typescript';
+        lines.push(`\`\`\`${lang}`, example.code, '```', '');
+      }
+
+      return lines.join('\n');
+    }
+  );
+}
+
+/**
  * Removes Vue component tags and normalizes whitespace for embedding.
  *
  * @param markdown - Markdown body text.
@@ -351,11 +425,13 @@ async function loadSourceChunks(sourceConfig) {
 
   const files = await collectMarkdownFiles(sourceConfig.root);
   files.sort((left, right) => left.localeCompare(right));
+  const hcManifest = await loadHcManifest();
 
   const chunks = [];
   for (const filePath of files) {
     const raw = await readFile(filePath, 'utf8');
-    const body = sanitizeMarkdown(stripFrontmatter(raw));
+    const expanded = expandHcMethodTags(stripFrontmatter(raw), hcManifest);
+    const body = sanitizeMarkdown(expanded);
     const relativePath = path.relative(sourceConfig.root, filePath).replace(/\\/g, '/');
     const title = extractTitle(body, filePath);
     const url = buildDocUrl(sourceConfig, relativePath);

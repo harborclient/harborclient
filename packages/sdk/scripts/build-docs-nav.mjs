@@ -9,6 +9,18 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
 const sidebarGeneratedPath = path.join(repoDir, 'docs/.vitepress/sidebar.generated.ts');
+const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+
+/**
+ * Loads the SDK `hc_manifest.json` used to expand `<HcMethod>` tags into headings.
+ *
+ * @returns {Promise<Record<string, { title: string; level: number; since?: string }>>}
+ */
+const loadHcManifest = async () => {
+  const raw = await readFile(hcManifestPath, 'utf8');
+
+  return JSON.parse(raw);
+};
 
 /**
  * Builds a VitePress page link for a section slug and optional anchor.
@@ -128,6 +140,7 @@ const markGroupsCollapsible = (items) => {
 const buildVitePressSidebar = async (nav) => {
   const mainItems = [];
   const bottomItems = [];
+  const hcManifest = await loadHcManifest();
 
   for (const entry of nav) {
     const target = 'pinnedBottom' in entry && entry.pinnedBottom ? bottomItems : mainItems;
@@ -152,7 +165,7 @@ const buildVitePressSidebar = async (nav) => {
 
     const pagePath = path.join(docsDir, `${entry.slug}.md`);
     const markdown = await readFile(pagePath, 'utf8');
-    const headings = getHeadings(markdown);
+    const headings = getHeadings(markdown, hcManifest);
     const subItems = buildPageSidebarItems(entry.slug, headings, entry.maxDepth ?? 3);
     const node = {
       text: entry.title,

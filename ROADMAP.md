@@ -46,3 +46,4 @@ Features we intend to build in HarborClient itself (not only via plugins):
 - **WebSocket clients** -- connect, send frames, and inspect messages in the
   workspace (builds on the same session transport as SSE).
 - **gRPC** -- explore support for unary and streaming RPC workflows.
+- **Internal SDK usage** -- consider using the SDK internally, e.g. not just for plugins

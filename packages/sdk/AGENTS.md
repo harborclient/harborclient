@@ -57,6 +57,28 @@ pnpm check
 
 Fix any reported issues before finishing the task.
 
+## Plugin API docs (`hc_manifest.json`)
+
+Public `hc.*` reference docs are data-driven:
+
+- Manifest: `packages/sdk/docs/.vitepress/hc_manifest.json`
+- Pages use `<HcMethod name="ui.registerModal" />` (no `hc.` prefix in `name`)
+
+When you add or rename a public `hc.*` API:
+
+1. Update `hc_manifest.json` in the same change.
+2. Set `since` to the **planned HarborClient app release** from
+   `apps/harborclient/package.json` → `version` (e.g. `2.11.0`), unless the
+   feature is explicitly targeting a later version.
+3. Add or update `<HcMethod name="…" />` on the matching SDK docs page
+   (`renderer-ui`, `renderer-data`, `renderer-overview`, or `main-api`).
+4. Do not invent SDK package versions (`sdk-v*`) for `since`.
+5. Do not edit site-synced copies under `harborclient/site`; sync pulls from
+   this package via `scripts/sync-sdk-hc-method.mjs`.
+
+Do not re-run git archaeology for historical `since` values. New APIs always
+use the planned desktop release version above.
+
 ## Changelog
 
 `packages/sdk/CHANGELOG.md` is updated by the monorepo `.githooks/post-commit`

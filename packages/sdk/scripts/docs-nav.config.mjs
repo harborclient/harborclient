@@ -79,6 +79,21 @@ export const docsNav = [
         name: 'mcp-client-server',
         source: 'docs/examples/mcp-client-server.md',
         title: 'MCP client server'
+      },
+      {
+        name: 'chat-pointers',
+        source: 'docs/examples/chat-pointers.md',
+        title: 'Chat pointers'
+      },
+      {
+        name: 'ai-instructions-turn-hooks',
+        source: 'docs/examples/ai-instructions-turn-hooks.md',
+        title: 'AI instructions and turn hooks'
+      },
+      {
+        name: 'sidebar-replacement-tree',
+        source: 'docs/examples/sidebar-replacement-tree.md',
+        title: 'Sidebar replacement tree'
       }
     ]
   },

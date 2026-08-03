@@ -83,72 +83,11 @@ registerTheme(hc, {
 
 Use `defineTheme(theme)` when you want to define the theme object in a separate module with full `ThemeContribution` typing.
 
-### hc.themes.register(theme)
+<HcMethod name="themes.register" :level="3" />
 
-**Signature:** `(theme: ThemeContribution) => Disposable`
+<HcMethod name="themes.getActive" :level="3" />
 
-**Manifest:** `contributes.themes`
-
-| Parameter    | Type                                        | Description                                                         |
-| ------------ | ------------------------------------------- | ------------------------------------------------------------------- |
-| `id`         | `string`                                    | Theme id unique within your plugin                                  |
-| `title`      | `string`                                    | Label in the appearance dropdown                                    |
-| `type`       | `'light' \| 'dark'`                         | Sets `color-scheme` and Electron native chrome base                 |
-| `colors`     | `Partial<Record<ThemeColorToken, string>>`  | Optional color token overrides                                      |
-| `metrics`    | `Partial<Record<ThemeMetricToken, string>>` | Optional typography/geometry overrides (CSS strings such as `14px`) |
-| `stylesheet` | `string`                                    | Optional plugin-relative CSS file for complex themes                |
-
-Provide `colors`, `metrics`, a `stylesheet`, or a combination. Use `colors` / `metrics` for token swaps; use `stylesheet` when you need selectors beyond `:root` (for example plugin-specific tweaks under `[data-theme='plugin-…']`).
-
-```typescript
-hc.themes.register({
-  id: 'solarized',
-  title: 'Solarized Dark',
-  type: 'dark',
-  colors: {
-    surface: '#002b36',
-    sidebar: '#073642',
-    control: '#073642',
-    text: '#839496',
-    'text-secondary': '#93a1a1',
-    accent: '#268bd2',
-    selection: 'rgba(38, 139, 210, 0.25)'
-  },
-  metrics: {
-    'layout-font-size': '14px',
-    'scrollbar-width': '10px'
-  }
-});
-```
-
-When the user selects your theme, the persisted value is `plugin:<pluginId>:<themeId>`. If the plugin is disabled or uninstalled while its theme is active, HarborClient falls back to **System**.
-
-### hc.themes.getActive()
-
-**Signature:** `() => Promise<ActiveTheme>`
-
-Returns the currently active theme — either a built-in id or a plugin theme reference.
-
-```typescript
-const active = await hc.themes.getActive();
-if (active.source === 'plugin') {
-  console.log(active.pluginId, active.themeId);
-}
-```
-
-### hc.themes.onDidChange(listener)
-
-**Signature:** `(listener: (theme: ActiveTheme) => void) => Disposable`
-
-Fires when the user changes the appearance theme in Settings or when the host resets theme after plugin deactivation.
-
-```typescript
-hc.themes.onDidChange((theme) => {
-  if (theme.source === 'plugin' && theme.themeId === 'solarized') {
-    hc.ui.showToast('Solarized theme active');
-  }
-});
-```
+<HcMethod name="themes.onDidChange" :level="3" />
 
 ### Theme color tokens
 
@@ -200,49 +139,17 @@ See the [Solarized theme example](/examples/solarized-theme) for a complete them
 
 Command handlers tie together menus, toolbar actions, and context menu items.
 
-### hc.commands.register(id, handler)
+<HcMethod name="commands.register" :level="3" />
 
-**Signature:** `(id: string, handler: (...args: unknown[]) => void | Promise<void>) => Disposable`
-
-**Manifest:** matching `contributes.commands` entry
-
-Registers a command handler. The `id` must match a command declared in the manifest and referenced by menu, toolbar, or context menu contributions.
-
-### hc.commands.execute(id, ...args)
-
-**Signature:** `(id: string, ...args: unknown[]) => Promise<void>`
-
-Runs a registered command programmatically — for example to open a main view from another part of your plugin.
-
-```typescript
-hc.commands.register('myPlugin.openDashboard', () => {
-  void hc.commands.execute('myPlugin.navigateToView', 'myPlugin.view');
-});
-```
+<HcMethod name="commands.execute" :level="3" />
 
 ## hc.storage
 
 Plugin-scoped persistent storage. Keys are namespaced by plugin `id` in the main process. Requires the `storage` permission.
 
-### hc.storage.get(key)
+<HcMethod name="storage.get" :level="3" />
 
-**Signature:** `<T>(key: string) => Promise<T | undefined>`
-
-Returns the stored value, or `undefined` if the key has never been set.
-
-```typescript
-const enabled = await hc.storage.get<boolean>('enabled');
-```
-
-### hc.storage.set(key, value)
-
-**Signature:** `<T>(key: string, value: T) => Promise<void>`
-
-Persists a JSON-serializable value.
-
-```typescript
-await hc.storage.set('enabled', true);
-```
+<HcMethod name="storage.set" :level="3" />
 
 ### Storage-backed store (cross-webview sync)
 
@@ -302,110 +209,31 @@ Use `hc.database` when you need indexed queries, relational data, or large struc
 
 `get`, `all`, and `run` accept **single-statement** parameterized SQL (`?` placeholders). Use `exec` for migration scripts (multi-statement DDL). Use `transaction` for atomic multi-step writes.
 
-### hc.database.get(sql, params?)
+<HcMethod name="database.get" :level="3" />
 
-**Signature:** `<T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T | undefined>`
+<HcMethod name="database.all" :level="3" />
 
-Returns the first row, or `undefined` when no row matches.
+<HcMethod name="database.run" :level="3" />
 
-```typescript
-const row = await hc.database.get<{ count: number }>(
-  'SELECT COUNT(*) AS count FROM events WHERE request_id = ?',
-  [requestId]
-);
-```
+<HcMethod name="database.exec" :level="3" />
 
-### hc.database.all(sql, params?)
-
-**Signature:** `<T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>`
-
-Returns all matching rows.
-
-### hc.database.run(sql, params?)
-
-**Signature:** `(sql: string, params?: unknown[]) => Promise<PluginRunResult>`
-
-Runs an `INSERT`, `UPDATE`, or `DELETE` statement. Returns `{ changes, lastInsertRowid }`.
-
-### hc.database.exec(sql)
-
-**Signature:** `(sql: string) => Promise<void>`
-
-Executes a multi-statement SQL script (typically migrations). Rejects scripts containing `ATTACH`, `DETACH`, or `load_extension`.
-
-```typescript
-await hc.database.exec(`
-  CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    request_id INTEGER NOT NULL,
-    status INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_events_request_id ON events(request_id);
-`);
-```
-
-### hc.database.transaction(fn)
-
-**Signature:** `<T>(fn: (tx: PluginDatabaseTx) => Promise<T>) => Promise<T>`
-
-Runs `fn` inside an exclusive transaction. The `tx` object exposes `get`, `all`, and `run` bound to the same transaction.
-
-```typescript
-await hc.database.transaction(async (tx) => {
-  await tx.run('INSERT INTO outbox (payload) VALUES (?)', [JSON.stringify(body)]);
-  await tx.run('UPDATE counters SET value = value + 1 WHERE name = ?', ['sent']);
-});
-```
-
-Plugin database files are included in HarborClient `.hcb` backups and removed when the plugin is uninstalled.
+<HcMethod name="database.transaction" :level="3" />
 
 ## hc.fs
 
 Plugin-scoped filesystem access backed by main-process permission checks and a per-plugin path allowlist. Requires `filesystem:pick` for open/save dialogs, `filesystem:read` for `readFile`, and `filesystem:write` for `writeFile` / `writeBytes`. User-selected paths from pick/save dialogs are added to the allowlist automatically; the plugin package directory is allowlisted on load. User-granted paths persist across app restarts and are restored when the plugin loads again.
 
-### hc.fs.pickFile(options?)
+<HcMethod name="fs.pickFile" :level="3" />
 
-**Signature:** `(options?: PluginFsPickFileOptions) => Promise<string[]>`
+<HcMethod name="fs.pickDirectory" :level="3" />
 
-Opens a native file picker. Returns absolute paths for the selected files, or an empty array when the dialog is canceled. Requires the `filesystem:pick` permission.
+<HcMethod name="fs.saveFile" :level="3" />
 
-```typescript
-const paths = await hc.fs.pickFile({
-  title: 'Choose a schema',
-  filters: [{ name: 'JSON', extensions: ['json'] }]
-});
-```
+<HcMethod name="fs.readFile" :level="3" />
 
-### hc.fs.pickDirectory(defaultPath?)
+<HcMethod name="fs.writeFile" :level="3" />
 
-**Signature:** `(defaultPath?: string) => Promise<string | null>`
-
-Opens a native directory picker. Returns the selected directory path, or `null` when canceled. Requires the `filesystem:pick` permission.
-
-### hc.fs.saveFile(content, options?)
-
-**Signature:** `(content: string, options?: PluginFsSaveFileOptions) => Promise<string | null>`
-
-Opens a native save dialog and writes `content` to the chosen path. Returns the saved path, or `null` when canceled. Requires the `filesystem:pick` and `filesystem:write` permissions.
-
-### hc.fs.readFile(path)
-
-**Signature:** `(path: string) => Promise<string>`
-
-Reads a UTF-8 text file from an allowlisted path. Requires the `filesystem:read` permission.
-
-### hc.fs.writeFile(path, content)
-
-**Signature:** `(path: string, content: string) => Promise<void>`
-
-Writes UTF-8 text to an allowlisted path. Requires the `filesystem:write` permission.
-
-### hc.fs.writeBytes(path, bytes)
-
-**Signature:** `(path: string, bytes: Uint8Array) => Promise<string>`
-
-Writes binary bytes to an allowlisted path. Relative paths resolve under the plugin package directory. Returns the absolute path written. Requires the `filesystem:write` permission.
+<HcMethod name="fs.writeBytes" :level="3" />
 
 ## hc.http
 
@@ -453,81 +281,11 @@ saved requests rather than editing the current tab. Use `openImageView` for
 screenshots, logos, generated charts, or import previews that belong in a
 dedicated image tab.
 
-### hc.host.openRequestDraft(payload)
+<HcMethod name="host.openRequestDraft" :level="3" />
 
-**Signature:** `(payload: OpenRequestDraftPayload) => Promise<void>`
+<HcMethod name="host.applyRequestDraft" :level="3" />
 
-Opens a new unsaved request tab seeded with request metadata. Omitted fields use
-HarborClient defaults (`GET`, no body, empty headers/params). `headers` is a
-flat map; `params` is an array of enabled query parameter rows.
-
-```typescript
-await hc.host.openRequestDraft({
-  name: 'Create pet',
-  method: 'POST',
-  url: 'https://api.example.com/pets',
-  headers: { 'Content-Type': 'application/json' },
-  params: [{ key: 'trace', value: 'true' }],
-  body: JSON.stringify({ name: 'Fluffy' }),
-  bodyType: 'json'
-});
-```
-
-### hc.host.applyRequestDraft(payload)
-
-**Signature:** `(payload: ApplyRequestDraftPayload) => Promise<void>`
-
-Updates the active request editor tab in place. Provided fields replace the
-corresponding draft values; when `headers` or `params` are supplied, those
-tables are replaced entirely. The tab becomes dirty, so the user still decides
-whether to save the changed request to its collection.
-
-```typescript
-function parseExternalFormat(source: string): ApplyRequestDraftPayload {
-  return {
-    method: 'PUT',
-    url: 'https://api.example.com/pets/123',
-    headers: { 'Content-Type': 'application/json' },
-    body: source,
-    bodyType: 'json'
-  };
-}
-
-await hc.host.applyRequestDraft(parseExternalFormat(editorText));
-hc.ui.showToast('Request updated');
-```
-
-`applyRequestDraft` throws when there is no active request tab or when a field is
-invalid. Show parse/update failures inline in your plugin UI when the user needs
-to fix input.
-
-### hc.host.createCollection(payload)
-
-**Signature:** `(payload: CreateCollectionPayload) => Promise<CreateCollectionResult>`
-
-Bulk-creates a collection with folders and saved requests. Requests sharing the same `folder` string are grouped into one folder; requests without `folder` are created at the collection root.
-
-```typescript
-const { collectionId } = await hc.host.createCollection({
-  name: 'Petstore API',
-  requests: [
-    {
-      name: 'List pets',
-      method: 'GET',
-      url: 'https://api.example.com/pets',
-      folder: 'pets'
-    },
-    {
-      name: 'Create pet',
-      method: 'POST',
-      url: 'https://api.example.com/pets',
-      folder: 'pets',
-      body: '{"name":"Fluffy"}',
-      bodyType: 'json'
-    }
-  ]
-});
-```
+<HcMethod name="host.createCollection" :level="3" />
 
 ### Library read APIs
 
@@ -636,56 +394,7 @@ tree — they do not show confirmation dialogs.
 cached (call `listLibraryTree` / expand the collection first), matching
 `loadRequest` today.
 
-#### hc.host.showEntityContextMenu(input)
-
-**Signature:** `(input: ShowEntityContextMenuInput) => Promise<void>`
-
-Opens the same collection / folder / request context menu the built-in
-Collections tree would show — including plugin
-[`registerContextMenuItem`](/renderer-ui#hcuiregistercontextmenuitem)
-contributions — positioned in the **host** window. Fire-and-forget; does not
-wait for the user to dismiss the menu.
-
-| Field            | Type                      | Description                                                         |
-| ---------------- | ------------------------- | ------------------------------------------------------------------- |
-| `target`         | `EntityContextMenuTarget` | `{ type: 'collection', collectionId }` \| folder \| request         |
-| `x`, `y`         | `number`                  | Coordinates in the **plugin webview** viewport                      |
-| `pluginId`       | `string`                  | Your plugin manifest id (for HostedSurface lookup and focus return) |
-| `contributionId` | `string`                  | Sidebar panel contribution id mounted in the surface                |
-
-The host offsets `x`/`y` by the HostedSurface bounding rect. When the surface
-cannot be found, coordinates are treated as host viewport coordinates.
-
-**Limitations**
-
-- Document targets are not supported (v1).
-- Submenu flyouts and focus return to the webview may be imperfect across the
-  webview boundary.
-- Menu actions dispatch host thunks and work even when the built-in Collections
-  tree is unmounted (replacement mode).
-
-```typescript
-row.addEventListener('contextmenu', (event) => {
-  event.preventDefault();
-  void hc.host.showEntityContextMenu({
-    target: { type: 'request', requestId },
-    x: event.clientX,
-    y: event.clientY,
-    pluginId: 'com.example.tree',
-    contributionId: 'collections'
-  });
-});
-```
-
-See the [sidebar replacement tree example](/examples/sidebar-replacement-tree)
-for a full pattern including reorder/move.
-
-```typescript
-await hc.host.loadRequest(requestId);
-await hc.host.loadDocument(documentId);
-await hc.host.openCollectionSettings(collectionId);
-await hc.host.openCollectionRunner(collectionId);
-```
+<HcMethod name="host.showEntityContextMenu" :level="4" />
 
 ### Sidebar selection bridge
 
@@ -897,52 +606,7 @@ await hc.host.setCollectionArchived({ collectionId, archived: true });
 await hc.host.deleteRequest(request.id);
 ```
 
-### hc.host.openImageView(payload)
-
-**Signature:** `(payload: OpenImageViewPayload) => Promise<void>`
-
-Opens or focuses an image-view page tab. Use this to display screenshots, logos,
-generated charts, or import previews in a dedicated tab with **Copy location**
-and **Download** actions. Prefer this typed API over
-`hc.commands.execute('harborclient:openImageView', payload)`.
-
-See also [Renderer API → hc.host](/renderer-overview#hchost).
-
-**Payload rules**
-
-- Provide exactly one source: `path`, `url`, `dataUrl`, or `base64` with
-  `contentType`.
-- `fileName` is optional for `path` and `url` (derived from the basename or last
-  URL path segment). It is required for inline `dataUrl` and `base64` payloads.
-- Inline `dataUrl` / `base64` payloads are capped by the same IPC body-size limit
-  as large request bodies.
-
-**Tab behavior**
-
-| Aspect         | Behavior                                                                      |
-| -------------- | ----------------------------------------------------------------------------- |
-| Tab label      | Shortened filename (middle ellipsis, extension preserved)                     |
-| Page header    | Full filename                                                                 |
-| Deduping       | Reopening the same source focuses the existing tab                            |
-| Persistence    | Session-only — image tabs are not restored after restart                      |
-| In-tab actions | **Copy location** (path, URL, or data URL) and **Download** via a save dialog |
-
-```typescript
-// From a menu action or command handler
-await hc.host.openImageView({
-  url: 'https://harborclient.com/images/logo.png'
-});
-
-// After the user picks a file with hc.fs.pickFile
-await hc.host.openImageView({ path: selectedPath });
-
-// Inline bytes from a plugin-generated PNG
-await hc.host.openImageView({
-  fileName: 'preview.png',
-  base64: pngBase64,
-  contentType: 'image/png'
-});
-```
+<HcMethod name="host.openImageView" :level="3" />
 
 ## Global variables
 
@@ -1027,18 +691,7 @@ registerImportHandler(hc, '.json', {
 });
 ```
 
-### hc.imports.registerHandler(extensions, handler)
-
-**Signature:** `(extensions: string | string[], handler: ImportHandler) => Disposable`
-
-| Callback    | Type                                                | Description                                         |
-| ----------- | --------------------------------------------------- | --------------------------------------------------- |
-| `canImport` | `(file: ImportFile) => boolean \| Promise<boolean>` | Returns whether this handler should import the file |
-| `import`    | `(file: ImportFile) => void \| Promise<void>`       | Performs the import workflow                        |
-
-`ImportFile` includes `name`, `path`, `extension` (dot-prefixed, lowercase), and UTF-8 `contents`.
-
-Extensions may be passed with or without a leading dot (`json` and `.json` are equivalent). Register multiple extensions in one call: `['.json', '.yaml', '.yml']`.
+<HcMethod name="imports.registerHandler" :level="3" />
 
 ## hc.mcp
 
@@ -1046,29 +699,7 @@ Register remote MCP client servers so Harbor's chat agent can discover and call 
 
 Requires the `mcp` permission. Registrations are **activation-scoped**: Harbor connects while the plugin is enabled and removes them when you dispose the returned handle or the plugin unloads. Plugin-owned servers appear as **read-only** rows in **Settings → AI & MCP** with plugin attribution; they are not copied into user MCP settings.
 
-### hc.mcp.registerServer(config)
-
-**Signature:** `(config: PluginMcpServerConfig) => Disposable`
-
-| Field       | Type                 | Description                                                                 |
-| ----------- | -------------------- | --------------------------------------------------------------------------- |
-| `name`      | `string`             | Display name in Settings → AI & MCP                                         |
-| `serverURL` | `string`             | Absolute HTTP or HTTPS MCP endpoint URL                                     |
-| `enabled`   | `boolean` (optional) | When false, Harbor skips connecting. Defaults to `true`                     |
-| `headers`   | `PluginMcpHeader[]`  | Optional HTTP headers sent with MCP client requests                         |
-| `icon`      | `string` (optional)  | Optional square icon as a `data:image/...;base64,...` URI for settings rows |
-
-```typescript
-hc.mcp.registerServer({
-  name: 'WordPress',
-  icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  serverURL: 'https://public-api.wordpress.com/wpcom/v2/mcp/v1',
-  enabled: true,
-  headers: [{ key: 'Authorization', value: 'Bearer token' }]
-});
-```
-
-Discovered tools are prefixed with `mcp__` in the chat agent tool list, using the same naming scheme as user-configured MCP client servers.
+<HcMethod name="mcp.registerServer" :level="3" />
 
 ## hc.liveServers
 
@@ -1102,83 +733,31 @@ export async function activate(hc: PluginContext): Promise<void> {
 }
 ```
 
-### hc.liveServers.list()
+<HcMethod name="liveServers.list" :level="3" />
 
-**Signature:** `() => Promise<LiveServer[]>`
+<HcMethod name="liveServers.get" :level="3" />
 
-Lists saved live servers from the local registry.
+<HcMethod name="liveServers.create" :level="3" />
 
-### hc.liveServers.get(idOrUuid)
+<HcMethod name="liveServers.update" :level="3" />
 
-**Signature:** `(idOrUuid: number | string) => Promise<LiveServer | null>`
+<HcMethod name="liveServers.delete" :level="3" />
 
-Returns one saved server by database id or uuid, or `null` when not found.
+<HcMethod name="liveServers.start" :level="3" />
 
-### hc.liveServers.create(input)
+<HcMethod name="liveServers.stop" :level="3" />
 
-**Signature:** `(input: CreateLiveServerInput) => Promise<LiveServer>`
+<HcMethod name="liveServers.listRunning" :level="3" />
 
-Persists a new saved server and returns the created row.
+<HcMethod name="liveServers.getStatus" :level="3" />
 
-### hc.liveServers.update(input)
+<HcMethod name="liveServers.getLogs" :level="3" />
 
-**Signature:** `(input: UpdateLiveServerInput) => Promise<LiveServer>`
+<HcMethod name="liveServers.clearLogs" :level="3" />
 
-Updates a saved server. Does not restart a running instance.
+<HcMethod name="liveServers.onRunningChanged" :level="3" />
 
-### hc.liveServers.delete(id)
-
-**Signature:** `(id: number) => Promise<void>`
-
-Deletes a saved server. Does not stop a running instance started from that saved id.
-
-### hc.liveServers.start(input)
-
-**Signature:** `(input: StartLiveServerInput) => Promise<RunningLiveServer>`
-
-Starts from `savedId` (loads config from the registry when `config` is omitted) and/or an ad-hoc `config`. Returns the running instance with assigned port and `http://127.0.0.1:<port>` origin.
-
-### hc.liveServers.stop(query)
-
-**Signature:** `(query: { id: string } | { savedId: number }) => Promise<void>`
-
-Stops one running instance by runtime id or saved id.
-
-### hc.liveServers.listRunning()
-
-**Signature:** `() => Promise<RunningLiveServer[]>`
-
-Lists currently running instances.
-
-### hc.liveServers.getStatus(query)
-
-**Signature:** `(query: { id: string } | { savedId: number }) => Promise<RunningLiveServer | null>`
-
-Returns the running instance for the query, or `null` when not running.
-
-### hc.liveServers.getLogs(query)
-
-**Signature:** `(query: LiveServerLogsQuery & { limit?: number }) => Promise<LiveServerRequestLogEntry[]>`
-
-Returns trailing buffered Express access-log lines (default `limit` 100, max 1000). Empty when the instance is not running.
-
-### hc.liveServers.clearLogs(query)
-
-**Signature:** `(query: LiveServerLogsQuery) => Promise<void>`
-
-Clears the in-memory request log buffer for a running instance.
-
-### hc.liveServers.onRunningChanged(listener)
-
-**Signature:** `(listener: (running: RunningLiveServer[]) => void) => Disposable`
-
-Subscribes to start/stop list changes (including changes from the Harbor UI).
-
-### hc.liveServers.onRequestLog(listener)
-
-**Signature:** `(listener: (entry: LiveServerRequestLogEntry) => void) => Disposable`
-
-Subscribes to Express access-log lines from running live servers.
+<HcMethod name="liveServers.onRequestLog" :level="3" />
 
 ## hc.livePages
 
@@ -1210,35 +789,15 @@ export async function activate(hc: PluginContext): Promise<void> {
 }
 ```
 
-### hc.livePages.list()
+<HcMethod name="livePages.list" :level="3" />
 
-**Signature:** `() => Promise<Website[]>`
+<HcMethod name="livePages.get" :level="3" />
 
-Lists saved live pages from the local registry.
+<HcMethod name="livePages.create" :level="3" />
 
-### hc.livePages.get(idOrUuid)
+<HcMethod name="livePages.update" :level="3" />
 
-**Signature:** `(idOrUuid: number | string) => Promise<Website | null>`
-
-Returns one saved live page by database id or uuid, or `null` when not found.
-
-### hc.livePages.create(input)
-
-**Signature:** `(input: CreateWebsiteInput) => Promise<Website>`
-
-Persists a new saved live page and returns the created row.
-
-### hc.livePages.update(input)
-
-**Signature:** `(input: UpdateWebsiteInput) => Promise<Website>`
-
-Updates a saved live page. Does not open or bind a browser tab.
-
-### hc.livePages.delete(id)
-
-**Signature:** `(id: number) => Promise<void>`
-
-Deletes a saved live page (moves it to trash).
+<HcMethod name="livePages.delete" :level="3" />
 
 ## hc.ai
 
@@ -1250,174 +809,17 @@ Plugins **cannot** rewrite Harbor's base system prompt — they only append frag
 
 Turn hooks (`onBeforeTurn` / `onAfterTurn`) fire **once per user chat turn** (not per LLM tool-loop step), and are unrelated to `hc.http.onBeforeSend` / `onAfterSend`.
 
-### hc.ai.registerChatPointer(config)
+<HcMethod name="ai.registerChatPointer" :level="3" />
 
-**Default grammar** (`match` / `parse` omitted) — tokens are `@plugin.<pluginId>.<id>.<key>` with an optional `#start.end` selection suffix:
+<HcMethod name="ai.copyToChat" :level="3" />
 
-```ts
-hc.ai.registerChatPointer({
-  id: 'script',
-  agentGuidance:
-    'When a user message contains @plugin.<pluginId>.script.<key>, use the captured context in the system message.'
-});
-```
+<HcMethod name="ai.instructions.add" :level="3" />
 
-**Custom grammar** — supply both `match` (body after `@`, as a `RegExp` or source string) and `parse`. Patterns that can match reserved builtin shapes (`plugin`, `request`, `res`, `term`, …) are rejected:
+<HcMethod name="ai.onBeforeTurn" :level="3" />
 
-```ts
-hc.ai.registerChatPointer({
-  id: 'invoice',
-  match: /^invoice\.([A-Za-z0-9-]+)(?:#(\d+)\.(\d+))?/,
-  parse: (match) => {
-    const key = match[1];
-    if (key == null) return null;
-    return {
-      key,
-      selection: match[2] != null ? { start: Number(match[2]), end: Number(match[3]) } : undefined
-    };
-  },
-  agentGuidance: 'When @invoice.<id> appears, use the captured invoice context.'
-});
-```
+<HcMethod name="ai.onAfterTurn" :level="3" />
 
-`id` must match `[a-z][a-z0-9-]*`. `parse` returns `{ key, selection? }` or `null`; the host fills `kind: 'plugin'`, `pluginId`, and token offsets. Composer highlighting uses a sync host fallback; your `parse` is authoritative at copy and send/validate over IPC.
-
-### hc.ai.copyToChat(input)
-
-Opens the AI sidebar, ensures a chat exists, stores a snapshot, and queues the badge token in the composer.
-
-Default grammar — pass `key` (host builds `@plugin…`):
-
-```ts
-await hc.ai.copyToChat({
-  pointerId: 'script',
-  key: scriptUuid,
-  label: scriptName,
-  context: scriptSource,
-  selection: { start: 0, end: 12 }
-});
-```
-
-Custom match — pass the full `token` including `@`:
-
-```ts
-await hc.ai.copyToChat({
-  pointerId: 'invoice',
-  token: '@invoice.inv-42#0.12',
-  label: 'Invoice inv-42',
-  context: invoiceText
-});
-```
-
-Context longer than 100,000 characters is truncated with a clear marker. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) (or a CodeEditor `copy-to-chat` toolbar action) and call `hc.ai.copyToChat` from `onSelect`.
-
-See [Chat pointers](/examples/chat-pointers) for a full walkthrough.
-
-### hc.ai.instructions.add(text)
-
-Appends a static fragment to the agent system prompt while the returned disposable is active. Whitespace-only strings are ignored. `hc.ai.instructions.list` returns this plugin's currently registered fragments.
-
-```ts
-const handle = hc.ai.instructions.add(
-  'Prefer the WordPress MCP tools when the user asks about posts or pages.'
-);
-// later: handle.dispose();
-```
-
-Merge order for the default agent path: Harbor base prompt → chat-pointer `agentGuidance` → static `instructions.add` fragments → (per turn) ephemeral system message from `onBeforeTurn` → `ctx.instructions.push`.
-
-### hc.ai.onBeforeTurn(handler)
-
-Runs once when the user sends a chat message, **before** the first LLM completion step. The handler receives a mutable context:
-
-| Field                            | Notes                                                                         |
-| -------------------------------- | ----------------------------------------------------------------------------- |
-| `chatId`, `model`, `hubId?`      | Turn identity                                                                 |
-| `userMessage.content`            | Mutable model-facing user text (does not rewrite the persisted DB row)        |
-| `userMessage.referenceSnapshots` | Read-only `@` snapshots already collected                                     |
-| `instructions.push(text)`        | Turn-only fragments (ephemeral system message)                                |
-| `messages`                       | Conversation history about to be sent (excluding Harbor's base system prompt) |
-| `cancel(reason?)`                | Abort the turn before any LLM call                                            |
-
-```ts
-hc.ai.onBeforeTurn((ctx) => {
-  ctx.instructions.push('The active invoice draft is INV-42.');
-  if (ctx.userMessage.content.includes('secret')) {
-    ctx.cancel('Blocked sensitive prompt.');
-  }
-});
-```
-
-### hc.ai.onAfterTurn(handler)
-
-Runs once when the turn finishes (completed, cancelled, or error). The context is read-only: `userMessage`, `assistantMessage`, `status`, optional `error`, and `stats` (`stepCount`, `toolCallCount`, `durationMs`).
-
-## hc.livePage
-
-Opens or reuses an embedded browser tab and returns a control handle (focus, close, DOM query/evaluate/inject, viewport screenshot).
-
-Requires the `browser` permission (granted at install/enable). This is independent of Settings → General → Allow script live page access, which only gates request-script `hc.livePage`. Saving a screenshot with `page.screenshot` also requires `filesystem:write`.
-
-```ts
-export async function activate(hc: PluginContext): Promise<void> {
-  // Open or reuse a tab at this URL (reuse defaults to true). New tabs wait for load.
-  const page = await hc.livePage('https://example.com');
-
-  // Or always force a fresh tab:
-  // const page = await hc.livePage('https://example.com', { reuse: false });
-
-  // Or bind whatever browser tab is already active (no URL):
-  // const page = await hc.livePage();
-
-  console.log(page.tabId, page.url, page.title, page.canGoBack, page.canGoForward);
-
-  await page.focus();
-  await page.navigate('https://example.com/docs');
-  await page.reload();
-  await page.goBack();
-  await page.goForward();
-  // Navigation helpers wait for load and refresh url/title/canGoBack/canGoForward.
-
-  // First matching element by default; use { all: true } for every match.
-  const heading = await page.dom.query('h1');
-  console.log(heading.matchCount, heading.elements);
-
-  const links = await page.dom.query('a[href]', { all: true, maxElements: 50 });
-  console.log(links.elements);
-
-  // Expression must return a JSON-serializable value.
-  const title = await page.dom.evaluate('document.title');
-  const meta = await page.dom.evaluate(`({
-    href: location.href,
-    readyState: document.readyState
-  })`);
-
-  // Inject and run script source in the page main world.
-  await page.dom.injectScript(`
-    document.body.dataset.harborProbe = '1';
-  `);
-
-  // Inject CSS; returns an Electron insertion key.
-  const styleKey = await page.dom.injectStylesheet(`
-    h1 { outline: 2px solid #32D2E2; }
-  `);
-  console.log(styleKey);
-
-  // Viewport PNG under the plugin package directory (requires filesystem:write).
-  const { path } = await page.screenshot('screenshot.png', {});
-  console.log(path);
-
-  // Full-page scroll-and-stitch capture.
-  const full = await page.screenshot('full.png', { fullPage: true });
-  console.log(full.path);
-
-  // false when the user cancels a leave prompt on a dirty page.
-  const closed = await page.close();
-  console.log(closed);
-}
-```
-
-Omit `url` to bind the active browser tab. Pass `{ reuse: false }` to always open a new tab (default `reuse` is `true`). New tabs wait for load before the promise resolves.
+<HcMethod name="livePage" :level="2" />
 
 ## Not extensible
 

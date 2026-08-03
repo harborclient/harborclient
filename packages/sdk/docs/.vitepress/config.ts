@@ -50,7 +50,7 @@ export default withMermaid(
     vite: {
       publicDir: '.vitepress/static',
       optimizeDeps: {
-        include: ['mermaid']
+        include: ['mermaid', 'markdown-it', 'shiki']
       },
       resolve: {
         alias: {

@@ -16,37 +16,9 @@ Values must be JSON-serializable. There is no `delete` or `list` API; store stru
 
 Use main-process storage when HTTP hooks or other main-entry logic must persist state (OAuth tokens, API key config mirrored for `onBeforeSend`, response baselines, and similar). Renderer-only settings can stay in the renderer entry.
 
-### hc.storage.get(key)
+<HcMethod name="storage.get" :level="3" />
 
-**Signature:** `<T>(key: string) => Promise<T | undefined>`
-
-Returns the stored value, or `undefined` if the key has never been set.
-
-```typescript
-import type { MainPluginContext } from '@harborclient/sdk';
-
-export function activate(hc: MainPluginContext): void {
-  hc.http.onBeforeSend(async (request) => {
-    const token = await hc.storage.get<string>('accessToken');
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`;
-    }
-  });
-}
-```
-
-### hc.storage.set(key, value)
-
-**Signature:** `<T>(key: string, value: T) => Promise<void>`
-
-Persists a JSON-serializable value.
-
-```typescript
-await hc.storage.set('accessToken', refreshedToken);
-await hc.storage.set('links', [{ collectionId: 1, dotenvPath: '/path/to/.env' }]);
-```
-
-Invalid JSON already stored for a key causes `get` to throw with a plugin-scoped error message (same behavior as the renderer API).
+<HcMethod name="storage.set" :level="3" />
 
 ## hc.database
 
@@ -56,91 +28,15 @@ The main entry routes SQL through the Electron main process, which opens one iso
 
 See [Themes and storage → hc.database](/renderer-data#hcdatabase) for method signatures, migration examples, and transaction usage.
 
-## hc.http.onBeforeSend(handler)
+<HcMethod name="http.onBeforeSend" :level="2" />
 
-**Signature:** `(handler: (request) => void \| Promise<void>) => Disposable`
+<HcMethod name="http.onAfterSend" :level="2" />
 
-Register a callback that runs before each outgoing HTTP request. Mutate the request object to change method, URL, headers, or body. Requires the `http` permission. Remove a header with `delete request.headers['Header-Name']`.
+<HcMethod name="http.onBeforeScripts" :level="2" />
 
-```typescript
-import type { MainPluginContext } from '@harborclient/sdk';
+<HcMethod name="http.onAfterScripts" :level="2" />
 
-export function activate(hc: MainPluginContext): void {
-  hc.http.onBeforeSend(async (request) => {
-    request.headers['X-Plugin-Trace'] = '1';
-    delete request.headers['Authorization'];
-  });
-}
-```
-
-## hc.http.onAfterSend(handler)
-
-**Signature:** `(handler: (request, response) => void \| Promise<void>) => Disposable`
-
-Register a callback that runs after the response is received. Requires the `http` permission.
-
-For UI-only plugins that react to completed sends (history, recent-requests, response diff), prefer renderer-side `hc.http.onAfterSend` in the renderer entry — it fires in-process with no main entry, custom IPC channel, or polling. Use this main-process hook when you need to run logic in the SES-hardened utilityProcess or mutate shared main-side state.
-
-## hc.http.onBeforeScripts(handler)
-
-**Signature:** `(handler: (context) => void \| Promise<void>) => Disposable`
-
-Register a callback that runs before each request stage's scripts. Fires twice per send — once with `phase: 'pre'` and once with `phase: 'post'`. Requires the `scripts:inject` permission.
-
-Injected scripts run as a synthetic scope ahead of collection/folder/request scripts. Within each stage (`before-all`, `before-each`, `main`, `after-each`, `after-all`), plugin scripts run before host scripts in that stage. Use `context.scripts.data` to seed the shared `hc.data` bag visible to every script in the send.
-
-```typescript
-import type { MainPluginContext } from '@harborclient/sdk';
-
-export function activate(hc: MainPluginContext): void {
-  hc.http.onBeforeScripts((ctx) => {
-    if (ctx.phase !== 'pre') {
-      return;
-    }
-    ctx.scripts.data.traceId = crypto.randomUUID();
-    ctx.scripts.beforeAll.push({
-      name: 'Stamp trace id',
-      script: `hc.request.headers.set('X-Trace-Id', hc.data.traceId);`
-    });
-  });
-}
-```
-
-See [Baseline tests](/examples/baseline-tests), [Trace correlation](/examples/trace-correlation), and [Production guard](/examples/production-guard) for complete walkthroughs.
-
-## hc.http.onAfterScripts(handler)
-
-**Signature:** `(handler: (context) => void \| Promise<void>) => Disposable`
-
-Register a callback that runs after each request stage's scripts complete. Fires twice per send — once after pre-request scripts and once after post-request scripts. Requires the `scripts:inject` permission.
-
-The context includes the final `data` bag for the stage, named `hc.test` results, console lines, and script error messages. Use this to collect injected test results or correlate values scripts wrote into `hc.data`.
-
-```typescript
-import type { MainPluginContext } from '@harborclient/sdk';
-
-export function activate(hc: MainPluginContext): void {
-  hc.http.onAfterScripts(async (ctx) => {
-    if (ctx.phase !== 'post') {
-      return;
-    }
-    const failed = ctx.tests.filter((test) => !test.passed);
-    if (failed.length) {
-      await hc.storage.set('lastFailures', failed);
-    }
-  });
-}
-```
-
-## hc.ipc.handle(channel, handler)
-
-**Signature:** `(channel: string, handler: (...args) => unknown) => Disposable`
-
-Expose an RPC channel callable from the renderer half of the same plugin. Requires the `ipc` permission.
-
-Main-process hooks are invoked by posting work to the utilityProcess runner; the main process applies mutations and enforces permissions before and after each callback.
-
-See the [Request logger example](/examples/request-logger) for a main-only plugin using HTTP hooks.
+<HcMethod name="ipc.handle" :level="2" />
 
 ## hc.server
 
@@ -173,79 +69,13 @@ export function activate(hc: MainPluginContext): void {
 }
 ```
 
-### hc.server.start(options?)
+<HcMethod name="server.start" :level="3" />
 
-**Signature:** `(options?: { port?: number }) => Promise<{ port: number }>`
+<HcMethod name="server.stop" :level="3" />
 
-Starts listening. Returns the assigned port after the server accepts connections.
+<HcMethod name="server.onRequest" :level="3" />
 
-### hc.server.stop()
-
-**Signature:** `() => Promise<void>`
-
-Stops the echo server owned by this plugin.
-
-### hc.server.onRequest(handler)
-
-**Signature:** `(handler: (request) => unknown | PluginServerHttpResponse | Promise<...>) => Disposable`
-
-Invoked for each incoming HTTP request. The `request` object includes a default `echo` payload (args, data, files, form, headers, json, origin, url).
-
-Return either:
-
-- A JSON-serializable value for a **legacy** body-only response (always HTTP 200 + `application/json`), or
-- A **structured** `PluginServerHttpResponse` with `kind: 'http-response'` (use `createHttpResponse(...)` from `@harborclient/sdk/runtime-utils`) for custom status, headers, body, and `delayMs`.
-
-String `body` values are sent as raw text (default `text/plain` unless you set `Content-Type`). Other bodies use JSON.
-
-Multiple handlers may be registered; each call returns a `Disposable` that removes only that handler. Handlers run sequentially in registration order. When a handler returns `undefined` or `null`, the host keeps the result from the previous handler (starting from the default echo payload).
-
-## hc.scripts
-
-**Signature:** `(init?: PluginScriptContextInit) => PluginScriptContext`
-
-Creates a script sandbox that exposes the **same `hc` object** as collection and request pre/post scripts. Use it to run tests, mutate a request snapshot, or read a response with `hc.response.json()` inside your main entry.
-
-No extra permission is required. Contexts start with only the hc API plus globals you inject with `setVariable` and `setFunction`.
-
-```typescript
-import type { MainPluginContext } from '@harborclient/sdk';
-
-export function activate(hc: MainPluginContext): void {
-  const context = hc.scripts.createContext({
-    phase: 'post',
-    request: {
-      method: 'GET',
-      url: 'https://api.example.com/users',
-      headers: [],
-      params: [],
-      body: '',
-      bodyType: 'none'
-    },
-    response: {
-      status: 200,
-      statusText: 'OK',
-      headers: { 'content-type': 'application/json' },
-      body: '{"ok":true}',
-      timeMs: 12,
-      sizeBytes: 11
-    },
-    variables: { token: 'abc' }
-  });
-
-  context.setFunction('console', console);
-
-  const result = context.run(`
-    const data = hc.response.json();
-    hc.test('is ok', () => hc.expect(data.ok).to.equal(true));
-    hc.request.variables.set('lastStatus', String(hc.response.code));
-    data.ok;
-  `);
-
-  // result.value === true
-  // result.tests, result.variableSets, result.logs, result.request, ...
-}
-```
+<HcMethod name="scripts" :level="2" />
 
 ### PluginScriptContext
 

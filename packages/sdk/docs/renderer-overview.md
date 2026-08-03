@@ -432,17 +432,9 @@ export interface PluginHttpResponse {
 
 Install `@harborclient/sdk` as a **dev dependency** in your plugin project for types and the JSX runtime helpers. The package tracks HarborClient releases. Type definitions are maintained in [harborclient/sdk](https://github.com/harborclient/sdk). Main entries use `MainPluginContext` instead — import it from `@harborclient/sdk` or `@harborclient/sdk/main` for main-only plugins.
 
-## hc.pluginId
+<HcMethod name="pluginId" :level="2" />
 
-**Type:** `string`
-
-The plugin manifest `id`. Use for IPC routing and logging instead of hardcoding the manifest id in plugin source.
-
-## hc.react
-
-**Type:** `typeof React`
-
-The same React instance HarborClient uses in the renderer. Do not import or bundle `react` / `react-dom` in your plugin bundle.
+<HcMethod name="react" :level="2" />
 
 ## React and JSX
 
@@ -508,145 +500,29 @@ Renderer-side HTTP lifecycle events for reacting to completed sends in the UI. R
 
 Prefer `hc.http.onAfterSend` over a main entry + custom IPC + polling when you only need to capture completed requests in the renderer (for example history or recent-requests panels).
 
-### hc.http.onAfterSend(handler)
-
-**Signature:** `(handler: (request, response) => void | Promise<void>) => Disposable`
-
-Fires after each successful send in the renderer. The `request` payload matches main-process hooks (`PluginHttpRequest`); the `response` payload is `PluginHttpResponse`.
-
-```typescript
-hc.http.onAfterSend(async (request, response) => {
-  console.log(request.method, request.url, response.status);
-});
-```
-
-For mutating outgoing requests before they are sent, use a main entry with `hc.http.onBeforeSend` instead — see [Main API](/main-api).
+<HcMethod name="http.onAfterSend" :level="3" />
 
 ## hc.ipc
 
 Renderer-side RPC into the plugin's main entry. Requires the `ipc` permission. The host auto-reactivates the main runtime when it has been torn down.
 
-### hc.ipc.invoke(channel, ...args)
-
-**Signature:** `<T>(channel: string, ...args: unknown[]) => Promise<T>`
-
-Invokes a handler registered with `hc.ipc.handle` in the main entry. Use `hc.pluginId` for logging — channel names are automatically scoped to your plugin.
-
-```typescript
-const pending = await hc.ipc.invoke<Array<{ id: string }>>('pullPending');
-```
-
-Do not call `window.api.invokePluginMain` directly — use this typed API instead.
+<HcMethod name="ipc.invoke" :level="3" />
 
 ## hc.host
 
 Typed wrappers for built-in HarborClient request editor commands. Requires the `ui` permission. Prefer these over stringly-typed `hc.commands.execute('harborclient:…')`.
 
-### hc.host.openRequestDraft(payload)
+<HcMethod name="host.openRequestDraft" :level="3" />
 
-**Signature:** `(payload: OpenRequestDraftPayload) => Promise<void>`
+<HcMethod name="host.applyRequestDraft" :level="3" />
 
-Opens a new unsaved request tab seeded with request metadata. Use this for
-recent-request/history panels, import previews, or any workflow that should
-leave the active request unchanged.
+<HcMethod name="host.loadRequest" :level="3" />
 
-```typescript
-await hc.host.openRequestDraft({
-  name: 'Recent GET',
-  method: request.method,
-  url: request.url,
-  headers: request.headers,
-  params: request.params,
-  body: request.body,
-  bodyType: request.bodyType as BodyType | undefined
-});
-```
+<HcMethod name="host.send" :level="3" />
 
-### hc.host.applyRequestDraft(payload)
+<HcMethod name="host.fetch" :level="3" />
 
-**Signature:** `(payload: ApplyRequestDraftPayload) => Promise<void>`
-
-Updates the active request editor tab in place. Provided fields replace the
-corresponding draft values; when `headers` or `params` are supplied, those
-tables are replaced rather than merged. The active tab becomes dirty just as if
-the user edited it manually, and the user still controls when to save the
-request to its collection.
-
-Use this for bidirectional editor tabs or tools that parse external request
-formats back into HarborClient.
-
-```typescript
-await hc.host.applyRequestDraft({
-  method: 'POST',
-  url: 'https://api.example.com/pets',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: 'Bearer token'
-  },
-  body: JSON.stringify({ name: 'Fluffy' }),
-  bodyType: 'json'
-});
-```
-
-### hc.host.loadRequest(requestId)
-
-**Signature:** `(requestId: number) => Promise<void>`
-
-Opens a saved collection request or focuses an existing tab for it.
-
-```typescript
-await hc.host.loadRequest(42);
-```
-
-### hc.host.send()
-
-**Signature:** `() => Promise<void>`
-
-Sends the active request editor tab using the same pipeline as the Send button. No-op when a send is already in flight for the active tab.
-
-```typescript
-await hc.host.send();
-```
-
-### hc.host.fetch(input, init?)
-
-**Signature:** `(input: string | URL | { url: string }, init?: PluginFetchInit) => Promise<PluginFetchResponse>`
-
-Sends one outbound HTTP request through the main-process pipeline using the native `fetch(input, init?)` signature. Requires the `network` permission.
-
-```typescript
-const response = await hc.host.fetch('https://api.example.com/token', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ grant_type: 'client_credentials' })
-});
-const data = await response.json();
-```
-
-### hc.host.openImageView(payload)
-
-**Signature:** `(payload: OpenImageViewPayload) => Promise<void>`
-
-Opens or focuses an image-view page tab for a local file, remote URL, or inline image. Provide exactly one source form. See [Themes and storage → hc.host.openImageView](/renderer-data#hchostopenimageviewpayload) for tab behavior and validation details.
-
-```typescript
-await hc.host.openImageView({ path: '/tmp/screenshot.png' });
-
-await hc.host.openImageView({
-  url: 'https://harborclient.com/images/logo.png'
-});
-
-await hc.host.openImageView({
-  dataUrl: 'data:image/png;base64,iVBORw0KGgo...',
-  fileName: 'chart.png'
-});
-
-await hc.host.openImageView({
-  base64: pngBase64,
-  contentType: 'image/png',
-  fileName: 'chart.png'
-});
-```
+<HcMethod name="host.openImageView" :level="3" />
 
 ## Related reference
 
