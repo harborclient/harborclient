@@ -1,6 +1,6 @@
 {
   "name": "@harborclient/core",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Platform-neutral HarborClient engine: types, request orchestration helpers, and shared utilities.",
   "homepage": "https://harborclient.github.io/harborclient/core/",
   "bugs": {

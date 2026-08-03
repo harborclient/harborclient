@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.4 - 2026-08-03
+
 - feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)
 
 ## 0.4.3 - 2026-08-03
