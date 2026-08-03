@@ -1,6 +1,6 @@
 {
   "name": "@harborclient/http",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "HTTP utilities for HarborClient.",
   "keywords": [
     "harborclient",
