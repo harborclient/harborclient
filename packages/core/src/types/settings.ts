@@ -173,6 +173,119 @@ export const DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT = 340;
 export type LiveServerLogsPlacement = 'footer' | 'sidebar';
 
 /**
+ * Side of the response editor that hosts the secondary split pane.
+ */
+export type ResponseEditorSplitSide = 'left' | 'right' | 'up' | 'down';
+
+/**
+ * Default secondary pane size in pixels for a response editor split.
+ */
+export const DEFAULT_RESPONSE_EDITOR_SPLIT_SIZE = 280;
+
+/**
+ * Minimum secondary pane size in pixels for a response editor split.
+ */
+export const MIN_RESPONSE_EDITOR_SPLIT_SIZE = 120;
+
+/**
+ * Maximum secondary pane size in pixels for a response editor split.
+ */
+export const MAX_RESPONSE_EDITOR_SPLIT_SIZE = 2000;
+
+/**
+ * Persisted secondary pane inside the response editor (at most one).
+ */
+export interface ResponseEditorSplitState {
+  /**
+   * Which edge of the response editor hosts the secondary pane.
+   */
+  side: ResponseEditorSplitSide;
+
+  /**
+   * Response viewer tab ids assigned to the secondary pane, in strip order.
+   */
+  secondaryTabIds: string[];
+
+  /**
+   * Secondary pane size in pixels along the split axis.
+   */
+  size: number;
+
+  /**
+   * Active tab id in the secondary pane, or null when none is selected yet.
+   */
+  activeTab: string | null;
+}
+
+/**
+ * Returns whether a value is a valid response editor split side.
+ *
+ * @param value - Candidate side string.
+ * @returns True when the value is left, right, up, or down.
+ */
+export function isResponseEditorSplitSide(value: unknown): value is ResponseEditorSplitSide {
+  return value === 'left' || value === 'right' || value === 'up' || value === 'down';
+}
+
+/**
+ * Clamps a response editor secondary pane size to supported bounds.
+ *
+ * @param value - Raw size from storage or user input.
+ * @returns Normalized size in pixels.
+ */
+export function normalizeResponseEditorSplitSize(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_RESPONSE_EDITOR_SPLIT_SIZE;
+  }
+  return Math.min(
+    MAX_RESPONSE_EDITOR_SPLIT_SIZE,
+    Math.max(MIN_RESPONSE_EDITOR_SPLIT_SIZE, Math.round(parsed))
+  );
+}
+
+/**
+ * Normalizes a persisted response editor split from storage or user input.
+ *
+ * @param value - Raw split object, null, or undefined.
+ * @returns Sanitized split state, or null when unsplit / invalid.
+ */
+export function normalizeResponseEditorSplit(value: unknown): ResponseEditorSplitState | null {
+  if (value == null || typeof value !== 'object') {
+    return null;
+  }
+
+  const raw = value as Partial<ResponseEditorSplitState>;
+  if (!isResponseEditorSplitSide(raw.side)) {
+    return null;
+  }
+
+  const secondaryTabIds = Array.isArray(raw.secondaryTabIds)
+    ? raw.secondaryTabIds.filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0
+      )
+    : [];
+
+  if (secondaryTabIds.length === 0) {
+    return null;
+  }
+
+  const activeTab =
+    typeof raw.activeTab === 'string' &&
+    raw.activeTab.length > 0 &&
+    secondaryTabIds.includes(raw.activeTab)
+      ? raw.activeTab
+      : (secondaryTabIds[0] ?? null);
+
+  return {
+    side: raw.side,
+    secondaryTabIds,
+    size: normalizeResponseEditorSplitSize(raw.size),
+    activeTab
+  };
+}
+
+/**
  * Persisted visibility for sidebars, request/response editors, and footer panels.
  */
 export interface PanelLayoutState {
@@ -215,6 +328,11 @@ export interface PanelLayoutState {
    * Request editor panel height in pixels when both request and response editors are visible.
    */
   requestEditorSplitHeight: number;
+
+  /**
+   * Secondary response-editor pane layout, or null when unsplit.
+   */
+  responseEditorSplit: ResponseEditorSplitState | null;
 
   /**
    * Whether the footer console panel is open.

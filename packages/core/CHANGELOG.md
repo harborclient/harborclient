@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(gui): add response editor split functionality. (`bd1aaaba`)
+
 ## 0.5.0 - 2026-08-03
 
 - feat(sse): enhance import functionality for Server-Sent Events (SSE). (`e26fa155`)

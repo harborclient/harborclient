@@ -10,7 +10,7 @@ import type {
   SidebarExpansionState,
   ThemeSource
 } from './settings';
-import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from './settings';
+import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT, normalizeResponseEditorSplit } from './settings';
 
 /**
  * localStorage keys for resizable panel widths and footer heights captured in a
@@ -47,6 +47,7 @@ const DEFAULT_WORKSPACE_PANELS: PanelLayoutState = {
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  responseEditorSplit: null,
   showConsole: false,
   showVariables: false,
   showMcp: false,
@@ -210,6 +211,15 @@ const workspacePanelsSchema = z.object({
   showRequestEditor: z.boolean(),
   showResponseEditor: z.boolean(),
   requestEditorSplitHeight: z.number().finite(),
+  responseEditorSplit: z
+    .object({
+      side: z.enum(['left', 'right', 'up', 'down']),
+      secondaryTabIds: z.array(z.string().min(1)),
+      size: z.number().finite(),
+      activeTab: z.string().nullable()
+    })
+    .nullable()
+    .default(null),
   showConsole: z.boolean(),
   showVariables: z.boolean(),
   showMcp: z.boolean(),
@@ -545,6 +555,7 @@ function normalizeWorkspacePanels(value: unknown): PanelLayoutState {
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight,
+    responseEditorSplit: normalizeResponseEditorSplit(input.responseEditorSplit),
     liveServerLogsPlacement,
     liveServerLogsPlacements,
     ...footerPanels

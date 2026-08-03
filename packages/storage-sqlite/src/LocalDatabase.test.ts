@@ -839,6 +839,7 @@ describeSqlite('LocalDatabase workspaces', () => {
         showRequestEditor: true,
         showResponseEditor: true,
         requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+        responseEditorSplit: null,
         showConsole: false,
         showVariables: true,
         showMcp: false,

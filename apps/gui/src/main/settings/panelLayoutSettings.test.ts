@@ -32,6 +32,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
       showConsole: false,
       showVariables: false,
       showMcp: false,
@@ -69,7 +70,8 @@ describe('panelLayoutSettings', () => {
       showShortcutsSidebar: false,
       showRequestEditor: true,
       showResponseEditor: true,
-      requestEditorSplitHeight: 50
+      requestEditorSplitHeight: 50,
+      responseEditorSplit: null
     });
     const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
 
@@ -88,6 +90,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: false,
       showResponseEditor: true,
       requestEditorSplitHeight: 420,
+      responseEditorSplit: null,
       showConsole: false,
       showVariables: false,
       showMcp: false,
@@ -107,6 +110,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: false,
       showResponseEditor: true,
       requestEditorSplitHeight: 420,
+      responseEditorSplit: null,
       showConsole: false,
       showVariables: false,
       showMcp: false,
@@ -128,6 +132,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
       showConsole: true,
       showVariables: true,
       showMcp: true,
@@ -146,6 +151,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
       showConsole: false,
       showVariables: false,
       showMcp: false,
@@ -167,6 +173,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
       showConsole: true,
       showVariables: false,
       showMcp: false,
@@ -187,6 +194,7 @@ describe('panelLayoutSettings', () => {
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
       showConsole: true,
       showVariables: false,
       showMcp: false,
@@ -196,5 +204,38 @@ describe('panelLayoutSettings', () => {
       liveServerLogsPlacements: { '1': 'sidebar' },
       activePluginFooterPanelId: null
     });
+  });
+
+  it('normalizes a persisted response editor split', async () => {
+    mockGet.mockReturnValue({
+      responseEditorSplit: {
+        side: 'right',
+        secondaryTabIds: ['console', ''],
+        size: 40,
+        activeTab: 'missing'
+      }
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout().responseEditorSplit).toEqual({
+      side: 'right',
+      secondaryTabIds: ['console'],
+      size: 120,
+      activeTab: 'console'
+    });
+  });
+
+  it('clears an empty response editor split', async () => {
+    mockGet.mockReturnValue({
+      responseEditorSplit: {
+        side: 'left',
+        secondaryTabIds: [],
+        size: 280,
+        activeTab: null
+      }
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout().responseEditorSplit).toBeNull();
   });
 });

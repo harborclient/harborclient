@@ -7,7 +7,7 @@ import {
   useRef,
   useState
 } from '@harborclient/sdk/react';
-import type { ComponentPropsWithoutRef, JSX, KeyboardEvent } from 'react';
+import type { ComponentPropsWithoutRef, JSX, KeyboardEvent, MouseEvent } from 'react';
 import { VisibilityMenu } from '../VisibilityMenu/index.js';
 import { segment, segmentGroup } from '../classes.js';
 import { getFocusableElements } from '../useDialogFocus.js';
@@ -128,6 +128,12 @@ interface Props<T extends string> extends Omit<
    * `SegmentedTabsGroup`.
    */
   ariaLabel?: string;
+
+  /**
+   * Called when the user right-clicks a tab button. The browser context menu is
+   * suppressed so hosts can show a custom menu.
+   */
+  onTabContextMenu?: (value: T, event: MouseEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -146,6 +152,7 @@ export function SegmentedTabs<T extends string>({
   className,
   pattern = 'tabs',
   ariaLabel: ariaLabelProp,
+  onTabContextMenu,
   ...props
 }: Props<T>): JSX.Element {
   const context = useContext(SegmentedTabsContext);
@@ -358,7 +365,16 @@ export function SegmentedTabs<T extends string>({
               className={tabClassName}
               disabled={tab.disabled}
               tabIndex={tab.disabled ? -1 : 0}
+              data-tab-value={tab.value}
               onClick={() => onChange(tab.value)}
+              onContextMenu={
+                onTabContextMenu
+                  ? (event) => {
+                      event.preventDefault();
+                      onTabContextMenu(tab.value, event);
+                    }
+                  : undefined
+              }
               {...(isRadiogroup
                 ? { role: 'radio', 'aria-checked': selected }
                 : {

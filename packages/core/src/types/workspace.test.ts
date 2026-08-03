@@ -24,6 +24,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
       showRequestEditor: true,
       showResponseEditor: true,
       requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+      responseEditorSplit: null,
       showConsole: true,
       showVariables: false,
       showMcp: false,

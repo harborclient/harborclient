@@ -1,6 +1,7 @@
 import Store from 'electron-store';
 import {
   DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  normalizeResponseEditorSplit,
   type LiveServerLogsPlacement,
   type PanelLayoutState
 } from '@harborclient/core/types';
@@ -22,6 +23,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT,
+  responseEditorSplit: null,
   showConsole: false,
   showVariables: false,
   showMcp: false,
@@ -236,6 +238,7 @@ function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutStat
     showRequestEditor: input.showRequestEditor !== false,
     showResponseEditor: input.showResponseEditor !== false,
     requestEditorSplitHeight: normalizeRequestEditorSplitHeight(input.requestEditorSplitHeight),
+    responseEditorSplit: normalizeResponseEditorSplit(input.responseEditorSplit),
     liveServerLogsPlacement,
     liveServerLogsPlacements,
     ...footerPanels

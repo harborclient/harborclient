@@ -7,6 +7,7 @@ import {
 import {
   selectActivePluginFooterPanelId,
   selectRequestEditorSplitHeight,
+  selectResponseEditorSplit,
   selectShowAiSidebar,
   selectShowGitSidebar,
   selectShowShortcutsSidebar,
@@ -36,6 +37,7 @@ export function usePersistedPanelLayout(): void {
   const showRequestEditor = useAppSelector(selectShowRequestEditor);
   const showResponseEditor = useAppSelector(selectShowResponseEditor);
   const requestEditorSplitHeight = useAppSelector(selectRequestEditorSplitHeight);
+  const responseEditorSplit = useAppSelector(selectResponseEditorSplit);
   const showConsole = useAppSelector(selectShowConsole);
   const showVariables = useAppSelector(selectShowVariables);
   const showMcp = useAppSelector(selectShowMcp);
@@ -84,6 +86,7 @@ export function usePersistedPanelLayout(): void {
       showRequestEditor,
       showResponseEditor,
       requestEditorSplitHeight,
+      responseEditorSplit,
       showConsole,
       showVariables,
       showMcp,
@@ -102,6 +105,7 @@ export function usePersistedPanelLayout(): void {
     showRequestEditor,
     showResponseEditor,
     requestEditorSplitHeight,
+    responseEditorSplit,
     showConsole,
     showVariables,
     showMcp,

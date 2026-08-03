@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { LiveServerLogsPlacement } from '@harborclient/core/types';
+import type { LiveServerLogsPlacement, ResponseEditorSplitState } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -123,6 +123,7 @@ export interface NavigationState {
   showRequestEditor: boolean;
   showResponseEditor: boolean;
   requestEditorSplitHeight: number;
+  responseEditorSplit: ResponseEditorSplitState | null;
   showConsole: boolean;
   showVariables: boolean;
   showMcp: boolean;
@@ -176,6 +177,7 @@ const initialState: NavigationState = {
   showRequestEditor: true,
   showResponseEditor: true,
   requestEditorSplitHeight: 340,
+  responseEditorSplit: null,
   showConsole: false,
   showVariables: false,
   showMcp: false,
@@ -402,6 +404,12 @@ const navigationSlice = createSlice({
      */
     setRequestEditorSplitHeight(state, action: PayloadAction<number>) {
       state.requestEditorSplitHeight = action.payload;
+    },
+    /**
+     * Sets the response editor secondary pane layout, or null when unsplit.
+     */
+    setResponseEditorSplit(state, action: PayloadAction<ResponseEditorSplitState | null>) {
+      state.responseEditorSplit = action.payload;
     },
     /**
      * Toggles the footer console panel.
@@ -714,6 +722,7 @@ export const {
   toggleResponseEditor,
   setShowResponseEditor,
   setRequestEditorSplitHeight,
+  setResponseEditorSplit,
   toggleConsole,
   setShowConsole,
   toggleVariables,
@@ -820,6 +829,11 @@ export const selectShowResponseEditor = (state: RootState): boolean =>
  */
 export const selectRequestEditorSplitHeight = (state: RootState): number =>
   state.navigation.requestEditorSplitHeight;
+/**
+ * Returns the persisted response editor secondary pane layout, or null when unsplit.
+ */
+export const selectResponseEditorSplit = (state: RootState): ResponseEditorSplitState | null =>
+  state.navigation.responseEditorSplit;
 /**
  * Returns whether the console panel is open.
  */

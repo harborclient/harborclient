@@ -1102,6 +1102,14 @@ export const panelLayout = z.object({
   showRequestEditor: z.boolean(),
   showResponseEditor: z.boolean(),
   requestEditorSplitHeight: z.number().int().min(160),
+  responseEditorSplit: z
+    .object({
+      side: z.enum(['left', 'right', 'up', 'down']),
+      secondaryTabIds: z.array(z.string().min(1)),
+      size: z.number().int().min(120),
+      activeTab: z.string().nullable()
+    })
+    .nullable(),
   showConsole: z.boolean(),
   showVariables: z.boolean(),
   showMcp: z.boolean(),

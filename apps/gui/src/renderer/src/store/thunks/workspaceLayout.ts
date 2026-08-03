@@ -11,6 +11,7 @@ import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import {
   setActivePluginFooterPanelId,
   setRequestEditorSplitHeight,
+  setResponseEditorSplit,
   setShowAiSidebar,
   setShowConsole,
   setShowGitSidebar,
@@ -184,6 +185,7 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
       showRequestEditor: navigation.showRequestEditor,
       showResponseEditor: navigation.showResponseEditor,
       requestEditorSplitHeight: navigation.requestEditorSplitHeight,
+      responseEditorSplit: navigation.responseEditorSplit,
       showConsole: navigation.showConsole,
       showVariables: navigation.showVariables,
       showMcp: navigation.showMcp,
@@ -231,6 +233,7 @@ export async function applyWorkspaceLayout(
   dispatch(setShowRequestEditor(panels.showRequestEditor));
   dispatch(setShowResponseEditor(panels.showResponseEditor));
   dispatch(setRequestEditorSplitHeight(panels.requestEditorSplitHeight));
+  dispatch(setResponseEditorSplit(panels.responseEditorSplit));
   dispatch(setShowConsole(panels.showConsole));
   dispatch(setShowVariables(panels.showVariables));
   dispatch(setShowMcp(panels.showMcp));

@@ -1,4 +1,3 @@
-import { Scrollbars } from '#/renderer/src/ui/Shared/Scrollbars';
 import {
   Button,
   SegmentedTabs,
@@ -6,7 +5,7 @@ import {
   SegmentedTabsGroup,
   FaIcon
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
 import type { ResponseTabContext } from '@harborclient/core/plugin/types';
 import type {
@@ -24,6 +23,10 @@ import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
+  selectResponseEditorSplit,
+  setResponseEditorSplit
+} from '#/renderer/src/store/slices/navigationSlice';
+import {
   clearSseEvents,
   openPageTab,
   setResponseViewerTab
@@ -37,9 +40,11 @@ import {
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { Events } from './Events';
 import { SseRaw } from './Events/SseRaw';
+import { ResponseEditorSplitViews } from './ResponseEditorSplitViews';
 import { ResponseSummary } from './ResponseSummary';
 import { ResponseViewerPanel } from './ResponseViewerPanel';
 import { SseSummary } from './SseSummary';
+import type { ResponseEditorPaneKind } from './responseEditorSplit';
 import {
   isResponseViewerTab,
   RESPONSE_VIEWER_TAB_LABELS,
@@ -127,21 +132,6 @@ interface Props {
 }
 
 /**
- * Shared props passed into each built-in {@link ResponseViewerPanel}.
- */
-interface ViewerPanelProps {
-  response: SendResult;
-  requestUrl: string;
-  testResults: ScriptTestResult[];
-  scriptLogs: ScriptLogEntry[];
-  executionEvents: ScriptExecutionEvent[];
-  scriptError?: string;
-  scriptErrors?: ScriptRunError[];
-  requestTabId?: string;
-  requestName?: string;
-}
-
-/**
  * Displays HTTP response status, timing, body, headers, script tests, and console output.
  */
 export function ResponseEditor({
@@ -164,6 +154,7 @@ export function ResponseEditor({
   const dispatch = useAppDispatch();
   const pluginTabs = usePluginResponseTabs();
   const sendRequestShortcutHint = useSendRequestShortcutHint();
+  const responseEditorSplit = useAppSelector(selectResponseEditorSplit);
   /**
    * Session-stored viewer tab for this request tab, if the parent provided one.
    */
@@ -184,6 +175,10 @@ export function ResponseEditor({
     response,
     tab: resolveInitialResponseViewerTab(storedViewerTab, response)
   }));
+  /**
+   * Which pane last received a tab selection; used for Expand target.
+   */
+  const [focusedPane, setFocusedPane] = useState<ResponseEditorPaneKind>('primary');
 
   /**
    * Writes the selected response viewer tab onto the owning request tab so it
@@ -217,12 +212,14 @@ export function ResponseEditor({
 
   let tab = tabState.tab;
   if (response !== tabState.response) {
-    tab = response && showPreviewTab ? 'preview' : tabState.tab;
+    const secondarySet = new Set(responseEditorSplit?.secondaryTabIds ?? []);
+    const shouldSelectPreview = response != null && showPreviewTab && !secondarySet.has('preview');
+    tab = shouldSelectPreview ? 'preview' : tabState.tab;
     setTabState({ response, tab });
   }
 
   /**
-   * Updates the selected response tab while preserving the response identity used
+   * Updates the selected primary response tab while preserving the response identity used
    * to detect newly completed sends.
    *
    * @param nextTab - Response view selected by the user.
@@ -230,6 +227,16 @@ export function ResponseEditor({
   const setTab = (nextTab: string): void => {
     setTabState((current) => ({ ...current, tab: nextTab }));
   };
+
+  /**
+   * Persists response editor split layout to Redux (and electron-store via panel layout sync).
+   */
+  const handleSplitChange = useCallback(
+    (next: typeof responseEditorSplit): void => {
+      dispatch(setResponseEditorSplit(next));
+    },
+    [dispatch]
+  );
 
   const hasTests = testResults.length > 0;
   const hasRedirects = (response?.redirects?.length ?? 0) > 0;
@@ -294,19 +301,18 @@ export function ResponseEditor({
             : tab;
   const canCopyOrExport = response != null;
   const canClear = response != null && onClear != null;
-  const canExpand = response != null && requestTabId != null && isResponseViewerTab(effectiveTab);
-  const expandTabLabel = canExpand
-    ? RESPONSE_VIEWER_TAB_LABELS[effectiveTab as ResponseViewerTab]
-    : undefined;
-
   /**
-   * Preview and plugin response tabs render iframe or fill-mode plugin surfaces
-   * that must stretch to the remaining editor height. OverlayScrollbars breaks
-   * that flex chain, so those tabs use a plain overflow-hidden container instead.
+   * Tab used for Expand: secondary pane when it was last focused, otherwise primary.
    */
-  const usesFillLayout =
-    effectiveTab === 'preview' ||
-    pluginTabs.some((entry) => entry.when !== 'noResponse' && entry.id === effectiveTab);
+  const expandTargetTab =
+    focusedPane === 'secondary' && responseEditorSplit?.activeTab != null
+      ? responseEditorSplit.activeTab
+      : effectiveTab;
+  const canExpand =
+    response != null && requestTabId != null && isResponseViewerTab(expandTargetTab);
+  const expandTabLabel = canExpand
+    ? RESPONSE_VIEWER_TAB_LABELS[expandTargetTab as ResponseViewerTab]
+    : undefined;
 
   /**
    * Copies the full response export payload to the clipboard.
@@ -368,18 +374,18 @@ export function ResponseEditor({
   };
 
   /**
-   * Opens the active built-in response viewer sub-tab in a full page tab.
+   * Opens the focused pane's built-in response viewer sub-tab in a full page tab.
    */
   const handleExpand = (): void => {
-    if (!canExpand || requestTabId == null || !isResponseViewerTab(effectiveTab)) {
+    if (!canExpand || requestTabId == null || !isResponseViewerTab(expandTargetTab)) {
       return;
     }
-    const viewerLabel = RESPONSE_VIEWER_TAB_LABELS[effectiveTab];
+    const viewerLabel = RESPONSE_VIEWER_TAB_LABELS[expandTargetTab];
     dispatch(
       openPageTab({
         type: 'response-viewer',
         requestTabId,
-        viewerTab: effectiveTab,
+        viewerTab: expandTargetTab,
         label: `${requestName} — ${viewerLabel}`
       })
     );
@@ -657,75 +663,6 @@ export function ResponseEditor({
     );
   }
 
-  const panelProps: ViewerPanelProps = {
-    response,
-    requestUrl,
-    testResults,
-    scriptLogs,
-    executionEvents,
-    scriptError,
-    scriptErrors,
-    requestTabId,
-    requestName
-  };
-
-  /**
-   * Tab panel bodies rendered inside either a fill-height container or Scrollbars
-   * depending on whether the active tab needs to stretch (preview, plugin tabs).
-   */
-  const tabPanels = (
-    <>
-      <SegmentedTabPanel value="body">
-        <ResponseViewerPanel viewerTab="body" {...panelProps} />
-      </SegmentedTabPanel>
-      {showPreviewTab && (
-        <SegmentedTabPanel value="preview" className="flex min-h-0 flex-1 flex-col">
-          <ResponseViewerPanel viewerTab="preview" {...panelProps} />
-        </SegmentedTabPanel>
-      )}
-      <SegmentedTabPanel value="headers">
-        <ResponseViewerPanel viewerTab="headers" {...panelProps} />
-      </SegmentedTabPanel>
-      <SegmentedTabPanel value="console">
-        <ResponseViewerPanel viewerTab="console" {...panelProps} />
-      </SegmentedTabPanel>
-      <SegmentedTabPanel value="logs">
-        <ResponseViewerPanel viewerTab="logs" {...panelProps} />
-      </SegmentedTabPanel>
-      <SegmentedTabPanel value="timing">
-        <ResponseViewerPanel viewerTab="timing" {...panelProps} />
-      </SegmentedTabPanel>
-      {hasRedirects && (
-        <SegmentedTabPanel value="redirects">
-          <ResponseViewerPanel viewerTab="redirects" {...panelProps} />
-        </SegmentedTabPanel>
-      )}
-      {hasTests && (
-        <SegmentedTabPanel value="tests">
-          <ResponseViewerPanel viewerTab="tests" {...panelProps} />
-        </SegmentedTabPanel>
-      )}
-      {pluginTabs
-        .filter((entry) => entry.when !== 'noResponse')
-        .map((entry) => (
-          <SegmentedTabPanel
-            key={entry.id}
-            value={entry.id}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <HostedSurface
-              pluginId={entry.pluginId}
-              contributionId={entry.contributionId}
-              kind="responseTabs"
-              context={responseTabContext}
-              resizeMode="fill"
-              className="h-full"
-            />
-          </SegmentedTabPanel>
-        ))}
-    </>
-  );
-
   return (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       <div className="mb-2 flex items-center border-b border-separator p-3 -mx-3 -mt-2">
@@ -743,27 +680,34 @@ export function ResponseEditor({
         />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        <SegmentedTabsGroup value={effectiveTab} onChange={setTab} ariaLabel="Response view">
-          <div
-            className={`-mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator${
-              effectiveTab === 'console' || effectiveTab === 'logs' ? '' : ' mb-4'
-            }`}
-          >
-            <SegmentedTabs tabs={tabs} className="border-none" />
-          </div>
-
-          {usesFillLayout ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
-              {tabPanels}
-            </div>
-          ) : (
-            <Scrollbars axis="both" className="-mx-3 flex min-h-0 flex-1 flex-col">
-              <div className="px-3 pb-3">{tabPanels}</div>
-            </Scrollbars>
-          )}
-        </SegmentedTabsGroup>
-      </div>
+      <ResponseEditorSplitViews
+        tabs={tabs}
+        split={responseEditorSplit}
+        onSplitChange={handleSplitChange}
+        primaryTab={effectiveTab}
+        onPrimaryTabChange={setTab}
+        onFocusedPaneChange={setFocusedPane}
+        response={response}
+        requestUrl={requestUrl}
+        testResults={testResults}
+        scriptLogs={scriptLogs}
+        executionEvents={executionEvents}
+        scriptError={scriptError}
+        scriptErrors={scriptErrors}
+        requestTabId={requestTabId}
+        requestName={requestName}
+        showPreviewTab={showPreviewTab}
+        hasRedirects={hasRedirects}
+        hasTests={hasTests}
+        pluginTabs={pluginTabs
+          .filter((entry) => entry.when !== 'noResponse')
+          .map((entry) => ({
+            id: entry.id,
+            pluginId: entry.pluginId,
+            contributionId: entry.contributionId
+          }))}
+        responseTabContext={responseTabContext}
+      />
     </div>
   );
 }

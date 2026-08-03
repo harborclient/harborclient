@@ -3,6 +3,7 @@ import type { UnknownAction } from '@reduxjs/toolkit';
 import {
   setActivePluginFooterPanelId,
   setRequestEditorSplitHeight,
+  setResponseEditorSplit,
   setShowAiSidebar,
   setShowGitSidebar,
   setShowShortcutsSidebar,
@@ -109,6 +110,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
   dispatch(setShowRequestEditor(layout.showRequestEditor));
   dispatch(setShowResponseEditor(layout.showResponseEditor));
   dispatch(setRequestEditorSplitHeight(splitHeight));
+  dispatch(setResponseEditorSplit(layout.responseEditorSplit));
   dispatch(setShowConsole(layout.showConsole));
   dispatch(setShowVariables(layout.showVariables));
   dispatch(setShowMcp(layout.showMcp));
@@ -129,6 +131,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
       showRequestEditor: layout.showRequestEditor,
       showResponseEditor: layout.showResponseEditor,
       requestEditorSplitHeight: splitHeight,
+      responseEditorSplit: layout.responseEditorSplit,
       showConsole: layout.showConsole,
       showVariables: layout.showVariables,
       showMcp: layout.showMcp,
