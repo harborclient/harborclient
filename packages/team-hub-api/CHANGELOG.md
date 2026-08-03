@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 - 2026-08-03
+
 - feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
 
 ## 0.6.2 - 2026-08-02
