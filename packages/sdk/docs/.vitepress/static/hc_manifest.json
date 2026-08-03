@@ -1,0 +1,1600 @@
+{
+  "actions.register": {
+    "title": "hc.actions.register(namespace, handlers)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(namespace: string, handlers: Record<string, () => void | Promise<void>>) => Disposable",
+    "description": "**Manifest:** none. Requires the `ui` permission.\n\nRegisters plugin actions in HarborClient's Action menu. Users open the Action menu, type `#`, and see actions grouped as `Namespace: Label`.\n\nUse this for lightweight commands that should be discoverable without adding a persistent menu item or toolbar button. Because actions are dynamic, they do not need `manifest.contributes.commands` entries, but the plugin must include the `ui` permission.\n\nWith that plugin installed, typing `#curl` in the Action menu shows:\n\n- `cURL: View`\n- `cURL: Close`",
+    "permission": "ui",
+    "params": [
+      {
+        "name": "namespace",
+        "type": "`string`",
+        "description": "Prefix shown before each action label"
+      },
+      {
+        "name": "handlers",
+        "type": "`Record<string, () => void \\",
+        "description": "Promise<void>>`"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.actions.register('cURL', {\n  View: () => {\n    hc.ui.showToast('Viewing generated cURL command');\n  },\n  Close: () => {\n    hc.ui.showToast('Closed cURL preview');\n  }\n});"
+      }
+    ]
+  },
+  "ai.copyToChat": {
+    "title": "hc.ai.copyToChat(input)",
+    "level": 3,
+    "since": "2.8.8",
+    "description": "Opens the AI sidebar, ensures a chat exists, stores a snapshot, and queues the badge token in the composer.\n\nDefault grammar — pass `key` (host builds `@plugin…`):\n\nCustom match — pass the full `token` including `@`:\n\nContext longer than 100,000 characters is truncated with a clear marker. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) (or a CodeEditor `copy-to-chat` toolbar action) and call `hc.ai.copyToChat` from `onSelect`.\n\nSee [Chat pointers](/examples/chat-pointers) for a full walkthrough.",
+    "examples": [
+      {
+        "lang": "ts",
+        "code": "await hc.ai.copyToChat({\n  pointerId: 'script',\n  key: scriptUuid,\n  label: scriptName,\n  context: scriptSource,\n  selection: { start: 0, end: 12 }\n});"
+      },
+      {
+        "lang": "ts",
+        "code": "await hc.ai.copyToChat({\n  pointerId: 'invoice',\n  token: '@invoice.inv-42#0.12',\n  label: 'Invoice inv-42',\n  context: invoiceText\n});"
+      }
+    ],
+    "signature": ""
+  },
+  "ai.instructions.add": {
+    "title": "hc.ai.instructions.add(text)",
+    "level": 3,
+    "since": "2.0.0",
+    "description": "Appends a static fragment to the agent system prompt while the returned disposable is active. Whitespace-only strings are ignored. `hc.ai.instructions.list` returns this plugin's currently registered fragments.\n\nMerge order for the default agent path: Harbor base prompt → chat-pointer `agentGuidance` → static `instructions.add` fragments → (per turn) ephemeral system message from `onBeforeTurn` → `ctx.instructions.push`.",
+    "examples": [
+      {
+        "lang": "ts",
+        "code": "const handle = hc.ai.instructions.add(\n  'Prefer the WordPress MCP tools when the user asks about posts or pages.'\n);\n// later: handle.dispose();"
+      }
+    ],
+    "signature": ""
+  },
+  "ai.onAfterTurn": {
+    "title": "hc.ai.onAfterTurn(handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "description": "Runs once when the turn finishes (completed, cancelled, or error). The context is read-only: `userMessage`, `assistantMessage`, `status`, optional `error`, and `stats` (`stepCount`, `toolCallCount`, `durationMs`).",
+    "signature": ""
+  },
+  "ai.onBeforeTurn": {
+    "title": "hc.ai.onBeforeTurn(handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "description": "Runs once when the user sends a chat message, **before** the first LLM completion step. The handler receives a mutable context:",
+    "examples": [
+      {
+        "lang": "ts",
+        "code": "hc.ai.onBeforeTurn((ctx) => {\n  ctx.instructions.push('The active invoice draft is INV-42.');\n  if (ctx.userMessage.content.includes('secret')) {\n    ctx.cancel('Blocked sensitive prompt.');\n  }\n});"
+      }
+    ],
+    "signature": ""
+  },
+  "ai.registerChatPointer": {
+    "title": "hc.ai.registerChatPointer(config)",
+    "level": 3,
+    "since": "2.8.8",
+    "description": "**Default grammar** (`match` / `parse` omitted) — tokens are `@plugin.<pluginId>.<id>.<key>` with an optional `#start.end` selection suffix:\n\n**Custom grammar** — supply both `match` (body after `@`, as a `RegExp` or source string) and `parse`. Patterns that can match reserved builtin shapes (`plugin`, `request`, `res`, `term`, …) are rejected:\n\n`id` must match `[a-z][a-z0-9-]*`. `parse` returns `{ key, selection? }` or `null`; the host fills `kind: 'plugin'`, `pluginId`, and token offsets. Composer highlighting uses a sync host fallback; your `parse` is authoritative at copy and send/validate over IPC.",
+    "examples": [
+      {
+        "lang": "ts",
+        "code": "hc.ai.registerChatPointer({\n  id: 'script',\n  agentGuidance:\n    'When a user message contains @plugin.<pluginId>.script.<key>, use the captured context in the system message.'\n});"
+      },
+      {
+        "lang": "ts",
+        "code": "hc.ai.registerChatPointer({\n  id: 'invoice',\n  match: /^invoice\\.([A-Za-z0-9-]+)(?:#(\\d+)\\.(\\d+))?/,\n  parse: (match) => {\n    const key = match[1];\n    if (key == null) return null;\n    return {\n      key,\n      selection: match[2] != null ? { start: Number(match[2]), end: Number(match[3]) } : undefined\n    };\n  },\n  agentGuidance: 'When @invoice.<id> appears, use the captured invoice context.'\n});"
+      }
+    ],
+    "signature": ""
+  },
+  "commands.execute": {
+    "title": "hc.commands.execute(id, ...args)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(id: string, ...args: unknown[]) => Promise<void>",
+    "description": "Runs a registered command programmatically — for example to open a main view from another part of your plugin.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.openDashboard', () => {\n  void hc.commands.execute('myPlugin.navigateToView', 'myPlugin.view');\n});"
+      }
+    ]
+  },
+  "commands.register": {
+    "title": "hc.commands.register(id, handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(id: string, handler: (...args: unknown[]) => void | Promise<void>) => Disposable",
+    "description": "**Manifest:** matching `contributes.commands` entry\n\nRegisters a command handler. The `id` must match a command declared in the manifest and referenced by menu, toolbar, or context menu contributions."
+  },
+  "database.all": {
+    "title": "hc.database.all(sql, params?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "<T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>",
+    "description": "Returns all matching rows."
+  },
+  "database.exec": {
+    "title": "hc.database.exec(sql)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(sql: string) => Promise<void>",
+    "description": "Executes a multi-statement SQL script (typically migrations). Rejects scripts containing `ATTACH`, `DETACH`, or `load_extension`.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.database.exec(`\n  CREATE TABLE IF NOT EXISTS events (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    request_id INTEGER NOT NULL,\n    status INTEGER NOT NULL,\n    created_at TEXT NOT NULL DEFAULT (datetime('now'))\n  );\n  CREATE INDEX IF NOT EXISTS idx_events_request_id ON events(request_id);\n`);"
+      }
+    ]
+  },
+  "database.get": {
+    "title": "hc.database.get(sql, params?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "<T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T | undefined>",
+    "description": "Returns the first row, or `undefined` when no row matches.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const row = await hc.database.get<{ count: number }>(\n  'SELECT COUNT(*) AS count FROM events WHERE request_id = ?',\n  [requestId]\n);"
+      }
+    ]
+  },
+  "database.run": {
+    "title": "hc.database.run(sql, params?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(sql: string, params?: unknown[]) => Promise<PluginRunResult>",
+    "description": "Runs an `INSERT`, `UPDATE`, or `DELETE` statement. Returns `{ changes, lastInsertRowid }`."
+  },
+  "database.transaction": {
+    "title": "hc.database.transaction(fn)",
+    "level": 3,
+    "since": "2.7.0",
+    "signature": "<T>(fn: (tx: PluginDatabaseTx) => Promise<T>) => Promise<T>",
+    "description": "Runs `fn` inside an exclusive transaction. The `tx` object exposes `get`, `all`, and `run` bound to the same transaction.\n\nPlugin database files are included in HarborClient `.hcb` backups and removed when the plugin is uninstalled.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.database.transaction(async (tx) => {\n  await tx.run('INSERT INTO outbox (payload) VALUES (?)', [JSON.stringify(body)]);\n  await tx.run('UPDATE counters SET value = value + 1 WHERE name = ?', ['sent']);\n});"
+      }
+    ]
+  },
+  "fs.pickDirectory": {
+    "title": "hc.fs.pickDirectory(defaultPath?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(defaultPath?: string) => Promise<string | null>",
+    "description": "Opens a native directory picker. Returns the selected directory path, or `null` when canceled. Requires the `filesystem:pick` permission.",
+    "permission": "filesystem:pick"
+  },
+  "fs.pickFile": {
+    "title": "hc.fs.pickFile(options?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(options?: PluginFsPickFileOptions) => Promise<string[]>",
+    "description": "Opens a native file picker. Returns absolute paths for the selected files, or an empty array when the dialog is canceled. Requires the `filesystem:pick` permission.",
+    "permission": "filesystem:pick",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const paths = await hc.fs.pickFile({\n  title: 'Choose a schema',\n  filters: [{ name: 'JSON', extensions: ['json'] }]\n});"
+      }
+    ]
+  },
+  "fs.readFile": {
+    "title": "hc.fs.readFile(path)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(path: string) => Promise<string>",
+    "description": "Reads a UTF-8 text file from an allowlisted path. Requires the `filesystem:read` permission.",
+    "permission": "filesystem:read"
+  },
+  "fs.saveFile": {
+    "title": "hc.fs.saveFile(content, options?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(content: string, options?: PluginFsSaveFileOptions) => Promise<string | null>",
+    "description": "Opens a native save dialog and writes `content` to the chosen path. Returns the saved path, or `null` when canceled. Requires the `filesystem:pick` and `filesystem:write` permissions."
+  },
+  "fs.writeBytes": {
+    "title": "hc.fs.writeBytes(path, bytes)",
+    "level": 3,
+    "since": "2.8.10",
+    "signature": "(path: string, bytes: Uint8Array) => Promise<string>",
+    "description": "Writes binary bytes to an allowlisted path. Relative paths resolve under the plugin package directory. Returns the absolute path written. Requires the `filesystem:write` permission.",
+    "permission": "filesystem:write"
+  },
+  "fs.writeFile": {
+    "title": "hc.fs.writeFile(path, content)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(path: string, content: string) => Promise<void>",
+    "description": "Writes UTF-8 text to an allowlisted path. Requires the `filesystem:write` permission.",
+    "permission": "filesystem:write"
+  },
+  "host.applyRequestDraft": {
+    "title": "hc.host.applyRequestDraft(payload)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(payload: ApplyRequestDraftPayload) => Promise<void>",
+    "description": "Updates the active request editor tab in place. Provided fields replace the\ncorresponding draft values; when `headers` or `params` are supplied, those\ntables are replaced entirely. The tab becomes dirty, so the user still decides\nwhether to save the changed request to its collection.\n\n`applyRequestDraft` throws when there is no active request tab or when a field is\ninvalid. Show parse/update failures inline in your plugin UI when the user needs\nto fix input.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "function parseExternalFormat(source: string): ApplyRequestDraftPayload {\n  return {\n    method: 'PUT',\n    url: 'https://api.example.com/pets/123',\n    headers: { 'Content-Type': 'application/json' },\n    body: source,\n    bodyType: 'json'\n  };\n}\n\nawait hc.host.applyRequestDraft(parseExternalFormat(editorText));\nhc.ui.showToast('Request updated');"
+      }
+    ]
+  },
+  "host.createCollection": {
+    "title": "hc.host.createCollection(payload)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(payload: CreateCollectionPayload) => Promise<CreateCollectionResult>",
+    "description": "Bulk-creates a collection with folders and saved requests. Requests sharing the same `folder` string are grouped into one folder; requests without `folder` are created at the collection root.\n\n### Library read APIs\n\nCustom collections sidebars need to **discover** collection ids and subscribe to\nchanges. These APIs require the `ui` permission and return **serializable\nsummaries** (ids, names, parent ids, method, sort order, marker) — not full\nrequest bodies or document markdown.\n\n| Method                                | Returns                                                            |\n| ------------------------------------- | ------------------------------------------------------------------ |\n| `hc.host.listCollections(options?)`   | `CollectionSummary[]`                                              |\n| `hc.host.listFolders(collectionId)`   | `FolderSummary[]`                                                  |\n| `hc.host.listRequests(collectionId)`  | `SavedRequestSummary[]`                                            |\n| `hc.host.listDocuments(collectionId)` | `DocumentSummary[]`                                                |\n| `hc.host.listLibraryTree(options?)`   | `LibraryTreeSnapshot` (collections + nested contents + `warnings`) |\n| `hc.host.onLibraryChanged(listener)`  | `Disposable`                                                       |\n\n`options.includeArchived` defaults to `false` (active collections only), matching\nthe built-in Collections tree.\n\nRelated existing helpers:\n\n- `hc.host.listCollectionRequests(collectionId, folderId?)` — full saved-request\n  rows in sidebar **run order** (includes body/auth). Prefer\n  `listRequests` / `listLibraryTree` for tree UI.\n- `hc.host.getCollectionMetadata(collectionId)` — full collection settings row\n  when you already know the id.\n\nGranular lists are available when a full tree fetch is too heavy:\n\n### Workflow CRUD\n\nLocal workflow registry APIs require the `ui` permission. Destructive methods\nare silent — confirm with `hc.ui` modals before calling `deleteWorkflow`.\n\n| Method                                     | Returns                |\n| ------------------------------------------ | ---------------------- |\n| `hc.host.listWorkflows()`                  | `HostWorkflow[]`       |\n| `hc.host.getWorkflow(workflowId)`          | `HostWorkflow \\| null` |\n| `hc.host.createWorkflow(input)`            | `HostWorkflow`         |\n| `hc.host.updateWorkflow(input)`            | `HostWorkflow`         |\n| `hc.host.renameWorkflow(workflowId, name)` | `HostWorkflow`         |\n| `hc.host.deleteWorkflow(workflowId)`       | `void`                 |\n| `hc.host.onWorkflowsChanged(listener)`     | `Disposable`           |\n\n`updateWorkflow` replaces `actions` and `durationMs` only; name/variables are\npreserved. Use `renameWorkflow` to change the display name.\n\n### Navigation and open APIs\n\nReplacement sidebars open host editors and modals through typed `hc.host`\nmethods (all require `ui`). These wrap the same Redux paths as the built-in\ntree — they do not show confirmation dialogs.\n\n| Method                                         | Behavior                                                     |\n| ---------------------------------------------- | ------------------------------------------------------------ |\n| `hc.host.loadRequest(requestId)`               | Opens/focuses the request tab and updates sidebar selection  |\n| `hc.host.loadDocument(documentId)`             | Opens/focuses the markdown tab and updates sidebar selection |\n| `hc.host.openCollectionSettings(collectionId)` | Opens the collection settings page tab                       |\n| `hc.host.openCollectionRunner(collectionId)`   | Opens the collection runner for the whole collection         |\n| `hc.host.openShareModal(collectionId)`         | Opens the share-collection modal                             |\n| `hc.host.showEntityContextMenu(input)`         | Opens the host-built entity context menu (see below)         |\n\n`loadRequest` / `loadDocument` require the parent collection contents to be\ncached (call `listLibraryTree` / expand the collection first), matching\n`loadRequest` today.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const { collectionId } = await hc.host.createCollection({\n  name: 'Petstore API',\n  requests: [\n    {\n      name: 'List pets',\n      method: 'GET',\n      url: 'https://api.example.com/pets',\n      folder: 'pets'\n    },\n    {\n      name: 'Create pet',\n      method: 'POST',\n      url: 'https://api.example.com/pets',\n      folder: 'pets',\n      body: '{\"name\":\"Fluffy\"}',\n      bodyType: 'json'\n    }\n  ]\n});"
+      },
+      {
+        "lang": "typescript",
+        "code": "async function refreshTree() {\n  const tree = await hc.host.listLibraryTree();\n  renderSidebar(tree.collections);\n}\n\nconst stop = hc.host.onLibraryChanged((event) => {\n  // event.reason: 'collections' | 'folders' | 'requests' | 'documents'\n  // event.collectionId is set for per-collection reasons\n  void refreshTree();\n});\n\nawait refreshTree();\n\n// Later, when the panel deactivates:\nstop.dispose();"
+      },
+      {
+        "lang": "typescript",
+        "code": "const collections = await hc.host.listCollections();\nconst folders = await hc.host.listFolders(collections[0].id);\nconst requests = await hc.host.listRequests(collections[0].id);\nconst documents = await hc.host.listDocuments(collections[0].id);"
+      },
+      {
+        "lang": "typescript",
+        "code": "const stop = hc.host.onWorkflowsChanged((event) => {\n  // event.reason: 'created' | 'updated' | 'renamed' | 'deleted' | 'refreshed'\n  void hc.host.listWorkflows().then(renderWorkflowList);\n});\n\nconst workflows = await hc.host.listWorkflows();\nconst created = await hc.host.createWorkflow({\n  name: 'Smoke path',\n  durationMs: 0,\n  actions: []\n});\nawait hc.host.renameWorkflow(created.id, 'Smoke path (renamed)');\nstop.dispose();"
+      }
+    ]
+  },
+  "host.fetch": {
+    "title": "hc.host.fetch(input, init?)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(input: string | URL | { url: string }, init?: PluginFetchInit) => Promise<PluginFetchResponse>",
+    "description": "Sends one outbound HTTP request through the main-process pipeline using the native `fetch(input, init?)` signature. Requires the `network` permission.",
+    "permission": "network",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const response = await hc.host.fetch('https://api.example.com/token', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({ grant_type: 'client_credentials' })\n});\nconst data = await response.json();"
+      }
+    ]
+  },
+  "host.loadRequest": {
+    "title": "hc.host.loadRequest(requestId)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(requestId: number) => Promise<void>",
+    "description": "Opens a saved collection request or focuses an existing tab for it.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.host.loadRequest(42);"
+      }
+    ]
+  },
+  "host.openImageView": {
+    "title": "hc.host.openImageView(payload)",
+    "level": 3,
+    "since": "2.8.4",
+    "signature": "(payload: OpenImageViewPayload) => Promise<void>",
+    "description": "Opens or focuses an image-view page tab. Use this to display screenshots, logos,\ngenerated charts, or import previews in a dedicated tab with **Copy location**\nand **Download** actions. Prefer this typed API over\n`hc.commands.execute('harborclient:openImageView', payload)`.\n\nSee also [Renderer API → hc.host](/renderer-overview#hchost).\n\n**Payload rules**\n\n- Provide exactly one source: `path`, `url`, `dataUrl`, or `base64` with\n  `contentType`.\n- `fileName` is optional for `path` and `url` (derived from the basename or last\n  URL path segment). It is required for inline `dataUrl` and `base64` payloads.\n- Inline `dataUrl` / `base64` payloads are capped by the same IPC body-size limit\n  as large request bodies.\n\n**Tab behavior**\n\n| Aspect         | Behavior                                                                      |\n| -------------- | ----------------------------------------------------------------------------- |\n| Tab label      | Shortened filename (middle ellipsis, extension preserved)                     |\n| Page header    | Full filename                                                                 |\n| Deduping       | Reopening the same source focuses the existing tab                            |\n| Persistence    | Session-only — image tabs are not restored after restart                      |\n| In-tab actions | **Copy location** (path, URL, or data URL) and **Download** via a save dialog |\n\n## Global variables\n\nHarborClient stores app-wide variables in **Settings → Globals**. They use the same `Variable` shape as collection and environment variables (`key`, `value`, `defaultValue`, `share`) and participate in `{{key}}` substitution with the **lowest precedence** in the static chain:\n\n**globals → collection → environment**\n\nRequest scripts can mutate globals with `hc.globals.get` / `hc.globals.set`; values persist after the send completes. See [Request scripts — hc.globals](https://harborclient.com/request-scripts#hcglobals).\n\n### Reading globals from plugins\n\nRequest tab components receive the merged runtime map on `RequestTabContext.variables`. Global values are included automatically; collection and environment variables override globals when they define the same key:\n\nThis snapshot reflects the editor state before send. It does not include ephemeral values from `hc.request.variables.set` during an in-flight send.\n\n### Updating globals from plugins\n\nReplace all global variables with a new list via the built-in host command (requires the `ui` permission):\n\nEach row uses `PluginVariableInput`: `key`, `value`, optional `defaultValue`, optional `share`.\n\nTo create or update **environment** variables instead, use `hc.host.createEnvironmentWithVariables` and `hc.host.updateEnvironmentVariables`.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "// From a menu action or command handler\nawait hc.host.openImageView({\n  url: 'https://harborclient.com/images/logo.png'\n});\n\n// After the user picks a file with hc.fs.pickFile\nawait hc.host.openImageView({ path: selectedPath });\n\n// Inline bytes from a plugin-generated PNG\nawait hc.host.openImageView({\n  fileName: 'preview.png',\n  base64: pngBase64,\n  contentType: 'image/png'\n});"
+      },
+      {
+        "lang": "typescript",
+        "code": "function AuditTab({ context }: { context: RequestTabContext }) {\n  const baseUrl = context.variables.baseUrl;\n  const token = context.variables.token;\n  // ...\n}"
+      },
+      {
+        "lang": "typescript",
+        "code": "await hc.commands.execute('harborclient:updateGlobalVariables', [\n  { key: 'baseUrl', value: 'https://api.example.com', defaultValue: '', share: true },\n  { key: 'apiKey', value: '', defaultValue: 'dev-key', share: false }\n]);"
+      }
+    ]
+  },
+  "host.openRequestDraft": {
+    "title": "hc.host.openRequestDraft(payload)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(payload: OpenRequestDraftPayload) => Promise<void>",
+    "description": "Opens a new unsaved request tab seeded with request metadata. Omitted fields use\nHarborClient defaults (`GET`, no body, empty headers/params). `headers` is a\nflat map; `params` is an array of enabled query parameter rows.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.host.openRequestDraft({\n  name: 'Create pet',\n  method: 'POST',\n  url: 'https://api.example.com/pets',\n  headers: { 'Content-Type': 'application/json' },\n  params: [{ key: 'trace', value: 'true' }],\n  body: JSON.stringify({ name: 'Fluffy' }),\n  bodyType: 'json'\n});"
+      }
+    ]
+  },
+  "host.send": {
+    "title": "hc.host.send()",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "() => Promise<void>",
+    "description": "Sends the active request editor tab using the same pipeline as the Send button. No-op when a send is already in flight for the active tab.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.host.send();"
+      }
+    ]
+  },
+  "host.showEntityContextMenu": {
+    "title": "hc.host.showEntityContextMenu(input)",
+    "level": 4,
+    "since": "2.8.5",
+    "signature": "(input: ShowEntityContextMenuInput) => Promise<void>",
+    "description": "Opens the same collection / folder / request context menu the built-in\nCollections tree would show — including plugin\n[`registerContextMenuItem`](/renderer-ui#hcuiregistercontextmenuitem)\ncontributions — positioned in the **host** window. Fire-and-forget; does not\nwait for the user to dismiss the menu.\n\nThe host offsets `x`/`y` by the HostedSurface bounding rect. When the surface\ncannot be found, coordinates are treated as host viewport coordinates.\n\n**Limitations**\n\n- Document targets are not supported (v1).\n- Submenu flyouts and focus return to the webview may be imperfect across the\n  webview boundary.\n- Menu actions dispatch host thunks and work even when the built-in Collections\n  tree is unmounted (replacement mode).\n\nSee the [sidebar replacement tree example](/examples/sidebar-replacement-tree)\nfor a full pattern including reorder/move.\n\n### Sidebar selection bridge\n\nPlugins that replace the Collections sidebar stay in sync with host\n“reveal in sidebar” / breadcrumb / tab focus via a serializable\n`SidebarSelection` union:\n\n| Method                                        | Returns / effect                                       |\n| --------------------------------------------- | ------------------------------------------------------ |\n| `hc.host.getSidebarSelection()`               | `SidebarSelection \\| null`                             |\n| `hc.host.setSidebarSelection(selection)`      | Updates host Redux; opens request/document tabs        |\n| `hc.host.onSidebarSelectionChanged(listener)` | `Disposable` — fires on host and plugin-driven changes |\n\nSelection is derived from Redux collection/folder highlight plus the active\nrequest or document tab (not the built-in tree’s local multi-select set).\n\n### Sidebar panel view context\n\nWhen a `sidebarPanels` or `sidebarRailItems` contribution is mounted (including\n`replaces: \"collections\"` for panels), `HostedSurface` pushes:\n\nRead it on mount with `hc.view.getContext()` (same pattern as request-tab\nsurfaces). Live updates use `onSidebarSelectionChanged`.\n\n`sidebarRailItems` keep the activity rail visible; `sidebarPanels` use the\nhorizontal switcher and hide the rail.\n\n### Replacement-panel keyboard shortcuts\n\nWhen a panel with `replaces: \"collections\"` is registered:\n\n- **Focus collections sidebar** (`focus-first-collection`) reveals the primary\n  surface and focuses the plugin webview (not a hidden built-in row).\n- **Focus sidebar search** (`focus-sidebar-search`) does the same — plugins own\n  internal search UI; the built-in `#sidebar-search` input is not mounted.\n- **Focus environments** remains a no-op while the built-in Environments section\n  is hidden by a collections replacement.\n\n### Library write APIs\n\nCustom collections sidebars need the same day-to-day mutations as the built-in\ntree (create, rename, delete, reorder, move, archive) without accessing Redux.\nThese APIs require the `ui` permission and wrap the host store thunks used by\nthe Collections sidebar.\n\n**Destructive methods are silent.** Host methods do **not** show confirmation\ndialogs or toasts. Plugins must confirm with `hc.ui` modals (or equivalent)\nbefore calling `delete*`, `setCollectionArchived`, and similar.\n\nCreated entities return **summaries** (same shapes as the list APIs) so plugins\ncan update UI optimistically and reconcile via `onLibraryChanged`.\n\n| Method                                                                       | Returns               |\n| ---------------------------------------------------------------------------- | --------------------- |\n| `hc.host.updateCollection({ id, name })`                                     | `CollectionSummary`   |\n| `hc.host.deleteCollection(collectionId)`                                     | `void`                |\n| `hc.host.reorderCollections(orderedIds)`                                     | `void`                |\n| `hc.host.setCollectionArchived({ collectionId, archived })`                  | `void`                |\n| `hc.host.duplicateCollection(collectionId)`                                  | `CollectionSummary`   |\n| `hc.host.createFolder({ collectionId, name, parentFolderId? })`              | `FolderSummary`       |\n| `hc.host.renameFolder({ folderId, collectionId, name })`                     | `FolderSummary`       |\n| `hc.host.deleteFolder({ folderId, collectionId })`                           | `void`                |\n| `hc.host.moveFolder({ collectionId, folderId, parentFolderId, sortOrder? })` | `FolderSummary`       |\n| `hc.host.reorderFolders({ collectionId, parentFolderId, orderedFolderIds })` | `void`                |\n| `hc.host.createRequest({ collectionId, folderId?, name?, method?, url? })`   | `SavedRequestSummary` |\n| `hc.host.deleteRequest(requestId)`                                           | `void`                |\n| `hc.host.duplicateRequest(requestId)`                                        | `SavedRequestSummary` |\n| `hc.host.moveRequest({ collectionId, requestId, folderId, index? })`         | `void`                |\n| `hc.host.reorderRequests({ collectionId, folderId, orderedRequestIds })`     | `void`                |\n| `hc.host.createDocument({ collectionId, folderId?, name, content? })`        | `DocumentSummary`     |\n| `hc.host.renameDocument({ id, collectionId, name })`                         | `DocumentSummary`     |\n| `hc.host.deleteDocument({ id, collectionId })`                               | `void`                |\n| `hc.host.moveDocument({ collectionId, documentId, folderId, index? })`       | `void`                |\n| `hc.host.reorderDocuments({ collectionId, folderId, orderedDocumentIds })`   | `void`                |\n| `hc.host.reorderContainerItems({ collectionId, folderId, items })`           | `void`                |\n\nBulk create remains available as `hc.host.createCollection(payload)`.\n\n#### Collections\n\n| Method                  | Parameters                                  | Notes                                      |\n| ----------------------- | ------------------------------------------- | ------------------------------------------ |\n| `updateCollection`      | `id: number`, `name: string`                | Renames only; other settings are preserved |\n| `deleteCollection`      | `collectionId: number`                      | Silent; moves to trash when supported      |\n| `reorderCollections`    | `orderedIds: number[]`                      | Full top-level collection order            |\n| `setCollectionArchived` | `collectionId: number`, `archived: boolean` | Silent                                     |\n| `duplicateCollection`   | `collectionId: number`                      | Places the copy below the original         |\n\n#### Folders\n\n| Method           | Parameters                                                         | Notes                          |\n| ---------------- | ------------------------------------------------------------------ | ------------------------------ |\n| `createFolder`   | `collectionId`, `name`, optional `parentFolderId`                  | Returns created folder summary |\n| `renameFolder`   | `folderId`, `collectionId`, `name`                                 |                                |\n| `deleteFolder`   | `folderId`, `collectionId`                                         | Deletes subtree; silent        |\n| `moveFolder`     | `collectionId`, `folderId`, `parentFolderId`, optional `sortOrder` |                                |\n| `reorderFolders` | `collectionId`, `parentFolderId`, `orderedFolderIds`               | Sibling order under one parent |\n\n#### Requests\n\n| Method             | Parameters                                                      | Notes                                                           |\n| ------------------ | --------------------------------------------------------------- | --------------------------------------------------------------- |\n| `createRequest`    | `collectionId`, optional `folderId` / `name` / `method` / `url` | Defaults: `Untitled Request`, `GET`, empty URL; **opens a tab** |\n| `deleteRequest`    | `requestId`                                                     | Silent                                                          |\n| `duplicateRequest` | `requestId`                                                     | Opens the copy in a tab                                         |\n| `moveRequest`      | `collectionId`, `requestId`, `folderId`, optional `index`       | Omitting `index` appends                                        |\n| `reorderRequests`  | `collectionId`, `folderId`, `orderedRequestIds`                 |                                                                 |\n\n#### Documents\n\n| Method             | Parameters                                                 | Notes                    |\n| ------------------ | ---------------------------------------------------------- | ------------------------ |\n| `createDocument`   | `collectionId`, `name`, optional `folderId` / `content`    | Does **not** open a tab  |\n| `renameDocument`   | `id`, `collectionId`, `name`                               | Body unchanged           |\n| `deleteDocument`   | `id`, `collectionId`                                       | Silent                   |\n| `moveDocument`     | `collectionId`, `documentId`, `folderId`, optional `index` | Omitting `index` appends |\n| `reorderDocuments` | `collectionId`, `folderId`, `orderedDocumentIds`           |                          |\n\n#### Mixed containers\n\n| Method                  | Parameters                                          | Notes                                                                   |\n| ----------------------- | --------------------------------------------------- | ----------------------------------------------------------------------- |\n| `reorderContainerItems` | `collectionId`, `folderId`, `items: { kind, id }[]` | Interleaved request + document order; prefer over separate reorder APIs |\n\n### Reorder / move pattern\n\nReplacement trees commit drag-end or “Move up/down” actions through the host\nAPIs above, then refresh via `onLibraryChanged` (or an explicit relist). Prefer\n`reorderContainerItems` when a folder interleaves requests and documents.\n\nDo **not** expect the host to ship a DnD library into the plugin webview.\nPlugins may use `SortableSidebarItem` / `buildReorderMenuGroup` from\n`@harborclient/sdk/components` (dnd-kit is an SDK dependency) or implement their\nown pointer DnD and call `move*` / `reorder*` on drop.\n\nSee the [sidebar replacement tree example](/examples/sidebar-replacement-tree).",
+    "params": [
+      {
+        "name": "target",
+        "type": "`EntityContextMenuTarget`",
+        "description": "`{ type: 'collection', collectionId }` \\"
+      },
+      {
+        "name": "x`, `y",
+        "type": "`number`",
+        "description": "Coordinates in the plugin webview viewport"
+      },
+      {
+        "name": "pluginId",
+        "type": "`string`",
+        "description": "Your plugin manifest id (for HostedSurface lookup and focus return)"
+      },
+      {
+        "name": "contributionId",
+        "type": "`string`",
+        "description": "Sidebar panel contribution id mounted in the surface"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "row.addEventListener('contextmenu', (event) => {\n  event.preventDefault();\n  void hc.host.showEntityContextMenu({\n    target: { type: 'request', requestId },\n    x: event.clientX,\n    y: event.clientY,\n    pluginId: 'com.example.tree',\n    contributionId: 'collections'\n  });\n});"
+      },
+      {
+        "lang": "typescript",
+        "code": "await hc.host.loadRequest(requestId);\nawait hc.host.loadDocument(documentId);\nawait hc.host.openCollectionSettings(collectionId);\nawait hc.host.openCollectionRunner(collectionId);"
+      },
+      {
+        "lang": "typescript",
+        "code": "type SidebarSelection =\n  | { kind: 'collection'; collectionId: number }\n  | { kind: 'folder'; collectionId: number; folderId: number }\n  | {\n      kind: 'request';\n      collectionId: number;\n      folderId: number | null;\n      requestId: number;\n    }\n  | {\n      kind: 'document';\n      collectionId: number;\n      folderId: number | null;\n      documentId: number;\n    };"
+      },
+      {
+        "lang": "typescript",
+        "code": "const current = await hc.host.getSidebarSelection();\n\nconst stop = hc.host.onSidebarSelectionChanged((selection) => {\n  highlightRow(selection);\n});\n\nawait hc.host.setSidebarSelection({\n  kind: 'request',\n  collectionId: 1,\n  folderId: null,\n  requestId: 42\n});"
+      },
+      {
+        "lang": "typescript",
+        "code": "interface SidebarPanelViewContext {\n  sidebarSelection: SidebarSelection | null;\n}"
+      },
+      {
+        "lang": "typescript",
+        "code": "const { collectionId } = await hc.host.createCollection({\n  name: 'Auth API',\n  requests: []\n});\n\nawait hc.host.createFolder({ collectionId, name: 'Auth' });\nconst folder = await hc.host.createFolder({\n  collectionId,\n  name: 'Tokens',\n  parentFolderId: /* parent id */\n});\n\nconst request = await hc.host.createRequest({\n  collectionId,\n  folderId: folder.id,\n  name: 'Login',\n  method: 'POST'\n});\n\nawait hc.host.moveRequest({\n  collectionId,\n  requestId: request.id,\n  folderId: null\n});\nawait hc.host.reorderRequests({\n  collectionId,\n  folderId: null,\n  orderedRequestIds: [request.id]\n});\n\nawait hc.host.setCollectionArchived({ collectionId, archived: true });\nawait hc.host.deleteRequest(request.id);"
+      }
+    ]
+  },
+  "http.onAfterScripts": {
+    "title": "hc.http.onAfterScripts(handler)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(handler: (context) => void | Promise<void>) => Disposable",
+    "description": "Register a callback that runs after each request stage's scripts complete. Fires twice per send — once after pre-request scripts and once after post-request scripts. Requires the `scripts:inject` permission.\n\nThe context includes the final `data` bag for the stage, named `hc.test` results, console lines, and script error messages. Use this to collect injected test results or correlate values scripts wrote into `hc.data`.",
+    "permission": "scripts:inject",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import type { MainPluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: MainPluginContext): void {\n  hc.http.onAfterScripts(async (ctx) => {\n    if (ctx.phase !== 'post') {\n      return;\n    }\n    const failed = ctx.tests.filter((test) => !test.passed);\n    if (failed.length) {\n      await hc.storage.set('lastFailures', failed);\n    }\n  });\n}"
+      }
+    ]
+  },
+  "http.onAfterSend": {
+    "title": "hc.http.onAfterSend(handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(handler: (request, response) => void | Promise<void>) => Disposable",
+    "description": "Register a callback that runs after the response is received. Requires the `http` permission.\n\nFor UI-only plugins that react to completed sends (history, recent-requests, response diff), prefer renderer-side `hc.http.onAfterSend` in the renderer entry — it fires in-process with no main entry, custom IPC channel, or polling. Use this main-process hook when you need to run logic in the SES-hardened utilityProcess or mutate shared main-side state.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.http.onAfterSend(async (request, response) => {\n  console.log(request.method, request.url, response.status);\n});"
+      }
+    ],
+    "permission": "http"
+  },
+  "http.onBeforeScripts": {
+    "title": "hc.http.onBeforeScripts(handler)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(handler: (context) => void | Promise<void>) => Disposable",
+    "description": "Register a callback that runs before each request stage's scripts. Fires twice per send — once with `phase: 'pre'` and once with `phase: 'post'`. Requires the `scripts:inject` permission.\n\nInjected scripts run as a synthetic scope ahead of collection/folder/request scripts. Within each stage (`before-all`, `before-each`, `main`, `after-each`, `after-all`), plugin scripts run before host scripts in that stage. Use `context.scripts.data` to seed the shared `hc.data` bag visible to every script in the send.\n\nSee [Baseline tests](/examples/baseline-tests), [Trace correlation](/examples/trace-correlation), and [Production guard](/examples/production-guard) for complete walkthroughs.",
+    "permission": "scripts:inject",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import type { MainPluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: MainPluginContext): void {\n  hc.http.onBeforeScripts((ctx) => {\n    if (ctx.phase !== 'pre') {\n      return;\n    }\n    ctx.scripts.data.traceId = crypto.randomUUID();\n    ctx.scripts.beforeAll.push({\n      name: 'Stamp trace id',\n      script: `hc.request.headers.set('X-Trace-Id', hc.data.traceId);`\n    });\n  });\n}"
+      }
+    ]
+  },
+  "http.onBeforeSend": {
+    "title": "hc.http.onBeforeSend(handler)",
+    "level": 2,
+    "since": "2.7.0",
+    "signature": "(handler: (request) => void | Promise<void>) => Disposable",
+    "description": "Register a callback that runs before each outgoing HTTP request. Mutate the request object to change method, URL, headers, or body. Requires the `http` permission. Remove a header with `delete request.headers['Header-Name']`.",
+    "permission": "http",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import type { MainPluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: MainPluginContext): void {\n  hc.http.onBeforeSend(async (request) => {\n    request.headers['X-Plugin-Trace'] = '1';\n    delete request.headers['Authorization'];\n  });\n}"
+      }
+    ]
+  },
+  "imports": {
+    "title": "hc.imports",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(hc: PluginContext, extensions: string | string[], handler: ImportHandler) => Disposable",
+    "description": "Register handlers for **File → Import** so plugins can participate in the unified import flow instead of adding separate File menu items.\n\nRequires the `ui` permission. Call `registerImportHandler(hc, extensions, handler)` or `hc.imports.registerHandler(extensions, handler)` — registration disposables are tracked automatically.\n\nBuilt-in HarborClient formats (HarborClient exports, Postman, Bruno, HAR, OpenCollection, and OpenAPI) are detected first. Plugin handlers run only when the selected file is not recognized as a built-in format and its extension matches a registered handler.\n\nHandlers run in registration order. The first handler whose `canImport` returns true receives the file. Throw an `Error` from `import` to surface a blocking failure in the host.\n\n### Common patterns\n\n**Direct import** — parse `file.contents` inside `import` and create HarborClient data immediately (for example with `hc.host.createCollection`). Use when the user does not need a preview step.\n\n**Preview UI** — stash the selected `ImportFile` in plugin state, then open a registered main view with `hc.commands.execute('harborclient:openMainView', hc.pluginId, viewId)`. The preview component reads the stashed file, lets the user confirm selections, and calls host APIs when ready.\n\nSee the [Import handler example](/examples/import-handler) for a complete walkthrough. OpenAPI 3.x and OpenCollection import are built into HarborClient (**File → Import**); use import handlers for additional custom formats.\n\n### registerImportHandler(hc, extensions, handler)\n\nConvenience wrapper around `hc.imports.registerHandler`.",
+    "permission": "ui",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import { registerImportHandler } from '@harborclient/sdk';\n\nregisterImportHandler(hc, '.json', {\n  canImport: (file) => {\n    try {\n      const parsed = JSON.parse(file.contents) as { bundleFormat?: unknown; version?: unknown };\n      return parsed.bundleFormat === 'request-bundle' && parsed.version === 1;\n    } catch {\n      return false;\n    }\n  },\n  import: async (file) => {\n    // Direct import: create a collection immediately, or open a preview main view.\n    await hc.host.createCollection({\n      name: 'Imported bundle',\n      requests: [{ name: 'Example', method: 'GET', url: 'https://example.com' }]\n    });\n  }\n});"
+      }
+    ]
+  },
+  "imports.registerHandler": {
+    "title": "hc.imports.registerHandler(extensions, handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(extensions: string | string[], handler: ImportHandler) => Disposable",
+    "description": "| Callback    | Type                                                | Description                                         |\n| ----------- | --------------------------------------------------- | --------------------------------------------------- |\n| `canImport` | `(file: ImportFile) => boolean \\| Promise<boolean>` | Returns whether this handler should import the file |\n| `import`    | `(file: ImportFile) => void \\| Promise<void>`       | Performs the import workflow                        |\n\n`ImportFile` includes `name`, `path`, `extension` (dot-prefixed, lowercase), and UTF-8 `contents`.\n\nExtensions may be passed with or without a leading dot (`json` and `.json` are equivalent). Register multiple extensions in one call: `['.json', '.yaml', '.yml']`."
+  },
+  "ipc.handle": {
+    "title": "hc.ipc.handle(channel, handler)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(channel: string, handler: (...args) => unknown) => Disposable",
+    "description": "Expose an RPC channel callable from the renderer half of the same plugin. Requires the `ipc` permission.\n\nMain-process hooks are invoked by posting work to the utilityProcess runner; the main process applies mutations and enforces permissions before and after each callback.\n\nSee the [Request logger example](/examples/request-logger) for a main-only plugin using HTTP hooks.",
+    "permission": "ipc"
+  },
+  "ipc.invoke": {
+    "title": "hc.ipc.invoke(channel, ...args)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "<T>(channel: string, ...args: unknown[]) => Promise<T>",
+    "description": "Invokes a handler registered with `hc.ipc.handle` in the main entry. Use `hc.pluginId` for logging — channel names are automatically scoped to your plugin.\n\nDo not call `window.api.invokePluginMain` directly — use this typed API instead.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const pending = await hc.ipc.invoke<Array<{ id: string }>>('pullPending');"
+      }
+    ]
+  },
+  "livePage": {
+    "title": "hc.livePage",
+    "level": 2,
+    "since": "2.0.0",
+    "description": "Opens or reuses an embedded browser tab and returns a control handle (focus, close, DOM query/evaluate/inject, viewport screenshot).\n\nRequires the `browser` permission (granted at install/enable). This is independent of Settings → General → Allow script live page access, which only gates request-script `hc.livePage`. Saving a screenshot with `page.screenshot` also requires `filesystem:write`.\n\nOmit `url` to bind the active browser tab. Pass `{ reuse: false }` to always open a new tab (default `reuse` is `true`). New tabs wait for load before the promise resolves.\n\n## Not extensible\n\nThese built-in surfaces are not open to plugin contributions:\n\n- **Open request tab strip** — tabs for unsaved/saved requests in the editor workspace.\n- **Native window chrome** — title bar and window controls (menu contributions use the application menu only).",
+    "permission": "browser",
+    "examples": [
+      {
+        "lang": "ts",
+        "code": "export async function activate(hc: PluginContext): Promise<void> {\n  // Open or reuse a tab at this URL (reuse defaults to true). New tabs wait for load.\n  const page = await hc.livePage('https://example.com');\n\n  // Or always force a fresh tab:\n  // const page = await hc.livePage('https://example.com', { reuse: false });\n\n  // Or bind whatever browser tab is already active (no URL):\n  // const page = await hc.livePage();\n\n  console.log(page.tabId, page.url, page.title, page.canGoBack, page.canGoForward);\n\n  await page.focus();\n  await page.navigate('https://example.com/docs');\n  await page.reload();\n  await page.goBack();\n  await page.goForward();\n  // Navigation helpers wait for load and refresh url/title/canGoBack/canGoForward.\n\n  // First matching element by default; use { all: true } for every match.\n  const heading = await page.dom.query('h1');\n  console.log(heading.matchCount, heading.elements);\n\n  const links = await page.dom.query('a[href]', { all: true, maxElements: 50 });\n  console.log(links.elements);\n\n  // Expression must return a JSON-serializable value.\n  const title = await page.dom.evaluate('document.title');\n  const meta = await page.dom.evaluate(`({\n    href: location.href,\n    readyState: document.readyState\n  })`);\n\n  // Inject and run script source in the page main world.\n  await page.dom.injectScript(`\n    document.body.dataset.harborProbe = '1';\n  `);\n\n  // Inject CSS; returns an Electron insertion key.\n  const styleKey = await page.dom.injectStylesheet(`\n    h1 { outline: 2px solid #32D2E2; }\n  `);\n  console.log(styleKey);\n\n  // Viewport PNG under the plugin package directory (requires filesystem:write).\n  const { path } = await page.screenshot('screenshot.png', {});\n  console.log(path);\n\n  // Full-page scroll-and-stitch capture.\n  const full = await page.screenshot('full.png', { fullPage: true });\n  console.log(full.path);\n\n  // false when the user cancels a leave prompt on a dirty page.\n  const closed = await page.close();\n  console.log(closed);\n}"
+      }
+    ],
+    "signature": ""
+  },
+  "livePages.create": {
+    "title": "hc.livePages.create(input)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(input: CreateWebsiteInput) => Promise<Website>",
+    "description": "Persists a new saved live page and returns the created row."
+  },
+  "livePages.delete": {
+    "title": "hc.livePages.delete(id)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(id: number) => Promise<void>",
+    "description": "Deletes a saved live page (moves it to trash)."
+  },
+  "livePages.get": {
+    "title": "hc.livePages.get(idOrUuid)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(idOrUuid: number | string) => Promise<Website | null>",
+    "description": "Returns one saved live page by database id or uuid, or `null` when not found."
+  },
+  "livePages.list": {
+    "title": "hc.livePages.list()",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "() => Promise<Website[]>",
+    "description": "Lists saved live pages from the local registry."
+  },
+  "livePages.update": {
+    "title": "hc.livePages.update(input)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(input: UpdateWebsiteInput) => Promise<Website>",
+    "description": "Updates a saved live page. Does not open or bind a browser tab."
+  },
+  "liveServers.clearLogs": {
+    "title": "hc.liveServers.clearLogs(query)",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "(query: LiveServerLogsQuery) => Promise<void>",
+    "description": "Clears the in-memory request log buffer for a running instance."
+  },
+  "liveServers.create": {
+    "title": "hc.liveServers.create(input)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(input: CreateLiveServerInput) => Promise<LiveServer>",
+    "description": "Persists a new saved server and returns the created row."
+  },
+  "liveServers.delete": {
+    "title": "hc.liveServers.delete(id)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(id: number) => Promise<void>",
+    "description": "Deletes a saved server. Does not stop a running instance started from that saved id."
+  },
+  "liveServers.get": {
+    "title": "hc.liveServers.get(idOrUuid)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(idOrUuid: number | string) => Promise<LiveServer | null>",
+    "description": "Returns one saved server by database id or uuid, or `null` when not found."
+  },
+  "liveServers.getLogs": {
+    "title": "hc.liveServers.getLogs(query)",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "(query: LiveServerLogsQuery & { limit?: number }) => Promise<LiveServerRequestLogEntry[]>",
+    "description": "Returns trailing buffered Express access-log lines (default `limit` 100, max 1000). Empty when the instance is not running."
+  },
+  "liveServers.getStatus": {
+    "title": "hc.liveServers.getStatus(query)",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "(query: { id: string } | { savedId: number }) => Promise<RunningLiveServer | null>",
+    "description": "Returns the running instance for the query, or `null` when not running."
+  },
+  "liveServers.list": {
+    "title": "hc.liveServers.list()",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "() => Promise<LiveServer[]>",
+    "description": "Lists saved live servers from the local registry."
+  },
+  "liveServers.listRunning": {
+    "title": "hc.liveServers.listRunning()",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "() => Promise<RunningLiveServer[]>",
+    "description": "Lists currently running instances."
+  },
+  "liveServers.onRequestLog": {
+    "title": "hc.liveServers.onRequestLog(listener)",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "(listener: (entry: LiveServerRequestLogEntry) => void) => Disposable",
+    "description": "Subscribes to Express access-log lines from running live servers."
+  },
+  "liveServers.onRunningChanged": {
+    "title": "hc.liveServers.onRunningChanged(listener)",
+    "level": 3,
+    "since": "2.9.0",
+    "signature": "(listener: (running: RunningLiveServer[]) => void) => Disposable",
+    "description": "Subscribes to start/stop list changes (including changes from the Harbor UI)."
+  },
+  "liveServers.start": {
+    "title": "hc.liveServers.start(input)",
+    "level": 3,
+    "since": "2.7.0",
+    "signature": "(input: StartLiveServerInput) => Promise<RunningLiveServer>",
+    "description": "Starts from `savedId` (loads config from the registry when `config` is omitted) and/or an ad-hoc `config`. Returns the running instance with assigned port and `http://127.0.0.1:<port>` origin."
+  },
+  "liveServers.stop": {
+    "title": "hc.liveServers.stop(query)",
+    "level": 3,
+    "since": "2.7.0",
+    "signature": "(query: { id: string } | { savedId: number }) => Promise<void>",
+    "description": "Stops one running instance by runtime id or saved id."
+  },
+  "liveServers.update": {
+    "title": "hc.liveServers.update(input)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(input: UpdateLiveServerInput) => Promise<LiveServer>",
+    "description": "Updates a saved server. Does not restart a running instance."
+  },
+  "mcp.registerServer": {
+    "title": "hc.mcp.registerServer(config)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(config: PluginMcpServerConfig) => Disposable",
+    "description": "Discovered tools are prefixed with `mcp__` in the chat agent tool list, using the same naming scheme as user-configured MCP client servers.",
+    "fields": [
+      {
+        "name": "name",
+        "type": "`string`",
+        "description": "Display name in Settings → AI & MCP"
+      },
+      {
+        "name": "serverURL",
+        "type": "`string`",
+        "description": "Absolute HTTP or HTTPS MCP endpoint URL"
+      },
+      {
+        "name": "enabled",
+        "type": "`boolean` (optional)",
+        "description": "When false, Harbor skips connecting. Defaults to `true`"
+      },
+      {
+        "name": "headers",
+        "type": "`PluginMcpHeader[]`",
+        "description": "Optional HTTP headers sent with MCP client requests"
+      },
+      {
+        "name": "icon",
+        "type": "`string` (optional)",
+        "description": "Optional square icon as a `data:image/...;base64,...` URI for settings rows"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.mcp.registerServer({\n  name: 'WordPress',\n  icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',\n  serverURL: 'https://public-api.wordpress.com/wpcom/v2/mcp/v1',\n  enabled: true,\n  headers: [{ key: 'Authorization', value: 'Bearer token' }]\n});"
+      }
+    ]
+  },
+  "pluginId": {
+    "title": "hc.pluginId",
+    "level": 2,
+    "since": "2.0.0",
+    "description": "**Type:** `string`\n\nThe plugin manifest `id`. Use for IPC routing and logging instead of hardcoding the manifest id in plugin source.",
+    "signature": ""
+  },
+  "react": {
+    "title": "hc.react",
+    "level": 2,
+    "since": "2.0.0",
+    "description": "**Type:** `typeof React`\n\nThe same React instance HarborClient uses in the renderer. Do not import or bundle `react` / `react-dom` in your plugin bundle.\n\n## React and JSX\n\nPlugins must share the host React instance. HarborClient installs `hc.react` before `activate(hc)` runs. `@harborclient/sdk` ships a small JSX runtime and hook barrel that forwards to that instance — no plugin-side setup call is required.\n\n**TypeScript** (`tsconfig.json`):\n\n**esbuild** (renderer bundle):\n\n**Renderer entry:**\n\n**Hooks in components** — import from `@harborclient/sdk/react` (not from `react`):\n\n**Single-file escape hatch** — `createPluginComponent` builds a component from a factory that receives host React:\n\nSee [harborclient-plugin-skeleton](https://github.com/harborclient/plugin-skeleton) for a complete starter project with renderer and main entries.",
+    "examples": [
+      {
+        "lang": "bash",
+        "code": "esbuild src/renderer.tsx \\\n  --bundle --outfile=dist/renderer.js --format=esm \\\n  --jsx=automatic --jsx-import-source=@harborclient/sdk \\\n  --external:react --external:react-dom"
+      },
+      {
+        "lang": "tsx",
+        "code": "import type { PluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: PluginContext): void {\n  // register contributions…\n}"
+      },
+      {
+        "lang": "tsx",
+        "code": "import { useEffect, useState } from '@harborclient/sdk/react';"
+      },
+      {
+        "lang": "tsx",
+        "code": "import { createPluginComponent } from '@harborclient/sdk';\nimport type { PluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: PluginContext): void {\n  const Panel = createPluginComponent((React) => {\n    return function Panel() {\n      const [count, setCount] = React.useState(0);\n      return React.createElement('button', { onClick: () => setCount(count + 1) }, count);\n    };\n  });\n}"
+      }
+    ],
+    "signature": ""
+  },
+  "scripts": {
+    "title": "hc.scripts",
+    "level": 2,
+    "since": "2.7.0",
+    "signature": "(init?: PluginScriptContextInit) => PluginScriptContext",
+    "description": "Creates a script sandbox that exposes the **same `hc` object** as collection and request pre/post scripts. Use it to run tests, mutate a request snapshot, or read a response with `hc.response.json()` inside your main entry.\n\nNo extra permission is required. Contexts start with only the hc API plus globals you inject with `setVariable` and `setFunction`.\n\n### PluginScriptContext\n\n| Method                     | Description                                                                                                              |\n| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |\n| `setVariable(name, value)` | Injects a global variable visible to subsequent `run()` calls.                                                           |\n| `setFunction(name, fn)`    | Injects a global function; overrides built-in globals such as `console` when names collide.                              |\n| `run(script)`              | Evaluates script synchronously; returns {@link PluginScriptRunResult} with hc mutations and the last-expression `value`. |\n\n`run()` returns the full structured result: mutated `request`, `variableSets`, `collectionVariableSets`, `environmentVariableSets`, `globalVariableSets`, `collectionHeaders`, `tests`, `logs`, `data` (the final `hc.data` bag), optional `error`, and `value` (the script's last expression).\n\nThe hc surface matches pre/post request scripts: `hc.request`, `hc.collection`, `hc.environment`, `hc.globals`, `hc.data`, `hc.test`, `hc.expect`, and `hc.response` (when `init.response` is provided). Pass optional `init.data` to seed `hc.data` when creating a context. See [Request scripts](https://harborclient.com/request-scripts) for the full hc reference, including [hc.data](https://harborclient.com/scripting#hcdata).\n\nTests, logs, and `hc.data` accumulate across multiple `run()` calls on the same context. Request and variable mutations persist until you create a new context.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import type { MainPluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: MainPluginContext): void {\n  const context = hc.scripts.createContext({\n    phase: 'post',\n    request: {\n      method: 'GET',\n      url: 'https://api.example.com/users',\n      headers: [],\n      params: [],\n      body: '',\n      bodyType: 'none'\n    },\n    response: {\n      status: 200,\n      statusText: 'OK',\n      headers: { 'content-type': 'application/json' },\n      body: '{\"ok\":true}',\n      timeMs: 12,\n      sizeBytes: 11\n    },\n    variables: { token: 'abc' }\n  });\n\n  context.setFunction('console', console);\n\n  const result = context.run(`\n    const data = hc.response.json();\n    hc.test('is ok', () => hc.expect(data.ok).to.equal(true));\n    hc.request.variables.set('lastStatus', String(hc.response.code));\n    data.ok;\n  `);\n\n  // result.value === true\n  // result.tests, result.variableSets, result.logs, result.request, ...\n}"
+      }
+    ]
+  },
+  "server.onRequest": {
+    "title": "hc.server.onRequest(handler)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(handler: (request) => unknown | PluginServerHttpResponse | Promise<...>) => Disposable",
+    "description": "Invoked for each incoming HTTP request. The `request` object includes a default `echo` payload (args, data, files, form, headers, json, origin, url).\n\nReturn either:\n\n- A JSON-serializable value for a **legacy** body-only response (always HTTP 200 + `application/json`), or\n- A **structured** `PluginServerHttpResponse` with `kind: 'http-response'` (use `createHttpResponse(...)` from `@harborclient/sdk/runtime-utils`) for custom status, headers, body, and `delayMs`.\n\nString `body` values are sent as raw text (default `text/plain` unless you set `Content-Type`). Other bodies use JSON.\n\nMultiple handlers may be registered; each call returns a `Disposable` that removes only that handler. Handlers run sequentially in registration order. When a handler returns `undefined` or `null`, the host keeps the result from the previous handler (starting from the default echo payload)."
+  },
+  "server.start": {
+    "title": "hc.server.start(options?)",
+    "level": 3,
+    "since": "2.7.0",
+    "signature": "(options?: { port?: number }) => Promise<{ port: number }>",
+    "description": "Starts listening. Returns the assigned port after the server accepts connections."
+  },
+  "server.stop": {
+    "title": "hc.server.stop()",
+    "level": 3,
+    "since": "2.7.0",
+    "signature": "() => Promise<void>",
+    "description": "Stops the echo server owned by this plugin."
+  },
+  "storage.get": {
+    "title": "hc.storage.get(key)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "<T>(key: string) => Promise<T | undefined>",
+    "description": "Returns the stored value, or `undefined` if the key has never been set.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import type { MainPluginContext } from '@harborclient/sdk';\n\nexport function activate(hc: MainPluginContext): void {\n  hc.http.onBeforeSend(async (request) => {\n    const token = await hc.storage.get<string>('accessToken');\n    if (token) {\n      request.headers.Authorization = `Bearer ${token}`;\n    }\n  });\n}"
+      }
+    ]
+  },
+  "storage.set": {
+    "title": "hc.storage.set(key, value)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "<T>(key: string, value: T) => Promise<void>",
+    "description": "Persists a JSON-serializable value.\n\n### Storage-backed store (cross-webview sync)\n\nSeparate plugin webviews do not share memory. When one surface writes\n`hc.storage` and another needs to react (for example a sidebar and a modal\noverlay), reload from storage on focus/visibility instead of duplicating\nread/diff/notify logic in every plugin.\n\n`@harborclient/sdk/store` provides:\n\n- **`createStorageStore<T>({ storage, key, parse, equals?, keepCurrentWhenMissing? })`**\n  — returns `{ subscribe, getSnapshot, useValue, reloadFromStorage, set }`.\n  Hydrates from storage asynchronously on creation; synchronous `getSnapshot()`\n  may show `parse(undefined)` until hydration completes. `parse` validates raw\n  storage into a typed snapshot; `set` updates memory and persists (write-through).\n  Default equality uses `JSON.stringify`; pass a custom `equals` for cheaper\n  comparisons. Set `keepCurrentWhenMissing: true` when an absent storage key should\n  not reset in-memory state. Await `reloadFromStorage()` when you need the persisted\n  value before a synchronous read.\n- **`syncOnWindowFocus(stores, { intervalMs? })`** — wires `focus`,\n  `visibilitychange`, and optional polling to `reloadFromStorage` on one or more\n  stores. Returns a `Disposable`; dispose from `deactivate()` or a React effect cleanup.\n\nUse **`createExternalStore`** from the same module for in-webview-only state\nthat does not need persistence.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "await hc.storage.set('enabled', true);"
+      },
+      {
+        "lang": "typescript",
+        "code": "import type { Disposable, PluginContext } from '@harborclient/sdk';\nimport { createStorageStore, syncOnWindowFocus } from '@harborclient/sdk/store';\n\nlet schemasStore: ReturnType<typeof createStorageStore<unknown[]>>;\nlet focusSync: Disposable | undefined;\n\nexport function activate(hc: PluginContext) {\n  schemasStore = createStorageStore({\n    storage: hc.storage,\n    key: 'schemas',\n    parse: (raw) => (Array.isArray(raw) ? raw : [])\n  });\n  focusSync = syncOnWindowFocus(schemasStore);\n}\n\nexport function deactivate() {\n  focusSync?.dispose();\n}\n\n// In a component:\nconst schemas = schemasStore.useValue();\nawait schemasStore.set([...schemas, newEntry]);"
+      }
+    ]
+  },
+  "themes": {
+    "title": "hc.themes",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(hc: PluginContext, theme: ThemeContribution) => Disposable",
+    "description": "Custom appearance themes extend the built-in **Light**, **Dark**, **System**, and **High contrast** options in **Settings → General**. Plugin themes appear in the same dropdown once registered.\n\nHarborClient styles the app with `--mac-*` CSS custom properties defined in `src/renderer/src/styles.css`. When a plugin theme is active, the host sets `data-theme=\"plugin-<pluginId>-<themeId>\"` on `<html>` and applies your token overrides or injected stylesheet. Built-in light/dark/system behavior is unchanged when a builtin theme is selected.\n\nThemes can be registered two ways:\n\n1. **JavaScript** — call `registerTheme(hc, theme)` or `hc.themes.register(theme)` from `activate()` (documented below).\n2. **JSON import** — point the manifest contribution at a Theme Designer export file (see [JSON theme import](#json-theme-import)). No `activate()` call is required for those entries.\n\nRequires the `ui` permission. For JavaScript registration, call `registerTheme(hc, theme)` or `hc.themes.register(theme)` from `activate()` — registration disposables are tracked automatically.\n\n### JSON theme import\n\nDeclare an `import` path on the contribution to ship a palette without JavaScript:\n\nThe file must be a `harborclientExport: \"theme\"` envelope — the same shape as **File → Themes → Designer** export:\n\nOn first read, if `stylesheet` points at an existing CSS file inside the plugin directory, HarborClient inlines the CSS text into the JSON on disk. Later reads treat the value as already-inlined CSS (idempotent). Theme-only packages can omit `renderer` and `main` entirely.\n\nSee the [Solarized theme](/examples/solarized-theme#json-import-no-javascript) example and [Theme plugins](/manifest#theme-plugins).\n\n### registerTheme(hc, theme)\n\nConvenience wrapper around `hc.themes.register`. Prefer this for single-theme plugins.\n\nUse `defineTheme(theme)` when you want to define the theme object in a separate module with full `ThemeContribution` typing.",
+    "permission": "ui",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "import { registerTheme } from '@harborclient/sdk';\n\nregisterTheme(hc, {\n  id: 'solarized',\n  title: 'Solarized Dark',\n  type: 'dark',\n  colors: { surface: '#002b36' }\n});"
+      }
+    ]
+  },
+  "themes.getActive": {
+    "title": "hc.themes.getActive()",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "() => Promise<ActiveTheme>",
+    "description": "Returns the currently active theme — either a built-in id or a plugin theme reference.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "const active = await hc.themes.getActive();\nif (active.source === 'plugin') {\n  console.log(active.pluginId, active.themeId);\n}"
+      }
+    ]
+  },
+  "themes.onDidChange": {
+    "title": "hc.themes.onDidChange(listener)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(listener: (theme: ActiveTheme) => void) => Disposable",
+    "description": "Fires when the user changes the appearance theme in Settings or when the host resets theme after plugin deactivation.\n\n### Theme color tokens\n\nOverride any of these keys in `colors`. Each maps to `--mac-<token>` on the document root.\n\n| Token                                                  | Used for                                                 |\n| ------------------------------------------------------ | -------------------------------------------------------- |\n| `surface`                                              | Main content background                                  |\n| `header`                                               | Top header strip (sidebar search + request tab bar)      |\n| `page-header`                                          | Page title header background (`PageHeader`)              |\n| `page-header-text`                                     | Page title header primary text                           |\n| `page-header-muted`                                    | Page title header description and decorative icons       |\n| `sidebar`                                              | Left sidebar background                                  |\n| `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                  |\n| `sidebar-rail`                                         | Activity rail background                                 |\n| `sidebar-rail-active`                                  | Active/hover activity rail section fill                  |\n| `sidebar-rail-text`                                    | Activity rail icons and labels                           |\n| `sidebar-rail-separator`                               | Activity rail hairline between item groups               |\n| `sidebar-section`                                      | Sidebar section headers                                  |\n| `sidebar-section-text`                                 | Sidebar section header labels and chevrons               |\n| `footer`                                               | Footer status bar background                             |\n| `footer-text`                                          | Footer primary text                                      |\n| `footer-muted`                                         | Footer de-emphasized text                                |\n| `footer-icon-active`                                   | Active footer icon toggle color                          |\n| `toolbar-action-active`                                | Pressed sidebar toolbar action icon color                |\n| `breadcrumb-background`                                | Request editor breadcrumb bar track                      |\n| `breadcrumb-segment`                                   | Breadcrumb chevron segment fill                          |\n| `git-staged`                                           | Git-backed request names staged for commit               |\n| `git-uncommitted`                                      | Git-backed request names with tracked unstaged changes   |\n| `git-unstaged`                                         | Git-backed request names not yet added to the repository |\n| `control`                                              | Panels, inputs, footer bar                               |\n| `field`                                                | Input field fill                                         |\n| `separator`                                            | Borders and dividers                                     |\n| `text`                                                 | Primary text                                             |\n| `text-secondary`                                       | Secondary labels                                         |\n| `muted`                                                | De-emphasized text                                       |\n| `accent`                                               | Links, focus rings, primary actions                      |\n| `selection`                                            | Selected row / highlight fill                            |\n| `tab-underline`                                        | Active request tab underline                             |\n| `resize-separator`                                     | Resizable panel separator track and edge border          |\n| `resize-handle`                                        | Resizable panel grip (and high-contrast chrome accents)  |\n| `variable-token`                                       | `{{variable}}` syntax highlight in editors               |\n| `danger`, `danger-light`, `warning`, `success`, `info` | Status colors                                            |\n| `method-get`, `method-post`, …                         | HTTP method badge colors                                 |\n\nSee the [Solarized theme example](/examples/solarized-theme) for a complete theme plugin.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.themes.onDidChange((theme) => {\n  if (theme.source === 'plugin' && theme.themeId === 'solarized') {\n    hc.ui.showToast('Solarized theme active');\n  }\n});"
+      }
+    ]
+  },
+  "themes.register": {
+    "title": "hc.themes.register(theme)",
+    "level": 3,
+    "since": "2.0.0",
+    "signature": "(theme: ThemeContribution) => Disposable",
+    "description": "Provide `colors`, `metrics`, a `stylesheet`, or a combination. Use `colors` / `metrics` for token swaps; use `stylesheet` when you need selectors beyond `:root` (for example plugin-specific tweaks under `[data-theme='plugin-…']`).\n\nWhen the user selects your theme, the persisted value is `plugin:<pluginId>:<themeId>`. If the plugin is disabled or uninstalled while its theme is active, HarborClient falls back to **System**.",
+    "manifest": "contributes.themes",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Theme id unique within your plugin"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Label in the appearance dropdown"
+      },
+      {
+        "name": "type",
+        "type": "`'light' \\",
+        "description": "'dark'`"
+      },
+      {
+        "name": "colors",
+        "type": "`Partial<Record<ThemeColorToken, string>>`",
+        "description": "Optional color token overrides"
+      },
+      {
+        "name": "metrics",
+        "type": "`Partial<Record<ThemeMetricToken, string>>`",
+        "description": "Optional typography/geometry overrides (CSS strings such as `14px`)"
+      },
+      {
+        "name": "stylesheet",
+        "type": "`string`",
+        "description": "Optional plugin-relative CSS file for complex themes"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.themes.register({\n  id: 'solarized',\n  title: 'Solarized Dark',\n  type: 'dark',\n  colors: {\n    surface: '#002b36',\n    sidebar: '#073642',\n    control: '#073642',\n    text: '#839496',\n    'text-secondary': '#93a1a1',\n    accent: '#268bd2',\n    selection: 'rgba(38, 139, 210, 0.25)'\n  },\n  metrics: {\n    'layout-font-size': '14px',\n    'scrollbar-width': '10px'\n  }\n});"
+      }
+    ]
+  },
+  "ui.closeModal": {
+    "title": "hc.ui.closeModal(modalId?)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(modalId?: string) => void",
+    "description": "Closes the open plugin modal overlay. When `modalId` is provided, the overlay closes only if that modal is currently open."
+  },
+  "ui.openModal": {
+    "title": "hc.ui.openModal(modalId, context?)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(modalId: string, context?: unknown) => void",
+    "description": "Opens the registered modal overlay in the host application window. Optional `context` is passed to the modal component as a `context` prop.",
+    "manifest": "contributes.modals"
+  },
+  "ui.registerCollectionSettingsTab": {
+    "title": "hc.ui.registerCollectionSettingsTab(tab)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(tab: CollectionSettingsTabContribution) => Disposable",
+    "description": "Adds a segmented tab to Collection Settings (alongside General, Variables, Headers, and so on). The component receives `context.collectionId` and `context.readOnly`.",
+    "manifest": "contributes.collectionSettingsTabs",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Tab id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Tab label"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType<{ context: CollectionSettingsTabContext }>`",
+        "description": "Tab content"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among collection settings tabs"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerCollectionSettingsTab({\n  id: 'myPlugin.collTab',\n  title: 'Plugin',\n  Component: CollectionPluginTab\n});"
+      }
+    ]
+  },
+  "ui.registerContextMenuItem": {
+    "title": "hc.ui.registerContextMenuItem(item)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(item: ContextMenuItemContribution) => Disposable",
+    "description": "Adds an action to row context menus in the sidebar for **collection**,\n**folder**, and **request** targets.\n\nWhen a plugin replaces the Collections sidebar (`replaces: \"collections\"`),\nthose contributions still appear in menus opened via\n[`hc.host.showEntityContextMenu`](/renderer-data#hchostshowentitycontextmenuinput)\n— the host builds the same menu model the built-in tree uses. They do **not**\nappear automatically inside a plugin’s own custom `RowActionsMenu` unless the\nplugin calls `showEntityContextMenu` (or builds an equivalent menu and invokes\nthe same host commands).\n\nDocument targets are not supported. See [renderer-data](/renderer-data) for\ncoordinate mapping and focus-return limitations.",
+    "manifest": "contributes.contextMenus",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Menu item id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Menu label"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id; handler receives target context as args"
+      },
+      {
+        "name": "when",
+        "type": "`'collection' \\",
+        "description": "'folder' \\"
+      },
+      {
+        "name": "group",
+        "type": "`string`",
+        "description": "Menu group"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order within the group"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.requestMenu', (target) => {\n  hc.ui.showToast(`Action on request ${target.requestId}`);\n});\nhc.ui.registerContextMenuItem({\n  id: 'myPlugin.requestMenu',\n  title: 'Plugin action',\n  command: 'myPlugin.requestMenu',\n  when: 'request'\n});"
+      }
+    ]
+  },
+  "ui.registerFooterPanel": {
+    "title": "hc.ui.registerFooterPanel(panel)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(panel: FooterPanelContribution) => Disposable",
+    "description": "Registers a slide-up footer panel using the same pattern as Console and Variables.\nThe host wraps your component in a resizable shell — you do not implement resize\nlogic yourself. The shell provides:\n\n- A top drag handle (and keyboard resize on the handle)\n- Per-panel height persistence in `localStorage` (`hc.footerPanel.<namespaced-id>`)\n- A close button in the top-right corner\n\n**Layout contract:** Your `Component` should fill the resizable area with\n`flex h-full min-h-0 flex-col` and put scrollable content in a\n`flex-1 overflow-auto` child. Leave roughly 32px of right padding on header\nrows so controls do not sit under the host close button.\n\nTo show a status dot beside the footer toggle (running / stopped / error), use\n[`hc.ui.setFooterPanelIndicator`](#hcuisetfooterpanelindicatorpanelid-state) —\ndo not mount your own indicator UI.\n\nExample panel structure:",
+    "manifest": "contributes.footerPanels",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Panel id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Toggle label in the footer bar"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Slide-up panel content"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerFooterPanel({\n  id: 'myPlugin.footer',\n  title: 'My Log',\n  Component: PluginLogPanel\n});"
+      },
+      {
+        "lang": "tsx",
+        "code": "function PluginLogPanel() {\n  return (\n    <div className=\"flex h-full min-h-0 flex-col bg-control\">\n      <div className=\"flex shrink-0 items-center border-b border-separator px-3 py-2 pr-8\">\n        <h3 className=\"text-[14px] font-medium text-text\">My Log</h3>\n      </div>\n      <div className=\"min-h-0 flex-1 overflow-auto\">{/* scrollable body */}</div>\n    </div>\n  );\n}"
+      }
+    ]
+  },
+  "ui.registerLivePageChromeAction": {
+    "title": "hc.ui.registerLivePageChromeAction(action)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(action: LivePageChromeActionContribution) => Disposable",
+    "description": "Adds a RoundButton to the embedded browser chrome bar between Downloads and Ask AI. Buttons sort by **plugin activation order**, then registration order within that plugin — there is no `order` field.\n\nThe command handler receives a single {@link LivePageChromeActionContext} argument with `tabId`, `url`, `title`, and optional `websiteId`.",
+    "manifest": "contributes.livePageChromeActions",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Action id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Button accessible name / tooltip"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id to run on click"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Optional curated icon name (host resolves; puzzle fallback)"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.pageAction', (context: LivePageChromeActionContext) => {\n  hc.ui.showToast(`Page: ${context.url}`);\n});\nhc.ui.registerLivePageChromeAction({\n  id: 'myPlugin.pageAction',\n  title: 'Page action',\n  command: 'myPlugin.pageAction',\n  icon: 'bolt'\n});"
+      }
+    ]
+  },
+  "ui.registerMainView": {
+    "title": "hc.ui.registerMainView(view)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(view: MainViewContribution) => Disposable",
+    "description": "Registers a full main-area overlay, replacing the request editor while open (same pattern as Team Hubs or Sharing Keys). Open the view with `hc.commands.execute` from a menu item or other trigger. The `title` and optional `icon` appear on the page tab.",
+    "manifest": "contributes.mainViews",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "View id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Display name for the page tab"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Full main-area content"
+      },
+      {
+        "name": "icon",
+        "type": "`string` (optional)",
+        "description": "Tab-bar icon name. Supported: `server`, `database`, `globe`, `code`, `robot`, `puzzle-piece`, `bolt`, `flask`. Unknown names fall back to `puzzle-piece`."
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerMainView({\n  id: 'myPlugin.view',\n  title: 'My Dashboard',\n  icon: 'server',\n  Component: DashboardView\n});"
+      }
+    ]
+  },
+  "ui.registerMenuItem": {
+    "title": "hc.ui.registerMenuItem(item)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(item: MenuItemContribution) => Disposable",
+    "description": "Adds an item to the application menu. Register the command handler with `hc.commands.register` separately.\n\nFor **File → Import** workflows, prefer [`hc.imports.registerHandler`](/renderer-data#hcimports) instead of adding a separate File menu import item. Built-in HarborClient formats are detected first; plugin handlers receive only unrecognized files whose extensions they registered.",
+    "manifest": "contributes.menus",
+    "fields": [
+      {
+        "name": "menu",
+        "type": "`'file' \\",
+        "description": "'edit' \\"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id to run on click"
+      },
+      {
+        "name": "label",
+        "type": "`string`",
+        "description": "Menu label override"
+      },
+      {
+        "name": "group",
+        "type": "`string`",
+        "description": "Menu group for separators"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order within the group"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.run', () => {\n  hc.ui.showToast('Command ran');\n});\nhc.ui.registerMenuItem({ menu: 'view', command: 'myPlugin.run', group: 'plugin' });"
+      }
+    ]
+  },
+  "ui.registerModal": {
+    "title": "hc.ui.registerModal(modal)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(modal: ModalContribution) => Disposable",
+    "description": "Registers a modal rendered in a full-window overlay at the application root. Open it with `hc.ui.openModal(modalId, context?)` and close it with `hc.ui.closeModal(modalId?)`. Requires the `ui` permission.",
+    "manifest": "contributes.modals",
+    "permission": "ui",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Modal id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Accessible title for the modal surface"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType<{ context?: unknown }>`",
+        "description": "Modal body; receives `context` from `openModal`"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerModal({\n    id: 'myPlugin.editor',\n    title: 'Edit item',\n    Component: ({ context }) => <EditorModal context={context} />\n  })\nhc.ui.openModal('myPlugin.editor', { itemId: 'abc' });"
+      }
+    ]
+  },
+  "ui.registerRequestTab": {
+    "title": "hc.ui.registerRequestTab(tab)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(tab: RequestTabContribution) => Disposable",
+    "description": "Adds a segmented tab to the request editor (alongside Params, Headers, Body, and so on). The component receives `context.draft` for the active request, `context.response` when a response exists, and `context.variables` for merged global, collection, and environment substitution values (see [Global variables](/renderer-data#global-variables)).",
+    "manifest": "contributes.requestTabs",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Tab id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Tab label"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType<{ context: RequestTabContext }>`",
+        "description": "Tab content"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among editor tabs"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerRequestTab({\n  id: 'myPlugin.requestTab',\n  title: 'Audit',\n  Component: AuditTab\n});"
+      }
+    ]
+  },
+  "ui.registerRequestToolbarAction": {
+    "title": "hc.ui.registerRequestToolbarAction(action)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(action: RequestToolbarActionContribution) => Disposable",
+    "description": "Adds a button to the request URL bar toolbar.",
+    "manifest": "contributes.requestToolbarActions",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Action id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Button label or tooltip"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id to run on click"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Optional icon name"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order near the Send button"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.sendAction', () => {\n  hc.ui.showToast('Pre-send check passed');\n});\nhc.ui.registerRequestToolbarAction({\n  id: 'myPlugin.sendAction',\n  title: 'Run check',\n  command: 'myPlugin.sendAction'\n});"
+      }
+    ]
+  },
+  "ui.registerResponseTab": {
+    "title": "hc.ui.registerResponseTab(tab)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(tab: ResponseTabContribution) => Disposable",
+    "description": "Adds a tab to the response viewer (alongside Body, Headers, Tests).",
+    "manifest": "contributes.responseTabs",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Tab id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Tab label"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType<{ context: ResponseTabContext }>`",
+        "description": "Tab content"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among response tabs"
+      },
+      {
+        "name": "when",
+        "type": "`'always' \\",
+        "description": "'hasResponse'`"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerResponseTab({\n  id: 'myPlugin.responseTab',\n  title: 'Summary',\n  when: 'hasResponse',\n  Component: ResponseSummaryTab\n});"
+      }
+    ]
+  },
+  "ui.registerScriptEditorAction": {
+    "title": "hc.ui.registerScriptEditorAction(action)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(action: ScriptEditorActionContribution) => Disposable",
+    "description": "HarborClient uses **request stage** for the pre-request and post-request script lists (`ScriptPhase`: `pre` | `post`) and **script stage** for timing within a list (`ScriptStage`: `before-all`, `before-each`, `main`, `after-each`, `after-all`).\n\nScript rows carry a {@link ScriptStage} value that controls when the script runs within its request stage. Plugin script editor actions are not filtered by script stage today — use `phases` only.\n\nAdds an icon button to each script row in the pre-request and post-request stage editors. The command handler receives a single {@link ScriptEditorActionContext} argument with `phase` (request stage), `scriptId`, and `code`.",
+    "manifest": "contributes.scriptEditorActions",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Action id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Button label or tooltip"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id to run on click"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Optional icon name"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order within the row action group"
+      },
+      {
+        "name": "phases",
+        "type": "`ScriptPhase[]`",
+        "description": "Optional filter — show only in pre-request and/or post-request stage tabs"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.convert', (context: ScriptEditorActionContext) => {\n  hc.ui.openModal('preview', context);\n});\nhc.ui.registerScriptEditorAction({\n  id: 'myPlugin.convert',\n  title: 'Convert',\n  command: 'myPlugin.convert'\n});"
+      }
+    ]
+  },
+  "ui.registerSettingsSection": {
+    "title": "hc.ui.registerSettingsSection(section)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(section: SettingsSectionContribution) => Disposable",
+    "description": "Registers a React component as a Settings panel alongside built-in sections (General, Storage, and so on).",
+    "manifest": "contributes.settingsSections",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Settings section id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Label in the Settings sidebar"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Panel content"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerSettingsSection({\n  id: 'compactMode',\n  title: 'Compact Mode',\n  Component: CompactModePanel\n});"
+      }
+    ]
+  },
+  "ui.registerSidebarPanel": {
+    "title": "hc.ui.registerSidebarPanel(panel)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(panel: SidebarPanelContribution) => Disposable",
+    "description": "Registers a switchable left sidebar destination — a full-height panel the user selects instead of the default collections view. The host mounts the panel with `resizeMode=\"fill\"` so the plugin surface fills the sidebar body and scrolls inside the webview (`plugin-surface-fill`). Panel bodies should scroll via `Scrollbars` from `@harborclient/sdk/components` (OverlayScrollbars is bundled with the SDK; theme CSS comes from the host stylesheet) so they match the built-in Collections sidebar — do not use native `overflow-y-auto` for the main list.\n\n**Replacing Collections:** To make this panel the default left-sidebar body (hiding the built-in Collections tree and \"Collections\" switcher tab), set `replaces: \"collections\"` on the matching **manifest** entry. That field is not part of the runtime `SidebarPanelContribution` object; the host copies it from the manifest at registration time.\n\nSemantics:\n\n- `activeSidebarPanelId === null` means the **primary collections surface** — the replacement panel when one is registered, otherwise the built-in Collections tree.\n- Non-replacing plugin panels remain switchable destinations alongside the primary surface.\n- When multiple panels claim `replaces: \"collections\"`, the host picks one winner (lowest `order`, then `pluginId`, then contribution `id`) and logs a warning.\n\nFor activity-rail icons that open a sidebar while keeping the rail visible, use\n[hc.ui.registerSidebarRailItem](#hcuiregistersidebarrailitemitem) instead.",
+    "manifest": "contributes.sidebarPanels",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Panel id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Label when switching sidebar mode"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Optional icon name"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Full sidebar content"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among plugin panels"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerSidebarPanel({\n  id: 'myPlugin.panel',\n  title: 'My Tools',\n  icon: 'wrench',\n  Component: MySidebarPanel\n});"
+      }
+    ]
+  },
+  "ui.registerSidebarRailItem": {
+    "title": "hc.ui.registerSidebarRailItem(item)",
+    "level": 2,
+    "since": "2.8.8",
+    "signature": "(item: SidebarRailItemContribution) => Disposable",
+    "description": "Registers an activity-rail button. Selecting it mounts the panel with `resizeMode=\"fill\"` and **keeps the activity rail visible** (unlike `registerSidebarPanel`, which uses a horizontal switcher and hides the rail). Panel bodies should scroll via `Scrollbars` from `@harborclient/sdk/components`.\n\nThe host pushes `{ sidebarSelection }` as surface context (same shape as sidebar panels). Prefer `hc.host.onSidebarSelectionChanged` for live updates.",
+    "manifest": "contributes.sidebarRailItems",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Rail item id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Label / accessible name on the activity rail"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Required curated icon name (`server`, `database`, `globe`, `code`, `robot`, `puzzle-piece`, `bolt`, `flask`)"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Full sidebar content"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among plugin rail items (appended after built-in modes)"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerSidebarRailItem({\n  id: 'myPlugin.tools',\n  title: 'My Tools',\n  icon: 'bolt',\n  Component: MyToolsSidebar,\n  order: 10\n});"
+      }
+    ]
+  },
+  "ui.registerSidebarSection": {
+    "title": "hc.ui.registerSidebarSection(section)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(section: SidebarSectionContribution) => Disposable",
+    "description": "Adds a collapsible block inside the scrollable sidebar, using the same pattern as the built-in Collections and Environments sections.",
+    "manifest": "contributes.sidebarSections",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Section id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Collapsible section heading"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Section body"
+      },
+      {
+        "name": "headerActions",
+        "type": "`React.ComponentType`",
+        "description": "Optional controls in the section header row"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order below Collections / Environments"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerSidebarSection({\n  id: 'myPlugin.section',\n  title: 'Quick links',\n  Component: QuickLinksSection,\n  order: 100\n});"
+      }
+    ]
+  },
+  "ui.registerStatusBarItem": {
+    "title": "hc.ui.registerStatusBarItem(item)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(item: StatusBarItemContribution) => Disposable",
+    "description": "Adds a custom status indicator to the footer bar.",
+    "manifest": "contributes.statusBarItems",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Item id"
+      },
+      {
+        "name": "Component",
+        "type": "`React.ComponentType`",
+        "description": "Status content"
+      },
+      {
+        "name": "alignment",
+        "type": "`'left' \\",
+        "description": "'right'`"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order on that side"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.registerStatusBarItem({\n  id: 'myPlugin.status',\n  alignment: 'right',\n  Component: PluginStatusBadge\n});"
+      }
+    ]
+  },
+  "ui.registerWorkflowActionBlock": {
+    "title": "hc.ui.registerWorkflowActionBlock(block)",
+    "level": 2,
+    "since": "2.8.6",
+    "signature": "(block: WorkflowActionBlockContribution) => Disposable",
+    "description": "Renders a HostedSurface inside matching workflow timeline action blocks (below\nthe built-in thumbnail). Surfaces are skipped when the block is compact (too\nnarrow). Prefer a narrow `actionTypes` list to avoid mounting many webviews.",
+    "manifest": "contributes.workflowActionBlocks",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Contribution id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Display label"
+      },
+      {
+        "name": "Component",
+        "type": "`Component`",
+        "description": "Receives `{ context: WorkflowActionBlockContext }`"
+      },
+      {
+        "name": "actionTypes",
+        "type": "`string[]`",
+        "description": "Optional filter — omit to show on every timeline action"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order among stacked surfaces in a block"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "function ActionBadge({ context }: { context: WorkflowActionBlockContext }) {\n  const { react: React } = hc;\n  return React.createElement('span', null, context.action.type);\n}\n\nhc.ui.registerWorkflowActionBlock({\n  id: 'badge',\n  title: 'Action badge',\n  actionTypes: ['request.send', 'request.load'],\n  Component: ActionBadge\n});"
+      }
+    ]
+  },
+  "ui.registerWorkflowToolbarAction": {
+    "title": "hc.ui.registerWorkflowToolbarAction(action)",
+    "level": 2,
+    "since": "2.8.6",
+    "signature": "(action: WorkflowToolbarActionContribution) => Disposable",
+    "description": "Adds a button to the right of Save in the workflow play/edit toolbar. The\ncommand handler receives a single `WorkflowToolbarActionContext` argument with\n`workflowId`, `actionIndex`, `action`, and `dirty`.",
+    "manifest": "contributes.workflowToolbarActions",
+    "fields": [
+      {
+        "name": "id",
+        "type": "`string`",
+        "description": "Action id"
+      },
+      {
+        "name": "title",
+        "type": "`string`",
+        "description": "Button label or tooltip"
+      },
+      {
+        "name": "command",
+        "type": "`string`",
+        "description": "Command id to run on click"
+      },
+      {
+        "name": "icon",
+        "type": "`string`",
+        "description": "Optional icon name"
+      },
+      {
+        "name": "order",
+        "type": "`number`",
+        "description": "Sort order to the right of Save"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.commands.register('myPlugin.annotate', (context: WorkflowToolbarActionContext) => {\n  hc.ui.showToast(`Workflow ${context.workflowId} selected action ${context.actionIndex}`);\n});\nhc.ui.registerWorkflowToolbarAction({\n  id: 'myPlugin.annotate',\n  title: 'Annotate',\n  command: 'myPlugin.annotate'\n});"
+      }
+    ]
+  },
+  "ui.setFooterPanelIndicator": {
+    "title": "hc.ui.setFooterPanelIndicator(panelId, state)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(panelId: string, state: FooterPanelIndicatorState | null) => void",
+    "description": "Sets or clears the native status dot beside a footer panel toggle. The host\nrenders a `StatusDot`; plugins do not mount an indicator webview.\n\n`FooterPanelIndicatorState`:\n\n| Field    | Type                                                                  | Description                          |\n| -------- | --------------------------------------------------------------------- | ------------------------------------ |\n| `status` | `'success' \\| 'danger' \\| 'muted' \\| 'accent' \\| 'warning' \\| 'info'` | Color preset for the status dot      |\n| `label`  | `string`                                                              | Optional accessible name for the dot |\n\nCall from the agent (always-on) renderer after registering the panel, and again\nwhenever status changes:",
+    "manifest": "contributes.footerPanels",
+    "params": [
+      {
+        "name": "panelId",
+        "type": "`string`",
+        "description": "Manifest footerPanels id"
+      },
+      {
+        "name": "state",
+        "type": "`FooterPanelIndicatorState \\",
+        "description": "null`"
+      }
+    ],
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.setFooterPanelIndicator('myPlugin.footer', {\n  status: running ? 'success' : 'muted',\n  label: running ? 'My server active' : 'My server stopped'\n});\n\n// Hide the dot:\nhc.ui.setFooterPanelIndicator('myPlugin.footer', null);"
+      }
+    ]
+  },
+  "ui.showToast": {
+    "title": "hc.ui.showToast(message, options?)",
+    "level": 2,
+    "since": "2.0.0",
+    "signature": "(message: string, options?: { duration?: number }) => void",
+    "description": "Shows a non-blocking toast for success or info feedback. Do not use toasts for errors that require acknowledgment — show those inline in your plugin UI instead.",
+    "examples": [
+      {
+        "lang": "typescript",
+        "code": "hc.ui.showToast('Settings saved', { duration: 3000 });"
+      }
+    ]
+  }
+}

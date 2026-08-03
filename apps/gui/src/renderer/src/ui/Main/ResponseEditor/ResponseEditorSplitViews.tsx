@@ -496,18 +496,18 @@ export function ResponseEditorSplitViews({
     : { height: secondarySize, flex: '0 0 auto' as const };
 
   /**
-   * Builds a split pane wrapper with inset padding so tabs/content are not flush
-   * against the resize handle or clipped by overflow.
+   * Builds a split pane wrapper with overflow clipping and flex sizing.
+   * No handle-side padding: SegmentedTabs `p-3` and content `px-3` provide
+   * inset while tab-strip borders meet the resize handle.
    *
    * @param pane - Pane content to wrap.
-   * @param padClass - Tailwind padding class on the side facing the handle.
    * @param sized - When true, applies the secondary pane size style.
    * @returns Wrapped pane element.
    */
-  const wrapSplitPane = (pane: JSX.Element, padClass: string, sized: boolean): JSX.Element => {
+  const wrapSplitPane = (pane: JSX.Element, sized: boolean): JSX.Element => {
     return (
       <div
-        className={`flex min-h-0 min-w-0 flex-col overflow-hidden ${padClass}${sized ? '' : ' flex-1'}`}
+        className={`flex min-h-0 min-w-0 flex-col overflow-hidden${sized ? '' : ' flex-1'}`}
         style={sized ? secondaryStyle : undefined}
       >
         {pane}
@@ -567,45 +567,47 @@ export function ResponseEditorSplitViews({
     case 'left':
       content = (
         <>
-          {wrapSplitPane(secondaryPane, 'pr-3', true)}
+          {wrapSplitPane(secondaryPane, true)}
           {handle}
-          {wrapSplitPane(splitPrimaryPane, 'pl-3', false)}
+          {wrapSplitPane(splitPrimaryPane, false)}
         </>
       );
       break;
     case 'right':
       content = (
         <>
-          {wrapSplitPane(splitPrimaryPane, 'pr-3', false)}
+          {wrapSplitPane(splitPrimaryPane, false)}
           {handle}
-          {wrapSplitPane(secondaryPane, 'pl-3', true)}
+          {wrapSplitPane(secondaryPane, true)}
         </>
       );
       break;
     case 'up':
       content = (
         <>
-          {wrapSplitPane(secondaryPane, 'pb-4', true)}
+          {wrapSplitPane(secondaryPane, true)}
           {handle}
-          {wrapSplitPane(splitPrimaryPane, 'pt-4', false)}
+          {wrapSplitPane(splitPrimaryPane, false)}
         </>
       );
       break;
     case 'down':
       content = (
         <>
-          {wrapSplitPane(splitPrimaryPane, 'pb-4', false)}
+          {wrapSplitPane(splitPrimaryPane, false)}
           {handle}
-          {wrapSplitPane(secondaryPane, 'pt-4', true)}
+          {wrapSplitPane(secondaryPane, true)}
         </>
       );
       break;
   }
 
+  // Cancel ResponseEditor summary `mb-2` and outer `p-3` on all sides so the
+  // handle meets the summary separator, side edges, and footer.
   return (
     <div
       ref={containerRef}
-      className={`flex min-h-0 flex-1 ${horizontal ? 'flex-row' : 'flex-col'}`}
+      className={`-mx-3 -mb-3 -mt-2 flex min-h-0 flex-1 ${horizontal ? 'flex-row' : 'flex-col'}`}
     >
       {content}
       {menu}
