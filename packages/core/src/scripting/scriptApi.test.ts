@@ -721,7 +721,7 @@ describe('createScriptApi hc.data', () => {
   });
 });
 
-describe('createScriptApi sendRequest', () => {
+describe('createScriptApi fetch', () => {
   it('uses the injected transport when provided', async () => {
     const sendResult: SendResult = {
       status: 201,
@@ -733,23 +733,26 @@ describe('createScriptApi sendRequest', () => {
     };
 
     const api = createScriptApi(baseInput, {
-      sendRequest: async () => sendResult
+      fetch: async () => sendResult
     });
     const hc = api.hc as {
-      sendRequest: (req: { url: string }) => Promise<{ code: number; json: () => unknown }>;
+      fetch: (
+        input: string,
+        init?: { method?: string }
+      ) => Promise<{ status: number; json: () => Promise<unknown> }>;
     };
 
-    const response = await hc.sendRequest({ url: 'https://api.example.com' });
-    expect(response.code).toBe(201);
-    expect(response.json()).toEqual({ ok: true });
+    const response = await hc.fetch('https://api.example.com');
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({ ok: true });
   });
 
   it('throws when no transport is available', () => {
     const api = createScriptApi(baseInput);
-    const sendRequest = api.hc.sendRequest as (req: { url: string }) => Promise<unknown>;
+    const fetchFn = api.hc.fetch as (input: string) => Promise<unknown>;
 
-    expect(() => sendRequest({ url: 'https://api.example.com' })).toThrow(
-      'hc.sendRequest is not available in this script context'
+    expect(() => fetchFn('https://api.example.com')).toThrow(
+      'hc.fetch is not available in this script context'
     );
   });
 });

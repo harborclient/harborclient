@@ -4,6 +4,175 @@
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 /**
+ * Transport protocol for a request tab or saved request.
+ *
+ * HTTP uses the buffered {@link IRequester.executeRequest} path. SSE opens a
+ * long-lived session via {@link IRequester.openSession}. Additional values
+ * (websocket, grpc) may be added later without changing {@link HttpMethod}.
+ */
+export type RequestProtocol = 'http' | 'sse';
+
+/**
+ * One parsed Server-Sent Events message from an open SSE session.
+ */
+export interface SseEvent {
+  /**
+   * Monotonic sequence number within the session, used as a stable React key.
+   */
+  seq: number;
+
+  /**
+   * Wall-clock time when the event was dispatched, in epoch milliseconds.
+   */
+  receivedAt: number;
+
+  /**
+   * Event type from the `event:` field, or `message` when the field is absent.
+   */
+  type: string;
+
+  /**
+   * Last-Event-ID value from the `id:` field, when present.
+   */
+  id?: string;
+
+  /**
+   * Joined multi-line `data:` payload (lines separated by `\n`).
+   */
+  data: string;
+
+  /**
+   * Reconnect delay from the `retry:` field, in milliseconds, when present.
+   */
+  retryMs?: number;
+
+  /**
+   * Verbatim wire block for the Raw tab (excluding the terminating blank line).
+   */
+  raw: string;
+}
+
+/**
+ * Input for opening a long-lived network session (SSE today; WS/gRPC later).
+ */
+export interface SessionOpenInput {
+  /**
+   * Session protocol; only `sse` is supported in this cut.
+   */
+  protocol: 'sse';
+
+  /**
+   * Request URL without query parameters.
+   */
+  url: string;
+
+  /**
+   * Request headers as editable key-value pairs.
+   */
+  headers: KeyValue[];
+
+  /**
+   * Query parameters as editable key-value pairs.
+   */
+  params: KeyValue[];
+
+  /**
+   * Last-Event-ID to send on the initial connect or after reconnect.
+   */
+  lastEventId?: string;
+
+  /**
+   * When true (default), reconnect after a clean server close using the
+   * EventSource retry interval. Disabled when the client aborts.
+   */
+  reconnect?: boolean;
+}
+
+/**
+ * Handshake metadata emitted when an SSE response's headers arrive.
+ */
+export interface SessionOpenInfo {
+  /**
+   * HTTP status code from the initial response.
+   */
+  status: number;
+
+  /**
+   * HTTP status text from the initial response.
+   */
+  statusText: string;
+
+  /**
+   * Response headers as a flat key-value map.
+   */
+  headers: Record<string, string>;
+
+  /**
+   * Set-Cookie header values from the response; used by the cookie jar.
+   */
+  setCookieHeaders?: string[];
+
+  /**
+   * Optional best-effort phase timing for the handshake hop.
+   */
+  timing?: RequestTimingPhases;
+}
+
+/**
+ * Callbacks for a long-lived network session.
+ */
+export interface SessionHandlers {
+  /**
+   * Called when response headers arrive (before the first event).
+   *
+   * @param info - Handshake status, headers, and optional timing.
+   */
+  onOpen?(info: SessionOpenInfo): void;
+
+  /**
+   * Called for each parsed SSE event.
+   *
+   * @param event - Parsed event payload.
+   */
+  onEvent(event: SseEvent): void;
+
+  /**
+   * Called before a reconnect attempt sleeps.
+   *
+   * @param afterMs - Delay before the next connect attempt.
+   * @param attempt - One-based reconnect attempt number.
+   */
+  onReconnecting?(afterMs: number, attempt: number): void;
+
+  /**
+   * Called when the session ends (client close, server close, or error).
+   *
+   * @param info - Close reason and optional error message.
+   */
+  onClose?(info: { reason: 'client' | 'server' | 'error'; error?: string }): void;
+}
+
+/**
+ * Handle for an open long-lived network session.
+ */
+export interface NetworkSession {
+  /**
+   * Opaque session id for correlating IPC events with the opener.
+   */
+  readonly id: string;
+
+  /**
+   * Protocol this session was opened with.
+   */
+  readonly protocol: RequestProtocol;
+
+  /**
+   * Closes the session and aborts any in-flight reconnect.
+   */
+  close(): Promise<void>;
+}
+
+/**
  * Request body content type.
  */
 export type BodyType = 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';

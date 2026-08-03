@@ -343,7 +343,7 @@ async function compileUserScript(
 }
 
 /**
- * Wraps user script source in an async IIFE so await hc.sendRequest works in the sandbox.
+ * Wraps user script source in an async IIFE so await hc.fetch works in the sandbox.
  *
  * @param source - Raw user-authored script source.
  * @returns Source wrapped for async compartment evaluation.
@@ -381,7 +381,7 @@ function readThrownError(err: unknown): { message: string; stack?: string } {
  * a locked-down utilityProcess; unit tests call it directly without `lockdown()`.
  *
  * @param input - Script source, phase, request/response context, and variables.
- * @param options - Optional runtime hooks such as hc.sendRequest transport.
+ * @param options - Optional runtime hooks such as hc.fetch transport.
  * @returns Mutated request, variable sets, tests, and logs from the sandbox.
  */
 export async function evaluateScript(

@@ -151,7 +151,7 @@ describe('createPluginContext runtime surfaces', () => {
     await expect(hc.host.openCollectionSettings(1)).rejects.toThrow(/lacks permission: ui/);
     await expect(hc.host.getSidebarSelection()).rejects.toThrow(/lacks permission: ui/);
     expect(() => hc.host.onSidebarSelectionChanged(() => {})).toThrow(/lacks permission: ui/);
-    await expect(hc.host.sendRequest()).rejects.toThrow(/lacks permission: ui/);
+    await expect(hc.host.send()).rejects.toThrow(/lacks permission: ui/);
     await expect(hc.host.createEnvironmentWithVariables('Dev', [])).rejects.toThrow(
       /lacks permission: ui/
     );
@@ -214,18 +214,9 @@ describe('createPluginContext runtime surfaces', () => {
     await expect(hc.host.listLibraryTree()).resolves.toEqual({ collections: [], warnings: [] });
   });
 
-  it('rejects hc.host.sendHttpRequest without the network permission', async () => {
+  it('rejects hc.host.fetch without the network permission', async () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
-    await expect(
-      hc.host.sendHttpRequest({
-        method: 'GET',
-        url: 'https://example.com',
-        headers: [],
-        params: [],
-        body: '',
-        bodyType: 'none'
-      })
-    ).rejects.toThrow(/lacks permission: network/);
+    await expect(hc.host.fetch('https://example.com')).rejects.toThrow(/lacks permission: network/);
   });
 
   it('rejects hc.fs.watchFile without the filesystem:read permission', () => {

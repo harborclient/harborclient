@@ -161,13 +161,13 @@ export const updateGeneralSettingsTool = {
           },
           allowScriptNetworkRequests: {
             type: 'boolean',
-            description: 'When true, pre/post scripts may call hc.sendRequest for outbound HTTP.'
+            description: 'When true, pre/post scripts may call hc.fetch for outbound HTTP.'
           },
           allowedNetworkPlugins: {
             type: 'array',
             items: { type: 'string' },
             description:
-              'Plugin manifest ids allowed to call hc.host.sendHttpRequest when script network is off.'
+              'Plugin manifest ids allowed to call hc.host.fetch when script network is off.'
           },
           allowScriptFileRead: {
             type: 'boolean',

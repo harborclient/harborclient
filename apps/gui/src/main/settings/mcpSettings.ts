@@ -20,10 +20,11 @@ const DEFAULT_MCP_SERVER_PORT = 7333;
  * Default MCP server settings when none are stored.
  *
  * New installs expose every Harbor AI agent tool; users can narrow the
- * allowlist from the MCP panel Tools view or Settings.
+ * allowlist from the MCP panel Tools view.
  */
 export const DEFAULT_MCP_SERVER_SETTINGS: McpServerSettings = {
   enabled: false,
+  running: false,
   name: 'HarborClient',
   logoUrl: 'https://harborclient.com/images/logo.png',
   host: '127.0.0.1',
@@ -90,8 +91,13 @@ function normalizeMcpServerSettings(input: Partial<McpServerSettings>): McpServe
       ? input.port
       : DEFAULT_MCP_SERVER_PORT;
 
+  const enabled = Boolean(input.enabled);
+  // Pre-`running` installs treated `enabled` as listen intent; migrate once.
+  const running = input.running !== undefined ? Boolean(input.running) : enabled;
+
   return {
-    enabled: Boolean(input.enabled),
+    enabled,
+    running,
     name:
       String(input.name ?? DEFAULT_MCP_SERVER_SETTINGS.name).trim() ||
       DEFAULT_MCP_SERVER_SETTINGS.name,

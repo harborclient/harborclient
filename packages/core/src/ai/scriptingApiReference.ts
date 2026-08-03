@@ -172,11 +172,37 @@ await page.close();
 
 Unavailable in headless/CLI script contexts (throws).
 
+## hc.fetch(input, init?)
+
+Sends an outbound HTTP request from the script sandbox using the native
+\`fetch(input, init?)\` signature. Requires Settings → General → Allow script
+network requests. Always \`await\` the Promise.
+
+\`\`\`js
+const response = await hc.fetch("https://api.example.com/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ grant_type: "client_credentials" })
+});
+const data = await response.json();
+hc.request.variables.set("access_token", data.access_token);
+\`\`\`
+
+- \`input\` — URL string, \`URL\`, or Request-like \`{ url }\` object
+- \`init.method\` — HTTP method (default \`GET\`)
+- \`init.headers\` — record, \`[key, value][]\`, or Headers-like object
+- \`init.body\` — string or \`URLSearchParams\` (FormData / Blob / AbortSignal are not supported)
+- Returns a Response-like object: \`ok\`, \`status\`, \`statusText\`, \`headers\`,
+  \`text()\`, \`json()\`, \`arrayBuffer()\`
+- Throws when script network is disabled or the transport is unavailable
+
+Do not invent browser \`fetch\` in the sandbox; use \`await hc.fetch(...)\`.
+
 ## hc.sleep(milliseconds)
 
 Pauses the script for the given number of milliseconds, then continues. Returns a
 Promise — always \`await\` it. Useful for pacing retries or waiting before a
-follow-up \`hc.sendRequest\`.
+follow-up \`hc.fetch\`.
 
 \`\`\`js
 await hc.sleep(2000);

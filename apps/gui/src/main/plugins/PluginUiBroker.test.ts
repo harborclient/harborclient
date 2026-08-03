@@ -307,7 +307,7 @@ describe('PluginUiBroker host bridge invoke', () => {
     });
   });
 
-  it('round-trips host.sendHttpRequest through plugins:hostBridgeInvoke', async () => {
+  it('round-trips host.fetch through plugins:hostBridgeInvoke', async () => {
     const send = vi.fn();
     const mockWindow = {
       isDestroyed: () => false,
@@ -328,34 +328,29 @@ describe('PluginUiBroker host bridge invoke', () => {
       kind: 'requestTabs'
     });
 
-    const input = {
-      method: 'GET',
-      url: 'https://example.test',
-      headers: [],
-      params: [],
-      body: '',
-      bodyType: 'none'
+    const payload = {
+      input: 'https://example.test',
+      init: { method: 'GET' }
     };
-    const resultPromise = broker.handleInvoke(sender, 'host.sendHttpRequest', { input });
+    const resultPromise = broker.handleInvoke(sender, 'host.fetch', payload);
 
     expect(send).toHaveBeenCalledWith('plugins:hostBridgeInvoke', {
       requestId: 1,
       pluginId: 'com.test.load',
-      op: 'host.sendHttpRequest',
-      payload: { input }
+      op: 'host.fetch',
+      payload
     });
 
-    const sendResult = {
+    const fetchResult = {
+      ok: true,
       status: 200,
       statusText: 'OK',
       headers: {},
-      body: 'ok',
-      timeMs: 42,
-      sizeBytes: 2
+      body: 'ok'
     };
-    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: sendResult });
+    broker.completeHostBridgeInvokeForTests({ requestId: 1, ok: true, result: fetchResult });
 
-    await expect(resultPromise).resolves.toEqual(sendResult);
+    await expect(resultPromise).resolves.toEqual(fetchResult);
   });
 
   it('round-trips livePage.open through plugins:hostBridgeInvoke with browser permission', async () => {
@@ -532,7 +527,7 @@ describe('PluginUiBroker host bridge invoke', () => {
     );
   });
 
-  it('rejects host.sendHttpRequest when network access is disabled for the plugin', async () => {
+  it('rejects host.fetch when network access is disabled for the plugin', async () => {
     const { isPluginNetworkAllowed } = await import('#/main/settings/generalSettings');
     vi.mocked(isPluginNetworkAllowed).mockReturnValue(false);
 
@@ -551,15 +546,8 @@ describe('PluginUiBroker host bridge invoke', () => {
     });
 
     await expect(
-      broker.handleInvoke(sender, 'host.sendHttpRequest', {
-        input: {
-          method: 'GET',
-          url: 'https://example.test',
-          headers: [],
-          params: [],
-          body: '',
-          bodyType: 'none'
-        }
+      broker.handleInvoke(sender, 'host.fetch', {
+        input: 'https://example.test'
       })
     ).rejects.toThrow(/cannot make network requests/);
   });

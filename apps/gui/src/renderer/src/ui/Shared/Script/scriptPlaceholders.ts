@@ -14,7 +14,7 @@ export const POST_REQUEST_SCRIPT_PLACEHOLDER = `hc.test("status is 200", () => {
   hc.expect(hc.response.code).to.equal(200);
 });
 
-// await hc.sendRequest({ url: 'https://api.example.com' }); // requires Settings → General
+// await hc.fetch('https://api.example.com'); // requires Settings → General
 
 /ask How do I parse the response JSON?`;
 

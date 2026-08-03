@@ -387,7 +387,11 @@ export interface PluginHost {
   openRequestDraft(payload: OpenRequestDraftPayload): Promise<void>;
   applyRequestDraft(payload: ApplyRequestDraftPayload): Promise<void>;
   loadRequest(requestId: number): Promise<void>;
-  sendRequest(): Promise<void>;
+  send(): Promise<void>;
+  fetch(
+    input: string | URL | { url: string },
+    init?: PluginFetchInit
+  ): Promise<PluginFetchResponse>;
   createEnvironmentWithVariables(
     name: string,
     variables: PluginVariableInput[]
@@ -594,14 +598,29 @@ Opens a saved collection request or focuses an existing tab for it.
 await hc.host.loadRequest(42);
 ```
 
-### hc.host.sendRequest()
+### hc.host.send()
 
 **Signature:** `() => Promise<void>`
 
 Sends the active request editor tab using the same pipeline as the Send button. No-op when a send is already in flight for the active tab.
 
 ```typescript
-await hc.host.sendRequest();
+await hc.host.send();
+```
+
+### hc.host.fetch(input, init?)
+
+**Signature:** `(input: string | URL | { url: string }, init?: PluginFetchInit) => Promise<PluginFetchResponse>`
+
+Sends one outbound HTTP request through the main-process pipeline using the native `fetch(input, init?)` signature. Requires the `network` permission.
+
+```typescript
+const response = await hc.host.fetch('https://api.example.com/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ grant_type: 'client_credentials' })
+});
+const data = await response.json();
 ```
 
 ### hc.host.openImageView(payload)

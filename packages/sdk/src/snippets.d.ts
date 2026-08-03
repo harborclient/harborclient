@@ -246,28 +246,37 @@ interface HcInfoApi {
 }
 
 /**
- * Outbound request payload accepted by hc.sendRequest.
+ * RequestInit-compatible options accepted by hc.fetch.
  */
-interface HcSendRequestInput {
+interface HcFetchInit {
   method?: string;
-  url: string;
-  headers?: Array<{ key: string; value: string; enabled?: boolean }> | Record<string, string>;
-  params?: Array<{ key: string; value: string; enabled?: boolean }>;
-  body?: string;
-  bodyType?: 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';
-  body_type?: 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';
+  headers?: Record<string, string> | Array<[string, string]>;
+  body?: string | URLSearchParams | null;
 }
 
 /**
- * Response snapshot returned by hc.sendRequest.
+ * Headers-like facade returned by hc.fetch.
  */
-interface HcSendRequestResponse {
-  readonly code: number;
-  readonly status: string;
-  readonly headers: Record<string, string>;
-  readonly responseTime: number;
-  text(): string;
-  json(): unknown;
+interface HcFetchHeaders {
+  get(name: string): string | null;
+  has(name: string): boolean;
+  entries(): IterableIterator<[string, string]>;
+  keys(): IterableIterator<string>;
+  values(): IterableIterator<string>;
+  forEach(callback: (value: string, key: string) => void): void;
+}
+
+/**
+ * Response-compatible object returned by hc.fetch.
+ */
+interface HcFetchResponse {
+  readonly ok: boolean;
+  readonly status: number;
+  readonly statusText: string;
+  readonly headers: HcFetchHeaders;
+  text(): Promise<string>;
+  json(): Promise<unknown>;
+  arrayBuffer(): Promise<ArrayBuffer>;
 }
 
 /**
@@ -468,12 +477,14 @@ interface HcScriptApi {
   /** Read-only metadata about the current script run (Postman pm.info equivalent). */
   info: HcInfoApi;
   /**
-   * Sends an outbound HTTP request from the script sandbox.
+   * Sends an outbound HTTP request using the native fetch(input, init?) signature.
    * Requires Settings → General → Allow script network requests.
    *
-   * @throws When the setting is disabled or sendRequest is unavailable in this context.
+   * @param input - URL string, URL, or Request-like `{ url }` object.
+   * @param init - Optional RequestInit-compatible options.
+   * @throws When the setting is disabled or fetch is unavailable in this context.
    */
-  sendRequest(req: HcSendRequestInput): Promise<HcSendRequestResponse>;
+  fetch(input: string | URL | { url: string }, init?: HcFetchInit): Promise<HcFetchResponse>;
   /**
    * Sends a one-shot prompt to a configured AI model.
    * Includes the current send's request (and response in post-request scripts)

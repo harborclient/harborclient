@@ -168,7 +168,7 @@ Common renderer permissions:
 | `storage`        | Persist plugin-scoped key-value data with `hc.storage`                                  |
 | `http`           | HTTP request hooks in the main process (`onBeforeSend` / `onAfterSend`)                 |
 | `scripts:inject` | Inject and observe pre/post request scripts (`onBeforeScripts` / `onAfterScripts`)      |
-| `network`        | Send outbound HTTP from the renderer via `hc.host.sendHttpRequest`                      |
+| `network`        | Send outbound HTTP from the renderer via `hc.host.fetch`                                |
 
 Example permission rationale in a plugin `description` Markdown file:
 

@@ -205,6 +205,11 @@ interface Props {
    * Whether the local MCP HTTP server is listening.
    */
   mcpServerRunning: boolean;
+
+  /**
+   * Whether the MCP server feature is enabled in Settings (shows the footer MCP button).
+   */
+  mcpServerEnabled: boolean;
 }
 
 /**
@@ -238,7 +243,8 @@ export function Footer({
   onToggleMcp,
   terminalOpen,
   onToggleTerminal,
-  mcpServerRunning
+  mcpServerRunning,
+  mcpServerEnabled
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
@@ -400,19 +406,21 @@ export function Footer({
                 <span className="ml-1 text-[14px] text-muted">({variableCount})</span>
               )}
             </FooterButton>
-            <FooterButton
-              active={mcpOpen}
-              onClick={onToggleMcp}
-              controlsId="footer-mcp-panel"
-              aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
-            >
-              <span className="inline-flex items-center">
-                MCP
-                <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
-                  <StatusDot variant={mcpServerRunning ? 'success' : 'muted'} size="sm" />
+            {mcpServerEnabled ? (
+              <FooterButton
+                active={mcpOpen}
+                onClick={onToggleMcp}
+                controlsId="footer-mcp-panel"
+                aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
+              >
+                <span className="inline-flex items-center">
+                  MCP
+                  <span className="ml-1 inline-flex h-4 w-3 shrink-0 items-center justify-center">
+                    <StatusDot variant={mcpServerRunning ? 'success' : 'muted'} size="sm" />
+                  </span>
                 </span>
-              </span>
-            </FooterButton>
+              </FooterButton>
+            ) : null}
             <FooterButton
               active={terminalOpen}
               onClick={onToggleTerminal}

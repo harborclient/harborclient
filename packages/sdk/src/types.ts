@@ -4746,7 +4746,10 @@ export interface HostSavedRequest extends SavedRequestSummary {
 }
 
 /**
- * Input for {@link PluginHost.sendHttpRequest}.
+ * Input for plugin outbound HTTP before conversion to the native fetch API.
+ * Prefer {@link PluginHost.fetch} with `(input, init?)` in new code.
+ *
+ * @deprecated Use fetch(url, init?) instead.
  */
 export interface PluginSendRequestInput {
   /** HTTP method to use. */
@@ -4770,7 +4773,80 @@ export interface PluginSendRequestInput {
 }
 
 /**
- * Result of {@link PluginHost.sendHttpRequest}.
+ * Headers-like facade returned by {@link PluginHost.fetch}.
+ */
+export interface PluginFetchHeaders {
+  /**
+   * Returns the first header value for the given name (case-insensitive), or null.
+   *
+   * @param name - Header name.
+   */
+  get(name: string): string | null;
+
+  /**
+   * Returns true when a header with the given name is present.
+   *
+   * @param name - Header name.
+   */
+  has(name: string): boolean;
+
+  /**
+   * Iterates header entries as [name, value] pairs.
+   */
+  entries(): IterableIterator<[string, string]>;
+
+  /**
+   * Iterates header names.
+   */
+  keys(): IterableIterator<string>;
+
+  /**
+   * Iterates header values.
+   */
+  values(): IterableIterator<string>;
+
+  /**
+   * Invokes callback for each header entry.
+   *
+   * @param callback - Called with (value, key).
+   */
+  forEach(callback: (value: string, key: string) => void): void;
+}
+
+/**
+ * Response-compatible result of {@link PluginHost.fetch}.
+ */
+export interface PluginFetchResponse {
+  /** True when status is in the 200–299 range. */
+  readonly ok: boolean;
+  /** HTTP status code. */
+  readonly status: number;
+  /** HTTP status text. */
+  readonly statusText: string;
+  /** Response headers. */
+  readonly headers: PluginFetchHeaders;
+  /** Returns the response body as text. */
+  text(): Promise<string>;
+  /** Parses the response body as JSON. */
+  json(): Promise<unknown>;
+  /** Returns the response body as an ArrayBuffer (UTF-8 bytes of the text body). */
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+
+/**
+ * RequestInit-compatible options for {@link PluginHost.fetch}.
+ */
+export interface PluginFetchInit {
+  /** HTTP method (default GET). */
+  method?: string;
+  /** Request headers as a record, header list, or Headers-like object. */
+  headers?: Record<string, string> | Array<[string, string]> | PluginFetchHeaders;
+  /** Request body. Only strings and URLSearchParams are supported. */
+  body?: string | URLSearchParams | null;
+}
+
+/**
+ * Result of a plugin-initiated HTTP send used by console logging and history.
  */
 export interface PluginSendResult {
   /** HTTP status code, or 0 when the request failed before a response. */
@@ -4797,7 +4873,7 @@ export interface PluginSendResult {
 /**
  * Typed wrappers for built-in HarborClient request editor commands.
  *
- * Requires the `ui` permission (except {@link PluginHost.sendHttpRequest}, which
+ * Requires the `ui` permission (except {@link PluginHost.fetch}, which
  * requires `network`). Prefer these over stringly-typed
  * {@link PluginCommands.execute} for opening request tabs.
  */
@@ -4921,7 +4997,7 @@ export interface PluginHost {
    *
    * No-op when a send is already in flight for the active tab.
    */
-  sendRequest(): Promise<void>;
+  send(): Promise<void>;
 
   /**
    * Creates a new environment, populates it with variables, and selects it as active.
@@ -5306,14 +5382,19 @@ export interface PluginHost {
   }): Promise<void>;
 
   /**
-   * Sends one HTTP request through the main-process pipeline, bypassing the
-   * renderer's CORS restrictions. Failures resolve to an error result.
+   * Sends one HTTP request through the main-process pipeline using the native
+   * fetch(input, init?) signature. Failures resolve to a Response-like object
+   * with status 0 rather than throwing.
    *
    * Requires the `network` permission.
    *
-   * @param input - Request configuration to execute.
+   * @param input - URL string, URL, or Request-like `{ url }` object.
+   * @param init - Optional RequestInit-compatible options.
    */
-  sendHttpRequest(input: PluginSendRequestInput): Promise<PluginSendResult>;
+  fetch(
+    input: string | URL | { url: string },
+    init?: PluginFetchInit
+  ): Promise<PluginFetchResponse>;
 
   /**
    * Clears the active request tab's last HTTP response so plugin-only response

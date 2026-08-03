@@ -4,12 +4,13 @@ import { registerHarborMcpTools, shouldRunMcpServer } from './tools';
 import { DEFAULT_MCP_SERVER_SETTINGS } from '#/main/settings/mcpSettings';
 
 describe('shouldRunMcpServer', () => {
-  it('requires enable flag and a bearer token', () => {
+  it('requires enable, running, and a bearer token', () => {
     expect(shouldRunMcpServer(DEFAULT_MCP_SERVER_SETTINGS)).toBe(false);
     expect(
       shouldRunMcpServer({
         ...DEFAULT_MCP_SERVER_SETTINGS,
         enabled: true,
+        running: true,
         token: ''
       })
     ).toBe(false);
@@ -17,6 +18,15 @@ describe('shouldRunMcpServer', () => {
       shouldRunMcpServer({
         ...DEFAULT_MCP_SERVER_SETTINGS,
         enabled: true,
+        running: false,
+        token: 'secret'
+      })
+    ).toBe(false);
+    expect(
+      shouldRunMcpServer({
+        ...DEFAULT_MCP_SERVER_SETTINGS,
+        enabled: true,
+        running: true,
         token: 'secret'
       })
     ).toBe(true);

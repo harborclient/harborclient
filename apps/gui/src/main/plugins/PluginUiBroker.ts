@@ -68,7 +68,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.showEntityContextMenu': 'ui',
   'host.getSidebarSelection': 'ui',
   'host.setSidebarSelection': 'ui',
-  'host.sendRequest': 'ui',
+  'host.send': 'ui',
   'host.createEnvironmentWithVariables': 'ui',
   'host.updateEnvironmentVariables': 'ui',
   'host.createCollection': 'ui',
@@ -107,7 +107,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'host.renameWorkflow': 'ui',
   'host.deleteWorkflow': 'ui',
   'host.logRequestToConsole': 'ui',
-  'host.sendHttpRequest': 'network',
+  'host.fetch': 'network',
   'host.clearResponse': 'ui',
   'host.openImageView': 'ui',
   'view.getContext': 'ui',
@@ -155,7 +155,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
 
 /** Host bridge operations that must round-trip a result to the plugin webview. */
 const HOST_BRIDGE_RETURN_OPS = new Set([
-  'host.sendHttpRequest',
+  'host.fetch',
   'host.createEnvironmentWithVariables',
   'host.createCollection',
   'host.updateCollection',
@@ -1042,7 +1042,7 @@ export class PluginUiBroker {
       case 'host.openCollectionRunner':
       case 'host.openShareModal':
       case 'host.showEntityContextMenu':
-      case 'host.sendRequest':
+      case 'host.send':
       case 'host.updateEnvironmentVariables':
       case 'host.logRequestToConsole':
       case 'host.clearResponse':

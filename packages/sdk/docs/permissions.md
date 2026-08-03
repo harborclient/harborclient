@@ -12,7 +12,7 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `filesystem:write` | Write to allowlisted paths                                                                                                                                |
 | `http`             | Hook into or send HTTP from main via `hc.http.onBeforeSend` / `onAfterSend`                                                                               |
 | `scripts:inject`   | Inject and observe pre/post request scripts via `hc.http.onBeforeScripts` / `onAfterScripts`                                                              |
-| `network`          | Outbound HTTP from the renderer via `hc.host.sendHttpRequest` (gated by Settings → General)                                                               |
+| `network`          | Outbound HTTP from the renderer via `hc.host.fetch` (gated by Settings → General)                                                                         |
 | `ipc`              | Register custom IPC handlers via `hc.ipc.handle`                                                                                                          |
 | `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
 | `live-server`      | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                                                                                 |

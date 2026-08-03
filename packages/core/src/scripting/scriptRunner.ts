@@ -154,7 +154,7 @@ let nextLivePageId = 1;
 const pendingLivePageCalls = new Map<number, PendingLivePageCall>();
 
 /**
- * Rejects every pending hc.sendRequest promise when the runner shuts down.
+ * Rejects every pending hc.fetch promise when the runner shuts down.
  *
  * @param message - Error message applied to each pending network call.
  */
@@ -202,7 +202,7 @@ function rejectAllPendingLivePageCalls(message: string): void {
 }
 
 /**
- * Builds the hc.sendRequest transport that bridges to the main process runner host.
+ * Builds the hc.fetch transport that bridges to the main process runner host.
  *
  * @param runId - Correlation id for the active script run message.
  * @returns Async send function injected into the script sandbox.
@@ -298,7 +298,7 @@ async function handleRunMessage(message: RunMessage): Promise<void> {
 
   try {
     const result = await evaluateScript(message.input, {
-      sendRequest: createNetworkTransport(message.id),
+      fetch: createNetworkTransport(message.id),
       fileBridge: createFileTransport(message.id),
       ask: createAskTransport(message.id),
       livePage: createLivePageTransport(message.id)

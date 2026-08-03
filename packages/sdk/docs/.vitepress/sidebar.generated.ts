@@ -285,8 +285,12 @@ export const sidebar: DefaultTheme.SidebarItem[] =
             "link": "/renderer-overview#hchostloadrequestrequestid"
           },
           {
-            "text": "hc.host.sendRequest()",
-            "link": "/renderer-overview#hchostsendrequest"
+            "text": "hc.host.send()",
+            "link": "/renderer-overview#hchostsend"
+          },
+          {
+            "text": "hc.host.fetch(input, init?)",
+            "link": "/renderer-overview#hchostfetchinput-init"
           },
           {
             "text": "hc.host.openImageView(payload)",

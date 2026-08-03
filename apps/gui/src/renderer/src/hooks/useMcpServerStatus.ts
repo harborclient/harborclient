@@ -3,11 +3,28 @@ import type { McpServerStatus } from '@harborclient/core/types';
 
 const POLL_INTERVAL_MS = 5000;
 
+/** Subscribers notified when MCP settings/status may have changed outside the poll loop. */
+const statusChangeListeners = new Set<() => void>();
+
+/**
+ * Asks {@link useMcpServerStatus} subscribers to refresh immediately (e.g. after Settings Save).
+ */
+export function notifyMcpServerStatusChanged(): void {
+  for (const listener of statusChangeListeners) {
+    listener();
+  }
+}
+
 interface McpServerStatusState {
   /**
    * Whether the MCP HTTP listener is accepting connections.
    */
   running: boolean;
+
+  /**
+   * Whether the MCP server feature is enabled (footer MCP button visible).
+   */
+  enabled: boolean;
 
   /**
    * Bound host when running.
@@ -28,23 +45,23 @@ interface McpServerStatusState {
 /**
  * Loads MCP server runtime status from main process IPC.
  *
- * @returns Resolved status, or stopped when the IPC call fails.
+ * @returns Resolved status, or stopped/disabled when the IPC call fails.
  */
 async function fetchMcpServerStatus(): Promise<McpServerStatus> {
   try {
     return await window.api.getMcpServerStatus();
   } catch {
-    return { running: false };
+    return { running: false, enabled: false };
   }
 }
 
 /**
  * Polls MCP server runtime status for footer indicators and panels.
  *
- * @returns Current listener status and a manual refresh helper.
+ * @returns Current listener status, feature enable flag, and a manual refresh helper.
  */
 export function useMcpServerStatus(): McpServerStatusState {
-  const [status, setStatus] = useState<McpServerStatus>({ running: false });
+  const [status, setStatus] = useState<McpServerStatus>({ running: false, enabled: false });
 
   /**
    * Refreshes runtime status from main process IPC.
@@ -90,7 +107,15 @@ export function useMcpServerStatus(): McpServerStatusState {
       }
     };
 
+    /**
+     * Refreshes immediately when another part of the app mutates MCP settings.
+     */
+    const handleExternalChange = (): void => {
+      loadStatus();
+    };
+
     loadStatus();
+    statusChangeListeners.add(handleExternalChange);
 
     if (document.hasFocus()) {
       intervalId = setInterval(loadStatus, POLL_INTERVAL_MS);
@@ -102,6 +127,7 @@ export function useMcpServerStatus(): McpServerStatusState {
     return () => {
       cancelled = true;
       handleBlur();
+      statusChangeListeners.delete(handleExternalChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
     };
@@ -109,6 +135,7 @@ export function useMcpServerStatus(): McpServerStatusState {
 
   return {
     running: status.running,
+    enabled: status.enabled,
     host: status.host,
     port: status.port,
     refresh

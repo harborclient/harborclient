@@ -343,12 +343,12 @@ export interface GeneralSettings {
   scriptTimeoutMs: number;
 
   /**
-   * When true, pre/post scripts may call hc.sendRequest for outbound HTTP.
+   * When true, pre/post scripts may call hc.fetch for outbound HTTP.
    */
   allowScriptNetworkRequests: boolean;
 
   /**
-   * Plugin manifest ids allowed to call hc.host.sendHttpRequest when
+   * Plugin manifest ids allowed to call hc.host.fetch when
    * {@link allowScriptNetworkRequests} is false.
    */
   allowedNetworkPlugins: string[];

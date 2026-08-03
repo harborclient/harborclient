@@ -5,9 +5,16 @@ import type { AiToolName } from '../ai/tools/index';
  */
 export interface McpServerSettings {
   /**
-   * When true and a bearer token is set, the local MCP HTTP server listens.
+   * When true, MCP server UI is available (footer MCP button). Does not start
+   * or stop the HTTP listener — use {@link McpServerSettings.running} for that.
    */
   enabled: boolean;
+
+  /**
+   * When true and {@link McpServerSettings.enabled} is true, the local MCP HTTP
+   * server should listen. Toggled only from the footer Start/Stop controls.
+   */
+  running: boolean;
 
   /**
    * Display name advertised to MCP clients as `serverInfo.title`.
@@ -231,6 +238,11 @@ export interface McpServerStatus {
    * Whether the HTTP listener is accepting connections.
    */
   running: boolean;
+
+  /**
+   * Whether the MCP server feature is enabled in settings (footer button visible).
+   */
+  enabled: boolean;
 
   /**
    * Bound host when running.

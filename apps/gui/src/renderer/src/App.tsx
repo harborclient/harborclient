@@ -47,6 +47,7 @@ import {
   toggleShortcutsSidebar,
   toggleConsole,
   setShowLiveServerLogs,
+  setShowMcp,
   toggleMcp,
   toggleTerminal,
   toggleRequestEditor,
@@ -178,6 +179,15 @@ export default function App(): JSX.Element {
   usePersistedPanelLayout();
   useBeforeClose();
   useBrowserGuestOverlayCover();
+
+  /**
+   * Closes the MCP footer panel when the feature is disabled in Settings.
+   */
+  useEffect(() => {
+    if (!mcpServerStatus.enabled && showMcp) {
+      dispatch(setShowMcp(false));
+    }
+  }, [dispatch, mcpServerStatus.enabled, showMcp]);
 
   /**
    * Closes the live page settings footer panel when open, even if that browser tab is not active.
@@ -511,7 +521,7 @@ export default function App(): JSX.Element {
                         closeLivePageSettings();
                         dispatch(toggleVariables());
                       }}
-                      mcpOpen={showMcp}
+                      mcpOpen={showMcp && mcpServerStatus.enabled}
                       onToggleMcp={() => {
                         dispatch(closeLiveServerModal());
                         closeLivePageSettings();
@@ -584,7 +594,7 @@ export default function App(): JSX.Element {
                   closeLivePageSettings();
                   dispatch(toggleVariables());
                 }}
-                mcpOpen={showMcp}
+                mcpOpen={showMcp && mcpServerStatus.enabled}
                 onToggleMcp={() => {
                   dispatch(closeLiveServerModal());
                   closeLivePageSettings();
@@ -597,6 +607,7 @@ export default function App(): JSX.Element {
                   dispatch(toggleTerminal());
                 }}
                 mcpServerRunning={mcpServerStatus.running}
+                mcpServerEnabled={mcpServerStatus.enabled}
                 globalVariables={globalVariables}
                 collectionVariables={activeCollection?.variables ?? []}
                 folderVariables={activeFolder?.variables ?? []}

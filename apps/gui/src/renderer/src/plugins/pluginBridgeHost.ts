@@ -55,7 +55,7 @@ import {
   logRequestToConsole,
   openRequestDraft,
   applyRequestDraftToActiveTab,
-  sendHttpRequestForPlugin,
+  fetchForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
@@ -546,7 +546,7 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
     case 'host.showEntityContextMenu':
       showEntityContextMenuForPlugin(payload as ShowEntityContextMenuInput);
       return;
-    case 'host.sendRequest':
+    case 'host.send':
       triggerSendRequest();
       return;
     case 'host.updateEnvironmentVariables': {
@@ -756,8 +756,10 @@ export async function handlePluginHostBridgeInvoke(
       const { collectionId } = payload as { collectionId: number };
       return getCollectionMetadataForPlugin(collectionId);
     }
-    case 'host.sendHttpRequest':
-      return sendHttpRequestForPlugin((payload as { input: never }).input);
+    case 'host.fetch': {
+      const { input, init } = payload as { input: unknown; init?: unknown };
+      return fetchForPlugin(input, init);
+    }
     case 'commands.execute': {
       const {
         pluginId: targetPluginId,

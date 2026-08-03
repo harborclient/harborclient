@@ -24,34 +24,29 @@ import {
 } from './registry';
 
 describe('handlePluginHostBridgeInvoke', () => {
-  it('returns sendHttpRequestForPlugin result for host.sendHttpRequest', async () => {
-    const sendResult = {
+  it('returns fetchForPlugin result for host.fetch', async () => {
+    const fetchResult = {
+      ok: true,
       status: 200,
       statusText: 'OK',
-      headers: {},
-      body: 'ok',
-      timeMs: 12,
-      sizeBytes: 2
+      headers: { get: () => null, has: () => false },
+      text: async () => 'ok',
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0)
     };
-    vi.spyOn(hostRequestCommands, 'sendHttpRequestForPlugin').mockResolvedValue(sendResult);
+    vi.spyOn(hostRequestCommands, 'fetchForPlugin').mockResolvedValue(fetchResult as never);
 
     const result = await handlePluginHostBridgeInvoke({
       requestId: 1,
       pluginId: 'com.test.load',
-      op: 'host.sendHttpRequest',
+      op: 'host.fetch',
       payload: {
-        input: {
-          method: 'GET',
-          url: 'https://example.test',
-          headers: [],
-          params: [],
-          body: '',
-          bodyType: 'none'
-        }
+        input: 'https://example.test',
+        init: { method: 'GET' }
       }
     });
 
-    expect(result).toEqual(sendResult);
+    expect(result).toEqual(fetchResult);
   });
 
   it('routes livePage.* ops through executeScriptLivePageRequest', async () => {

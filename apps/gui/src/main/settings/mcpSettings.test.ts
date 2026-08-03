@@ -55,6 +55,7 @@ describe('mcpSettings', () => {
   it('persists and reloads MCP server settings', () => {
     setMcpServerSettings({
       enabled: true,
+      running: false,
       name: 'My Harbor',
       logoUrl: 'https://example.com/logo.svg',
       host: '0.0.0.0',
@@ -66,6 +67,7 @@ describe('mcpSettings', () => {
 
     expect(getMcpServerSettings()).toEqual({
       enabled: true,
+      running: false,
       name: 'My Harbor',
       logoUrl: 'https://example.com/logo.svg',
       host: '0.0.0.0',
@@ -74,6 +76,21 @@ describe('mcpSettings', () => {
       exposedTools: ['list_collections'],
       keepLogs: true
     });
+  });
+
+  it('migrates legacy enabled-only settings to running', () => {
+    setMcpServerSettings({
+      enabled: true,
+      name: 'Legacy',
+      logoUrl: 'https://example.com/logo.svg',
+      host: '127.0.0.1',
+      port: 7333,
+      token: 'secret',
+      exposedTools: [...AI_TOOL_NAMES],
+      keepLogs: true
+    } as McpServerSettings);
+
+    expect(getMcpServerSettings().running).toBe(true);
   });
 
   it('defaults name, logoUrl, and keepLogs when unset', () => {

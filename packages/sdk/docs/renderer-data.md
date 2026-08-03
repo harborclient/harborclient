@@ -424,8 +424,8 @@ Requires the `ipc` permission. Call `hc.ipc.invoke(channel, ...args)` instead of
 Typed wrappers for built-in request editor commands. See [Renderer API](/renderer-overview).
 
 Requires the `ui` permission. Use `hc.host.openRequestDraft`,
-`hc.host.applyRequestDraft`, `hc.host.loadRequest`, `hc.host.sendRequest`,
-`hc.host.createCollection`, library read/write helpers
+`hc.host.applyRequestDraft`, `hc.host.loadRequest`, `hc.host.send`,
+`hc.host.fetch`, `hc.host.createCollection`, library read/write helpers
 (`listLibraryTree`, `createFolder`, `createRequest`, …),
 `hc.host.onLibraryChanged`, and `hc.host.openImageView` instead of
 `hc.commands.execute('harborclient:…')`.

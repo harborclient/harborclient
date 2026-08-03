@@ -36,7 +36,8 @@ function createTestStore(): ReturnType<
     undefined,
     initSettingsDraft({
       general: DEFAULT_GENERAL_SETTINGS,
-      ai: DEFAULT_AI_SETTINGS
+      ai: DEFAULT_AI_SETTINGS,
+      mcpServerEnabled: false
     })
   );
 

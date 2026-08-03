@@ -628,14 +628,14 @@ describe('evaluateScript', () => {
     expect(result.variableSets).toEqual({ hasTime: 'true', hasRandom: 'true' });
   });
 
-  it('supports await hc.sendRequest via injected transport', async () => {
+  it('supports await hc.fetch via injected transport', async () => {
     const { evaluateScript } = await import('#/main/scripting/scriptEvaluator');
     const result = await evaluateScript(
       {
         phase: 'pre',
         script: `
-          const response = await hc.sendRequest({ url: 'https://api.example.com/token' });
-          hc.request.variables.set('status', String(response.code));
+          const response = await hc.fetch('https://api.example.com/token');
+          hc.request.variables.set('status', String(response.status));
         `,
         request: {
           method: 'GET',
@@ -648,7 +648,7 @@ describe('evaluateScript', () => {
         variables: {}
       },
       {
-        sendRequest: async () => ({
+        fetch: async () => ({
           status: 200,
           statusText: 'OK',
           headers: {},

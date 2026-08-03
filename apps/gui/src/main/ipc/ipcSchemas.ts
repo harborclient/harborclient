@@ -625,6 +625,7 @@ export const mcpClientServer = z.object({
  */
 export const mcpServerSettings = z.object({
   enabled: z.boolean(),
+  running: z.boolean(),
   name: z.string(),
   logoUrl: z.string(),
   host: z.string().trim().min(1),

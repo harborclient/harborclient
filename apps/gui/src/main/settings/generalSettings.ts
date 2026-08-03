@@ -71,7 +71,7 @@ export const guiSettingsProvider: SettingsProvider = {
 };
 
 /**
- * Returns whether a plugin may perform outbound HTTP through hc.host.sendHttpRequest.
+ * Returns whether a plugin may perform outbound HTTP through hc.host.fetch.
  *
  * @param pluginId - Plugin manifest id.
  * @returns True when global script network access is enabled or the plugin is allowlisted.

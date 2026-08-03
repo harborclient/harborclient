@@ -19,14 +19,9 @@ import type {
   McpClientHeader,
   McpClientServer,
   McpClientServerListItem,
-  McpClientServerStatus,
-  McpServerSettings,
-  McpServerStatus
+  McpClientServerStatus
 } from '@harborclient/core/types';
 import { toolbarDangerButtonClass } from '#/renderer/src/ui/Shared/classes';
-import { McpExposedToolsTable } from '#/renderer/src/ui/Shared/Mcp/McpExposedToolsTable';
-import { McpServerFormFields } from '#/renderer/src/ui/Shared/Mcp/McpServerFormFields';
-import { buildMcpConfigSnippet } from '#/renderer/src/ui/Shared/Mcp/buildMcpConfigSnippet';
 import {
   formatMcpClientHeadersDraft,
   MCP_CLIENT_HEADERS_PLACEHOLDER,
@@ -37,6 +32,12 @@ import {
   parseMcpClientServerImportSnippet
 } from '#/renderer/src/ui/Shared/Mcp/parseMcpClientServerImport';
 import { formatIpcErrorMessage } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
+import {
+  selectDraftMcpServerEnabled,
+  selectSettingsDraftDisabled,
+  setDraftMcpServerEnabled
+} from '#/renderer/src/store/slices/settingsDraftSlice';
 
 /**
  * Creates a blank MCP client server row for the add-server modal.
@@ -52,18 +53,20 @@ function createBlankMcpClientServer(): McpClientServer {
 }
 
 /**
- * MCP server and client settings rendered below the AI API key fields.
+ * MCP enable toggle and client server list rendered below the AI API key fields.
+ *
+ * MCP server bind host, token, tools, and logs are configured from the footer panel.
  */
 export function McpSettingsExtra(): JSX.Element {
+  const dispatch = useAppDispatch();
+  const mcpServerEnabled = useAppSelector(selectDraftMcpServerEnabled);
+  const draftDisabled = useAppSelector(selectSettingsDraftDisabled);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [serverSettings, setServerSettings] = useState<McpServerSettings | null>(null);
-  const [serverStatus, setServerStatus] = useState<McpServerStatus>({ running: false });
   const [clientServers, setClientServers] = useState<McpClientServerListItem[]>([]);
   const [clientStatuses, setClientStatuses] = useState<McpClientServerStatus[]>([]);
-  const [tokenCopied, setTokenCopied] = useState(false);
-  const [configCopied, setConfigCopied] = useState(false);
   const [editingServer, setEditingServer] = useState<McpClientServer | null>(null);
   const [clientHeadersDraft, setClientHeadersDraft] = useState('');
   const [clientServerImportOpen, setClientServerImportOpen] = useState(false);
@@ -85,7 +88,7 @@ export function McpSettingsExtra(): JSX.Element {
   };
 
   /**
-   * Loads MCP settings when the section mounts.
+   * Loads MCP client servers when the section mounts.
    */
   useEffect(() => {
     let active = true;
@@ -94,21 +97,12 @@ export function McpSettingsExtra(): JSX.Element {
       setLoading(true);
       setError(null);
       try {
-        const [settings, status] = await Promise.all([
-          window.api.getMcpServerSettings(),
-          window.api.getMcpServerStatus()
-        ]);
-        if (!active) {
-          return;
-        }
-        setServerSettings(settings);
-        setServerStatus(status);
         await loadClientServers();
       } catch (loadError) {
         if (!active) {
           return;
         }
-        setError(formatIpcErrorMessage(loadError, 'Failed to load MCP settings.'));
+        setError(formatIpcErrorMessage(loadError, 'Failed to load MCP client servers.'));
       } finally {
         if (active) {
           setLoading(false);
@@ -136,73 +130,6 @@ export function McpSettingsExtra(): JSX.Element {
   const statusById = useMemo(() => {
     return new Map(clientStatuses.map((status) => [status.id, status]));
   }, [clientStatuses]);
-
-  if (loading || !serverSettings) {
-    return (
-      <p className="text-[14px] text-muted" role="status">
-        Loading MCP settings…
-      </p>
-    );
-  }
-
-  /**
-   * Persists MCP server settings and refreshes runtime status.
-   */
-  const handleSaveServer = async (): Promise<void> => {
-    setSaving(true);
-    setError(null);
-    try {
-      const saved = await window.api.setMcpServerSettings(serverSettings);
-      const status = await window.api.getMcpServerStatus();
-      setServerSettings(saved);
-      setServerStatus(status);
-      toast.success('MCP server settings saved.');
-    } catch (saveError) {
-      setError(formatIpcErrorMessage(saveError, 'Failed to save MCP server settings.'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /**
-   * Regenerates the MCP server bearer token.
-   */
-  const handleRegenerateToken = async (): Promise<void> => {
-    setSaving(true);
-    setError(null);
-    try {
-      const saved = await window.api.regenerateMcpServerToken();
-      const status = await window.api.getMcpServerStatus();
-      setServerSettings(saved);
-      setServerStatus(status);
-      setTokenCopied(false);
-      toast.success('MCP server token regenerated.');
-    } catch (regenerateError) {
-      setError(formatIpcErrorMessage(regenerateError, 'Failed to regenerate MCP token.'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /**
-   * Copies the MCP server bearer token to the clipboard.
-   */
-  const handleCopyToken = (): void => {
-    void navigator.clipboard.writeText(serverSettings.token).then(() => {
-      setTokenCopied(true);
-    });
-  };
-
-  /**
-   * Copies the external MCP client configuration snippet to the clipboard.
-   */
-  const handleCopyConfig = (): void => {
-    const snippet = buildMcpConfigSnippet(serverSettings, serverStatus);
-    void navigator.clipboard.writeText(snippet).then(() => {
-      setConfigCopied(true);
-      toast.success('MCP config copied.');
-    });
-  };
 
   /**
    * Opens the MCP client server modal and initializes the headers draft text.
@@ -345,6 +272,14 @@ export function McpSettingsExtra(): JSX.Element {
     }
   };
 
+  if (loading) {
+    return (
+      <p className="text-[14px] text-muted" role="status">
+        Loading MCP settings…
+      </p>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
       {error ? (
@@ -357,72 +292,25 @@ export function McpSettingsExtra(): JSX.Element {
         <SettingSectionHeading
           settingId="mcp.server"
           title="MCP Server"
-          description="Expose the full Harbor AI tool surface to external MCP clients such as Claude Desktop or Cursor. Enable the server and keep the bearer token private — every agent tool is available to authenticated clients."
+          description="Expose Harbor AI tools to external MCP clients such as Claude Desktop or Cursor. Enabling shows the footer MCP button; start and stop the server from that panel. Configure bind host, token, tools, and logs there as well."
         />
 
-        <div className="flex flex-col gap-4">
-          <McpServerFormFields
-            settings={serverSettings}
-            status={serverStatus}
-            saving={saving}
-            onChange={setServerSettings}
+        <FormGroup label="Enable MCP server" layout="checkbox" htmlFor="settings-mcp-enabled">
+          <Checkbox
+            id="settings-mcp-enabled"
+            checked={mcpServerEnabled}
+            disabled={draftDisabled}
+            onChange={(event) => {
+              dispatch(setDraftMcpServerEnabled(event.target.checked));
+            }}
           />
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving}
-              onClick={handleRegenerateToken}
-            >
-              Regenerate token
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving || !serverSettings.token}
-              onClick={handleCopyToken}
-            >
-              {tokenCopied ? 'Copied' : 'Copy token'}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving || !serverSettings.token}
-              onClick={handleCopyConfig}
-            >
-              {configCopied ? 'Copied' : 'Copy config'}
-            </Button>
-          </div>
-
-          <div>
-            <p className="mb-2 font-medium text-text">Exposed tools</p>
-            <p className="m-0 mb-3 text-muted">
-              Choose which Harbor AI agent tools are registered on the MCP server. Unchecked tools
-              are unavailable to MCP clients. Mutating tools can send requests, change drafts, run
-              terminals, and control live servers — only share the bearer token with clients you
-              trust.
-            </p>
-            <McpExposedToolsTable
-              exposedTools={serverSettings.exposedTools}
-              disabled={saving}
-              idPrefix="settings-mcp-tool"
-              onChange={(exposedTools) => {
-                setServerSettings({ ...serverSettings, exposedTools });
-              }}
-            />
-          </div>
-
-          <Button type="button" disabled={saving} onClick={() => void handleSaveServer()}>
-            {saving ? 'Saving…' : 'Save MCP server'}
-          </Button>
-        </div>
+        </FormGroup>
       </section>
 
       <section>
         <SettingSectionHeading
           settingId="mcp.client"
-          title="MCP Client"
+          title="MCP Clients"
           description={
             <>
               Connect Harbor&apos;s chat agent to remote MCP servers over HTTP or SSE. Discovered

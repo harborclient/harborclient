@@ -24,11 +24,19 @@ import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 export interface SettingsDraftBaseline {
   general: GeneralSettings;
   ai: AiSettings;
+  /**
+   * Whether the local MCP server should listen after save.
+   */
+  mcpServerEnabled: boolean;
 }
 
 export interface SettingsDraftState {
   general: GeneralSettings;
   ai: AiSettings;
+  /**
+   * Draft enable flag for the local MCP server (bind/token live in the footer panel).
+   */
+  mcpServerEnabled: boolean;
   baseline: SettingsDraftBaseline | null;
   loading: boolean;
   saving: boolean;
@@ -38,6 +46,7 @@ export interface SettingsDraftState {
 const initialState: SettingsDraftState = {
   general: structuredClone(DEFAULT_GENERAL_SETTINGS),
   ai: structuredClone(DEFAULT_AI_SETTINGS),
+  mcpServerEnabled: false,
   baseline: null,
   loading: false,
   saving: false,
@@ -53,7 +62,8 @@ const initialState: SettingsDraftState = {
 function draftSnapshotsEqual(left: SettingsDraftBaseline, right: SettingsDraftBaseline): boolean {
   return (
     JSON.stringify(left.general) === JSON.stringify(right.general) &&
-    JSON.stringify(left.ai) === JSON.stringify(right.ai)
+    JSON.stringify(left.ai) === JSON.stringify(right.ai) &&
+    left.mcpServerEnabled === right.mcpServerEnabled
   );
 }
 
@@ -97,14 +107,24 @@ const settingsDraftSlice = createSlice({
     /**
      * Replaces draft values and baseline after a successful load or save.
      */
-    initSettingsDraft(state, action: PayloadAction<{ general: GeneralSettings; ai: AiSettings }>) {
+    initSettingsDraft(
+      state,
+      action: PayloadAction<{
+        general: GeneralSettings;
+        ai: AiSettings;
+        mcpServerEnabled: boolean;
+      }>
+    ) {
       const general = normalizeDraftGeneral(structuredClone(action.payload.general));
       const ai = structuredClone(action.payload.ai);
+      const mcpServerEnabled = action.payload.mcpServerEnabled;
       state.general = general;
       state.ai = ai;
+      state.mcpServerEnabled = mcpServerEnabled;
       state.baseline = {
         general: structuredClone(general),
-        ai: structuredClone(ai)
+        ai: structuredClone(ai),
+        mcpServerEnabled
       };
       state.loadError = null;
     },
@@ -160,6 +180,12 @@ const settingsDraftSlice = createSlice({
       state.ai[action.payload.key] = action.payload.value;
     },
     /**
+     * Updates the draft MCP server enable flag (persisted with the page Save action).
+     */
+    setDraftMcpServerEnabled(state, action: PayloadAction<boolean>) {
+      state.mcpServerEnabled = action.payload;
+    },
+    /**
      * Resets the entire draft to the last loaded/saved baseline snapshot.
      *
      * Per-field reset via `resetFieldToDefault` (VS Code–style) is the primary
@@ -172,6 +198,7 @@ const settingsDraftSlice = createSlice({
       }
       state.general = structuredClone(state.baseline.general);
       state.ai = structuredClone(state.baseline.ai);
+      state.mcpServerEnabled = state.baseline.mcpServerEnabled;
     }
   }
 });
@@ -187,6 +214,7 @@ export const {
   setDraftCodeEditorSetupField,
   setDraftTerminalField,
   setDraftAiField,
+  setDraftMcpServerEnabled,
   resetSettingsDraftToBaseline
 } = settingsDraftSlice.actions;
 
@@ -211,11 +239,11 @@ export const selectSettingsDraftLoadError = (state: RootState): string | null =>
  * Returns true when draft values differ from the loaded baseline.
  */
 export const selectSettingsDraftDirty = (state: RootState): boolean => {
-  const { baseline, general, ai } = state.settingsDraft;
+  const { baseline, general, ai, mcpServerEnabled } = state.settingsDraft;
   if (baseline == null) {
     return false;
   }
-  return !draftSnapshotsEqual(baseline, { general, ai });
+  return !draftSnapshotsEqual(baseline, { general, ai, mcpServerEnabled });
 };
 
 /**
@@ -234,6 +262,12 @@ export const selectDraftGeneral = (state: RootState): GeneralSettings =>
  * Returns the draft AI settings object.
  */
 export const selectDraftAi = (state: RootState): AiSettings => state.settingsDraft.ai;
+
+/**
+ * Returns the draft MCP server enable flag.
+ */
+export const selectDraftMcpServerEnabled = (state: RootState): boolean =>
+  state.settingsDraft.mcpServerEnabled;
 
 /**
  * Returns proxy settings from the draft general settings object.

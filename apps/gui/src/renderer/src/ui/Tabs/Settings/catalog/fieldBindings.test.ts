@@ -106,7 +106,8 @@ function initDefaultDraft(): ReturnType<typeof settingsDraftReducer> {
     undefined,
     initSettingsDraft({
       general: DEFAULT_GENERAL_SETTINGS,
-      ai: DEFAULT_AI_SETTINGS
+      ai: DEFAULT_AI_SETTINGS,
+      mcpServerEnabled: false
     })
   );
 }
@@ -365,7 +366,8 @@ describe('isFieldModified / resetFieldToDefault', () => {
       undefined,
       initSettingsDraft({
         general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -390,7 +392,8 @@ describe('isFieldModified / resetFieldToDefault', () => {
           ...DEFAULT_GENERAL_SETTINGS,
           trustedExternalDomains: [{ domain: 'example.com', enabled: true }]
         },
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 

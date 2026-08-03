@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { logVerbose } from '#/main/logger';
-import { isValidMcpServerToken } from '#/main/settings/mcpSettings';
+import { getMcpServerSettings, isValidMcpServerToken } from '#/main/settings/mcpSettings';
 import { appendMcpServerLog, readMcpJsonRpcMethod } from './mcpServerLogBuffer';
 import { registerHarborMcpTools, shouldRunMcpServer } from './tools';
 import type { McpServerSettings, McpServerStatus } from '@harborclient/core/types';
@@ -353,7 +353,7 @@ export async function startMcpServer(settings: McpServerSettings): Promise<McpSe
   await stopMcpServer();
 
   if (!shouldRunMcpServer(settings)) {
-    return { running: false };
+    return { running: false, enabled: settings.enabled };
   }
 
   const app = createHarborMcpExpressApp(settings);
@@ -381,7 +381,7 @@ export async function startMcpServer(settings: McpServerSettings): Promise<McpSe
     rpcMethod: 'started',
     path: `${host}:${port}`
   });
-  return { running: true, host, port };
+  return { running: true, enabled: settings.enabled, host, port };
 }
 
 /**
@@ -415,15 +415,17 @@ export async function stopMcpServer(): Promise<void> {
 }
 
 /**
- * Returns whether the Harbor MCP HTTP server is running.
+ * Returns whether the Harbor MCP HTTP server is running and whether the feature is enabled.
  */
 export function getMcpServerStatus(): McpServerStatus {
+  const enabled = getMcpServerSettings().enabled;
   if (!runningServer) {
-    return { running: false };
+    return { running: false, enabled };
   }
 
   return {
     running: true,
+    enabled,
     host: runningServer.host,
     port: runningServer.port
   };
@@ -432,6 +434,9 @@ export function getMcpServerStatus(): McpServerStatus {
 /**
  * Applies persisted MCP server settings to the HTTP listener lifecycle.
  *
+ * When the feature is disabled or listen intent is off, stops any running
+ * listener first. Otherwise (re)starts with the given bind settings.
+ *
  * @param settings - Persisted MCP server settings.
  */
 export async function applyMcpServerSettings(
@@ -439,7 +444,7 @@ export async function applyMcpServerSettings(
 ): Promise<McpServerStatus> {
   if (!shouldRunMcpServer(settings)) {
     await stopMcpServer();
-    return { running: false };
+    return { running: false, enabled: settings.enabled };
   }
 
   return startMcpServer(settings);

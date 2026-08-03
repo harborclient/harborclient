@@ -36,9 +36,9 @@ const HC_ROOT: HcCompletionOption[] = [
   },
   { label: 'execution', type: 'property', detail: 'Collection runner flow control' },
   {
-    label: 'sendRequest',
+    label: 'fetch',
     type: 'function',
-    detail: '(req) => Promise<Response> — requires Settings → General'
+    detail: '(input, init?) => Promise<Response> — requires Settings → General'
   },
   {
     label: 'ask',

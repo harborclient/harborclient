@@ -2,9 +2,12 @@ import type {
   KeyValue,
   SaveRequestInput,
   SavedRequest,
-  SendRequestInput,
   SendResult
 } from '@harborclient/core/types';
+import {
+  createFetchResponse,
+  fetchArgsToSendRequestInput
+} from '@harborclient/core/scripting/fetchApi';
 import type {
   CreateCollectionPayload,
   CreateCollectionRequest,
@@ -96,31 +99,31 @@ export function validatePluginConsoleLogPayload(payload: unknown): PluginConsole
 /**
  * Sends one HTTP request through the main-process pipeline on behalf of a plugin.
  *
- * Uses the same IPC path as the Send button, so requests are not subject to the
- * renderer's CORS restrictions. Failures are returned as an error
- * {@link SendResult} rather than thrown, so batch callers (load tests) stay
- * resilient.
+ * Uses the native fetch(input, init?) signature. Failures resolve to a Response-like
+ * object with status 0 rather than throwing, so batch callers stay resilient.
  *
- * @param input - Request configuration to execute.
- * @returns Response metadata, or an error result when the send fails.
+ * @param input - URL string, URL, or Request-like object.
+ * @param init - Optional RequestInit-compatible options.
+ * @returns Response-compatible result from the HTTP transport.
  */
-export async function sendHttpRequestForPlugin(input: SendRequestInput): Promise<SendResult> {
-  if (!input || typeof input !== 'object') {
-    throw new Error('harborclient.sendHttpRequest requires a request input object.');
-  }
-  if (typeof input.url !== 'string' || !input.url.trim()) {
-    throw new Error('harborclient.sendHttpRequest requires a non-empty url.');
-  }
+export async function fetchForPlugin(
+  input: unknown,
+  init?: unknown
+): Promise<ReturnType<typeof createFetchResponse>> {
+  const sendInput = fetchArgsToSendRequestInput(
+    input,
+    init as Parameters<typeof fetchArgsToSendRequestInput>[1]
+  );
 
   try {
-    const result = await window.api.sendRequest(input);
+    const result = await window.api.sendRequest(sendInput);
     if (!result.error) {
-      emitPluginAfterSend(toPluginHttpRequest(input), toPluginHttpResponse(result));
-      void store.dispatch(recordRequestHistoryFromSend({ sendInput: input, result }));
+      emitPluginAfterSend(toPluginHttpRequest(sendInput), toPluginHttpResponse(result));
+      void store.dispatch(recordRequestHistoryFromSend({ sendInput, result }));
     }
-    return result;
+    return createFetchResponse(result);
   } catch (error) {
-    return {
+    return createFetchResponse({
       status: 0,
       statusText: 'Error',
       headers: {},
@@ -128,7 +131,7 @@ export async function sendHttpRequestForPlugin(input: SendRequestInput): Promise
       timeMs: 0,
       sizeBytes: 0,
       error: error instanceof Error ? error.message : String(error)
-    };
+    });
   }
 }
 
@@ -610,7 +613,7 @@ export function registerHostRequestCommands(): () => void {
     registerCommand(HOST_PLUGIN_ID, 'applyRequestDraft', (payload) => {
       applyRequestDraftToActiveTab(payload as ApplyRequestDraftPayload);
     }),
-    registerCommand(HOST_PLUGIN_ID, 'sendRequest', () => {
+    registerCommand(HOST_PLUGIN_ID, 'send', () => {
       triggerSendRequest();
     }),
     registerCommand(HOST_PLUGIN_ID, 'createCollection', async (payload) => {

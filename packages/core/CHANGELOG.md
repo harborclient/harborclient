@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(mcp-server): enhance MCP server settings and functionality. (`cf36a22f`)
 - feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)
 
 ## 0.4.3 - 2026-08-03

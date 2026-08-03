@@ -73,5 +73,5 @@ export function registerHarborMcpTools(
  * @param settings - Persisted MCP server settings.
  */
 export function shouldRunMcpServer(settings: McpServerSettings): boolean {
-  return settings.enabled && settings.token.trim().length > 0;
+  return settings.enabled && settings.running && settings.token.trim().length > 0;
 }

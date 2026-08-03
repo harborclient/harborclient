@@ -4,7 +4,12 @@ import {
   clearLocalDatabaseForTesting,
   setLocalDatabaseForTesting
 } from '#/main/storage/localDatabaseInstance';
-import { getMcpServerStatus, startMcpServer, stopMcpServer } from './mcpServer';
+import {
+  getMcpServerStatus,
+  startMcpServer,
+  stopMcpServer,
+  applyMcpServerSettings
+} from './mcpServer';
 import { DEFAULT_MCP_SERVER_SETTINGS, setMcpServerSettings } from '#/main/settings/mcpSettings';
 
 const TEST_TOKEN = 'test-mcp-token';
@@ -119,6 +124,7 @@ describe('mcpServer HTTP routes', () => {
     setMcpServerSettings({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -134,6 +140,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -152,6 +159,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -171,6 +179,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -193,6 +202,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       name: 'Custom Harbor',
       logoUrl: 'https://example.com/brand/logo.svg',
       host: '127.0.0.1',
@@ -215,6 +225,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -248,6 +259,7 @@ describe('mcpServer HTTP routes', () => {
     const allowlistSettings = {
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN,
@@ -284,6 +296,7 @@ describe('mcpServer HTTP routes', () => {
     await startMcpServer({
       ...DEFAULT_MCP_SERVER_SETTINGS,
       enabled: true,
+      running: true,
       host: '127.0.0.1',
       port: 0,
       token: TEST_TOKEN
@@ -307,5 +320,33 @@ describe('mcpServer HTTP routes', () => {
     expect(response.headers.get('content-type')).toContain('text/event-stream');
 
     controller.abort();
+  });
+
+  it('stops a running listener when Enable MCP server is turned off', async () => {
+    const started = await startMcpServer({
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      enabled: true,
+      running: true,
+      host: '127.0.0.1',
+      port: 0,
+      token: TEST_TOKEN
+    });
+    expect(started.running).toBe(true);
+    expect(getMcpServerStatus().running).toBe(true);
+
+    const disabled = {
+      ...DEFAULT_MCP_SERVER_SETTINGS,
+      enabled: false,
+      running: false,
+      host: '127.0.0.1',
+      port: started.port ?? 0,
+      token: TEST_TOKEN
+    };
+    // Mirror Settings Save → setMcpServerSettings IPC: persist then apply.
+    setMcpServerSettings(disabled);
+    const stopped = await applyMcpServerSettings(disabled);
+
+    expect(stopped).toEqual({ running: false, enabled: false });
+    expect(getMcpServerStatus()).toEqual({ running: false, enabled: false });
   });
 });

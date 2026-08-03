@@ -131,6 +131,7 @@ describe('createHcCompletionSource', () => {
       'environment',
       'execution',
       'expect',
+      'fetch',
       'fs',
       'globals',
       'info',
@@ -139,7 +140,6 @@ describe('createHcCompletionSource', () => {
       'request',
       'send',
       'sendJSON',
-      'sendRequest',
       'sleep',
       'stringify',
       'test'
@@ -158,6 +158,7 @@ describe('createHcCompletionSource', () => {
       'environment',
       'execution',
       'expect',
+      'fetch',
       'fs',
       'globals',
       'info',
@@ -167,7 +168,6 @@ describe('createHcCompletionSource', () => {
       'response',
       'send',
       'sendJSON',
-      'sendRequest',
       'sleep',
       'stringify',
       'test'

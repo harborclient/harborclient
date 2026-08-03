@@ -6,6 +6,7 @@ describe('buildMcpConfigSnippet', () => {
     const snippet = buildMcpConfigSnippet(
       {
         enabled: true,
+        running: true,
         name: 'HarborClient',
         logoUrl: 'https://harborclient.com/images/logo.png',
         host: '127.0.0.1',
@@ -14,7 +15,7 @@ describe('buildMcpConfigSnippet', () => {
         exposedTools: ['list_collections'],
         keepLogs: false
       },
-      { running: true, host: '127.0.0.1', port: 8765 }
+      { running: true, enabled: true, host: '127.0.0.1', port: 8765 }
     );
 
     expect(snippet).toBe(

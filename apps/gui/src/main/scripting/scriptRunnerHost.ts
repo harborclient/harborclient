@@ -199,7 +199,7 @@ function resolveGuiScriptFileRoot(context?: { connectionId?: string | null }): s
 }
 
 /**
- * Supplies the cookie jar used by hc.sendRequest network bridging.
+ * Supplies the cookie jar used by hc.fetch network bridging.
  *
  * @param cookieJar - Shared cookie jar from IPC registration.
  */
@@ -263,7 +263,7 @@ function resetRunner(message: string): void {
 }
 
 /**
- * Handles an hc.sendRequest bridge call from the utility process runner.
+ * Handles an hc.fetch bridge call from the utility process runner.
  *
  * @param child - Utility process that initiated the network call.
  * @param message - Network request payload from the script sandbox.

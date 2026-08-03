@@ -39,7 +39,10 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverSettings, setServerSettings] = useState<McpServerSettings | null>(null);
-  const [serverStatus, setServerStatus] = useState<McpServerStatus>({ running: false });
+  const [serverStatus, setServerStatus] = useState<McpServerStatus>({
+    running: false,
+    enabled: false
+  });
   const [tokenCopied, setTokenCopied] = useState(false);
   const [configCopied, setConfigCopied] = useState(false);
   const [view, setView] = useState<McpPanelView>('config');
@@ -135,7 +138,7 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
   };
 
   /**
-   * Enables and starts the MCP server with the current form host/port values.
+   * Starts the MCP HTTP listener without changing the Settings enable flag.
    */
   const handleStart = async (): Promise<void> => {
     if (!serverSettings) {
@@ -145,7 +148,7 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
     setSaving(true);
     setError(null);
     try {
-      await persistSettings({ ...serverSettings, enabled: true });
+      await persistSettings({ ...serverSettings, running: true });
       toast.success('MCP server started.');
     } catch (startError) {
       setError(formatIpcErrorMessage(startError, 'Failed to start MCP server.'));
@@ -155,7 +158,7 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
   };
 
   /**
-   * Disables and stops the MCP server, preserving the current form host/port values.
+   * Stops the MCP HTTP listener without disabling the Settings enable flag.
    */
   const handleStop = async (): Promise<void> => {
     if (!serverSettings) {
@@ -165,7 +168,7 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
     setSaving(true);
     setError(null);
     try {
-      await persistSettings({ ...serverSettings, enabled: false });
+      await persistSettings({ ...serverSettings, running: false });
       toast.success('MCP server stopped.');
     } catch (stopError) {
       setError(formatIpcErrorMessage(stopError, 'Failed to stop MCP server.'));
@@ -392,7 +395,6 @@ export function McpPanel({ open, onClose, onStatusChange }: Props): JSX.Element 
               status={serverStatus}
               saving={saving}
               idPrefix="footer-mcp"
-              showEnableToggle={false}
               onChange={setServerSettings}
               afterBearerToken={
                 <div className="flex flex-wrap items-center gap-3">

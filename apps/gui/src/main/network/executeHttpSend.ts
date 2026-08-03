@@ -40,7 +40,7 @@ export async function executeHttpSend(
 /**
  * Returns whether script-initiated network requests are allowed by general settings.
  *
- * @returns True when hc.sendRequest may execute outbound HTTP from scripts.
+ * @returns True when hc.fetch may execute outbound HTTP from scripts.
  */
 export function isScriptNetworkAllowed(): boolean {
   return isCoreScriptNetworkAllowed(getGeneralSettings());

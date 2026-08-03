@@ -163,7 +163,7 @@ and the optional stylesheet.
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent                     |
 | `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar         |
 | `browser`          | Open and control embedded browser tabs via `hc.livePage`                       |
-| `network`          | Outbound HTTP from the renderer via `hc.host.sendHttpRequest`                  |
+| `network`          | Outbound HTTP from the renderer via `hc.host.fetch`                            |
 
 ---
 
@@ -436,7 +436,7 @@ The SDK view-host (`harbor-plugin://host/view-host.js`) builds the full
 | `host.getSidebarSelection`, `host.setSidebarSelection`, `host.onSidebarSelectionChanged`                                     | `ui`                                   | Host renderer + `sidebar.selection.changed` push event           |
 | `host.listCollections`, `host.listLibraryTree`, `host.listFolders`, …                                                        | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
 | `host.reorderContainerItems`, `host.moveRequest`, `host.reorderRequests`, …                                                  | `ui`                                   | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
-| `host.sendHttpRequest`, `host.createCollection`, …                                                                           | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
+| `host.fetch`, `host.createCollection`, …                                                                                     | `ui` / `network`                       | Host renderer via `plugins:hostBridgeInvoke` (returns result)    |
 | `livePage.open`, `livePage.focus`, `livePage.close`, `livePage.query`, `livePage.evaluate`, …                                | `browser`                              | Host renderer via `plugins:hostBridgeInvoke` → live-page session |
 | `imports.registerHandler`, `imports.unregisterHandler`                                                                       | `ui`                                   | Host renderer via `plugins:importHandlers` (metadata only)       |
 | `imports.invokeComplete`                                                                                                     | `ui`                                   | Resolves pending import handler invocations from host renderer   |

@@ -35,16 +35,10 @@ interface Props {
    * Optional content rendered directly under the bearer token field.
    */
   afterBearerToken?: ReactNode;
-
-  /**
-   * When false, hides the Enable checkbox (footer panel uses Start/Stop instead).
-   * Defaults to true for Settings.
-   */
-  showEnableToggle?: boolean;
 }
 
 /**
- * Core MCP server settings fields shared by Settings and the footer slide-up panel.
+ * MCP server config fields for the footer slide-up panel (Start/Stop controls enablement).
  */
 export function McpServerFormFields({
   settings,
@@ -52,8 +46,7 @@ export function McpServerFormFields({
   saving,
   onChange,
   idPrefix = 'mcp-server',
-  afterBearerToken,
-  showEnableToggle = true
+  afterBearerToken
 }: Props): JSX.Element {
   const nameId = `${idPrefix}-name`;
   const logoId = `${idPrefix}-logo`;
@@ -92,16 +85,6 @@ export function McpServerFormFields({
 
   return (
     <div className="flex flex-col gap-4">
-      {showEnableToggle ? (
-        <FormGroup label="Enable MCP server" layout="checkbox">
-          <Checkbox
-            checked={settings.enabled}
-            disabled={saving}
-            onChange={(event) => onChange({ ...settings, enabled: event.target.checked })}
-          />
-        </FormGroup>
-      ) : null}
-
       <FormGroup label="Keep logs" layout="checkbox">
         <Checkbox
           checked={settings.keepLogs}

@@ -82,7 +82,7 @@ export async function executeHttpSend(
  * Returns whether scripts may initiate outbound HTTP under supplied settings.
  *
  * @param settings - Settings provider or already-resolved general settings.
- * @returns True when hc.sendRequest is allowed.
+ * @returns True when hc.fetch is allowed.
  */
 export function isScriptNetworkAllowed(settings: SettingsProvider | GeneralSettings): boolean {
   return resolveGeneralSettings(settings).allowScriptNetworkRequests === true;

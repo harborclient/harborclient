@@ -176,9 +176,8 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     section: 'general',
     kind: 'field',
     label: 'Allow script network requests',
-    description:
-      'When enabled, pre- and post-request scripts may call hc.sendRequest for outbound HTTP.',
-    keywords: ['script', 'network', 'sendRequest', 'http', 'permission']
+    description: 'When enabled, pre- and post-request scripts may call hc.fetch for outbound HTTP.',
+    keywords: ['script', 'network', 'fetch', 'http', 'permission']
   },
   {
     id: 'general.allowScriptFileRead',

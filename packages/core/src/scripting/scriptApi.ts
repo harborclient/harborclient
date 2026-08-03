@@ -1,5 +1,4 @@
 import type {
-  BodyType,
   KeyValue,
   ScriptExecutionEvent,
   ScriptExecutionVariableScope,
@@ -36,6 +35,12 @@ import type {
   ScriptFileRequest,
   ScriptJsonWriteOptions
 } from './scriptFileOperations';
+import {
+  createFetchResponse,
+  fetchArgsToSendRequestInput,
+  type HcFetchInit,
+  type HcFetchResponse
+} from './fetchApi';
 import { buildScriptResponseOverride } from './scriptResponseOverride';
 import { resolveStackToOriginalLocation, type ScriptCompileMap } from './scriptSourceMap';
 import { variableKeyIsCleared } from './variableClearMatch';
@@ -110,9 +115,9 @@ export interface ScriptLivePageOpenOptions {
  */
 export interface ScriptApiOptions {
   /**
-   * When provided, enables hc.sendRequest for outbound HTTP from the script sandbox.
+   * When provided, enables hc.fetch for outbound HTTP from the script sandbox.
    */
-  sendRequest?: (req: SendRequestInput) => Promise<SendResult>;
+  fetch?: (req: SendRequestInput) => Promise<SendResult>;
 
   /**
    * When provided, enables hc.fs / hc.parse / hc.stringify via the main-process bridge.
@@ -891,79 +896,13 @@ function createLivePageHandle(
 }
 
 /**
- * Normalizes a script sendRequest input from the hc API into a SendRequestInput.
- *
- * @param req - User-provided request object from hc.sendRequest.
- * @returns Normalized send input for the HTTP layer.
- */
-function normalizeScriptSendRequest(req: unknown): SendRequestInput {
-  if (!req || typeof req !== 'object') {
-    throw new Error('hc.sendRequest requires a request object');
-  }
-
-  const input = req as Record<string, unknown>;
-  const method = input.method != null ? String(input.method) : 'GET';
-  const url = input.url != null ? String(input.url) : '';
-  if (!url.trim()) {
-    throw new Error('hc.sendRequest requires a url');
-  }
-
-  const rawHeaders = input.headers;
-  let headers: KeyValue[] = [];
-  if (Array.isArray(rawHeaders)) {
-    headers = rawHeaders.map((row) => {
-      const entry = row as Record<string, unknown>;
-      return {
-        key: String(entry.key ?? ''),
-        value: String(entry.value ?? ''),
-        enabled: entry.enabled !== false
-      };
-    });
-  } else if (rawHeaders && typeof rawHeaders === 'object') {
-    headers = Object.entries(rawHeaders as Record<string, unknown>).map(([key, value]) => ({
-      key,
-      value: String(value),
-      enabled: true
-    }));
-  }
-
-  const rawParams = input.params;
-  let params: KeyValue[] = [];
-  if (Array.isArray(rawParams)) {
-    params = rawParams.map((row) => {
-      const entry = row as Record<string, unknown>;
-      return {
-        key: String(entry.key ?? ''),
-        value: String(entry.value ?? ''),
-        enabled: entry.enabled !== false
-      };
-    });
-  }
-
-  const bodyTypeRaw = String(input.bodyType ?? input.body_type ?? 'none');
-  const allowedBodyTypes: BodyType[] = ['none', 'json', 'text', 'multipart', 'urlencoded'];
-  const bodyType = allowedBodyTypes.includes(bodyTypeRaw as BodyType)
-    ? (bodyTypeRaw as BodyType)
-    : 'none';
-
-  return {
-    method: method as SendRequestInput['method'],
-    url,
-    headers,
-    params,
-    body: input.body != null ? String(input.body) : '',
-    bodyType
-  };
-}
-
-/**
  * Builds the hc API and capturing console over a fresh mutable state.
  *
  * Shared by pre/post request scripts and main-process plugin script contexts so
  * the hc surface never drifts between runners.
  *
  * @param input - Phase, request, response, variables, and optional collection/environment context.
- * @param options - Optional runtime hooks such as hc.sendRequest, hc.fs, and hc.ask transports.
+ * @param options - Optional runtime hooks such as hc.fetch, hc.fs, and hc.ask transports.
  * @returns hc object, console, and a reader for accumulated sandbox mutations.
  */
 export function createScriptApi(
@@ -1350,23 +1289,26 @@ export function createScriptApi(
     });
   };
 
-  if (options?.sendRequest) {
-    const transport = options.sendRequest;
-    hc.sendRequest = async (req: unknown) => {
-      const normalized = normalizeScriptSendRequest(req);
+  if (options?.fetch) {
+    const transport = options.fetch;
+    /**
+     * Sends an outbound HTTP request using the native fetch(input, init?) signature.
+     *
+     * @param input - URL string, URL, or Request-like object.
+     * @param init - Optional RequestInit-compatible options.
+     * @returns Response-compatible result from the HTTP transport.
+     */
+    hc.fetch = async (input: unknown, init?: HcFetchInit): Promise<HcFetchResponse> => {
+      const normalized = fetchArgsToSendRequestInput(input, init);
       const result = await transport(normalized);
-      return {
-        code: result.status,
-        status: result.statusText,
-        headers: result.headers,
-        responseTime: result.timeMs,
-        text: () => result.body,
-        json: () => JSON.parse(result.body)
-      };
+      return createFetchResponse(result);
     };
   } else {
-    hc.sendRequest = () => {
-      throw new Error('hc.sendRequest is not available in this script context');
+    /**
+     * Throws when no fetch transport is available in this script context.
+     */
+    hc.fetch = () => {
+      throw new Error('hc.fetch is not available in this script context');
     };
   }
 

@@ -415,6 +415,11 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
   const assertUi = () => assertPermission('ui');
 
   /**
+   * Asserts network permission for outbound HTTP via hc.host.fetch.
+   */
+  const assertNetwork = () => assertPermission('network');
+
+  /**
    * Returns whether UI registration should run in this webview role.
    */
   const canRegisterUi = () => isAgent || mode === 'view';
@@ -1156,9 +1161,9 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
           }
         });
       },
-      sendRequest: async () => {
+      send: async () => {
         assertUi();
-        await bridgeInvoke('host.sendRequest');
+        await bridgeInvoke('host.send');
       },
       createEnvironmentWithVariables: async (name, variables) => {
         assertUi();
@@ -1330,9 +1335,9 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         assertUi();
         await bridgeInvoke('host.logRequestToConsole', { payload });
       },
-      sendHttpRequest: async (input) => {
-        assertUi();
-        return bridgeInvoke('host.sendHttpRequest', { input });
+      fetch: async (input, init) => {
+        assertNetwork();
+        return bridgeInvoke('host.fetch', { input, init });
       },
       clearResponse: async () => {
         assertUi();

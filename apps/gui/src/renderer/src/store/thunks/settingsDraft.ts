@@ -16,6 +16,7 @@ import {
 } from '@harborclient/core/codeEditorSettings';
 import { normalizeTerminalSettings } from '@harborclient/core/generalSettings';
 import type { GeneralSettings } from '@harborclient/core/types';
+import { notifyMcpServerStatusChanged } from '#/renderer/src/hooks/useMcpServerStatus';
 
 /** Monotonic token so only the latest settings load may commit to the draft. */
 let settingsDraftLoadGeneration = 0;
@@ -36,7 +37,7 @@ function normalizeDraftGeneralForSave(general: GeneralSettings): GeneralSettings
 }
 
 /**
- * Loads general and AI settings into the shared settings draft.
+ * Loads general, AI, and MCP enable settings into the shared settings draft.
  */
 export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
   'settingsDraft/load',
@@ -45,9 +46,10 @@ export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
     dispatch(setSettingsDraftLoading(true));
     dispatch(setSettingsDraftLoadError(null));
     try {
-      const [general, ai] = await Promise.all([
+      const [general, ai, mcpServer] = await Promise.all([
         window.api.getGeneralSettings(),
-        window.api.getAiSettings()
+        window.api.getAiSettings(),
+        window.api.getMcpServerSettings()
       ]);
       if (generation !== settingsDraftLoadGeneration) {
         return;
@@ -55,7 +57,13 @@ export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
       if (selectSettingsDraftDirty(getState())) {
         return;
       }
-      dispatch(initSettingsDraft({ general, ai }));
+      dispatch(
+        initSettingsDraft({
+          general,
+          ai,
+          mcpServerEnabled: mcpServer.enabled
+        })
+      );
     } catch (err) {
       if (generation !== settingsDraftLoadGeneration) {
         return;
@@ -77,17 +85,42 @@ export const loadSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
 export const saveSettingsDraft = createAsyncThunk<void, void, ThunkApiConfig>(
   'settingsDraft/save',
   async (_arg, { dispatch, getState }) => {
-    const { general, ai } = getState().settingsDraft;
+    const { general, ai, mcpServerEnabled } = getState().settingsDraft;
     const normalizedGeneral = normalizeDraftGeneralForSave(general);
     dispatch(setSettingsDraftSaving(true));
     dispatch(setSettingsDraftLoadError(null));
     try {
-      await Promise.all([
-        window.api.setGeneralSettings(normalizedGeneral),
-        window.api.setAiSettings(ai)
-      ]);
-      dispatch(initSettingsDraft({ general: normalizedGeneral, ai }));
+      const currentMcp = await window.api.getMcpServerSettings();
+      const nextMcp = {
+        ...currentMcp,
+        enabled: mcpServerEnabled,
+        // Disabling clears listen intent so re-enabling does not auto-start.
+        running: mcpServerEnabled ? currentMcp.running : false
+      };
+
+      if (!mcpServerEnabled) {
+        // Stop the HTTP listener first when turning the feature off.
+        await window.api.setMcpServerSettings(nextMcp);
+        await Promise.all([
+          window.api.setGeneralSettings(normalizedGeneral),
+          window.api.setAiSettings(ai)
+        ]);
+      } else {
+        await Promise.all([
+          window.api.setGeneralSettings(normalizedGeneral),
+          window.api.setAiSettings(ai),
+          window.api.setMcpServerSettings(nextMcp)
+        ]);
+      }
+      dispatch(
+        initSettingsDraft({
+          general: normalizedGeneral,
+          ai,
+          mcpServerEnabled
+        })
+      );
       dispatch(setGeneralSettingsState(normalizedGeneral));
+      notifyMcpServerStatusChanged();
     } catch (err) {
       dispatch(
         setSettingsDraftLoadError(err instanceof Error ? err.message : 'Failed to save settings.')

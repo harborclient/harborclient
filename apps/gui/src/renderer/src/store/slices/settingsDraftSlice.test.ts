@@ -24,7 +24,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -36,7 +37,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -53,7 +55,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -71,7 +74,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: { ...DEFAULT_GENERAL_SETTINGS, codeEditorFontSize: '10px' },
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -85,7 +89,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: DEFAULT_GENERAL_SETTINGS,
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -103,7 +108,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 
@@ -117,7 +123,8 @@ describe('settingsDraftSlice', () => {
       undefined,
       initSettingsDraft({
         general: { ...DEFAULT_GENERAL_SETTINGS, verifySsl: false },
-        ai: DEFAULT_AI_SETTINGS
+        ai: DEFAULT_AI_SETTINGS,
+        mcpServerEnabled: false
       })
     );
 

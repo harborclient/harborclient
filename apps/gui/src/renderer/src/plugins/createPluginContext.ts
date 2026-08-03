@@ -52,7 +52,7 @@ import {
   logRequestToConsole,
   openRequestDraft,
   applyRequestDraftToActiveTab,
-  sendHttpRequestForPlugin,
+  fetchForPlugin,
   triggerSendRequest,
   type PluginConsoleLogPayload
 } from './hostRequestCommands';
@@ -730,7 +730,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         return track(subscribePluginSidebarSelectionChanged(listener));
       },
-      sendRequest: async () => {
+      send: async () => {
         assertUi();
         triggerSendRequest();
       },
@@ -901,9 +901,9 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         assertUi();
         logRequestToConsole(payload as PluginConsoleLogPayload);
       },
-      sendHttpRequest: async (input) => {
+      fetch: async (input, init) => {
         assertNetwork();
-        return sendHttpRequestForPlugin(input);
+        return fetchForPlugin(input, init);
       },
       clearResponse: async () => {
         assertUi();

@@ -32,12 +32,12 @@ export interface GeneralSettingsAiPatch {
   scriptTimeoutMs?: number;
 
   /**
-   * When true, pre/post scripts may call hc.sendRequest for outbound HTTP.
+   * When true, pre/post scripts may call hc.fetch for outbound HTTP.
    */
   allowScriptNetworkRequests?: boolean;
 
   /**
-   * Plugin manifest ids allowed to call hc.host.sendHttpRequest when script network is off.
+   * Plugin manifest ids allowed to call hc.host.fetch when script network is off.
    */
   allowedNetworkPlugins?: string[];
 
