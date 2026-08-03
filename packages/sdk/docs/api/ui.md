@@ -1,4 +1,12 @@
-# Renderer API
+# UI
+
+All `hc.ui.register*` methods require the `ui` permission, return a `Disposable` that unregisters the contribution when called, and require an `id` that matches an entry in the corresponding `manifest.contributes.*` array.
+
+Registration disposables are tracked automatically when you call `hc.ui.register*` methods. Custom disposables (timers, focus sync, etc.) should be disposed in `deactivate()` or React effect cleanup.
+
+See [Manifest](/manifest#contribution-types) for the manifest keys that correspond to each registrar.
+
+## PluginContext and contribution types
 
 The renderer entry exports `activate(hc)` and optionally `deactivate()`. The `hc` argument is a `PluginContext`:
 
@@ -432,100 +440,46 @@ export interface PluginHttpResponse {
 
 Install `@harborclient/sdk` as a **dev dependency** in your plugin project for types and the JSX runtime helpers. The package tracks HarborClient releases. Type definitions are maintained in [harborclient/sdk](https://github.com/harborclient/sdk). Main entries use `MainPluginContext` instead — import it from `@harborclient/sdk` or `@harborclient/sdk/main` for main-only plugins.
 
-<HcMethod name="pluginId" :level="2" />
+<HcMethod name="ui.closeModal" :level="2" />
 
-<HcMethod name="react" :level="2" />
+<HcMethod name="ui.openModal" :level="2" />
 
-## React and JSX
+<HcMethod name="ui.registerCollectionSettingsTab" :level="2" />
 
-Plugins must share the host React instance. HarborClient installs `hc.react` before `activate(hc)` runs. `@harborclient/sdk` ships a small JSX runtime and hook barrel that forwards to that instance — no plugin-side setup call is required.
+<HcMethod name="ui.registerContextMenuItem" :level="2" />
 
-**TypeScript** (`tsconfig.json`):
+<HcMethod name="ui.registerFooterPanel" :level="2" />
 
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "@harborclient/sdk"
-  }
-}
-```
+<HcMethod name="ui.registerLivePageChromeAction" :level="2" />
 
-**esbuild** (renderer bundle):
+<HcMethod name="ui.registerMainView" :level="2" />
 
-```bash
-esbuild src/renderer.tsx \
-  --bundle --outfile=dist/renderer.js --format=esm \
-  --jsx=automatic --jsx-import-source=@harborclient/sdk \
-  --external:react --external:react-dom
-```
+<HcMethod name="ui.registerMenuItem" :level="2" />
 
-**Renderer entry:**
+<HcMethod name="ui.registerModal" :level="2" />
 
-```tsx
-import type { PluginContext } from '@harborclient/sdk';
+<HcMethod name="ui.registerRequestTab" :level="2" />
 
-export function activate(hc: PluginContext): void {
-  // register contributions…
-}
-```
+<HcMethod name="ui.registerRequestToolbarAction" :level="2" />
 
-**Hooks in components** — import from `@harborclient/sdk/react` (not from `react`):
+<HcMethod name="ui.registerResponseTab" :level="2" />
 
-```tsx
-import { useEffect, useState } from '@harborclient/sdk/react';
-```
+<HcMethod name="ui.registerScriptEditorAction" :level="2" />
 
-**Single-file escape hatch** — `createPluginComponent` builds a component from a factory that receives host React:
+<HcMethod name="ui.registerSettingsSection" :level="2" />
 
-```tsx
-import { createPluginComponent } from '@harborclient/sdk';
-import type { PluginContext } from '@harborclient/sdk';
+<HcMethod name="ui.registerSidebarPanel" :level="2" />
 
-export function activate(hc: PluginContext): void {
-  const Panel = createPluginComponent((React) => {
-    return function Panel() {
-      const [count, setCount] = React.useState(0);
-      return React.createElement('button', { onClick: () => setCount(count + 1) }, count);
-    };
-  });
-}
-```
+<HcMethod name="ui.registerSidebarRailItem" :level="2" />
 
-See [harborclient-plugin-skeleton](https://github.com/harborclient/plugin-skeleton) for a complete starter project with renderer and main entries.
+<HcMethod name="ui.registerSidebarSection" :level="2" />
 
-## hc.http
+<HcMethod name="ui.registerStatusBarItem" :level="2" />
 
-Renderer-side HTTP lifecycle events for reacting to completed sends in the UI. Requires the `http` permission. Registration disposables are tracked automatically.
+<HcMethod name="ui.registerWorkflowActionBlock" :level="2" />
 
-Prefer `hc.http.onAfterSend` over a main entry + custom IPC + polling when you only need to capture completed requests in the renderer (for example history or recent-requests panels).
+<HcMethod name="ui.registerWorkflowToolbarAction" :level="2" />
 
-<HcMethod name="http.onAfterSend" :level="3" />
+<HcMethod name="ui.setFooterPanelIndicator" :level="2" />
 
-## hc.ipc
-
-Renderer-side RPC into the plugin's main entry. Requires the `ipc` permission. The host auto-reactivates the main runtime when it has been torn down.
-
-<HcMethod name="ipc.invoke" :level="3" />
-
-## hc.host
-
-Typed wrappers for built-in HarborClient request editor commands. Requires the `ui` permission. Prefer these over stringly-typed `hc.commands.execute('harborclient:…')`.
-
-<HcMethod name="host.openRequestDraft" :level="3" />
-
-<HcMethod name="host.applyRequestDraft" :level="3" />
-
-<HcMethod name="host.loadRequest" :level="3" />
-
-<HcMethod name="host.send" :level="3" />
-
-<HcMethod name="host.fetch" :level="3" />
-
-<HcMethod name="host.openImageView" :level="3" />
-
-## Related reference
-
-- [UI contributions](/renderer-ui) — `hc.ui.register*` methods and `hc.actions.register`
-- [Themes and storage](/renderer-data) — themes, commands, storage, filesystem, [File → Import handlers](/renderer-data#hcimports), [MCP client servers](/renderer-data#hcmcp), [Harbor Live Servers](/renderer-data#hcliveservers), and [AI chat pointers](/renderer-data#hcai)
-- [Main API](/main-api) — HTTP hooks and IPC in the main entry
+<HcMethod name="ui.showToast" :level="2" />

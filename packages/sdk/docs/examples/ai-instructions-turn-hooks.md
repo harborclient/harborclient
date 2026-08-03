@@ -2,7 +2,7 @@
 
 Use `hc.ai.instructions.add` for always-on agent policy, and `hc.ai.onBeforeTurn` / `hc.ai.onAfterTurn` for per-send lifecycle. These APIs require the `ai` permission and are activation-scoped.
 
-See [hc.ai](/renderer-data#hcai) for the full reference and [Chat pointers](/examples/chat-pointers) for `@` badge registration.
+See [hc.ai](/api/ai) for the full reference and [Chat pointers](/examples/chat-pointers) for `@` badge registration.
 
 ## Manifest
 

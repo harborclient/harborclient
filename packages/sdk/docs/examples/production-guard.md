@@ -71,4 +71,4 @@ production-guard.hcp
 
 Install from **File → Plugins → Install**. Sends whose URL contains a blocked fragment skip HTTP and show the guard message in the console. Store `{ "blockedHosts": ["…"] }` under the `guard` key via `hc.storage` (from a settings contribution) to customize the list.
 
-See [Main API — hc.http.onBeforeScripts](/main-api#hchttponbeforescriptshandler).
+See [hc.http.onBeforeScripts](/api/http#hchttponbeforescriptshandler).

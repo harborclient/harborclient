@@ -18,7 +18,7 @@ sequenceDiagram
   Main-->>Plugin: tools prefixed mcp__ in chat agent
 ```
 
-See [hc.mcp](/renderer-data#hcmcp) for the full API reference and [Permissions](/permissions) for the `mcp` capability flag.
+See [hc.mcp](/api/mcp) for the full API reference and [Permissions](/permissions) for the `mcp` capability flag.
 
 ## manifest.json
 

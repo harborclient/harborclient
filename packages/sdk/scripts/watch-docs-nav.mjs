@@ -12,12 +12,15 @@ const watchDirs = [path.join(repoDir, 'docs')];
 
 /** Individual files that trigger rebuilds when changed. */
 const watchFiles = [
+  path.join(repoDir, 'scripts/build-hc-api-docs.mjs'),
   path.join(repoDir, 'scripts/build-docs-nav.mjs'),
   path.join(repoDir, 'scripts/docs-nav.config.mjs'),
   path.join(repoDir, 'scripts/docs-slugger.mjs'),
   path.join(repoDir, 'scripts/docs-link-rewriter.mjs'),
   path.join(repoDir, 'scripts/docs-site.config.mjs'),
-  path.join(repoDir, 'scripts/assert-docs-slugs.mjs')
+  path.join(repoDir, 'scripts/assert-docs-slugs.mjs'),
+  path.join(repoDir, 'docs/.vitepress/hc_manifest.json'),
+  path.join(repoDir, 'docs/.vitepress/hc_namespaces.json')
 ];
 
 let debounceTimer = null;
@@ -41,7 +44,7 @@ const runBuild = () => {
       new Promise((resolve, reject) => {
         console.log('[docs:watch] rebuilding nav...');
 
-        const nav = spawn('node', [path.join(scriptDir, 'build-docs-nav.mjs')], {
+        const nav = spawn('node', [path.join(scriptDir, 'build-hc-api-docs.mjs')], {
           cwd: repoDir,
           stdio: 'inherit'
         });
@@ -49,24 +52,37 @@ const runBuild = () => {
         nav.on('error', reject);
         nav.on('close', (code) => {
           if (code !== 0) {
-            reject(new Error(`build-docs-nav.mjs exited with code ${code}`));
+            reject(new Error(`build-hc-api-docs.mjs exited with code ${code}`));
             return;
           }
 
-          const slugs = spawn('node', [path.join(scriptDir, 'assert-docs-slugs.mjs')], {
+          const sidebar = spawn('node', [path.join(scriptDir, 'build-docs-nav.mjs')], {
             cwd: repoDir,
             stdio: 'inherit'
           });
 
-          slugs.on('error', reject);
-          slugs.on('close', (slugCode) => {
-            if (slugCode !== 0) {
-              reject(new Error(`assert-docs-slugs.mjs exited with code ${slugCode}`));
+          sidebar.on('error', reject);
+          sidebar.on('close', (sidebarCode) => {
+            if (sidebarCode !== 0) {
+              reject(new Error(`build-docs-nav.mjs exited with code ${sidebarCode}`));
               return;
             }
 
-            console.log('[docs:watch] nav updated');
-            resolve();
+            const slugs = spawn('node', [path.join(scriptDir, 'assert-docs-slugs.mjs')], {
+              cwd: repoDir,
+              stdio: 'inherit'
+            });
+
+            slugs.on('error', reject);
+            slugs.on('close', (slugCode) => {
+              if (slugCode !== 0) {
+                reject(new Error(`assert-docs-slugs.mjs exited with code ${slugCode}`));
+                return;
+              }
+
+              console.log('[docs:watch] nav updated');
+              resolve();
+            });
           });
         });
       })
@@ -117,6 +133,11 @@ const shouldTriggerRebuild = (filename, watchedDir) => {
 
   if (watchedDir.endsWith(`${path.sep}docs`)) {
     if (normalized.startsWith('images/')) {
+      return false;
+    }
+
+    // Generated API pages / index — ignore to avoid rebuild loops.
+    if (normalized === 'api-index.md' || normalized.startsWith('api/')) {
       return false;
     }
 

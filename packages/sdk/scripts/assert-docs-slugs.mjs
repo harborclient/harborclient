@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { namespaceOfKey } from './docs-hc-namespaces.mjs';
 import {
   canonicalPageSlugs,
   docsNav,
@@ -13,6 +14,14 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
 const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
+
+/**
+ * Loads `hc_namespaces.json`.
+ *
+ * @returns {Promise<Array<{ namespace: string; title: string; introduction?: string }>>}
+ */
+const loadHcNamespaces = async () => JSON.parse(await readFile(hcNamespacesPath, 'utf8'));
 
 /**
  * Loads and validates `hc_manifest.json` entries used by `<HcMethod>`.
@@ -161,19 +170,34 @@ const buildRouteAnchorMap = async (canonicalPages, hcManifest) => {
   }
 
   for (const entry of docsNav) {
-    if (entry.kind !== 'group') {
+    if (entry.kind === 'group') {
+      for (const page of entry.pages) {
+        const pagePath = path.join(docsDir, entry.slug, `${page.name}.md`);
+
+        if (await pathExists(pagePath)) {
+          const markdown = await readFile(pagePath, 'utf8');
+          routeAnchors.set(
+            `/${entry.slug}/${page.name}`,
+            new Set(getHeadings(markdown, hcManifest).map((heading) => heading.anchor))
+          );
+        }
+      }
       continue;
     }
 
-    for (const page of entry.pages) {
-      const pagePath = path.join(docsDir, entry.slug, `${page.name}.md`);
+    if (entry.kind === 'api') {
+      const namespaces = await loadHcNamespaces();
 
-      if (await pathExists(pagePath)) {
-        const markdown = await readFile(pagePath, 'utf8');
-        routeAnchors.set(
-          `/${entry.slug}/${page.name}`,
-          new Set(getHeadings(markdown, hcManifest).map((heading) => heading.anchor))
-        );
+      for (const ns of namespaces) {
+        const pagePath = path.join(docsDir, 'api', `${ns.namespace}.md`);
+
+        if (await pathExists(pagePath)) {
+          const markdown = await readFile(pagePath, 'utf8');
+          routeAnchors.set(
+            `/api/${ns.namespace}`,
+            new Set(getHeadings(markdown, hcManifest).map((heading) => heading.anchor))
+          );
+        }
       }
     }
   }
@@ -196,20 +220,104 @@ const buildRouteAnchorMap = async (canonicalPages, hcManifest) => {
  *
  * @param {Map<string, { label: string; markdown: string }>} canonicalPages Canonical pages.
  * @param {Record<string, unknown>} hcManifest Loaded manifest.
+ * @param {Array<{ namespace: string }>} namespaces Namespace registry.
  */
-const verifyHcMethodTags = (canonicalPages, hcManifest) => {
+const verifyHcMethodTags = async (canonicalPages, hcManifest, namespaces) => {
   const errors = [];
+  /** @type {Set<string>} */
+  const documented = new Set();
 
   for (const page of canonicalPages.values()) {
     for (const name of listHcMethodNames(page.markdown)) {
       if (!hcManifest[name]) {
         errors.push(`${page.label}: <HcMethod name="${name}" /> missing from hc_manifest.json`);
       }
+
+      documented.add(name);
+    }
+  }
+
+  for (const ns of namespaces) {
+    const pagePath = path.join(docsDir, 'api', `${ns.namespace}.md`);
+    const label = `docs/api/${ns.namespace}.md`;
+
+    if (!(await pathExists(pagePath))) {
+      errors.push(`${label}: missing generated API page`);
+      continue;
+    }
+
+    const markdown = await readFile(pagePath, 'utf8');
+
+    for (const name of listHcMethodNames(markdown)) {
+      if (!hcManifest[name]) {
+        errors.push(`${label}: <HcMethod name="${name}" /> missing from hc_manifest.json`);
+      }
+
+      if (namespaceOfKey(name) !== ns.namespace) {
+        errors.push(
+          `${label}: <HcMethod name="${name}" /> does not belong to namespace ${ns.namespace}`
+        );
+      }
+
+      documented.add(name);
+    }
+  }
+
+  for (const key of Object.keys(hcManifest)) {
+    if (!documented.has(key)) {
+      errors.push(`hc_manifest.json: ${key} is not documented on any generated API page`);
     }
   }
 
   if (errors.length > 0) {
     console.error('HcMethod reference errors:');
+    console.error(errors);
+    process.exit(1);
+  }
+};
+
+/**
+ * Verifies namespace registry parity with the method manifest and intro files.
+ *
+ * @param {Record<string, unknown>} hcManifest Method manifest.
+ * @param {Array<{ namespace: string; title: string; introduction?: string }>} namespaces Namespace registry.
+ */
+const verifyNamespaceRegistry = async (hcManifest, namespaces) => {
+  const errors = [];
+  const registered = new Set();
+
+  for (const entry of namespaces) {
+    if (registered.has(entry.namespace)) {
+      errors.push(`hc_namespaces.json: duplicate namespace ${entry.namespace}`);
+    }
+
+    registered.add(entry.namespace);
+
+    if (entry.introduction) {
+      const introPath = path.join(docsDir, entry.introduction);
+
+      if (!(await pathExists(introPath))) {
+        errors.push(`hc_namespaces.json: missing introduction ${entry.introduction}`);
+      }
+    }
+  }
+
+  const fromManifest = new Set(Object.keys(hcManifest).map((key) => namespaceOfKey(key)));
+
+  for (const ns of fromManifest) {
+    if (!registered.has(ns)) {
+      errors.push(`hc_namespaces.json: missing namespace ${ns} present in hc_manifest.json`);
+    }
+  }
+
+  for (const ns of registered) {
+    if (!fromManifest.has(ns)) {
+      errors.push(`hc_namespaces.json: namespace ${ns} has no keys in hc_manifest.json`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('Namespace registry errors:');
     console.error(errors);
     process.exit(1);
   }
@@ -292,7 +400,7 @@ const verifyManifestParity = async () => {
       continue;
     }
 
-    if (['.vitepress', 'images'].includes(entry.name)) {
+    if (['.vitepress', 'images', 'introductions'].includes(entry.name)) {
       continue;
     }
 
@@ -319,7 +427,11 @@ const verifyInternalLinks = (canonicalPages, routeAnchors) => {
     for (const match of page.markdown.matchAll(INTERNAL_LINK_PATTERN)) {
       const route = match[1];
 
-      if (route.startsWith('/images/') || route.startsWith('/storybook') || route.startsWith('/components/')) {
+      if (
+        route.startsWith('/images/') ||
+        route.startsWith('/storybook') ||
+        route.startsWith('/components/')
+      ) {
         continue;
       }
 
@@ -367,6 +479,8 @@ const verifyGfmAlerts = (label, markdown) => {
 await verifyManifestParity();
 
 const hcManifest = await loadHcManifest();
+const namespaces = await loadHcNamespaces();
+await verifyNamespaceRegistry(hcManifest, namespaces);
 const canonicalPages = await loadCanonicalPages(hcManifest);
 const routeAnchors = await buildRouteAnchorMap(canonicalPages, hcManifest);
 
@@ -375,9 +489,29 @@ for (const page of canonicalPages.values()) {
   verifyGfmAlerts(page.label, page.markdown);
 }
 
-verifyHcMethodTags(canonicalPages, hcManifest);
+for (const ns of namespaces) {
+  const pagePath = path.join(docsDir, 'api', `${ns.namespace}.md`);
+  const markdown = await readFile(pagePath, 'utf8');
+  const headings = getHeadings(markdown, hcManifest);
+  verifyHeadingSlugs(`docs/api/${ns.namespace}.md`, headings);
+  verifyGfmAlerts(`docs/api/${ns.namespace}.md`, markdown);
+}
+
+await verifyHcMethodTags(canonicalPages, hcManifest, namespaces);
+
+// Generated API pages also carry intro links that must resolve.
+for (const ns of namespaces) {
+  const pagePath = path.join(docsDir, 'api', `${ns.namespace}.md`);
+  const markdown = await readFile(pagePath, 'utf8');
+  canonicalPages.set(`/api/${ns.namespace}`, {
+    label: `docs/api/${ns.namespace}.md`,
+    markdown,
+    headings: getHeadings(markdown, hcManifest)
+  });
+}
+
 verifyInternalLinks(canonicalPages, routeAnchors);
 
 console.log(
-  `Verified ${docsNav.length} manifest entries, ${canonicalPages.size} canonical docs routes, ${Object.keys(hcManifest).length} hc APIs, and ${routeAnchors.size} routable paths.`
+  `Verified ${docsNav.length} manifest entries, ${canonicalPages.size} canonical docs routes, ${namespaces.length} namespaces, ${Object.keys(hcManifest).length} hc APIs, and ${routeAnchors.size} routable paths.`
 );

@@ -276,7 +276,7 @@
     "level": 3,
     "since": "2.8.4",
     "signature": "(payload: OpenImageViewPayload) => Promise<void>",
-    "description": "Opens or focuses an image-view page tab. Use this to display screenshots, logos,\ngenerated charts, or import previews in a dedicated tab with **Copy location**\nand **Download** actions. Prefer this typed API over\n`hc.commands.execute('harborclient:openImageView', payload)`.\n\nSee also [Renderer API → hc.host](/renderer-overview#hchost).\n\n**Payload rules**\n\n- Provide exactly one source: `path`, `url`, `dataUrl`, or `base64` with\n  `contentType`.\n- `fileName` is optional for `path` and `url` (derived from the basename or last\n  URL path segment). It is required for inline `dataUrl` and `base64` payloads.\n- Inline `dataUrl` / `base64` payloads are capped by the same IPC body-size limit\n  as large request bodies.\n\n**Tab behavior**\n\n| Aspect         | Behavior                                                                      |\n| -------------- | ----------------------------------------------------------------------------- |\n| Tab label      | Shortened filename (middle ellipsis, extension preserved)                     |\n| Page header    | Full filename                                                                 |\n| Deduping       | Reopening the same source focuses the existing tab                            |\n| Persistence    | Session-only — image tabs are not restored after restart                      |\n| In-tab actions | **Copy location** (path, URL, or data URL) and **Download** via a save dialog |",
+    "description": "Opens or focuses an image-view page tab. Use this to display screenshots, logos,\ngenerated charts, or import previews in a dedicated tab with **Copy location**\nand **Download** actions. Prefer this typed API over\n`hc.commands.execute('harborclient:openImageView', payload)`.\n\nSee also [Renderer API → hc.host](/api/host).\n\n**Payload rules**\n\n- Provide exactly one source: `path`, `url`, `dataUrl`, or `base64` with\n  `contentType`.\n- `fileName` is optional for `path` and `url` (derived from the basename or last\n  URL path segment). It is required for inline `dataUrl` and `base64` payloads.\n- Inline `dataUrl` / `base64` payloads are capped by the same IPC body-size limit\n  as large request bodies.\n\n**Tab behavior**\n\n| Aspect         | Behavior                                                                      |\n| -------------- | ----------------------------------------------------------------------------- |\n| Tab label      | Shortened filename (middle ellipsis, extension preserved)                     |\n| Page header    | Full filename                                                                 |\n| Deduping       | Reopening the same source focuses the existing tab                            |\n| Persistence    | Session-only — image tabs are not restored after restart                      |\n| In-tab actions | **Copy location** (path, URL, or data URL) and **Download** via a save dialog |",
     "examples": [
       {
         "lang": "typescript",
@@ -315,7 +315,7 @@
     "level": 4,
     "since": "2.8.5",
     "signature": "(input: ShowEntityContextMenuInput) => Promise<void>",
-    "description": "Opens the same collection / folder / request context menu the built-in\nCollections tree would show — including plugin\n[`registerContextMenuItem`](/renderer-ui#hcuiregistercontextmenuitemitem)\ncontributions — positioned in the **host** window. Fire-and-forget; does not\nwait for the user to dismiss the menu.\n\nThe host offsets `x`/`y` by the HostedSurface bounding rect. When the surface\ncannot be found, coordinates are treated as host viewport coordinates.\n\n**Limitations**\n\n- Document targets are not supported (v1).\n- Submenu flyouts and focus return to the webview may be imperfect across the\n  webview boundary.\n- Menu actions dispatch host thunks and work even when the built-in Collections\n  tree is unmounted (replacement mode).\n\nSee the [sidebar replacement tree example](/examples/sidebar-replacement-tree)\nfor a full pattern including reorder/move.",
+    "description": "Opens the same collection / folder / request context menu the built-in\nCollections tree would show — including plugin\n[`registerContextMenuItem`](/api/ui#hcuiregistercontextmenuitemitem)\ncontributions — positioned in the **host** window. Fire-and-forget; does not\nwait for the user to dismiss the menu.\n\nThe host offsets `x`/`y` by the HostedSurface bounding rect. When the surface\ncannot be found, coordinates are treated as host viewport coordinates.\n\n**Limitations**\n\n- Document targets are not supported (v1).\n- Submenu flyouts and focus return to the webview may be imperfect across the\n  webview boundary.\n- Menu actions dispatch host thunks and work even when the built-in Collections\n  tree is unmounted (replacement mode).\n\nSee the [sidebar replacement tree example](/examples/sidebar-replacement-tree)\nfor a full pattern including reorder/move.",
     "params": [
       {
         "name": "target",
@@ -815,7 +815,7 @@
     "level": 2,
     "since": "2.0.0",
     "signature": "(item: ContextMenuItemContribution) => Disposable",
-    "description": "Adds an action to row context menus in the sidebar for **collection**,\n**folder**, and **request** targets.\n\nWhen a plugin replaces the Collections sidebar (`replaces: \"collections\"`),\nthose contributions still appear in menus opened via\n[`hc.host.showEntityContextMenu`](/renderer-data#hchostshowentitycontextmenuinput)\n— the host builds the same menu model the built-in tree uses. They do **not**\nappear automatically inside a plugin’s own custom `RowActionsMenu` unless the\nplugin calls `showEntityContextMenu` (or builds an equivalent menu and invokes\nthe same host commands).\n\nDocument targets are not supported. See [renderer-data](/renderer-data) for\ncoordinate mapping and focus-return limitations.",
+    "description": "Adds an action to row context menus in the sidebar for **collection**,\n**folder**, and **request** targets.\n\nWhen a plugin replaces the Collections sidebar (`replaces: \"collections\"`),\nthose contributions still appear in menus opened via\n[`hc.host.showEntityContextMenu`](/api/host#hchostshowentitycontextmenuinput)\n— the host builds the same menu model the built-in tree uses. They do **not**\nappear automatically inside a plugin’s own custom `RowActionsMenu` unless the\nplugin calls `showEntityContextMenu` (or builds an equivalent menu and invokes\nthe same host commands).\n\nDocument targets are not supported. See [Host](/api/host) for\ncoordinate mapping and focus-return limitations.",
     "manifest": "contributes.contextMenus",
     "fields": [
       {
@@ -968,7 +968,7 @@
     "level": 2,
     "since": "2.0.0",
     "signature": "(item: MenuItemContribution) => Disposable",
-    "description": "Adds an item to the application menu. Register the command handler with `hc.commands.register` separately.\n\nFor **File → Import** workflows, prefer [`hc.imports.registerHandler`](/renderer-data#hcimports) instead of adding a separate File menu import item. Built-in HarborClient formats are detected first; plugin handlers receive only unrecognized files whose extensions they registered.",
+    "description": "Adds an item to the application menu. Register the command handler with `hc.commands.register` separately.\n\nFor **File → Import** workflows, prefer [`hc.imports.registerHandler`](/api/imports) instead of adding a separate File menu import item. Built-in HarborClient formats are detected first; plugin handlers receive only unrecognized files whose extensions they registered.",
     "manifest": "contributes.menus",
     "fields": [
       {
@@ -1041,7 +1041,7 @@
     "level": 2,
     "since": "2.0.0",
     "signature": "(tab: RequestTabContribution) => Disposable",
-    "description": "Adds a segmented tab to the request editor (alongside Params, Headers, Body, and so on). The component receives `context.draft` for the active request, `context.response` when a response exists, and `context.variables` for merged global, collection, and environment substitution values (see [Global variables](/renderer-data#global-variables)).",
+    "description": "Adds a segmented tab to the request editor (alongside Params, Headers, Body, and so on). The component receives `context.draft` for the active request, `context.response` when a response exists, and `context.variables` for merged global, collection, and environment substitution values (see [Global variables](/api/commands)).",
     "manifest": "contributes.requestTabs",
     "fields": [
       {

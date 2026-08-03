@@ -72,4 +72,4 @@ baseline-tests.hcp
 
 Install the `.hcp` file from **File → Plugins → Install**. Enable the plugin and send a request — baseline rows appear in the Tests tab before request-specific assertions.
 
-See [Main API — hc.http.onBeforeScripts](/main-api#hchttponbeforescriptshandler) for the hook reference.
+See [hc.http.onBeforeScripts](/api/http#hchttponbeforescriptshandler) for the hook reference.

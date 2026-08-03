@@ -15,7 +15,7 @@ sequenceDiagram
   Host->>Chat: open sidebar, show @… badge
 ```
 
-See [hc.ai](/renderer-data#hcai) for the API reference and [Permissions](/permissions) for the `ai` capability flag. For always-on prompt fragments and per-turn hooks, see [AI instructions and turn hooks](/examples/ai-instructions-turn-hooks).
+See [hc.ai](/api/ai) for the API reference and [Permissions](/permissions) for the `ai` capability flag. For always-on prompt fragments and per-turn hooks, see [AI instructions and turn hooks](/examples/ai-instructions-turn-hooks).
 
 ## Manifest
 

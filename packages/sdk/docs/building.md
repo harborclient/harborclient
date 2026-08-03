@@ -32,7 +32,7 @@ You can also build `request-logger.zip` and rename it to `request-logger.hcp`; H
 }
 ```
 
-For renderer plugins, mark `react` and `react-dom` as **external** and set `--jsx=automatic --jsx-import-source=@harborclient/sdk`. The host installs the shared React instance before `activate(hc)` runs. See [React and JSX](/renderer-overview#react-and-jsx).
+For renderer plugins, mark `react` and `react-dom` as **external** and set `--jsx=automatic --jsx-import-source=@harborclient/sdk`. The host installs the shared React instance before `activate(hc)` runs. See [React](/api/react).
 
 ## Sign your plugin
 

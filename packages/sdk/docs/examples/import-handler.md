@@ -213,4 +213,4 @@ registerImportHandler(hc, '.json', {
 
 - **`canImport` must be cheap and conservative** — for `.json` files, parse once and check a discriminator field. Built-in importers already handle HarborClient exports, Postman, Bruno, HAR, OpenCollection, and OpenAPI; return `false` for those shapes.
 - **Register every extension you support** — `['.json', '.yaml', '.yml']` adds all three to the import file picker.
-- **Use `hc.host.createCollection`** for bulk collection creation. See [Themes and storage → hc.host](/renderer-data#hchostcreatecollectionpayload) for the payload shape.
+- **Use `hc.host.createCollection`** for bulk collection creation. See [Themes and storage → hc.host](/api/host#hchostcreatecollectionpayload) for the payload shape.

@@ -9,7 +9,7 @@ Plugins can ship a renderer entry, a main entry, or both:
 | **renderer** | Renderer (React)     | Settings panels, sidebar UI, request tabs | No SES — `contextIsolation` plus IPC-only `hc` |
 | **main**     | utilityProcess + SES | HTTP hooks, custom IPC, background logic  | SES `lockdown()` in the child process only     |
 
-Renderer UI uses `hc.react`, the host's React instance. **Do not bundle React** in your plugin; the host installs it before `activate(hc)` runs. Use the JSX runtime documented in [React and JSX](/renderer-overview#react-and-jsx).
+Renderer UI uses `hc.react`, the host's React instance. **Do not bundle React** in your plugin; the host installs it before `activate(hc)` runs. Use the JSX runtime documented in [React](/api/react).
 
 Main-process plugin code reuses the same utilityProcess script runner infrastructure as [request scripts](https://harborclient.com/request-scripts). `lockdown()` runs only in that child process — never in the Electron main process or renderer.
 

@@ -248,4 +248,4 @@ await hc.host.setSidebarSelection({
 await hc.host.loadRequest(requestId);
 ```
 
-See [renderer-data](/renderer-data) for the full host API tables.
+See [Host](/api/host) for the full host API tables.

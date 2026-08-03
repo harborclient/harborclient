@@ -1,0 +1,102 @@
+[
+  {
+    "namespace": "ui",
+    "title": "UI",
+    "introduction": "introductions/ui.md"
+  },
+  {
+    "namespace": "actions",
+    "title": "Actions",
+    "introduction": "introductions/actions.md"
+  },
+  {
+    "namespace": "themes",
+    "title": "Themes",
+    "introduction": "introductions/themes.md"
+  },
+  {
+    "namespace": "commands",
+    "title": "Commands",
+    "introduction": "introductions/commands.md"
+  },
+  {
+    "namespace": "storage",
+    "title": "Storage",
+    "introduction": "introductions/storage.md"
+  },
+  {
+    "namespace": "database",
+    "title": "Database",
+    "introduction": "introductions/database.md"
+  },
+  {
+    "namespace": "fs",
+    "title": "FS",
+    "introduction": "introductions/fs.md"
+  },
+  {
+    "namespace": "http",
+    "title": "HTTP",
+    "introduction": "introductions/http.md"
+  },
+  {
+    "namespace": "ipc",
+    "title": "IPC",
+    "introduction": "introductions/ipc.md"
+  },
+  {
+    "namespace": "host",
+    "title": "Host",
+    "introduction": "introductions/host.md"
+  },
+  {
+    "namespace": "imports",
+    "title": "Imports",
+    "introduction": "introductions/imports.md"
+  },
+  {
+    "namespace": "mcp",
+    "title": "MCP",
+    "introduction": "introductions/mcp.md"
+  },
+  {
+    "namespace": "liveServers",
+    "title": "Live servers",
+    "introduction": "introductions/liveServers.md"
+  },
+  {
+    "namespace": "livePages",
+    "title": "Live pages",
+    "introduction": "introductions/livePages.md"
+  },
+  {
+    "namespace": "livePage",
+    "title": "Live page",
+    "introduction": "introductions/livePage.md"
+  },
+  {
+    "namespace": "ai",
+    "title": "AI",
+    "introduction": "introductions/ai.md"
+  },
+  {
+    "namespace": "server",
+    "title": "Server",
+    "introduction": "introductions/server.md"
+  },
+  {
+    "namespace": "scripts",
+    "title": "Scripts",
+    "introduction": "introductions/scripts.md"
+  },
+  {
+    "namespace": "pluginId",
+    "title": "pluginId",
+    "introduction": "introductions/pluginId.md"
+  },
+  {
+    "namespace": "react",
+    "title": "React",
+    "introduction": "introductions/react.md"
+  }
+]

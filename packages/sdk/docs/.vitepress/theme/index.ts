@@ -1,7 +1,7 @@
 import type { Theme } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
-import Layout from './Layout.vue';
 import HcMethod from './HcMethod.vue';
+import Layout from './Layout.vue';
 import './custom.css';
 
 const storybookHref = () => `${import.meta.env.BASE_URL}storybook/index.html`;

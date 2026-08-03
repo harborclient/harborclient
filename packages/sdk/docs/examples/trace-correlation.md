@@ -82,4 +82,4 @@ trace-correlation.hcp
 
 Install from **File → Plugins → Install**. On each send, the injected script stamps `X-Trace-Id`; the after-send hook stores `status` under that id in plugin storage. A user post-request script can set `hc.data.retryReason` and the next post-stage injection will log it.
 
-See [Main API — hc.http.onBeforeScripts](/main-api#hchttponbeforescriptshandler) and [hc.http.onAfterSend](/main-api#hchttponaftersendhandler).
+See [HTTP](/api/http#hchttponbeforescriptshandler) and [hc.http.onAfterSend](/api/http#hchttponaftersendhandler).

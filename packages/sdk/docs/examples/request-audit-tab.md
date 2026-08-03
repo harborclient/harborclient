@@ -51,4 +51,4 @@ export function activate(hc: PluginContext): void {
 
 The tab re-renders locally when the user edits the request — no IPC round-trip per keystroke. Use `context.response` when you need the last response for the active send, and `context.variables` when you need merged global, collection, and environment substitution values.
 
-See [hc.ui.registerRequestTab](/renderer-ui#hc-ui-registerrequesttab-tab) for the full API reference.
+See [hc.ui.registerRequestTab](/api/ui#hcuiregisterrequesttabtab) for the full API reference.

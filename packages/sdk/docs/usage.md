@@ -14,7 +14,7 @@ export function activate(hc: PluginContext): void {
 }
 ```
 
-Do not bundle `react` / `react-dom` in your plugin bundle. For JSX setup, esbuild flags, and hook imports, see [React and JSX](/renderer-overview#react-and-jsx).
+Do not bundle `react` / `react-dom` in your plugin bundle. For JSX setup, esbuild flags, and hook imports, see [React](/api/react).
 
 ## Main entry
 
@@ -30,7 +30,7 @@ export function activate(hc: MainPluginContext): void {
 }
 ```
 
-See [Main API](/main-api) for HTTP hooks and IPC, and [Building](/building) to package your plugin as `.hcp`.
+See [API](/api/) for HTTP hooks and IPC, and [Building](/building) to package your plugin as `.hcp`.
 
 ## Utility imports
 

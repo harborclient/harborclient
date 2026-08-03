@@ -10,6 +10,7 @@ const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
 const sidebarGeneratedPath = path.join(repoDir, 'docs/.vitepress/sidebar.generated.ts');
 const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
 
 /**
  * Loads the SDK `hc_manifest.json` used to expand `<HcMethod>` tags into headings.
@@ -18,6 +19,17 @@ const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
  */
 const loadHcManifest = async () => {
   const raw = await readFile(hcManifestPath, 'utf8');
+
+  return JSON.parse(raw);
+};
+
+/**
+ * Loads ordered namespace registry entries for the API sidebar group.
+ *
+ * @returns {Promise<Array<{ namespace: string; title: string }>>}
+ */
+const loadHcNamespaces = async () => {
+  const raw = await readFile(hcNamespacesPath, 'utf8');
 
   return JSON.parse(raw);
 };
@@ -159,6 +171,42 @@ const buildVitePressSidebar = async (nav) => {
           text: page.title,
           link: `/${entry.slug}/${page.name}`
         }))
+      });
+      continue;
+    }
+
+    if (entry.kind === 'api') {
+      const namespaces = await loadHcNamespaces();
+      const maxDepth = entry.maxDepth ?? 2;
+      /** @type {object[]} */
+      const apiItems = [];
+
+      for (const ns of namespaces) {
+        const pagePath = path.join(docsDir, 'api', `${ns.namespace}.md`);
+        const markdown = await readFile(pagePath, 'utf8');
+        const headings = getHeadings(markdown, hcManifest);
+        const subItems = buildPageSidebarItems(
+          `api/${ns.namespace}`,
+          headings.filter((heading) => heading.level > 1),
+          maxDepth
+        );
+        const node = {
+          text: ns.title,
+          link: `/api/${ns.namespace}`
+        };
+
+        if (subItems.length > 0) {
+          node.items = subItems;
+        }
+
+        apiItems.push(node);
+      }
+
+      target.push({
+        text: entry.title,
+        link: '/api/',
+        collapsed: false,
+        items: apiItems
       });
       continue;
     }

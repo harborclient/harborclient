@@ -36,6 +36,6 @@ my-theme/
     └── icon.png
 ```
 
-See [JSON theme import](/renderer-data#json-theme-import) and [Solarized theme](/examples/solarized-theme#json-import-no-javascript).
+See [JSON theme import](/api/themes) and [Solarized theme](/examples/solarized-theme#json-import-no-javascript).
 
 See [Manifest](/manifest) for field reference and [Building](/building) for packaging steps.

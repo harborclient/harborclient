@@ -20,10 +20,7 @@ const manifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
 const DEFAULT_SINCE = '2.0.0';
 
 const API_PAGES = [
-  'renderer-overview.md',
-  'renderer-ui.md',
-  'renderer-data.md',
-  'main-api.md'
+  // Historical sources; API prose now lives in docs/introductions + generated docs/api.
 ];
 
 const GIT_PATHS = [
@@ -43,11 +40,7 @@ const skipGit = args.has('--skip-git');
  * @returns {string} Plain text.
  */
 const stripCell = (value) =>
-  value
-    .replace(/\\\|/g, '|')
-    .replace(/^`|`$/g, '')
-    .replace(/\*\*/g, '')
-    .trim();
+  value.replace(/\\\|/g, '|').replace(/^`|`$/g, '').replace(/\*\*/g, '').trim();
 
 /**
  * Converts a full `hc.*` heading into a manifest key without the `hc.` prefix.
@@ -134,9 +127,7 @@ const parseParamTable = (body) => {
 
     rawCells.push(cell);
 
-    const cells = rawCells
-      .slice(1, -1)
-      .map((value) => stripCell(value).replace(/^`|`$/g, ''));
+    const cells = rawCells.slice(1, -1).map((value) => stripCell(value).replace(/^`|`$/g, ''));
 
     if (cells.length < 3) {
       continue;
@@ -204,18 +195,13 @@ const parseSectionBody = (body) => {
 
   const tableRows = parseParamTable(body);
   // Drop the table from description text.
-  working = working.replace(
-    /\|\s*(?:Parameter|Field)\s*\|[\s\S]*?(?=\n\n(?!\|)|$)/,
-    '\n'
-  );
+  working = working.replace(/\|\s*(?:Parameter|Field)\s*\|[\s\S]*?(?=\n\n(?!\|)|$)/, '\n');
 
   const examples = parseExamples(working);
   // Drop fences from description.
   working = working.replace(/```[a-zA-Z0-9_-]*\n[\s\S]*?```/g, '');
 
-  const description = working
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  const description = working.replace(/\n{3,}/g, '\n\n').trim();
 
   /** @type {Record<string, unknown>} */
   const entry = {
@@ -237,16 +223,27 @@ const parseSectionBody = (body) => {
       ['id', 'title', 'Component', 'command', 'icon', 'order'].includes(row.name)
     );
 
-    if (looksLikeContributionFields && /\b(section|panel|tab|modal|item|action|block|theme|config)\b/i.test(signatureMatch?.[1] ?? '')) {
+    if (
+      looksLikeContributionFields &&
+      /\b(section|panel|tab|modal|item|action|block|theme|config)\b/i.test(
+        signatureMatch?.[1] ?? ''
+      )
+    ) {
       entry.fields = tableRows;
-    } else if (looksLikeContributionFields && /Contribution|ThemeContribution|PluginMcpServerConfig/.test(signatureMatch?.[1] ?? '')) {
+    } else if (
+      looksLikeContributionFields &&
+      /Contribution|ThemeContribution|PluginMcpServerConfig/.test(signatureMatch?.[1] ?? '')
+    ) {
       entry.fields = tableRows;
     } else {
       entry.params = tableRows;
     }
 
     // Prefer fields for register* contribution tables.
-    if (/register[A-Z]|themes\.register|mcp\.register/.test(signatureMatch?.[1] ?? '') || /Contribution/.test(signatureMatch?.[1] ?? '')) {
+    if (
+      /register[A-Z]|themes\.register|mcp\.register/.test(signatureMatch?.[1] ?? '') ||
+      /Contribution/.test(signatureMatch?.[1] ?? '')
+    ) {
       entry.fields = tableRows;
       delete entry.params;
     }
@@ -333,11 +330,10 @@ const parseLeafSections = (markdown) => {
  */
 const firstAppVersionForCommit = (commitSha) => {
   try {
-    const tags = execFileSync(
-      'git',
-      ['tag', '--contains', commitSha, '--list', 'v2.*'],
-      { cwd: repoRoot, encoding: 'utf8' }
-    )
+    const tags = execFileSync('git', ['tag', '--contains', commitSha, '--list', 'v2.*'], {
+      cwd: repoRoot,
+      encoding: 'utf8'
+    })
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
@@ -382,11 +378,11 @@ const resolveSince = (methodName) => {
 
   for (const filePath of GIT_PATHS) {
     try {
-      const out = execFileSync(
-        'git',
-        ['log', '-S', methodName, '--format=%H', '--', filePath],
-        { cwd: repoRoot, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
-      )
+      const out = execFileSync('git', ['log', '-S', methodName, '--format=%H', '--', filePath], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        maxBuffer: 10 * 1024 * 1024
+      })
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean);
@@ -447,8 +443,7 @@ const mergeEntries = (existing, next) => {
     return next;
   }
 
-  const pickLonger = (a, b) =>
-    String(b ?? '').length > String(a ?? '').length ? b : a;
+  const pickLonger = (a, b) => (String(b ?? '').length > String(a ?? '').length ? b : a);
 
   return {
     ...existing,
@@ -460,15 +455,18 @@ const mergeEntries = (existing, next) => {
     description: pickLonger(existing.description, next.description),
     manifest: next.manifest ?? existing.manifest,
     permission: next.permission ?? existing.permission,
-    params: (next.params?.length ?? 0) >= (existing.params?.length ?? 0)
-      ? next.params ?? existing.params
-      : existing.params,
-    fields: (next.fields?.length ?? 0) >= (existing.fields?.length ?? 0)
-      ? next.fields ?? existing.fields
-      : existing.fields,
-    examples: (next.examples?.length ?? 0) >= (existing.examples?.length ?? 0)
-      ? next.examples ?? existing.examples
-      : existing.examples
+    params:
+      (next.params?.length ?? 0) >= (existing.params?.length ?? 0)
+        ? (next.params ?? existing.params)
+        : existing.params,
+    fields:
+      (next.fields?.length ?? 0) >= (existing.fields?.length ?? 0)
+        ? (next.fields ?? existing.fields)
+        : existing.fields,
+    examples:
+      (next.examples?.length ?? 0) >= (existing.examples?.length ?? 0)
+        ? (next.examples ?? existing.examples)
+        : existing.examples
   };
 };
 
@@ -517,7 +515,10 @@ const migratePageMarkdown = (markdown, keys) => {
     i += 1;
   }
 
-  return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
+  return `${out
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()}\n`;
 };
 
 /**

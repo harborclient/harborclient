@@ -187,7 +187,7 @@ Connects Harbor's chat agent to a remote WordPress MCP endpoint.
 Appearance themes are **plugins** — the same `.hcp` packaging, install flow, and permission model as any other extension. A theme plugin:
 
 1. Declares one or more slots in `contributes.themes`
-2. Supplies the palette either by registering at activation with `hc.themes.register` (or `registerTheme`) **or** by pointing the contribution at a Theme Designer export with `"import": "exported.json"` (see [JSON theme import](/renderer-data#json-theme-import))
+2. Supplies the palette either by registering at activation with `hc.themes.register` (or `registerTheme`) **or** by pointing the contribution at a Theme Designer export with `"import": "exported.json"` (see [JSON theme import](/api/themes))
 3. Includes `"categories": ["themes", …]` so HarborClient lists the package on **File → Themes** instead of **File → Plugins**. Add one appearance slug — `light`, `dark`, or `high-contrast` — alongside `themes` so users can filter the theme marketplace (for example `"categories": ["themes", "dark"]`).
 
 Appearance categories are marketplace metadata only. `contributes.themes[].type` (`light`, `dark`, or `high-contrast`) remains the runtime hint HarborClient uses when registering theme palettes. When using `import`, manifest `id` / `title` / `type` stay authoritative; the JSON file supplies `colors` and an optional stylesheet.
@@ -227,7 +227,7 @@ The `contributes` block declares where your plugin can appear. Each entry's `id`
 | `commands`               | `hc.commands.register`           | Command handlers (menus, toolbar, context menus)                                                       |
 | `menus`                  | `registerMenuItem`               | File, Edit, View, or Help application menu                                                             |
 
-Settings sections ship in the initial plugin release. Other contribution types are part of the target API documented in the [Renderer API](/renderer-overview) and will roll out in subsequent HarborClient versions. Declare them in the manifest now so install dialogs and future host versions can discover slots before your code loads.
+Settings sections ship in the initial plugin release. Other contribution types are part of the target API documented in the [Renderer API](/api/) and will roll out in subsequent HarborClient versions. Declare them in the manifest now so install dialogs and future host versions can discover slots before your code loads.
 
 ### Replacing the Collections sidebar
 
@@ -239,7 +239,7 @@ A `sidebarPanels` entry may include optional `replaces: "collections"`. That fie
 
 **Conflict rule:** If more than one registered panel declares `replaces: "collections"`, the host picks a single winner: lowest `order` (default `100`), then lowest `pluginId`, then lowest contribution `id`. A warning is logged for the ignored candidates.
 
-See [hc.ui.registerSidebarPanel](/renderer-ui#hcuiregistersidebarpanelpanel) for runtime registration.
+See [hc.ui.registerSidebarPanel](/api/ui#hcuiregistersidebarpanelpanel) for runtime registration.
 
 ### Activity-rail sidebar destinations
 
@@ -247,6 +247,6 @@ A `sidebarRailItems` entry adds an icon to the vertical activity rail (alongside
 
 Declare `icon` on the manifest entry (curated names such as `bolt`, `server`, `flask`). Runtime registration requires the same `icon` on `hc.ui.registerSidebarRailItem`.
 
-See [hc.ui.registerSidebarRailItem](/renderer-ui#hcuiregistersidebarrailitemitem) for runtime registration.
+See [hc.ui.registerSidebarRailItem](/api/ui#hcuiregistersidebarrailitemitem) for runtime registration.
 
-See [UI contributions](/renderer-ui) for registration method reference.
+See [UI contributions](/api/ui) for registration method reference.

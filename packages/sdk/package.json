@@ -227,7 +227,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o docs/.vitepress/static/storybook",
     "docs:build": "pnpm docs:build:nav && pnpm build-storybook && vitepress build docs",
-    "docs:build:nav": "node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
+    "docs:build:nav": "node scripts/build-hc-api-docs.mjs && node scripts/build-docs-nav.mjs && node scripts/assert-docs-slugs.mjs",
     "docs:preview": "pnpm docs:build && vitepress preview docs",
     "docs:serve": "pnpm docs:build:nav && concurrently --kill-others --prefixColors=auto -n nav,vp \"node scripts/watch-docs-nav.mjs\" \"vitepress dev docs\"",
     "plugin:sign": "pnpm build && node dist/signing/cli-sign.js",

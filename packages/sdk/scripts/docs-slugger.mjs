@@ -103,9 +103,7 @@ export const getHeadings = (markdown, manifest) => {
     }
 
     if (!manifest || !manifest[hcTag.name]) {
-      throw new Error(
-        `HcMethod name="${hcTag.name}" is not present in hc_manifest.json`
-      );
+      throw new Error(`HcMethod name="${hcTag.name}" is not present in hc_manifest.json`);
     }
 
     const entry = manifest[hcTag.name];

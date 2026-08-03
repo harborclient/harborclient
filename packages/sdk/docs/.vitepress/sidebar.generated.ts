@@ -231,585 +231,531 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Renderer API",
-    "link": "/renderer-overview",
+    "text": "API",
+    "link": "/api/",
+    "collapsed": false,
     "items": [
       {
-        "text": "hc.pluginId",
-        "link": "/renderer-overview#hcpluginid"
-      },
-      {
-        "text": "hc.react",
-        "link": "/renderer-overview#hcreact"
-      },
-      {
-        "text": "React and JSX",
-        "link": "/renderer-overview#react-and-jsx"
-      },
-      {
-        "text": "hc.http",
-        "link": "/renderer-overview#hchttp",
+        "text": "UI",
+        "link": "/api/ui",
         "items": [
           {
-            "text": "hc.http.onAfterSend(handler)",
-            "link": "/renderer-overview#hchttponaftersendhandler"
+            "text": "PluginContext and contribution types",
+            "link": "/api/ui#plugincontext-and-contribution-types"
+          },
+          {
+            "text": "hc.ui.closeModal(modalId?)",
+            "link": "/api/ui#hcuiclosemodalmodalid"
+          },
+          {
+            "text": "hc.ui.openModal(modalId, context?)",
+            "link": "/api/ui#hcuiopenmodalmodalid-context"
+          },
+          {
+            "text": "hc.ui.registerCollectionSettingsTab(tab)",
+            "link": "/api/ui#hcuiregistercollectionsettingstabtab"
+          },
+          {
+            "text": "hc.ui.registerContextMenuItem(item)",
+            "link": "/api/ui#hcuiregistercontextmenuitemitem"
+          },
+          {
+            "text": "hc.ui.registerFooterPanel(panel)",
+            "link": "/api/ui#hcuiregisterfooterpanelpanel"
+          },
+          {
+            "text": "hc.ui.registerLivePageChromeAction(action)",
+            "link": "/api/ui#hcuiregisterlivepagechromeactionaction"
+          },
+          {
+            "text": "hc.ui.registerMainView(view)",
+            "link": "/api/ui#hcuiregistermainviewview"
+          },
+          {
+            "text": "hc.ui.registerMenuItem(item)",
+            "link": "/api/ui#hcuiregistermenuitemitem"
+          },
+          {
+            "text": "hc.ui.registerModal(modal)",
+            "link": "/api/ui#hcuiregistermodalmodal"
+          },
+          {
+            "text": "hc.ui.registerRequestTab(tab)",
+            "link": "/api/ui#hcuiregisterrequesttabtab"
+          },
+          {
+            "text": "hc.ui.registerRequestToolbarAction(action)",
+            "link": "/api/ui#hcuiregisterrequesttoolbaractionaction"
+          },
+          {
+            "text": "hc.ui.registerResponseTab(tab)",
+            "link": "/api/ui#hcuiregisterresponsetabtab"
+          },
+          {
+            "text": "hc.ui.registerScriptEditorAction(action)",
+            "link": "/api/ui#hcuiregisterscripteditoractionaction"
+          },
+          {
+            "text": "hc.ui.registerSettingsSection(section)",
+            "link": "/api/ui#hcuiregistersettingssectionsection"
+          },
+          {
+            "text": "hc.ui.registerSidebarPanel(panel)",
+            "link": "/api/ui#hcuiregistersidebarpanelpanel"
+          },
+          {
+            "text": "hc.ui.registerSidebarRailItem(item)",
+            "link": "/api/ui#hcuiregistersidebarrailitemitem"
+          },
+          {
+            "text": "hc.ui.registerSidebarSection(section)",
+            "link": "/api/ui#hcuiregistersidebarsectionsection"
+          },
+          {
+            "text": "hc.ui.registerStatusBarItem(item)",
+            "link": "/api/ui#hcuiregisterstatusbaritemitem"
+          },
+          {
+            "text": "hc.ui.registerWorkflowActionBlock(block)",
+            "link": "/api/ui#hcuiregisterworkflowactionblockblock"
+          },
+          {
+            "text": "hc.ui.registerWorkflowToolbarAction(action)",
+            "link": "/api/ui#hcuiregisterworkflowtoolbaractionaction"
+          },
+          {
+            "text": "hc.ui.setFooterPanelIndicator(panelId, state)",
+            "link": "/api/ui#hcuisetfooterpanelindicatorpanelid-state"
+          },
+          {
+            "text": "hc.ui.showToast(message, options?)",
+            "link": "/api/ui#hcuishowtoastmessage-options"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.ipc",
-        "link": "/renderer-overview#hcipc",
+        "text": "Actions",
+        "link": "/api/actions",
         "items": [
           {
-            "text": "hc.ipc.invoke(channel, ...args)",
-            "link": "/renderer-overview#hcipcinvokechannel-args"
+            "text": "hc.actions.register(namespace, handlers)",
+            "link": "/api/actions#hcactionsregisternamespace-handlers"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.host",
-        "link": "/renderer-overview#hchost",
+        "text": "Themes",
+        "link": "/api/themes",
         "items": [
-          {
-            "text": "hc.host.openRequestDraft(payload)",
-            "link": "/renderer-overview#hchostopenrequestdraftpayload"
-          },
-          {
-            "text": "hc.host.applyRequestDraft(payload)",
-            "link": "/renderer-overview#hchostapplyrequestdraftpayload"
-          },
-          {
-            "text": "hc.host.loadRequest(requestId)",
-            "link": "/renderer-overview#hchostloadrequestrequestid"
-          },
-          {
-            "text": "hc.host.send()",
-            "link": "/renderer-overview#hchostsend"
-          },
-          {
-            "text": "hc.host.fetch(input, init?)",
-            "link": "/renderer-overview#hchostfetchinput-init"
-          },
-          {
-            "text": "hc.host.openImageView(payload)",
-            "link": "/renderer-overview#hchostopenimageviewpayload"
-          }
-        ],
-        "collapsed": false
-      },
-      {
-        "text": "Related reference",
-        "link": "/renderer-overview#related-reference"
-      }
-    ],
-    "collapsed": false
-  },
-  {
-    "text": "UI contributions",
-    "link": "/renderer-ui",
-    "items": [
-      {
-        "text": "hc.ui.registerSettingsSection(section)",
-        "link": "/renderer-ui#hcuiregistersettingssectionsection"
-      },
-      {
-        "text": "hc.ui.registerSidebarPanel(panel)",
-        "link": "/renderer-ui#hcuiregistersidebarpanelpanel"
-      },
-      {
-        "text": "hc.ui.registerSidebarRailItem(item)",
-        "link": "/renderer-ui#hcuiregistersidebarrailitemitem"
-      },
-      {
-        "text": "hc.ui.registerSidebarSection(section)",
-        "link": "/renderer-ui#hcuiregistersidebarsectionsection"
-      },
-      {
-        "text": "hc.ui.registerMainView(view)",
-        "link": "/renderer-ui#hcuiregistermainviewview"
-      },
-      {
-        "text": "hc.ui.registerModal(modal)",
-        "link": "/renderer-ui#hcuiregistermodalmodal"
-      },
-      {
-        "text": "hc.ui.openModal(modalId, context?)",
-        "link": "/renderer-ui#hcuiopenmodalmodalid-context"
-      },
-      {
-        "text": "hc.ui.closeModal(modalId?)",
-        "link": "/renderer-ui#hcuiclosemodalmodalid"
-      },
-      {
-        "text": "hc.ui.registerRequestTab(tab)",
-        "link": "/renderer-ui#hcuiregisterrequesttabtab"
-      },
-      {
-        "text": "hc.ui.registerResponseTab(tab)",
-        "link": "/renderer-ui#hcuiregisterresponsetabtab"
-      },
-      {
-        "text": "hc.ui.registerCollectionSettingsTab(tab)",
-        "link": "/renderer-ui#hcuiregistercollectionsettingstabtab"
-      },
-      {
-        "text": "hc.ui.registerFooterPanel(panel)",
-        "link": "/renderer-ui#hcuiregisterfooterpanelpanel"
-      },
-      {
-        "text": "hc.ui.setFooterPanelIndicator(panelId, state)",
-        "link": "/renderer-ui#hcuisetfooterpanelindicatorpanelid-state"
-      },
-      {
-        "text": "hc.ui.registerMenuItem(item)",
-        "link": "/renderer-ui#hcuiregistermenuitemitem"
-      },
-      {
-        "text": "hc.actions.register(namespace, handlers)",
-        "link": "/renderer-ui#hcactionsregisternamespace-handlers"
-      },
-      {
-        "text": "hc.ui.registerRequestToolbarAction(action)",
-        "link": "/renderer-ui#hcuiregisterrequesttoolbaractionaction"
-      },
-      {
-        "text": "hc.ui.registerLivePageChromeAction(action)",
-        "link": "/renderer-ui#hcuiregisterlivepagechromeactionaction"
-      },
-      {
-        "text": "hc.ui.registerScriptEditorAction(action)",
-        "link": "/renderer-ui#hcuiregisterscripteditoractionaction"
-      },
-      {
-        "text": "hc.ui.registerWorkflowToolbarAction(action)",
-        "link": "/renderer-ui#hcuiregisterworkflowtoolbaractionaction"
-      },
-      {
-        "text": "hc.ui.registerWorkflowActionBlock(block)",
-        "link": "/renderer-ui#hcuiregisterworkflowactionblockblock"
-      },
-      {
-        "text": "hc.ui.registerContextMenuItem(item)",
-        "link": "/renderer-ui#hcuiregistercontextmenuitemitem"
-      },
-      {
-        "text": "hc.ui.registerStatusBarItem(item)",
-        "link": "/renderer-ui#hcuiregisterstatusbaritemitem"
-      },
-      {
-        "text": "hc.ui.showToast(message, options?)",
-        "link": "/renderer-ui#hcuishowtoastmessage-options"
-      }
-    ],
-    "collapsed": false
-  },
-  {
-    "text": "Themes and storage",
-    "link": "/renderer-data",
-    "items": [
-      {
-        "text": "hc.themes",
-        "link": "/renderer-data#hcthemes",
-        "items": [
-          {
-            "text": "JSON theme import",
-            "link": "/renderer-data#json-theme-import"
-          },
-          {
-            "text": "registerTheme(hc, theme)",
-            "link": "/renderer-data#registerthemehc-theme"
-          },
-          {
-            "text": "hc.themes.register(theme)",
-            "link": "/renderer-data#hcthemesregistertheme"
-          },
           {
             "text": "hc.themes.getActive()",
-            "link": "/renderer-data#hcthemesgetactive"
+            "link": "/api/themes#hcthemesgetactive"
           },
           {
             "text": "hc.themes.onDidChange(listener)",
-            "link": "/renderer-data#hcthemesondidchangelistener"
+            "link": "/api/themes#hcthemesondidchangelistener"
           },
           {
-            "text": "Theme color tokens",
-            "link": "/renderer-data#theme-color-tokens"
+            "text": "hc.themes.register(theme)",
+            "link": "/api/themes#hcthemesregistertheme"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.commands",
-        "link": "/renderer-data#hccommands",
+        "text": "Commands",
+        "link": "/api/commands",
         "items": [
           {
-            "text": "hc.commands.register(id, handler)",
-            "link": "/renderer-data#hccommandsregisterid-handler"
+            "text": "Global variables",
+            "link": "/api/commands#global-variables"
           },
           {
             "text": "hc.commands.execute(id, ...args)",
-            "link": "/renderer-data#hccommandsexecuteid-args"
+            "link": "/api/commands#hccommandsexecuteid-args"
+          },
+          {
+            "text": "hc.commands.register(id, handler)",
+            "link": "/api/commands#hccommandsregisterid-handler"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.storage",
-        "link": "/renderer-data#hcstorage",
+        "text": "Storage",
+        "link": "/api/storage",
         "items": [
           {
+            "text": "Main entry",
+            "link": "/api/storage#main-entry"
+          },
+          {
             "text": "hc.storage.get(key)",
-            "link": "/renderer-data#hcstoragegetkey"
+            "link": "/api/storage#hcstoragegetkey"
           },
           {
             "text": "hc.storage.set(key, value)",
-            "link": "/renderer-data#hcstoragesetkey-value"
-          },
-          {
-            "text": "Storage-backed store (cross-webview sync)",
-            "link": "/renderer-data#storage-backed-store-cross-webview-sync"
+            "link": "/api/storage#hcstoragesetkey-value"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.database",
-        "link": "/renderer-data#hcdatabase",
+        "text": "Database",
+        "link": "/api/database",
         "items": [
           {
-            "text": "hc.database.get(sql, params?)",
-            "link": "/renderer-data#hcdatabasegetsql-params"
+            "text": "Main entry",
+            "link": "/api/database#main-entry"
           },
           {
             "text": "hc.database.all(sql, params?)",
-            "link": "/renderer-data#hcdatabaseallsql-params"
-          },
-          {
-            "text": "hc.database.run(sql, params?)",
-            "link": "/renderer-data#hcdatabaserunsql-params"
+            "link": "/api/database#hcdatabaseallsql-params"
           },
           {
             "text": "hc.database.exec(sql)",
-            "link": "/renderer-data#hcdatabaseexecsql"
+            "link": "/api/database#hcdatabaseexecsql"
+          },
+          {
+            "text": "hc.database.get(sql, params?)",
+            "link": "/api/database#hcdatabasegetsql-params"
+          },
+          {
+            "text": "hc.database.run(sql, params?)",
+            "link": "/api/database#hcdatabaserunsql-params"
           },
           {
             "text": "hc.database.transaction(fn)",
-            "link": "/renderer-data#hcdatabasetransactionfn"
+            "link": "/api/database#hcdatabasetransactionfn"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.fs",
-        "link": "/renderer-data#hcfs",
+        "text": "FS",
+        "link": "/api/fs",
         "items": [
           {
-            "text": "hc.fs.pickFile(options?)",
-            "link": "/renderer-data#hcfspickfileoptions"
-          },
-          {
             "text": "hc.fs.pickDirectory(defaultPath?)",
-            "link": "/renderer-data#hcfspickdirectorydefaultpath"
+            "link": "/api/fs#hcfspickdirectorydefaultpath"
           },
           {
-            "text": "hc.fs.saveFile(content, options?)",
-            "link": "/renderer-data#hcfssavefilecontent-options"
+            "text": "hc.fs.pickFile(options?)",
+            "link": "/api/fs#hcfspickfileoptions"
           },
           {
             "text": "hc.fs.readFile(path)",
-            "link": "/renderer-data#hcfsreadfilepath"
+            "link": "/api/fs#hcfsreadfilepath"
           },
           {
-            "text": "hc.fs.writeFile(path, content)",
-            "link": "/renderer-data#hcfswritefilepath-content"
+            "text": "hc.fs.saveFile(content, options?)",
+            "link": "/api/fs#hcfssavefilecontent-options"
           },
           {
             "text": "hc.fs.writeBytes(path, bytes)",
-            "link": "/renderer-data#hcfswritebytespath-bytes"
+            "link": "/api/fs#hcfswritebytespath-bytes"
+          },
+          {
+            "text": "hc.fs.writeFile(path, content)",
+            "link": "/api/fs#hcfswritefilepath-content"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.http",
-        "link": "/renderer-data#hchttp"
-      },
-      {
-        "text": "hc.ipc",
-        "link": "/renderer-data#hcipc"
-      },
-      {
-        "text": "hc.host",
-        "link": "/renderer-data#hchost",
+        "text": "HTTP",
+        "link": "/api/http",
         "items": [
           {
-            "text": "Request creation and update choices",
-            "link": "/renderer-data#request-creation-and-update-choices"
+            "text": "Renderer",
+            "link": "/api/http#renderer"
           },
           {
-            "text": "hc.host.openRequestDraft(payload)",
-            "link": "/renderer-data#hchostopenrequestdraftpayload"
+            "text": "Main entry",
+            "link": "/api/http#main-entry"
           },
+          {
+            "text": "hc.http.onAfterScripts(handler)",
+            "link": "/api/http#hchttponafterscriptshandler"
+          },
+          {
+            "text": "hc.http.onAfterSend(handler)",
+            "link": "/api/http#hchttponaftersendhandler"
+          },
+          {
+            "text": "hc.http.onBeforeScripts(handler)",
+            "link": "/api/http#hchttponbeforescriptshandler"
+          },
+          {
+            "text": "hc.http.onBeforeSend(handler)",
+            "link": "/api/http#hchttponbeforesendhandler"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "IPC",
+        "link": "/api/ipc",
+        "items": [
+          {
+            "text": "Renderer",
+            "link": "/api/ipc#renderer"
+          },
+          {
+            "text": "Main entry",
+            "link": "/api/ipc#main-entry"
+          },
+          {
+            "text": "hc.ipc.handle(channel, handler)",
+            "link": "/api/ipc#hcipchandlechannel-handler"
+          },
+          {
+            "text": "hc.ipc.invoke(channel, ...args)",
+            "link": "/api/ipc#hcipcinvokechannel-args"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "Host",
+        "link": "/api/host",
+        "items": [
           {
             "text": "hc.host.applyRequestDraft(payload)",
-            "link": "/renderer-data#hchostapplyrequestdraftpayload"
+            "link": "/api/host#hchostapplyrequestdraftpayload"
           },
           {
             "text": "hc.host.createCollection(payload)",
-            "link": "/renderer-data#hchostcreatecollectionpayload"
+            "link": "/api/host#hchostcreatecollectionpayload"
           },
           {
-            "text": "Library read APIs",
-            "link": "/renderer-data#library-read-apis"
+            "text": "hc.host.fetch(input, init?)",
+            "link": "/api/host#hchostfetchinput-init"
           },
           {
-            "text": "Workflow CRUD",
-            "link": "/renderer-data#workflow-crud"
-          },
-          {
-            "text": "Navigation and open APIs",
-            "link": "/renderer-data#navigation-and-open-apis"
-          },
-          {
-            "text": "Sidebar selection bridge",
-            "link": "/renderer-data#sidebar-selection-bridge"
-          },
-          {
-            "text": "Sidebar panel view context",
-            "link": "/renderer-data#sidebar-panel-view-context"
-          },
-          {
-            "text": "Replacement-panel keyboard shortcuts",
-            "link": "/renderer-data#replacement-panel-keyboard-shortcuts"
-          },
-          {
-            "text": "Library write APIs",
-            "link": "/renderer-data#library-write-apis"
-          },
-          {
-            "text": "Reorder / move pattern",
-            "link": "/renderer-data#reorder--move-pattern"
+            "text": "hc.host.loadRequest(requestId)",
+            "link": "/api/host#hchostloadrequestrequestid"
           },
           {
             "text": "hc.host.openImageView(payload)",
-            "link": "/renderer-data#hchostopenimageviewpayload"
+            "link": "/api/host#hchostopenimageviewpayload"
+          },
+          {
+            "text": "hc.host.openRequestDraft(payload)",
+            "link": "/api/host#hchostopenrequestdraftpayload"
+          },
+          {
+            "text": "hc.host.send()",
+            "link": "/api/host#hchostsend"
+          },
+          {
+            "text": "hc.host.showEntityContextMenu(input)",
+            "link": "/api/host#hchostshowentitycontextmenuinput"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "Global variables",
-        "link": "/renderer-data#global-variables",
+        "text": "Imports",
+        "link": "/api/imports",
         "items": [
-          {
-            "text": "Reading globals from plugins",
-            "link": "/renderer-data#reading-globals-from-plugins"
-          },
-          {
-            "text": "Updating globals from plugins",
-            "link": "/renderer-data#updating-globals-from-plugins"
-          }
-        ],
-        "collapsed": false
-      },
-      {
-        "text": "hc.imports",
-        "link": "/renderer-data#hcimports",
-        "items": [
-          {
-            "text": "Common patterns",
-            "link": "/renderer-data#common-patterns"
-          },
-          {
-            "text": "registerImportHandler(hc, extensions, handler)",
-            "link": "/renderer-data#registerimporthandlerhc-extensions-handler"
-          },
           {
             "text": "hc.imports.registerHandler(extensions, handler)",
-            "link": "/renderer-data#hcimportsregisterhandlerextensions-handler"
+            "link": "/api/imports#hcimportsregisterhandlerextensions-handler"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.mcp",
-        "link": "/renderer-data#hcmcp",
+        "text": "MCP",
+        "link": "/api/mcp",
         "items": [
           {
             "text": "hc.mcp.registerServer(config)",
-            "link": "/renderer-data#hcmcpregisterserverconfig"
+            "link": "/api/mcp#hcmcpregisterserverconfig"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.liveServers",
-        "link": "/renderer-data#hcliveservers",
+        "text": "Live servers",
+        "link": "/api/liveServers",
         "items": [
           {
-            "text": "hc.liveServers.list()",
-            "link": "/renderer-data#hcliveserverslist"
-          },
-          {
-            "text": "hc.liveServers.get(idOrUuid)",
-            "link": "/renderer-data#hcliveserversgetidoruuid"
+            "text": "hc.liveServers.clearLogs(query)",
+            "link": "/api/liveServers#hcliveserversclearlogsquery"
           },
           {
             "text": "hc.liveServers.create(input)",
-            "link": "/renderer-data#hcliveserverscreateinput"
-          },
-          {
-            "text": "hc.liveServers.update(input)",
-            "link": "/renderer-data#hcliveserversupdateinput"
+            "link": "/api/liveServers#hcliveserverscreateinput"
           },
           {
             "text": "hc.liveServers.delete(id)",
-            "link": "/renderer-data#hcliveserversdeleteid"
+            "link": "/api/liveServers#hcliveserversdeleteid"
           },
           {
-            "text": "hc.liveServers.start(input)",
-            "link": "/renderer-data#hcliveserversstartinput"
-          },
-          {
-            "text": "hc.liveServers.stop(query)",
-            "link": "/renderer-data#hcliveserversstopquery"
-          },
-          {
-            "text": "hc.liveServers.listRunning()",
-            "link": "/renderer-data#hcliveserverslistrunning"
-          },
-          {
-            "text": "hc.liveServers.getStatus(query)",
-            "link": "/renderer-data#hcliveserversgetstatusquery"
+            "text": "hc.liveServers.get(idOrUuid)",
+            "link": "/api/liveServers#hcliveserversgetidoruuid"
           },
           {
             "text": "hc.liveServers.getLogs(query)",
-            "link": "/renderer-data#hcliveserversgetlogsquery"
+            "link": "/api/liveServers#hcliveserversgetlogsquery"
           },
           {
-            "text": "hc.liveServers.clearLogs(query)",
-            "link": "/renderer-data#hcliveserversclearlogsquery"
+            "text": "hc.liveServers.getStatus(query)",
+            "link": "/api/liveServers#hcliveserversgetstatusquery"
           },
           {
-            "text": "hc.liveServers.onRunningChanged(listener)",
-            "link": "/renderer-data#hcliveserversonrunningchangedlistener"
+            "text": "hc.liveServers.list()",
+            "link": "/api/liveServers#hcliveserverslist"
+          },
+          {
+            "text": "hc.liveServers.listRunning()",
+            "link": "/api/liveServers#hcliveserverslistrunning"
           },
           {
             "text": "hc.liveServers.onRequestLog(listener)",
-            "link": "/renderer-data#hcliveserversonrequestloglistener"
+            "link": "/api/liveServers#hcliveserversonrequestloglistener"
+          },
+          {
+            "text": "hc.liveServers.onRunningChanged(listener)",
+            "link": "/api/liveServers#hcliveserversonrunningchangedlistener"
+          },
+          {
+            "text": "hc.liveServers.start(input)",
+            "link": "/api/liveServers#hcliveserversstartinput"
+          },
+          {
+            "text": "hc.liveServers.stop(query)",
+            "link": "/api/liveServers#hcliveserversstopquery"
+          },
+          {
+            "text": "hc.liveServers.update(input)",
+            "link": "/api/liveServers#hcliveserversupdateinput"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.livePages",
-        "link": "/renderer-data#hclivepages",
+        "text": "Live pages",
+        "link": "/api/livePages",
         "items": [
           {
-            "text": "hc.livePages.list()",
-            "link": "/renderer-data#hclivepageslist"
-          },
-          {
-            "text": "hc.livePages.get(idOrUuid)",
-            "link": "/renderer-data#hclivepagesgetidoruuid"
-          },
-          {
             "text": "hc.livePages.create(input)",
-            "link": "/renderer-data#hclivepagescreateinput"
-          },
-          {
-            "text": "hc.livePages.update(input)",
-            "link": "/renderer-data#hclivepagesupdateinput"
+            "link": "/api/livePages#hclivepagescreateinput"
           },
           {
             "text": "hc.livePages.delete(id)",
-            "link": "/renderer-data#hclivepagesdeleteid"
+            "link": "/api/livePages#hclivepagesdeleteid"
+          },
+          {
+            "text": "hc.livePages.get(idOrUuid)",
+            "link": "/api/livePages#hclivepagesgetidoruuid"
+          },
+          {
+            "text": "hc.livePages.list()",
+            "link": "/api/livePages#hclivepageslist"
+          },
+          {
+            "text": "hc.livePages.update(input)",
+            "link": "/api/livePages#hclivepagesupdateinput"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.ai",
-        "link": "/renderer-data#hcai",
+        "text": "Live page",
+        "link": "/api/livePage",
         "items": [
           {
-            "text": "hc.ai.registerChatPointer(config)",
-            "link": "/renderer-data#hcairegisterchatpointerconfig"
-          },
+            "text": "hc.livePage",
+            "link": "/api/livePage#hclivepage"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "AI",
+        "link": "/api/ai",
+        "items": [
           {
             "text": "hc.ai.copyToChat(input)",
-            "link": "/renderer-data#hcaicopytochatinput"
+            "link": "/api/ai#hcaicopytochatinput"
           },
           {
             "text": "hc.ai.instructions.add(text)",
-            "link": "/renderer-data#hcaiinstructionsaddtext"
-          },
-          {
-            "text": "hc.ai.onBeforeTurn(handler)",
-            "link": "/renderer-data#hcaionbeforeturnhandler"
+            "link": "/api/ai#hcaiinstructionsaddtext"
           },
           {
             "text": "hc.ai.onAfterTurn(handler)",
-            "link": "/renderer-data#hcaionafterturnhandler"
+            "link": "/api/ai#hcaionafterturnhandler"
+          },
+          {
+            "text": "hc.ai.onBeforeTurn(handler)",
+            "link": "/api/ai#hcaionbeforeturnhandler"
+          },
+          {
+            "text": "hc.ai.registerChatPointer(config)",
+            "link": "/api/ai#hcairegisterchatpointerconfig"
           }
         ],
         "collapsed": false
       },
       {
-        "text": "hc.livePage",
-        "link": "/renderer-data#hclivepage"
+        "text": "Server",
+        "link": "/api/server",
+        "items": [
+          {
+            "text": "hc.server.onRequest(handler)",
+            "link": "/api/server#hcserveronrequesthandler"
+          },
+          {
+            "text": "hc.server.start(options?)",
+            "link": "/api/server#hcserverstartoptions"
+          },
+          {
+            "text": "hc.server.stop()",
+            "link": "/api/server#hcserverstop"
+          }
+        ],
+        "collapsed": false
       },
       {
-        "text": "Not extensible",
-        "link": "/renderer-data#not-extensible"
+        "text": "Scripts",
+        "link": "/api/scripts",
+        "items": [
+          {
+            "text": "hc.scripts",
+            "link": "/api/scripts#hcscripts"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "pluginId",
+        "link": "/api/pluginId",
+        "items": [
+          {
+            "text": "hc.pluginId",
+            "link": "/api/pluginId#hcpluginid"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "React",
+        "link": "/api/react",
+        "items": [
+          {
+            "text": "hc.react",
+            "link": "/api/react#hcreact"
+          }
+        ],
+        "collapsed": false
       }
-    ],
-    "collapsed": false
-  },
-  {
-    "text": "Main API",
-    "link": "/main-api",
-    "items": [
-      {
-        "text": "hc.storage",
-        "link": "/main-api#hcstorage"
-      },
-      {
-        "text": "hc.database",
-        "link": "/main-api#hcdatabase"
-      },
-      {
-        "text": "hc.http.onBeforeSend(handler)",
-        "link": "/main-api#hchttponbeforesendhandler"
-      },
-      {
-        "text": "hc.http.onAfterSend(handler)",
-        "link": "/main-api#hchttponaftersendhandler"
-      },
-      {
-        "text": "hc.http.onBeforeScripts(handler)",
-        "link": "/main-api#hchttponbeforescriptshandler"
-      },
-      {
-        "text": "hc.http.onAfterScripts(handler)",
-        "link": "/main-api#hchttponafterscriptshandler"
-      },
-      {
-        "text": "hc.ipc.handle(channel, handler)",
-        "link": "/main-api#hcipchandlechannel-handler"
-      },
-      {
-        "text": "hc.server",
-        "link": "/main-api#hcserver"
-      },
-      {
-        "text": "hc.scripts",
-        "link": "/main-api#hcscripts"
-      }
-    ],
-    "collapsed": false
+    ]
   },
   {
     "text": "Snippets",
@@ -923,5 +869,9 @@ export const sidebar: DefaultTheme.SidebarItem[] =
   {
     "text": "License",
     "link": "/license"
+  },
+  {
+    "text": "Index",
+    "link": "/api-index"
   }
 ]

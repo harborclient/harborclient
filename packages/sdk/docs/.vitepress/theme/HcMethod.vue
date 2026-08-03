@@ -59,9 +59,7 @@ const entry = computed((): HcMethodEntry => {
   const found = hcManifest[props.name];
 
   if (!found) {
-    throw new Error(
-      `HcMethod: unknown API "${props.name}". Add it to hc_manifest.json.`
-    );
+    throw new Error(`HcMethod: unknown API "${props.name}". Add it to hc_manifest.json.`);
   }
 
   return found;
@@ -140,10 +138,7 @@ const highlightExample = async (example: HcMethodExample): Promise<string> => {
       `</div>`
     ].join('');
   } catch {
-    const escaped = example.code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    const escaped = example.code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     return [
       `<div class="language-${lang} vp-adaptive-theme">`,
@@ -171,13 +166,11 @@ watchEffect((onCleanup) => {
     return;
   }
 
-  void Promise.all(examples.map((example) => highlightExample(example))).then(
-    (htmls) => {
-      if (!cancelled) {
-        exampleHtmls.value = htmls;
-      }
+  void Promise.all(examples.map((example) => highlightExample(example))).then((htmls) => {
+    if (!cancelled) {
+      exampleHtmls.value = htmls;
     }
-  );
+  });
 });
 
 /**
@@ -217,9 +210,7 @@ const renderInline = (text: string): string => markdown.renderInline(text);
     <p
       v-if="
         entry.permission &&
-        !entry.description.includes(
-          'Requires the `' + entry.permission + '` permission'
-        )
+        !entry.description.includes('Requires the `' + entry.permission + '` permission')
       "
     >
       Requires the <code>{{ entry.permission }}</code> permission.
@@ -281,14 +272,8 @@ const renderInline = (text: string): string => markdown.renderInline(text);
       <p v-if="example.caption" class="hc-method__example-caption">
         {{ example.caption }}
       </p>
-      <div
-        v-if="exampleHtmls[index]"
-        v-html="exampleHtmls[index]"
-      />
-      <div
-        v-else
-        :class="`language-${exampleLang(example.lang)} vp-adaptive-theme`"
-      >
+      <div v-if="exampleHtmls[index]" v-html="exampleHtmls[index]" />
+      <div v-else :class="`language-${exampleLang(example.lang)} vp-adaptive-theme`">
         <span class="lang">{{ exampleLang(example.lang) }}</span>
         <pre class="shiki vp-code" tabindex="0"><code>{{ example.code }}</code></pre>
       </div>

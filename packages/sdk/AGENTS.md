@@ -61,8 +61,10 @@ Fix any reported issues before finishing the task.
 
 Public `hc.*` reference docs are data-driven:
 
-- Manifest: `packages/sdk/docs/.vitepress/hc_manifest.json`
-- Pages use `<HcMethod name="ui.registerModal" />` (no `hc.` prefix in `name`)
+- Method manifest: `packages/sdk/docs/.vitepress/hc_manifest.json`
+- Namespace registry: `packages/sdk/docs/.vitepress/hc_namespaces.json`
+- Optional intros: `packages/sdk/docs/introductions/<namespace>.md`
+- Generated pages: `packages/sdk/docs/api/<namespace>.md` (do not hand-edit)
 
 When you add or rename a public `hc.*` API:
 
@@ -70,10 +72,12 @@ When you add or rename a public `hc.*` API:
 2. Set `since` to the **planned HarborClient app release** from
    `apps/harborclient/package.json` → `version` (e.g. `2.11.0`), unless the
    feature is explicitly targeting a later version.
-3. Add or update `<HcMethod name="…" />` on the matching SDK docs page
-   (`renderer-ui`, `renderer-data`, `renderer-overview`, or `main-api`).
-4. Do not invent SDK package versions (`sdk-v*`) for `since`.
-5. Do not edit site-synced copies under `harborclient/site`; sync pulls from
+3. Ensure the namespace exists in `hc_namespaces.json` (add a row + optional
+   introduction if this is a new namespace).
+4. Put conceptual prose in `introductions/<namespace>.md` when needed — never
+   edit generated `docs/api/*.md` by hand. Run `pnpm docs:build:nav` to regenerate.
+5. Do not invent SDK package versions (`sdk-v*`) for `since`.
+6. Do not edit site-synced copies under `harborclient/site`; sync pulls from
    this package via `scripts/sync-sdk-hc-method.mjs`.
 
 Do not re-run git archaeology for historical `since` values. New APIs always

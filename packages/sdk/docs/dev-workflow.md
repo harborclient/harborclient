@@ -23,7 +23,7 @@ Create a plugin project folder with `manifest.json` at the root (see [Manifest](
 }
 ```
 
-Run `pnpm install`, add `src/renderer.tsx` (exporting `activate(hc)`), then `pnpm build` or `pnpm dev` before loading the folder in HarborClient. Mark `react` and `react-dom` as **external** and use the JSX import source shown above. See [Building](/building) and [React and JSX](/renderer-overview#react-and-jsx).
+Run `pnpm install`, add `src/renderer.tsx` (exporting `activate(hc)`), then `pnpm build` or `pnpm dev` before loading the folder in HarborClient. Mark `react` and `react-dom` as **external** and use the JSX import source shown above. See [Building](/building) and [React](/api/react).
 
 ```mermaid
 flowchart LR

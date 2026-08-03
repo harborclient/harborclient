@@ -17,6 +17,7 @@ export const syncedPages = [];
  *   | { kind: 'overview'; title: string }
  *   | { kind: 'page'; slug: string; title: string; maxDepth?: number; pinnedBottom?: true }
  *   | { kind: 'group'; slug: string; title: string; pages: SyncedDocPage[] }
+ *   | { kind: 'api'; title: string; maxDepth?: number }
  * >}
  */
 export const docsNav = [
@@ -30,10 +31,7 @@ export const docsNav = [
   { kind: 'page', slug: 'building', title: 'Building' },
   { kind: 'page', slug: 'signing', title: 'Signing', maxDepth: 2 },
   { kind: 'page', slug: 'dev-workflow', title: 'Dev workflow', maxDepth: 2 },
-  { kind: 'page', slug: 'renderer-overview', title: 'Renderer API', maxDepth: 3 },
-  { kind: 'page', slug: 'renderer-ui', title: 'UI contributions', maxDepth: 3 },
-  { kind: 'page', slug: 'renderer-data', title: 'Themes and storage', maxDepth: 3 },
-  { kind: 'page', slug: 'main-api', title: 'Main API', maxDepth: 2 },
+  { kind: 'api', title: 'API', maxDepth: 2 },
   { kind: 'page', slug: 'snippets', title: 'Snippets', maxDepth: 2 },
   {
     kind: 'group',
@@ -100,13 +98,15 @@ export const docsNav = [
   { kind: 'page', slug: 'marketplace', title: 'Marketplace', maxDepth: 2 },
   { kind: 'page', slug: 'performance', title: 'Performance' },
   { kind: 'page', slug: 'vs-request-scripts', title: 'Plugins vs scripts' },
-  { kind: 'page', slug: 'license', title: 'License' }
+  { kind: 'page', slug: 'license', title: 'License' },
+  { kind: 'page', slug: 'api-index', title: 'Index', pinnedBottom: true, maxDepth: 1 }
 ];
 
 /** Slugs of canonical overview pages committed under docs/<slug>/index.md. */
-export const groupOverviewSlugs = new Set(
-  docsNav.filter((entry) => entry.kind === 'group').map((entry) => entry.slug)
-);
+export const groupOverviewSlugs = new Set([
+  ...docsNav.filter((entry) => entry.kind === 'group').map((entry) => entry.slug),
+  ...(docsNav.some((entry) => entry.kind === 'api') ? ['api'] : [])
+]);
 
 /** Slugs of canonical guide pages committed as docs/<slug>.md. */
 export const canonicalPageSlugs = new Set(

@@ -140,4 +140,4 @@ Ship any extra CSS next to the JSON. On first read, HarborClient inlines the fil
 
 Packaging for a JSON-only theme: `manifest.json`, `exported.json`, and optionally `styles.css` (plus listing assets). No `dist/` bundle is required.
 
-See [hc.themes](/renderer-data#hc-themes) for the full themes API reference, [JSON theme import](/renderer-data#json-theme-import) for envelope details, and [Theme plugins](/manifest#theme-plugins) for manifest classification.
+See [hc.themes](/api/) for the full themes API reference, [JSON theme import](/api/themes) for envelope details, and [Theme plugins](/manifest#theme-plugins) for manifest classification.

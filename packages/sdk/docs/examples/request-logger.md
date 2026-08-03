@@ -57,4 +57,4 @@ Install the `.hcp` file from **File → Plugins → Install**. Enable the plugin
 
 HarborClient also supports built-in request logging via `-vv` / `--very-verbose` (see the app README). A plugin logger runs whenever the plugin is enabled and can use any format you choose.
 
-See [Main API](/main-api) for HTTP hook reference and [Building](/building) for packaging steps.
+See [HTTP](/api/http) for HTTP hook reference and [Building](/building) for packaging steps.
