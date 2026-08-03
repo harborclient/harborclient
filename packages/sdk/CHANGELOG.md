@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.6.0 - 2026-08-03
+
 - feat(sse): enhance import functionality for Server-Sent Events (SSE). (`e26fa155`)
 - feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
 - feat(mcp-server): enhance MCP server settings and functionality. (`cf36a22f`)
