@@ -84,6 +84,12 @@ interface Props {
   folderName?: string;
 
   /**
+   * When true and there is no collection name, shows an icon-only collection crumb
+   * so unsaved tabs still indicate a save location can be chosen.
+   */
+  showCollectionPlaceholder?: boolean;
+
+  /**
    * Opens collection settings to edit variables.
    */
   onEditVariables?: (key: string) => void;
@@ -126,6 +132,7 @@ export function Editor({
   variables,
   collectionName,
   folderName,
+  showCollectionPlaceholder = false,
   onEditVariables,
   onCollectionClick,
   onFolderClick,
@@ -165,7 +172,18 @@ export function Editor({
   const breadcrumbSegments = [
     ...(collectionName
       ? [{ id: 'collection', label: collectionName, icon: faFolder, onClick: onCollectionClick }]
-      : []),
+      : showCollectionPlaceholder
+        ? [
+            {
+              id: 'collection',
+              label: '',
+              icon: faFolder,
+              iconOnly: true,
+              ariaLabel: 'Choose save location',
+              onClick: onCollectionClick
+            }
+          ]
+        : []),
     ...(folderName
       ? [{ id: 'folder', label: folderName, icon: faFolder, onClick: onFolderClick }]
       : [])
@@ -188,10 +206,12 @@ export function Editor({
 
         <UrlBar
           method={draft.method}
+          protocol={draft.protocol === 'sse' ? 'sse' : 'http'}
           url={draft.url}
           variables={variables}
           sending={sending}
-          onMethodChange={(method) => update({ method })}
+          onMethodChange={(method) => update({ method, protocol: 'http' as const })}
+          onProtocolChange={(protocol) => update({ protocol })}
           onUrlChange={handleUrlChange}
           onSend={onSend}
           onSave={onSave}

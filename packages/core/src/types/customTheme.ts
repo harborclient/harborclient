@@ -202,6 +202,7 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'method-delete': 'DELETE',
   'method-head': 'HEAD',
   'method-options': 'OPTIONS',
+  'method-sse': 'SSE',
   'scrollbar-track': 'Scrollbar track',
   'scrollbar-thumb': 'Scrollbar thumb',
   'scrollbar-thumb-hover': 'Scrollbar thumb hover',
@@ -339,7 +340,8 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
       'method-patch',
       'method-delete',
       'method-head',
-      'method-options'
+      'method-options',
+      'method-sse'
     ]
   },
   {

@@ -8,6 +8,7 @@ import modalsReducer, {
   closeAddLiveServerModal,
   closeCollectionModal,
   closeCollectionRunner,
+  closeSaveRequestModal,
   closeShareModal,
   closeSyncModal,
   finishCollectionRunner,
@@ -19,6 +20,7 @@ import modalsReducer, {
   openCollectionModal,
   openCollectionRunner,
   openLiveServerModal,
+  openSaveRequestModal,
   openShareModal,
   openSyncModal,
   selectHasBlockingModal,
@@ -56,6 +58,7 @@ describe('modalsSlice', () => {
   it('starts with all modals closed', () => {
     const state = modalsReducer(undefined, { type: 'unknown' });
     expect(state.collectionModal).toBeNull();
+    expect(state.saveRequestModal).toBeNull();
     expect(state.addLiveServerModal).toBeNull();
     expect(state.share).toBeNull();
     expect(state.pendingLoadRequest).toBeNull();
@@ -71,6 +74,13 @@ describe('modalsSlice', () => {
     expect(state.alertModal).toBeNull();
     expect(state.confirmModal).toBeNull();
     expect(state.collectionRunner).toBeNull();
+  });
+
+  it('opens and closes the save-request location picker', () => {
+    let state = modalsReducer(undefined, openSaveRequestModal({ tabId: 'tab-1' }));
+    expect(state.saveRequestModal).toEqual({ tabId: 'tab-1' });
+    state = modalsReducer(state, closeSaveRequestModal());
+    expect(state.saveRequestModal).toBeNull();
   });
 
   it('opens and closes the collection modal', () => {
@@ -190,6 +200,7 @@ describe('modalsSlice', () => {
       collection_id: 2,
       folder_id: null,
       name: 'Get users',
+      protocol: 'http' as const,
       method: 'GET' as const,
       url: 'https://example.com',
       headers: [],
@@ -559,6 +570,11 @@ describe('selectHasBlockingModal', () => {
 
   it('returns true when the collection modal is open', () => {
     const state = modalsReducer(undefined, openCollectionModal({ mode: 'create' }));
+    expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
+  });
+
+  it('returns true when the save-request location picker is open', () => {
+    const state = modalsReducer(undefined, openSaveRequestModal({ tabId: 'tab-1' }));
     expect(selectHasBlockingModal(rootWithModals(state))).toBe(true);
   });
 

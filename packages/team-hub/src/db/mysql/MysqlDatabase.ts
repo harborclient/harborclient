@@ -1834,6 +1834,7 @@ export class MysqlDatabase implements IDatabase {
     const headers = JSON.stringify(input.headers);
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
+    const protocol = input.protocol === 'sse' ? 'sse' : 'http';
     const folderId = input.folderId ?? null;
     const serializedMarker = serializeSidebarMarker(input.marker ?? null);
     const now = new Date();
@@ -1856,6 +1857,7 @@ export class MysqlDatabase implements IDatabase {
           folder_id = ?,
           name = ?,
           method = ?,
+          protocol = ?,
           url = ?,
           headers = ?,
           params = ?,
@@ -1874,6 +1876,7 @@ export class MysqlDatabase implements IDatabase {
           folderId,
           trimmedName,
           input.method,
+          protocol,
           input.url,
           headers,
           params,
@@ -1920,6 +1923,7 @@ export class MysqlDatabase implements IDatabase {
         folder_id,
         name,
         method,
+        protocol,
         url,
         headers,
         params,
@@ -1935,13 +1939,14 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.collectionId,
         folderId,
         trimmedName,
         input.method,
+        protocol,
         input.url,
         headers,
         params,

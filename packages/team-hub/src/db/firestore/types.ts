@@ -451,6 +451,11 @@ export interface FirestoreRequestDocument {
   method: string;
 
   /**
+   * Transport protocol for the request (`http` or `sse`).
+   */
+  protocol?: string;
+
+  /**
    * Request URL without query parameters.
    */
   url: string;

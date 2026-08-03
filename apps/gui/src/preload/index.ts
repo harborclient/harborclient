@@ -80,6 +80,9 @@ import type {
   Snippet,
   SendRequestInput,
   SendResult,
+  SessionOpenInput,
+  SseEventPush,
+  SseStatePush,
   SaveTextFileResult,
   WriteTextInDirectoryResult,
   TeamHub,
@@ -1532,6 +1535,55 @@ function sendRequest(req: SendRequestInput, requestId?: string): Promise<SendRes
  */
 function cancelRequest(requestId: string): Promise<void> {
   return ipcRenderer.invoke('http:cancel', requestId);
+}
+
+/**
+ * Opens an SSE session in the main process.
+ *
+ * Events and state changes arrive via {@link onSseEvent} and {@link onSseState}.
+ *
+ * @param input - SSE URL, headers, params, and reconnect options.
+ * @param requestId - Client id used to correlate push events and close the session.
+ */
+function openSseSession(input: SessionOpenInput, requestId: string): Promise<void> {
+  return ipcRenderer.invoke('sse:open', input, requestId);
+}
+
+/**
+ * Closes an open SSE session by client request id.
+ *
+ * @param requestId - ID passed to {@link openSseSession}.
+ */
+function closeSseSession(requestId: string): Promise<void> {
+  return ipcRenderer.invoke('sse:close', requestId);
+}
+
+/**
+ * Subscribes to batched SSE events from the main process.
+ *
+ * @param callback - Handler invoked with one or more events for a session.
+ * @returns Unsubscribe function.
+ */
+function onSseEvent(callback: (payload: SseEventPush) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: SseEventPush): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('sse:event', listener);
+  return () => ipcRenderer.removeListener('sse:event', listener);
+}
+
+/**
+ * Subscribes to SSE session state changes from the main process.
+ *
+ * @param callback - Handler invoked when a session connects, reconnects, or closes.
+ * @returns Unsubscribe function.
+ */
+function onSseState(callback: (payload: SseStatePush) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: SseStatePush): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('sse:state', listener);
+  return () => ipcRenderer.removeListener('sse:state', listener);
 }
 
 /**
@@ -4790,6 +4842,79 @@ function pushPluginHttpAfterSend(payload: {
 }
 
 /**
+ * Runs agent-plugin before-turn hooks and returns the merged patch.
+ *
+ * @param payload - Serializable turn context for plugins.
+ */
+function runPluginAiBeforeTurn(payload: {
+  chatId: number;
+  model: string;
+  hubId?: string;
+  userMessage: {
+    content: string;
+    referenceSnapshots?: Record<string, unknown>;
+  };
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    content?: string | null;
+  }>;
+}): Promise<{
+  cancelled: boolean;
+  cancelReason?: string;
+  userContent?: string;
+  extraInstructions: string[];
+}> {
+  return ipcRenderer.invoke('plugins:runAiBeforeTurn', payload);
+}
+
+/**
+ * Pushes a completed AI chat turn to plugin webviews with the `ai` permission.
+ *
+ * @param payload - Serializable turn result.
+ */
+function pushPluginAiAfterTurn(payload: {
+  chatId: number;
+  model: string;
+  hubId?: string;
+  userMessage: { content: string };
+  assistantMessage: { content: string } | null;
+  status: 'completed' | 'cancelled' | 'error';
+  error?: { message: string };
+  stats: {
+    stepCount: number;
+    toolCallCount: number;
+    durationMs: number;
+  };
+}): Promise<void> {
+  return ipcRenderer.invoke('plugins:pushAiAfterTurn', payload);
+}
+
+/**
+ * Registers a host-renderer plugin AI instruction fragment in the main prompt map.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param registrationId - Opaque registration id.
+ * @param text - Instruction text.
+ */
+function registerPluginAiInstructions(
+  pluginId: string,
+  registrationId: string,
+  text: string
+): Promise<void> {
+  return ipcRenderer.invoke('plugins:registerAiInstructions', pluginId, registrationId, text);
+}
+
+/**
+ * Unregisters a host-renderer plugin AI instruction fragment.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param registrationId - Opaque registration id.
+ */
+function unregisterPluginAiInstructions(pluginId: string, registrationId: string): Promise<void> {
+  return ipcRenderer.invoke('plugins:unregisterAiInstructions', pluginId, registrationId);
+}
+
+/**
  * Runs main-entry before-scripts hooks and returns injected scripts for a stage.
  *
  * @param payload - Stage, request snapshot, and current `hc.data` bag.
@@ -5184,6 +5309,10 @@ const api: Api = {
   moveDocument,
   sendRequest,
   cancelRequest,
+  openSseSession,
+  closeSseSession,
+  onSseEvent,
+  onSseState,
   getCookies,
   listCookieDomains,
   setCookies,
@@ -5498,6 +5627,10 @@ const api: Api = {
   pluginFsWatchFile,
   pushPluginViewContext,
   pushPluginHttpAfterSend,
+  runPluginAiBeforeTurn,
+  pushPluginAiAfterTurn,
+  registerPluginAiInstructions,
+  unregisterPluginAiInstructions,
   runPluginBeforeScripts,
   runPluginAfterScripts,
   pushPluginLibraryChanged,

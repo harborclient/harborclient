@@ -56,6 +56,7 @@ const baseRequest = (
     collection_id: 1,
     folder_id: null,
     method: 'GET',
+    protocol: 'http' as const,
     url: '/users',
     uuid: `req-${overrides.id}`,
     headers: [],

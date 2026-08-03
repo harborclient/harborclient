@@ -333,6 +333,11 @@ export interface RequestSqlRow {
   method: string;
 
   /**
+   * Transport protocol column (`http` or `sse`).
+   */
+  protocol?: string | null;
+
+  /**
    * Request URL column.
    */
   url: string;
@@ -662,6 +667,7 @@ export function mapRequestSqlRow(row: RequestSqlRow): SavedRequestRecord {
     collectionId: row.collection_id,
     folderId: row.folder_id,
     name: row.name,
+    protocol: row.protocol === 'sse' ? 'sse' : 'http',
     method: row.method as HttpMethod,
     url: row.url,
     headers: parseJson<KeyValue[]>(row.headers, []),

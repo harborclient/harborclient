@@ -32,7 +32,8 @@ export const METHOD_CLASSES: Record<string, string> = {
   patch: 'hc-method-badge text-method-patch',
   delete: 'hc-method-badge text-method-delete',
   head: 'hc-method-badge text-method-head',
-  options: 'hc-method-badge text-method-options'
+  options: 'hc-method-badge text-method-options',
+  sse: 'hc-method-badge text-method-sse'
 };
 
 /**

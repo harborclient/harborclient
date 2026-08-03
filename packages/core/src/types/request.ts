@@ -1,14 +1,20 @@
 import type { AuthConfig } from '../auth';
-import type { BodyType, HttpMethod, KeyValue } from './common';
+import type { BodyType, HttpMethod, KeyValue, RequestProtocol } from './common';
 import type { ScriptRef } from './script';
 
 export type {
+  NetworkSession,
   RedirectHop,
   RequestTimingPhases,
   SendRequestInput,
   SendResult,
-  SentRequest
+  SentRequest,
+  SessionHandlers,
+  SessionOpenInfo,
+  SessionOpenInput,
+  SseEvent
 } from '@harborclient/http';
+export type { RequestProtocol } from './common';
 
 /**
  * A saved HTTP request belonging to a collection.
@@ -33,6 +39,11 @@ export interface SavedRequest {
    * Display name shown in the sidebar.
    */
   name: string;
+
+  /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
 
   /**
    * HTTP method used for the request.
@@ -164,6 +175,11 @@ export interface RequestExport {
   name: string;
 
   /**
+   * Transport protocol; omitted in legacy exports (treated as `http`).
+   */
+  protocol?: RequestProtocol;
+
+  /**
    * HTTP method used for the request.
    */
   method: HttpMethod;
@@ -274,6 +290,11 @@ export interface SaveRequestInput {
    * Display name for the saved request.
    */
   name: string;
+
+  /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol?: RequestProtocol;
 
   /**
    * HTTP method used for the request.

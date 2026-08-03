@@ -1,6 +1,6 @@
 import type { HubLlmModel } from './ai';
 import type { CollectionRunnerSummary, RunResultsExportKind } from '../collectionRunner';
-import type { HttpMethod } from './common';
+import type { HttpMethod, RequestProtocol } from './common';
 import type { SnippetScope } from '../snippetScope';
 
 /**
@@ -325,6 +325,11 @@ export interface TeamHubAdminRequestSummary {
    * Display name shown in the collection tree.
    */
   name: string;
+
+  /**
+   * Transport protocol for the saved request (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
 
   /**
    * HTTP method for the saved request.

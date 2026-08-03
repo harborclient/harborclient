@@ -2,12 +2,15 @@ import { Agent, ProxyAgent, type Dispatcher } from 'undici';
 import type {
   BodyType,
   HttpMethod,
+  NetworkSession,
   ProxySettings,
   RedirectHop,
   RequestTimingPhases,
   SendRequestInput,
   SendResult,
-  SentRequest
+  SentRequest,
+  SessionHandlers,
+  SessionOpenInput
 } from './types.js';
 import { DEFAULT_REQUEST_SETTINGS, type RequestSettings } from './settings.js';
 import { isVeryVerbose, logRequest } from './logger.js';
@@ -23,6 +26,7 @@ import { QueryString } from './QueryString.js';
 import { RequestTiming } from './RequestTiming.js';
 import { ResponseReader } from './ResponseReader.js';
 import { mapFetchError } from './mapFetchError.js';
+import { SseClient } from './SseClient.js';
 
 /** HTTP status codes treated as redirects when following manually. */
 export const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -571,5 +575,41 @@ export class Requester implements IRequester {
         lastTimingSession?.toPhases(timeMs)
       );
     }
+  }
+
+  /**
+   * Opens a long-lived SSE session and returns a closeable handle.
+   *
+   * Delegates to {@link SseClient} with the same proxy/TLS dispatcher and
+   * header/query collaborators used by {@link executeRequest}.
+   *
+   * @param input - Protocol, URL, headers, params, and reconnect options.
+   * @param handlers - Callbacks for open, events, reconnect, and close.
+   * @param settings - General request settings for proxy, SSL, and handshake timeout.
+   * @param signal - Optional abort signal to cancel the session from outside.
+   * @param cookieHeader - Optional Cookie header value from the cookie jar.
+   * @returns Session handle the caller can close.
+   */
+  async openSession(
+    input: SessionOpenInput,
+    handlers: SessionHandlers,
+    settings: RequestSettings = DEFAULT_REQUEST_SETTINGS,
+    signal?: AbortSignal,
+    cookieHeader?: string
+  ): Promise<NetworkSession> {
+    if (input.protocol !== 'sse') {
+      throw new Error(
+        `Unsupported session protocol: ${String((input as { protocol: string }).protocol)}`
+      );
+    }
+
+    const client = new SseClient({
+      queryString: this.queryString,
+      headers: this.headers,
+      timing: this.timing,
+      dispatcher: this.resolveDispatcher(settings)
+    });
+
+    return client.open(input, handlers, settings, signal, cookieHeader);
   }
 }

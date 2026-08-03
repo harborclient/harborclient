@@ -164,6 +164,7 @@ export class MySqlStorage implements IStorage {
         collection_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
         method VARCHAR(16) NOT NULL DEFAULT 'GET',
+        protocol VARCHAR(16) NOT NULL DEFAULT 'http',
         url LONGTEXT NOT NULL,
         headers LONGTEXT NOT NULL,
         user_agent LONGTEXT NOT NULL DEFAULT (''),
@@ -250,6 +251,7 @@ export class MySqlStorage implements IStorage {
     );
     await this.addColumnIfMissing('collections', 'user_agent', "LONGTEXT NOT NULL DEFAULT ('')");
     await this.addColumnIfMissing('requests', 'user_agent', "LONGTEXT NOT NULL DEFAULT ('')");
+    await this.addColumnIfMissing('requests', 'protocol', "VARCHAR(16) NOT NULL DEFAULT 'http'");
     await this.addColumnIfMissing('collections', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('requests', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
     await this.addColumnIfMissing('environments', 'uuid', "VARCHAR(36) NOT NULL DEFAULT ''");
@@ -691,6 +693,7 @@ export class MySqlStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const userAgent = typeof input.userAgent === 'string' ? input.userAgent : '';
+    const protocol = input.protocol === 'sse' ? 'sse' : 'http';
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
     const preScripts = bundleScriptFieldsWithLegacy(
@@ -728,7 +731,7 @@ export class MySqlStorage implements IStorage {
         serializedMarker === undefined
           ? await this.getPool().execute<ResultSetHeader>(
               `UPDATE requests SET
-          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
+          collection_id = ?, folder_id = ?, name = ?, method = ?, protocol = ?, url = ?,
           headers = ?, user_agent = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?
@@ -738,6 +741,7 @@ export class MySqlStorage implements IStorage {
                 folderId,
                 trimmedName,
                 input.method,
+                protocol,
                 input.url,
                 headers,
                 userAgent,
@@ -759,7 +763,7 @@ export class MySqlStorage implements IStorage {
             )
           : await this.getPool().execute<ResultSetHeader>(
               `UPDATE requests SET
-          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
+          collection_id = ?, folder_id = ?, name = ?, method = ?, protocol = ?, url = ?,
           headers = ?, user_agent = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?, marker = ?
@@ -769,6 +773,7 @@ export class MySqlStorage implements IStorage {
                 folderId,
                 trimmedName,
                 input.method,
+                protocol,
                 input.url,
                 headers,
                 userAgent,
@@ -810,14 +815,15 @@ export class MySqlStorage implements IStorage {
 
     const [result] = await this.getPool().execute<ResultSetHeader>(
       `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.collection_id,
         folderId,
         trimmedName,
         input.method,
+        protocol,
         input.url,
         headers,
         userAgent,
@@ -1653,14 +1659,15 @@ export class MySqlStorage implements IStorage {
 
         await connection.execute(
           `INSERT INTO requests (
-            collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+            collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             collectionId,
             folderId,
             fields.name,
             fields.method,
+            fields.protocol,
             fields.url,
             fields.headersJson,
             fields.userAgent,
@@ -1925,7 +1932,7 @@ export class MySqlStorage implements IStorage {
         if (existingRequestId != null) {
           await connection.execute(
             `UPDATE requests SET
-              folder_id = ?, name = ?, method = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
+              folder_id = ?, name = ?, method = ?, protocol = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
               body = ?, body_type = ?, body_raw = ?, body_raw_open = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
               sort_order = ?, updated_at = ?, marker = ?
             WHERE id = ? AND collection_id = ?`,
@@ -1933,6 +1940,7 @@ export class MySqlStorage implements IStorage {
               folderId,
               fields.name,
               fields.method,
+              fields.protocol,
               fields.url,
               fields.headersJson,
               fields.userAgent,
@@ -1960,14 +1968,15 @@ export class MySqlStorage implements IStorage {
 
         await connection.execute(
           `INSERT INTO requests (
-            collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+            collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             folderId,
             fields.name,
             fields.method,
+            fields.protocol,
             fields.url,
             fields.headersJson,
             fields.userAgent,

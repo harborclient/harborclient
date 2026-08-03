@@ -30,6 +30,7 @@ function sampleDraft(
   folder_id: null;
   name: string;
   method: HttpMethod;
+  protocol: 'http';
   url: string;
   headers: [];
   params: [];
@@ -52,6 +53,7 @@ function sampleDraft(
     folder_id: null,
     name,
     method: 'POST' as const,
+    protocol: 'http' as const,
     url: 'https://example.com/echo',
     headers: [],
     params: [],
@@ -172,6 +174,7 @@ describe('selectOpenRequestIds', () => {
         req: {
           ...sampleDraft(22, 'Second'),
           uuid: 'uuid-22',
+          protocol: 'http' as const,
           sort_order: 0,
           created_at: '2026-01-01T00:00:00.000Z',
           updated_at: '2026-01-01T00:00:00.000Z'

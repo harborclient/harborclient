@@ -19,7 +19,9 @@ import {
 import tabsReducer, {
   activateNextTab,
   activatePreviousTab,
+  appendSseEvents,
   clearPageScopedSettingsDraft,
+  clearSseEvents,
   closeTab,
   closeTabsForCollection,
   closeTabsForEnvironment,
@@ -48,9 +50,11 @@ import tabsReducer, {
   setPageScopedSettingsDraft,
   setPageTabDirty,
   setResponseViewerTab,
+  setSseSessionState,
   updateBrowserNavigation,
   updateMarkdownContent
 } from './tabsSlice';
+import { SSE_SESSION_EVENT_MAX } from '#/renderer/src/store/tabs';
 
 /**
  * Builds a saved request fixture for loadRequest tests.
@@ -66,6 +70,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     folder_id: null,
     name: 'Get users',
     method: 'GET',
+    protocol: 'http' as const,
     url: 'https://example.com/users',
     headers: [{ key: 'Accept', value: 'application/json', enabled: true }],
     params: [{ key: 'page', value: '1', enabled: true }],
@@ -224,6 +229,7 @@ describe('tabsSlice closeTabsForRequest', () => {
         folder_id: null,
         name: 'Only tab',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -558,6 +564,7 @@ describe('tabsSlice closeTabsForCollection', () => {
         folder_id: null,
         name: 'Only tab',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -694,6 +701,7 @@ describe('tabsSlice loadRequest', () => {
         folder_id: null,
         name: 'Stale name',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com/old',
         headers: [],
         params: [],
@@ -738,6 +746,7 @@ describe('tabsSlice loadRequest', () => {
         folder_id: null,
         name: 'Get users',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com/old',
         headers: [],
         params: [],
@@ -831,6 +840,7 @@ describe('tabsSlice loadRequest', () => {
         folder_id: null,
         name: 'Get users',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com/old',
         headers: [],
         params: [],
@@ -1187,6 +1197,110 @@ describe('tabsSlice setResponseViewerTab', () => {
     const initial = tabsReducer(undefined, { type: 'unknown' });
     const next = tabsReducer(initial, setResponseViewerTab({ tabId: 'missing', tab: 'tests' }));
     expect(next).toEqual(initial);
+  });
+});
+
+describe('tabsSlice SSE session reducers', () => {
+  it('sets SSE session state on a request tab', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      setSseSessionState({
+        tabId,
+        sseSession: {
+          status: 'connecting',
+          events: [],
+          droppedCount: 0,
+          openedAt: 1
+        }
+      })
+    );
+
+    expect(asRequestTab(state.tabs.find((entry) => entry.tabId === tabId)).sseSession?.status).toBe(
+      'connecting'
+    );
+  });
+
+  it('appends SSE events and trims to the ring-buffer cap', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      setSseSessionState({
+        tabId,
+        sseSession: {
+          status: 'open',
+          events: [],
+          droppedCount: 0,
+          openedAt: 1
+        }
+      })
+    );
+
+    const seed = Array.from({ length: SSE_SESSION_EVENT_MAX - 1 }, (_, index) => ({
+      seq: index + 1,
+      receivedAt: index + 1,
+      type: 'message',
+      data: `e${index + 1}`,
+      raw: `data: e${index + 1}`
+    }));
+
+    state = tabsReducer(state, appendSseEvents({ tabId, events: seed }));
+    state = tabsReducer(
+      state,
+      appendSseEvents({
+        tabId,
+        events: [
+          {
+            seq: SSE_SESSION_EVENT_MAX,
+            receivedAt: SSE_SESSION_EVENT_MAX,
+            type: 'message',
+            data: 'full',
+            raw: 'data: full'
+          },
+          {
+            seq: SSE_SESSION_EVENT_MAX + 1,
+            receivedAt: SSE_SESSION_EVENT_MAX + 1,
+            type: 'message',
+            data: 'overflow',
+            raw: 'data: overflow'
+          }
+        ]
+      })
+    );
+
+    const session = asRequestTab(state.tabs.find((entry) => entry.tabId === tabId)).sseSession;
+    expect(session?.events).toHaveLength(SSE_SESSION_EVENT_MAX);
+    expect(session?.events[0]?.seq).toBe(2);
+    expect(session?.events.at(-1)?.data).toBe('overflow');
+    expect(session?.droppedCount).toBe(1);
+  });
+
+  it('clears retained SSE events without dropping session status', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      setSseSessionState({
+        tabId,
+        sseSession: {
+          status: 'open',
+          events: [{ seq: 1, receivedAt: 1, type: 'message', data: 'a', raw: 'data: a' }],
+          droppedCount: 3,
+          openedAt: 1
+        }
+      })
+    );
+    state = tabsReducer(state, clearSseEvents({ tabId }));
+
+    const session = asRequestTab(state.tabs.find((entry) => entry.tabId === tabId)).sseSession;
+    expect(session?.status).toBe('open');
+    expect(session?.events).toEqual([]);
+    expect(session?.droppedCount).toBe(0);
   });
 });
 

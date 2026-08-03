@@ -163,6 +163,7 @@ export class PostgresStorage implements IStorage {
         collection_id INT NOT NULL,
         name VARCHAR(255) NOT NULL,
         method VARCHAR(16) NOT NULL DEFAULT 'GET',
+        protocol VARCHAR(16) NOT NULL DEFAULT 'http',
         url TEXT NOT NULL,
         headers TEXT NOT NULL,
         user_agent TEXT NOT NULL DEFAULT '',
@@ -233,6 +234,10 @@ export class PostgresStorage implements IStorage {
 
     await this.#pool.query(`
       ALTER TABLE requests ADD COLUMN IF NOT EXISTS user_agent TEXT NOT NULL DEFAULT ''
+    `);
+
+    await this.#pool.query(`
+      ALTER TABLE requests ADD COLUMN IF NOT EXISTS protocol VARCHAR(16) NOT NULL DEFAULT 'http'
     `);
 
     await this.#pool.query(`
@@ -657,6 +662,7 @@ export class PostgresStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const userAgent = typeof input.userAgent === 'string' ? input.userAgent : '';
+    const protocol = input.protocol === 'sse' ? 'sse' : 'http';
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
     const preScripts = bundleScriptFieldsWithLegacy(
@@ -694,16 +700,17 @@ export class PostgresStorage implements IStorage {
         serializedMarker === undefined
           ? await this.getPool().query(
               `UPDATE requests SET
-          collection_id = $1, folder_id = $2, name = $3, method = $4, url = $5,
-          headers = $6, user_agent = $7, params = $8, auth = $9, body = $10, body_type = $11, body_raw = $12, body_raw_open = $13,
-          pre_request_script = $14, post_request_script = $15, pre_request_scripts = $16, post_request_scripts = $17, comment = $18, tags = $19,
-          updated_at = $20
-        WHERE id = $21`,
+          collection_id = $1, folder_id = $2, name = $3, method = $4, protocol = $5, url = $6,
+          headers = $7, user_agent = $8, params = $9, auth = $10, body = $11, body_type = $12, body_raw = $13, body_raw_open = $14,
+          pre_request_script = $15, post_request_script = $16, pre_request_scripts = $17, post_request_scripts = $18, comment = $19, tags = $20,
+          updated_at = $21
+        WHERE id = $22`,
               [
                 input.collection_id,
                 folderId,
                 trimmedName,
                 input.method,
+                protocol,
                 input.url,
                 headers,
                 userAgent,
@@ -725,16 +732,17 @@ export class PostgresStorage implements IStorage {
             )
           : await this.getPool().query(
               `UPDATE requests SET
-          collection_id = $1, folder_id = $2, name = $3, method = $4, url = $5,
-          headers = $6, user_agent = $7, params = $8, auth = $9, body = $10, body_type = $11, body_raw = $12, body_raw_open = $13,
-          pre_request_script = $14, post_request_script = $15, pre_request_scripts = $16, post_request_scripts = $17, comment = $18, tags = $19,
-          updated_at = $20, marker = $21
-        WHERE id = $22`,
+          collection_id = $1, folder_id = $2, name = $3, method = $4, protocol = $5, url = $6,
+          headers = $7, user_agent = $8, params = $9, auth = $10, body = $11, body_type = $12, body_raw = $13, body_raw_open = $14,
+          pre_request_script = $15, post_request_script = $16, pre_request_scripts = $17, post_request_scripts = $18, comment = $19, tags = $20,
+          updated_at = $21, marker = $22
+        WHERE id = $23`,
               [
                 input.collection_id,
                 folderId,
                 trimmedName,
                 input.method,
+                protocol,
                 input.url,
                 headers,
                 userAgent,
@@ -775,15 +783,16 @@ export class PostgresStorage implements IStorage {
 
     const result = await this.getPool().query(
       `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *`,
       [
         input.collection_id,
         folderId,
         trimmedName,
         input.method,
+        protocol,
         input.url,
         headers,
         userAgent,
@@ -1600,14 +1609,15 @@ export class PostgresStorage implements IStorage {
 
         await client.query(
           `INSERT INTO requests (
-            collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+            collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
           [
             collectionId,
             folderId,
             fields.name,
             fields.method,
+            fields.protocol,
             fields.url,
             fields.headersJson,
             fields.userAgent,
@@ -1871,14 +1881,15 @@ export class PostgresStorage implements IStorage {
         if (existingRequestId != null) {
           await client.query(
             `UPDATE requests SET
-              folder_id = $1, name = $2, method = $3, url = $4, headers = $5, user_agent = $6, params = $7, auth = $8,
-              body = $9, body_type = $10, body_raw = $11, body_raw_open = $12, pre_request_script = $13, post_request_script = $14, pre_request_scripts = $15, post_request_scripts = $16, comment = $17, tags = $18,
-              sort_order = $19, updated_at = $20, marker = $21
-            WHERE id = $22 AND collection_id = $23`,
+              folder_id = $1, name = $2, method = $3, protocol = $4, url = $5, headers = $6, user_agent = $7, params = $8, auth = $9,
+              body = $10, body_type = $11, body_raw = $12, body_raw_open = $13, pre_request_script = $14, post_request_script = $15, pre_request_scripts = $16, post_request_scripts = $17, comment = $18, tags = $19,
+              sort_order = $20, updated_at = $21, marker = $22
+            WHERE id = $23 AND collection_id = $24`,
             [
               folderId,
               fields.name,
               fields.method,
+              fields.protocol,
               fields.url,
               fields.headersJson,
               fields.userAgent,
@@ -1906,14 +1917,15 @@ export class PostgresStorage implements IStorage {
 
         await client.query(
           `INSERT INTO requests (
-            collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+            collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
             pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, created_at, updated_at, marker
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
           [
             id,
             folderId,
             fields.name,
             fields.method,
+            fields.protocol,
             fields.url,
             fields.headersJson,
             fields.userAgent,

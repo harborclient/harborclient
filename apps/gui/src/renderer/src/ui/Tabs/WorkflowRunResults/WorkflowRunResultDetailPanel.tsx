@@ -123,6 +123,7 @@ export function WorkflowRunResultDetailPanel({
       id: undefined as number | undefined,
       name: requestResult?.name ?? 'Request',
       method: requestResult?.method ?? ('GET' as const),
+      protocol: 'http' as const,
       url: requestResult?.url ?? '',
       headers: [],
       params: [],

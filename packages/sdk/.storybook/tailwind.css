@@ -47,6 +47,7 @@
   --color-method-delete: var(--mac-method-delete);
   --color-method-head: var(--mac-method-head);
   --color-method-options: var(--mac-method-options);
+  --color-method-sse: var(--mac-method-sse);
 
   --mac-accent: #4098dc;
   --radius-xs: 0.125rem;
@@ -69,6 +70,7 @@
   --mac-method-delete: #c0392b;
   --mac-method-head: #6e6e73;
   --mac-method-options: #6e6e73;
+  --mac-method-sse: #0f766e;
 }
 
 body {

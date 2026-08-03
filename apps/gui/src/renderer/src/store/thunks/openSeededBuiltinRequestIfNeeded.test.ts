@@ -53,6 +53,7 @@ function sampleRequest(id: number, name: string): SavedRequest {
     collection_id: 1,
     folder_id: null,
     name,
+    protocol: 'http' as const,
     method: 'GET',
     url: 'https://echo.harborclient.com/get',
     headers: [],

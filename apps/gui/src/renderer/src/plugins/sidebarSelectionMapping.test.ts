@@ -83,6 +83,7 @@ describe('selectionFromState', () => {
                 folder_id: 2,
                 name: 'Get',
                 method: 'GET',
+                protocol: 'http' as const,
                 url: ''
               }
             } as never

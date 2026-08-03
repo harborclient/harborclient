@@ -23,6 +23,11 @@ export interface CreateRequestToolArgs {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
   /**
+   * Transport protocol; defaults to `http`. Use `sse` for Server-Sent Events.
+   */
+  protocol?: 'http' | 'sse';
+
+  /**
    * Request URL.
    */
   url: string;
@@ -69,6 +74,7 @@ export interface CreateRequestToolArgs {
  * @param {number} collectionId - Collection id that will own the new saved request.
  * @param {string} name - Display name for the saved request.
  * @param {string} method - HTTP method for the request.
+ * @param {string} [protocol] - Transport protocol (`http` or `sse`).
  * @param {string} url - Request URL.
  * @param {number | null} [folderId] - Folder id when the request belongs to a folder.
  * @param {string} [folderName] - Folder name to resolve when folderId is omitted.
@@ -98,6 +104,11 @@ export const createRequestTool = {
             type: 'string',
             enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
             description: 'HTTP method for the request.'
+          },
+          protocol: {
+            type: 'string',
+            enum: ['http', 'sse'],
+            description: 'Transport protocol. Use sse for Server-Sent Events streams.'
           },
           url: { type: 'string', description: 'Request URL.' },
           folderId: {
@@ -137,6 +148,7 @@ export const createRequestTool = {
     collectionId: z.number(),
     name: z.string(),
     method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
+    protocol: z.enum(['http', 'sse']).optional(),
     url: z.string(),
     folderId: z.union([z.number(), z.null()]).optional(),
     folderName: z.string().optional(),

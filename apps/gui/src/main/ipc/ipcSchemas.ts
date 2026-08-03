@@ -14,6 +14,7 @@ import {
   httpMethod,
   keyValue,
   oauth2Config,
+  requestProtocol,
   variable
 } from '#/main/schemas/common';
 import {
@@ -180,6 +181,7 @@ export const saveRequestInput = z.object({
   id: dbId.optional(),
   collection_id: dbId,
   name: z.string().trim().min(1, 'request name is required'),
+  protocol: requestProtocol,
   method: httpMethod,
   url: ipcUrl,
   headers: z.array(keyValue),
@@ -224,6 +226,18 @@ export const sendRequestInput = z.object({
   bodyType: bodyType,
   bodyRaw: z.string().optional()
 }) satisfies z.ZodType<SendRequestInput>;
+
+/**
+ * Input for opening an SSE session from the renderer.
+ */
+export const sessionOpenInput = z.object({
+  protocol: z.literal('sse'),
+  url: ipcUrl,
+  headers: z.array(keyValue),
+  params: z.array(keyValue),
+  lastEventId: z.string().optional(),
+  reconnect: z.boolean().optional()
+});
 
 export const sentRequest = z.object({
   method: httpMethod,
@@ -1178,6 +1192,8 @@ export const ipcArgSchemas = {
   saveRequest: z.tuple([saveRequestInput]),
   sendRequest: z.tuple([sendRequestInput, requestId.optional()]),
   cancelRequest: z.tuple([requestId]),
+  openSseSession: z.tuple([sessionOpenInput, requestId]),
+  closeSseSession: z.tuple([requestId]),
   scriptRun: z.tuple([scriptRunInput]),
   generalSettings: z.tuple([generalSettings]),
   aiSettings: z.tuple([aiSettings]),
@@ -1688,6 +1704,41 @@ export const ipcArgSchemas = {
       })
     })
   ]),
+  pluginRunAiBeforeTurn: z.tuple([
+    z.object({
+      chatId: z.number(),
+      model: z.string(),
+      hubId: z.string().optional(),
+      userMessage: z.object({
+        content: z.string(),
+        referenceSnapshots: z.record(z.string(), z.unknown()).optional()
+      }),
+      messages: z.array(
+        z.object({
+          role: z.enum(['system', 'user', 'assistant', 'tool']),
+          content: z.string().nullable().optional()
+        })
+      )
+    })
+  ]),
+  pluginPushAiAfterTurn: z.tuple([
+    z.object({
+      chatId: z.number(),
+      model: z.string(),
+      hubId: z.string().optional(),
+      userMessage: z.object({ content: z.string() }),
+      assistantMessage: z.object({ content: z.string() }).nullable(),
+      status: z.enum(['completed', 'cancelled', 'error']),
+      error: z.object({ message: z.string() }).optional(),
+      stats: z.object({
+        stepCount: z.number(),
+        toolCallCount: z.number(),
+        durationMs: z.number()
+      })
+    })
+  ]),
+  pluginRegisterAiInstructions: z.tuple([z.string().min(1), z.string().min(1), z.string()]),
+  pluginUnregisterAiInstructions: z.tuple([z.string().min(1), z.string().min(1)]),
   pluginRunBeforeScripts: z.tuple([
     z.object({
       phase: z.enum(['pre', 'post']),

@@ -3,6 +3,7 @@ import '@harborclient/core/plugin/databaseTypes';
 import type { PluginManifest } from '@harborclient/core/plugin/types';
 import { createPluginContext } from './createPluginContext';
 import { clearPluginAfterSendSubscribers, emitPluginAfterSend } from './pluginAfterSendBus';
+import { clearPluginAiTurnSubscribers, emitPluginAiAfterTurn } from './pluginAiTurnBus';
 import {
   clearPluginLibraryChangedSubscribers,
   emitPluginLibraryChanged
@@ -45,6 +46,7 @@ beforeEach(() => {
   invokePluginMainMock.mockReset();
   activatePluginMainMock.mockReset();
   clearPluginAfterSendSubscribers();
+  clearPluginAiTurnSubscribers();
   clearPluginLibraryChangedSubscribers();
   clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
@@ -60,6 +62,13 @@ beforeEach(() => {
       pushPluginSidebarSelectionChanged: vi.fn().mockResolvedValue(undefined),
       pushPluginLiveServersRunningChanged: vi.fn().mockResolvedValue(undefined),
       pushPluginLiveServerRequestLog: vi.fn().mockResolvedValue(undefined),
+      registerPluginAiInstructions: vi.fn().mockResolvedValue(undefined),
+      unregisterPluginAiInstructions: vi.fn().mockResolvedValue(undefined),
+      runPluginAiBeforeTurn: vi.fn().mockResolvedValue({
+        cancelled: false,
+        extraInstructions: []
+      }),
+      pushPluginAiAfterTurn: vi.fn().mockResolvedValue(undefined),
       listCollections: vi.fn().mockResolvedValue({ collections: [], warnings: [] }),
       listFolders: vi.fn().mockResolvedValue([]),
       listRequests: vi.fn().mockResolvedValue([]),
@@ -74,6 +83,7 @@ beforeEach(() => {
 
 afterEach(() => {
   clearPluginAfterSendSubscribers();
+  clearPluginAiTurnSubscribers();
   clearPluginLibraryChangedSubscribers();
   clearPluginWorkflowsChangedSubscribers();
   clearPluginSidebarSelectionSubscribers();
@@ -120,6 +130,43 @@ describe('createPluginContext runtime surfaces', () => {
   it('rejects hc.http.onAfterSend without the http permission', () => {
     const hc = createPluginContext('com.example.test', createManifest(['ui']));
     expect(() => hc.http.onAfterSend(() => {})).toThrow(/lacks permission: http/);
+  });
+
+  it('exposes hc.ai instructions and turn hooks when the ai permission is granted', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ai']));
+    const before = vi.fn();
+    const after = vi.fn();
+
+    const instruction = hc.ai.instructions.add('Prefer MCP tools.');
+    expect(hc.ai.instructions.list).toEqual(['Prefer MCP tools.']);
+    expect(window.api.registerPluginAiInstructions).toHaveBeenCalled();
+
+    const beforeDisposable = hc.ai.onBeforeTurn(before);
+    const afterDisposable = hc.ai.onAfterTurn(after);
+    expect(hc.subscriptions).toEqual(
+      expect.arrayContaining([instruction, beforeDisposable, afterDisposable])
+    );
+
+    emitPluginAiAfterTurn({
+      chatId: 1,
+      model: 'gpt-test',
+      userMessage: { content: 'hi' },
+      assistantMessage: { content: 'yo' },
+      status: 'completed',
+      stats: { stepCount: 1, toolCallCount: 0, durationMs: 5 }
+    });
+    expect(after).toHaveBeenCalledTimes(1);
+
+    instruction.dispose();
+    expect(hc.ai.instructions.list).toEqual([]);
+    expect(window.api.unregisterPluginAiInstructions).toHaveBeenCalled();
+  });
+
+  it('rejects hc.ai APIs without the ai permission', () => {
+    const hc = createPluginContext('com.example.test', createManifest(['ui']));
+    expect(() => hc.ai.instructions.add('x')).toThrow(/lacks permission: ai/);
+    expect(() => hc.ai.onBeforeTurn(() => {})).toThrow(/lacks permission: ai/);
+    expect(() => hc.ai.onAfterTurn(() => {})).toThrow(/lacks permission: ai/);
   });
 
   it('invokes plugin main IPC and reactivates once when the runtime is inactive', async () => {

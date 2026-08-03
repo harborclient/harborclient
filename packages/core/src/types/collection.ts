@@ -8,7 +8,7 @@ import type { LiveServer } from './liveServer';
 import type { Website } from './website';
 import type { Workspace } from './workspace';
 import type { ScriptRef } from './script';
-import type { BodyType, HttpMethod, KeyValue, Variable } from './common';
+import type { BodyType, HttpMethod, KeyValue, RequestProtocol, Variable } from './common';
 
 /**
  * A named group of saved HTTP requests.
@@ -357,6 +357,11 @@ export interface ExportedRequest {
    * Display name for the saved request.
    */
   name: string;
+
+  /**
+   * Transport protocol; omitted in legacy exports (treated as `http`).
+   */
+  protocol?: RequestProtocol;
 
   /**
    * HTTP method used for the request.

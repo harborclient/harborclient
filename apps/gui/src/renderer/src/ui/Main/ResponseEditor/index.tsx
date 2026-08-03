@@ -14,7 +14,8 @@ import type {
   ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
-  SendResult
+  SendResult,
+  RequestProtocol
 } from '@harborclient/core/types';
 
 import { useSendRequestShortcutHint } from '#/renderer/src/hooks/useSendRequestShortcutHint';
@@ -22,16 +23,23 @@ import { faGlobe } from '#/renderer/src/fontawesome';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import { usePluginResponseTabs } from '#/renderer/src/plugins/pluginHooks';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { openPageTab, setResponseViewerTab } from '#/renderer/src/store/slices/tabsSlice';
-import { isRequestTab } from '#/renderer/src/store/tabs';
+import {
+  clearSseEvents,
+  openPageTab,
+  setResponseViewerTab
+} from '#/renderer/src/store/slices/tabsSlice';
+import { isRequestTab, type SseSessionState } from '#/renderer/src/store/tabs';
 import {
   buildResponseExport,
   isHtmlResponse,
   isImageResponse,
   resolveInitialResponseViewerTab
 } from '#/renderer/src/ui/Shared/responseFormatUtils';
+import { Events } from './Events';
+import { SseRaw } from './Events/SseRaw';
 import { ResponseSummary } from './ResponseSummary';
 import { ResponseViewerPanel } from './ResponseViewerPanel';
+import { SseSummary } from './SseSummary';
 import {
   isResponseViewerTab,
   RESPONSE_VIEWER_TAB_LABELS,
@@ -106,6 +114,16 @@ interface Props {
    * Request tab that owns this response; preferred for jump-to-editor from Tests/Console.
    */
   requestTabId?: string;
+
+  /**
+   * Transport protocol of the owning request (`http` or `sse`).
+   */
+  protocol?: RequestProtocol;
+
+  /**
+   * Live or closed SSE session for the owning tab when protocol is `sse`.
+   */
+  sseSession?: SseSessionState | null;
 }
 
 /**
@@ -139,7 +157,9 @@ export function ResponseEditor({
   onClear,
   onClose,
   requestUrl,
-  requestTabId
+  requestTabId,
+  protocol = 'http',
+  sseSession = null
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginTabs = usePluginResponseTabs();
@@ -215,6 +235,40 @@ export function ResponseEditor({
   const hasRedirects = (response?.redirects?.length ?? 0) > 0;
   const passedCount = testResults.filter((test) => test.passed).length;
   const failedCount = testResults.length - passedCount;
+
+  /**
+   * Whether this editor is showing a live or closed SSE session instead of HTTP body.
+   */
+  const isSse = protocol === 'sse';
+
+  /**
+   * Session used for the SSE viewer, including a synthetic connecting state while
+   * openSseStream has set sending but Redux has not yet received onSseState.
+   */
+  const activeSseSession: SseSessionState | null =
+    sseSession ??
+    (isSse && sending
+      ? {
+          status: 'connecting',
+          events: [],
+          droppedCount: 0
+        }
+      : null);
+
+  /**
+   * Whether to render the SSE events viewer instead of the HTTP spinner / body tabs.
+   */
+  const showSseViewer = isSse && activeSseSession != null;
+
+  /**
+   * Clears retained SSE events on the owning request tab.
+   */
+  const handleClearSseEvents = (): void => {
+    if (requestTabId == null) {
+      return;
+    }
+    dispatch(clearSseEvents({ tabId: requestTabId }));
+  };
 
   /**
    * Plugin tabs shown when there is no HTTP response (always or noResponse when).
@@ -377,6 +431,148 @@ export function ResponseEditor({
       testResults.length
     ]
   );
+
+  if (showSseViewer && activeSseSession) {
+    const sseTab =
+      tab === 'body' || tab === 'preview' || tab === 'redirects'
+        ? 'events'
+        : tab === 'tests' && !hasTests
+          ? 'events'
+          : tab;
+    const openInfo = activeSseSession.openInfo;
+    const handshakeResponse: SendResult = {
+      status: openInfo?.status ?? 0,
+      statusText: openInfo?.statusText ?? activeSseSession.status,
+      headers: openInfo?.headers ?? {},
+      body: '',
+      timeMs:
+        activeSseSession.openedAt != null && activeSseSession.closedAt != null
+          ? Math.max(0, activeSseSession.closedAt - activeSseSession.openedAt)
+          : (openInfo?.timing?.waitingMs ?? 0),
+      sizeBytes: 0,
+      ...(activeSseSession.error ? { error: activeSseSession.error } : {}),
+      ...(openInfo?.timing ? { timing: openInfo.timing } : {})
+    };
+    const sseTabs = [
+      { value: 'events', label: 'Events' },
+      { value: 'raw', label: 'Raw' },
+      { value: 'headers', label: 'Headers' },
+      { value: 'logs', label: 'Logs' },
+      { value: 'timing', label: 'Timing' },
+      {
+        value: 'tests',
+        hidden: !hasTests,
+        label: (
+          <>
+            Tests
+            <span
+              className={`ml-1.5 text-[14px] ${failedCount > 0 ? 'text-danger' : 'text-muted'}`}
+            >
+              {passedCount}/{testResults.length}
+            </span>
+          </>
+        )
+      }
+    ];
+
+    return (
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="mb-2 flex items-center border-b border-separator p-3 -mx-3 -mt-2">
+          <SseSummary
+            sseSession={activeSseSession}
+            className="w-full"
+            onClearEvents={handleClearSseEvents}
+            onDisconnect={
+              activeSseSession.status === 'connecting' ||
+              activeSseSession.status === 'open' ||
+              activeSseSession.status === 'reconnecting'
+                ? onCancel
+                : undefined
+            }
+          />
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SegmentedTabsGroup value={sseTab} onChange={setTab} ariaLabel="SSE response view">
+            <div
+              className={`-mx-3 -mt-2 flex shrink-0 items-center gap-2 border-b border-separator${
+                sseTab === 'logs' ? '' : ' mb-4'
+              }`}
+            >
+              <SegmentedTabs tabs={sseTabs} className="border-none" />
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3">
+              <SegmentedTabPanel value="events" className="flex min-h-0 flex-1 flex-col">
+                <Events events={activeSseSession.events} />
+              </SegmentedTabPanel>
+              <SegmentedTabPanel value="raw">
+                <SseRaw events={activeSseSession.events} />
+              </SegmentedTabPanel>
+              <SegmentedTabPanel value="headers">
+                <ResponseViewerPanel
+                  viewerTab="headers"
+                  response={handshakeResponse}
+                  requestUrl={requestUrl}
+                  testResults={testResults}
+                  scriptLogs={scriptLogs}
+                  executionEvents={executionEvents}
+                  scriptError={scriptError}
+                  scriptErrors={scriptErrors}
+                  requestTabId={requestTabId}
+                  requestName={requestName}
+                />
+              </SegmentedTabPanel>
+              <SegmentedTabPanel value="logs">
+                <ResponseViewerPanel
+                  viewerTab="logs"
+                  response={handshakeResponse}
+                  requestUrl={requestUrl}
+                  testResults={testResults}
+                  scriptLogs={scriptLogs}
+                  executionEvents={executionEvents}
+                  scriptError={scriptError}
+                  scriptErrors={scriptErrors}
+                  requestTabId={requestTabId}
+                  requestName={requestName}
+                />
+              </SegmentedTabPanel>
+              <SegmentedTabPanel value="timing">
+                <ResponseViewerPanel
+                  viewerTab="timing"
+                  response={handshakeResponse}
+                  requestUrl={requestUrl}
+                  testResults={testResults}
+                  scriptLogs={scriptLogs}
+                  executionEvents={executionEvents}
+                  scriptError={scriptError}
+                  scriptErrors={scriptErrors}
+                  requestTabId={requestTabId}
+                  requestName={requestName}
+                />
+              </SegmentedTabPanel>
+              {hasTests ? (
+                <SegmentedTabPanel value="tests">
+                  <ResponseViewerPanel
+                    viewerTab="tests"
+                    response={handshakeResponse}
+                    requestUrl={requestUrl}
+                    testResults={testResults}
+                    scriptLogs={scriptLogs}
+                    executionEvents={executionEvents}
+                    scriptError={scriptError}
+                    scriptErrors={scriptErrors}
+                    requestTabId={requestTabId}
+                    requestName={requestName}
+                  />
+                </SegmentedTabPanel>
+              ) : null}
+            </div>
+          </SegmentedTabsGroup>
+        </div>
+      </div>
+    );
+  }
 
   if (sending) {
     return (

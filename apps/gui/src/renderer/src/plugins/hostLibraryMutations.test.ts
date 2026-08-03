@@ -169,7 +169,8 @@ function makeRequest(overrides: Partial<SavedRequest> = {}): SavedRequest {
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-02T00:00:00.000Z',
     marker: null,
-    ...overrides
+    ...overrides,
+    protocol: overrides.protocol ?? 'http'
   };
 }
 
@@ -337,6 +338,7 @@ describe('createRequestForPlugin', () => {
         folderId: 10,
         name: 'Login',
         method: 'POST',
+        protocol: 'http' as const,
         url: 'https://example.com/login'
       })
     ).resolves.toEqual(

@@ -308,6 +308,56 @@ export interface ApiPlugins {
     response: PluginHttpResponse;
   }) => Promise<void>;
   /**
+   * Runs agent-plugin `hc.ai.onBeforeTurn` handlers and returns the merged patch.
+   */
+  runPluginAiBeforeTurn: (payload: {
+    chatId: number;
+    model: string;
+    hubId?: string;
+    userMessage: {
+      content: string;
+      referenceSnapshots?: Record<string, unknown>;
+    };
+    messages: Array<{
+      role: 'system' | 'user' | 'assistant' | 'tool';
+      content?: string | null;
+    }>;
+  }) => Promise<{
+    cancelled: boolean;
+    cancelReason?: string;
+    userContent?: string;
+    extraInstructions: string[];
+  }>;
+  /**
+   * Pushes a completed AI chat turn to plugin webviews with the `ai` permission.
+   */
+  pushPluginAiAfterTurn: (payload: {
+    chatId: number;
+    model: string;
+    hubId?: string;
+    userMessage: { content: string };
+    assistantMessage: { content: string } | null;
+    status: 'completed' | 'cancelled' | 'error';
+    error?: { message: string };
+    stats: {
+      stepCount: number;
+      toolCallCount: number;
+      durationMs: number;
+    };
+  }) => Promise<void>;
+  /**
+   * Registers a host-renderer plugin AI instruction fragment in the main prompt map.
+   */
+  registerPluginAiInstructions: (
+    pluginId: string,
+    registrationId: string,
+    text: string
+  ) => Promise<void>;
+  /**
+   * Unregisters a host-renderer plugin AI instruction fragment.
+   */
+  unregisterPluginAiInstructions: (pluginId: string, registrationId: string) => Promise<void>;
+  /**
    * Runs main-entry `onBeforeScripts` hooks and returns injected scripts for a stage.
    *
    * @param payload - Stage, request snapshot, and current `hc.data` bag.

@@ -74,6 +74,7 @@ describe('hostRequestCommands', () => {
       uuid: 'req-42',
       collection_id: 1,
       name: 'Create user',
+      protocol: 'http' as const,
       method: 'POST',
       url: 'https://example.com/users',
       headers: [],
@@ -142,6 +143,7 @@ describe('hostRequestCommands', () => {
     expect(saveInput.folder_id).toBe(3);
     expect(saveInput.name).toBe('List pets');
     expect(saveInput.method).toBe('GET');
+    expect(saveInput.protocol).toBe('http');
     expect(saveInput.url).toBe('https://example.com/pets');
     expect(saveInput.body_type).toBe('json');
     expect(saveInput.comment).toBe('Generated from OpenAPI');
@@ -236,6 +238,7 @@ describe('hostRequestCommands', () => {
       openTabWithDraft({
         ...defaultDraft(),
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [{ key: 'X-Old', value: '1', enabled: true }],
         body: '',

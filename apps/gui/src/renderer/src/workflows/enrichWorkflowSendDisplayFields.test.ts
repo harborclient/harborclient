@@ -135,6 +135,7 @@ describe('enrichWorkflowSendDisplayFields', () => {
                 uuid: 'req-uuid-10',
                 name: 'Delete item',
                 method: 'DELETE',
+                protocol: 'http' as const,
                 url: 'https://example.com/items/1',
                 collection_id: 1
               }
@@ -181,6 +182,7 @@ describe('enrichWorkflowSendDisplayFields', () => {
                 id: 10,
                 name: 'Saved',
                 method: 'GET',
+                protocol: 'http' as const,
                 url: 'https://example.com/saved'
               },
               response: null,
@@ -201,6 +203,7 @@ describe('enrichWorkflowSendDisplayFields', () => {
                 uuid: 'req-uuid-10',
                 name: 'Saved',
                 method: 'GET',
+                protocol: 'http' as const,
                 url: 'https://example.com/saved',
                 collection_id: 1
               }
@@ -254,6 +257,7 @@ describe('enrichWorkflowSendDisplayFields', () => {
                 uuid: 'req-uuid-10',
                 name: 'Delete item',
                 method: 'DELETE',
+                protocol: 'http' as const,
                 url: 'https://example.com/items/1',
                 collection_id: 1
               }

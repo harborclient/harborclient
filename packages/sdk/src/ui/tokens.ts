@@ -8,7 +8,8 @@ export const METHOD_COLOR_TOKENS = {
   patch: '--mac-method-patch',
   delete: '--mac-method-delete',
   head: '--mac-method-head',
-  options: '--mac-method-options'
+  options: '--mac-method-options',
+  sse: '--mac-method-sse'
 } as const;
 
 /** Tailwind classes for HTTP method labels matching HarborClient tokens. */
@@ -19,7 +20,8 @@ const METHOD_CLASSES: Record<string, string> = {
   patch: 'hc-method-badge text-method-patch',
   delete: 'hc-method-badge text-method-delete',
   head: 'hc-method-badge text-method-head',
-  options: 'hc-method-badge text-method-options'
+  options: 'hc-method-badge text-method-options',
+  sse: 'hc-method-badge text-method-sse'
 };
 
 /**

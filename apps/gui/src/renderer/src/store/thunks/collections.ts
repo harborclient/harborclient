@@ -99,7 +99,8 @@ export function isPristineDefaultRequestTab(tab: Tab): boolean {
 }
 
 /**
- * Reloads all collections from the active database and auto-selects the first when none is selected.
+ * Reloads all collections from the active database and auto-selects the first
+ * non-archived collection when none is selected or the selection is archived.
  */
 export const refreshCollections = createAsyncThunk<Collection[], void, ThunkApiConfig>(
   'collections/refresh',
@@ -114,13 +115,17 @@ export const refreshCollections = createAsyncThunk<Collection[], void, ThunkApiC
     }
     dispatch(setCollections(collections));
     const selectedId = getState().collections.selectedCollectionId;
-    const selectedStillExists =
-      selectedId != null && collections.some((collection) => collection.id === selectedId);
-    if (selectedId != null && !selectedStillExists) {
+    const selectedCollection =
+      selectedId != null
+        ? collections.find((collection) => collection.id === selectedId)
+        : undefined;
+    const selectedIsActive = selectedCollection != null && !selectedCollection.archived;
+    if (selectedId != null && !selectedIsActive) {
       dispatch(setSelectedCollectionId(null));
     }
-    if (collections.length > 0 && (selectedId == null || !selectedStillExists)) {
-      dispatch(setSelectedCollectionId(collections[0].id));
+    if (!selectedIsActive) {
+      const firstActive = collections.find((collection) => !collection.archived);
+      dispatch(setSelectedCollectionId(firstActive?.id ?? null));
     }
     emitPluginLibraryChanged({ reason: 'collections' });
     return collections;

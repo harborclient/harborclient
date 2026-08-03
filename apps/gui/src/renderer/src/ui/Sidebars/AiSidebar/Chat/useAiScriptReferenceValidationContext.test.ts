@@ -48,6 +48,7 @@ function sampleDraft(id: number): {
   folder_id: null;
   name: string;
   method: HttpMethod;
+  protocol: 'http';
   url: string;
   headers: [];
   params: [];
@@ -72,6 +73,7 @@ function sampleDraft(id: number): {
     folder_id: null,
     name: 'Echo',
     method: 'POST' as const,
+    protocol: 'http' as const,
     url: 'https://example.com/echo',
     headers: [],
     params: [],

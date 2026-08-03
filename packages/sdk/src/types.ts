@@ -10,6 +10,13 @@ import type * as React from 'react';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 /**
+ * Transport protocol for a saved request or editor draft.
+ *
+ * HTTP uses the buffered send path. SSE opens a long-lived event stream.
+ */
+export type RequestProtocol = 'http' | 'sse';
+
+/**
  * A collection-scoped variable for use in request URLs via {{key}} syntax.
  */
 export interface Variable {
@@ -1116,7 +1123,7 @@ export interface StatusBarItemContribution {
  * - `resize-handle` — resizable panel grip (and high-contrast chrome accents)
  * - `variable-token` — `{{variable}}` syntax highlight in editors
  * - `danger`, `danger-light`, `warning`, `success`, `info` — status colors
- * - `method-get`, `method-post`, `method-put`, `method-patch`, `method-delete`, `method-head`, `method-options` — HTTP method badge colors
+ * - `method-get`, `method-post`, `method-put`, `method-patch`, `method-delete`, `method-head`, `method-options`, `method-sse` — HTTP method / SSE badge colors
  * - `scrollbar-track`, `scrollbar-thumb`, `scrollbar-thumb-hover`, `scrollbar-thumb-active` — scrollbar track and thumb colors
  * - `script-stage-before-all`, `script-stage-before-each`, `script-stage-main`, `script-stage-after-each`, `script-stage-after-all` — script row stage accent colors
  * - `terminal` — footer terminal background
@@ -1173,6 +1180,7 @@ export type ThemeColorToken =
   | 'method-delete'
   | 'method-head'
   | 'method-options'
+  | 'method-sse'
   | 'scrollbar-track'
   | 'scrollbar-thumb'
   | 'scrollbar-thumb-hover'
@@ -3495,7 +3503,190 @@ export interface PluginLivePageHandle {
 }
 
 /**
- * AI chat pointer APIs available on {@link PluginContext.ai}.
+ * Append-only static instruction bag on {@link PluginAi.instructions}.
+ *
+ * Fragments are merged into the agent system prompt while registered. Plugins
+ * cannot rewrite Harbor's base system prompt.
+ */
+export interface PluginAiInstructions {
+  /**
+   * Appends a fragment merged into the agent system prompt while registered.
+   *
+   * @param text - Instruction text (whitespace-only strings are ignored).
+   * @returns A {@link Disposable} that removes the fragment when disposed.
+   */
+  add(text: string): Disposable;
+
+  /**
+   * This plugin's currently registered instruction fragments (read-only).
+   */
+  readonly list: readonly string[];
+}
+
+/**
+ * One conversation message visible to {@link PluginAiBeforeTurnContext} handlers.
+ */
+export interface PluginAiTurnMessage {
+  /**
+   * OpenAI-compatible message role.
+   */
+  role: 'system' | 'user' | 'assistant' | 'tool';
+
+  /**
+   * Message text content.
+   */
+  content?: string | null;
+}
+
+/**
+ * Turn-scoped ephemeral instruction bag on {@link PluginAiBeforeTurnContext}.
+ */
+export interface PluginAiTurnInstructions {
+  /**
+   * Appends a fragment for this turn only (ephemeral system message).
+   *
+   * @param text - Instruction text.
+   */
+  push(text: string): void;
+
+  /**
+   * Fragments pushed for this turn so far.
+   */
+  readonly list: readonly string[];
+}
+
+/**
+ * Mutable context passed to {@link PluginAi.onBeforeTurn} once per user chat turn.
+ *
+ * Fires before the first LLM completion step. Mutating {@link userMessage.content}
+ * changes model-facing text for this turn only (not the persisted DB row).
+ */
+export interface PluginAiBeforeTurnContext {
+  /**
+   * Chat row id.
+   */
+  chatId: number;
+
+  /**
+   * Model id selected in the composer.
+   */
+  model: string;
+
+  /**
+   * Team Hub id when the selected model is hub-proxied.
+   */
+  hubId?: string;
+
+  /**
+   * The user message driving this turn.
+   */
+  userMessage: {
+    /**
+     * Model-facing user text (mutable).
+     */
+    content: string;
+
+    /**
+     * Read-only `@` reference snapshots already collected for this send.
+     */
+    readonly referenceSnapshots?: Record<string, unknown>;
+  };
+
+  /**
+   * Turn-only instruction fragments (appended after static plugin instructions).
+   */
+  instructions: PluginAiTurnInstructions;
+
+  /**
+   * Conversation history that will be sent (excluding Harbor's base system prompt).
+   */
+  messages: PluginAiTurnMessage[];
+
+  /**
+   * Aborts the turn before any LLM call.
+   *
+   * @param reason - Optional user-facing cancel reason.
+   */
+  cancel(reason?: string): void;
+}
+
+/**
+ * Read-only result passed to {@link PluginAi.onAfterTurn} when a user turn ends.
+ */
+export interface PluginAiAfterTurnContext {
+  /**
+   * Chat row id.
+   */
+  chatId: number;
+
+  /**
+   * Model id used for the turn.
+   */
+  model: string;
+
+  /**
+   * Team Hub id when hub-proxied.
+   */
+  hubId?: string;
+
+  /**
+   * User text that drove this turn (after before-turn rewrites).
+   */
+  userMessage: {
+    /**
+     * User message content.
+     */
+    content: string;
+  };
+
+  /**
+   * Final assistant text persisted for the turn, if any.
+   */
+  assistantMessage: {
+    /**
+     * Assistant message content.
+     */
+    content: string;
+  } | null;
+
+  /**
+   * How the turn ended.
+   */
+  status: 'completed' | 'cancelled' | 'error';
+
+  /**
+   * Error details when {@link status} is `error`.
+   */
+  error?: {
+    /**
+     * User-facing error message.
+     */
+    message: string;
+  };
+
+  /**
+   * Cheap telemetry from the tool loop.
+   */
+  stats: {
+    /**
+     * Number of `completeChatStep` calls in this turn.
+     */
+    stepCount: number;
+
+    /**
+     * Number of tool calls executed in this turn.
+     */
+    toolCallCount: number;
+
+    /**
+     * Wall-clock duration of the turn in milliseconds.
+     */
+    durationMs: number;
+  };
+}
+
+/**
+ * AI chat pointer, instruction, and turn-hook APIs available on {@link PluginContext.ai}.
  *
  * Requires the `ai` permission. Registrations are activation-scoped.
  */
@@ -3514,6 +3705,27 @@ export interface PluginAi {
    * @param input - Pointer id, key, label, and context text captured by the plugin.
    */
   copyToChat(input: PluginCopyToChatInput): Promise<void>;
+
+  /**
+   * Append-only static instruction fragments merged into the agent system prompt.
+   */
+  instructions: PluginAiInstructions;
+
+  /**
+   * Registers a callback that runs once per user chat turn before the first LLM step.
+   *
+   * @param handler - Called with a mutable turn context.
+   * @returns A {@link Disposable} that unregisters the handler when disposed.
+   */
+  onBeforeTurn(handler: (ctx: PluginAiBeforeTurnContext) => void | Promise<void>): Disposable;
+
+  /**
+   * Registers a callback that runs once when a user chat turn finishes.
+   *
+   * @param handler - Called with a read-only turn result.
+   * @returns A {@link Disposable} that unregisters the handler when disposed.
+   */
+  onAfterTurn(handler: (ctx: PluginAiAfterTurnContext) => void | Promise<void>): Disposable;
 }
 
 /**
@@ -4047,6 +4259,11 @@ export interface CreateCollectionRequest {
   method?: string;
 
   /**
+   * Transport protocol (`http` or `sse`). Defaults to `http` when omitted.
+   */
+  protocol?: 'http' | 'sse';
+
+  /**
    * Request URL including scheme, host, path, and query string.
    */
   url?: string;
@@ -4259,6 +4476,10 @@ export interface SavedRequestSummary {
   name: string;
   /** HTTP method. */
   method: HttpMethod;
+  /**
+   * Transport protocol (`http` or `sse`). Defaults to `http` when omitted by older hosts.
+   */
+  protocol?: RequestProtocol;
   /** Sibling sort order. */
   sort_order: number;
   /** Optional sidebar marker color. */
@@ -4537,6 +4758,10 @@ export interface CreateRequestInput {
   name?: string;
   /** HTTP method; defaults to `GET`. */
   method?: HttpMethod;
+  /**
+   * Transport protocol; defaults to `http`. Use `sse` for Server-Sent Events.
+   */
+  protocol?: RequestProtocol;
   /** Request URL; defaults to empty. */
   url?: string;
 }

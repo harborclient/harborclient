@@ -91,7 +91,7 @@ export function EditorTabs({
   scriptErrors
 }: Props): JSX.Element {
   const pluginTabs = usePluginRequestTabs();
-  const showBody = draft.method !== 'GET' && draft.method !== 'HEAD';
+  const showBody = draft.protocol !== 'sse' && draft.method !== 'GET' && draft.method !== 'HEAD';
 
   /**
    * Seeds default tab content when entering script or comment tabs with empty values.

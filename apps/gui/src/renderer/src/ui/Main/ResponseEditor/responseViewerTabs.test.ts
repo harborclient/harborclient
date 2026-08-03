@@ -9,6 +9,8 @@ describe('responseViewerTabs', () => {
   it('lists every built-in expand-supported viewer tab', () => {
     expect(RESPONSE_VIEWER_TABS).toEqual([
       'body',
+      'events',
+      'raw',
       'preview',
       'headers',
       'console',
@@ -21,6 +23,8 @@ describe('responseViewerTabs', () => {
 
   it('accepts built-in viewer tab ids', () => {
     expect(isResponseViewerTab('body')).toBe(true);
+    expect(isResponseViewerTab('events')).toBe(true);
+    expect(isResponseViewerTab('raw')).toBe(true);
     expect(isResponseViewerTab('headers')).toBe(true);
     expect(isResponseViewerTab('plugin:custom')).toBe(false);
   });

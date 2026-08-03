@@ -37,6 +37,7 @@ const sampleDraft = (overrides: Partial<RequestDraft> = {}): RequestDraft => ({
   tags: '',
   auth: defaultAuth(),
   ...overrides,
+  protocol: overrides.protocol ?? 'http',
   userAgent: overrides.userAgent ?? ''
 });
 
@@ -215,6 +216,7 @@ describe('loadTabsFromStorage', () => {
     const legacyDraft = {
       name: 'Legacy',
       method: 'GET',
+      protocol: 'http' as const,
       url: 'https://legacy.example',
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
       params: [{ key: 'q', value: 'search', enabled: true }],
@@ -316,6 +318,7 @@ describe('loadTabsFromStorage', () => {
           draft: {
             name: 'Legacy KV',
             method: 'GET',
+            protocol: 'http' as const,
             url: 'https://example.com',
             headers: [{ key: 'X-Test', value: '1' }],
             params: [{ key: 'page', value: '2' }],
@@ -499,6 +502,7 @@ describe('redux open-tab round trip', () => {
             folder_id: null,
             name: 'Untitled',
             method: 'GET',
+            protocol: 'http' as const,
             url: '',
             headers: [],
             params: [],

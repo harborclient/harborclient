@@ -1778,6 +1778,7 @@ export class PostgresDatabase implements IDatabase {
     const headers = JSON.stringify(input.headers);
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
+    const protocol = input.protocol === 'sse' ? 'sse' : 'http';
     const folderId = input.folderId ?? null;
     const serializedMarker = serializeSidebarMarker(input.marker ?? null);
     const now = new Date();
@@ -1800,24 +1801,26 @@ export class PostgresDatabase implements IDatabase {
           folder_id = $2,
           name = $3,
           method = $4,
-          url = $5,
-          headers = $6,
-          params = $7,
-          auth = $8,
-          body = $9,
-          body_type = $10,
-          pre_request_script = $11,
-          post_request_script = $12,
-          comment = $13,
-          marker = $14,
-          updated_at = $15,
-          updated_by_user_id = $16
-        WHERE id = $17`,
+          protocol = $5,
+          url = $6,
+          headers = $7,
+          params = $8,
+          auth = $9,
+          body = $10,
+          body_type = $11,
+          pre_request_script = $12,
+          post_request_script = $13,
+          comment = $14,
+          marker = $15,
+          updated_at = $16,
+          updated_by_user_id = $17
+        WHERE id = $18`,
         [
           input.collectionId,
           folderId,
           trimmedName,
           input.method,
+          protocol,
           input.url,
           headers,
           params,
@@ -1863,6 +1866,7 @@ export class PostgresDatabase implements IDatabase {
         folder_id,
         name,
         method,
+        protocol,
         url,
         headers,
         params,
@@ -1878,7 +1882,7 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
       RETURNING ${REQUEST_SELECT_COLUMNS}`,
       [
         id,
@@ -1886,6 +1890,7 @@ export class PostgresDatabase implements IDatabase {
         folderId,
         trimmedName,
         input.method,
+        protocol,
         input.url,
         headers,
         params,

@@ -61,6 +61,7 @@ const themeColorTokenSchema = z.enum([
   'method-delete',
   'method-head',
   'method-options',
+  'method-sse',
   'scrollbar-track',
   'scrollbar-thumb',
   'scrollbar-thumb-hover',

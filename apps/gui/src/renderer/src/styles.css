@@ -104,6 +104,7 @@
   --color-method-delete: var(--mac-method-delete);
   --color-method-head: var(--mac-method-head);
   --color-method-options: var(--mac-method-options);
+  --color-method-sse: var(--mac-method-sse);
   --color-scrollbar-track: var(--mac-scrollbar-track);
   --color-scrollbar-thumb: var(--mac-scrollbar-thumb);
   --color-scrollbar-thumb-hover: var(--mac-scrollbar-thumb-hover);
@@ -182,6 +183,7 @@
     --mac-method-delete: #c0392b;
     --mac-method-head: #6e6e73;
     --mac-method-options: #6e6e73;
+    --mac-method-sse: #0f766e;
     --mac-scrollbar-track: rgba(0, 0, 0, 0.06);
     --mac-scrollbar-thumb: rgba(0, 0, 0, 0.44);
     --mac-scrollbar-thumb-hover: rgba(0, 0, 0, 0.55);
@@ -429,6 +431,7 @@
     --mac-method-delete: #ffd60a;
     --mac-method-head: #ffd60a;
     --mac-method-options: #ffd60a;
+    --mac-method-sse: #5fe3f0;
     --mac-resize-separator: #000000;
     --mac-resize-handle: #ffd60a;
     --mac-variable-token: #5fe3f0;
@@ -500,6 +503,7 @@
       --mac-method-delete: LinkText;
       --mac-method-head: CanvasText;
       --mac-method-options: CanvasText;
+      --mac-method-sse: LinkText;
       --mac-resize-separator: Canvas;
       --mac-resize-handle: CanvasText;
       --mac-variable-token: LinkText;

@@ -28,6 +28,28 @@ let importRegistrationCounter = 0;
 /** Monotonic id generator for MCP server registrations within one webview. */
 let mcpRegistrationCounter = 0;
 let aiChatPointerRegistrationCounter = 0;
+let aiInstructionsRegistrationCounter = 0;
+
+/**
+ * Before-turn handlers registered via `hc.ai.onBeforeTurn`.
+ *
+ * @type {Set<(ctx: import('../types').PluginAiBeforeTurnContext) => void | Promise<void>>}
+ */
+const aiBeforeTurnHandlers = new Set();
+
+/**
+ * After-turn handlers registered via `hc.ai.onAfterTurn`.
+ *
+ * @type {Set<(ctx: import('../types').PluginAiAfterTurnContext) => void | Promise<void>>}
+ */
+const aiAfterTurnHandlers = new Set();
+
+/**
+ * Local instruction texts keyed by registration id (for `hc.ai.instructions.list`).
+ *
+ * @type {Map<string, string>}
+ */
+const aiInstructionsByRegistrationId = new Map();
 
 /** Plugin id prefix for built-in HarborClient host commands executed in the renderer. */
 const HOST_COMMAND_OWNER = 'harborclient';
@@ -37,6 +59,12 @@ let importInvokeListenerInstalled = false;
 
 /** Guards repeated chat-pointer parse listener installation per webview load. */
 let aiParseChatPointerListenerInstalled = false;
+
+/** Guards repeated before-turn listener installation per webview load. */
+let aiBeforeTurnListenerInstalled = false;
+
+/** Guards repeated after-turn listener installation per webview load. */
+let aiAfterTurnListenerInstalled = false;
 
 /**
  * Normalizes a file extension to lowercase with a leading dot.
@@ -133,7 +161,11 @@ export function installImportInvokeListener() {
 export function resetMcpServersForTests() {
   mcpRegistrationCounter = 0;
   aiChatPointerRegistrationCounter = 0;
+  aiInstructionsRegistrationCounter = 0;
   chatPointerParseByRegistrationId.clear();
+  aiInstructionsByRegistrationId.clear();
+  aiBeforeTurnHandlers.clear();
+  aiAfterTurnHandlers.clear();
 }
 
 /**
@@ -144,6 +176,8 @@ export function resetImportHandlersForTests() {
   importRegistrationCounter = 0;
   importInvokeListenerInstalled = false;
   aiParseChatPointerListenerInstalled = false;
+  aiBeforeTurnListenerInstalled = false;
+  aiAfterTurnListenerInstalled = false;
   resetMcpServersForTests();
 }
 
@@ -206,6 +240,113 @@ export function installAiParseChatPointerListener() {
         requestId,
         ok: false,
         error: message
+      });
+    }
+  });
+}
+
+/**
+ * Subscribes to host-initiated before-turn invocations for the agent webview.
+ *
+ * Must run once before plugin activation so chat sends can reach registered handlers.
+ */
+export function installAiBeforeTurnListener() {
+  if (aiBeforeTurnListenerInstalled) {
+    return;
+  }
+  aiBeforeTurnListenerInstalled = true;
+
+  bridgeOn('ai.beforeTurn', async (payload) => {
+    const { requestId, chatId, model, hubId, userMessage, messages } = payload ?? {};
+    if (requestId == null) {
+      return;
+    }
+
+    try {
+      const extraInstructions = [];
+      let cancelled = false;
+      let cancelReason;
+      const userMessageState = {
+        content: String(userMessage?.content ?? ''),
+        ...(userMessage?.referenceSnapshots != null
+          ? { referenceSnapshots: userMessage.referenceSnapshots }
+          : {})
+      };
+      /** @type {import('../types').PluginAiBeforeTurnContext} */
+      const ctx = {
+        chatId: Number(chatId) || 0,
+        model: String(model ?? ''),
+        ...(hubId != null && String(hubId).trim() !== '' ? { hubId: String(hubId) } : {}),
+        userMessage: userMessageState,
+        instructions: {
+          push: (text) => {
+            const trimmed = String(text ?? '').trim();
+            if (trimmed) {
+              extraInstructions.push(trimmed);
+            }
+          },
+          get list() {
+            return [...extraInstructions];
+          }
+        },
+        messages: Array.isArray(messages)
+          ? messages.map((row) => ({
+              role: row?.role ?? 'user',
+              content: row?.content ?? null
+            }))
+          : [],
+        cancel: (reason) => {
+          cancelled = true;
+          if (reason != null && String(reason).trim() !== '') {
+            cancelReason = String(reason).trim();
+          }
+        }
+      };
+
+      for (const handler of [...aiBeforeTurnHandlers]) {
+        await handler(ctx);
+        if (cancelled) {
+          break;
+        }
+      }
+
+      await bridgeInvoke('ai.beforeTurnComplete', {
+        requestId,
+        ok: true,
+        result: {
+          cancelled,
+          ...(cancelReason != null ? { cancelReason } : {}),
+          userContent: ctx.userMessage.content,
+          extraInstructions
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await bridgeInvoke('ai.beforeTurnComplete', {
+        requestId,
+        ok: false,
+        error: message
+      });
+    }
+  });
+}
+
+/**
+ * Subscribes to host-initiated after-turn push events for the agent webview.
+ *
+ * Must run once before plugin activation.
+ */
+export function installAiAfterTurnListener() {
+  if (aiAfterTurnListenerInstalled) {
+    return;
+  }
+  aiAfterTurnListenerInstalled = true;
+
+  bridgeOn('ai.afterTurn', (payload) => {
+    const ctx = /** @type {import('../types').PluginAiAfterTurnContext} */ (payload);
+    for (const handler of [...aiAfterTurnHandlers]) {
+      void Promise.resolve(handler(ctx)).catch((error) => {
+        console.error('Plugin ai.onAfterTurn handler failed:', error);
       });
     }
   });
@@ -1523,6 +1664,56 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
           label: String(input?.label ?? '').trim(),
           context: String(input?.context ?? ''),
           selection: input?.selection
+        });
+      },
+      instructions: {
+        add: (text) => {
+          assertAi();
+          if (!isAgent) {
+            return noopDisposable();
+          }
+          const trimmed = String(text ?? '').trim();
+          const registrationId = String(++aiInstructionsRegistrationCounter);
+          if (trimmed) {
+            aiInstructionsByRegistrationId.set(registrationId, trimmed);
+          }
+          void bridgeInvoke('ai.registerInstructions', {
+            registrationId,
+            text: trimmed
+          });
+          return track(() => {
+            aiInstructionsByRegistrationId.delete(registrationId);
+            void bridgeInvoke('ai.unregisterInstructions', { registrationId });
+          });
+        },
+        get list() {
+          return [...aiInstructionsByRegistrationId.values()];
+        }
+      },
+      onBeforeTurn: (handler) => {
+        assertAi();
+        if (!isAgent) {
+          return noopDisposable();
+        }
+        if (typeof handler !== 'function') {
+          throw new Error('onBeforeTurn handler must be a function.');
+        }
+        aiBeforeTurnHandlers.add(handler);
+        return track(() => {
+          aiBeforeTurnHandlers.delete(handler);
+        });
+      },
+      onAfterTurn: (handler) => {
+        assertAi();
+        if (!isAgent) {
+          return noopDisposable();
+        }
+        if (typeof handler !== 'function') {
+          throw new Error('onAfterTurn handler must be a function.');
+        }
+        aiAfterTurnHandlers.add(handler);
+        return track(() => {
+          aiAfterTurnHandlers.delete(handler);
         });
       }
     },

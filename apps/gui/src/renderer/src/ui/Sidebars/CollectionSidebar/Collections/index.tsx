@@ -108,6 +108,7 @@ import {
 } from './utils';
 import { useSidebarSectionFilter } from '../filter/sidebarSectionFilterContext';
 import { buildCollectionsTreeFilter, isCollectionsFilterActive } from './collectionsFilter';
+import { useCollectionsPicker } from './collectionsPickerContext';
 import { sortSidebarItems, toSortTimestamp } from '../sort/sidebarSort';
 import { buildCollectionTree } from './buildCollectionTree';
 
@@ -127,8 +128,14 @@ export function Collections(): JSX.Element {
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
   const documentsByCollection = useAppSelector(selectDocumentsByCollection);
-  const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
-  const selectedFolderId = useAppSelector(selectSelectedFolderId);
+  const storeSelectedCollectionId = useAppSelector(selectSelectedCollectionId);
+  const storeSelectedFolderId = useAppSelector(selectSelectedFolderId);
+  const picker = useCollectionsPicker();
+  const isSaveTargetPicker = picker?.mode === 'save-target';
+  const selectedCollectionId = isSaveTargetPicker
+    ? picker.selection.collectionId
+    : storeSelectedCollectionId;
+  const selectedFolderId = isSaveTargetPicker ? picker.selection.folderId : storeSelectedFolderId;
   const draft = useAppSelector(selectDraft);
   const activeRequestId = draft.id;
   const activeDocumentId = useAppSelector(selectActiveDocumentId);
@@ -284,11 +291,21 @@ export function Collections(): JSX.Element {
   /**
    * Selects a collection row and expands it on first click, or collapses it when
    * the row was already expanded (reveal helpers are expand-only).
+   * In save-target picker mode, updates the modal selection instead of Redux.
    *
    * @param collectionId - Collection id for the clicked row.
    * @param wasExpanded - Whether the collection tree was expanded before selection.
    */
   const handleCollectionNameClick = (collectionId: number, wasExpanded: boolean): void => {
+    if (isSaveTargetPicker && picker != null) {
+      picker.onSelectCollection(collectionId);
+      if (!wasExpanded) {
+        toggleCollection(collectionId);
+      } else if (wasExpanded) {
+        // Keep expanded so the user can pick a folder under this collection.
+      }
+      return;
+    }
     clearRequestSelection();
     onSelectCollection(collectionId);
     if (wasExpanded) {
@@ -299,6 +316,7 @@ export function Collections(): JSX.Element {
   /**
    * Selects a folder row and expands it on first click, or collapses it when the
    * folder was already expanded (reveal helpers are expand-only).
+   * In save-target picker mode, updates the modal selection instead of Redux.
    *
    * @param collectionId - Parent collection id.
    * @param folderId - Folder id for the clicked row.
@@ -309,6 +327,13 @@ export function Collections(): JSX.Element {
     folderId: number,
     wasExpanded: boolean
   ): void => {
+    if (isSaveTargetPicker && picker != null) {
+      picker.onSelectFolder(collectionId, folderId);
+      if (!wasExpanded) {
+        toggleFolder(folderId);
+      }
+      return;
+    }
     clearRequestSelection();
     onSelectFolder(collectionId, folderId);
     if (wasExpanded) {
@@ -345,8 +370,8 @@ export function Collections(): JSX.Element {
   const treeFilterActive = searchActive || collectionsFilterActive;
   const sortMode = sectionSort.collections;
   const sortActive = sortMode !== 'default';
-  /** Disables drag reorder while search, filter, or a custom sort is active. */
-  const reorderDisabled = treeFilterActive || sortActive;
+  /** Disables drag reorder while search, filter, custom sort, or save-target picker is active. */
+  const reorderDisabled = treeFilterActive || sortActive || isSaveTargetPicker;
 
   /**
    * Gets sortable sidebar items (requests only) for a collection root or folder container.
@@ -691,8 +716,12 @@ export function Collections(): JSX.Element {
 
   /**
    * Handles primary and modifier clicks on a saved request row.
+   * In save-target picker mode, request rows are display-only (no open / multi-select).
    */
   const handleRequestRowClick = (req: SavedRequest, event: MouseEvent<HTMLElement>): void => {
+    if (isSaveTargetPicker) {
+      return;
+    }
     const result = applySidebarSelectionClick(
       selectedRequestIds,
       selectionAnchorId,
@@ -1258,6 +1287,9 @@ export function Collections(): JSX.Element {
                                       openMenuId={openMenuId}
                                       onOpenChange={setOpenMenuId}
                                       onLoadDocument={(doc) => {
+                                        if (isSaveTargetPicker) {
+                                          return;
+                                        }
                                         clearRequestSelection();
                                         onLoadDocument(doc);
                                       }}
@@ -1539,6 +1571,9 @@ export function Collections(): JSX.Element {
                                                   openMenuId={openMenuId}
                                                   onOpenChange={setOpenMenuId}
                                                   onLoadDocument={(doc) => {
+                                                    if (isSaveTargetPicker) {
+                                                      return;
+                                                    }
                                                     clearRequestSelection();
                                                     onLoadDocument(doc);
                                                   }}
@@ -1718,9 +1753,11 @@ export function Collections(): JSX.Element {
                             activeDragRequest ? (
                               <div className="flex items-center gap-1.5 rounded border border-separator bg-surface px-2 py-1 shadow-md">
                                 <span
-                                  className={`shrink-0 px-1 py-px ${methodBadgeClass(activeDragRequest.method, showMethodColors)}`}
+                                  className={`shrink-0 px-1 py-px ${methodBadgeClass(activeDragRequest.protocol === 'sse' ? 'SSE' : activeDragRequest.method, showMethodColors)}`}
                                 >
-                                  {activeDragRequest.method}
+                                  {activeDragRequest.protocol === 'sse'
+                                    ? 'SSE'
+                                    : activeDragRequest.method}
                                 </span>
                                 <span className="truncate">{activeDragRequest.name}</span>
                               </div>

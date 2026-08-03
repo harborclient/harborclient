@@ -12,7 +12,14 @@ import type {
   Variable
 } from '../types';
 import { coerceScriptLogs } from '../scripting/scriptLogs';
-import { authConfig, bodyType, exportScriptRefArray, httpMethod, keyValue } from './storageSchemas';
+import {
+  authConfig,
+  bodyType,
+  exportScriptRefArray,
+  httpMethod,
+  keyValue,
+  requestProtocol
+} from './storageSchemas';
 import { normalizeVariable } from './variables';
 
 /**
@@ -178,6 +185,7 @@ const exportedRequestRow = z
   .object({
     uuid: optionalDocumentUuid,
     name: z.string(),
+    protocol: requestProtocol,
     method: httpMethod,
     url: z.string().default(''),
     headers: z.array(keyValue).default([]),
@@ -211,6 +219,7 @@ const exportedRequestRow = z
   .transform((req) => ({
     uuid: req.uuid,
     name: req.name.trim(),
+    ...(req.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
     method: req.method,
     url: req.url,
     headers: req.headers,
@@ -434,6 +443,7 @@ const requestExportRow = z
     harborclientExport: z.literal('request'),
     uuid: optionalDocumentUuid,
     name: z.string(),
+    protocol: requestProtocol,
     method: httpMethod,
     url: z.string().default(''),
     headers: z.array(keyValue).default([]),
@@ -466,6 +476,7 @@ const requestExportRow = z
     harborclientExport: req.harborclientExport,
     uuid: req.uuid,
     name: req.name.trim(),
+    ...(req.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
     method: req.method,
     url: req.url,
     headers: req.headers,

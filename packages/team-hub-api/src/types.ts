@@ -1,4 +1,11 @@
-import type { BodyType, HttpMethod, HubLlmModel, KeyValue, Variable } from './appTypes.js';
+import type {
+  BodyType,
+  HttpMethod,
+  HubLlmModel,
+  KeyValue,
+  RequestProtocol,
+  Variable
+} from './appTypes.js';
 import type { TeamHubAuthConfig } from './auth.js';
 
 /**
@@ -1346,6 +1353,11 @@ export interface SavedRequestRecord {
   name: string;
 
   /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
+
+  /**
    * HTTP method for the saved request.
    */
   method: HttpMethod;
@@ -1429,6 +1441,11 @@ export interface CreateRequestInput {
    * Display name for the saved request.
    */
   name: string;
+
+  /**
+   * Transport protocol (`http` or `sse`). Defaults to `http` when omitted.
+   */
+  protocol?: RequestProtocol;
 
   /**
    * HTTP method.

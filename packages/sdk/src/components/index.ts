@@ -284,4 +284,11 @@ export {
   type SidebarBadgeVariant,
   type SidebarCommitPushStatus
 } from './SidebarItem/index.js';
-export type { FormDataPart, FormDataPartType, HttpMethod, KeyValue, Variable } from '../types.js';
+export type {
+  FormDataPart,
+  FormDataPartType,
+  HttpMethod,
+  KeyValue,
+  RequestProtocol,
+  Variable
+} from '../types.js';

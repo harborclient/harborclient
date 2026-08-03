@@ -68,9 +68,9 @@ export function RequestTabContent({ tab, pageTitle, pageIcon, dirty = false }: P
       ) : (
         <>
           <span
-            className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[tab.draft.method.toLowerCase()] ?? 'text-info'}`}
+            className={`shrink-0 px-1 py-px text-[14px] ${METHOD_CLASSES[(tab.draft.protocol === 'sse' ? 'sse' : tab.draft.method).toLowerCase()] ?? 'text-info'}`}
           >
-            {tab.draft.method}
+            {tab.draft.protocol === 'sse' ? 'SSE' : tab.draft.method}
           </span>
           {tab.sending && <Spinner size="sm" label="Sending…" className="h-3.5 w-3.5 shrink-0" />}
         </>

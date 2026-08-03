@@ -24,6 +24,7 @@ import type {
   HttpMethod,
   KeyValue,
   LiveServer,
+  RequestProtocol,
   SavedRequest,
   Snippet,
   Variable,
@@ -66,6 +67,16 @@ function readPersistedUserAgent(row: Record<string, unknown>): string {
     return row.user_agent;
   }
   return readString(row.userAgent);
+}
+
+/**
+ * Reads a persisted request transport protocol, defaulting legacy rows to HTTP.
+ *
+ * @param value - Raw `protocol` column or document field.
+ * @returns Normalized transport protocol (`http` or `sse`).
+ */
+function readRequestProtocol(value: unknown): RequestProtocol {
+  return value === 'sse' ? 'sse' : 'http';
 }
 
 /**
@@ -480,6 +491,7 @@ export function rowToRequest(row: Record<string, unknown>): SavedRequest {
     uuid: readString(row.uuid),
     collection_id: readNumber(row.collection_id),
     name: readString(row.name),
+    protocol: readRequestProtocol(row.protocol),
     method: readString(row.method, 'GET') as HttpMethod,
     url: readString(row.url),
     headers: readJsonArray<KeyValue>(row.headers, []),

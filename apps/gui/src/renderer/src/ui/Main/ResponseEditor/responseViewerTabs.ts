@@ -3,6 +3,8 @@
  */
 export const RESPONSE_VIEWER_TABS = [
   'body',
+  'events',
+  'raw',
   'preview',
   'headers',
   'console',
@@ -22,6 +24,8 @@ export type ResponseViewerTab = (typeof RESPONSE_VIEWER_TABS)[number];
  */
 export const RESPONSE_VIEWER_TAB_LABELS: Record<ResponseViewerTab, string> = {
   body: 'Body',
+  events: 'Events',
+  raw: 'Raw',
   preview: 'Preview',
   headers: 'Headers',
   console: 'Console',

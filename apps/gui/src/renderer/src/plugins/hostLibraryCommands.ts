@@ -83,6 +83,7 @@ export function toSavedRequestSummary(request: SavedRequest): SavedRequestSummar
     folder_id: request.folder_id,
     name: request.name,
     method: request.method,
+    protocol: request.protocol === 'sse' ? 'sse' : 'http',
     sort_order: request.sort_order,
     marker: request.marker,
     created_at: request.created_at

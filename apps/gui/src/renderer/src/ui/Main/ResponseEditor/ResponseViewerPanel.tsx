@@ -4,10 +4,13 @@ import type {
   ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
-  SendResult
+  SendResult,
+  SseEvent
 } from '@harborclient/core/types';
 import { Body } from './Body';
 import { Console } from './Console';
+import { Events } from './Events';
+import { SseRaw } from './Events/SseRaw';
 import { Headers } from './Headers';
 import { Logs } from './Logs';
 import { Preview } from './Preview';
@@ -72,6 +75,11 @@ interface Props {
    * (full-page response viewer). Ignored for non-body tabs.
    */
   fillHeight?: boolean;
+
+  /**
+   * SSE events for Events/Raw tabs; empty when viewing a buffered HTTP response.
+   */
+  sseEvents?: SseEvent[];
 }
 
 /**
@@ -88,7 +96,8 @@ export function ResponseViewerPanel({
   scriptErrors,
   requestTabId,
   requestName,
-  fillHeight = false
+  fillHeight = false,
+  sseEvents = []
 }: Props): JSX.Element {
   switch (viewerTab) {
     case 'body':
@@ -100,6 +109,10 @@ export function ResponseViewerPanel({
           requestName={requestName}
         />
       );
+    case 'events':
+      return <Events events={sseEvents} />;
+    case 'raw':
+      return <SseRaw events={sseEvents} />;
     case 'preview':
       return <Preview response={response} requestUrl={requestUrl} />;
     case 'headers':

@@ -44,9 +44,9 @@ export interface CollectionsFilterCriteria {
   storageLocationId: string | null;
 
   /**
-   * HTTP method to match against saved requests, or null for all methods.
+   * HTTP method or SSE protocol to match against saved requests, or null for all.
    */
-  method: HttpMethod | null;
+  method: HttpMethod | 'SSE' | null;
 
   /**
    * Whether to show only requests or only markdown documents, or null for both.
@@ -268,8 +268,14 @@ function requestMatchesCriteria(
   if (criteria.documentType != null && criteria.documentType !== 'request') {
     return false;
   }
-  if (criteria.method != null && request.method !== criteria.method) {
-    return false;
+  if (criteria.method != null) {
+    if (criteria.method === 'SSE') {
+      if (request.protocol !== 'sse') {
+        return false;
+      }
+    } else if (request.protocol === 'sse' || request.method !== criteria.method) {
+      return false;
+    }
   }
   if (criteria.marker != null && !colorsMatch(request.marker, criteria.marker)) {
     return false;

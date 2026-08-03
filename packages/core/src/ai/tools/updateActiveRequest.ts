@@ -7,6 +7,7 @@ import { AI_KEY_VALUE_SCHEMA, aiKeyValueShape } from './schemas';
  *
  * @param {string} [name] - Display name for the request.
  * @param {string} [method] - HTTP method for the request.
+ * @param {string} [protocol] - Transport protocol (`http` or `sse`).
  * @param {string} [url] - Request URL.
  * @param {string} [body] - Request body content (structured JSON for multipart/urlencoded rows).
  * @param {string} [body_type] - Content type of the request body.
@@ -40,6 +41,11 @@ export const updateActiveRequestTool = {
             type: 'string',
             enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
             description: 'HTTP method for the request.'
+          },
+          protocol: {
+            type: 'string',
+            enum: ['http', 'sse'],
+            description: 'Transport protocol. Use sse for Server-Sent Events streams.'
           },
           url: {
             type: 'string',
@@ -146,6 +152,7 @@ export const updateActiveRequestTool = {
   inputShape: {
     name: z.string().optional(),
     method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']).optional(),
+    protocol: z.enum(['http', 'sse']).optional(),
     url: z.string().optional(),
     body: z.string().optional(),
     body_type: z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']).optional(),

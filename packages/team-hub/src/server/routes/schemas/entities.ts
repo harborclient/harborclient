@@ -15,6 +15,7 @@ import {
   bodyTypeSchema,
   httpMethodSchema,
   keyValueSchema,
+  requestProtocolSchema,
   timestampSchema,
   variableSchema
 } from '#/server/routes/schemas/common.js';
@@ -187,6 +188,7 @@ export const savedRequestRecordSchema = z.object({
   id: z.string(),
   collectionId: z.string(),
   name: z.string(),
+  protocol: requestProtocolSchema,
   method: httpMethodSchema,
   url: z.string(),
   headers: z.array(keyValueSchema),
@@ -304,6 +306,7 @@ export const moveFolderBodySchema = z.object({
  */
 export const saveRequestBodySchema = z.object({
   name: z.string().trim().min(1),
+  protocol: requestProtocolSchema,
   method: httpMethodSchema,
   url: z.string(),
   headers: z.array(keyValueSchema),

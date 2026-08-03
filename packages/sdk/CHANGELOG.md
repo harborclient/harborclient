@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
 - feat(mcp-server): enhance MCP server settings and functionality. (`cf36a22f`)
 - chore(package.json): remove deprecated release scripts and tidy up formatting. (`e1e112f1`)
 - feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)

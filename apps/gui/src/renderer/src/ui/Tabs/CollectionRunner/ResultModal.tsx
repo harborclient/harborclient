@@ -34,6 +34,7 @@ export function ResultModal({ result, onClose }: Props): JSX.Element | null {
       id: result?.requestId,
       name: result?.requestName ?? 'Request',
       method: 'GET' as const,
+      protocol: 'http' as const,
       url: result?.requestUrl ?? '',
       headers: [],
       params: [],

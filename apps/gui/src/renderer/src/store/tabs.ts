@@ -4,6 +4,7 @@ import type {
   CollectionDocument,
   HttpMethod,
   KeyValue,
+  RequestProtocol,
   SavedRequest,
   ScriptLogEntry,
   ScriptRef,
@@ -11,7 +12,10 @@ import type {
   ScriptTestResult,
   ScriptExecutionEvent,
   SendResult,
+  SessionOpenInfo,
   SettingsSection,
+  SseEvent,
+  SseSessionStatus,
   Variable
 } from '@harborclient/core/types';
 import { defaultAuth, normalizeAuth, type AuthConfig } from '@harborclient/core/auth';
@@ -49,6 +53,11 @@ export interface RequestDraft {
    * Display name shown in the tab bar and sidebar.
    */
   name: string;
+
+  /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
 
   /**
    * HTTP method used for the request.
@@ -219,9 +228,68 @@ export interface RequestTab {
   responseViewerTab?: string;
 
   /**
+   * Live SSE session state for this tab when {@link RequestDraft.protocol} is
+   * `sse`. Null when idle or when the protocol is HTTP. Not persisted.
+   */
+  sseSession?: SseSessionState | null;
+
+  /**
    * Tab id that opened this tab; used to restore focus when this tab is closed.
    */
   linkedTo?: string;
+}
+
+/**
+ * Maximum SSE events retained per tab (ring buffer).
+ */
+export const SSE_SESSION_EVENT_MAX = 2000;
+
+/**
+ * Live SSE session state shown in the response pane.
+ */
+export interface SseSessionState {
+  /**
+   * Current connection lifecycle status.
+   */
+  status: SseSessionStatus;
+
+  /**
+   * Handshake metadata from the last successful open, when available.
+   */
+  openInfo?: SessionOpenInfo;
+
+  /**
+   * Parsed events retained for this session (capped at {@link SSE_SESSION_EVENT_MAX}).
+   */
+  events: SseEvent[];
+
+  /**
+   * Wall-clock time when the session entered `connecting` or `open`.
+   */
+  openedAt?: number;
+
+  /**
+   * Wall-clock time when the session closed or errored.
+   */
+  closedAt?: number;
+
+  /**
+   * User-facing error message when status is `error`.
+   */
+  error?: string;
+
+  /**
+   * Number of events dropped by the ring buffer.
+   */
+  droppedCount: number;
+
+  /**
+   * Reconnect delay info while status is `reconnecting`.
+   */
+  reconnect?: {
+    afterMs: number;
+    attempt: number;
+  };
 }
 
 /**
@@ -310,6 +378,8 @@ export type PageRef =
        */
       viewerTab:
         | 'body'
+        | 'events'
+        | 'raw'
         | 'preview'
         | 'headers'
         | 'timing'
@@ -817,6 +887,7 @@ export function normalizeDraft(draft: RequestDraft): RequestDraft {
 
   return {
     ...draft,
+    protocol: draft.protocol === 'sse' ? 'sse' : 'http',
     headers: normalizeKeyValueRows(draft.headers),
     params: normalizeKeyValueRows(draft.params),
     pre_request_script: mirrorLegacyScriptString(preRequestScripts),
@@ -862,6 +933,7 @@ export function cloneDraft(draft: RequestDraft): RequestDraft {
 export function normalizeDraftForCompare(draft: RequestDraft): string {
   const payload = {
     name: draft.name,
+    protocol: draft.protocol === 'sse' ? 'sse' : 'http',
     method: draft.method,
     url: draft.url,
     body: draft.body,
@@ -1463,6 +1535,7 @@ export function getDirtyTabsInFolder(
  */
 export const defaultDraft = (): RequestDraft => ({
   name: 'Untitled Request',
+  protocol: 'http' as const,
   method: 'GET',
   url: '',
   headers: [emptyKeyValue()],
@@ -1498,7 +1571,8 @@ export function createTab(draft: RequestDraft = defaultDraft()): RequestTab {
     sendingRequestId: null,
     testResults: [],
     scriptLogs: [],
-    executionEvents: []
+    executionEvents: [],
+    sseSession: null
   };
 }
 
@@ -1557,6 +1631,7 @@ export function draftFromSaved(req: SavedRequest): RequestDraft {
     collection_id: req.collection_id,
     folder_id: req.folder_id,
     name: req.name,
+    protocol: req.protocol === 'sse' ? 'sse' : 'http',
     method: req.method,
     url: req.url,
     headers: normalizeKeyValueRows(req.headers.length ? req.headers : [emptyKeyValue()]),

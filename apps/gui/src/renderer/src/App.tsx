@@ -74,6 +74,7 @@ import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
 import { AddLivePageModal } from '#/renderer/src/ui/Modals/AddLivePageModal';
 import { AddLiveServerModal } from '#/renderer/src/ui/Modals/AddLiveServerModal';
 import { CollectionModal } from '#/renderer/src/ui/Modals/CollectionModal';
+import { SaveRequestModal } from '#/renderer/src/ui/Modals/SaveRequestModal';
 import { WorkspaceModal } from '#/renderer/src/ui/Modals/WorkspaceModal';
 import { SaveWorkflowNameModal } from '#/renderer/src/ui/Modals/SaveWorkflowNameModal';
 import { ConfirmModal } from '#/renderer/src/ui/Modals/ConfirmModal';
@@ -578,6 +579,7 @@ export default function App(): JSX.Element {
                     {liveServerLogsSidebarOpen ? <LiveServerLogsSidebar /> : null}
                   </AnimatedHorizontalPanel>
                 </div>
+                <SaveRequestModal />
               </SidebarModalsProvider>
 
               <Footer

@@ -89,6 +89,7 @@ import {
 import { openImageView } from './hostImageCommands';
 import { openPluginLivePage } from './pluginLivePageApi';
 import { subscribePluginAfterSend } from './pluginAfterSendBus';
+import { subscribePluginAiAfterTurn, subscribePluginAiBeforeTurn } from './pluginAiTurnBus';
 import { subscribePluginLibraryChanged } from './pluginLibraryChangedBus';
 import { subscribePluginWorkflowsChanged } from './pluginWorkflowsChangedBus';
 import {
@@ -236,6 +237,8 @@ export async function executePluginCommand(
 export function createPluginContext(pluginId: string, manifest: PluginManifest): PluginContext {
   const subscriptions: Disposable[] = [];
   const permissions = new Set(manifest.permissions);
+  /** Local mirror of this plugin's `hc.ai.instructions` fragments for `list`. */
+  const instructionsList: string[] = [];
 
   /**
    * Wraps a disposable in an idempotent handle, auto-registers it on
@@ -1015,6 +1018,38 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
       },
       copyToChat: async () => {
         assertPermission('ai');
+      },
+      instructions: {
+        add: (text) => {
+          assertPermission('ai');
+          const trimmed = String(text ?? '').trim();
+          const registrationId = crypto.randomUUID();
+          const localList = instructionsList;
+          if (trimmed) {
+            localList.push(trimmed);
+          }
+          void window.api.registerPluginAiInstructions(pluginId, registrationId, trimmed);
+          return track({
+            dispose: () => {
+              const index = localList.indexOf(trimmed);
+              if (index >= 0) {
+                localList.splice(index, 1);
+              }
+              void window.api.unregisterPluginAiInstructions(pluginId, registrationId);
+            }
+          });
+        },
+        get list() {
+          return [...instructionsList];
+        }
+      },
+      onBeforeTurn: (handler) => {
+        assertPermission('ai');
+        return track(subscribePluginAiBeforeTurn(handler));
+      },
+      onAfterTurn: (handler) => {
+        assertPermission('ai');
+        return track(subscribePluginAiAfterTurn(handler));
       }
     },
     /**

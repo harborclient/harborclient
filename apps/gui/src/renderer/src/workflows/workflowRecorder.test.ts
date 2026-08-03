@@ -72,7 +72,8 @@ function sampleRequest(overrides: Partial<SavedRequest> = {}): SavedRequest {
     sort_order: 0,
     created_at: '',
     updated_at: '',
-    ...overrides
+    ...overrides,
+    protocol: overrides.protocol ?? 'http'
   };
 }
 
@@ -89,6 +90,7 @@ function sampleDraft(overrides: Record<string, unknown> = {}): Record<string, un
     folder_id: null,
     name: 'List things',
     method: 'GET',
+    protocol: 'http' as const,
     url: 'https://example.com/things',
     headers: [],
     params: [],
@@ -135,6 +137,7 @@ function getStateWithActiveRequest(draftOverrides: Record<string, unknown> = {})
     folder_id: null,
     name: 'List things',
     method: 'GET',
+    protocol: 'http' as const,
     url: 'https://example.com/things?a=2',
     ...draftOverrides
   };

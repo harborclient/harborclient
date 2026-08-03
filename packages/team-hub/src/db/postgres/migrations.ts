@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS requests (
   folder_id TEXT,
   name TEXT NOT NULL,
   method TEXT NOT NULL DEFAULT 'GET',
+  protocol TEXT NOT NULL DEFAULT 'http',
   url TEXT NOT NULL DEFAULT '',
   headers TEXT NOT NULL DEFAULT '[]',
   params TEXT NOT NULL DEFAULT '[]',
@@ -499,6 +500,14 @@ ALTER TABLE environments
 `.trim();
 
 /**
+ * Adds the request transport protocol column on existing databases.
+ */
+export const REQUESTS_PROTOCOL_MIGRATION_SQL = `
+ALTER TABLE requests
+  ADD COLUMN IF NOT EXISTS protocol TEXT NOT NULL DEFAULT 'http';
+`.trim();
+
+/**
  * Ordered Postgres migrations applied by {@link PostgresDatabase.migrate}.
  */
 export const POSTGRES_MIGRATIONS = [
@@ -538,5 +547,6 @@ export const POSTGRES_MIGRATIONS = [
   REQUESTS_MARKER_MIGRATION_SQL,
   DOCUMENTS_MARKER_MIGRATION_SQL,
   ENVIRONMENTS_MARKER_MIGRATION_SQL,
-  ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL
+  ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL,
+  REQUESTS_PROTOCOL_MIGRATION_SQL
 ];

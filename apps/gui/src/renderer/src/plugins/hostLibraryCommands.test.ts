@@ -107,7 +107,8 @@ function makeRequest(overrides: Partial<SavedRequest> = {}): SavedRequest {
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-02T00:00:00.000Z',
     marker: null,
-    ...overrides
+    ...overrides,
+    protocol: overrides.protocol ?? 'http'
   };
 }
 
@@ -188,6 +189,7 @@ describe('hostLibraryCommands mappers', () => {
       folder_id: 10,
       name: 'List pets',
       method: 'GET',
+      protocol: 'http' as const,
       sort_order: 1,
       marker: null,
       created_at: '2026-01-01T00:00:00.000Z'

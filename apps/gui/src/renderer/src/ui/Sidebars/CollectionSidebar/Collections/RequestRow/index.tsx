@@ -183,7 +183,7 @@ export function RequestRow({
   return (
     <div data-sidebar-request-id={req.id} className="contents">
       <SidebarRequestItem
-        method={req.method}
+        method={req.protocol === 'sse' ? 'SSE' : req.method}
         name={req.name}
         nameClassName={gitItemNameClass(gitItemStatus)}
         markerDot={{

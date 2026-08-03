@@ -8,6 +8,11 @@ import type { AuthConfig, KeyValue, ScriptRef } from '../types';
 export const httpMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 
 /**
+ * Transport protocol in portable storage records (`http` or `sse`).
+ */
+export const requestProtocol = z.enum(['http', 'sse']).default('http');
+
+/**
  * Supported request body encodings in portable storage records.
  */
 export const bodyType = z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']);

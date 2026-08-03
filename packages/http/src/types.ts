@@ -6,9 +6,9 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 
 /**
  * Transport protocol for a request tab or saved request.
  *
- * HTTP uses the buffered {@link IRequester.executeRequest} path. SSE opens a
- * long-lived session via {@link IRequester.openSession}. Additional values
- * (websocket, grpc) may be added later without changing {@link HttpMethod}.
+ * HTTP uses the buffered `executeRequest` path. SSE opens a long-lived session
+ * via `openSession`. Additional values (websocket, grpc) may be added later
+ * without changing {@link HttpMethod}.
  */
 export type RequestProtocol = 'http' | 'sse';
 

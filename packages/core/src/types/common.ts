@@ -3,7 +3,8 @@ export type {
   FormDataPart,
   FormDataPartType,
   HttpMethod,
-  KeyValue
+  KeyValue,
+  RequestProtocol
 } from '@harborclient/http';
 
 /**

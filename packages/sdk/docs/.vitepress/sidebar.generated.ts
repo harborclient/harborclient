@@ -741,6 +741,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "hc.ai.copyToChat(input)",
             "link": "/renderer-data#hcaicopytochatinput"
+          },
+          {
+            "text": "hc.ai.instructions.add(text)",
+            "link": "/renderer-data#hcaiinstructionsaddtext"
+          },
+          {
+            "text": "hc.ai.onBeforeTurn(handler)",
+            "link": "/renderer-data#hcaionbeforeturnhandler"
+          },
+          {
+            "text": "hc.ai.onAfterTurn(handler)",
+            "link": "/renderer-data#hcaionafterturnhandler"
           }
         ],
         "collapsed": false
@@ -866,6 +878,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       {
         "text": "MCP client server",
         "link": "/examples/mcp-client-server"
+      },
+      {
+        "text": "Chat pointers",
+        "link": "/examples/chat-pointers"
+      },
+      {
+        "text": "AI instructions and turn hooks",
+        "link": "/examples/ai-instructions-turn-hooks"
+      },
+      {
+        "text": "Sidebar replacement tree",
+        "link": "/examples/sidebar-replacement-tree"
       }
     ]
   },

@@ -433,7 +433,17 @@ export function applyRequestDraftToActiveTab(payload: ApplyRequestDraftPayload):
 
   const patch = applyPayloadToUpdateArgs(validated);
   const { draft: nextDraft } = applyRequestDraftUpdate(tab.draft, patch);
-  store.dispatch(updateTab({ tabId: tab.tabId, updates: { draft: nextDraft } }));
+  store.dispatch(
+    updateTab({
+      tabId: tab.tabId,
+      updates: {
+        draft: {
+          ...nextDraft,
+          protocol: nextDraft.protocol === 'sse' ? 'sse' : (tab.draft.protocol ?? 'http')
+        }
+      }
+    })
+  );
 }
 
 /**
@@ -510,6 +520,7 @@ export function pluginRequestToSaveInput(
     folder_id: folderId,
     name: trimmedName,
     method,
+    protocol: request.protocol === 'sse' ? 'sse' : 'http',
     url: typeof request.url === 'string' ? request.url : '',
     headers: headersToKeyValues(request.headers),
     params: paramsToKeyValues(request.params),

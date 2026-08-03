@@ -974,6 +974,7 @@ export class GitStorage implements IStorage {
     const exported: ExportedRequest = {
       uuid: requestUuid,
       name: trimmedName,
+      ...(input.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
       method: input.method,
       url: input.url,
       headers: input.headers,
@@ -2008,6 +2009,7 @@ export class GitStorage implements IStorage {
         ...request,
         uuid: persistedUuid,
         name: fields.name,
+        ...(fields.protocol === 'sse' ? { protocol: 'sse' as const } : { protocol: undefined }),
         method: fields.method,
         url: fields.url,
         headers: JSON.parse(fields.headersJson),
@@ -2695,6 +2697,7 @@ export class GitStorage implements IStorage {
       collection_id: collectionId,
       folder_id: folderId,
       name: request.name,
+      protocol: request.protocol === 'sse' ? 'sse' : 'http',
       method: request.method,
       url: request.url,
       headers: request.headers,

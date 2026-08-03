@@ -281,6 +281,7 @@ function normalizePersistedDraft(value: unknown): RequestDraft | null {
     collection_id: value.collection_id as number | undefined,
     folder_id: value.folder_id as number | null | undefined,
     name: value.name,
+    protocol: value.protocol === 'sse' ? 'sse' : 'http',
     method: value.method as HttpMethod,
     url: value.url,
     headers,

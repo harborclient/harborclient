@@ -351,6 +351,7 @@ export function mapFirestoreRequest(
     collectionId: data.collectionId,
     folderId: data.folderId,
     name: data.name,
+    protocol: data.protocol === 'sse' ? 'sse' : 'http',
     method: data.method as SavedRequestRecord['method'],
     url: data.url,
     headers: data.headers,

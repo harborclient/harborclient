@@ -18,7 +18,7 @@ HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Perm
 | `live-server`      | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                                                                                 |
 | `live-pages`       | Create, update, and delete saved Live Pages (websites) via `hc.livePages`                                                                                 |
 | `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
-| `ai`               | Register `@plugin…` chat pointers and copy context into the AI sidebar via `hc.ai`                                                                        |
+| `ai`               | Register `@plugin…` chat pointers, append-only agent instructions, turn hooks, and copy context into the AI sidebar via `hc.ai`                           |
 | `browser`          | Open and control embedded browser tabs via `hc.livePage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)    |
 
 Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers only; the host checks permissions and path allowlists on each call.

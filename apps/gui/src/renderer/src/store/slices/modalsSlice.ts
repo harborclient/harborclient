@@ -191,6 +191,16 @@ export interface CollectionModalState {
 }
 
 /**
+ * State for the save-request location picker (collection + optional folder).
+ */
+export interface SaveRequestModalState {
+  /**
+   * Tab id whose unsaved draft will be persisted into the chosen location.
+   */
+  tabId: string;
+}
+
+/**
  * Optional secondary action shown beside OK in the alert modal.
  */
 export type AlertModalAction =
@@ -599,6 +609,10 @@ export interface LiveServerModalState {
 
 export interface ModalsState {
   collectionModal: CollectionModalState | null;
+  /**
+   * Location picker for saving a blank request tab into a collection/folder.
+   */
+  saveRequestModal: SaveRequestModalState | null;
   workspaceModal: WorkspaceModalState | null;
   /**
    * Add Live Server modal (create entry); separate from the footer editor draft.
@@ -629,6 +643,7 @@ export interface ModalsState {
 
 const initialState: ModalsState = {
   collectionModal: null,
+  saveRequestModal: null,
   workspaceModal: null,
   addLiveServerModal: null,
   addLivePageModal: null,
@@ -681,6 +696,20 @@ const modalsSlice = createSlice({
      */
     closeCollectionModal(state) {
       state.collectionModal = null;
+    },
+    /**
+     * Opens the save-request location picker for an unsaved request tab.
+     *
+     * @param tabId - Request tab whose draft will be saved into the chosen location.
+     */
+    openSaveRequestModal(state, action: PayloadAction<{ tabId: string }>) {
+      state.saveRequestModal = { tabId: action.payload.tabId };
+    },
+    /**
+     * Closes the save-request location picker.
+     */
+    closeSaveRequestModal(state) {
+      state.saveRequestModal = null;
     },
     /**
      * Opens the Add Live Server modal (Storage / Git / Import).
@@ -1878,6 +1907,8 @@ const modalsSlice = createSlice({
 export const {
   openCollectionModal,
   closeCollectionModal,
+  openSaveRequestModal,
+  closeSaveRequestModal,
   setCollectionModalTab,
   setCollectionModalName,
   setCollectionModalProviderId,
@@ -1999,6 +2030,12 @@ export const selectCollectionModal = (state: RootState): CollectionModalState | 
   state.modals.collectionModal;
 
 /**
+ * Returns the save-request location picker state when open.
+ */
+export const selectSaveRequestModal = (state: RootState): SaveRequestModalState | null =>
+  state.modals.saveRequestModal;
+
+/**
  * Returns workspace modal state when open.
  */
 export const selectWorkspaceModal = (state: RootState): WorkspaceModalState | null =>
@@ -2109,6 +2146,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
   const modals = state.modals;
   return (
     modals.collectionModal != null ||
+    modals.saveRequestModal != null ||
     modals.addLiveServerModal != null ||
     modals.addLivePageModal != null ||
     modals.workspaceModal != null ||

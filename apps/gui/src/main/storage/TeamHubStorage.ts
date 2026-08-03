@@ -461,6 +461,7 @@ function serverToRequest(
     uuid: record.id,
     collection_id: localCollectionId,
     name: record.name,
+    protocol: record.protocol === 'sse' ? 'sse' : 'http',
     method: record.method,
     url: record.url,
     headers: record.headers,
@@ -496,6 +497,7 @@ function toServerRequestBody(
   folderServerId: string | null
 ): {
   name: string;
+  protocol: 'http' | 'sse';
   method: SaveRequestInput['method'];
   url: string;
   headers: KeyValue[];
@@ -526,6 +528,7 @@ function toServerRequestBody(
   const postScripts = bundleScriptFieldsWithLegacy(postResolved, postRequestScript);
   const result: {
     name: string;
+    protocol: 'http' | 'sse';
     method: SaveRequestInput['method'];
     url: string;
     headers: KeyValue[];
@@ -546,6 +549,7 @@ function toServerRequestBody(
     marker?: string | null;
   } = {
     name: trimRequiredName(input.name, 'Request name'),
+    protocol: input.protocol === 'sse' ? 'sse' : 'http',
     method: input.method,
     url: input.url,
     headers: input.headers,
@@ -1183,6 +1187,7 @@ export class TeamHubStorage implements IStorage {
       folder_id: existing.folder_id,
       uuid: existing.uuid,
       name: existing.name,
+      protocol: existing.protocol,
       method: existing.method,
       url: existing.url,
       headers: existing.headers,
@@ -1855,6 +1860,7 @@ export class TeamHubStorage implements IStorage {
         folder_id: folderId,
         uuid: resolveImportUuid(request.uuid),
         name: request.name,
+        protocol: request.protocol === 'sse' ? 'sse' : 'http',
         method: request.method,
         url: request.url,
         headers: request.headers,
@@ -2034,6 +2040,7 @@ export class TeamHubStorage implements IStorage {
         folder_id: folderId,
         uuid: fields.uuid,
         name: fields.name,
+        protocol: fields.protocol,
         method: fields.method,
         url: fields.url,
         headers: request.headers,

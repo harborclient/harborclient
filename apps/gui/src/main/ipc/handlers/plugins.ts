@@ -21,6 +21,10 @@ import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { setPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { getPluginUiBroker } from '#/main/plugins/PluginUiBroker';
+import {
+  registerPluginAiInstructionEntry,
+  unregisterPluginAiInstructionEntry
+} from '#/main/plugins/pluginAiInstructionsRegistry';
 import { PluginDatabaseManager } from '#/main/plugins/PluginDatabaseManager';
 import {
   setPluginDatabaseManager,
@@ -517,6 +521,34 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   handle('plugins:pushHttpAfterSend', ipcArgSchemas.pluginPushHttpAfterSend, (_event, payload) => {
     getPluginUiBroker().pushHttpAfterSend(payload.request, payload.response);
   });
+
+  handle('plugins:runAiBeforeTurn', ipcArgSchemas.pluginRunAiBeforeTurn, (_event, payload) => {
+    return getPluginUiBroker().runAiBeforeTurn(payload);
+  });
+
+  handle('plugins:pushAiAfterTurn', ipcArgSchemas.pluginPushAiAfterTurn, (_event, payload) => {
+    getPluginUiBroker().pushAiAfterTurn(payload);
+  });
+
+  handle(
+    'plugins:registerAiInstructions',
+    ipcArgSchemas.pluginRegisterAiInstructions,
+    (_event, pluginId, registrationId, text) => {
+      if (!manager) {
+        throw new Error('Plugin manager is not initialized.');
+      }
+      manager.assertPermission(pluginId, 'ai');
+      registerPluginAiInstructionEntry(pluginId, registrationId, text);
+    }
+  );
+
+  handle(
+    'plugins:unregisterAiInstructions',
+    ipcArgSchemas.pluginUnregisterAiInstructions,
+    (_event, pluginId, registrationId) => {
+      unregisterPluginAiInstructionEntry(pluginId, registrationId);
+    }
+  );
 
   handle(
     'plugins:pushLibraryChanged',

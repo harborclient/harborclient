@@ -16,7 +16,7 @@ import type {
   SnippetRecord,
   SnippetScope
 } from './types.js';
-import type { BodyType, HttpMethod, KeyValue, Variable } from './appTypes.js';
+import type { BodyType, HttpMethod, KeyValue, RequestProtocol, Variable } from './appTypes.js';
 
 /**
  * Supported HTTP methods for saved and live requests.
@@ -30,6 +30,13 @@ export const httpMethod = z.enum([
   'HEAD',
   'OPTIONS'
 ]) satisfies z.ZodType<HttpMethod>;
+
+/**
+ * Transport protocol for saved requests (`http` or `sse`).
+ */
+export const requestProtocol = z.enum(['http', 'sse']).default('http') satisfies z.ZodType<
+  RequestProtocol | undefined
+>;
 
 /**
  * Supported request body content types.
@@ -353,6 +360,7 @@ export const savedRequestRecordSchema = z.object({
   id: z.string(),
   collectionId: z.string(),
   name: z.string(),
+  protocol: requestProtocol,
   method: httpMethod,
   url: z.string(),
   headers: z.array(keyValue),

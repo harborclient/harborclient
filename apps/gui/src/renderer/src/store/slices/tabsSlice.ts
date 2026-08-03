@@ -24,6 +24,7 @@ import {
   pageRefsEqual,
   reconcileMarkdownTab,
   reconcileRequestTab,
+  SSE_SESSION_EVENT_MAX,
   type BrowserTab,
   type PageRef,
   type RequestDraft,
@@ -1072,6 +1073,55 @@ const tabsSlice = createSlice({
       }
     },
     /**
+     * Replaces the SSE session state on a request tab (connect / status changes).
+     */
+    setSseSessionState(
+      state,
+      action: PayloadAction<{ tabId: string; sseSession: import('../tabs').SseSessionState | null }>
+    ) {
+      const { tabId, sseSession } = action.payload;
+      const requestTab = state.tabs.find((t) => t.tabId === tabId);
+      if (requestTab && isRequestTab(requestTab)) {
+        requestTab.sseSession = sseSession;
+      }
+    },
+    /**
+     * Appends SSE events to a tab's session, trimming to the ring-buffer cap.
+     */
+    appendSseEvents(
+      state,
+      action: PayloadAction<{
+        tabId: string;
+        events: import('@harborclient/core/types').SseEvent[];
+      }>
+    ) {
+      const { tabId, events } = action.payload;
+      const requestTab = state.tabs.find((t) => t.tabId === tabId);
+      if (
+        !requestTab ||
+        !isRequestTab(requestTab) ||
+        !requestTab.sseSession ||
+        events.length === 0
+      ) {
+        return;
+      }
+      const session = requestTab.sseSession;
+      const next = session.events.concat(events);
+      const overflow = Math.max(0, next.length - SSE_SESSION_EVENT_MAX);
+      session.events = overflow > 0 ? next.slice(overflow) : next;
+      session.droppedCount += overflow;
+    },
+    /**
+     * Clears retained SSE events on a tab without closing the connection.
+     */
+    clearSseEvents(state, action: PayloadAction<{ tabId: string }>) {
+      const requestTab = state.tabs.find((t) => t.tabId === action.payload.tabId);
+      if (requestTab && isRequestTab(requestTab) && requestTab.sseSession) {
+        requestTab.sseSession.events = [];
+        requestTab.sseSession.droppedCount = 0;
+      }
+    },
+    /**
      * Opens a tab seeded with the given draft.
      */
     openTabWithDraft(state, action: PayloadAction<RequestDraft>) {
@@ -1236,6 +1286,9 @@ export const {
   markMarkdownSaved,
   updateTab,
   setResponseViewerTab,
+  setSseSessionState,
+  appendSseEvents,
+  clearSseEvents,
   openTabWithDraft,
   closeTabsForRequest,
   closeTabsForDocument,

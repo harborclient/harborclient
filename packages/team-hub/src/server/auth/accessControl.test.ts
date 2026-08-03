@@ -130,6 +130,7 @@ const sampleRequest: SavedRequestRecord = {
   id: 'request-a',
   collectionId: 'collection-a',
   name: 'Get health',
+  protocol: 'http' as const,
   method: 'GET',
   url: '/health',
   headers: [],

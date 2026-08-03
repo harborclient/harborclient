@@ -6,7 +6,7 @@ import {
   fieldFrame
 } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import type { HttpMethod, Variable } from '@harborclient/core/types';
+import type { HttpMethod, RequestProtocol, Variable } from '@harborclient/core/types';
 
 import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
@@ -20,6 +20,11 @@ interface Props {
   method: HttpMethod;
 
   /**
+   * Transport protocol (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
+
+  /**
    * Request URL.
    */
   url: string;
@@ -30,7 +35,7 @@ interface Props {
   variables: Variable[];
 
   /**
-   * Whether a request is in flight; swaps Send for a stop icon when true.
+   * Whether a request is in flight or an SSE session is active.
    */
   sending: boolean;
 
@@ -40,12 +45,17 @@ interface Props {
   onMethodChange: (method: HttpMethod) => void;
 
   /**
+   * Called when the transport protocol changes.
+   */
+  onProtocolChange: (protocol: RequestProtocol) => void;
+
+  /**
    * Called when the URL changes.
    */
   onUrlChange: (url: string) => void;
 
   /**
-   * Called when the user clicks Send.
+   * Called when the user clicks Send / Connect.
    */
   onSend: () => void;
 
@@ -65,7 +75,7 @@ interface Props {
   saveDisabled: boolean;
 
   /**
-   * Called when the user clicks the stop icon during an in-flight request.
+   * Called when the user clicks the stop / Disconnect control.
    */
   onCancel: () => void;
 
@@ -76,14 +86,16 @@ interface Props {
 }
 
 /**
- * Method selector, URL input, plugin toolbar actions, Send, and Save.
+ * Method selector, URL input, plugin toolbar actions, Send/Connect, and Save.
  */
 export function UrlBar({
   method,
+  protocol,
   url,
   variables,
   sending,
   onMethodChange,
+  onProtocolChange,
   onUrlChange,
   onSend,
   onSave,
@@ -93,18 +105,35 @@ export function UrlBar({
   onEditVariables
 }: Props): JSX.Element {
   const toolbarActions = usePluginRequestToolbarActions();
+  const isSse = protocol === 'sse';
 
   /**
    * Whether Save is inactive; uses aria-disabled so the control stays in tab order.
    */
   const saveInactive = saveDisabled || savingRequest;
 
+  /**
+   * Primary action label for the Send / Connect button when idle.
+   */
+  const idleLabel = isSse ? 'Connect' : 'Send';
+
+  /**
+   * Accessible name while a request or SSE session is active.
+   */
+  const busyLabel = isSse ? 'Disconnect SSE stream' : 'Cancel request';
+
   return (
     <div className="flex items-center gap-2">
       <div
         className={`request-url-bar flex h-[35px] min-w-0 flex-1 items-center ps-2 ${fieldFrame} rounded-md!`}
       >
-        <MethodSelect value={method} onChange={onMethodChange} className="mt-0.5" />
+        <MethodSelect
+          value={method}
+          protocol={protocol}
+          onChange={onMethodChange}
+          onProtocolChange={onProtocolChange}
+          className="mt-0.5"
+        />
         <div className="h-5 w-px shrink-0 bg-separator" />
         <VariableInput
           id={REQUEST_URL_INPUT_ID}
@@ -137,10 +166,18 @@ export function UrlBar({
       <Button
         type="button"
         onClick={() => (sending ? onCancel() : onSend())}
-        aria-label={sending ? 'Cancel request' : undefined}
+        aria-label={sending ? busyLabel : idleLabel}
         className="hc-send-button inline-flex min-h-[35px] w-24 shrink-0 items-center justify-center"
       >
-        {sending ? <FaIcon icon={faStop} className="h-3.5 w-3.5" aria-hidden /> : 'Send'}
+        {sending ? (
+          isSse ? (
+            'Disconnect'
+          ) : (
+            <FaIcon icon={faStop} className="h-3.5 w-3.5" aria-hidden />
+          )
+        ) : (
+          idleLabel
+        )}
       </Button>
       <Button
         type="button"

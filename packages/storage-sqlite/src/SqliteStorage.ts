@@ -202,6 +202,7 @@ export class SqliteStorage implements IStorage {
       collection_id INTEGER NOT NULL,
       name TEXT NOT NULL,
       method TEXT NOT NULL DEFAULT 'GET',
+      protocol TEXT NOT NULL DEFAULT 'http',
       url TEXT NOT NULL DEFAULT '',
       headers TEXT NOT NULL DEFAULT '[]',
       user_agent TEXT NOT NULL DEFAULT '',
@@ -343,6 +344,10 @@ export class SqliteStorage implements IStorage {
     const hasRequestUserAgent = requestColumns.some((col) => col.name === 'user_agent');
     if (!hasRequestUserAgent) {
       this.#db.exec("ALTER TABLE requests ADD COLUMN user_agent TEXT NOT NULL DEFAULT ''");
+    }
+    const hasRequestProtocol = requestColumns.some((col) => col.name === 'protocol');
+    if (!hasRequestProtocol) {
+      this.#db.exec("ALTER TABLE requests ADD COLUMN protocol TEXT NOT NULL DEFAULT 'http'");
     }
 
     this.migrateDocumentUuidColumn('collections');
@@ -838,6 +843,7 @@ export class SqliteStorage implements IStorage {
     const trimmedName = trimRequiredName(input.name, 'Request name');
     const headers = JSON.stringify(input.headers);
     const userAgent = typeof input.userAgent === 'string' ? input.userAgent : '';
+    const protocol = input.protocol === 'sse' ? 'sse' : 'http';
     const params = JSON.stringify(input.params);
     const auth = JSON.stringify(input.auth);
     const preScripts = bundleScriptFieldsWithLegacy(
@@ -875,6 +881,7 @@ export class SqliteStorage implements IStorage {
         folderId,
         trimmedName,
         input.method,
+        protocol,
         input.url,
         headers,
         userAgent,
@@ -900,7 +907,7 @@ export class SqliteStorage implements IStorage {
       const result = this.getDb()
         .prepare(
           `UPDATE requests SET
-          collection_id = ?, folder_id = ?, name = ?, method = ?, url = ?,
+          collection_id = ?, folder_id = ?, name = ?, method = ?, protocol = ?, url = ?,
           headers = ?, user_agent = ?, params = ?, auth = ?, body = ?, body_type = ?, body_raw = ?, body_raw_open = ?,
           pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           updated_at = ?${markerClause}
@@ -923,6 +930,7 @@ export class SqliteStorage implements IStorage {
       folderId,
       trimmedName,
       input.method,
+      protocol,
       input.url,
       headers,
       userAgent,
@@ -949,9 +957,9 @@ export class SqliteStorage implements IStorage {
     const result = this.getDb()
       .prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at${insertMarkerClause}
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertMarkerValues})`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${insertMarkerValues})`
       )
       .run(...insertParams);
 
@@ -1790,9 +1798,9 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, marker
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
 
       const insertDocument = database.prepare(
@@ -1815,6 +1823,7 @@ export class SqliteStorage implements IStorage {
           folderId,
           fields.name,
           fields.method,
+          fields.protocol,
           fields.url,
           fields.headersJson,
           fields.userAgent,
@@ -2028,13 +2037,13 @@ export class SqliteStorage implements IStorage {
 
       const insertRequest = database.prepare(
         `INSERT INTO requests (
-        collection_id, folder_id, name, method, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
+        collection_id, folder_id, name, method, protocol, url, headers, user_agent, params, auth, body, body_type, body_raw, body_raw_open,
         pre_request_script, post_request_script, pre_request_scripts, post_request_scripts, comment, tags, sort_order, uuid, updated_at, marker
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       );
       const updateRequest = database.prepare(
         `UPDATE requests SET
-          folder_id = ?, name = ?, method = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
+          folder_id = ?, name = ?, method = ?, protocol = ?, url = ?, headers = ?, user_agent = ?, params = ?, auth = ?,
           body = ?, body_type = ?, body_raw = ?, body_raw_open = ?, pre_request_script = ?, post_request_script = ?, pre_request_scripts = ?, post_request_scripts = ?, comment = ?, tags = ?,
           sort_order = ?, updated_at = ?, marker = ?
         WHERE id = ? AND collection_id = ?`
@@ -2079,6 +2088,7 @@ export class SqliteStorage implements IStorage {
             folderId,
             fields.name,
             fields.method,
+            fields.protocol,
             fields.url,
             fields.headersJson,
             fields.userAgent,
@@ -2108,6 +2118,7 @@ export class SqliteStorage implements IStorage {
           folderId,
           fields.name,
           fields.method,
+          fields.protocol,
           fields.url,
           fields.headersJson,
           fields.userAgent,

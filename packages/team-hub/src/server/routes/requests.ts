@@ -102,6 +102,7 @@ export async function registerRequestRoutes(app: FastifyInstance, db: IDatabase)
           {
             collectionId: request.params.collectionId,
             name: request.body.name,
+            protocol: request.body.protocol,
             method: request.body.method,
             url: request.body.url,
             headers: request.body.headers,
@@ -160,6 +161,7 @@ export async function registerRequestRoutes(app: FastifyInstance, db: IDatabase)
             id: request.params.id,
             collectionId: request.body.collectionId,
             name: request.body.name,
+            protocol: request.body.protocol,
             method: request.body.method,
             url: request.body.url,
             headers: request.body.headers,

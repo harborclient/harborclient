@@ -44,5 +44,5 @@ Features we intend to build in HarborClient itself (not only via plugins):
 - **GraphQL requests** -- first-class editor and send path (today, GraphQL bodies
   from imports are omitted).
 - **WebSocket clients** -- connect, send frames, and inspect messages in the
-  workspace.
+  workspace (builds on the same session transport as SSE).
 - **gRPC** -- explore support for unary and streaming RPC workflows.

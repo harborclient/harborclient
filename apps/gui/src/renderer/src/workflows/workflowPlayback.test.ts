@@ -61,6 +61,7 @@ function sampleRequest(): SavedRequest {
     uuid: 'req-uuid-10',
     collection_id: 1,
     name: 'List things',
+    protocol: 'http' as const,
     method: 'GET',
     url: 'https://example.com/things',
     headers: [],
@@ -779,6 +780,7 @@ describe('mergeWorkflowDraftPayload', () => {
     return {
       name: 'Old',
       method: 'GET',
+      protocol: 'http' as const,
       url: 'https://example.com',
       headers: [emptyKeyValue()],
       params: [emptyKeyValue()],

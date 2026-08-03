@@ -8,6 +8,7 @@ const sampleRequest = {
   id: 'request-1',
   collectionId: 'collection-1',
   name: 'Get health',
+  protocol: 'http' as const,
   method: 'GET' as const,
   url: '/health',
   headers: [],

@@ -82,7 +82,7 @@ import {
   selectWorkspaceSettingsDirty
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
-  openCollectionModal,
+  openSaveRequestModal,
   setPendingLoadRequest
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
@@ -91,10 +91,12 @@ import {
   loadRequest,
   newTab,
   openTabWithDraft,
+  setSseSessionState,
   updateActiveTabDraftAfterSave,
   updateTab
 } from '#/renderer/src/store/slices/tabsSlice';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
+import { resolveActiveCollectionTargetId } from '#/renderer/src/store/resolveActiveCollectionTargetId';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
 import {
   moveRequestToFolder,
@@ -120,6 +122,7 @@ export function buildRequestExport(req: SavedRequest): RequestExport {
     harborclientExport: 'request',
     uuid: req.uuid,
     name: req.name,
+    ...(req.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
     method: req.method,
     url: req.url,
     headers: req.headers,
@@ -196,26 +199,47 @@ export const importRequest = createAsyncThunk<
 });
 
 /**
+ * Optional overrides for {@link persistRequestTab} when the caller picks a
+ * collection and/or folder explicitly (save-location modal).
+ */
+interface PersistRequestTabOptions {
+  /**
+   * Explicit target collection id; overrides draft and selection when provided.
+   */
+  collectionId?: number;
+
+  /**
+   * Explicit folder id for first-time saves into a collection.
+   * `null` means collection root; `undefined` means derive from draft/selection rules.
+   */
+  folderId?: number | null;
+}
+
+/**
  * Persists a single request tab draft to storage and syncs tab saved state.
  *
  * @param tab - Open request tab to save.
  * @param getState - Reads current Redux state for collection selection and snippets.
  * @param dispatch - Dispatches tab updates after persistence.
- * @param collectionId - Explicit target collection id; overrides draft and selection when provided.
+ * @param options - Explicit collection and/or folder overrides from the save picker.
  * @returns The saved request from storage.
  */
 async function persistRequestTab(
   tab: RequestTab,
   getState: () => RootState,
   dispatch: (action: ReturnType<typeof updateActiveTabDraftAfterSave>) => void,
-  collectionId?: number
+  options?: PersistRequestTabOptions
 ): Promise<SavedRequest> {
   const state = getState();
   const currentDraft = tab.draft;
+  const collectionId = options?.collectionId;
   const targetId =
     collectionId ??
     (currentDraft.id != null ? currentDraft.collection_id : undefined) ??
-    state.collections.selectedCollectionId;
+    resolveActiveCollectionTargetId(
+      state.collections.collections,
+      state.collections.selectedCollectionId
+    );
   if (targetId == null) {
     throw new Error('Select a collection first');
   }
@@ -230,17 +254,21 @@ async function persistRequestTab(
     normalizeScriptRefs(currentDraft.post_request_scripts),
     getState().snippets.snippets
   );
-  const persistFolderId = sameCollection
-    ? shouldUpdate
-      ? resolvePersistFolderId(currentDraft, targetId, state.collections.requestsByCollection)
-      : (currentDraft.folder_id ?? null)
-    : null;
+  const persistFolderId =
+    options?.folderId !== undefined
+      ? options.folderId
+      : sameCollection
+        ? shouldUpdate
+          ? resolvePersistFolderId(currentDraft, targetId, state.collections.requestsByCollection)
+          : (currentDraft.folder_id ?? null)
+        : null;
 
   const saved = await window.api.saveRequest({
     id: shouldUpdate ? currentDraft.id : undefined,
     collection_id: targetId,
     folder_id: persistFolderId,
     name: currentDraft.name,
+    protocol: currentDraft.protocol === 'sse' ? 'sse' : 'http',
     method: currentDraft.method,
     url: currentDraft.url,
     headers: currentDraft.headers.filter((h) => h.key.trim() || h.value.trim()),
@@ -290,7 +318,61 @@ export const saveRequest = createAsyncThunk<SavedRequest, number | undefined, Th
     const activeTab = selectActiveTab(getState());
     if (!activeTab || !isRequestTab(activeTab)) throw new Error('No active tab');
 
-    const saved = await persistRequestTab(activeTab, getState, dispatch, collectionId);
+    const saved = await persistRequestTab(
+      activeTab,
+      getState,
+      dispatch,
+      collectionId != null ? { collectionId } : undefined
+    );
+    await dispatch(refreshRequests(saved.collection_id));
+    return saved;
+  }
+);
+
+/**
+ * Arguments for {@link saveRequestToLocation}.
+ */
+export interface SaveRequestLocationArgs {
+  /**
+   * Tab to save; defaults to the active request tab when omitted.
+   */
+  tabId?: string;
+
+  /**
+   * Target collection id chosen in the save-location picker.
+   */
+  collectionId: number;
+
+  /**
+   * Target folder id, or null for the collection root.
+   */
+  folderId?: number | null;
+}
+
+/**
+ * Persists a request tab into an explicitly chosen collection and optional folder.
+ */
+export const saveRequestToLocation = createAsyncThunk<
+  SavedRequest,
+  SaveRequestLocationArgs,
+  ThunkApiConfig
+>(
+  'tabs/saveRequestToLocation',
+  async ({ tabId, collectionId, folderId }, { dispatch, getState }) => {
+    const state = getState();
+    const tab =
+      tabId != null
+        ? state.tabs.tabs.find((entry) => entry.tabId === tabId)
+        : selectActiveTab(state);
+    if (tab == null || !isRequestTab(tab)) {
+      throw new Error('No active tab');
+    }
+
+    const saved = await persistRequestTab(tab, getState, dispatch, {
+      collectionId,
+      folderId: folderId ?? null
+    });
+    dispatch(setSelectedCollectionId(collectionId));
     await dispatch(refreshRequests(saved.collection_id));
     return saved;
   }
@@ -339,7 +421,7 @@ export const saveAllDirtyRequests = createAsyncThunk<
   }
 
   for (const tab of tabs) {
-    await persistRequestTab(tab, getState, dispatch, collectionId);
+    await persistRequestTab(tab, getState, dispatch, { collectionId });
   }
 
   await dispatch(refreshCollectionContents(collectionId));
@@ -378,6 +460,7 @@ export const newRequestInFolder = createAsyncThunk<
     collection_id: collectionId,
     folder_id: folderId,
     name: 'Untitled Request',
+    protocol: 'http' as const,
     method: 'GET',
     url: '',
     headers: [],
@@ -421,6 +504,7 @@ export const duplicateRequest = createAsyncThunk<SavedRequest, SavedRequest, Thu
       collection_id: req.collection_id,
       folder_id: folderId,
       name: `${req.name} (copy)`,
+      protocol: req.protocol === 'sse' ? 'sse' : 'http',
       method: req.method,
       url: req.url,
       headers: req.headers,
@@ -467,6 +551,7 @@ export const newRequestInCollection = createAsyncThunk<SavedRequest, number, Thu
     const saved = await window.api.saveRequest({
       collection_id: collectionId,
       name: 'Untitled Request',
+      protocol: 'http' as const,
       method: 'GET',
       url: '',
       headers: [],
@@ -566,6 +651,74 @@ export interface ExecuteRequestDraftArgs {
    * Open request tab that owns this send; recorded on console entries for jump-to-editor.
    */
   requestTabId?: string;
+  /**
+   * Execution mode. `http` (default) runs the buffered send path. `sse-open` runs
+   * pre-scripts, opens an SSE session, and returns without waiting for events or
+   * running post-scripts.
+   */
+  mode?: 'http' | 'sse-open';
+}
+
+/**
+ * Maximum concatenated SSE raw bytes included in a synthetic close summary.
+ */
+const SSE_CLOSE_BODY_MAX_CHARS = 512_000;
+
+/**
+ * Builds an empty {@link RequestRunOutcome} used when SSE requests are skipped.
+ *
+ * @param error - User-facing skip reason stored on the synthetic response.
+ * @returns Outcome marked as script-skipped with a zeroed response.
+ */
+function skippedSseOutcome(error: string): RequestRunOutcome {
+  return {
+    response: {
+      status: 0,
+      statusText: 'Skipped',
+      headers: {},
+      body: '',
+      timeMs: 0,
+      sizeBytes: 0,
+      error
+    },
+    testResults: [],
+    scriptLogs: [],
+    executionEvents: [],
+    data: {},
+    cookies: [],
+    scriptSkipRequest: true
+  };
+}
+
+/**
+ * Builds a synthetic {@link SendResult} summarizing a closed SSE session for the
+ * response pane and optional post-script hooks.
+ *
+ * @param tab - Request tab that owned the session.
+ * @returns Send result derived from handshake metadata and retained events.
+ */
+function syntheticSseCloseResult(tab: RequestTab): SendResult {
+  const session = tab.sseSession;
+  const openInfo = session?.openInfo;
+  const raw = (session?.events ?? []).map((event) => event.raw).join('\n\n');
+  const body =
+    raw.length > SSE_CLOSE_BODY_MAX_CHARS
+      ? `${raw.slice(0, SSE_CLOSE_BODY_MAX_CHARS)}\n\n… [truncated]`
+      : raw;
+  const timeMs =
+    session?.openedAt != null
+      ? Math.max(0, (session.closedAt ?? Date.now()) - session.openedAt)
+      : 0;
+  return {
+    status: openInfo?.status ?? 0,
+    statusText: openInfo?.statusText ?? (session?.status === 'error' ? 'Error' : 'Closed'),
+    headers: openInfo?.headers ?? {},
+    body,
+    timeMs,
+    sizeBytes: new TextEncoder().encode(body).byteLength,
+    ...(session?.error ? { error: session.error } : {}),
+    ...(openInfo?.timing ? { timing: openInfo.timing } : {})
+  };
 }
 
 /**
@@ -580,10 +733,30 @@ export async function executeRequestDraft(
   args: ExecuteRequestDraftArgs,
   deps: { dispatch: ThunkDispatch<RootState, unknown, UnknownAction>; getState: () => RootState }
 ): Promise<RequestRunOutcome> {
-  const { draft: currentDraft, requestId, recordHistory = true, requestTabId } = args;
+  const {
+    draft: currentDraft,
+    requestId,
+    recordHistory = true,
+    requestTabId,
+    mode = 'http'
+  } = args;
   const { dispatch, getState } = deps;
+
+  if (currentDraft.protocol === 'sse' && mode === 'http') {
+    return skippedSseOutcome(
+      'SSE requests cannot run in the collection runner. Open the request and use Connect.'
+    );
+  }
+
   const state = getState();
-  const collectionId = currentDraft.collection_id ?? state.collections.selectedCollectionId;
+  const collectionId =
+    currentDraft.collection_id ??
+    (currentDraft.id == null
+      ? null
+      : resolveActiveCollectionTargetId(
+          state.collections.collections,
+          state.collections.selectedCollectionId
+        ));
   const collection = collectionId
     ? state.collections.collections.find((c) => c.id === collectionId)
     : undefined;
@@ -888,6 +1061,48 @@ export async function executeRequestDraft(
         sizeBytes: 0,
         error: 'Request skipped by script'
       };
+    } else if (mode === 'sse-open') {
+      const sendInput = await buildSendInput(
+        {
+          request: scriptRequest,
+          requestIdentity: {
+            id: currentDraft.id,
+            name: currentDraft.name,
+            bodyRaw: currentDraft.body_raw
+          },
+          collection: collection
+            ? { ...collection, headers: collectionHeaderRows, auth: collectionAuthConfig }
+            : undefined,
+          folder: folder
+            ? { ...folder, headers: folderHeaderRows, auth: folderAuthConfig }
+            : undefined
+        },
+        scriptRequest,
+        runtimeVars,
+        {
+          settings: state.settings.general,
+          fetchOAuthToken: (cacheKey, config) => window.api.oauthFetchToken(cacheKey, config, false)
+        }
+      );
+
+      await window.api.openSseSession(
+        {
+          protocol: 'sse',
+          url: sendInput.url,
+          headers: sendInput.headers,
+          params: sendInput.params
+        },
+        requestId
+      );
+
+      result = {
+        status: 0,
+        statusText: 'Connecting',
+        headers: {},
+        body: '',
+        timeMs: 0,
+        sizeBytes: 0
+      };
     } else {
       const sendInput = await buildSendInput(
         {
@@ -926,7 +1141,7 @@ export async function executeRequestDraft(
       result = applyScriptResponseOverride(result, scriptResponseOverride);
     }
 
-    if (!scriptSkipRequest) {
+    if (!scriptSkipRequest && mode !== 'sse-open') {
       scriptResponseOverride = undefined;
       await runScriptPhase('post', result);
       if (scriptResponseOverride) {
@@ -1083,6 +1298,7 @@ export async function executeRequestDraft(
             collection_id: savedRequest.collection_id,
             folder_id: savedRequest.folder_id ?? null,
             name: savedRequest.name,
+            protocol: savedRequest.protocol === 'sse' ? 'sse' : 'http',
             method: savedRequest.method,
             url: savedRequest.url,
             headers: savedRequest.headers,
@@ -1211,6 +1427,185 @@ export async function executeRequestDraft(
 }
 
 /**
+ * Opens an SSE session for the active (or specified) request tab without waiting
+ * for a buffered response. Events arrive via {@link window.api.onSseEvent}.
+ *
+ * @returns Pre-script outcome, or null when the tab was missing / already sending.
+ */
+export const openSseStream = createAsyncThunk<
+  RequestRunOutcome | null,
+  string | undefined,
+  ThunkApiConfig
+>('tabs/openSseStream', async (tabIdArg, { dispatch, getState }) => {
+  const state = getState();
+  const activeTab = tabIdArg
+    ? state.tabs.tabs.find((tab) => tab.tabId === tabIdArg)
+    : selectActiveTab(state);
+  if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) {
+    return null;
+  }
+  if (activeTab.draft.protocol !== 'sse') {
+    return null;
+  }
+
+  const tabId = activeTab.tabId;
+  const requestId = crypto.randomUUID();
+
+  /**
+   * Returns whether the tab still owns this SSE open attempt.
+   */
+  const isRequestStillActive = (): boolean => {
+    const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    return tab != null && isRequestTab(tab) && tab.sendingRequestId === requestId;
+  };
+
+  dispatch(
+    updateTab({
+      tabId,
+      updates: {
+        sending: true,
+        response: null,
+        testResults: [],
+        scriptLogs: [],
+        executionEvents: [],
+        scriptError: undefined,
+        scriptErrors: undefined,
+        scriptNextRequest: undefined,
+        scriptSkipRequest: false,
+        scriptWorkflowNextAction: undefined,
+        scriptWorkflowSkipAction: false,
+        sendingRequestId: requestId,
+        sseSession: {
+          status: 'connecting',
+          events: [],
+          droppedCount: 0,
+          openedAt: Date.now()
+        }
+      }
+    })
+  );
+
+  try {
+    const outcome = await executeRequestDraft(
+      {
+        draft: activeTab.draft,
+        requestId,
+        requestTabId: tabId,
+        mode: 'sse-open',
+        recordHistory: false
+      },
+      { dispatch, getState }
+    );
+
+    if (isRequestStillActive()) {
+      dispatch(
+        updateTab({
+          tabId,
+          updates: {
+            testResults: outcome.testResults,
+            scriptLogs: outcome.scriptLogs,
+            executionEvents: outcome.executionEvents,
+            scriptError: outcome.scriptError,
+            scriptErrors: outcome.scriptErrors,
+            scriptNextRequest: outcome.scriptNextRequest,
+            scriptSkipRequest: outcome.scriptSkipRequest,
+            scriptWorkflowNextAction: outcome.scriptWorkflowNextAction,
+            scriptWorkflowSkipAction: outcome.scriptWorkflowSkipAction
+          }
+        })
+      );
+    }
+
+    if (outcome.scriptSkipRequest && isRequestStillActive()) {
+      dispatch(
+        updateTab({
+          tabId,
+          updates: {
+            sending: false,
+            sendingRequestId: null,
+            response: outcome.response,
+            sseSession: null
+          }
+        })
+      );
+    }
+
+    return outcome;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (isRequestStillActive()) {
+      dispatch(
+        setSseSessionState({
+          tabId,
+          sseSession: {
+            status: 'error',
+            events: [],
+            droppedCount: 0,
+            openedAt: Date.now(),
+            closedAt: Date.now(),
+            error: message
+          }
+        })
+      );
+      dispatch(updateTab({ tabId, updates: { sending: false, sendingRequestId: null } }));
+    }
+    toast.error(message);
+    return null;
+  }
+});
+
+/**
+ * Closes the SSE session owned by a request tab and stores a synthetic summary.
+ *
+ * @param tabId - Request tab whose session should be closed.
+ */
+export const closeSseStream = createAsyncThunk<void, string, ThunkApiConfig>(
+  'tabs/closeSseStream',
+  async (tabId, { dispatch, getState }) => {
+    const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    if (!tab || !isRequestTab(tab) || !tab.sendingRequestId) {
+      return;
+    }
+
+    const requestId = tab.sendingRequestId;
+    try {
+      await window.api.closeSseSession(requestId);
+    } catch {
+      // Session may already be closed by the server or a prior cancel.
+    }
+
+    const latest = getState().tabs.tabs.find((t) => t.tabId === tabId);
+    if (!latest || !isRequestTab(latest) || latest.sendingRequestId !== requestId) {
+      return;
+    }
+
+    const closedSession = latest.sseSession
+      ? {
+          ...latest.sseSession,
+          status: 'closed' as const,
+          closedAt: Date.now()
+        }
+      : null;
+    const summary = syntheticSseCloseResult({
+      ...latest,
+      sseSession: closedSession
+    });
+
+    dispatch(
+      updateTab({
+        tabId,
+        updates: {
+          sending: false,
+          sendingRequestId: null,
+          response: summary,
+          sseSession: closedSession
+        }
+      })
+    );
+  }
+);
+
+/**
  * Sends the active tab request, running pre/post scripts and recording console output.
  *
  * @returns Completed send outcome, or null when the tab was missing / already sending.
@@ -1226,6 +1621,12 @@ export const sendRequest = createAsyncThunk<
     : selectActiveTab(state);
   if (!activeTab || !isRequestTab(activeTab) || activeTab.sending) {
     return null;
+  }
+
+  if (activeTab.draft.protocol === 'sse') {
+    return dispatch(openSseStream(tabIdArg ?? activeTab.tabId)).then((action) =>
+      openSseStream.fulfilled.match(action) ? action.payload : null
+    );
   }
 
   const tabId = activeTab.tabId;
@@ -1254,7 +1655,8 @@ export const sendRequest = createAsyncThunk<
         scriptSkipRequest: false,
         scriptWorkflowNextAction: undefined,
         scriptWorkflowSkipAction: false,
-        sendingRequestId: requestId
+        sendingRequestId: requestId,
+        sseSession: null
       }
     })
   );
@@ -1294,13 +1696,18 @@ export const sendRequest = createAsyncThunk<
 });
 
 /**
- * Cancels the in-flight HTTP request owned by a specific tab.
+ * Cancels the in-flight HTTP request or SSE session owned by a specific tab.
  */
 export const cancelRequest = createAsyncThunk<void, string, ThunkApiConfig>(
   'tabs/cancelRequest',
   async (tabId, { dispatch, getState }) => {
     const tab = getState().tabs.tabs.find((t) => t.tabId === tabId);
     if (!tab || !isRequestTab(tab) || !tab.sendingRequestId) return;
+
+    if (tab.draft.protocol === 'sse' || tab.sseSession != null) {
+      await dispatch(closeSseStream(tabId));
+      return;
+    }
 
     await window.api.cancelRequest(tab.sendingRequestId);
     dispatch(
@@ -1429,9 +1836,8 @@ export const saveFromMenu = createAsyncThunk<void, void, ThunkApiConfig>(
       return;
     }
 
-    const selectedCollectionId = state.collections.selectedCollectionId;
-    if (selectedCollectionId == null) {
-      dispatch(openCollectionModal({ mode: 'create-and-save' }));
+    if (activeTab.draft.id == null || activeTab.draft.collection_id == null) {
+      dispatch(openSaveRequestModal({ tabId: activeTab.tabId }));
       return;
     }
     await dispatch(saveRequest()).unwrap();

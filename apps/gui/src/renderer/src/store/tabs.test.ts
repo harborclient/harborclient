@@ -30,6 +30,7 @@ import type { CollectionDocument } from '@harborclient/core/types';
 const sampleDraft = (): RequestDraft => ({
   name: 'Sample',
   method: 'POST',
+  protocol: 'http' as const,
   url: 'https://example.com',
   headers: [{ key: 'Authorization', value: 'Bearer token', enabled: true }],
   params: [{ key: 'page', value: '1', enabled: true }],
@@ -414,7 +415,8 @@ describe('reconcileRequestTab', () => {
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
     ...overrides,
-    userAgent: overrides.userAgent ?? ''
+    userAgent: overrides.userAgent ?? '',
+    protocol: overrides.protocol ?? 'http'
   });
 
   it('pulls external disk changes into a clean tab', () => {
@@ -600,6 +602,7 @@ describe('draftFromSaved', () => {
       uuid: '',
       collection_id: 10,
       name: 'Saved',
+      protocol: 'http' as const,
       method: 'PUT',
       url: 'https://api.example.com',
       headers: [{ key: 'X-Test', value: '1', enabled: true }],
@@ -652,6 +655,7 @@ describe('draftFromSaved', () => {
       uuid: '',
       collection_id: 10,
       name: 'Disabled param',
+      protocol: 'http' as const,
       method: 'GET',
       url: 'https://example.com',
       headers: [],
@@ -686,6 +690,7 @@ describe('draftFromSaved', () => {
       uuid: '',
       collection_id: 10,
       name: 'Hash URL',
+      protocol: 'http' as const,
       method: 'GET',
       url: 'https://example.com/path#frag',
       headers: [],
@@ -717,6 +722,7 @@ describe('draftFromSaved', () => {
       uuid: '',
       collection_id: 10,
       name: 'Already synced',
+      protocol: 'http' as const,
       method: 'GET',
       url: 'https://example.com?foo=bar',
       headers: [],
@@ -748,6 +754,7 @@ describe('draftFromSaved', () => {
       uuid: '',
       collection_id: 10,
       name: 'Empty rows',
+      protocol: 'http' as const,
       method: 'GET',
       url: '',
       headers: [],

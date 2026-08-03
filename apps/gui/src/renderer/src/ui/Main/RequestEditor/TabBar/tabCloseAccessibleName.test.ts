@@ -10,6 +10,7 @@ describe('tabCloseAccessibleName', () => {
       draft: {
         name: 'Get users',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com/users',
         headers: [{ key: '', value: '', enabled: true }],
         params: [{ key: '', value: '', enabled: true }],
@@ -29,6 +30,7 @@ describe('tabCloseAccessibleName', () => {
       savedDraft: {
         name: 'Get users',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [{ key: '', value: '', enabled: true }],
         params: [{ key: '', value: '', enabled: true }],

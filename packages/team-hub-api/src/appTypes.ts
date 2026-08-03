@@ -4,6 +4,11 @@
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 /**
+ * Transport protocol for a saved request (`http` or `sse`).
+ */
+export type RequestProtocol = 'http' | 'sse';
+
+/**
  * Request body content type.
  */
 export type BodyType = 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';

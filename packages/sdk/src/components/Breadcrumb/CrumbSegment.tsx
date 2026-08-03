@@ -35,10 +35,13 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
     segment.onClick?.();
   };
 
+  const showLabel = !segment.iconOnly && segment.label.length > 0;
+  const accessibleName = segment.ariaLabel ?? (showLabel ? undefined : segment.label);
+
   const content: ReactNode = (
     <>
       {segment.icon && <FaIcon icon={segment.icon} className="h-3.5 w-3.5 shrink-0" />}
-      <span className="min-w-0 truncate">{segment.label}</span>
+      {showLabel ? <span className="min-w-0 truncate">{segment.label}</span> : null}
     </>
   );
 
@@ -51,12 +54,15 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
             contentClass,
             'app-no-drag focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
           )}
+          aria-label={accessibleName}
           onClick={handleClick}
         >
           {content}
         </button>
       ) : (
-        <span className={contentClass}>{content}</span>
+        <span className={contentClass} aria-label={accessibleName}>
+          {content}
+        </span>
       )}
     </SegmentShell>
   );

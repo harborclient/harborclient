@@ -17,6 +17,7 @@ const savedRequest: SavedRequest = {
   collection_id: 3,
   folder_id: null,
   name: 'Get users',
+  protocol: 'http' as const,
   method: 'GET',
   url: 'https://example.com/users',
   headers: [],

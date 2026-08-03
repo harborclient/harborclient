@@ -157,18 +157,18 @@ Declare required capabilities in the `permissions` array. HarborClient summarize
 
 Common renderer permissions:
 
-| Permission       | Use when your plugin needs to…                                                          |
-| ---------------- | --------------------------------------------------------------------------------------- |
-| `ui`             | Register settings, themes, commands, import handlers, or other UI contributions         |
-| `mcp`            | Register remote MCP client servers with `hc.mcp.registerServer` for Harbor's chat agent |
-| `ai`             | Register `@plugin…` chat pointers and copy context into the AI sidebar with `hc.ai`     |
-| `browser`        | Open and control embedded browser tabs via `hc.livePage`                                |
-| `live-server`    | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`               |
-| `live-pages`     | Create, update, and delete saved Live Pages via `hc.livePages`                          |
-| `storage`        | Persist plugin-scoped key-value data with `hc.storage`                                  |
-| `http`           | HTTP request hooks in the main process (`onBeforeSend` / `onAfterSend`)                 |
-| `scripts:inject` | Inject and observe pre/post request scripts (`onBeforeScripts` / `onAfterScripts`)      |
-| `network`        | Send outbound HTTP from the renderer via `hc.host.fetch`                                |
+| Permission       | Use when your plugin needs to…                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `ui`             | Register settings, themes, commands, import handlers, or other UI contributions                        |
+| `mcp`            | Register remote MCP client servers with `hc.mcp.registerServer` for Harbor's chat agent                |
+| `ai`             | Register `@plugin…` chat pointers, append-only instructions, turn hooks, and copy-to-chat with `hc.ai` |
+| `browser`        | Open and control embedded browser tabs via `hc.livePage`                                               |
+| `live-server`    | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                              |
+| `live-pages`     | Create, update, and delete saved Live Pages via `hc.livePages`                                         |
+| `storage`        | Persist plugin-scoped key-value data with `hc.storage`                                                 |
+| `http`           | HTTP request hooks in the main process (`onBeforeSend` / `onAfterSend`)                                |
+| `scripts:inject` | Inject and observe pre/post request scripts (`onBeforeScripts` / `onAfterScripts`)                     |
+| `network`        | Send outbound HTTP from the renderer via `hc.host.fetch`                                               |
 
 Example permission rationale in a plugin `description` Markdown file:
 

@@ -43,8 +43,17 @@ const MENU_WIDTH_PX = 280;
 /** Estimated height before the panel is measured. */
 const MENU_HEIGHT_PX = 360;
 
-/** HTTP methods offered in the method filter select. */
-const FILTER_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+/** HTTP methods and SSE offered in the method filter select. */
+const FILTER_METHODS: Array<HttpMethod | 'SSE'> = [
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'HEAD',
+  'OPTIONS',
+  'SSE'
+];
 
 interface Props {
   /**
@@ -308,7 +317,7 @@ export function CollectionsFilterMenu({
               const next = event.target.value;
               setDraft((current) => ({
                 ...current,
-                method: next === '' ? null : (next as HttpMethod)
+                method: next === '' ? null : (next as HttpMethod | 'SSE')
               }));
             }}
           >

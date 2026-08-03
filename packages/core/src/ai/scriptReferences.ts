@@ -83,6 +83,15 @@ export {
 } from './chatPointers/registry.js';
 
 export {
+  registerPluginAiInstructions,
+  unregisterPluginAiInstructions,
+  clearPluginAiInstructions,
+  getPluginAiInstructions,
+  listPluginAiInstructions,
+  resetPluginAiInstructionsForTests
+} from './pluginAiInstructions.js';
+
+export {
   buildConsoleReferenceToken,
   slugifyConsolePointerSegment,
   CONSOLE_POINTER_SEGMENT_PATTERN

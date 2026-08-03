@@ -122,6 +122,7 @@ function mapTeamHubAdminCollectionContents(
     requests: requests.map((request) => ({
       id: request.id,
       name: request.name,
+      protocol: request.protocol === 'sse' ? 'sse' : 'http',
       method: request.method,
       url: request.url,
       folderId: request.folderId,

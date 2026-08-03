@@ -3,6 +3,7 @@
  */
 
 import { getChatPointerAgentGuidance } from '../chatPointers/registry.js';
+import { getPluginAiInstructions } from '../pluginAiInstructions.js';
 import '../scriptReferences.js';
 
 /**
@@ -48,25 +49,31 @@ You can inspect live app state and perform limited actions using the provided to
 32. When a user message contains @live-server.<uuid>, prefer any live-server context already included in the system message, then call get_live_server and list_running_live_servers (and get_live_server_logs when diagnosing traffic) as needed. Refer to the server by its display name in replies.`;
 
 /**
- * Builds the full agent system prompt including registered chat-pointer guidance.
+ * Builds the full agent system prompt including registered chat-pointer guidance
+ * and append-only plugin instruction fragments.
  *
  * @returns System prompt string for the chat agent.
  */
 export function buildAiSystemPrompt(): string {
   const pointerGuidance = getChatPointerAgentGuidance().trim();
-  if (!pointerGuidance) {
-    return AI_SYSTEM_PROMPT_BASE;
+  const pluginInstructions = getPluginAiInstructions().trim();
+  const sections: string[] = [AI_SYSTEM_PROMPT_BASE];
+
+  if (pointerGuidance) {
+    sections.push(`Chat pointer (@ mention) guidance:\n${pointerGuidance}`);
+  }
+  if (pluginInstructions) {
+    sections.push(`Plugin instructions:\n${pluginInstructions}`);
   }
 
-  return `${AI_SYSTEM_PROMPT_BASE}
-
-Chat pointer (@ mention) guidance:
-${pointerGuidance}`;
+  return sections.join('\n\n');
 }
 
 /**
  * System prompt instructing the agent when and how to use HarborClient tools.
  *
- * Includes builtin (and any dynamically registered) chat-pointer agentGuidance.
+ * Includes builtin (and any dynamically registered) chat-pointer agentGuidance
+ * plus plugin `hc.ai.instructions` fragments. Prefer {@link buildAiSystemPrompt}
+ * when instructions may have changed since module load.
  */
 export const AI_SYSTEM_PROMPT = buildAiSystemPrompt();

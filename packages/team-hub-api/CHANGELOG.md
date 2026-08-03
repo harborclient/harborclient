@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
+
 ## 0.6.2 - 2026-08-02
 
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)

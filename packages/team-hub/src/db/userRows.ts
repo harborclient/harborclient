@@ -178,7 +178,7 @@ export const FOLDER_SELECT_COLUMNS = `id, collection_id, parent_folder_id, name,
 /**
  * Column list for SELECT queries against the requests table.
  */
-export const REQUEST_SELECT_COLUMNS = `id, collection_id, folder_id, name, method, url, headers, params, auth, body, body_type, pre_request_script, post_request_script, comment, sort_order, created_at, updated_at, created_by_user_id, updated_by_user_id, marker`;
+export const REQUEST_SELECT_COLUMNS = `id, collection_id, folder_id, name, method, protocol, url, headers, params, auth, body, body_type, pre_request_script, post_request_script, comment, sort_order, created_at, updated_at, created_by_user_id, updated_by_user_id, marker`;
 
 /**
  * Column list for SELECT queries against the documents table.

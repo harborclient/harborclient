@@ -41,7 +41,6 @@ import {
   selectScriptError,
   selectScriptErrors,
   selectScriptLogs,
-  selectSelectedCollectionId,
   selectSending,
   selectTabs,
   selectTestResults
@@ -81,6 +80,7 @@ import {
   focusSidebarItem,
   saveFromMenu
 } from '#/renderer/src/store/thunks';
+import { openSaveRequestModal } from '#/renderer/src/store/slices/modalsSlice';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { maybePersistLiveServerLastOpenedFromNavigation } from '#/renderer/src/store/thunks/liveServers';
 import { maybePersistWebsiteFaviconFromNavigation } from '#/renderer/src/store/thunks/websites';
@@ -199,7 +199,7 @@ function mergeVariables(
  */
 export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const dispatch = useAppDispatch();
-  const { revealCollection, revealFolder } = useSidebarExpansion();
+  const { revealCollection, revealArchivedCollection, revealFolder } = useSidebarExpansion();
   const { aiAvailable, copyToChat } = useCopyToChat();
   const tabs = useAppSelector(selectTabs);
 
@@ -227,7 +227,6 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
-  const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collectionSettingsDirty = useAppSelector(selectCollectionSettingsDirty);
   const environmentSettingsDirty = useAppSelector(selectEnvironmentSettingsDirty);
   const folderSettingsDirty = useAppSelector(selectFolderSettingsDirty);
@@ -391,10 +390,15 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     setSize(persistedSplitHeight);
   }, [persistedSplitHeight, setSize]);
 
-  const activeCollectionId =
-    draft.collection_id ?? activeMarkdownTab?.collectionId ?? selectedCollectionId;
+  const draftCollectionId = draft.collection_id ?? activeMarkdownTab?.collectionId;
+  const activeCollectionId = draftCollectionId ?? null;
   const activeCollection =
     activeCollectionId != null ? collections.find((c) => c.id === activeCollectionId) : undefined;
+  /**
+   * True when the active request tab has never been persisted into a collection.
+   */
+  const isCollectionLessRequest =
+    activeTab != null && isRequestTab(activeTab) && draft.id == null && draft.collection_id == null;
   const activeEnvironment =
     activeEnvironmentId != null
       ? environments.find((env) => env.id === activeEnvironmentId)
@@ -806,11 +810,20 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                       variables={activeVariables}
                       collectionName={activeCollectionName}
                       folderName={activeFolderName}
+                      showCollectionPlaceholder={isCollectionLessRequest}
                       onEditVariables={onEditVariables}
                       onCollectionClick={() => {
+                        if (isCollectionLessRequest && activeTabId != null) {
+                          dispatch(openSaveRequestModal({ tabId: activeTabId }));
+                          return;
+                        }
                         if (activeCollectionId == null) return;
                         dispatch(focusSidebarItem({ collectionId: activeCollectionId }));
-                        revealCollection(activeCollectionId);
+                        if (activeCollection?.archived) {
+                          revealArchivedCollection(activeCollectionId);
+                        } else {
+                          revealCollection(activeCollectionId);
+                        }
                       }}
                       onFolderClick={() => {
                         if (activeCollectionId == null || activeFolderId == null) return;
@@ -858,6 +871,12 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
                     scriptErrors={scriptErrors}
                     requestUrl={draft.url}
                     requestTabId={activeTabId}
+                    protocol={draft.protocol === 'sse' ? 'sse' : 'http'}
+                    sseSession={
+                      activeTab != null && isRequestTab(activeTab)
+                        ? (activeTab.sseSession ?? null)
+                        : null
+                    }
                     onCancel={() => void dispatch(cancelRequest(activeTabId))}
                     onClear={clearActiveResponse}
                   />

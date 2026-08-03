@@ -20,13 +20,19 @@ export type {
   FormDataPartType,
   HttpMethod,
   KeyValue,
+  NetworkSession,
   ProxyProtocol,
   ProxySettings,
   RedirectHop,
+  RequestProtocol,
   RequestTimingPhases,
   SendRequestInput,
   SendResult,
-  SentRequest
+  SentRequest,
+  SessionHandlers,
+  SessionOpenInfo,
+  SessionOpenInput,
+  SseEvent
 } from './types.js';
 export { Body } from './Body.js';
 export { Headers } from './Headers.js';
@@ -34,6 +40,15 @@ export { QueryString } from './QueryString.js';
 export { MAX_REDIRECTS, REDIRECT_STATUSES, Requester } from './Requester.js';
 export { RequestTiming } from './RequestTiming.js';
 export { ResponseReader } from './ResponseReader.js';
+export { SseClient } from './SseClient.js';
+export type { SseClientDeps } from './SseClient.js';
+export {
+  DEFAULT_SSE_RETRY_MS,
+  isEventStreamContentType,
+  MAX_SSE_RETRY_MS,
+  SseParser,
+  sseReconnectDelay
+} from './SseParser.js';
 export { shouldEncodeResponseBodyBase64 } from './responseBodyEncoding.js';
 export {
   emptyFormPart,

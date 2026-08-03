@@ -32,6 +32,56 @@ import {
   registerPluginChatPointer,
   unregisterPluginChatPointer
 } from './pluginChatPointerRegistry';
+import {
+  clearPluginAiInstructionEntries,
+  registerPluginAiInstructionEntry,
+  unregisterPluginAiInstructionEntry
+} from './pluginAiInstructionsRegistry';
+
+/**
+ * Serializable payload for `ai.beforeTurn` / host before-turn orchestration.
+ */
+export interface PluginAiBeforeTurnPayload {
+  chatId: number;
+  model: string;
+  hubId?: string;
+  userMessage: {
+    content: string;
+    referenceSnapshots?: Record<string, unknown>;
+  };
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    content?: string | null;
+  }>;
+}
+
+/**
+ * Merged patch returned from before-turn handlers.
+ */
+export interface PluginAiBeforeTurnResult {
+  cancelled: boolean;
+  cancelReason?: string;
+  userContent?: string;
+  extraInstructions: string[];
+}
+
+/**
+ * Serializable payload for `ai.afterTurn`.
+ */
+export interface PluginAiAfterTurnPayload {
+  chatId: number;
+  model: string;
+  hubId?: string;
+  userMessage: { content: string };
+  assistantMessage: { content: string } | null;
+  status: 'completed' | 'cancelled' | 'error';
+  error?: { message: string };
+  stats: {
+    stepCount: number;
+    toolCallCount: number;
+    durationMs: number;
+  };
+}
 
 /** Permission required for each broker operation. */
 const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
@@ -118,6 +168,9 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'imports.unregisterHandler': 'ui',
   'imports.invokeComplete': 'ui',
   'ai.parseChatPointerComplete': 'ai',
+  'ai.registerInstructions': 'ai',
+  'ai.unregisterInstructions': 'ai',
+  'ai.beforeTurnComplete': 'ai',
   'mcp.registerServer': 'mcp',
   'mcp.unregisterServer': 'mcp',
   'ai.registerChatPointer': 'ai',
@@ -272,6 +325,19 @@ interface PendingAgentParseChatPointerInvoke {
   timeout: ReturnType<typeof setTimeout>;
 }
 
+interface AgentBeforeTurnCompleteMessage {
+  requestId: number;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+interface PendingAgentBeforeTurnInvoke {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+}
+
 /** Serializable import file forwarded from File → Import. */
 export interface BrokerImportFile {
   name: string;
@@ -308,9 +374,11 @@ export class PluginUiBroker {
     number,
     PendingAgentParseChatPointerInvoke
   >();
+  readonly #pendingAgentBeforeTurnInvoke = new Map<number, PendingAgentBeforeTurnInvoke>();
   #nextHostBridgeRequestId = 1;
   #nextAgentImportRequestId = 1;
   #nextAgentParseChatPointerRequestId = 1;
+  #nextAgentBeforeTurnRequestId = 1;
   #mainWindow: (() => BrowserWindow | null) | null = null;
   #getTheme: (() => Promise<ThemeSource>) | null = null;
 
@@ -404,6 +472,7 @@ export class PluginUiBroker {
     if (session?.role === 'agent') {
       clearPluginMcpServers(session.pluginId);
       clearPluginChatPointers(session.pluginId);
+      clearPluginAiInstructionEntries(session.pluginId);
       void refreshMcpClientConnections();
     }
     this.#sessions.delete(webContentsId);
@@ -418,6 +487,7 @@ export class PluginUiBroker {
     this.#agentReady.delete(pluginId);
     clearPluginMcpServers(pluginId);
     clearPluginChatPointers(pluginId);
+    clearPluginAiInstructionEntries(pluginId);
     void refreshMcpClientConnections();
   }
 
@@ -485,6 +555,109 @@ export class PluginUiBroker {
         payload: { request, response }
       });
     }
+  }
+
+  /**
+   * Pushes a completed AI chat turn to every plugin webview that declares the
+   * `ai` permission so renderer-side `hc.ai.onAfterTurn` handlers can run.
+   *
+   * @param payload - Serializable turn result from the host chat loop.
+   */
+  pushAiAfterTurn(payload: PluginAiAfterTurnPayload): void {
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (!this.#sessionHasAiPermission(webContentsId, session)) {
+        continue;
+      }
+      this.#getWebContentsById(webContentsId)?.send('plugin-ui:event', {
+        channel: 'ai.afterTurn',
+        payload
+      });
+    }
+  }
+
+  /**
+   * Runs before-turn handlers in every agent webview with the `ai` permission.
+   *
+   * Merges patches: any cancel wins; concatenates extraInstructions; last
+   * non-empty userContent wins.
+   *
+   * @param payload - Serializable turn context snapshot.
+   * @returns Merged before-turn result.
+   */
+  async runAiBeforeTurn(payload: PluginAiBeforeTurnPayload): Promise<PluginAiBeforeTurnResult> {
+    const targets: Array<{ webContentsId: number; pluginId: string }> = [];
+    for (const [webContentsId, session] of this.#iterSessions()) {
+      if (session.role !== 'agent' || !this.#sessionHasAiPermission(webContentsId, session)) {
+        continue;
+      }
+      if (!this.#getWebContentsById(webContentsId)) {
+        continue;
+      }
+      targets.push({ webContentsId, pluginId: session.pluginId });
+    }
+
+    const merged: PluginAiBeforeTurnResult = {
+      cancelled: false,
+      extraInstructions: [],
+      userContent: payload.userMessage.content
+    };
+
+    let currentUserContent = payload.userMessage.content;
+
+    for (const target of targets) {
+      const webContentsRef = this.#getWebContentsById(target.webContentsId);
+      if (!webContentsRef) {
+        continue;
+      }
+
+      const requestId = this.#nextAgentBeforeTurnRequestId++;
+      let patch: PluginAiBeforeTurnResult;
+      try {
+        const result = await new Promise<unknown>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            this.#pendingAgentBeforeTurnInvoke.delete(requestId);
+            reject(new Error('Plugin AI before-turn timed out.'));
+          }, AGENT_IMPORT_INVOKE_TIMEOUT_MS);
+
+          this.#pendingAgentBeforeTurnInvoke.set(requestId, { resolve, reject, timeout });
+          webContentsRef.send('plugin-ui:event', {
+            channel: 'ai.beforeTurn',
+            payload: {
+              requestId,
+              chatId: payload.chatId,
+              model: payload.model,
+              ...(payload.hubId != null ? { hubId: payload.hubId } : {}),
+              userMessage: {
+                ...payload.userMessage,
+                content: currentUserContent
+              },
+              messages: payload.messages
+            }
+          });
+        });
+        patch = normalizeBeforeTurnResult(result);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Plugin ${target.pluginId}: ${message}`);
+      }
+
+      if (patch.cancelled) {
+        merged.cancelled = true;
+        if (patch.cancelReason) {
+          merged.cancelReason = patch.cancelReason;
+        }
+        break;
+      }
+      if (patch.extraInstructions.length > 0) {
+        merged.extraInstructions.push(...patch.extraInstructions);
+      }
+      if (patch.userContent != null && patch.userContent !== '') {
+        currentUserContent = patch.userContent;
+        merged.userContent = patch.userContent;
+      }
+    }
+
+    return merged;
   }
 
   /**
@@ -967,6 +1140,25 @@ export class PluginUiBroker {
         this.#completeAgentParseChatPointerInvoke(complete);
         return undefined;
       }
+      case 'ai.beforeTurnComplete': {
+        const complete = payload as AgentBeforeTurnCompleteMessage;
+        this.#completeAgentBeforeTurnInvoke(complete);
+        return undefined;
+      }
+      case 'ai.registerInstructions': {
+        const { registrationId, text } = payload as { registrationId: string; text?: string };
+        registerPluginAiInstructionEntry(
+          session.pluginId,
+          String(registrationId),
+          String(text ?? '')
+        );
+        return undefined;
+      }
+      case 'ai.unregisterInstructions': {
+        const { registrationId } = payload as { registrationId: string };
+        unregisterPluginAiInstructionEntry(session.pluginId, String(registrationId));
+        return undefined;
+      }
       case 'mcp.registerServer': {
         const { registrationId, name, serverURL, enabled, headers, icon } = payload as {
           registrationId: string;
@@ -1185,12 +1377,43 @@ export class PluginUiBroker {
   }
 
   /**
+   * Resolves or rejects a pending before-turn invoke when the agent webview replies.
+   *
+   * @param message - Completion payload from the agent webview bridge.
+   */
+  #completeAgentBeforeTurnInvoke(message: AgentBeforeTurnCompleteMessage): void {
+    const pending = this.#pendingAgentBeforeTurnInvoke.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+
+    clearTimeout(pending.timeout);
+    this.#pendingAgentBeforeTurnInvoke.delete(message.requestId);
+
+    if (message.ok) {
+      pending.resolve(message.result);
+      return;
+    }
+
+    pending.reject(new Error(message.error ?? 'Plugin AI before-turn failed.'));
+  }
+
+  /**
    * Completes a pending agent import invoke — exposed for unit tests.
    *
    * @param message - Completion payload matching {@link AgentImportInvokeCompleteMessage}.
    */
   completeAgentImportInvokeForTests(message: AgentImportInvokeCompleteMessage): void {
     this.#completeAgentImportInvoke(message);
+  }
+
+  /**
+   * Completes a pending before-turn invoke — exposed for unit tests.
+   *
+   * @param message - Completion payload matching {@link AgentBeforeTurnCompleteMessage}.
+   */
+  completeAgentBeforeTurnInvokeForTests(message: AgentBeforeTurnCompleteMessage): void {
+    this.#completeAgentBeforeTurnInvoke(message);
   }
 
   /**
@@ -1237,6 +1460,21 @@ export class PluginUiBroker {
       return false;
     }
     return this.#pluginManager.getPluginPermissions(session.pluginId).includes('http');
+  }
+
+  /**
+   * Returns whether a session belongs to a loaded plugin with the `ai` permission.
+   *
+   * Stale sessions for disabled or removed plugins are pruned instead of throwing.
+   *
+   * @param webContentsId - Registered webContents id.
+   * @param session - Session metadata for the webview.
+   */
+  #sessionHasAiPermission(webContentsId: number, session: PluginWebviewSession): boolean {
+    if (!this.#isKnownPluginSession(webContentsId, session)) {
+      return false;
+    }
+    return this.#pluginManager.getPluginPermissions(session.pluginId).includes('ai');
   }
 
   /**
@@ -1296,4 +1534,30 @@ export function initPluginUiBroker(pluginManager: PluginManager): PluginUiBroker
     broker.notifyFilesystemChanged(pluginId, normalizedPath);
   });
   return broker;
+}
+
+/**
+ * Normalizes a before-turn handler result from an agent webview.
+ *
+ * @param raw - Unknown bridge result payload.
+ * @returns Normalized merge patch.
+ */
+function normalizeBeforeTurnResult(raw: unknown): PluginAiBeforeTurnResult {
+  const row = (raw ?? {}) as {
+    cancelled?: unknown;
+    cancelReason?: unknown;
+    userContent?: unknown;
+    extraInstructions?: unknown;
+  };
+  const extra = Array.isArray(row.extraInstructions)
+    ? row.extraInstructions.map((item) => String(item ?? '').trim()).filter((item) => item !== '')
+    : [];
+  return {
+    cancelled: Boolean(row.cancelled),
+    ...(row.cancelReason != null && String(row.cancelReason).trim() !== ''
+      ? { cancelReason: String(row.cancelReason).trim() }
+      : {}),
+    ...(row.userContent != null ? { userContent: String(row.userContent) } : {}),
+    extraInstructions: extra
+  };
 }

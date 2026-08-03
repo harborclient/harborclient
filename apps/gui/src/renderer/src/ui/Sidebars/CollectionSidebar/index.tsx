@@ -7,6 +7,7 @@ import { SidebarSelectionProvider } from './selection/SidebarSelectionProvider';
 import { SidebarSelectionMenuHost } from './selection/SidebarSelectionMenuHost';
 import { HostEntityContextMenuLayer } from '#/renderer/src/plugins/HostEntityContextMenuLayer';
 import { LiveServersHost } from './LiveServersHost';
+import { SseHost } from '#/renderer/src/ui/Main/RequestEditor/SseHost';
 import { SidebarContent } from './shell/SidebarContent';
 
 /**
@@ -27,6 +28,7 @@ export function CollectionSidebar(): JSX.Element {
               <SidebarSelectionMenuHost />
               <HostEntityContextMenuLayer />
               <LiveServersHost />
+              <SseHost />
               <SidebarContent />
             </SidebarSectionFilterProvider>
           </SidebarSelectionProvider>

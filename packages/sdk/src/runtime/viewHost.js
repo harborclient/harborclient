@@ -2,6 +2,8 @@ import { clearContributionRegistry } from './contributionRegistry.js';
 import {
   createBridgedPluginContext,
   executeLocalPluginCommand,
+  installAiAfterTurnListener,
+  installAiBeforeTurnListener,
   installAiParseChatPointerListener,
   installImportInvokeListener,
   mountContributionView,
@@ -74,6 +76,8 @@ export async function bootstrapViewHost(options = {}) {
   if (parsedRole.mode === 'agent') {
     installImportInvokeListener();
     installAiParseChatPointerListener();
+    installAiBeforeTurnListener();
+    installAiAfterTurnListener();
   }
 
   await module.activate(hc);

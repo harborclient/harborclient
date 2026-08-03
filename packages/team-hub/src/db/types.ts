@@ -641,6 +641,11 @@ export interface CreateLlmUsageLogInput {
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
 /**
+ * Transport protocol for a saved request (`http` or `sse`).
+ */
+export type RequestProtocol = 'http' | 'sse';
+
+/**
  * Request body content type.
  */
 export type BodyType = 'none' | 'json' | 'text' | 'multipart' | 'urlencoded';
@@ -1126,6 +1131,11 @@ export interface SavedRequestRecord {
   name: string;
 
   /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol: RequestProtocol;
+
+  /**
    * HTTP method used for the request.
    */
   method: HttpMethod;
@@ -1229,6 +1239,11 @@ export interface SaveRequestInput {
    * Display name for the saved request.
    */
   name: string;
+
+  /**
+   * Transport protocol for this request (`http` or `sse`).
+   */
+  protocol?: RequestProtocol;
 
   /**
    * HTTP method used for the request.

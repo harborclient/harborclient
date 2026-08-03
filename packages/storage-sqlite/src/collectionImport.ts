@@ -558,6 +558,7 @@ export function savedRequestToExportedRequest(
   return {
     uuid: request.uuid,
     name: request.name,
+    ...(request.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
     method: request.method,
     url: request.url,
     headers: request.headers,
@@ -840,6 +841,7 @@ export function importedFolderToStoredRow(
 export function serializeImportedRequestFields(request: ExportedRequest): {
   name: string;
   method: ExportedRequest['method'];
+  protocol: 'http' | 'sse';
   url: string;
   headersJson: string;
   userAgent: string;
@@ -871,6 +873,7 @@ export function serializeImportedRequestFields(request: ExportedRequest): {
   return {
     name: request.name,
     method: request.method,
+    protocol: request.protocol === 'sse' ? 'sse' : 'http',
     url: request.url,
     headersJson: JSON.stringify(request.headers),
     userAgent: typeof request.userAgent === 'string' ? request.userAgent : '',

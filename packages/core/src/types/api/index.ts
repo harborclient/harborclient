@@ -46,6 +46,8 @@ export type {
   BrowserViewBounds
 } from './browser';
 
+export type { ApiHttp, SseEventPush, SseSessionStatus, SseStatePush } from './http';
+
 /**
  * IPC bridge API exposed to the renderer via contextBridge.
  */

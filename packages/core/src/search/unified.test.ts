@@ -43,6 +43,7 @@ const request: SavedRequest = {
   uuid: 'req-list-users',
   collection_id: 1,
   name: 'Fetch inventory list',
+  protocol: 'http' as const,
   method: 'GET',
   url: 'https://inventory.beta.local/items',
   headers: [],

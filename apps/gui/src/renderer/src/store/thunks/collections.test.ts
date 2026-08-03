@@ -95,6 +95,7 @@ function draftForCollection(collectionId: number, name: string): RequestDraft {
     collection_id: collectionId,
     name,
     method: 'GET',
+    protocol: 'http' as const,
     url: 'https://example.com',
     headers: [],
     params: [],
@@ -233,6 +234,67 @@ describe('refreshCollections', () => {
 
     expect(store.getState().collections.selectedCollectionId).toBe(3);
   });
+
+  it('skips archived collections when auto-selecting after refresh', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [
+        { ...sampleCollection(1, 'Google'), archived: true },
+        sampleCollection(2, 'HarborClient Echo'),
+        sampleCollection(3, 'Picsum')
+      ],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setSelectedCollectionId } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(setSelectedCollectionId(null));
+
+    await store.dispatch(refreshCollections());
+
+    expect(store.getState().collections.selectedCollectionId).toBe(2);
+  });
+
+  it('clears selection when the selected collection is archived and picks the first active', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [
+        { ...sampleCollection(1, 'Google'), archived: true },
+        sampleCollection(2, 'My Collection')
+      ],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setSelectedCollectionId } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(setSelectedCollectionId(1));
+
+    await store.dispatch(refreshCollections());
+
+    expect(store.getState().collections.selectedCollectionId).toBe(2);
+  });
+
+  it('clears selection when every collection is archived', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [{ ...sampleCollection(1, 'Google'), archived: true }],
+      warnings: []
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setSelectedCollectionId } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(setSelectedCollectionId(1));
+
+    await store.dispatch(refreshCollections());
+
+    expect(store.getState().collections.selectedCollectionId).toBeNull();
+  });
 });
 
 describe('refreshGitWorkingTreeContents', () => {
@@ -361,6 +423,7 @@ describe('moveRequestToFolder', () => {
         folder_id: 10,
         name: 'Moved Request',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -387,6 +450,7 @@ describe('moveRequestToFolder', () => {
         folder_id: 20,
         name: 'Moved Request',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],

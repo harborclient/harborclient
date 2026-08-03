@@ -47,6 +47,7 @@ function savedFrom(input: SaveRequestInput): SavedRequest {
     collection_id: input.collection_id,
     folder_id: input.folder_id ?? null,
     name: input.name,
+    protocol: 'http' as const,
     method: input.method,
     url: input.url,
     headers: input.headers,
@@ -106,6 +107,7 @@ describe('saveRequest folder handling', () => {
         folder_id: 10,
         name: 'In Folder',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -145,6 +147,7 @@ describe('saveRequest folder handling', () => {
         folder_id: 10,
         name: 'In Folder',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -186,6 +189,7 @@ describe('saveRequest folder handling', () => {
         folder_id: 10,
         name: 'Moved Request',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -215,6 +219,7 @@ describe('saveRequest folder handling', () => {
               folder_id: 20,
               name: 'Moved Request',
               method: 'GET',
+              protocol: 'http' as const,
               url: 'https://example.com',
               headers: [],
               params: [],
@@ -257,6 +262,7 @@ describe('saveRequest script lists', () => {
         collection_id: 1,
         name: 'Scripted',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -302,6 +308,7 @@ describe('saveRequest script lists', () => {
         collection_id: 1,
         name: 'Scripted',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -346,6 +353,7 @@ describe('saveRequest script lists', () => {
         collection_id: 1,
         name: 'Expanded script save',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -422,6 +430,7 @@ describe('saveAllDirtyRequests', () => {
     collection_id: 1,
     name: 'Request',
     method: 'GET' as const,
+    protocol: 'http' as const,
     url: 'https://example.com',
     headers: [],
     params: [],
@@ -501,6 +510,7 @@ function sampleSaved(overrides: Partial<SavedRequest> = {}): SavedRequest {
     folder_id: null,
     name: 'Get users',
     method: 'GET',
+    protocol: 'http' as const,
     url: 'https://example.com/users',
     headers: [],
     params: [],
@@ -568,6 +578,7 @@ describe('requestLoadRequest', () => {
       folder_id: null,
       name: 'Get users',
       method: 'GET',
+      protocol: 'http' as const,
       url: 'https://example.com/old',
       headers: [],
       params: [],
@@ -783,6 +794,7 @@ describe('executeRequestDraft hc.data threading', () => {
         draft: {
           name: 'Threaded data',
           method: 'GET',
+          protocol: 'http' as const,
           url: 'https://example.com',
           headers: [],
           params: [],
@@ -820,6 +832,7 @@ describe('cancelRequest', () => {
       openTabWithDraft({
         name: 'Users',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com/users',
         headers: [],
         params: [],
@@ -922,6 +935,7 @@ describe('saveFromMenu', () => {
         folder_id: null,
         name: 'Get',
         method: 'GET',
+        protocol: 'http' as const,
         url: 'https://example.com',
         headers: [],
         params: [],
@@ -943,6 +957,62 @@ describe('saveFromMenu', () => {
     await store.dispatch(saveFromMenu());
 
     expect(saveRequestMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the save-request location picker for a blank unsaved tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { setCollections, setSelectedCollectionId } =
+      await import('#/renderer/src/store/slices/collectionsSlice');
+    const { saveFromMenu } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(
+      setCollections([
+        {
+          id: 1,
+          uuid: 'google-uuid',
+          name: 'Google',
+          variables: [],
+          headers: [],
+          auth: defaultAuth(),
+          userAgent: '',
+          pre_request_script: '',
+          post_request_script: '',
+          pre_request_scripts: [],
+          post_request_scripts: [],
+          created_at: '2026-01-01T00:00:00.000Z',
+          archived: true
+        }
+      ])
+    );
+    store.dispatch(setSelectedCollectionId(1));
+    store.dispatch(newTab());
+    const tabId = store.getState().tabs.activeTabId;
+
+    await store.dispatch(saveFromMenu());
+
+    expect(saveRequestMock).not.toHaveBeenCalled();
+    expect(store.getState().modals.saveRequestModal).toEqual({ tabId });
+  });
+
+  it('saves a blank tab to an explicit collection and folder via saveRequestToLocation', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newTab } = await import('#/renderer/src/store/slices/tabsSlice');
+    const { saveRequestToLocation } = await import('#/renderer/src/store/thunks/requests');
+
+    store.dispatch(newTab());
+    const tabId = store.getState().tabs.activeTabId!;
+
+    await store.dispatch(saveRequestToLocation({ tabId, collectionId: 7, folderId: 3 }));
+
+    expect(saveRequestMock).toHaveBeenCalledTimes(1);
+    expect(saveRequestMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        collection_id: 7,
+        folder_id: 3
+      })
+    );
+    expect(store.getState().collections.selectedCollectionId).toBe(7);
   });
 
   it('no-ops on page tabs without a registry handler', async () => {

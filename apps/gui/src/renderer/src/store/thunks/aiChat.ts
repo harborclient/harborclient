@@ -31,6 +31,10 @@ import { selectConsoleSelections } from '#/renderer/src/store/slices/consoleSele
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { selectPluginSelections } from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import { refineCustomPluginChatPointersAtSend } from '#/renderer/src/plugins/refineCustomPluginChatPointersAtSend';
+import {
+  emitPluginAiAfterTurn,
+  runPluginAiBeforeTurn
+} from '#/renderer/src/plugins/pluginAiTurnBus';
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 import {
   appendMessage,
@@ -456,6 +460,14 @@ export const sendChatMessage = createAsyncThunk<
 
   dispatch(setSending({ chatId, sending: true }));
 
+  const turnStartedAt = Date.now();
+  let stepCount = 0;
+  let toolCallCount = 0;
+  let turnStatus: 'completed' | 'cancelled' | 'error' = 'completed';
+  let turnError: string | undefined;
+  let assistantText: string | null = null;
+  let modelFacingUserContent = trimmed;
+
   try {
     dispatch(clearChatCancelState(chatId));
     const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
@@ -463,10 +475,49 @@ export const sendChatMessage = createAsyncThunk<
     if (selectionContext != null) {
       messages.push({ role: 'system', content: selectionContext });
     }
-    let assistantText: string | null = null;
+
+    const beforeTurn = await runPluginAiBeforeTurn({
+      chatId,
+      model: modelId,
+      ...(hubId ? { hubId } : {}),
+      userMessage: {
+        content: trimmed,
+        ...(referenceSnapshots != null ? { referenceSnapshots } : {})
+      },
+      messages: messages.map((row) => ({
+        role: row.role,
+        content: row.content ?? null
+      }))
+    });
+
+    if (beforeTurn.cancelled) {
+      turnStatus = 'cancelled';
+      if (beforeTurn.cancelReason) {
+        dispatch(setSendError({ chatId, message: beforeTurn.cancelReason }));
+      }
+      return;
+    }
+
+    if (beforeTurn.userContent != null && beforeTurn.userContent !== trimmed) {
+      modelFacingUserContent = beforeTurn.userContent;
+      for (let i = messages.length - 1; i >= 0; i -= 1) {
+        if (messages[i]?.role === 'user') {
+          messages[i] = { ...messages[i]!, content: modelFacingUserContent };
+          break;
+        }
+      }
+    }
+
+    if (beforeTurn.extraInstructions.length > 0) {
+      messages.push({
+        role: 'system',
+        content: `Plugin turn instructions:\n${beforeTurn.extraInstructions.join('\n')}`
+      });
+    }
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {
       if (getState().aiChat.cancelRequestedByChat[chatId]) {
+        turnStatus = 'cancelled';
         break;
       }
 
@@ -483,11 +534,13 @@ export const sendChatMessage = createAsyncThunk<
           },
           stepRequestId
         );
+        stepCount += 1;
       } finally {
         dispatch(setActiveStepRequestId({ chatId, stepRequestId: null }));
       }
 
       if (getState().aiChat.cancelRequestedByChat[chatId]) {
+        turnStatus = 'cancelled';
         break;
       }
 
@@ -500,6 +553,7 @@ export const sendChatMessage = createAsyncThunk<
 
         for (const call of step.toolCalls) {
           if (getState().aiChat.cancelRequestedByChat[chatId]) {
+            turnStatus = 'cancelled';
             break;
           }
 
@@ -523,6 +577,7 @@ export const sendChatMessage = createAsyncThunk<
             getState,
             dispatch
           });
+          toolCallCount += 1;
           messages.push({
             role: 'tool',
             tool_call_id: call.id,
@@ -531,6 +586,7 @@ export const sendChatMessage = createAsyncThunk<
         }
 
         if (getState().aiChat.cancelRequestedByChat[chatId]) {
+          turnStatus = 'cancelled';
           break;
         }
         continue;
@@ -541,6 +597,11 @@ export const sendChatMessage = createAsyncThunk<
     }
 
     if (getState().aiChat.cancelRequestedByChat[chatId]) {
+      turnStatus = 'cancelled';
+      return;
+    }
+
+    if (turnStatus === 'cancelled') {
       return;
     }
 
@@ -559,12 +620,29 @@ export const sendChatMessage = createAsyncThunk<
     await dispatch(refreshChatHistory());
   } catch (error) {
     if (isUserChatCancellation(error, getState(), chatId)) {
+      turnStatus = 'cancelled';
       return;
     }
+    turnStatus = 'error';
     const message =
       error instanceof Error ? error.message : 'Failed to get a response from the model.';
+    turnError = message;
     dispatch(setSendError({ chatId, message }));
   } finally {
+    emitPluginAiAfterTurn({
+      chatId,
+      model: modelId,
+      ...(hubId ? { hubId } : {}),
+      userMessage: { content: modelFacingUserContent },
+      assistantMessage: assistantText != null ? { content: assistantText } : null,
+      status: turnStatus,
+      ...(turnError != null ? { error: { message: turnError } } : {}),
+      stats: {
+        stepCount,
+        toolCallCount,
+        durationMs: Date.now() - turnStartedAt
+      }
+    });
     dispatch(setSending({ chatId, sending: false }));
     dispatch(clearChatCancelState(chatId));
   }

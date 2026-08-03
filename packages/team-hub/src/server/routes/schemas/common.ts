@@ -35,6 +35,11 @@ export const httpMethodSchema = z.enum([
 ]);
 
 /**
+ * Transport protocol for saved requests (`http` or `sse`).
+ */
+export const requestProtocolSchema = z.enum(['http', 'sse']).default('http');
+
+/**
  * Request body content type for saved requests.
  */
 export const bodyTypeSchema = z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']);

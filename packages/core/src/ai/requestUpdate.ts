@@ -5,7 +5,7 @@ import { parseFormParts, serializeFormParts } from '../formData';
 import { generateMultipartBoundary, parseMultipartRaw, renderMultipartRaw } from '../multipartRaw';
 import { parseUrlEncodedParts, serializeUrlEncodedParts } from '../urlencoded';
 import { rawUrlEncodedToRows, rowsToRawUrlEncoded } from '../urlencodedRaw';
-import type { BodyType, HttpMethod, KeyValue } from '../types/common';
+import type { BodyType, HttpMethod, KeyValue, RequestProtocol } from '../types/common';
 import type { ScriptRef } from '../types/script';
 
 /**
@@ -50,6 +50,11 @@ export interface AiRequestDraft {
    * HTTP method for the request.
    */
   method: HttpMethod;
+
+  /**
+   * Transport protocol for the request (`http` or `sse`).
+   */
+  protocol?: RequestProtocol;
 
   /**
    * Request URL including optional query string and hash.
@@ -185,6 +190,11 @@ export interface UpdateActiveRequestToolArgs {
    * HTTP method for the request.
    */
   method?: HttpMethod;
+
+  /**
+   * Transport protocol for the request (`http` or `sse`).
+   */
+  protocol?: RequestProtocol;
 
   /**
    * Request URL; when changed without params, the params table syncs from the query string.
@@ -510,6 +520,7 @@ export function hasRequestUpdateFields(args: UpdateActiveRequestToolArgs): boole
   return (
     args.name !== undefined ||
     args.method !== undefined ||
+    args.protocol !== undefined ||
     args.url !== undefined ||
     args.body !== undefined ||
     args.body_type !== undefined ||
@@ -546,6 +557,11 @@ export function applyRequestDraftUpdate(
   if (args.method !== undefined) {
     next.method = args.method;
     changedFields.push('method');
+  }
+
+  if (args.protocol !== undefined) {
+    next.protocol = args.protocol;
+    changedFields.push('protocol');
   }
 
   if (args.body !== undefined) {

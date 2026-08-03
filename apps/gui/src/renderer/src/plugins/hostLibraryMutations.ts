@@ -466,6 +466,7 @@ export async function createRequestForPlugin(
     collection_id: input.collectionId,
     ...(folderId !== null ? { folder_id: folderId } : {}),
     name,
+    protocol: input.protocol === 'sse' ? 'sse' : 'http',
     method,
     url,
     headers: [],

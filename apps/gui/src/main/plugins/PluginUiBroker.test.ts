@@ -929,6 +929,57 @@ describe('PluginUiBroker pushHttpAfterSend', () => {
   });
 });
 
+describe('PluginUiBroker pushAiAfterTurn', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('delivers after-turn events to loaded ai plugins', () => {
+    const send = vi.fn();
+    const getPluginPermissions = vi.fn((pluginId: string) => {
+      if (pluginId === 'com.example.ai') {
+        return ['ai'];
+      }
+      return [];
+    });
+    const manager = {
+      get: vi.fn((pluginId: string) =>
+        pluginId === 'com.example.ai' ? { id: pluginId } : undefined
+      ),
+      getPluginPermissions
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 3 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.example.ai',
+      role: 'agent'
+    });
+    vi.mocked(webContents.fromId).mockImplementation((id: number) => {
+      if (id === 3) {
+        return { send } as never;
+      }
+      return undefined;
+    });
+
+    const payload = {
+      chatId: 1,
+      model: 'gpt-test',
+      userMessage: { content: 'hi' },
+      assistantMessage: { content: 'yo' },
+      status: 'completed' as const,
+      stats: { stepCount: 1, toolCallCount: 0, durationMs: 9 }
+    };
+
+    expect(() => broker.pushAiAfterTurn(payload)).not.toThrow();
+    expect(send).toHaveBeenCalledWith('plugin-ui:event', {
+      channel: 'ai.afterTurn',
+      payload
+    });
+  });
+});
+
 describe('PluginUiBroker import handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -41,6 +41,7 @@ describe('workflowIdentity', () => {
       id: 10,
       name: 'List',
       method: 'GET',
+      protocol: 'http' as const,
       url: 'https://example.com',
       headers: [],
       params: [],
@@ -69,6 +70,7 @@ describe('workflowIdentity', () => {
               collection_id: 1,
               name: 'List',
               method: 'GET',
+              protocol: 'http' as const,
               url: 'https://example.com'
             }
           ]

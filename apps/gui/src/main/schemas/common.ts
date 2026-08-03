@@ -8,6 +8,11 @@ import type { AuthConfig, KeyValue, Variable } from '@harborclient/core/types';
 export const httpMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 
 /**
+ * Transport protocol for a saved or live request (`http` or `sse`).
+ */
+export const requestProtocol = z.enum(['http', 'sse']).default('http');
+
+/**
  * Supported request body content types.
  */
 export const bodyType = z.enum(['none', 'json', 'text', 'multipart', 'urlencoded']);

@@ -1242,9 +1242,13 @@ Deletes a saved live page (moves it to trash).
 
 ## hc.ai
 
-Chat pointer registration and copy-to-chat for the AI sidebar.
+Chat pointers, append-only agent instructions, turn hooks, and copy-to-chat for the AI sidebar.
 
-Requires the `ai` permission. Registrations are **activation-scoped**: Harbor merges `agentGuidance` into the agent system prompt while the plugin is enabled and removes it on dispose or unload. Historical message badges keep working from persisted snapshots.
+Requires the `ai` permission. Registrations are **activation-scoped**: Harbor merges `agentGuidance` and `hc.ai.instructions` into the agent system prompt while the plugin is enabled and removes them on dispose or unload. Historical message badges keep working from persisted snapshots.
+
+Plugins **cannot** rewrite Harbor's base system prompt — they only append fragments (via chat-pointer `agentGuidance`, `instructions.add`, or turn-scoped `ctx.instructions.push`).
+
+Turn hooks (`onBeforeTurn` / `onAfterTurn`) fire **once per user chat turn** (not per LLM tool-loop step), and are unrelated to `hc.http.onBeforeSend` / `onAfterSend`.
 
 ### hc.ai.registerChatPointer(config)
 
@@ -1308,6 +1312,45 @@ await hc.ai.copyToChat({
 Context longer than 100,000 characters is truncated with a clear marker. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) (or a CodeEditor `copy-to-chat` toolbar action) and call `hc.ai.copyToChat` from `onSelect`.
 
 See [Chat pointers](/examples/chat-pointers) for a full walkthrough.
+
+### hc.ai.instructions.add(text)
+
+Appends a static fragment to the agent system prompt while the returned disposable is active. Whitespace-only strings are ignored. `hc.ai.instructions.list` returns this plugin's currently registered fragments.
+
+```ts
+const handle = hc.ai.instructions.add(
+  'Prefer the WordPress MCP tools when the user asks about posts or pages.'
+);
+// later: handle.dispose();
+```
+
+Merge order for the default agent path: Harbor base prompt → chat-pointer `agentGuidance` → static `instructions.add` fragments → (per turn) ephemeral system message from `onBeforeTurn` → `ctx.instructions.push`.
+
+### hc.ai.onBeforeTurn(handler)
+
+Runs once when the user sends a chat message, **before** the first LLM completion step. The handler receives a mutable context:
+
+| Field                            | Notes                                                                         |
+| -------------------------------- | ----------------------------------------------------------------------------- |
+| `chatId`, `model`, `hubId?`      | Turn identity                                                                 |
+| `userMessage.content`            | Mutable model-facing user text (does not rewrite the persisted DB row)        |
+| `userMessage.referenceSnapshots` | Read-only `@` snapshots already collected                                     |
+| `instructions.push(text)`        | Turn-only fragments (ephemeral system message)                                |
+| `messages`                       | Conversation history about to be sent (excluding Harbor's base system prompt) |
+| `cancel(reason?)`                | Abort the turn before any LLM call                                            |
+
+```ts
+hc.ai.onBeforeTurn((ctx) => {
+  ctx.instructions.push('The active invoice draft is INV-42.');
+  if (ctx.userMessage.content.includes('secret')) {
+    ctx.cancel('Blocked sensitive prompt.');
+  }
+});
+```
+
+### hc.ai.onAfterTurn(handler)
+
+Runs once when the turn finishes (completed, cancelled, or error). The context is read-only: `userMessage`, `assistantMessage`, `status`, optional `error`, and `stats` (`stepCount`, `toolCallCount`, `durationMs`).
 
 ## hc.livePage
 

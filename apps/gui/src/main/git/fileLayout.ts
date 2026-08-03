@@ -1286,6 +1286,7 @@ export function writeCollectionToFolder(
       harborclientExport: 'request',
       uuid: resolveImportUuid(request.uuid),
       name: request.name,
+      ...(request.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
       method: request.method,
       url: request.url,
       headers: request.headers,

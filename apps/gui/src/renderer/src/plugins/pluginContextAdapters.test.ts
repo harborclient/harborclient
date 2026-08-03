@@ -34,7 +34,8 @@ function sampleDraft(overrides: Partial<RequestDraft> = {}): RequestDraft {
     post_request_scripts: [],
     comment: '',
     tags: '',
-    ...overrides
+    ...overrides,
+    protocol: overrides.protocol ?? 'http'
   };
 }
 
@@ -68,6 +69,7 @@ describe('toPluginRequestDraft', () => {
     const draft = sampleDraft();
     expect(toPluginRequestDraft(draft)).toMatchObject({
       method: 'POST',
+      protocol: 'http' as const,
       url: 'https://example.com',
       auth: draft.auth,
       body_type: 'json'

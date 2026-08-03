@@ -717,6 +717,7 @@ async function listRequests(args: unknown): Promise<
     id: number;
     name: string;
     method: string;
+    protocol: 'http' | 'sse';
     url: string;
     folderId: number | null;
   }>
@@ -730,6 +731,7 @@ async function listRequests(args: unknown): Promise<
     id: request.id,
     name: request.name,
     method: request.method,
+    protocol: request.protocol === 'sse' ? 'sse' : 'http',
     url: request.url,
     folderId: request.folder_id
   }));
@@ -1466,6 +1468,10 @@ function parseUpdateActiveRequestArgs(args: unknown): UpdateActiveRequestToolArg
     throw new Error(`Invalid method: ${String(parsed.method)}`);
   }
 
+  if (parsed.protocol !== undefined && parsed.protocol !== 'http' && parsed.protocol !== 'sse') {
+    throw new Error(`Invalid protocol: ${String(parsed.protocol)}`);
+  }
+
   if (parsed.body_type !== undefined && !BODY_TYPES.includes(parsed.body_type)) {
     throw new Error(`Invalid body_type: ${String(parsed.body_type)}`);
   }
@@ -1511,6 +1517,7 @@ async function updateActiveRequest(
       summary: {
         name: string;
         method: string;
+        protocol: string;
         url: string;
         body_type: string;
       };
@@ -1529,7 +1536,17 @@ async function updateActiveRequest(
     hasCookieUpdate
   } = applyRequestDraftUpdate(tab.draft, parsed);
 
-  ctx.dispatch(updateTab({ tabId: tab.tabId, updates: { draft: nextDraft } }));
+  ctx.dispatch(
+    updateTab({
+      tabId: tab.tabId,
+      updates: {
+        draft: {
+          ...nextDraft,
+          protocol: nextDraft.protocol === 'sse' ? 'sse' : (tab.draft.protocol ?? 'http')
+        }
+      }
+    })
+  );
 
   if (hasCookieUpdate && parsed.cookies !== undefined) {
     const host = hostFromUrl(nextDraft.url);
@@ -1558,6 +1575,7 @@ async function updateActiveRequest(
     summary: {
       name: nextDraft.name,
       method: nextDraft.method,
+      protocol: nextDraft.protocol === 'sse' ? 'sse' : 'http',
       url: nextDraft.url,
       body_type: nextDraft.body_type
     }
@@ -1875,6 +1893,7 @@ function toCreateCollectionRequestRow(args: CreateRequestToolArgs): CreateCollec
   return {
     name: args.name,
     method: args.method,
+    protocol: args.protocol === 'sse' ? 'sse' : 'http',
     url: args.url,
     headers,
     params: args.params,
