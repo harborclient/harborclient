@@ -767,6 +767,7 @@ export interface TerminalSettings {
  */
 export type SettingsSection =
   | 'general'
+  | 'appearance'
   | 'syntax'
   | 'storage'
   | 'proxy'

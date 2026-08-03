@@ -14,6 +14,23 @@ import { StorageLocationsSection } from '../StorageLocationsSection';
 import { AiClaudeApiKeyField } from '../fields/AiClaudeApiKeyField';
 import { AiGeminiApiKeyField } from '../fields/AiGeminiApiKeyField';
 import { AiOpenAiApiKeyField } from '../fields/AiOpenAiApiKeyField';
+import { AppearanceShowAiSidebarField } from '../fields/AppearanceShowAiSidebarField';
+import { AppearanceShowConsoleField } from '../fields/AppearanceShowConsoleField';
+import { AppearanceShowFiltersField } from '../fields/AppearanceShowFiltersField';
+import { AppearanceShowGitSidebarField } from '../fields/AppearanceShowGitSidebarField';
+import { AppearanceShowIndicatorsField } from '../fields/AppearanceShowIndicatorsField';
+import { AppearanceShowMarkersField } from '../fields/AppearanceShowMarkersField';
+import { AppearanceShowMcpField } from '../fields/AppearanceShowMcpField';
+import { AppearanceShowMethodColorsField } from '../fields/AppearanceShowMethodColorsField';
+import { AppearanceShowRailField } from '../fields/AppearanceShowRailField';
+import { AppearanceShowRequestEditorField } from '../fields/AppearanceShowRequestEditorField';
+import { AppearanceShowResponseEditorField } from '../fields/AppearanceShowResponseEditorField';
+import { AppearanceShowShortcutsSidebarField } from '../fields/AppearanceShowShortcutsSidebarField';
+import { AppearanceShowSidebarField } from '../fields/AppearanceShowSidebarField';
+import { AppearanceShowSortingField } from '../fields/AppearanceShowSortingField';
+import { AppearanceShowStorageLocationBadgesField } from '../fields/AppearanceShowStorageLocationBadgesField';
+import { AppearanceShowTerminalField } from '../fields/AppearanceShowTerminalField';
+import { AppearanceShowVariablesField } from '../fields/AppearanceShowVariablesField';
 import { GeneralFollowRedirectsField } from '../fields/GeneralFollowRedirectsField';
 import { GeneralStartWebpageUrlField } from '../fields/GeneralStartWebpageUrlField';
 import { GeneralUserAgentField } from '../fields/GeneralUserAgentField';
@@ -103,6 +120,23 @@ export const SETTINGS_FIELD_REGISTRY: Partial<Record<FieldSettingId, ComponentTy
   'general.spellCheckEnabled': GeneralSpellCheckEnabledField,
   'general.logFilePath': GeneralLogFilePathField,
   'general.trustedDomains': GeneralTrustedDomainsField,
+  'appearance.showSidebar': AppearanceShowSidebarField,
+  'appearance.showRail': AppearanceShowRailField,
+  'appearance.showAiSidebar': AppearanceShowAiSidebarField,
+  'appearance.showGitSidebar': AppearanceShowGitSidebarField,
+  'appearance.showShortcutsSidebar': AppearanceShowShortcutsSidebarField,
+  'appearance.showRequestEditor': AppearanceShowRequestEditorField,
+  'appearance.showResponseEditor': AppearanceShowResponseEditorField,
+  'appearance.showConsole': AppearanceShowConsoleField,
+  'appearance.showVariables': AppearanceShowVariablesField,
+  'appearance.showMcp': AppearanceShowMcpField,
+  'appearance.showTerminal': AppearanceShowTerminalField,
+  'appearance.showStorageLocationBadges': AppearanceShowStorageLocationBadgesField,
+  'appearance.showMarkers': AppearanceShowMarkersField,
+  'appearance.showMethodColors': AppearanceShowMethodColorsField,
+  'appearance.showIndicators': AppearanceShowIndicatorsField,
+  'appearance.showFilters': AppearanceShowFiltersField,
+  'appearance.showSorting': AppearanceShowSortingField,
   'proxy.enabled': ProxyEnabledField,
   'proxy.protocol': ProxyProtocolField,
   'proxy.host': ProxyHostField,

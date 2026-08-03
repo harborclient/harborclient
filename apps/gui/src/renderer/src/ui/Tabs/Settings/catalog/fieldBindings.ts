@@ -3,10 +3,10 @@
  *
  * ## Supported draft field ids (`SETTING_FIELD_BINDINGS`)
  *
- * All ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax, Terminal,
- * AI API keys): `general.*`, `proxy.*`, `syntax.*`, `terminal.*`,
+ * All draft-backed ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax,
+ * Terminal, AI API keys): `general.*`, `proxy.*`, `syntax.*`, `terminal.*`,
  * `ai.openaiApiKey`, `ai.claudeApiKey`, `ai.geminiApiKey`. Values read/write
- * `settingsDraft`.
+ * `settingsDraft`. Appearance registry fields are live (deferred; no binding).
  *
  * ## Supported group ids (`SETTING_GROUP_BINDINGS`)
  *
@@ -18,6 +18,16 @@
  * ## Deferred (no binding; see TODO(settings-modified) at call sites)
  *
  * - `ai.enterToSend` — `aiChatSlice` + immediate persist.
+ * - `appearance.showSidebar` / `appearance.showRail` /
+ *   `appearance.showAiSidebar` / `appearance.showGitSidebar` /
+ *   `appearance.showShortcutsSidebar` / `appearance.showRequestEditor` /
+ *   `appearance.showResponseEditor` / `appearance.showConsole` /
+ *   `appearance.showVariables` / `appearance.showMcp` /
+ *   `appearance.showTerminal` — `navigationSlice` + `panelLayout` persist.
+ * - `appearance.showStorageLocationBadges` / `appearance.showMarkers` /
+ *   `appearance.showMethodColors` / `appearance.showIndicators` /
+ *   `appearance.showFilters` / `appearance.showSorting` — sidebar expansion
+ *   context + `sidebarExpansion` persist.
  * - `globals.variables` — local form state in `GlobalsSectionForm`.
  * - `plugins.addCatalogEndpointUrl` / `plugins.addTrustedEndpointUrl` — hosted
  *   plugin surfaces; needs plugin API for modified/reset.

@@ -13,7 +13,15 @@ import {
 
 const MANAGEMENT_SECTIONS = ['globals', 'storage', 'git', 'backup-restore'] as const;
 
-const FORM_SECTIONS = ['general', 'proxy', 'syntax', 'ai', 'terminal', 'plugins'] as const;
+const FORM_SECTIONS = [
+  'general',
+  'appearance',
+  'proxy',
+  'syntax',
+  'ai',
+  'terminal',
+  'plugins'
+] as const;
 
 const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.requestTimeoutMs',
@@ -35,6 +43,23 @@ const EXPECTED_FIELD_IDS: FieldSettingId[] = [
   'general.spellCheckEnabled',
   'general.logFilePath',
   'general.trustedDomains',
+  'appearance.showSidebar',
+  'appearance.showRail',
+  'appearance.showAiSidebar',
+  'appearance.showGitSidebar',
+  'appearance.showShortcutsSidebar',
+  'appearance.showRequestEditor',
+  'appearance.showResponseEditor',
+  'appearance.showConsole',
+  'appearance.showVariables',
+  'appearance.showMcp',
+  'appearance.showTerminal',
+  'appearance.showStorageLocationBadges',
+  'appearance.showMarkers',
+  'appearance.showMethodColors',
+  'appearance.showIndicators',
+  'appearance.showFilters',
+  'appearance.showSorting',
   'proxy.enabled',
   'proxy.protocol',
   'proxy.host',

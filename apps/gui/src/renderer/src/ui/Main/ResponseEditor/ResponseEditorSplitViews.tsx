@@ -25,6 +25,10 @@ import {
   type JSX,
   type MouseEvent
 } from 'react';
+import {
+  buildDevInspectMenuGroups,
+  useDeveloperToolsEnabled
+} from '#/renderer/src/ui/Shared/devInspectContextMenu';
 import { ResponseEditorPane } from './ResponseEditorPane';
 import { ResponseEditorTabPanels } from './ResponseEditorTabPanels';
 import {
@@ -38,6 +42,11 @@ import {
   unsplitResponseTab,
   type ResponseEditorPaneKind
 } from './responseEditorSplit';
+
+/**
+ * Menu id used only as a fallback inspect target when click coordinates are missing.
+ */
+const RESPONSE_TAB_INSPECT_MENU_ID = 'response-editor-tab';
 
 interface PluginTabEntry {
   id: string;
@@ -181,6 +190,7 @@ export function ResponseEditorSplitViews({
 }: Props): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const developerToolsEnabled = useDeveloperToolsEnabled();
 
   /**
    * Partitions the available tabs into primary and secondary strips.
@@ -353,52 +363,67 @@ export function ResponseEditorSplitViews({
   }, [contextMenu, primary, split]);
 
   /**
-   * Menu items for TabContextMenu derived from split helpers.
+   * Menu items for TabContextMenu: split actions plus Inspect Element in dev mode.
    */
   const contextMenuGroups = useMemo((): MenuItem[][] => {
-    if (contextMenu == null || contextMenuActions.length === 0) {
+    if (contextMenu == null) {
       return [];
     }
-    return [
-      contextMenuActions.map((action) => ({
-        label: responseEditorSplitMenuLabel(action),
-        onSelect: () => {
-          const tabValue = contextMenu.tabValue;
-          if (action.type === 'unsplit') {
-            if (split == null) {
+
+    const groups: MenuItem[][] = [];
+    if (contextMenuActions.length > 0) {
+      groups.push(
+        contextMenuActions.map((action) => ({
+          label: responseEditorSplitMenuLabel(action),
+          onSelect: () => {
+            const tabValue = contextMenu.tabValue;
+            if (action.type === 'unsplit') {
+              if (split == null) {
+                return;
+              }
+              const next = unsplitResponseTab(split, tabValue);
+              onSplitChange(next);
+              onFocusedPaneChange('primary');
+              onPrimaryTabChange(tabValue);
               return;
             }
-            const next = unsplitResponseTab(split, tabValue);
+            const next = moveTabToSecondarySplit(
+              split,
+              tabValue,
+              action.side,
+              primary.length,
+              split?.size ?? DEFAULT_RESPONSE_EDITOR_SPLIT_SIZE
+            );
+            if (next == null) {
+              return;
+            }
             onSplitChange(next);
-            onFocusedPaneChange('primary');
-            onPrimaryTabChange(tabValue);
-            return;
-          }
-          const next = moveTabToSecondarySplit(
-            split,
-            tabValue,
-            action.side,
-            primary.length,
-            split?.size ?? DEFAULT_RESPONSE_EDITOR_SPLIT_SIZE
-          );
-          if (next == null) {
-            return;
-          }
-          onSplitChange(next);
-          onFocusedPaneChange('secondary');
-          setContextMenu(null);
-          if (resolvedPrimaryTab === tabValue) {
-            const remaining = primary.filter((tab) => tab.value !== tabValue);
-            if (remaining[0]) {
-              onPrimaryTabChange(remaining[0].value);
+            onFocusedPaneChange('secondary');
+            setContextMenu(null);
+            if (resolvedPrimaryTab === tabValue) {
+              const remaining = primary.filter((tab) => tab.value !== tabValue);
+              if (remaining[0]) {
+                onPrimaryTabChange(remaining[0].value);
+              }
             }
           }
-        }
-      }))
-    ];
+        }))
+      );
+    }
+
+    for (const group of buildDevInspectMenuGroups(
+      { x: contextMenu.x, y: contextMenu.y },
+      RESPONSE_TAB_INSPECT_MENU_ID,
+      developerToolsEnabled
+    )) {
+      groups.push(group);
+    }
+
+    return groups;
   }, [
     contextMenu,
     contextMenuActions,
+    developerToolsEnabled,
     onFocusedPaneChange,
     onPrimaryTabChange,
     onSplitChange,

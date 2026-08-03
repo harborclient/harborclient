@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): introduce appearance settings section and related fields. (`3a5b426e`)
 - feat(gui): add response editor split functionality. (`bd1aaaba`)
 
 ## 2.11.0 - 2026-08-03

@@ -40,7 +40,8 @@ export type SettingFieldState = {
   resetToDefault: () => void;
   /**
    * Copies the catalog id string to the clipboard and shows a success toast.
-   * No-op when the id has no binding. Clipboard failures are swallowed.
+   * Works for unbound catalog ids (id-only; no value lookup). Clipboard
+   * failures are swallowed.
    */
   copySettingId: () => Promise<void>;
   /**
@@ -48,7 +49,8 @@ export type SettingFieldState = {
    */
   copySettingAsJson: () => Promise<void>;
   /**
-   * Copies `#setting-…` deep-link hash to the clipboard. No-op when unbound.
+   * Copies `#setting-…` deep-link hash to the clipboard. Works for unbound
+   * catalog ids (hash is derived from the id alone).
    */
   copyDeepLink: () => Promise<void>;
 };
@@ -72,8 +74,8 @@ async function copyText(text: string): Promise<void> {
  * field or group.
  *
  * Subscribes via the field/group binding registry. Unbound ids report
- * `isModified: false` and treat reset/copy as no-ops so callers can safely pass
- * any {@link BoundSettingId}.
+ * `isModified: false` and treat reset / copy-as-JSON as no-ops, while
+ * copy-id and copy-deep-link still work from the catalog id alone.
  *
  * @param settingId - Catalog field or group id to bind.
  * @returns Setting id, modified flag, and memoized handlers.
@@ -95,14 +97,12 @@ export function useSettingFieldState(settingId: BoundSettingId): SettingFieldSta
   }, [dispatch, settingId]);
 
   /**
-   * Copies the catalog setting id to the clipboard when a binding exists.
+   * Copies the catalog setting id to the clipboard. Does not require a binding
+   * because the payload is the id string itself.
    */
   const copySettingId = useCallback(async () => {
-    if (!hasBinding) {
-      return;
-    }
     await copyText(settingId);
-  }, [hasBinding, settingId]);
+  }, [settingId]);
 
   /**
    * Copies a JSON property snippet for the current bound value.
@@ -115,14 +115,12 @@ export function useSettingFieldState(settingId: BoundSettingId): SettingFieldSta
   }, [currentValue, hasBinding, settingId]);
 
   /**
-   * Copies the settings deep-link hash for this catalog id.
+   * Copies the settings deep-link hash for this catalog id. Does not require a
+   * binding because the hash is derived from the id alone.
    */
   const copyDeepLink = useCallback(async () => {
-    if (!hasBinding) {
-      return;
-    }
     await copyText(`#${settingAnchorId(settingId)}`);
-  }, [hasBinding, settingId]);
+  }, [settingId]);
 
   return {
     settingId,

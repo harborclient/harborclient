@@ -221,7 +221,7 @@ describe('useSettingFieldState', () => {
     expect(writeText).toHaveBeenCalledWith('#setting-general-verifySsl');
   });
 
-  it('treats unbound ids as not modified and no-ops reset/copy', async () => {
+  it('treats unbound ids as not modified and no-ops reset/copy-as-JSON', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', {
       clipboard: { writeText }
@@ -238,11 +238,33 @@ describe('useSettingFieldState', () => {
     expect(store.getState().settingsDraft).toEqual(before);
 
     await act(async () => {
-      await latestState?.copySettingId();
       await latestState?.copySettingAsJson();
-      await latestState?.copyDeepLink();
     });
     expect(writeText).not.toHaveBeenCalled();
     expect(toastSuccessMock).not.toHaveBeenCalled();
+  });
+
+  it('copies id and deep link for unbound catalog ids', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', {
+      clipboard: { writeText }
+    });
+
+    renderHookFixture('ai.enterToSend');
+
+    await act(async () => {
+      await latestState?.copySettingId();
+    });
+    expect(writeText).toHaveBeenCalledWith('ai.enterToSend');
+    expect(toastSuccessMock).toHaveBeenCalledWith('Copied to clipboard');
+
+    writeText.mockClear();
+    toastSuccessMock.mockClear();
+
+    await act(async () => {
+      await latestState?.copyDeepLink();
+    });
+    expect(writeText).toHaveBeenCalledWith('#setting-ai-enterToSend');
+    expect(toastSuccessMock).toHaveBeenCalledWith('Copied to clipboard');
   });
 });

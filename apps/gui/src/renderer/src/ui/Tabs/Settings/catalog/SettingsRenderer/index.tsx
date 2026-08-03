@@ -71,6 +71,7 @@ export function SettingsRenderer({
   if (isFormSettingsSection(section)) {
     const { label, icon } = settingsSectionMeta(section);
     const fieldIds = fieldEntriesForSection(section).map((entry) => entry.id);
+    const showSave = section !== 'appearance';
 
     return (
       <Page
@@ -79,7 +80,7 @@ export function SettingsRenderer({
         title={label}
         icon={icon}
         description={FORM_SECTION_DESCRIPTIONS[section]}
-        actions={<SettingsSaveAction tabId={tabId} />}
+        actions={showSave ? <SettingsSaveAction tabId={tabId} /> : undefined}
       >
         <SettingsDraftError />
         <FormSectionLeadingExtras section={section} />

@@ -48,6 +48,23 @@ export type SettingId =
   | 'ai.claudeApiKey'
   | 'ai.geminiApiKey'
   | 'ai.githubModels'
+  | 'appearance.showSidebar'
+  | 'appearance.showRail'
+  | 'appearance.showAiSidebar'
+  | 'appearance.showGitSidebar'
+  | 'appearance.showShortcutsSidebar'
+  | 'appearance.showRequestEditor'
+  | 'appearance.showResponseEditor'
+  | 'appearance.showConsole'
+  | 'appearance.showVariables'
+  | 'appearance.showMcp'
+  | 'appearance.showTerminal'
+  | 'appearance.showStorageLocationBadges'
+  | 'appearance.showMarkers'
+  | 'appearance.showMethodColors'
+  | 'appearance.showIndicators'
+  | 'appearance.showFilters'
+  | 'appearance.showSorting'
   | 'plugins.addCatalogEndpointUrl'
   | 'plugins.addTrustedEndpointUrl'
   | 'globals'
@@ -75,7 +92,13 @@ export type FieldSettingId = Exclude<
 /**
  * Built-in settings sections rendered by the main Settings layout engine.
  */
-export type MainFormSettingsSection = 'general' | 'proxy' | 'syntax' | 'ai' | 'terminal';
+export type MainFormSettingsSection =
+  | 'general'
+  | 'appearance'
+  | 'proxy'
+  | 'syntax'
+  | 'ai'
+  | 'terminal';
 
 /**
  * Built-in settings sections that expose individual field entries in the catalog.
@@ -142,6 +165,8 @@ export type SettingEntry = FieldSettingEntry | SectionSettingEntry | GroupSettin
 export const FORM_SECTION_DESCRIPTIONS: Record<FormSettingsSection, string> = {
   general:
     'Set request and script timeouts, response size limits, SSL verification, redirect following defaults, scrollbar visibility, and optional diagnostic log file output.',
+  appearance:
+    'Show or hide sidebars, editors, footer panels, and collections sidebar display chrome. Changes apply immediately and match View → Appearance.',
   proxy: "Route HarborClient's outbound HTTP requests through a proxy server.",
   syntax: 'Choose a CodeMirror theme and editor behavior for request and response editors.',
   ai: 'Store API keys for OpenAI, Claude, and Google Gemini, and configure MCP server and client connections.',
@@ -557,6 +582,167 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     keywords: ['github', 'models', 'oauth', 'sign in', 'free']
   },
   {
+    id: 'appearance.showSidebar',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Collections Sidebar',
+    description:
+      'Show the collections sidebar that lists requests, environments, and related sections.',
+    keywords: ['sidebar', 'collections', 'layout', 'chrome', 'view', 'appearance', 'panel']
+  },
+  {
+    id: 'appearance.showRail',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Rail',
+    description:
+      'Show the activity rail beside the collections sidebar for switching sidebar modes.',
+    keywords: ['rail', 'activity', 'sidebar', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showAiSidebar',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Agent Chat',
+    description: 'Show the agent chat sidebar for Harbor AI conversations.',
+    keywords: ['ai', 'agent', 'chat', 'sidebar', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showGitSidebar',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Git Sidebar',
+    description: 'Show the Git source-control sidebar for commits and diffs.',
+    keywords: ['git', 'source control', 'sidebar', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showShortcutsSidebar',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Shortcuts',
+    description: 'Show the shortcuts editor sidebar for customizing keyboard shortcuts.',
+    keywords: ['shortcuts', 'keyboard', 'sidebar', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showRequestEditor',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Request',
+    description: 'Show the request editor pane in the main content area.',
+    keywords: ['request', 'editor', 'pane', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showResponseEditor',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Response',
+    description: 'Show the response editor pane in the main content area.',
+    keywords: ['response', 'editor', 'pane', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showConsole',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Console',
+    description: 'Show the footer console panel for script and request logs.',
+    keywords: ['console', 'footer', 'panel', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showVariables',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Variables',
+    description: 'Show the footer variables panel for inspecting resolved variables.',
+    keywords: ['variables', 'footer', 'panel', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showMcp',
+    section: 'appearance',
+    kind: 'field',
+    label: 'MCP',
+    description: 'Show the footer MCP panel for Model Context Protocol connections.',
+    keywords: ['mcp', 'footer', 'panel', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showTerminal',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Terminal',
+    description: 'Show the footer terminal panel for an embedded shell.',
+    keywords: ['terminal', 'footer', 'panel', 'layout', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showStorageLocationBadges',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Storage locations',
+    description: 'Show storage-location badges on collections sidebar rows.',
+    keywords: ['storage', 'location', 'badge', 'sidebar', 'display', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showMarkers',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Color markers',
+    description: 'Show color marker dots on collections sidebar rows.',
+    keywords: ['marker', 'color', 'dot', 'sidebar', 'display', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showMethodColors',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Highlights',
+    description: 'Color HTTP method badges in the collections sidebar by method.',
+    keywords: [
+      'highlight',
+      'method',
+      'color',
+      'badge',
+      'sidebar',
+      'display',
+      'chrome',
+      'view',
+      'appearance'
+    ]
+  },
+  {
+    id: 'appearance.showIndicators',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Indicators',
+    description: 'Show status indicator dots in History and Runs sidebar sections.',
+    keywords: [
+      'indicator',
+      'status',
+      'dot',
+      'history',
+      'runs',
+      'sidebar',
+      'display',
+      'chrome',
+      'view',
+      'appearance'
+    ]
+  },
+  {
+    id: 'appearance.showFilters',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Filters',
+    description:
+      'Show section filter controls in the collections sidebar. Turning off clears active section filters.',
+    keywords: ['filter', 'sidebar', 'display', 'chrome', 'view', 'appearance']
+  },
+  {
+    id: 'appearance.showSorting',
+    section: 'appearance',
+    kind: 'field',
+    label: 'Sorting',
+    description:
+      'Show section sort controls in the collections sidebar. Turning off resets section sorts to default.',
+    keywords: ['sort', 'sorting', 'sidebar', 'display', 'chrome', 'view', 'appearance']
+  },
+  {
     id: 'plugins.addCatalogEndpointUrl',
     section: 'plugins',
     kind: 'field',
@@ -743,6 +929,7 @@ export function isFormSettingsSection(
 ): section is MainFormSettingsSection {
   return (
     section === 'general' ||
+    section === 'appearance' ||
     section === 'proxy' ||
     section === 'syntax' ||
     section === 'ai' ||

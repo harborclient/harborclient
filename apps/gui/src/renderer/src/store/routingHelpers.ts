@@ -8,6 +8,7 @@ import type { PageComponentProps, PageRoute } from '#/renderer/src/routing/types
  */
 const SETTINGS_SECTIONS = new Set<string>([
   'general',
+  'appearance',
   'syntax',
   'storage',
   'proxy',
@@ -15,7 +16,8 @@ const SETTINGS_SECTIONS = new Set<string>([
   'ai',
   'terminal',
   'backup-restore',
-  'git'
+  'git',
+  'runtimes'
 ]);
 
 /**

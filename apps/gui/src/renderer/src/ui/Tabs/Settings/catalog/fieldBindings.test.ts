@@ -27,10 +27,10 @@ import {
 } from './fieldBindings';
 
 /**
- * Field ids registered in `SETTINGS_FIELD_REGISTRY` (kept here to avoid importing
- * the React component registry in Node vitest).
+ * Field ids registered in `SETTINGS_FIELD_REGISTRY` that have draft bindings
+ * (kept here to avoid importing the React component registry in Node vitest).
  */
-const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
+const SETTINGS_FIELD_REGISTRY_BOUND_IDS: FieldSettingId[] = [
   'general.requestTimeoutMs',
   'general.scriptTimeoutMs',
   'general.allowScriptNetworkRequests',
@@ -76,6 +76,29 @@ const SETTINGS_FIELD_REGISTRY_IDS: FieldSettingId[] = [
   'ai.openaiApiKey',
   'ai.claudeApiKey',
   'ai.geminiApiKey'
+];
+
+/**
+ * Registry field ids that apply immediately and intentionally have no draft binding.
+ */
+const SETTINGS_FIELD_REGISTRY_DEFERRED_IDS: FieldSettingId[] = [
+  'appearance.showSidebar',
+  'appearance.showRail',
+  'appearance.showAiSidebar',
+  'appearance.showGitSidebar',
+  'appearance.showShortcutsSidebar',
+  'appearance.showRequestEditor',
+  'appearance.showResponseEditor',
+  'appearance.showConsole',
+  'appearance.showVariables',
+  'appearance.showMcp',
+  'appearance.showTerminal',
+  'appearance.showStorageLocationBadges',
+  'appearance.showMarkers',
+  'appearance.showMethodColors',
+  'appearance.showIndicators',
+  'appearance.showFilters',
+  'appearance.showSorting'
 ];
 
 /**
@@ -130,13 +153,13 @@ function createDraftDispatch(draft: {
 }
 
 describe('SETTING_FIELD_BINDINGS', () => {
-  it('registers a binding for every SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_IDS).toHaveLength(45);
+  it('registers a binding for every draft-backed SETTINGS_FIELD_REGISTRY id', () => {
+    expect(SETTINGS_FIELD_REGISTRY_BOUND_IDS).toHaveLength(45);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
-      [...SETTINGS_FIELD_REGISTRY_IDS].sort()
+      [...SETTINGS_FIELD_REGISTRY_BOUND_IDS].sort()
     );
 
-    for (const id of SETTINGS_FIELD_REGISTRY_IDS) {
+    for (const id of SETTINGS_FIELD_REGISTRY_BOUND_IDS) {
       expect(getFieldBinding(id)).toBeDefined();
     }
   });
@@ -144,6 +167,9 @@ describe('SETTING_FIELD_BINDINGS', () => {
   it('returns undefined for unbound catalog ids', () => {
     expect(getFieldBinding('ai.enterToSend')).toBeUndefined();
     expect(getFieldBinding('plugins.addCatalogEndpointUrl')).toBeUndefined();
+    for (const id of SETTINGS_FIELD_REGISTRY_DEFERRED_IDS) {
+      expect(getFieldBinding(id)).toBeUndefined();
+    }
   });
 });
 

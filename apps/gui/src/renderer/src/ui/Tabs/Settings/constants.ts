@@ -19,6 +19,7 @@ import {
   faGlobe,
   faGithub,
   faServer,
+  faTableColumns,
   faTerminal,
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
@@ -123,6 +124,7 @@ export const SETTINGS_SECTIONS: Array<{
   icon: IconDefinition;
 }> = [
   { value: 'general', label: 'General', icon: faGear },
+  { value: 'appearance', label: 'Appearance', icon: faTableColumns },
   { value: 'globals', label: 'Globals', icon: faGlobe },
   { value: 'storage', label: 'Storage', icon: faDatabase },
   { value: 'git', label: 'Git', icon: faGithub },

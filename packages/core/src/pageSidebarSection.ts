@@ -13,6 +13,7 @@ const PAGE_SIDEBAR_KEYS = new Set<PageSidebarKey>([
 
 const SETTINGS_BUILTIN_SECTIONS = new Set<string>([
   'general',
+  'appearance',
   'syntax',
   'storage',
   'proxy',

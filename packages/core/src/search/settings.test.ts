@@ -42,6 +42,16 @@ describe('settingsSearch', () => {
     expect(results).toContain('backup-restore.confirmations');
   });
 
+  it('matches appearance fields by menu label', () => {
+    const results = searchSettings(index, 'Collections Sidebar');
+    expect(results).toContain('appearance.showSidebar');
+  });
+
+  it('matches appearance fields by setting id fragment', () => {
+    const results = searchSettings(index, 'showConsole');
+    expect(results).toContain('appearance.showConsole');
+  });
+
   it('returns results in catalog manifest order', () => {
     const results = searchSettings(index, 'api');
     const firstIndex = results.indexOf('ai.openaiApiKey');
