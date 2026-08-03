@@ -71,20 +71,24 @@ export function SettingGroupField({
   const description = entry.description;
 
   /**
-   * Label row with cog actions beside the setting id label.
+   * Label row as `<label> <cog> <setting id>`.
    */
   const label = (
-    <span className="flex min-w-0 items-center gap-2">
-      <SettingFieldActions
-        settingId={settingId}
-        isModified={isModified}
-        onReset={resetToDefault}
-        onCopyId={() => void copySettingId()}
-        onCopyJson={() => void copySettingAsJson()}
-        onCopyDeepLink={() => void copyDeepLink()}
-      />
-      <SettingIdLabel settingId={settingId}>{entry.label}</SettingIdLabel>
-    </span>
+    <SettingIdLabel
+      settingId={settingId}
+      afterLabel={
+        <SettingFieldActions
+          settingId={settingId}
+          isModified={isModified}
+          onReset={resetToDefault}
+          onCopyId={() => void copySettingId()}
+          onCopyJson={() => void copySettingAsJson()}
+          onCopyDeepLink={() => void copyDeepLink()}
+        />
+      }
+    >
+      {entry.label}
+    </SettingIdLabel>
   );
 
   return (

@@ -218,7 +218,7 @@ describe('useSettingFieldState', () => {
     await act(async () => {
       await latestState?.copyDeepLink();
     });
-    expect(writeText).toHaveBeenCalledWith('#setting-general-verifySsl');
+    expect(writeText).toHaveBeenCalledWith('harborclient://settings?id=general.verifySsl');
   });
 
   it('treats unbound ids as not modified and no-ops reset/copy-as-JSON', async () => {
@@ -264,7 +264,7 @@ describe('useSettingFieldState', () => {
     await act(async () => {
       await latestState?.copyDeepLink();
     });
-    expect(writeText).toHaveBeenCalledWith('#setting-ai-enterToSend');
+    expect(writeText).toHaveBeenCalledWith('harborclient://settings?id=ai.enterToSend');
     expect(toastSuccessMock).toHaveBeenCalledWith('Copied to clipboard');
   });
 });

@@ -13,6 +13,7 @@ import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { sectionEntryBySection } from '../catalog/catalog';
 import { SettingGroupField } from '../components/SettingGroupField';
 import { settingsSectionMeta } from '../constants';
+import { useFocusSettingAnchor } from '../hooks/useFocusSettingAnchor';
 import { settingAnchorId } from '../settingAnchorId';
 import type { SettingsSectionComponentProps } from '../catalog/registry';
 import { ConfirmationsTable } from './ConfirmationsTable';
@@ -33,6 +34,11 @@ export function BackupRestoreSection({
   const [error, setError] = useState<string | null>(null);
   const [dataDirectoryPath, setDataDirectoryPath] = useState('');
 
+  useFocusSettingAnchor(
+    focusSettingId === CONFIRMATIONS_GROUP_ID ? focusSettingId : undefined,
+    onFocusSettingHandled
+  );
+
   /**
    * Loads the Electron userData path shown at the bottom of this settings page.
    */
@@ -49,22 +55,6 @@ export function BackupRestoreSection({
       cancelled = true;
     };
   }, []);
-
-  /**
-   * Scrolls the confirmations group into view when opened from settings or global search.
-   */
-  useEffect(() => {
-    if (focusSettingId !== CONFIRMATIONS_GROUP_ID) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      document.getElementById(settingAnchorId(CONFIRMATIONS_GROUP_ID))?.scrollIntoView({
-        block: 'start'
-      });
-      onFocusSettingHandled?.();
-    });
-  }, [focusSettingId, onFocusSettingHandled]);
 
   /**
    * Exports all local HarborClient data to a `.hcb` backup file.

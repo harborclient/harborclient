@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(settings): enhance deep link handling for settings navigation. (`3d03652e`)
 - feat(settings): introduce appearance settings section and related fields. (`3a5b426e`)
 - feat(gui): add response editor split functionality. (`bd1aaaba`)
 

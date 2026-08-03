@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { buildSettingDeepLink } from '@harborclient/core/deepLink';
 
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 
@@ -8,14 +9,33 @@ import {
   formatSettingAsJson,
   getSettingBinding,
   isFieldModified,
-  resetFieldToDefault
+  resetFieldToDefault,
+  valuesEqual
 } from '../catalog/fieldBindings';
-import { settingAnchorId } from '../settingAnchorId';
 
 /**
  * Catalog field or group id that may have a modified/reset binding.
  */
 export type BoundSettingId = FieldSettingId | GroupSettingId;
+
+/**
+ * Live (non-Redux) value + default + reset for settings that live outside the
+ * draft / navigation binding registry — e.g. sidebar expansion display chrome.
+ */
+export type LiveSettingFieldState = {
+  /**
+   * Current live value compared against {@link defaultValue}.
+   */
+  value: unknown;
+  /**
+   * Factory default for modified detection and reset.
+   */
+  defaultValue: unknown;
+  /**
+   * Restores the factory default in the live store (immediate).
+   */
+  onReset: () => void;
+};
 
 /**
  * Per-field state and actions derived from the settings field binding registry.
@@ -30,12 +50,13 @@ export type SettingFieldState = {
   settingId: BoundSettingId;
   /**
    * True when the draft (or live) value differs from the factory default.
-   * Unbound catalog ids are always false.
+   * Unbound catalog ids are always false unless a live override is provided.
    */
   isModified: boolean;
   /**
    * Writes the factory default into the settings draft (or persists for live
-   * bindings). No-op when the id has no binding.
+   * bindings / live overrides). No-op when the id has no binding and no live
+   * override.
    */
   resetToDefault: () => void;
   /**
@@ -45,12 +66,13 @@ export type SettingFieldState = {
    */
   copySettingId: () => Promise<void>;
   /**
-   * Copies `"settingId": value` JSON to the clipboard. No-op when unbound.
+   * Copies `"settingId": value` JSON to the clipboard. No-op when unbound and
+   * no live override is provided.
    */
   copySettingAsJson: () => Promise<void>;
   /**
-   * Copies `#setting-…` deep-link hash to the clipboard. Works for unbound
-   * catalog ids (hash is derived from the id alone).
+   * Copies a `harborclient://settings?id=…` deep link to the clipboard. Works
+   * for unbound catalog ids (URL is derived from the id alone).
    */
   copyDeepLink: () => Promise<void>;
 };
@@ -73,28 +95,44 @@ async function copyText(text: string): Promise<void> {
  * Exposes modified state, reset, and copy handlers for a single settings catalog
  * field or group.
  *
- * Subscribes via the field/group binding registry. Unbound ids report
- * `isModified: false` and treat reset / copy-as-JSON as no-ops, while
- * copy-id and copy-deep-link still work from the catalog id alone.
+ * Subscribes via the field/group binding registry. When {@link live} is
+ * provided, modified/reset/copy-JSON use that override instead (for context-
+ * backed Appearance display chrome). Unbound ids without a live override report
+ * `isModified: false` and treat reset / copy-as-JSON as no-ops, while copy-id
+ * and copy-deep-link still work from the catalog id alone.
  *
  * @param settingId - Catalog field or group id to bind.
+ * @param live - Optional live value/default/reset when state is outside Redux.
  * @returns Setting id, modified flag, and memoized handlers.
  */
-export function useSettingFieldState(settingId: BoundSettingId): SettingFieldState {
+export function useSettingFieldState(
+  settingId: BoundSettingId,
+  live?: LiveSettingFieldState
+): SettingFieldState {
   const dispatch = useAppDispatch();
-  const isModified = useAppSelector((state) => isFieldModified(state, settingId));
+  const registryModified = useAppSelector((state) => isFieldModified(state, settingId));
   const binding = getSettingBinding(settingId);
-  const hasBinding = binding != null;
-  const currentValue = useAppSelector((state) =>
+  const hasRegistryBinding = binding != null;
+  const registryValue = useAppSelector((state) =>
     binding != null ? binding.getValue(state) : undefined
   );
 
+  const hasLive = live != null;
+  const isModified = hasLive ? !valuesEqual(live.value, live.defaultValue) : registryModified;
+  const currentValue = hasLive ? live.value : registryValue;
+  const canCopyJson = hasLive || hasRegistryBinding;
+
   /**
-   * Resets the setting's value to its factory default via the binding registry.
+   * Resets the setting's value to its factory default via the live override or
+   * binding registry.
    */
   const resetToDefault = useCallback(() => {
+    if (live != null) {
+      live.onReset();
+      return;
+    }
     resetFieldToDefault(dispatch, settingId);
-  }, [dispatch, settingId]);
+  }, [dispatch, live, settingId]);
 
   /**
    * Copies the catalog setting id to the clipboard. Does not require a binding
@@ -105,21 +143,21 @@ export function useSettingFieldState(settingId: BoundSettingId): SettingFieldSta
   }, [settingId]);
 
   /**
-   * Copies a JSON property snippet for the current bound value.
+   * Copies a JSON property snippet for the current bound or live value.
    */
   const copySettingAsJson = useCallback(async () => {
-    if (!hasBinding) {
+    if (!canCopyJson) {
       return;
     }
     await copyText(formatSettingAsJson(settingId, currentValue));
-  }, [currentValue, hasBinding, settingId]);
+  }, [canCopyJson, currentValue, settingId]);
 
   /**
-   * Copies the settings deep-link hash for this catalog id. Does not require a
-   * binding because the hash is derived from the id alone.
+   * Copies a harborclient://settings deep link for this catalog id. Does not
+   * require a binding because the URL is derived from the id alone.
    */
   const copyDeepLink = useCallback(async () => {
-    await copyText(`#${settingAnchorId(settingId)}`);
+    await copyText(buildSettingDeepLink(settingId));
   }, [settingId]);
 
   return {

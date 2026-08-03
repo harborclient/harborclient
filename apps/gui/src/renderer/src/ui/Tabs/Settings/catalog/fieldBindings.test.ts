@@ -11,9 +11,11 @@ import settingsDraftReducer, {
   setDraftProxyField,
   setDraftTerminalField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
+import navigationReducer, { setShowSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import { BUILTIN_USER_AGENT_PRESETS, DEFAULT_USER_AGENT } from '@harborclient/core/userAgent';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
+import { APPEARANCE_PANEL_DEFAULTS } from '#/renderer/src/ui/Tabs/Settings/appearanceDefaults';
 
 import type { FieldSettingId } from './catalog';
 import {
@@ -75,13 +77,7 @@ const SETTINGS_FIELD_REGISTRY_BOUND_IDS: FieldSettingId[] = [
   'terminal.screenReaderMode',
   'ai.openaiApiKey',
   'ai.claudeApiKey',
-  'ai.geminiApiKey'
-];
-
-/**
- * Registry field ids that apply immediately and intentionally have no draft binding.
- */
-const SETTINGS_FIELD_REGISTRY_DEFERRED_IDS: FieldSettingId[] = [
+  'ai.geminiApiKey',
   'appearance.showSidebar',
   'appearance.showRail',
   'appearance.showAiSidebar',
@@ -92,7 +88,14 @@ const SETTINGS_FIELD_REGISTRY_DEFERRED_IDS: FieldSettingId[] = [
   'appearance.showConsole',
   'appearance.showVariables',
   'appearance.showMcp',
-  'appearance.showTerminal',
+  'appearance.showTerminal'
+];
+
+/**
+ * Registry field ids that apply immediately via sidebar expansion context and
+ * use SettingField `live` overrides for modified/reset (no Redux binding).
+ */
+const SETTINGS_FIELD_REGISTRY_DEFERRED_IDS: FieldSettingId[] = [
   'appearance.showStorageLocationBadges',
   'appearance.showMarkers',
   'appearance.showMethodColors',
@@ -107,15 +110,20 @@ const SETTINGS_FIELD_REGISTRY_DEFERRED_IDS: FieldSettingId[] = [
  *
  * @param draft - Settings draft slice state.
  * @param general - Optional live general settings for group bindings.
+ * @param navigation - Optional navigation slice overrides for appearance bindings.
  * @returns Partial root state suitable for binding helpers.
  */
 function buildState(
   draft: ReturnType<typeof settingsDraftReducer>,
-  general: typeof DEFAULT_GENERAL_SETTINGS = DEFAULT_GENERAL_SETTINGS
+  general: typeof DEFAULT_GENERAL_SETTINGS = DEFAULT_GENERAL_SETTINGS,
+  navigation: ReturnType<typeof navigationReducer> = navigationReducer(undefined, {
+    type: '@@init'
+  })
 ): RootState {
   return {
     settingsDraft: draft,
-    settings: { general }
+    settings: { general },
+    navigation
   } as RootState;
 }
 
@@ -153,8 +161,8 @@ function createDraftDispatch(draft: {
 }
 
 describe('SETTING_FIELD_BINDINGS', () => {
-  it('registers a binding for every draft-backed SETTINGS_FIELD_REGISTRY id', () => {
-    expect(SETTINGS_FIELD_REGISTRY_BOUND_IDS).toHaveLength(45);
+  it('registers a binding for every draft-backed and live panel SETTINGS_FIELD_REGISTRY id', () => {
+    expect(SETTINGS_FIELD_REGISTRY_BOUND_IDS).toHaveLength(56);
     expect(Object.keys(SETTING_FIELD_BINDINGS).sort()).toEqual(
       [...SETTINGS_FIELD_REGISTRY_BOUND_IDS].sort()
     );
@@ -373,6 +381,38 @@ describe('isFieldModified / resetFieldToDefault', () => {
     // Live confirmations reset dispatches the patchGeneralSettings async thunk.
     expect(dispatched).toHaveLength(1);
     expect(typeof dispatched[0]).toBe('function');
+  });
+
+  it('detects and resets appearance.showSidebar from navigation state', () => {
+    const draft = initDefaultDraft();
+    const defaultNav = navigationReducer(undefined, { type: '@@init' });
+    expect(
+      isFieldModified(
+        buildState(draft, DEFAULT_GENERAL_SETTINGS, defaultNav),
+        'appearance.showSidebar'
+      )
+    ).toBe(false);
+
+    const modifiedNav = navigationReducer(defaultNav, setShowSidebar(false));
+    expect(
+      isFieldModified(
+        buildState(draft, DEFAULT_GENERAL_SETTINGS, modifiedNav),
+        'appearance.showSidebar'
+      )
+    ).toBe(true);
+    expect(APPEARANCE_PANEL_DEFAULTS.showSidebar).toBe(true);
+
+    let nav = modifiedNav;
+    const dispatch = ((action: UnknownAction) => {
+      nav = navigationReducer(nav, action);
+      return action;
+    }) as never;
+
+    resetFieldToDefault(dispatch, 'appearance.showSidebar');
+    expect(nav.showSidebar).toBe(true);
+    expect(
+      isFieldModified(buildState(draft, DEFAULT_GENERAL_SETTINGS, nav), 'appearance.showSidebar')
+    ).toBe(false);
   });
 
   it('treats unknown ids as not modified and no-op on reset', () => {

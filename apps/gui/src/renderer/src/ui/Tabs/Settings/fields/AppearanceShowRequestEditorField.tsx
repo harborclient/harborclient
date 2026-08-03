@@ -11,9 +11,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Request editor pane visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showRequestEditor — live navigation /
- * panelLayout.
  */
 export function AppearanceShowRequestEditorField(): JSX.Element {
   const dispatch = useAppDispatch();

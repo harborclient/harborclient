@@ -8,8 +8,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Footer terminal panel visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showTerminal — live navigation / panelLayout.
  */
 export function AppearanceShowTerminalField(): JSX.Element {
   const dispatch = useAppDispatch();

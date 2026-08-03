@@ -11,9 +11,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Response editor pane visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showResponseEditor — live navigation /
- * panelLayout.
  */
 export function AppearanceShowResponseEditorField(): JSX.Element {
   const dispatch = useAppDispatch();

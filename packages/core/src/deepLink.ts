@@ -10,6 +10,8 @@ import {
   type InvitationLinkParams
 } from '@harborclient/team-hub-api';
 
+import { isSettingId } from './search/settingsCatalog';
+
 /**
  * Custom URL scheme registered by HarborClient for deep links from the web.
  */
@@ -42,6 +44,10 @@ export type HarborDeepLink =
   | {
       action: 'open-run-results';
       uuid: string;
+    }
+  | {
+      action: 'open-setting';
+      settingId: string;
     }
   | TeamHubJoinDeepLinkPayload;
 
@@ -113,6 +119,30 @@ function parseRunResultsDeepLink(parsed: URL): HarborDeepLink | null {
   }
 
   return { action: 'open-run-results', uuid };
+}
+
+/**
+ * Parses a harborclient://settings?id=<catalogId> deep link when valid.
+ *
+ * @param parsed - Parsed harborclient:// URL.
+ * @returns Parsed open-setting action, or null when invalid.
+ */
+function parseSettingsDeepLink(parsed: URL): HarborDeepLink | null {
+  if (parsed.hostname !== 'settings') {
+    return null;
+  }
+
+  const pathname = parsed.pathname.replace(/\/+$/, '');
+  if (pathname !== '' && pathname !== '/') {
+    return null;
+  }
+
+  const settingId = parsed.searchParams.get('id')?.trim();
+  if (!settingId || !isSettingId(settingId)) {
+    return null;
+  }
+
+  return { action: 'open-setting', settingId };
 }
 
 /**
@@ -233,6 +263,7 @@ export function parseHarborDeepLink(url: string): HarborDeepLink | null {
     parseInstallDeepLink(parsed, 'theme', 'install-theme') ??
     parseInstallDeepLink(parsed, 'snippet', 'install-snippet') ??
     parseRunResultsDeepLink(parsed) ??
+    parseSettingsDeepLink(parsed) ??
     parseTeamHubJoinDeepLink(parsed)
   );
 }
@@ -275,6 +306,16 @@ export function buildSnippetInstallDeepLink(pluginId: string): string {
  */
 export function buildRunResultsDeepLink(uuid: string): string {
   return `${HARBOR_PROTOCOL}://run/${encodeURIComponent(uuid)}`;
+}
+
+/**
+ * Builds a harborclient:// settings URL for one catalog setting id.
+ *
+ * @param settingId - Catalog field or group id (e.g. `general.verifySsl`).
+ * @returns Deep-link URL suitable for clipboard copy and external links.
+ */
+export function buildSettingDeepLink(settingId: string): string {
+  return `${HARBOR_PROTOCOL}://settings?id=${encodeURIComponent(settingId)}`;
 }
 
 /**

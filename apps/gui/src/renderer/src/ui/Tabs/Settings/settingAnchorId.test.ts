@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
 
-import { settingAnchorId } from './settingAnchorId';
+import { focusSettingAnchor, settingAnchorId } from './settingAnchorId';
 
 describe('settingAnchorId', () => {
   it('builds a stable DOM id from dotted setting ids', () => {
@@ -8,5 +9,27 @@ describe('settingAnchorId', () => {
       'setting-backup-restore-confirmations'
     );
     expect(settingAnchorId('general.verifySsl')).toBe('setting-general-verifySsl');
+  });
+});
+
+describe('focusSettingAnchor', () => {
+  it('scrolls and focuses the matching element when present', () => {
+    const focus = vi.fn();
+    const scrollIntoView = vi.fn();
+    const element = { focus, scrollIntoView } as unknown as HTMLElement;
+    const getElementById = vi.spyOn(document, 'getElementById').mockReturnValue(element);
+
+    expect(focusSettingAnchor('general.verifySsl')).toBe(true);
+    expect(getElementById).toHaveBeenCalledWith('setting-general-verifySsl');
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+
+    getElementById.mockRestore();
+  });
+
+  it('returns false when no matching element exists', () => {
+    const getElementById = vi.spyOn(document, 'getElementById').mockReturnValue(null);
+    expect(focusSettingAnchor('general.verifySsl')).toBe(false);
+    getElementById.mockRestore();
   });
 });

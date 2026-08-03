@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(settings): enhance deep link handling for settings navigation. (`3d03652e`)
 - feat(gui): add response editor split functionality. (`bd1aaaba`)
 
 ## 1.6.0 - 2026-08-03

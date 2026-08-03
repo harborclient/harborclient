@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPluginInstallDeepLink,
   buildRunResultsDeepLink,
+  buildSettingDeepLink,
   buildSnippetInstallDeepLink,
   buildTeamHubJoinDeepLink,
   buildTeamHubJoinUrl,
@@ -172,6 +173,35 @@ describe('buildRunResultsDeepLink', () => {
       action: 'open-run-results',
       uuid: '550e8400-e29b-41d4-a716-446655440000'
     });
+  });
+});
+
+describe('buildSettingDeepLink', () => {
+  it('builds a settings URL that round-trips through the parser', () => {
+    const url = buildSettingDeepLink('general.verifySsl');
+    expect(url).toBe('harborclient://settings?id=general.verifySsl');
+    expect(parseHarborDeepLink(url)).toEqual({
+      action: 'open-setting',
+      settingId: 'general.verifySsl'
+    });
+  });
+
+  it('parses appearance and group catalog ids', () => {
+    expect(parseHarborDeepLink(buildSettingDeepLink('appearance.showSidebar'))).toEqual({
+      action: 'open-setting',
+      settingId: 'appearance.showSidebar'
+    });
+    expect(parseHarborDeepLink(buildSettingDeepLink('backup-restore.confirmations'))).toEqual({
+      action: 'open-setting',
+      settingId: 'backup-restore.confirmations'
+    });
+  });
+
+  it('rejects missing, unknown, or malformed settings ids', () => {
+    expect(parseHarborDeepLink('harborclient://settings')).toBeNull();
+    expect(parseHarborDeepLink('harborclient://settings?id=')).toBeNull();
+    expect(parseHarborDeepLink('harborclient://settings?id=not.a.real.setting')).toBeNull();
+    expect(parseHarborDeepLink('harborclient://settings/extra?id=general.verifySsl')).toBeNull();
   });
 });
 

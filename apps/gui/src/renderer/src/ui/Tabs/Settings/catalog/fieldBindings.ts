@@ -6,7 +6,16 @@
  * All draft-backed ids in `SETTINGS_FIELD_REGISTRY` (General, Proxy, Syntax,
  * Terminal, AI API keys): `general.*`, `proxy.*`, `syntax.*`, `terminal.*`,
  * `ai.openaiApiKey`, `ai.claudeApiKey`, `ai.geminiApiKey`. Values read/write
- * `settingsDraft`. Appearance registry fields are live (deferred; no binding).
+ * `settingsDraft`.
+ *
+ * ## Supported live field ids (`SETTING_FIELD_BINDINGS`)
+ *
+ * - `appearance.showSidebar` / `appearance.showRail` /
+ *   `appearance.showAiSidebar` / `appearance.showGitSidebar` /
+ *   `appearance.showShortcutsSidebar` / `appearance.showRequestEditor` /
+ *   `appearance.showResponseEditor` / `appearance.showConsole` /
+ *   `appearance.showVariables` / `appearance.showMcp` /
+ *   `appearance.showTerminal` — `navigationSlice` + `panelLayout` persist.
  *
  * ## Supported group ids (`SETTING_GROUP_BINDINGS`)
  *
@@ -18,16 +27,11 @@
  * ## Deferred (no binding; see TODO(settings-modified) at call sites)
  *
  * - `ai.enterToSend` — `aiChatSlice` + immediate persist.
- * - `appearance.showSidebar` / `appearance.showRail` /
- *   `appearance.showAiSidebar` / `appearance.showGitSidebar` /
- *   `appearance.showShortcutsSidebar` / `appearance.showRequestEditor` /
- *   `appearance.showResponseEditor` / `appearance.showConsole` /
- *   `appearance.showVariables` / `appearance.showMcp` /
- *   `appearance.showTerminal` — `navigationSlice` + `panelLayout` persist.
  * - `appearance.showStorageLocationBadges` / `appearance.showMarkers` /
  *   `appearance.showMethodColors` / `appearance.showIndicators` /
  *   `appearance.showFilters` / `appearance.showSorting` — sidebar expansion
- *   context + `sidebarExpansion` persist.
+ *   context + `sidebarExpansion` persist; modified/reset via
+ *   {@link SettingField} `live` overrides (not Redux bindings).
  * - `globals.variables` — local form state in `GlobalsSectionForm`.
  * - `plugins.addCatalogEndpointUrl` / `plugins.addTrustedEndpointUrl` — hosted
  *   plugin surfaces; needs plugin API for modified/reset.
@@ -57,6 +61,19 @@ import { DEFAULT_USER_AGENT, isGeneratedHarborClientUserAgent } from '@harborcli
 
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import {
+  setShowAiSidebar,
+  setShowConsole,
+  setShowGitSidebar,
+  setShowMcp,
+  setShowRail,
+  setShowRequestEditor,
+  setShowResponseEditor,
+  setShowShortcutsSidebar,
+  setShowSidebar,
+  setShowTerminal,
+  setShowVariables
+} from '#/renderer/src/store/slices/navigationSlice';
+import {
   setDraftAiField,
   setDraftCodeEditorSetupField,
   setDraftCodeEditorTheme,
@@ -69,6 +86,10 @@ import {
   CONFIRMATION_ROWS,
   confirmationSettingsPatch
 } from '#/renderer/src/ui/Tabs/Settings/BackupRestoreSection/confirmations';
+import {
+  APPEARANCE_PANEL_DEFAULTS,
+  type AppearancePanelFlag
+} from '#/renderer/src/ui/Tabs/Settings/appearanceDefaults';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 import type { FieldSettingId, GroupSettingId, SettingId } from './catalog';
@@ -125,7 +146,7 @@ export type SettingFieldBinding = {
  * @param b - Second value.
  * @returns True when the values are considered equal.
  */
-function valuesEqual(a: unknown, b: unknown): boolean {
+export function valuesEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) {
     return true;
   }
@@ -407,6 +428,26 @@ const confirmationsBinding: SettingFieldBinding = {
 };
 
 /**
+ * Builds a live binding for an Appearance panel-layout boolean on navigation state.
+ *
+ * @param key - Navigation / panel-layout visibility flag.
+ * @param setAction - Redux action creator that sets the flag absolutely.
+ * @returns Binding that reads navigation state and resets via the setter.
+ */
+function createAppearancePanelBinding(
+  key: AppearancePanelFlag,
+  setAction: (value: boolean) => { payload: boolean; type: string }
+): SettingFieldBinding {
+  return {
+    getValue: (state) => state.navigation[key],
+    getDefault: () => APPEARANCE_PANEL_DEFAULTS[key],
+    reset: (dispatch) => {
+      dispatch(setAction(APPEARANCE_PANEL_DEFAULTS[key]));
+    }
+  };
+}
+
+/**
  * Binding for the composite `git.commitAuthor` group.
  */
 const commitAuthorBinding: SettingFieldBinding = {
@@ -457,6 +498,26 @@ export const SETTING_FIELD_BINDINGS: Partial<Record<FieldSettingId, SettingField
   'general.spellCheckEnabled': createGeneralBinding('spellCheckEnabled'),
   'general.logFilePath': createGeneralBinding('logFilePath'),
   'general.trustedDomains': trustedDomainsBinding,
+  'appearance.showSidebar': createAppearancePanelBinding('showSidebar', setShowSidebar),
+  'appearance.showRail': createAppearancePanelBinding('showRail', setShowRail),
+  'appearance.showAiSidebar': createAppearancePanelBinding('showAiSidebar', setShowAiSidebar),
+  'appearance.showGitSidebar': createAppearancePanelBinding('showGitSidebar', setShowGitSidebar),
+  'appearance.showShortcutsSidebar': createAppearancePanelBinding(
+    'showShortcutsSidebar',
+    setShowShortcutsSidebar
+  ),
+  'appearance.showRequestEditor': createAppearancePanelBinding(
+    'showRequestEditor',
+    setShowRequestEditor
+  ),
+  'appearance.showResponseEditor': createAppearancePanelBinding(
+    'showResponseEditor',
+    setShowResponseEditor
+  ),
+  'appearance.showConsole': createAppearancePanelBinding('showConsole', setShowConsole),
+  'appearance.showVariables': createAppearancePanelBinding('showVariables', setShowVariables),
+  'appearance.showMcp': createAppearancePanelBinding('showMcp', setShowMcp),
+  'appearance.showTerminal': createAppearancePanelBinding('showTerminal', setShowTerminal),
   'proxy.enabled': createProxyBinding('enabled'),
   'proxy.protocol': createProxyBinding('protocol'),
   'proxy.host': createProxyBinding('host'),
@@ -545,8 +606,9 @@ export function isFieldModified(state: RootState, id: SettingId): boolean {
  * Resets a settings field or group to its factory default.
  *
  * Draft bindings write the draft only — they do not call IPC or
- * `saveSettingsDraft`. Live bindings (confirmations) persist immediately via
- * `patchGeneralSettings`. Nested object/array defaults are cloned so factory
+ * `saveSettingsDraft`. Live bindings (confirmations, appearance panel layout)
+ * persist immediately via their own setters / thunks. Nested object/array
+ * defaults are cloned so factory
  * constants are never mutated in place.
  *
  * After a draft reset, `isFieldModified` is false (draft matches factory

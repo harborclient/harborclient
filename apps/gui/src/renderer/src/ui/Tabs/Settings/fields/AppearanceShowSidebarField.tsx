@@ -8,8 +8,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Collections sidebar visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showSidebar — live navigation / panelLayout.
  */
 export function AppearanceShowSidebarField(): JSX.Element {
   const dispatch = useAppDispatch();

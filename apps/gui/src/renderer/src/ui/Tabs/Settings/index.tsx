@@ -28,7 +28,7 @@ interface Props {
   focusVariableKey?: string;
 
   /**
-   * When set, scrolls to the matching catalog group anchor in management sections.
+   * When set, scrolls to and focuses the matching catalog field or group.
    */
   focusSettingId?: string;
 

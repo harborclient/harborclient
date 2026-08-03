@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { tryGetSettingEntry } from '@harborclient/core/search/settingsCatalog';
+
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { openRunResultByUuid } from '#/renderer/src/store/thunks/runResults';
 import {
@@ -40,6 +42,43 @@ export function useDeepLinks(): void {
 
       if (payload.action === 'open-run-results') {
         void dispatch(openRunResultByUuid(payload.uuid));
+        return;
+      }
+
+      if (payload.action === 'open-setting') {
+        const entry = tryGetSettingEntry(payload.settingId);
+        if (entry == null) {
+          return;
+        }
+
+        if (entry.kind === 'group') {
+          dispatch(
+            openPageTab({
+              type: 'settings',
+              section: entry.section,
+              focusSettingId: entry.id
+            })
+          );
+          return;
+        }
+
+        if (entry.kind === 'section') {
+          dispatch(openPageTab({ type: 'settings', section: entry.section }));
+          return;
+        }
+
+        if (entry.section === 'plugins') {
+          dispatch(openPageTab({ type: 'plugins' }));
+          return;
+        }
+
+        dispatch(
+          openPageTab({
+            type: 'settings',
+            section: entry.section,
+            focusSettingId: entry.id
+          })
+        );
         return;
       }
 

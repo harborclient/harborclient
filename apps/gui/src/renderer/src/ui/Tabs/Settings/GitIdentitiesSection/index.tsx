@@ -25,6 +25,8 @@ import { GitAuthorForm } from '#/renderer/src/ui/Shared/Git/GitAuthorForm';
 import type { SettingsSectionComponentProps } from '#/renderer/src/ui/Tabs/Settings/catalog/registry';
 import { SettingGroupField } from '#/renderer/src/ui/Tabs/Settings/components/SettingGroupField';
 import { SettingsSaveAction } from '#/renderer/src/ui/Tabs/Settings/components/SettingsSaveAction';
+import { useFocusSettingAnchor } from '#/renderer/src/ui/Tabs/Settings/hooks/useFocusSettingAnchor';
+import { settingAnchorId } from '#/renderer/src/ui/Tabs/Settings/settingAnchorId';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   selectDraftGeneral,
@@ -32,13 +34,17 @@ import {
   setDraftGeneralField
 } from '#/renderer/src/store/slices/settingsDraftSlice';
 
-const GIT_AUTO_TRACK_INPUT_ID = 'git-auto-track';
+const GIT_AUTO_TRACK_INPUT_ID = settingAnchorId('git.autoTrack');
 const GIT_EXTERNAL_MERGE_EDITOR_INPUT_ID = 'git-external-merge-editor-path';
 
 /**
  * Settings page for managing shared git host identities.
  */
-export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): JSX.Element {
+export function GitIdentitiesSection({
+  focusSettingId,
+  onFocusSettingHandled,
+  tabId
+}: SettingsSectionComponentProps): JSX.Element {
   const confirm = useConfirm();
   const dispatch = useAppDispatch();
   const general = useAppSelector(selectDraftGeneral);
@@ -51,6 +57,7 @@ export function GitIdentitiesSection({ tabId }: SettingsSectionComponentProps): 
   const [editorHost, setEditorHost] = useState('');
   const [editorUrl, setEditorUrl] = useState('');
 
+  useFocusSettingAnchor(focusSettingId, onFocusSettingHandled);
   /**
    * Reloads saved git identities from the main process.
    */

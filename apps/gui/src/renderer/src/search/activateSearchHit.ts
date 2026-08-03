@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { entryById, type SettingId } from '@harborclient/core/search/settingsCatalog';
-import { settingAnchorId } from '#/renderer/src/ui/Tabs/Settings/settingAnchorId';
 import {
   isArchivedCollection,
   parseSidebarDocumentId,
@@ -144,10 +143,13 @@ export function useActivateSearchHit(): (hit: UnifiedSearchHit, query: string) =
             dispatch(openPageTab({ type: 'plugins' }));
             return;
           }
-          dispatch(openPageTab({ type: 'settings', section: entry.section }));
-          requestAnimationFrame(() => {
-            document.getElementById(settingAnchorId(hit.id))?.focus();
-          });
+          dispatch(
+            openPageTab({
+              type: 'settings',
+              section: entry.section,
+              focusSettingId: entry.id
+            })
+          );
           return;
         }
         case 'plugin': {

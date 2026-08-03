@@ -8,8 +8,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Footer console panel visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showConsole — live navigation / panelLayout.
  */
 export function AppearanceShowConsoleField(): JSX.Element {
   const dispatch = useAppDispatch();

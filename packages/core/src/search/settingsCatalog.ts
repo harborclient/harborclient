@@ -866,6 +866,29 @@ const CATALOG_BY_ID = new Map<SettingId, SettingEntry>(
 );
 
 /**
+ * Returns whether a string is a known settings catalog id.
+ *
+ * @param id - Candidate setting identifier.
+ * @returns True when the id exists in {@link SETTINGS_CATALOG}.
+ */
+export function isSettingId(id: string): id is SettingId {
+  return CATALOG_BY_ID.has(id as SettingId);
+}
+
+/**
+ * Returns the catalog entry for a setting id when present.
+ *
+ * @param id - Candidate setting identifier.
+ * @returns Matching catalog entry, or undefined when unknown.
+ */
+export function tryGetSettingEntry(id: string): SettingEntry | undefined {
+  if (!isSettingId(id)) {
+    return undefined;
+  }
+  return CATALOG_BY_ID.get(id);
+}
+
+/**
  * Returns the catalog entry for a setting id.
  *
  * @param id - Stable setting identifier.

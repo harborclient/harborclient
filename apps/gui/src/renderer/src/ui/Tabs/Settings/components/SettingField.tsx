@@ -2,7 +2,7 @@ import { FormGroup, SettingFieldActions, SettingIdLabel } from '@harborclient/sd
 import type { ComponentProps, JSX, ReactNode } from 'react';
 
 import { entryById, type FieldSettingId } from '../catalog/catalog';
-import { useSettingFieldState } from '../hooks/useSettingFieldState';
+import { useSettingFieldState, type LiveSettingFieldState } from '../hooks/useSettingFieldState';
 import { settingAnchorId } from '../settingAnchorId';
 
 type FormGroupProps = ComponentProps<typeof FormGroup>;
@@ -40,6 +40,11 @@ interface Props {
    * Additional classes on the outer wrapper.
    */
   className?: string;
+  /**
+   * Live value/default/reset when the setting is not backed by a Redux binding
+   * (e.g. Appearance sidebar display chrome from sidebar expansion context).
+   */
+  live?: LiveSettingFieldState;
 }
 
 /**
@@ -72,7 +77,8 @@ export function SettingField({
   errorId,
   layout,
   labelTone,
-  className
+  className,
+  live
 }: Props): JSX.Element {
   const entry = entryById(settingId);
   if (entry.kind !== 'field') {
@@ -80,26 +86,30 @@ export function SettingField({
   }
 
   const { isModified, resetToDefault, copySettingId, copySettingAsJson, copyDeepLink } =
-    useSettingFieldState(settingId);
+    useSettingFieldState(settingId, live);
   const controlId = htmlFor ?? settingControlId(settingId);
   const descriptionId = settingDescriptionId(settingId);
   const description = entry.description;
 
   /**
-   * Label row with cog actions beside the setting id label.
+   * Label row as `<label> <cog> <setting id>`.
    */
   const label = (
-    <span className="flex min-w-0 items-center gap-2">
-      <SettingFieldActions
-        settingId={settingId}
-        isModified={isModified}
-        onReset={resetToDefault}
-        onCopyId={() => void copySettingId()}
-        onCopyJson={() => void copySettingAsJson()}
-        onCopyDeepLink={() => void copyDeepLink()}
-      />
-      <SettingIdLabel settingId={settingId}>{entry.label}</SettingIdLabel>
-    </span>
+    <SettingIdLabel
+      settingId={settingId}
+      afterLabel={
+        <SettingFieldActions
+          settingId={settingId}
+          isModified={isModified}
+          onReset={resetToDefault}
+          onCopyId={() => void copySettingId()}
+          onCopyJson={() => void copySettingAsJson()}
+          onCopyDeepLink={() => void copyDeepLink()}
+        />
+      }
+    >
+      {entry.label}
+    </SettingIdLabel>
   );
 
   return (

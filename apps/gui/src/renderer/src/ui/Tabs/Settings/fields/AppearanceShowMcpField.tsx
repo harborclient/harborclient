@@ -8,8 +8,6 @@ import { SettingField } from '../components/SettingField';
 /**
  * Footer MCP panel visibility toggle. Applies immediately via panel layout
  * state (same source as View → Appearance).
- *
- * TODO(settings-modified): appearance.showMcp — live navigation / panelLayout.
  */
 export function AppearanceShowMcpField(): JSX.Element {
   const dispatch = useAppDispatch();
