@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.6.1 - 2026-08-03
+
 - feat(docs): enhance SDK documentation and update API references. (`6331350c`)
 - feat(docs): update SDK documentation and enhance plugin API guidelines. (`46a2a29e`)
 - refactor(ResponseEditor): simplify split pane wrapping and adjust padding. (`4b480786`)
