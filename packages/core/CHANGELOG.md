@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.3 - 2026-08-03
+
 - feat(menu): add new browser tab option and enhance related functionality. (`18184d9f`)
 
 ## 0.4.2 - 2026-08-02
