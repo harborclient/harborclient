@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.11.0 - 2026-08-03
+
 - feat(sse): enhance import functionality for Server-Sent Events (SSE). (`e26fa155`)
 - fix(gui): sync request protocol in plugin draft adapter and tab tests. (`2508b7fe`)
 - Fix. (`cd5eefce`)
