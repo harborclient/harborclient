@@ -396,7 +396,7 @@ export interface GeneralSettings {
   followRedirects: boolean;
 
   /**
-   * URL loaded when a new Live Page is opened with no explicit address.
+   * URL loaded by File → New → Browser.
    * Also used as the Home button target for that new tab. Defaults to about:blank.
    */
   startWebpageUrl: string;

@@ -54,7 +54,10 @@ import {
   sendRequest,
   showSidebarsAndFooterPanels
 } from '#/renderer/src/store/thunks';
-import { openAddLivePageModalWithPrefill } from '#/renderer/src/store/thunks/websites';
+import {
+  openAddLivePageModalWithPrefill,
+  openConfiguredBrowserTab
+} from '#/renderer/src/store/thunks/websites';
 import { openWorkflowRecordDialog } from '#/renderer/src/store/slices/workflowsSlice';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { selectActiveTab } from '#/renderer/src/store/selectors';
@@ -212,6 +215,9 @@ export function useMenuActions(): void {
       switch (action) {
         case 'new-request':
           dispatchNewRequest(dispatch);
+          break;
+        case 'new-browser-tab':
+          dispatch(openConfiguredBrowserTab());
           break;
         case 'new-browser':
           dispatch(openAddLivePageModalWithPrefill());

@@ -355,6 +355,10 @@ export function buildMenu(
               click: () => sendMenuAction(window, 'new-request')
             },
             {
+              label: 'Browser',
+              click: () => sendMenuAction(window, 'new-browser-tab')
+            },
+            {
               label: 'Live Page',
               accelerator: acceleratorFor(accelerators, 'new-browser'),
               click: () => sendMenuAction(window, 'new-browser')

@@ -258,14 +258,14 @@ function normalizeDismissedLiveServerNotices(input: unknown): LiveServerSettings
 }
 
 /**
- * Normalizes the Start webpage URL used for new Live Pages.
+ * Normalizes the Start webpage URL used for File → New → Browser.
  *
  * Trims whitespace and falls back to about:blank when empty or missing.
  *
  * @param input - Raw start webpage URL from storage or user input.
  * @returns Trimmed URL, or about:blank when empty.
  */
-function normalizeStartWebpageUrl(input: unknown): string {
+export function normalizeStartWebpageUrl(input: unknown): string {
   if (typeof input !== 'string') {
     return DEFAULT_GENERAL_SETTINGS.startWebpageUrl;
   }

@@ -31,7 +31,8 @@ export type BrowserGuestCoverOwner =
   | 'address-suggestions'
   | 'downloads-menu'
   | 'linux-menu'
-  | 'tab-context-menu';
+  | 'tab-context-menu'
+  | 'screenshot-mode';
 
 let activeCover: BrowserGuestCover | null = null;
 /** Owners that currently require the guest to stay covered. */

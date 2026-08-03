@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat(menu): add new browser tab option and enhance related functionality. (`18184d9f`)
 - feat(screenshots): update screenshot macros and add new settings actions. (`865835f7`)
 
 ## 2.10.2 - 2026-08-02

@@ -12,7 +12,7 @@ import { SettingField } from '../components/SettingField';
 /**
  * Start webpage URL field backed by the shared settings draft.
  *
- * Controls the default address (and Home target) for newly opened Live Pages.
+ * Controls the default address (and Home target) for File → New → Browser.
  */
 export function GeneralStartWebpageUrlField(): JSX.Element {
   const dispatch = useAppDispatch();

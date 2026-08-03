@@ -207,7 +207,7 @@ export const updateGeneralSettingsTool = {
           },
           startWebpageUrl: {
             type: 'string',
-            description: 'URL loaded when a new Live Page is opened with no explicit address.'
+            description: 'URL opened by File → New → Browser (and used as that tab Home target).'
           },
           userAgent: {
             type: 'string',

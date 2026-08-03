@@ -200,16 +200,30 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
   ]);
 
   /**
-   * Hides the native WebContentsView while the screenshot mode modal is open so the
-   * HTML dialog is not covered by the guest layer (same pattern as unsaved-close prompts).
+   * Freezes and hides the native WebContentsView while the screenshot mode modal is
+   * open so the HTML dialog is not covered by the guest layer, and so the host does
+   * not flash empty grey behind the dialog.
    */
   useEffect(() => {
     if (!screenshotModeOpen) {
       return;
     }
-    void window.api.browserSetVisible(tab.tabId, false);
+    let cancelled = false;
+
+    /**
+     * Applies the freeze-frame cover once the effect is still current.
+     */
+    async function cover(): Promise<void> {
+      await coverBrowserGuestForOverlay(tab.tabId, 'screenshot-mode');
+      if (cancelled) {
+        await uncoverBrowserGuest('screenshot-mode');
+      }
+    }
+
+    void cover();
     return () => {
-      void window.api.browserSetVisible(tab.tabId, true);
+      cancelled = true;
+      void uncoverBrowserGuest('screenshot-mode');
     };
   }, [screenshotModeOpen, tab.tabId]);
 
@@ -257,8 +271,9 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
   /**
    * Captures the guest (viewport or full page) and prompts the user to save a PNG.
    *
-   * Explicitly restores guest visibility before capture so the page is painted (the modal
-   * hide effect alone may not have flushed yet when this runs).
+   * Releases the screenshot-mode freeze cover and restores guest visibility before
+   * capture so the page is painted (the modal close effect alone may not have
+   * flushed yet when this runs).
    *
    * @param fullPage - When true, scroll-and-stitch the full document.
    */
@@ -267,6 +282,7 @@ export function BrowserTabContent({ tab, variables, onEditVariables }: Props): J
     setScreenshotNotice(null);
     setScreenshotBusy(true);
     try {
+      await uncoverBrowserGuest('screenshot-mode');
       await window.api.browserSetVisible(tab.tabId, true);
       const { dataUrl, truncated } = await window.api.browserCapturePage(tab.tabId, { fullPage });
       const result = await window.api.saveDataUrlToFile({

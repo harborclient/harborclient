@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import toast from 'react-hot-toast';
+import { normalizeStartWebpageUrl } from '@harborclient/core/generalSettings';
 import { buildWebsiteExport } from '@harborclient/core/types/website';
 import type { KeyValue, ScriptRef, Snippet, Variable, Website } from '@harborclient/core/types';
 import type { AuthConfig } from '@harborclient/core/auth';
@@ -24,6 +25,7 @@ import {
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   bindBrowserTabToWebsite,
+  newBrowserTab,
   openBrowserTabFromWebsite,
   saveBrowserScripts,
   setBrowserSettingsPanelOpen,
@@ -110,6 +112,24 @@ async function pushBrowserTabScriptsToGuest(
     tab.scripts,
     buildBrowserHcScriptsPayload(tab, snippets, baseVariables, false)
   );
+}
+
+/**
+ * Opens an unlinked browser tab at the configured Start webpage URL.
+ *
+ * Used by File → New → Browser. Does not create a live page; Save can bind the
+ * tab later via the Add Live Page modal.
+ *
+ * @returns Thunk that reads general settings and opens a browser tab.
+ */
+export function openConfiguredBrowserTab(): (
+  dispatch: Dispatch<UnknownAction>,
+  getState: () => RootState
+) => void {
+  return (dispatch, getState) => {
+    const url = normalizeStartWebpageUrl(getState().settings.general.startWebpageUrl);
+    dispatch(newBrowserTab({ url, homeUrl: url }));
+  };
 }
 
 /**

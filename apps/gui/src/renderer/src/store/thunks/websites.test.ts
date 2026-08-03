@@ -17,6 +17,7 @@ import {
   createLivePageFromModal,
   maybePersistWebsiteFaviconFromNavigation,
   openAddLivePageModalWithPrefill,
+  openConfiguredBrowserTab,
   openWebsiteSettings,
   websiteNameFromTab
 } from './websites';
@@ -59,10 +60,10 @@ function sampleWebsite(overrides: Partial<Website> = {}): Website {
 /**
  * Store with websites + tabs (+ optional modals) slices for thunk coverage.
  *
- * @param options - Whether to include the modals slice.
+ * @param options - Whether to include the modals slice, and optional Start webpage URL.
  * @returns Typed dispatch and state accessors.
  */
-function createTestStore(options?: { withModals?: boolean }): {
+function createTestStore(options?: { withModals?: boolean; startWebpageUrl?: string }): {
   dispatch: AppDispatch;
   getTabs: () => TabsState;
   getModals: () => ModalsState | undefined;
@@ -72,6 +73,7 @@ function createTestStore(options?: { withModals?: boolean }): {
     modals?: ModalsState;
   };
 } {
+  const startWebpageUrl = options?.startWebpageUrl ?? 'about:blank';
   const store = configureStore({
     reducer: {
       websites: websitesReducer,
@@ -88,7 +90,7 @@ function createTestStore(options?: { withModals?: boolean }): {
         activeEnvironmentId: null
       }),
       settings: () => ({
-        general: { globalVariables: [] }
+        general: { globalVariables: [], startWebpageUrl }
       }),
       navigation: () => ({
         showConsole: false,
@@ -179,6 +181,43 @@ describe('openWebsiteSettings', () => {
     expect(activeTabId).toBe(previousActiveId);
     expect(activeTabId).not.toBe(browserTab.tabId);
     expect(browserTab.settingsPanelOpen).toBe(true);
+  });
+});
+
+describe('openConfiguredBrowserTab', () => {
+  it('opens an unlinked browser tab at the configured start webpage URL', () => {
+    const { dispatch, getTabs } = createTestStore({
+      startWebpageUrl: 'https://start.example.com/home'
+    });
+
+    dispatch(openConfiguredBrowserTab());
+
+    const { tabs, activeTabId } = getTabs();
+    const browserTab = tabs.find((tab) => isBrowserTab(tab) && tab.tabId === activeTabId);
+    expect(browserTab).toBeDefined();
+    if (!browserTab || !isBrowserTab(browserTab)) {
+      throw new Error('expected browser tab');
+    }
+
+    expect(browserTab.url).toBe('https://start.example.com/home');
+    expect(browserTab.homeUrl).toBe('https://start.example.com/home');
+    expect(browserTab.websiteId).toBeNull();
+  });
+
+  it('falls back to about:blank when start webpage is empty', () => {
+    const { dispatch, getTabs } = createTestStore({ startWebpageUrl: '   ' });
+
+    dispatch(openConfiguredBrowserTab());
+
+    const { tabs, activeTabId } = getTabs();
+    const browserTab = tabs.find((tab) => isBrowserTab(tab) && tab.tabId === activeTabId);
+    expect(browserTab).toBeDefined();
+    if (!browserTab || !isBrowserTab(browserTab)) {
+      throw new Error('expected browser tab');
+    }
+
+    expect(browserTab.url).toBe('about:blank');
+    expect(browserTab.homeUrl).toBe('about:blank');
   });
 });
 

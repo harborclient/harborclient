@@ -4,6 +4,7 @@
 export type MenuActionId =
   | 'new-request'
   | 'new-browser'
+  | 'new-browser-tab'
   | 'new-live-server'
   | 'new-collection'
   | 'new-workflow'

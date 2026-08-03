@@ -264,8 +264,8 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     kind: 'field',
     label: 'Start webpage',
     description:
-      'URL opened when you create a new Live Page. Also used as the Home button target for that tab. Defaults to about:blank.',
-    keywords: ['homepage', 'start', 'browser', 'url', 'live page', 'about:blank']
+      'URL opened by File → New → Browser. Also used as the Home button target for that tab. Defaults to about:blank.',
+    keywords: ['homepage', 'start', 'browser', 'url', 'about:blank']
   },
   {
     id: 'general.userAgent',
