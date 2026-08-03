@@ -1267,7 +1267,10 @@ hc.ai.registerChatPointer({
   parse: (match) => {
     const key = match[1];
     if (key == null) return null;
-    return { key, selection: match[2] != null ? { start: Number(match[2]), end: Number(match[3]) } : undefined };
+    return {
+      key,
+      selection: match[2] != null ? { start: Number(match[2]), end: Number(match[3]) } : undefined
+    };
   },
   agentGuidance: 'When @invoice.<id> appears, use the captured invoice context.'
 });

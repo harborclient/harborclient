@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- chore(package.json): remove deprecated release scripts and tidy up formatting. (`e1e112f1`)
 - feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)
 
 ## 1.5.2 - 2026-08-02

@@ -2,8 +2,8 @@ import { clearContributionRegistry } from './contributionRegistry.js';
 import {
   createBridgedPluginContext,
   executeLocalPluginCommand,
-  installImportInvokeListener,
   installAiParseChatPointerListener,
+  installImportInvokeListener,
   mountContributionView,
   parseViewHostRole,
   resolveContributionKindFromUrl
