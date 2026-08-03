@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix. (`cd5eefce`)
 - feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)
 - feat(mcp-server): enhance MCP server settings and functionality. (`cf36a22f`)
 
