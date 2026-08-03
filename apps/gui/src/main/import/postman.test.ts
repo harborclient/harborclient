@@ -460,6 +460,40 @@ describe('convertPostmanCollection', () => {
     expect(result.requests[0]?.url).toBe('{{baseUrl}}/from-raw');
   });
 
+  it('imports Accept text/event-stream requests as SSE and leaves JSON Accept as HTTP', () => {
+    const result = convertPostmanCollection({
+      info: {
+        _postman_id: 'sse-import-test',
+        name: 'SSE Demo',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+      },
+      item: [
+        {
+          name: 'Live Events',
+          request: {
+            method: 'GET',
+            header: [{ key: 'Accept', value: 'text/event-stream' }],
+            url: 'https://example.com/events'
+          }
+        },
+        {
+          name: 'List Pets',
+          request: {
+            method: 'GET',
+            header: [{ key: 'Accept', value: 'application/json' }],
+            url: 'https://example.com/pets'
+          }
+        }
+      ]
+    });
+
+    const liveEvents = result.requests.find((request) => request.name === 'Live Events');
+    const listPets = result.requests.find((request) => request.name === 'List Pets');
+
+    expect(liveEvents?.protocol).toBe('sse');
+    expect(listPets?.protocol).toBeUndefined();
+  });
+
   it('produces output that passes validateCollectionExport', () => {
     const converted = convertPostmanCollection(pintailFixture);
     const validated = validateCollectionExport(converted);

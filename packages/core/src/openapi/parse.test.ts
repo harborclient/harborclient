@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canImportOpenApiSpec, parseOpenApiSpec } from './parse';
+import { canImportOpenApiSpec, operationsToCreateRequests, parseOpenApiSpec } from './parse';
 
 const PETSTORE_SPEC = `
 openapi: 3.0.3
@@ -45,6 +45,36 @@ paths:
           description: OK
 `;
 
+const SSE_SPEC = `
+openapi: 3.0.3
+info:
+  title: Events API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /events:
+    get:
+      summary: Subscribe to events
+      responses:
+        '200':
+          description: Event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /pets:
+    get:
+      summary: List pets
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+`;
+
 describe('parseOpenApiSpec', () => {
   it('parses YAML OpenAPI 3 specs into tagged operations', () => {
     const parsed = parseOpenApiSpec(PETSTORE_SPEC);
@@ -58,11 +88,33 @@ describe('parseOpenApiSpec', () => {
     expect(listPets?.url).toBe('https://api.example.com/v1/pets');
     expect(listPets?.folder).toBe('pets');
     expect(listPets?.params).toEqual([{ key: 'limit', value: '10' }]);
+    expect(listPets?.protocol).toBeUndefined();
 
     const createPet = parsed.operations.find((operation) => operation.name === 'createPet');
     expect(createPet?.method).toBe('POST');
     expect(createPet?.bodyType).toBe('json');
     expect(createPet?.body).toContain('"name"');
+  });
+
+  it('marks text/event-stream responses as SSE and adds Accept when missing', () => {
+    const parsed = parseOpenApiSpec(SSE_SPEC);
+    const subscribe = parsed.operations.find(
+      (operation) => operation.name === 'Subscribe to events'
+    );
+    const listPets = parsed.operations.find((operation) => operation.name === 'List pets');
+
+    expect(subscribe?.protocol).toBe('sse');
+    expect(subscribe?.headers).toEqual({ Accept: 'text/event-stream' });
+    expect(listPets?.protocol).toBeUndefined();
+    expect(listPets?.headers).toBeUndefined();
+
+    const createRequests = operationsToCreateRequests(parsed.operations);
+    expect(createRequests.find((request) => request.name === 'Subscribe to events')?.protocol).toBe(
+      'sse'
+    );
+    expect(
+      createRequests.find((request) => request.name === 'List pets')?.protocol
+    ).toBeUndefined();
   });
 
   it('rejects unsupported OpenAPI versions', () => {

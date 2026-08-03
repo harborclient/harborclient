@@ -105,7 +105,7 @@ describe('convertBrunoCollection', () => {
     expect(child).toMatchObject({ parent_folder_uuid: nested?.uuid, sort_order: 0 });
     expect(users).toMatchObject({ parent_folder_uuid: null, sort_order: 1 });
     expect(new Set(converted.folders?.map((folder) => folder.uuid)).size).toBe(3);
-    expect(converted.requests).toHaveLength(2);
+    expect(converted.requests).toHaveLength(3);
 
     const listUsers = converted.requests.find((request) => request.name === 'List Users');
     expect(listUsers).toMatchObject({
@@ -118,6 +118,15 @@ describe('convertBrunoCollection', () => {
     });
     expect(listUsers?.params).toEqual([{ key: 'page', value: '1', enabled: true }]);
     expect(listUsers?.comment).toContain('Fetch all users');
+    expect(listUsers?.protocol).toBeUndefined();
+
+    const streamEvents = converted.requests.find((request) => request.name === 'Stream Events');
+    expect(streamEvents).toMatchObject({
+      method: 'GET',
+      url: '{{baseUrl}}/events',
+      protocol: 'sse',
+      folder_name: null
+    });
 
     const ping = converted.requests.find((request) => request.name === 'Ping');
     expect(ping).toMatchObject({
@@ -132,6 +141,7 @@ describe('convertBrunoCollection', () => {
       }
     });
     expect(ping?.body).toContain('"ping": true');
+    expect(ping?.protocol).toBeUndefined();
   });
 
   it('throws for invalid manifests', () => {

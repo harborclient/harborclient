@@ -381,6 +381,13 @@ export interface RequestDraft {
   method: string;
 
   /**
+   * Transport protocol for the active request (`http` or `sse`).
+   *
+   * When `sse`, the editor uses the SSE session path instead of a buffered send.
+   */
+  protocol?: RequestProtocol;
+
+  /**
    * Request URL including scheme, host, path, and query string.
    */
   url: string;

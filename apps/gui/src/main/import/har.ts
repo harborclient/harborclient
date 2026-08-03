@@ -10,6 +10,7 @@ import type {
   HttpMethod,
   KeyValue
 } from '@harborclient/core/types';
+import { headersIndicateSse, isEventStreamMediaType } from './detectSse';
 
 /**
  * HTTP methods HarborClient accepts for saved requests.
@@ -511,6 +512,9 @@ function resolveCollectionName(log: HarLog, fallbackName?: string): string {
 /**
  * Converts one HAR log entry into a HarborClient exported request row.
  *
+ * Entries with `Accept: text/event-stream` or a `text/event-stream` response
+ * mime type import as `protocol: 'sse'`.
+ *
  * @param entry - HAR log entry from the capture.
  * @param sortOrder - Original capture index used for stable ordering.
  * @returns Exported request row, or null when the entry should be skipped.
@@ -526,10 +530,13 @@ function convertEntry(entry: HarEntry, sortOrder: number): ExportedRequest | nul
   const headers = convertHeaders(request.headers);
   const { url, params } = convertQueryParams(request.queryString, rawUrl);
   const { body, body_type } = convertPostData(request.postData, headers);
+  const responseMimeType = entry.response?.content?.mimeType ?? '';
+  const isSse = headersIndicateSse(headers) || isEventStreamMediaType(responseMimeType);
 
   return {
     name: requestName(method, rawUrl),
     method,
+    ...(isSse ? { protocol: 'sse' as const } : {}),
     url,
     headers,
     params,

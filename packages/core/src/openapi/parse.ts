@@ -1,7 +1,12 @@
 import { load as parseYaml } from 'js-yaml';
-import type { BodyType } from '../types/common';
+import type { BodyType, RequestProtocol } from '../types/common';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
+
+/**
+ * Media type key used by OpenAPI to declare Server-Sent Events responses.
+ */
+const EVENT_STREAM_MEDIA_TYPE = 'text/event-stream';
 
 type HttpMethodName = (typeof HTTP_METHODS)[number];
 
@@ -75,6 +80,11 @@ export interface ParsedOpenApiOperation {
   params?: Array<{ key: string; value: string }>;
 
   /**
+   * Transport protocol; `sse` when a response declares `text/event-stream`.
+   */
+  protocol?: RequestProtocol;
+
+  /**
    * OpenAPI operation description stored as a request comment.
    */
   comment?: string;
@@ -123,6 +133,11 @@ export interface OpenApiCreateCollectionRequest {
    * Folder name within the new collection.
    */
   folder?: string;
+
+  /**
+   * Transport protocol; `sse` when the operation streams Server-Sent Events.
+   */
+  protocol?: RequestProtocol;
 
   /**
    * Free-form notes stored on the saved request.
@@ -292,6 +307,8 @@ function flattenOperations(
       const name = readOperationName(operationObject, method, path);
       const folder = readFirstTag(operationObject);
       const comment = readDescription(operationObject);
+      const isSse = operationHasEventStreamResponse(operationObject);
+      const headers = ensureSseAcceptHeader(readHeaderParameters(mergedParameters), isSse);
 
       operations.push({
         id: `${method}:${path}:${name}`,
@@ -301,8 +318,9 @@ function flattenOperations(
         folder,
         body: body.body,
         bodyType: body.bodyType,
-        headers: readHeaderParameters(mergedParameters),
+        headers,
         params: readQueryParameters(mergedParameters),
+        ...(isSse ? { protocol: 'sse' as const } : {}),
         comment
       });
     }
@@ -319,6 +337,67 @@ function flattenOperations(
     }
     return left.method.localeCompare(right.method);
   });
+}
+
+/**
+ * Returns whether an OpenAPI operation declares a Server-Sent Events response.
+ *
+ * Looks for `text/event-stream` under any response's `content` map (OpenAPI 3.0/3.1
+ * convention and OpenAPI 3.2 sequential media types).
+ *
+ * @param operation - OpenAPI operation object for a single method.
+ * @returns True when at least one response uses the event-stream media type.
+ */
+function operationHasEventStreamResponse(operation: Record<string, unknown>): boolean {
+  const responses = operation.responses;
+  if (!responses || typeof responses !== 'object') {
+    return false;
+  }
+
+  for (const response of Object.values(responses as Record<string, unknown>)) {
+    if (!response || typeof response !== 'object') {
+      continue;
+    }
+
+    const content = (response as { content?: unknown }).content;
+    if (!content || typeof content !== 'object') {
+      continue;
+    }
+
+    for (const mediaType of Object.keys(content as Record<string, unknown>)) {
+      if (mediaType.trim().toLowerCase().includes(EVENT_STREAM_MEDIA_TYPE)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Ensures SSE operations carry an Accept header for event streams.
+ *
+ * Leaves existing Accept values unchanged so parameter examples from the spec win.
+ *
+ * @param headers - Header map from OpenAPI parameters, or undefined when empty.
+ * @param isSse - Whether the operation was classified as Server-Sent Events.
+ * @returns Header map with Accept set when needed, or undefined when still empty.
+ */
+function ensureSseAcceptHeader(
+  headers: Record<string, string> | undefined,
+  isSse: boolean
+): Record<string, string> | undefined {
+  if (!isSse) {
+    return headers;
+  }
+
+  const next = { ...(headers ?? {}) };
+  const hasAccept = Object.keys(next).some((key) => key.trim().toLowerCase() === 'accept');
+  if (!hasAccept) {
+    next.Accept = EVENT_STREAM_MEDIA_TYPE;
+  }
+
+  return next;
 }
 
 /**
@@ -651,6 +730,7 @@ export function operationsToCreateRequests(
     body: operation.body,
     bodyType: operation.bodyType,
     folder: operation.folder,
+    ...(operation.protocol === 'sse' ? { protocol: 'sse' as const } : {}),
     comment: operation.comment
   }));
 }

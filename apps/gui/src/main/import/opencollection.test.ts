@@ -248,6 +248,37 @@ describe('convertOpenCollection', () => {
     expect(converted.requests.some((request) => request.name.includes('GraphQL'))).toBe(false);
   });
 
+  it('imports Accept text/event-stream requests as SSE and leaves JSON Accept as HTTP', () => {
+    const converted = convertOpenCollection({
+      opencollection: '1.0.0',
+      info: { name: 'SSE Demo' },
+      items: [
+        {
+          info: { type: 'http', name: 'Live Events' },
+          http: {
+            method: 'GET',
+            url: 'https://example.com/events',
+            headers: [{ name: 'Accept', value: 'text/event-stream' }]
+          }
+        },
+        {
+          info: { type: 'http', name: 'Health' },
+          http: {
+            method: 'GET',
+            url: 'https://example.com/health',
+            headers: [{ name: 'Accept', value: 'application/json' }]
+          }
+        }
+      ]
+    });
+
+    const liveEvents = converted.requests.find((request) => request.name === 'Live Events');
+    const health = converted.requests.find((request) => request.name === 'Health');
+
+    expect(liveEvents?.protocol).toBe('sse');
+    expect(health?.protocol).toBeUndefined();
+  });
+
   it('throws for invalid documents', () => {
     expect(() => convertOpenCollection({ info: { name: 'Nope' } })).toThrow(
       'Invalid OpenCollection file'

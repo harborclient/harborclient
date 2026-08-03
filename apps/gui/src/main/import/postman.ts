@@ -12,6 +12,7 @@ import type {
   Variable
 } from '@harborclient/core/types';
 import { scriptRefsFromLegacyString } from '@harborclient/core/scriptRefs';
+import { headersIndicateSse } from './detectSse';
 
 /**
  * HarborClient UUID namespace seed for deterministic Postman import ids.
@@ -632,6 +633,7 @@ function convertRequestItem(
     uuid: uuidFromSeed(`request:${folderPath}|${method}|${name}|${url}`),
     name,
     method,
+    ...(headersIndicateSse(headers) ? { protocol: 'sse' as const } : {}),
     url,
     headers,
     params: [],
@@ -707,7 +709,8 @@ function walkItems(
  * Converts a Postman collection export into HarborClient's portable CollectionExport format.
  *
  * Unsupported Postman features (unsupported auth types, GraphQL/file bodies,
- * saved responses, etc.) are omitted. Nested folders retain their parent relationships.
+ * saved responses, etc.) are omitted. Requests with `Accept: text/event-stream`
+ * import as `protocol: 'sse'`. Nested folders retain their parent relationships.
  * Structured URLs without `raw` are rebuilt from host/path/query/path-variable parts.
  * Folder and request uuids are derived deterministically from structural paths so URL
  * refresh can upsert the same entities instead of inserting duplicates.

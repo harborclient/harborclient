@@ -12,6 +12,7 @@ import type {
   HttpMethod,
   KeyValue
 } from '@harborclient/core/types';
+import { headersIndicateSse } from './detectSse';
 
 /**
  * HTTP methods HarborClient accepts for saved requests.
@@ -512,6 +513,7 @@ function convertHttpItem(
   return {
     name,
     method,
+    ...(headersIndicateSse(headers) ? { protocol: 'sse' as const } : {}),
     url: typeof http.url === 'string' ? http.url : '',
     headers,
     params: convertKeyValues(http.params),
@@ -536,6 +538,7 @@ function convertHttpItem(
  * Recursively walks OpenCollection items while preserving folder ancestry.
  *
  * Non-HTTP protocols (gRPC, GraphQL, WebSocket, etc.) are skipped.
+ * HTTP items with `Accept: text/event-stream` import as SSE.
  *
  * @param items - OpenCollection item array at the current depth.
  * @param parentFolder - Immediate parent folder metadata, or null at collection root.
@@ -588,7 +591,8 @@ function walkItems(
  * Converts a bundled OpenCollection document into HarborClient's portable CollectionExport format.
  *
  * Unsupported features (gRPC/GraphQL/WebSocket requests, unsupported auth types, environments,
- * etc.) are omitted. Nested folders retain their parent relationships.
+ * etc.) are omitted. Requests with `Accept: text/event-stream` import as `protocol: 'sse'`.
+ * Nested folders retain their parent relationships.
  *
  * @param data - Parsed OpenCollection JSON or YAML document.
  * @returns HarborClient collection export ready for validateCollectionExport.

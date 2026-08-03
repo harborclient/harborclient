@@ -1,0 +1,15 @@
+meta {
+  name: Stream Events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/events
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: text/event-stream
+}

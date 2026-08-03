@@ -15,6 +15,7 @@ import type {
   Variable
 } from '@harborclient/core/types';
 import { scriptRefsFromLegacyString } from '@harborclient/core/scriptRefs';
+import { headersIndicateSse } from './detectSse';
 
 /**
  * HTTP methods HarborClient accepts for saved requests.
@@ -480,6 +481,7 @@ function convertRequestFile(
   return {
     name,
     method,
+    ...(headersIndicateSse(headers) ? { protocol: 'sse' as const } : {}),
     url: typeof parsed.request.url === 'string' ? parsed.request.url : '',
     headers,
     params: convertQueryParams(parsed.request.params),
@@ -578,7 +580,8 @@ function walkCollectionDir(
  * Converts a Bruno on-disk collection into HarborClient's portable CollectionExport format.
  *
  * Unsupported Bruno features (GraphQL/gRPC/WebSocket requests, unsupported auth types,
- * file bodies, environments, etc.) are omitted. Nested folders retain their parent relationships.
+ * file bodies, environments, etc.) are omitted. Requests with `Accept: text/event-stream`
+ * import as `protocol: 'sse'`. Nested folders retain their parent relationships.
  *
  * @param collectionDir - Absolute path to the Bruno collection root directory.
  * @param manifest - Parsed bruno.json manifest object.

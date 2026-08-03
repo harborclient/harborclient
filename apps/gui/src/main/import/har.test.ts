@@ -234,6 +234,61 @@ describe('convertHarToCollection', () => {
     expect(urls).toContain('https://api.example.com/notes');
   });
 
+  it('imports SSE from Accept headers or text/event-stream response mime types', () => {
+    const exported = convertHarToCollection({
+      log: {
+        version: '1.2',
+        creator: { name: 'Chrome', version: '120.0.0.0' },
+        entries: [
+          {
+            _resourceType: 'fetch',
+            request: {
+              method: 'GET',
+              url: 'https://api.example.com/events',
+              headers: [{ name: 'Accept', value: 'text/event-stream' }],
+              queryString: []
+            },
+            response: {
+              content: { mimeType: 'text/event-stream' }
+            }
+          },
+          {
+            _resourceType: 'xhr',
+            request: {
+              method: 'GET',
+              url: 'https://api.example.com/stream',
+              headers: [],
+              queryString: []
+            },
+            response: {
+              content: { mimeType: 'text/event-stream' }
+            }
+          },
+          {
+            _resourceType: 'xhr',
+            request: {
+              method: 'GET',
+              url: 'https://api.example.com/users',
+              headers: [{ name: 'Accept', value: 'application/json' }],
+              queryString: []
+            },
+            response: {
+              content: { mimeType: 'application/json' }
+            }
+          }
+        ]
+      }
+    });
+
+    const events = exported.requests.find((request) => request.url.endsWith('/events'));
+    const stream = exported.requests.find((request) => request.url.endsWith('/stream'));
+    const users = exported.requests.find((request) => request.url.endsWith('/users'));
+
+    expect(events?.protocol).toBe('sse');
+    expect(stream?.protocol).toBe('sse');
+    expect(users?.protocol).toBeUndefined();
+  });
+
   it('uses creator name or import file name for the collection title', () => {
     const xhrEntry = {
       _resourceType: 'xhr',
