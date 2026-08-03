@@ -8,11 +8,11 @@ sequenceDiagram
   participant Broker
   participant Host
   participant Chat as AI sidebar
-  Plugin->>Broker: hc.ai.registerChatPointer({ id })
-  Broker->>Host: track pointer + agentGuidance
-  Plugin->>Broker: hc.ai.copyToChat({ pointerId, key, label, context })
+  Plugin->>Broker: hc.ai.registerChatPointer({ id, match?, parse? })
+  Broker->>Host: track pointer + agentGuidance (+ custom match)
+  Plugin->>Broker: hc.ai.copyToChat({ pointerId, key|token, label, context })
   Broker->>Host: store snapshot + queue token
-  Host->>Chat: open sidebar, show @plugin… badge
+  Host->>Chat: open sidebar, show @… badge
 ```
 
 See [hc.ai](/renderer-data#hcai) for the API reference and [Permissions](/permissions) for the `ai` capability flag.
@@ -30,7 +30,9 @@ See [hc.ai](/renderer-data#hcai) for the API reference and [Permissions](/permis
 
 Chat pointers are runtime-only — no `contributes` entry is required. Declare the `ai` permission so HarborClient shows it in the install confirmation dialog. Add `ui` when you also register toolbar actions or use `CopyToChatButton`.
 
-## Activate
+## Default grammar
+
+Omit `match` / `parse` to use the built-in `@plugin.<pluginId>.<id>.<key>` shape:
 
 ```js
 export function activate(hc) {
@@ -42,7 +44,36 @@ export function activate(hc) {
 }
 ```
 
+## Custom match + parse
+
+Supply both `match` (token body after `@`) and `parse` to invent a shape that does **not** collide with reserved builtins (`plugin`, `request`, `res`, `term`, `snippet`, `logs`, …):
+
+```js
+export function activate(hc) {
+  hc.ai.registerChatPointer({
+    id: 'invoice',
+    match: /^invoice\.([A-Za-z0-9-]+)(?:#(\d+)\.(\d+))?/,
+    parse: (match, fullToken, atIndex) => {
+      const key = match[1];
+      if (key == null) return null;
+      return {
+        key,
+        selection:
+          match[2] != null && match[3] != null
+            ? { start: Number(match[2]), end: Number(match[3]) }
+            : undefined
+      };
+    },
+    agentGuidance: 'When @invoice.<id> appears, use the captured invoice context.'
+  });
+}
+```
+
+`parse` runs in your plugin webview. The host uses a sync fallback (capture group 1 as `key`, groups 2–3 as selection) for composer highlighting; your `parse` is re-invoked over IPC at copy and send/validate. Return `null` to reject a token at those points.
+
 ## Copy selection to chat
+
+### Default grammar
 
 ```jsx
 import { CodeEditor, CopyToChatButton } from '@harborclient/sdk/components';
@@ -70,10 +101,27 @@ function ScriptEditor({ scriptUuid, scriptName, source }) {
 }
 ```
 
-Harbor builds the token `@plugin.com.example.scripts.script.<scriptUuid>#from.to`, stores your label/context snapshot, and inserts a badge into the composer. At send time the agent receives an ephemeral system message with the captured context.
+Harbor builds `@plugin.com.example.scripts.script.<scriptUuid>#from.to`, stores your label/context snapshot, and inserts a badge into the composer.
+
+### Custom match
+
+Pass the full `token` (including `@`) that matches your registered pattern:
+
+```js
+await hc.ai.copyToChat({
+  pointerId: 'invoice',
+  token: '@invoice.inv-42#0.12',
+  label: 'Invoice inv-42',
+  context: invoiceText,
+  selection: { start: 0, end: 12 }
+});
+```
+
+At send time the agent receives an ephemeral system message with the captured context.
 
 ## Notes
 
 - **Register during `activate(hc)`** — call `hc.ai.registerChatPointer` once so `copyToChat` can validate the pointer id.
+- **`match` and `parse` together** — provide both or neither.
 - **Snapshot at copy time** — resolve data in the plugin sandbox and pass `context` / `label`; the host does not call back into your plugin to expand tokens later.
 - **Unload-safe history** — disposing the registration removes live agentGuidance, but badges on past messages still render from persisted `referenceSnapshots`.

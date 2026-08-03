@@ -28,11 +28,18 @@ const pluginSelectionsSlice = createSlice({
       action: PayloadAction<{ token: string; snapshot: PluginChatPointerSnapshot }>
     ) {
       state.selectionSnapshots[action.payload.token] = action.payload.snapshot;
+    },
+
+    /**
+     * Removes a plugin chat-pointer snapshot (e.g. when plugin parse rejects at send).
+     */
+    clearPluginSelection(state, action: PayloadAction<{ token: string }>) {
+      delete state.selectionSnapshots[action.payload.token];
     }
   }
 });
 
-export const { setPluginSelection } = pluginSelectionsSlice.actions;
+export const { setPluginSelection, clearPluginSelection } = pluginSelectionsSlice.actions;
 
 /**
  * Returns plugin chat-pointer snapshots keyed by `@plugin…` reference token.

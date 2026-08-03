@@ -1762,6 +1762,15 @@ export const ipcArgSchemas = {
       contents: z.string()
     })
   ]),
+  pluginInvokeParseChatPointer: z.tuple([
+    pluginId,
+    z.string().min(1),
+    z.object({
+      matchGroups: z.array(z.string().nullable()),
+      fullToken: z.string(),
+      atIndex: z.number().int()
+    })
+  ]),
   oauthFetchToken: z.tuple([z.string(), oauth2Config, z.boolean()]),
   oauthClearToken: z.tuple([z.string().min(1)]),
   customThemeId: z.tuple([

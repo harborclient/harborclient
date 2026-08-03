@@ -22,6 +22,7 @@ import {
 import { getRegisteredChatPointers } from './chatPointers/registry.js';
 import { isScriptReferenceBoundary, stripRegexAnchors } from './chatPointers/shared.js';
 import { bindBuiltinChatPointerHandlers } from './chatPointers/builtins/index.js';
+import { setCustomPluginChatPointerHandlers } from './chatPointers/customPluginPointer.js';
 
 export {
   registerBuiltinChatPointers,
@@ -94,6 +95,24 @@ export {
   PLUGIN_CHAT_POINTER_ID_PATTERN,
   PLUGIN_CHAT_POINTER_KEY_PATTERN
 } from './chatPointers/pluginToken.js';
+
+export {
+  PLUGIN_CHAT_POINTER_MATCH_MAX_LENGTH,
+  RESERVED_CHAT_POINTER_MATCH_PROBES,
+  RESERVED_CHAT_POINTER_PREFIXES,
+  stripPluginChatPointerMatchAnchors,
+  normalizePluginChatPointerMatchSource,
+  findReservedChatPointerMatchCollision,
+  compilePluginChatPointerMatch,
+  buildCustomPluginChatPointerDefinitionId
+} from './chatPointers/pluginMatch.js';
+
+export {
+  setCustomPluginChatPointerHandlers,
+  createHostFallbackPluginParse,
+  registerCustomPluginChatPointerDefinition,
+  unregisterCustomPluginChatPointerDefinition
+} from './chatPointers/customPluginPointer.js';
 
 /**
  * Regex matching `@` script references in chat text.
@@ -2007,6 +2026,13 @@ function collectSnapshotForPointer(
 }
 
 bindBuiltinChatPointerHandlers({
+  validate: isValidAiScriptReference,
+  resolveName: resolveAiScriptReferenceName,
+  resolveLabel: resolveAiScriptReferenceLabel,
+  expandContext: formatScriptReferenceContextBlock,
+  collectSnapshot: collectSnapshotForPointer
+});
+setCustomPluginChatPointerHandlers({
   validate: isValidAiScriptReference,
   resolveName: resolveAiScriptReferenceName,
   resolveLabel: resolveAiScriptReferenceLabel,

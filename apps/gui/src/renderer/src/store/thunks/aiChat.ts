@@ -30,6 +30,7 @@ import { selectResponseSelections } from '#/renderer/src/store/slices/responseSe
 import { selectConsoleSelections } from '#/renderer/src/store/slices/consoleSelectionsSlice';
 import { selectScriptSelections } from '#/renderer/src/store/slices/scriptSelectionsSlice';
 import { selectPluginSelections } from '#/renderer/src/store/slices/pluginSelectionsSlice';
+import { refineCustomPluginChatPointersAtSend } from '#/renderer/src/plugins/refineCustomPluginChatPointersAtSend';
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 import {
   appendMessage,
@@ -406,6 +407,8 @@ export const sendChatMessage = createAsyncThunk<
   }
 
   dispatch(clearSendError(chatId));
+
+  await refineCustomPluginChatPointersAtSend(trimmed);
 
   const validationContext = buildAiScriptReferenceValidationContext(
     selectEffectiveActiveRequestTab(getState()),

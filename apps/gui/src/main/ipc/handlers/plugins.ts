@@ -575,6 +575,14 @@ export function registerPluginHandlers(pluginManager: PluginManager): void {
   );
 
   handle(
+    'plugins:invokeParseChatPointer',
+    ipcArgSchemas.pluginInvokeParseChatPointer,
+    (_event, pluginId, registrationId, payload) => {
+      return getPluginUiBroker().invokeParseChatPointer(pluginId, registrationId, payload);
+    }
+  );
+
+  handle(
     'plugins:runBeforeScripts',
     ipcArgSchemas.pluginRunBeforeScripts,
     async (_event, payload) => applyPluginBeforeScriptsHooks(payload)

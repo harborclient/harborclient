@@ -4899,6 +4899,25 @@ function invokePluginImportHandler(
 }
 
 /**
+ * Invokes a plugin chat-pointer parse callback in the agent webview.
+ *
+ * @param pluginId - Plugin manifest id.
+ * @param registrationId - Chat-pointer registration id.
+ * @param payload - Match groups and token metadata for parse.
+ */
+function invokePluginParseChatPointer(
+  pluginId: string,
+  registrationId: string,
+  payload: {
+    matchGroups: Array<string | null | undefined>;
+    fullToken: string;
+    atIndex: number;
+  }
+): Promise<unknown> {
+  return ipcRenderer.invoke('plugins:invokeParseChatPointer', pluginId, registrationId, payload);
+}
+
+/**
  * Subscribes to contribution registry updates from plugin agent webviews.
  */
 function onPluginsContributions(
@@ -5488,6 +5507,7 @@ const api: Api = {
   pushPluginLiveServerRequestLog,
   executePluginAgentCommand,
   invokePluginImportHandler,
+  invokePluginParseChatPointer,
   onPluginsContributions,
   onPluginsImportHandlers,
   onPluginsHostBridge,

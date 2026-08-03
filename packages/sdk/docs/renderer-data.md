@@ -1248,6 +1248,8 @@ Requires the `ai` permission. Registrations are **activation-scoped**: Harbor me
 
 ### hc.ai.registerChatPointer(config)
 
+**Default grammar** (`match` / `parse` omitted) — tokens are `@plugin.<pluginId>.<id>.<key>` with an optional `#start.end` selection suffix:
+
 ```ts
 hc.ai.registerChatPointer({
   id: 'script',
@@ -1256,11 +1258,28 @@ hc.ai.registerChatPointer({
 });
 ```
 
-`id` must match `[a-z][a-z0-9-]*`. Tokens are namespaced as `@plugin.<pluginId>.<id>.<key>` with an optional `#start.end` selection suffix.
+**Custom grammar** — supply both `match` (body after `@`, as a `RegExp` or source string) and `parse`. Patterns that can match reserved builtin shapes (`plugin`, `request`, `res`, `term`, …) are rejected:
+
+```ts
+hc.ai.registerChatPointer({
+  id: 'invoice',
+  match: /^invoice\.([A-Za-z0-9-]+)(?:#(\d+)\.(\d+))?/,
+  parse: (match) => {
+    const key = match[1];
+    if (key == null) return null;
+    return { key, selection: match[2] != null ? { start: Number(match[2]), end: Number(match[3]) } : undefined };
+  },
+  agentGuidance: 'When @invoice.<id> appears, use the captured invoice context.'
+});
+```
+
+`id` must match `[a-z][a-z0-9-]*`. `parse` returns `{ key, selection? }` or `null`; the host fills `kind: 'plugin'`, `pluginId`, and token offsets. Composer highlighting uses a sync host fallback; your `parse` is authoritative at copy and send/validate over IPC.
 
 ### hc.ai.copyToChat(input)
 
-Opens the AI sidebar, ensures a chat exists, stores a snapshot, and queues the `@plugin…` badge token in the composer.
+Opens the AI sidebar, ensures a chat exists, stores a snapshot, and queues the badge token in the composer.
+
+Default grammar — pass `key` (host builds `@plugin…`):
 
 ```ts
 await hc.ai.copyToChat({
@@ -1269,6 +1288,17 @@ await hc.ai.copyToChat({
   label: scriptName,
   context: scriptSource,
   selection: { start: 0, end: 12 }
+});
+```
+
+Custom match — pass the full `token` including `@`:
+
+```ts
+await hc.ai.copyToChat({
+  pointerId: 'invoice',
+  token: '@invoice.inv-42#0.12',
+  label: 'Invoice inv-42',
+  context: invoiceText
 });
 ```
 

@@ -3,6 +3,7 @@ import {
   createBridgedPluginContext,
   executeLocalPluginCommand,
   installImportInvokeListener,
+  installAiParseChatPointerListener,
   mountContributionView,
   parseViewHostRole,
   resolveContributionKindFromUrl
@@ -72,6 +73,7 @@ export async function bootstrapViewHost(options = {}) {
 
   if (parsedRole.mode === 'agent') {
     installImportInvokeListener();
+    installAiParseChatPointerListener();
   }
 
   await module.activate(hc);

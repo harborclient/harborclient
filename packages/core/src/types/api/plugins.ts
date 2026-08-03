@@ -366,6 +366,18 @@ export interface ApiPlugins {
     }
   ) => Promise<unknown>;
   /**
+   * Invokes a plugin chat-pointer `parse` callback in the agent webview.
+   */
+  invokePluginParseChatPointer: (
+    pluginId: string,
+    registrationId: string,
+    payload: {
+      matchGroups: Array<string | null>;
+      fullToken: string;
+      atIndex: number;
+    }
+  ) => Promise<unknown>;
+  /**
    * Subscribes to contribution registry updates from plugin agent webviews.
    */
   onPluginsContributions: (

@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { ScriptLogEntry, ScriptRunError } from '@harborclient/core/types';
+import { EmptySectionLabel } from '@harborclient/sdk/components';
 import { ScriptLogErrorRow } from './ScriptLogErrorRow';
 import { ScriptLogRow } from './ScriptLogRow';
 
@@ -39,7 +40,11 @@ export function ScriptLogsView({
   const hasOutput = logs.length > 0 || hasErrors;
 
   if (!hasOutput) {
-    return <div className="px-2.5 py-2 text-center text-[14px] text-muted">No logs</div>;
+    return (
+      <div className="flex flex-col">
+        <EmptySectionLabel label="No logs" className="mt-4" />
+      </div>
+    );
   }
 
   return (

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)
+
 ## 2.10.3 - 2026-08-03
 
 - feat(menu): add new browser tab option and enhance related functionality. (`18184d9f`)

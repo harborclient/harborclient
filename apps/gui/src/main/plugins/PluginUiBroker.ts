@@ -28,6 +28,7 @@ import {
 } from './pluginMcpRegistry';
 import {
   clearPluginChatPointers,
+  getPluginChatPointerRegistrationById,
   registerPluginChatPointer,
   unregisterPluginChatPointer
 } from './pluginChatPointerRegistry';
@@ -116,6 +117,7 @@ const OP_PERMISSIONS: Record<string, PluginPermission | 'ui'> = {
   'imports.registerHandler': 'ui',
   'imports.unregisterHandler': 'ui',
   'imports.invokeComplete': 'ui',
+  'ai.parseChatPointerComplete': 'ai',
   'mcp.registerServer': 'mcp',
   'mcp.unregisterServer': 'mcp',
   'ai.registerChatPointer': 'ai',
@@ -257,6 +259,19 @@ interface PendingAgentImportInvoke {
   timeout: ReturnType<typeof setTimeout>;
 }
 
+interface AgentParseChatPointerCompleteMessage {
+  requestId: number;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+interface PendingAgentParseChatPointerInvoke {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+}
+
 /** Serializable import file forwarded from File → Import. */
 export interface BrokerImportFile {
   name: string;
@@ -289,8 +304,13 @@ export class PluginUiBroker {
   readonly #viewContextCache = new Map<string, unknown>();
   readonly #pendingHostBridge = new Map<number, PendingHostBridgeInvoke>();
   readonly #pendingAgentImportInvoke = new Map<number, PendingAgentImportInvoke>();
+  readonly #pendingAgentParseChatPointerInvoke = new Map<
+    number,
+    PendingAgentParseChatPointerInvoke
+  >();
   #nextHostBridgeRequestId = 1;
   #nextAgentImportRequestId = 1;
+  #nextAgentParseChatPointerRequestId = 1;
   #mainWindow: (() => BrowserWindow | null) | null = null;
   #getTheme: (() => Promise<ThemeSource>) | null = null;
 
@@ -640,6 +660,56 @@ export class PluginUiBroker {
   }
 
   /**
+   * Invokes a plugin chat-pointer `parse` callback in the agent webview.
+   *
+   * @param pluginId - Target plugin manifest id.
+   * @param registrationId - Pointer registration id from the agent webview.
+   * @param payload - Match groups, full token, and atIndex for parse.
+   * @returns Plugin parse result or null.
+   */
+  invokeParseChatPointer(
+    pluginId: string,
+    registrationId: string,
+    payload: {
+      matchGroups: Array<string | null | undefined>;
+      fullToken: string;
+      atIndex: number;
+    }
+  ): Promise<unknown> {
+    for (const [webContentsId, session] of this.#sessions.entries()) {
+      if (session.role !== 'agent' || session.pluginId !== pluginId) {
+        continue;
+      }
+      const target = this.#getWebContentsById(webContentsId);
+      if (!target) {
+        continue;
+      }
+
+      const requestId = this.#nextAgentParseChatPointerRequestId++;
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          this.#pendingAgentParseChatPointerInvoke.delete(requestId);
+          reject(new Error('Plugin chat pointer parse timed out.'));
+        }, AGENT_IMPORT_INVOKE_TIMEOUT_MS);
+
+        this.#pendingAgentParseChatPointerInvoke.set(requestId, { resolve, reject, timeout });
+        target.send('plugin-ui:event', {
+          channel: 'ai.parseChatPointer',
+          payload: {
+            requestId,
+            registrationId,
+            matchGroups: payload.matchGroups,
+            fullToken: payload.fullToken,
+            atIndex: payload.atIndex
+          }
+        });
+      });
+    }
+
+    throw new Error(`Plugin agent is not active: ${pluginId}`);
+  }
+
+  /**
    * Pushes a filesystem change event to plugin webviews watching one path.
    *
    * @param pluginId - Plugin manifest id.
@@ -892,6 +962,11 @@ export class PluginUiBroker {
         this.#completeAgentImportInvoke(complete);
         return undefined;
       }
+      case 'ai.parseChatPointerComplete': {
+        const complete = payload as AgentParseChatPointerCompleteMessage;
+        this.#completeAgentParseChatPointerInvoke(complete);
+        return undefined;
+      }
       case 'mcp.registerServer': {
         const { registrationId, name, serverURL, enabled, headers, icon } = payload as {
           registrationId: string;
@@ -918,21 +993,31 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'ai.registerChatPointer': {
-        const { registrationId, pointerId, agentGuidance } = payload as {
+        const { registrationId, pointerId, agentGuidance, match } = payload as {
           registrationId: string;
           pointerId: string;
           agentGuidance?: string;
+          match?: { source: string; flags?: string };
         };
         registerPluginChatPointer({
           pluginId: session.pluginId,
           registrationId,
           pointerId,
-          agentGuidance
+          agentGuidance,
+          match
         });
+        const stored = getPluginChatPointerRegistrationById(session.pluginId, registrationId);
         this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
           pluginId: session.pluginId,
           op: 'ai.trackChatPointer',
-          payload: { registrationId, pointerId }
+          payload: {
+            registrationId,
+            pointerId,
+            ...(stored?.matchSource != null ? { matchSource: stored.matchSource } : {}),
+            ...(agentGuidance != null && stored?.matchSource != null
+              ? { agentGuidance: String(agentGuidance) }
+              : {})
+          }
         });
         return undefined;
       }
@@ -1075,6 +1160,28 @@ export class PluginUiBroker {
     }
 
     pending.reject(new Error(message.error ?? 'Plugin import handler invocation failed.'));
+  }
+
+  /**
+   * Resolves or rejects a pending chat-pointer parse when the agent webview replies.
+   *
+   * @param message - Completion payload from the agent webview bridge.
+   */
+  #completeAgentParseChatPointerInvoke(message: AgentParseChatPointerCompleteMessage): void {
+    const pending = this.#pendingAgentParseChatPointerInvoke.get(message.requestId);
+    if (!pending) {
+      return;
+    }
+
+    clearTimeout(pending.timeout);
+    this.#pendingAgentParseChatPointerInvoke.delete(message.requestId);
+
+    if (message.ok) {
+      pending.resolve(message.result);
+      return;
+    }
+
+    pending.reject(new Error(message.error ?? 'Plugin chat pointer parse failed.'));
   }
 
   /**

@@ -15,6 +15,13 @@ const commandHandlers = new Map();
 /** @type {Map<string, import('../types').ImportHandler>} */
 const importHandlersByRegistrationId = new Map();
 
+/**
+ * Parse callbacks for custom chat pointers, keyed by registration id.
+ *
+ * @type {Map<string, NonNullable<import('../types').PluginChatPointerConfig['parse']>>}
+ */
+const chatPointerParseByRegistrationId = new Map();
+
 /** Monotonic id generator for import handler registrations within one webview. */
 let importRegistrationCounter = 0;
 
@@ -27,6 +34,9 @@ const HOST_COMMAND_OWNER = 'harborclient';
 
 /** Guards repeated import invoke listener installation per webview load. */
 let importInvokeListenerInstalled = false;
+
+/** Guards repeated chat-pointer parse listener installation per webview load. */
+let aiParseChatPointerListenerInstalled = false;
 
 /**
  * Normalizes a file extension to lowercase with a leading dot.
@@ -123,6 +133,7 @@ export function installImportInvokeListener() {
 export function resetMcpServersForTests() {
   mcpRegistrationCounter = 0;
   aiChatPointerRegistrationCounter = 0;
+  chatPointerParseByRegistrationId.clear();
 }
 
 /**
@@ -132,7 +143,72 @@ export function resetImportHandlersForTests() {
   importHandlersByRegistrationId.clear();
   importRegistrationCounter = 0;
   importInvokeListenerInstalled = false;
+  aiParseChatPointerListenerInstalled = false;
   resetMcpServersForTests();
+}
+
+/**
+ * Serializes a plugin chat-pointer match for the host bridge.
+ *
+ * @param {RegExp | string} match - Plugin-supplied match.
+ * @returns {{ source: string; flags: string }}
+ */
+function serializeChatPointerMatch(match) {
+  if (match instanceof RegExp) {
+    return { source: match.source, flags: match.flags.replace(/g/g, '') };
+  }
+  return { source: String(match ?? ''), flags: '' };
+}
+
+/**
+ * Subscribes to host-initiated chat-pointer parse invocations for the agent webview.
+ *
+ * Must run once before plugin activation so send/validate can reach registered parsers.
+ */
+export function installAiParseChatPointerListener() {
+  if (aiParseChatPointerListenerInstalled) {
+    return;
+  }
+  aiParseChatPointerListenerInstalled = true;
+
+  bridgeOn('ai.parseChatPointer', async (payload) => {
+    const { requestId, registrationId, matchGroups, fullToken, atIndex } = payload ?? {};
+    if (requestId == null || registrationId == null) {
+      return;
+    }
+
+    const parse = chatPointerParseByRegistrationId.get(String(registrationId));
+    if (!parse) {
+      await bridgeInvoke('ai.parseChatPointerComplete', {
+        requestId,
+        ok: false,
+        error: `Unknown chat pointer parse registration: ${registrationId}`
+      });
+      return;
+    }
+
+    try {
+      const groups = Array.isArray(matchGroups)
+        ? matchGroups.map((g) => (g == null ? undefined : String(g)))
+        : [];
+      const synthetic = /** @type {RegExpMatchArray} */ (groups);
+      synthetic.index = 0;
+      synthetic.input = String(fullToken ?? '').replace(/^@/, '');
+      const result = parse(synthetic, String(fullToken ?? ''), Number(atIndex) || 0);
+      await bridgeInvoke('ai.parseChatPointerComplete', {
+        requestId,
+        ok: true,
+        result: result ?? null
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await bridgeInvoke('ai.parseChatPointerComplete', {
+        requestId,
+        ok: false,
+        error: message
+      });
+    }
+  });
 }
 
 /**
@@ -1408,13 +1484,28 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         if (!/^[a-z][a-z0-9-]*$/.test(pointerId)) {
           throw new Error(`Invalid chat pointer id: ${pointerId}`);
         }
+        const hasMatch = config?.match != null && config.match !== '';
+        const hasParse = typeof config?.parse === 'function';
+        if (hasMatch !== hasParse) {
+          throw new Error('Chat pointer match and parse must be provided together.');
+        }
+
         const registrationId = String(++aiChatPointerRegistrationCounter);
+        /** @type {{ source: string; flags: string } | undefined} */
+        let matchPayload;
+        if (hasMatch) {
+          matchPayload = serializeChatPointerMatch(/** @type {RegExp | string} */ (config.match));
+          chatPointerParseByRegistrationId.set(registrationId, config.parse);
+        }
+
         void bridgeInvoke('ai.registerChatPointer', {
           registrationId,
           pointerId,
-          agentGuidance: config?.agentGuidance
+          agentGuidance: config?.agentGuidance,
+          ...(matchPayload != null ? { match: matchPayload } : {})
         });
         return track(() => {
+          chatPointerParseByRegistrationId.delete(registrationId);
           void bridgeInvoke('ai.unregisterChatPointer', { registrationId });
         });
       },
@@ -1422,7 +1513,8 @@ export function createBridgedPluginContext({ pluginId, mode, contributionId, rea
         assertAi();
         await bridgeInvoke('ai.copyToChat', {
           pointerId: String(input?.pointerId ?? '').trim(),
-          key: String(input?.key ?? '').trim(),
+          key: input?.key != null ? String(input.key).trim() : undefined,
+          token: input?.token != null ? String(input.token).trim() : undefined,
           label: String(input?.label ?? '').trim(),
           context: String(input?.context ?? ''),
           selection: input?.selection

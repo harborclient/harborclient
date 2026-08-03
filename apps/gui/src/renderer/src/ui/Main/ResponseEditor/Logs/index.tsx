@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from 'react';
 import type { ScriptLogEntry, ScriptRunError } from '@harborclient/core/types';
+import { EmptySectionLabel } from '@harborclient/sdk/components';
 import { ScriptLogsView } from '#/renderer/src/ui/Shared/ConsoleDetails/ScriptLogsView';
 import { LogSearchInput } from '#/renderer/src/ui/Shared/LogSearch/LogSearchInput';
 import {
@@ -123,7 +124,7 @@ export function Logs({ scriptLogs, scriptError, scriptErrors, requestTabId }: Pr
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 px-3 pb-3 pt-2.5">
+      <div className="-mx-3 shrink-0 border-b border-separator px-6 py-2.5">
         <LogSearchInput
           id="response-logs-search"
           label="Filter request logs"
@@ -136,8 +137,8 @@ export function Logs({ scriptLogs, scriptError, scriptErrors, requestTabId }: Pr
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {filterActive && hasAnyOutput && !hasFilteredOutput ? (
-          <div className="px-2.5 py-2 text-center text-[14px] text-muted" role="status">
-            No matching logs.
+          <div className="flex flex-col" role="status">
+            <EmptySectionLabel label="No matching logs" className="mt-4" />
           </div>
         ) : (
           <ScriptLogsView

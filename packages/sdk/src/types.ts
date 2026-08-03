@@ -3254,13 +3254,41 @@ export interface PluginLivePages {
 }
 
 /**
+ * Structured fields returned by a plugin {@link PluginChatPointerConfig.parse}.
+ *
+ * The host fills `kind`, `pluginId`, `pointerId`, and token offsets/text.
+ */
+export interface PluginChatPointerParseResult {
+  /**
+   * Opaque key identifying the referenced object for this pointer kind.
+   */
+  key: string;
+
+  /**
+   * Optional character-range selection within the captured context.
+   */
+  selection?: {
+    /**
+     * Inclusive start offset.
+     */
+    start: number;
+
+    /**
+     * Exclusive end offset.
+     */
+    end: number;
+  };
+}
+
+/**
  * Config for {@link PluginAi.registerChatPointer}.
  */
 export interface PluginChatPointerConfig {
   /**
-   * Pointer id segment in `@plugin.<pluginId>.<id>.<key>`.
+   * Pointer id segment. Must match `[a-z][a-z0-9-]*`.
    *
-   * Must match `[a-z][a-z0-9-]*`.
+   * With the default grammar this becomes `@plugin.<pluginId>.<id>.<key>`.
+   * With a custom {@link match}, it only identifies the registration.
    */
   id: string;
 
@@ -3268,6 +3296,28 @@ export interface PluginChatPointerConfig {
    * Static rules merged into the agent system prompt while the plugin is loaded.
    */
   agentGuidance?: string;
+
+  /**
+   * Regex for the token body after `@` (no leading `@`).
+   *
+   * Required together with {@link parse}. Omit both for the default
+   * `@plugin.<pluginId>.<id>.<key>` grammar. Must not collide with reserved
+   * builtin prefixes (`request`, `res`, `term`, `plugin`, …).
+   */
+  match?: RegExp | string;
+
+  /**
+   * Maps a successful {@link match} into key/selection (or null to reject).
+   *
+   * Required when {@link match} is set. Runs in the plugin webview; the host
+   * uses a sync fallback for composer highlighting and re-invokes this at
+   * send/validate over IPC.
+   */
+  parse?: (
+    match: RegExpMatchArray,
+    fullToken: string,
+    atIndex: number
+  ) => PluginChatPointerParseResult | null;
 }
 
 /**
@@ -3280,9 +3330,16 @@ export interface PluginCopyToChatInput {
   pointerId: string;
 
   /**
-   * Opaque key segment after the pointer id (no spaces). Host builds the full token.
+   * Opaque key for the default `@plugin…` grammar. Required when the pointer
+   * did not register a custom {@link PluginChatPointerConfig.match}.
    */
-  key: string;
+  key?: string;
+
+  /**
+   * Full composer token including leading `@`. Required when the pointer
+   * registered a custom {@link PluginChatPointerConfig.match}.
+   */
+  token?: string;
 
   /**
    * Badge label shown in the AI composer and message bubbles.
@@ -3295,7 +3352,8 @@ export interface PluginCopyToChatInput {
   context: string;
 
   /**
-   * Optional character-range selection appended as `#start.end` on the token.
+   * Optional character-range selection (default grammar appends `#start.end`;
+   * custom tokens may already include a selection suffix).
    */
   selection?: {
     /**

@@ -54,7 +54,7 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
       <div
         id={`console-entry-${entry.id}-details`}
         hidden={!expanded}
-        className="border-t border-separator bg-surface py-3"
+        className="border-t border-separator bg-surface pb-3"
       >
         <ConsoleDetails
           result={result}

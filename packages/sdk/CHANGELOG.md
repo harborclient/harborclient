@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat(chat-pointers): implement custom match and parse functionality for plugin chat pointers. (`ef062d67`)
+
 ## 1.5.2 - 2026-08-02
 
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)

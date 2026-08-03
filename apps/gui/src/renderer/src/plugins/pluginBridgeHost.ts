@@ -567,11 +567,19 @@ export async function handlePluginHostBridge(message: HostBridgeMessage): Promis
       openImageView((payload as { payload: never }).payload);
       return;
     case 'ai.trackChatPointer': {
-      const { registrationId, pointerId } = payload as {
+      const { registrationId, pointerId, matchSource, agentGuidance } = payload as {
         registrationId: string;
         pointerId: string;
+        matchSource?: string;
+        agentGuidance?: string;
       };
-      trackPluginChatPointer({ pluginId, registrationId, pointerId });
+      trackPluginChatPointer({
+        pluginId,
+        registrationId,
+        pointerId,
+        matchSource,
+        agentGuidance
+      });
       return;
     }
     case 'ai.untrackChatPointer': {
@@ -601,7 +609,8 @@ export async function handlePluginHostBridgeInvoke(
         pluginId,
         payload as {
           pointerId: string;
-          key: string;
+          key?: string;
+          token?: string;
           label: string;
           context: string;
           selection?: { start: number; end: number };

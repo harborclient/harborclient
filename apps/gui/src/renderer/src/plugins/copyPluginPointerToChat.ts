@@ -1,5 +1,6 @@
 import {
   buildPluginChatPointerToken,
+  compilePluginChatPointerMatch,
   type PluginChatPointerSnapshot
 } from '@harborclient/core/ai/scriptReferences';
 import { store } from '#/renderer/src/store/redux';
@@ -10,7 +11,10 @@ import {
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { setPluginSelection } from '#/renderer/src/store/slices/pluginSelectionsSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
-import { isTrackedPluginChatPointer } from '#/renderer/src/plugins/pluginChatPointerTracker';
+import {
+  getTrackedPluginChatPointer,
+  isTrackedPluginChatPointer
+} from '#/renderer/src/plugins/pluginChatPointerTracker';
 import { DEFAULT_AI_SETTINGS } from '#/renderer/src/ui/Tabs/Settings/constants';
 
 /**
@@ -33,36 +37,96 @@ export function truncatePluginChatPointerContext(context: string): string {
 }
 
 /**
+ * Rebuilds a RegExpMatchArray-like groups list from a body match for IPC parse.
+ *
+ * @param bodyMatch - Successful match against the custom pointer regex.
+ * @returns Serializable capture groups including index 0.
+ */
+function matchGroupsFromBody(bodyMatch: RegExpMatchArray): Array<string | null> {
+  const groups: Array<string | null> = [];
+  for (let i = 0; i < bodyMatch.length; i += 1) {
+    groups[i] = bodyMatch[i] ?? null;
+  }
+  return groups;
+}
+
+/**
  * Opens the AI sidebar and queues a plugin `@` chat-pointer token with a snapshot.
  *
  * @param pluginId - Owning plugin manifest id.
- * @param input - Pointer id, key, label, context, and optional selection.
+ * @param input - Pointer id, key/token, label, context, and optional selection.
  */
 export async function copyPluginPointerToChat(
   pluginId: string,
   input: {
     pointerId: string;
-    key: string;
+    key?: string;
+    token?: string;
     label: string;
     context: string;
     selection?: { start: number; end: number };
   }
 ): Promise<void> {
   const pointerId = String(input.pointerId ?? '').trim();
-  const key = String(input.key ?? '').trim();
   const label = String(input.label ?? '').trim() || pointerId;
 
   if (!isTrackedPluginChatPointer(pluginId, pointerId)) {
     throw new Error(`Chat pointer "${pointerId}" is not registered for plugin ${pluginId}.`);
   }
 
-  const token = buildPluginChatPointerToken(pluginId, pointerId, key, input.selection);
+  const tracked = getTrackedPluginChatPointer(pluginId, pointerId);
+  let token: string;
+  let selection = input.selection;
+
+  if (tracked?.matchSource != null) {
+    const rawToken = String(input.token ?? '').trim();
+    if (!rawToken.startsWith('@')) {
+      throw new Error('Custom chat pointer copyToChat requires a token starting with "@".');
+    }
+    const body = rawToken.slice(1);
+    const compiled = compilePluginChatPointerMatch(tracked.matchSource);
+    const bodyMatch = body.match(compiled);
+    if (bodyMatch == null || bodyMatch.index !== 0) {
+      throw new Error(`Token does not match registered chat pointer "${pointerId}".`);
+    }
+    token = `@${bodyMatch[0]}`;
+
+    try {
+      const parsed = (await window.api.invokePluginParseChatPointer(
+        pluginId,
+        tracked.registrationId,
+        {
+          matchGroups: matchGroupsFromBody(bodyMatch),
+          fullToken: token,
+          atIndex: 0
+        }
+      )) as { key?: string; selection?: { start: number; end: number } } | null;
+      if (parsed == null) {
+        throw new Error(`Chat pointer parse rejected token for "${pointerId}".`);
+      }
+      if (parsed.selection != null) {
+        selection = parsed.selection;
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('parse rejected')) {
+        throw error;
+      }
+      // Agent unavailable or parse error — keep host selection / snapshot as provided.
+    }
+  } else {
+    const key = String(input.key ?? '').trim();
+    if (!key) {
+      throw new Error('Chat pointer copyToChat requires a key for the default @plugin grammar.');
+    }
+    token = buildPluginChatPointerToken(pluginId, pointerId, key, input.selection);
+  }
+
   const snapshot: PluginChatPointerSnapshot = {
     pluginId,
     pointerId,
     label,
     context: truncatePluginChatPointerContext(String(input.context ?? '')),
-    ...(input.selection != null ? { selection: input.selection } : {})
+    ...(selection != null ? { selection } : {})
   };
 
   store.dispatch(setPluginSelection({ token, snapshot }));
