@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- docs(sdk): enhance API index formatting for improved readability. (`52517d89`)
 - feat(docs): add hc_sdk_manifest.json for comprehensive SDK action and command documentation. (`39adb007`)
 - docs(sdk): update AGENTS.md to include additional sync script details. (`61daf83a`)
 - docs(sdk): clean up API index documentation by removing empty entries. (`d6cfb700`)

@@ -195,6 +195,11 @@ const buildBookIndex = (manifest) => {
     const letter = entry.title.replace(/^hc\./i, '').charAt(0).toUpperCase();
 
     if (letter !== currentLetter) {
+      // Blank line before each letter heading (except the first) so Prettier stays clean.
+      if (currentLetter !== '') {
+        lines.push('');
+      }
+
       currentLetter = letter;
       lines.push(`## ${currentLetter}`, '');
     }
@@ -207,8 +212,7 @@ const buildBookIndex = (manifest) => {
     lines.push(`- [\`${entry.title}\`](/api/${entry.ns}#${entry.anchor}) — ${safeBlurb}`);
   }
 
-  lines.push('');
-
+  // Single trailing newline — an extra blank line fails Prettier --check.
   return `${lines.join('\n')}\n`;
 };
 
