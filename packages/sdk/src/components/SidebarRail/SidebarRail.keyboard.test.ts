@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { faFolder, faLeaf, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { installReact } from '@harborclient/sdk';
 import { act, createElement, useState } from 'react';
 import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setHostReact } from '../../runtime/reactHost.js';
 import { SidebarRail, type SidebarRailItemData } from './index.js';
 
 const railItems: SidebarRailItemData[] = [
@@ -81,7 +81,7 @@ describe('SidebarRail keyboard', () => {
    * Mounts SidebarRail into a fresh DOM container for each test.
    */
   beforeEach(() => {
-    installReact(React);
+    setHostReact(React);
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);

@@ -210,7 +210,7 @@ export default defineConfig({
         // Host React: SDK source uses `jsxImportSource: '@harborclient/sdk'`, so Vite
         // emits imports of `@harborclient/sdk/jsx-runtime` (prod) and
         // `@harborclient/sdk/jsx-dev-runtime` (dev). Pin those — and the react shims —
-        // to this app's React so the GUI does not require plugin `installReact()`.
+        // to this app's React so the GUI does not need a separate plugin React host install.
         '@harborclient/sdk/react': resolve(__dirname, 'node_modules/react'),
         '@harborclient/sdk/react-dom': resolve(__dirname, 'node_modules/react-dom'),
         '@harborclient/sdk/jsx-runtime': resolve(__dirname, 'node_modules/react/jsx-runtime'),

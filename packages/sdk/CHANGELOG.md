@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- refactor(sdk): replace installReact with setHostReact for improved plugin integration. (`3acb19dd`)
 - feat(docs): update SDK documentation and improve manifest guidelines. (`a85afcea`)
 
 ## 1.6.1 - 2026-08-03

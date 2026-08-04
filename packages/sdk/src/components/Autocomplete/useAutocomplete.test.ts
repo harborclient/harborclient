@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { installReact } from '@harborclient/sdk';
 import { act, createElement, useState } from 'react';
 import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setHostReact } from '../../runtime/reactHost.js';
 import type { AutocompleteSource } from './types.js';
 import { filterAutocompleteItems, useAutocomplete } from './useAutocomplete.js';
 
@@ -103,7 +103,7 @@ describe('useAutocomplete close on select', () => {
   }
 
   beforeEach(() => {
-    installReact(React);
+    setHostReact(React);
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);

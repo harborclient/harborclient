@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { installReact } from '@harborclient/sdk';
 import { act, createElement } from 'react';
 import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setHostReact } from '../../runtime/reactHost.js';
 import { ResizeHandle } from './ResizeHandle.js';
 
 const noop = vi.fn();
@@ -13,7 +13,7 @@ describe('ResizeHandle', () => {
   let root: Root;
 
   beforeEach(() => {
-    installReact(React);
+    setHostReact(React);
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div');
     document.body.appendChild(container);

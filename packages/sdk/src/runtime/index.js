@@ -1,15 +1,4 @@
-import { requireHostReact, setHostReact } from './reactHost.js';
-
-/**
- * Installs the HarborClient renderer React instance for plugin JSX and hooks.
- *
- * Call once at the start of `activate(hc)` before registering UI contributions.
- *
- * @param {typeof import('react')} react - React namespace from `hc.react`.
- */
-export function installReact(react) {
-  setHostReact(react);
-}
+import { requireHostReact } from './reactHost.js';
 
 /**
  * Creates a React component from a factory that receives the host React namespace.
@@ -26,7 +15,7 @@ export function createPluginComponent(factory) {
   let Component = null;
 
   /**
-   * Lazily builds the component on first render after installReact().
+   * Lazily builds the component on first render after the host installs React.
    *
    * @param {P} props - Component props.
    * @returns {import('react').ReactElement | null}

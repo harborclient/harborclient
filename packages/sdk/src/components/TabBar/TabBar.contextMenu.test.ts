@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
-import { installReact } from '@harborclient/sdk';
 import { type ReactNode, act, createElement } from 'react';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setHostReactDom } from '../../runtime/reactHost.js';
+import { setHostReact, setHostReactDom } from '../../runtime/reactHost.js';
 import { TabBar, type TabBarItem } from './index.js';
 
 /**
@@ -32,7 +31,7 @@ describe('TabBar context menu lifecycle', () => {
   let root: Root;
 
   beforeEach(() => {
-    installReact(React);
+    setHostReact(React);
     setHostReactDom(ReactDOM);
     container = document.createElement('div');
     document.body.appendChild(container);

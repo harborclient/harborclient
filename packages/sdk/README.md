@@ -4,7 +4,7 @@ TypeScript definitions, utility modules, and React runtime helpers for [HarborCl
 
 **Documentation:** [https://harborclient.github.io/harborclient/sdk/](https://harborclient.github.io/harborclient/sdk/)
 
-Install as a **dev dependency** in your plugin project. The package ships type declarations, HTTP/storage/UI helpers, and a JSX runtime that forwards to the host's React instance via `installReact(hc.react)`.
+Install as a **dev dependency** in your plugin project. The package ships type declarations, HTTP/storage/UI helpers, and a JSX runtime that forwards to the host's React instance (HarborClient installs `hc.react` before `activate(hc)` — no plugin-side setup call is required).
 
 Requires HarborClient **>=1.9.0** when using `hc.pluginId`, renderer HTTP lifecycle events, typed IPC invoke, and host request commands.
 
@@ -19,11 +19,9 @@ See the [install guide](https://harborclient.github.io/harborclient/sdk/install)
 ## Quick start
 
 ```tsx
-import { installReact } from '@harborclient/sdk';
 import type { PluginContext } from '@harborclient/sdk';
 
 export function activate(hc: PluginContext): void {
-  installReact(hc.react);
   // register contributions…
 }
 ```

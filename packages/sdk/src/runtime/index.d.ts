@@ -2,15 +2,6 @@ import type * as React from 'react';
 import type { Disposable, ImportHandler, PluginContext, ThemeContribution } from '../types.js';
 
 /**
- * Installs the HarborClient renderer React instance for plugin JSX and hooks.
- *
- * Call once at the start of `activate(hc)` before registering UI contributions.
- *
- * @param react - React namespace from `hc.react`.
- */
-export function installReact(react: typeof React): void;
-
-/**
  * Creates a React component from a factory that receives the host React namespace.
  *
  * @param factory - Builds a component type using hooks or createElement from host React.

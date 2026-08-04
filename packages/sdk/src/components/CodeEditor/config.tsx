@@ -67,7 +67,7 @@ export function getCodeEditorConfigStore(): ReturnType<
  * Returns the CodeEditor React context, creating it on first access.
  *
  * Deferred so importing CodeEditor in a plugin bundle does not call requireHostReact()
- * before activate() runs installReact(hc.react).
+ * before the host installs React for the plugin view.
  */
 function getCodeEditorContext() {
   if (codeEditorContext == null) {

@@ -10,10 +10,12 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.ai.onAfterTurn(handler)`](/api/ai#hcaionafterturnhandler) — Runs once when the turn finishes (completed, cancelled, or error).
 - [`hc.ai.onBeforeTurn(handler)`](/api/ai#hcaionbeforeturnhandler) — Runs once when the user sends a chat message, before the first LLM completion step.
 - [`hc.ai.registerChatPointer(config)`](/api/ai#hcairegisterchatpointerconfig) — Default grammar (match / parse omitted) — tokens are @plugin.&lt;pluginId&gt;.&lt;id&gt;.&lt;key&gt; with an optional #start.end selection suffix: Custom grammar — supply both match (body after @, as a RegExp or source string) and parse.
+
 ## C
 
 - [`hc.commands.execute(id, ...args)`](/api/commands#hccommandsexecuteid-args) — Runs a registered command programmatically — for example to open a main view from another part of your plugin.
 - [`hc.commands.register(id, handler)`](/api/commands#hccommandsregisterid-handler) — Registers a command handler.
+
 ## D
 
 - [`hc.database.all(sql, params?)`](/api/database#hcdatabaseallsql-params) — Returns all matching rows.
@@ -21,6 +23,7 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.database.get(sql, params?)`](/api/database#hcdatabasegetsql-params) — Returns the first row, or undefined when no row matches.
 - [`hc.database.run(sql, params?)`](/api/database#hcdatabaserunsql-params) — Runs an INSERT, UPDATE, or DELETE statement.
 - [`hc.database.transaction(fn)`](/api/database#hcdatabasetransactionfn) — Runs fn inside an exclusive transaction.
+
 ## F
 
 - [`hc.fs.pickDirectory(defaultPath?)`](/api/fs#hcfspickdirectorydefaultpath) — Opens a native directory picker.
@@ -29,6 +32,7 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.fs.saveFile(content, options?)`](/api/fs#hcfssavefilecontent-options) — Opens a native save dialog and writes content to the chosen path.
 - [`hc.fs.writeBytes(path, bytes)`](/api/fs#hcfswritebytespath-bytes) — Writes binary bytes to an allowlisted path.
 - [`hc.fs.writeFile(path, content)`](/api/fs#hcfswritefilepath-content) — Writes UTF-8 text to an allowlisted path.
+
 ## H
 
 - [`hc.host.applyRequestDraft(payload)`](/api/host#hchostapplyrequestdraftpayload) — Updates the active request editor tab in place.
@@ -43,11 +47,13 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.http.onAfterSend(handler)`](/api/http#hchttponaftersendhandler) — Register a callback that runs after the response is received.
 - [`hc.http.onBeforeScripts(handler)`](/api/http#hchttponbeforescriptshandler) — Register a callback that runs before each request stage's scripts.
 - [`hc.http.onBeforeSend(handler)`](/api/http#hchttponbeforesendhandler) — Register a callback that runs before each outgoing HTTP request.
+
 ## I
 
 - [`hc.imports.registerHandler(extensions, handler)`](/api/imports#hcimportsregisterhandlerextensions-handler) — | Callback | Type | Description | | ----------- | --------------------------------------------------- | --------------------------------------------------- | | canImport | (file: ImportFile) =&gt; boolean \| Promise&lt;boolean&gt; | Returns whether this handler should import the file | | import | (file: ImportFile) =&gt; void \| Promise&lt;void&gt; | Performs the import workflow | ImportFile includes name, path, extension (dot-prefixed, lowercase), and UTF-8 contents.
 - [`hc.ipc.handle(channel, handler)`](/api/ipc#hcipchandlechannel-handler) — Expose an RPC channel callable from the renderer half of the same plugin.
 - [`hc.ipc.invoke(channel, ...args)`](/api/ipc#hcipcinvokechannel-args) — Invokes a handler registered with hc.ipc.handle in the main entry.
+
 ## L
 
 - [`hc.livePage`](/api/livePage#hclivepage) — Opens or reuses an embedded browser tab and returns a control handle (focus, close, DOM query/evaluate/inject, viewport screenshot).
@@ -69,15 +75,19 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.liveServers.start(input)`](/api/liveServers#hcliveserversstartinput) — Starts from savedId (loads config from the registry when config is omitted) and/or an ad-hoc config.
 - [`hc.liveServers.stop(query)`](/api/liveServers#hcliveserversstopquery) — Stops one running instance by runtime id or saved id.
 - [`hc.liveServers.update(input)`](/api/liveServers#hcliveserversupdateinput) — Updates a saved server.
+
 ## M
 
 - [`hc.mcp.registerServer(config)`](/api/mcp#hcmcpregisterserverconfig) — Discovered tools are prefixed with mcp in the chat agent tool list, using the same naming scheme as user-configured MCP client servers.
+
 ## P
 
 - [`hc.pluginId`](/api/pluginId#hcpluginid) — Type: string The plugin manifest id.
+
 ## R
 
 - [`hc.react`](/api/react#hcreact) — Type: typeof React The same React instance HarborClient uses in the renderer.
+
 ## S
 
 - [`hc.scripts`](/api/scripts#hcscripts) — Creates a script sandbox that exposes the same hc object as collection and request pre/post scripts.
@@ -86,11 +96,13 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.server.stop()`](/api/server#hcserverstop) — Stops the echo server owned by this plugin.
 - [`hc.storage.get(key)`](/api/storage#hcstoragegetkey) — Returns the stored value, or undefined if the key has never been set.
 - [`hc.storage.set(key, value)`](/api/storage#hcstoragesetkey-value) — Persists a JSON-serializable value.
+
 ## T
 
 - [`hc.themes.getActive()`](/api/themes#hcthemesgetactive) — Returns the currently active theme — either a built-in id or a plugin theme reference.
 - [`hc.themes.onDidChange(listener)`](/api/themes#hcthemesondidchangelistener) — Fires when the user changes the appearance theme in Settings or when the host resets theme after plugin deactivation.
 - [`hc.themes.register(theme)`](/api/themes#hcthemesregistertheme) — Provide colors, metrics, a stylesheet, or a combination.
+
 ## U
 
 - [`hc.ui.closeModal(modalId?)`](/api/ui#hcuiclosemodalmodalid) — Closes the open plugin modal overlay.
@@ -115,4 +127,3 @@ Alphabetical index of public `hc.*` APIs. Each entry links to the full reference
 - [`hc.ui.registerWorkflowToolbarAction(action)`](/api/ui#hcuiregisterworkflowtoolbaractionaction) — Adds a button to the right of Save in the workflow play/edit toolbar.
 - [`hc.ui.setFooterPanelIndicator(panelId, state)`](/api/ui#hcuisetfooterpanelindicatorpanelid-state) — Sets or clears the native status dot beside a footer panel toggle.
 - [`hc.ui.showToast(message, options?)`](/api/ui#hcuishowtoastmessage-options) — Shows a non-blocking toast for success or info feedback.
-

@@ -8,7 +8,7 @@ export const Fragment = React.Fragment;
  * Used when bundling third-party deps (e.g. @uiw/react-codemirror,
  * @fortawesome/react-fontawesome) that import `react/jsx-runtime`. Aliasing
  * those imports to this module keeps them on the same host React instance as
- * the plugin shell without requiring installReact() to have run first.
+ * the plugin shell without requiring the host React install to have run first.
  *
  * @param {import('react').ElementType} type - Element type or Fragment.
  * @param {Record<string, unknown> | null | undefined} props - Element props.

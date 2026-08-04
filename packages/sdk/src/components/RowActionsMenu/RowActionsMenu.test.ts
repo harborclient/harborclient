@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { faFilter } from '@fortawesome/free-solid-svg-icons';
-import { installReact } from '@harborclient/sdk';
 import { act, createElement } from 'react';
 import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setHostReact } from '../../runtime/reactHost.js';
 import { RowActionsMenu } from './index.js';
 
 describe('RowActionsMenu', () => {
@@ -12,7 +12,7 @@ describe('RowActionsMenu', () => {
   let root: Root;
 
   beforeEach(() => {
-    installReact(React);
+    setHostReact(React);
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);

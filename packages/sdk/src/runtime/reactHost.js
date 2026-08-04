@@ -53,7 +53,7 @@ export function requireHostReact() {
   }
   if (hostReact == null) {
     throw new Error(
-      'Plugin React host is not installed. Call installReact(hc.react) at the start of activate().'
+      'Plugin React host is not installed. The view host must call setHostReact() before activate().'
     );
   }
   return hostReact;
