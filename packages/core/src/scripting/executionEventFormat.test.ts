@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatExecutionEventKey,
-  formatExecutionEventValue,
+  formatExecutionEventLogMessage,
   formatFlowExecutionDetail,
   formatFlowExecutionLabel,
   formatVariableExecutionDetail,
   formatVariableExecutionLabel
-} from './executionEventLabels';
+} from './executionEventFormat';
 
-describe('executionEventLabels', () => {
+describe('executionEventFormat', () => {
   it('formats variable set, update, and clear labels', () => {
     expect(
       formatVariableExecutionLabel({
@@ -120,52 +119,36 @@ describe('executionEventLabels', () => {
     ).toBe('token');
   });
 
-  it('splits key and value columns for variable and flow events', () => {
+  it('builds debug log messages with optional detail', () => {
     expect(
-      formatExecutionEventKey({
-        type: 'variable',
-        scope: 'collection',
-        action: 'update',
-        key: 'refreshToken',
-        value: 'jwt'
-      })
-    ).toBe('refreshToken');
-    expect(
-      formatExecutionEventValue({
-        type: 'variable',
-        scope: 'collection',
-        action: 'update',
-        key: 'refreshToken',
-        value: 'jwt'
-      })
-    ).toBe('jwt');
-    expect(
-      formatExecutionEventValue({
+      formatExecutionEventLogMessage({
         type: 'variable',
         scope: 'request',
+        action: 'set',
+        key: 'token',
+        value: 'abc'
+      })
+    ).toBe('Set Request variable - token = abc');
+    expect(
+      formatExecutionEventLogMessage({
+        type: 'variable',
+        scope: 'environment',
         action: 'clear',
-        key: 'token'
+        key: 'foo'
       })
-    ).toBeUndefined();
+    ).toBe('Clear Environment variable - foo');
     expect(
-      formatExecutionEventKey({
+      formatExecutionEventLogMessage({
         type: 'flow',
         action: 'set-next-request',
         nextRequest: 'Login'
       })
-    ).toBeUndefined();
+    ).toBe('Set next request - Login');
     expect(
-      formatExecutionEventValue({
-        type: 'flow',
-        action: 'set-next-request',
-        nextRequest: 'Login'
-      })
-    ).toBe('Login');
-    expect(
-      formatExecutionEventValue({
+      formatExecutionEventLogMessage({
         type: 'flow',
         action: 'skip-request'
       })
-    ).toBeUndefined();
+    ).toBe('Skip request');
   });
 });

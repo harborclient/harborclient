@@ -2,7 +2,7 @@ import { useAccordionProvider } from '@szhsin/react-accordion';
 import { useCallback, useEffect, useState } from 'react';
 
 /** Stable accordion keys for console detail sections. */
-export const CONSOLE_SECTION_KEYS = ['general', 'request', 'response', 'logs', 'trace'] as const;
+export const CONSOLE_SECTION_KEYS = ['general', 'request', 'response', 'logs'] as const;
 
 /** Accordion item key for a console detail section. */
 export type ConsoleSectionKey = (typeof CONSOLE_SECTION_KEYS)[number];
@@ -42,8 +42,7 @@ export function defaultConsoleSectionExpansion(): ConsoleSectionExpansionState {
     general: true,
     request: true,
     response: true,
-    logs: true,
-    trace: true
+    logs: true
   };
 }
 

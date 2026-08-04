@@ -190,7 +190,6 @@ export function ResponseViewerPage({ page, tabId }: Props): JSX.Element {
       requestUrl={linkedRequestTab.draft.url}
       testResults={linkedRequestTab.testResults}
       scriptLogs={linkedRequestTab.scriptLogs}
-      executionEvents={linkedRequestTab.executionEvents}
       scriptError={linkedRequestTab.scriptError}
       scriptErrors={linkedRequestTab.scriptErrors}
       requestTabId={page.requestTabId}

@@ -36,16 +36,10 @@ import {
   waitForPaint
 } from '#/renderer/src/store/thunks';
 import { SaveRequestModal } from '#/renderer/src/ui/Modals/SaveRequestModal';
-import { AiSidebar } from '#/renderer/src/ui/Sidebars/AiSidebar';
-import { GitSidebar } from '#/renderer/src/ui/Sidebars/GitSidebar';
-import { LiveServerLogsSidebar } from '#/renderer/src/ui/Sidebars/LiveServerLogsSidebar';
-import { ShortcutsSidebar } from '#/renderer/src/ui/Sidebars/ShortcutsSidebar';
-import { CollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar';
 import { SidebarGitProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/SidebarGitProvider';
 import { SidebarExpansionProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/SidebarExpansionProvider';
 import { FileMenuEnvironmentHost } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/FileMenuEnvironmentHost';
 import { SidebarModalsProvider } from '#/renderer/src/ui/Sidebars/CollectionSidebar/modals/SidebarModals';
-import { RequestEditor } from '#/renderer/src/ui/Main/RequestEditor';
 import { TitleBar } from '#/renderer/src/ui/TitleBar';
 import { selectIsBusy } from '#/renderer/src/store/slices/uiSlice';
 import {
@@ -54,18 +48,9 @@ import {
   selectCodeEditorTheme
 } from '#/renderer/src/store/slices/settingsSlice';
 import { Footer } from '#/renderer/src/ui/Footer';
-import { FooterPanels } from '#/renderer/src/ui/Footer/FooterPanels';
 import { useBrowserGuestOverlayCover } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/useBrowserGuestOverlayCover';
-import { AnimatedHorizontalPanel } from '#/renderer/src/ui/Shared/Animated/AnimatedHorizontalPanel';
 import { SkipNavigation } from '#/renderer/src/ui/Shared/SkipNavigation/SkipNavigation';
-import {
-  AI_SIDEBAR_SECTION_ID,
-  COLLECTIONS_SIDEBAR_SECTION_ID,
-  GIT_SIDEBAR_SECTION_ID,
-  LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID,
-  SHORTCUTS_SIDEBAR_SECTION_ID,
-  type SkipNavigationVisibility
-} from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
+import { type SkipNavigationVisibility } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { SearchIndexProvider } from '#/renderer/src/search/SearchIndexProvider';
 import {
   subscribeColorSchemePreferenceChanges,
@@ -75,6 +60,10 @@ import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import { platformClassName } from '../platform';
 import { Hosts } from './Hosts';
 import { Modals } from './Modals';
+import { AppShell } from './shell';
+import { defaultShellLayout } from './shell/defaultLayout';
+import { withSidebarPlacement } from './shell/withSidebarPlacement';
+
 /**
  * Root application layout: sidebar, request editor, and response viewer.
  */
@@ -104,6 +93,12 @@ export default function App(): JSX.Element {
   usePersistedPanelLayout();
   useBeforeClose();
   useBrowserGuestOverlayCover();
+
+  /**
+   * Zone placement for the middle band. Fixed to left until sidebar placement
+   * is persisted in panel-layout settings.
+   */
+  const shellLayout = useMemo(() => withSidebarPlacement(defaultShellLayout, 'left'), []);
 
   /**
    * Loads folders and requests when a collection tree is expanded in the sidebar,
@@ -286,6 +281,7 @@ export default function App(): JSX.Element {
               <BusyIndicator isBusy={isBusy} />
               <SkipNavigation
                 visibility={skipNavigationVisibility}
+                layout={shellLayout}
                 onOpenShortcuts={() => dispatch(toggleShortcutsSidebar())}
               />
               <TitleBar />
@@ -293,59 +289,7 @@ export default function App(): JSX.Element {
               {/* Main UI */}
               <SidebarModalsProvider>
                 <FileMenuEnvironmentHost />
-                <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                  {/* Left sidebar */}
-                  <AnimatedHorizontalPanel
-                    id={COLLECTIONS_SIDEBAR_SECTION_ID}
-                    tabIndex={-1}
-                    open={sidebarVisible}
-                  >
-                    <CollectionSidebar />
-                  </AnimatedHorizontalPanel>
-
-                  {/* Request editor */}
-                  <main
-                    id="main-content"
-                    tabIndex={-1}
-                    className="relative flex min-w-0 flex-1 flex-col bg-surface"
-                  >
-                    <RequestEditor />
-                    <FooterPanels />
-                  </main>
-
-                  {/* Right sidebar */}
-                  <AnimatedHorizontalPanel
-                    id={GIT_SIDEBAR_SECTION_ID}
-                    tabIndex={-1}
-                    open={gitSidebarVisible}
-                  >
-                    <GitSidebar />
-                  </AnimatedHorizontalPanel>
-
-                  <AnimatedHorizontalPanel
-                    id={AI_SIDEBAR_SECTION_ID}
-                    tabIndex={-1}
-                    open={aiSidebarVisible}
-                  >
-                    <AiSidebar />
-                  </AnimatedHorizontalPanel>
-
-                  <AnimatedHorizontalPanel
-                    id={SHORTCUTS_SIDEBAR_SECTION_ID}
-                    tabIndex={-1}
-                    open={shortcutsSidebarVisible}
-                  >
-                    <ShortcutsSidebar />
-                  </AnimatedHorizontalPanel>
-
-                  <AnimatedHorizontalPanel
-                    id={LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID}
-                    tabIndex={-1}
-                    open={liveServerLogsSidebarOpen}
-                  >
-                    {liveServerLogsSidebarOpen ? <LiveServerLogsSidebar /> : null}
-                  </AnimatedHorizontalPanel>
-                </div>
+                <AppShell layout={shellLayout} />
                 <SaveRequestModal />
               </SidebarModalsProvider>
 

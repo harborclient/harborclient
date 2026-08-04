@@ -49,8 +49,7 @@ describe('defaultConsoleSectionExpansion', () => {
       general: true,
       request: true,
       response: true,
-      logs: true,
-      trace: true
+      logs: true
     });
   });
 });
@@ -59,12 +58,12 @@ describe('isConsoleSectionKey', () => {
   it('accepts known section keys', () => {
     expect(isConsoleSectionKey('general')).toBe(true);
     expect(isConsoleSectionKey('logs')).toBe(true);
-    expect(isConsoleSectionKey('trace')).toBe(true);
   });
 
-  it('rejects unknown keys', () => {
+  it('rejects unknown keys including legacy trace', () => {
     expect(isConsoleSectionKey('headers')).toBe(false);
     expect(isConsoleSectionKey('output')).toBe(false);
+    expect(isConsoleSectionKey('trace')).toBe(false);
     expect(isConsoleSectionKey('')).toBe(false);
   });
 });
@@ -77,16 +76,14 @@ describe('parsePersistedConsoleSectionExpansion', () => {
           general: true,
           request: false,
           response: true,
-          logs: false,
-          trace: true
+          logs: false
         })
       )
     ).toEqual({
       general: true,
       request: false,
       response: true,
-      logs: false,
-      trace: true
+      logs: false
     });
   });
 
@@ -97,16 +94,33 @@ describe('parsePersistedConsoleSectionExpansion', () => {
           general: true,
           request: false,
           response: true,
-          output: false,
-          trace: true
+          output: false
         })
       )
     ).toEqual({
       general: true,
       request: false,
       response: true,
-      logs: false,
-      trace: true
+      logs: false
+    });
+  });
+
+  it('ignores legacy trace keys in persisted storage', () => {
+    expect(
+      parsePersistedConsoleSectionExpansion(
+        JSON.stringify({
+          general: true,
+          request: false,
+          response: true,
+          logs: false,
+          trace: false
+        })
+      )
+    ).toEqual({
+      general: true,
+      request: false,
+      response: true,
+      logs: false
     });
   });
 
@@ -115,8 +129,7 @@ describe('parsePersistedConsoleSectionExpansion', () => {
       general: true,
       request: false,
       response: true,
-      logs: true,
-      trace: true
+      logs: true
     });
   });
 
@@ -132,8 +145,7 @@ describe('parsePersistedConsoleSectionExpansion', () => {
       general: true,
       request: false,
       response: true,
-      logs: true,
-      trace: true
+      logs: true
     });
   });
 
@@ -159,8 +171,7 @@ describe('loadPersistedConsoleSectionExpansion', () => {
         general: false,
         request: true,
         response: false,
-        logs: true,
-        trace: false
+        logs: true
       })
     );
 
@@ -168,8 +179,7 @@ describe('loadPersistedConsoleSectionExpansion', () => {
       general: false,
       request: true,
       response: false,
-      logs: true,
-      trace: false
+      logs: true
     });
   });
 
@@ -186,8 +196,7 @@ describe('persistConsoleSectionExpansion', () => {
       general: false,
       request: true,
       response: false,
-      logs: false,
-      trace: true
+      logs: false
     };
 
     persistConsoleSectionExpansion(state);

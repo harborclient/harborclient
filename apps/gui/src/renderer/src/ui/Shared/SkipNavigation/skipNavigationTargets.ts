@@ -1,4 +1,7 @@
 import { RESPONSE_EDITOR_SECTION_ID } from '#/renderer/src/ui/Main/ResponseEditor/focusResponseEditor';
+import { defaultShellLayout } from '#/renderer/src/app/shell/defaultLayout';
+import { shellPanelSkipMeta } from '#/renderer/src/app/shell/skipMeta';
+import type { ShellLayoutConfig, ShellPanelId } from '#/renderer/src/app/shell/types';
 
 /** Stable id of the collections sidebar skip target wrapper in the app shell. */
 export const COLLECTIONS_SIDEBAR_SECTION_ID = 'collections-sidebar';
@@ -92,26 +95,50 @@ export interface SkipNavigationVisibility {
 }
 
 /**
+ * Appends skip links for shell sidebar panels in the given zone order when visible.
+ *
+ * @param links - Mutable list to push into.
+ * @param panelIds - Ordered panel ids from a shell layout zone.
+ * @param visibility - Current panel visibility flags.
+ */
+function appendShellZoneSkipLinks(
+  links: SkipNavigationLink[],
+  panelIds: ShellPanelId[],
+  visibility: SkipNavigationVisibility
+): void {
+  for (const panelId of panelIds) {
+    const meta = shellPanelSkipMeta[panelId];
+    if (meta == null) {
+      continue;
+    }
+
+    if (!visibility[meta.visibilityKey]) {
+      continue;
+    }
+
+    links.push(meta.link);
+  }
+}
+
+/**
  * Builds the skip links that should appear for the current layout state.
  *
- * Hidden panels and non-request tabs omit their links so keyboard users
- * never land on targets that are absent from the DOM.
+ * Order follows the shell layout (primary sidebars → request/response → secondary
+ * sidebars → footer) so keyboard users match visual left-to-right placement.
+ * Hidden panels and non-request tabs omit their links so users never land on
+ * targets absent from the DOM.
  *
  * @param visibility - Current panel and request-tab visibility flags.
+ * @param layout - Shell zone placement; defaults to {@link defaultShellLayout}.
  * @returns Ordered skip links for the skip navigation menu.
  */
 export function resolveSkipNavigationLinks(
-  visibility: SkipNavigationVisibility
+  visibility: SkipNavigationVisibility,
+  layout: ShellLayoutConfig = defaultShellLayout
 ): SkipNavigationLink[] {
   const links: SkipNavigationLink[] = [];
 
-  if (visibility.sidebarVisible) {
-    links.push({
-      id: 'collections-sidebar',
-      label: 'Skip to Collections sidebar',
-      targetId: COLLECTIONS_SIDEBAR_SECTION_ID
-    });
-  }
+  appendShellZoneSkipLinks(links, layout.primarySidebar, visibility);
 
   if (visibility.isRequestTab && visibility.requestEditorVisible) {
     links.push({
@@ -129,37 +156,7 @@ export function resolveSkipNavigationLinks(
     });
   }
 
-  if (visibility.aiSidebarVisible) {
-    links.push({
-      id: 'ai-sidebar',
-      label: 'Skip to AI sidebar',
-      targetId: AI_SIDEBAR_SECTION_ID
-    });
-  }
-
-  if (visibility.gitSidebarVisible) {
-    links.push({
-      id: 'git-sidebar',
-      label: 'Skip to Git sidebar',
-      targetId: GIT_SIDEBAR_SECTION_ID
-    });
-  }
-
-  if (visibility.shortcutsSidebarVisible) {
-    links.push({
-      id: 'shortcuts-sidebar',
-      label: 'Skip to Shortcuts sidebar',
-      targetId: SHORTCUTS_SIDEBAR_SECTION_ID
-    });
-  }
-
-  if (visibility.liveServerLogsSidebarVisible) {
-    links.push({
-      id: 'live-server-logs-sidebar',
-      label: 'Skip to Live server logs',
-      targetId: LIVE_SERVER_LOGS_SIDEBAR_SECTION_ID
-    });
-  }
+  appendShellZoneSkipLinks(links, layout.secondarySidebar, visibility);
 
   links.push({
     id: 'app-footer',

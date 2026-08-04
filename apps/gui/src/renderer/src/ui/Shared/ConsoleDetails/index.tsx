@@ -1,11 +1,6 @@
 import { ControlledAccordion } from '@szhsin/react-accordion';
 import type { JSX } from 'react';
-import type {
-  ScriptExecutionEvent,
-  ScriptLogEntry,
-  ScriptRunError,
-  SendResult
-} from '@harborclient/core/types';
+import type { ScriptLogEntry, ScriptRunError, SendResult } from '@harborclient/core/types';
 
 import { formatBytes } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { ConsoleSelectionHost } from '#/renderer/src/ui/Main/ResponseEditor/consoleSelection/ConsoleSelectionHost';
@@ -13,7 +8,6 @@ import { CollapsibleSection } from './CollapsibleSection';
 import { usePersistedConsoleSectionExpansion } from './usePersistedConsoleSectionExpansion';
 import { KeyValueTable, type KeyValueRow } from './KeyValueTable';
 import { ScriptLogsView } from './ScriptLogsView';
-import { TraceDetails } from './TraceDetails';
 
 interface Props {
   /**
@@ -32,13 +26,9 @@ interface Props {
    *
    * When provided (footer console entries), a Logs accordion section is shown.
    * The response Console tab omits this prop; logs live on the Logs tab.
+   * Execution traces appear as debug log lines in this list.
    */
   logs?: readonly ScriptLogEntry[];
-
-  /**
-   * Ordered variable and flow-control activity captured from scripts for this send.
-   */
-  executionEvents?: readonly ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors for this send.
@@ -70,7 +60,6 @@ export function ConsoleDetails({
   flush = false,
   result,
   logs = [],
-  executionEvents = [],
   scriptError,
   scriptErrors,
   requestTabId,
@@ -159,14 +148,6 @@ export function ConsoleDetails({
               />
             </CollapsibleSection>
           ) : null}
-          <CollapsibleSection
-            itemKey="trace"
-            title="Trace"
-            initialEntered={sections.trace}
-            flush={flush}
-          >
-            <TraceDetails executionEvents={executionEvents} />
-          </CollapsibleSection>
         </ControlledAccordion>
       </div>
     </ConsoleSelectionHost>

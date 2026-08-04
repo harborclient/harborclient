@@ -349,6 +349,10 @@ describe('createScriptApi execution', () => {
       { type: 'flow', action: 'set-next-request', nextRequest: 'Login' },
       { type: 'flow', action: 'skip-request' }
     ]);
+    expect(result.logs).toEqual([
+      { message: 'Set next request - Login', level: 'log', method: 'debug' },
+      { message: 'Skip request', level: 'log', method: 'debug' }
+    ]);
   });
 
   it('records stop-run flow when setNextRequest receives null', () => {
@@ -458,6 +462,24 @@ describe('createScriptApi execution events', () => {
       { type: 'variable', scope: 'global', action: 'update', key: 'token', value: 'global' },
       { type: 'variable', scope: 'request', action: 'clear', key: 'token' }
     ]);
+    expect(result.logs).toEqual([
+      {
+        message: 'Update Request variable - token = new',
+        level: 'log',
+        method: 'debug'
+      },
+      {
+        message: 'Update Collection variable - token = collection',
+        level: 'log',
+        method: 'debug'
+      },
+      {
+        message: 'Update Global variable - token = global',
+        level: 'log',
+        method: 'debug'
+      },
+      { message: 'Clear Request variable - token', level: 'log', method: 'debug' }
+    ]);
   });
 
   it('records set instead of update when a key had no prior value in that scope', () => {
@@ -475,6 +497,13 @@ describe('createScriptApi execution events', () => {
     const result = api.readResult();
     expect(result.executionEvents).toEqual([
       { type: 'variable', scope: 'environment', action: 'set', key: 'apiKey', value: 'secret' }
+    ]);
+    expect(result.logs).toEqual([
+      {
+        message: 'Set Environment variable - apiKey = secret',
+        level: 'log',
+        method: 'debug'
+      }
     ]);
   });
 });

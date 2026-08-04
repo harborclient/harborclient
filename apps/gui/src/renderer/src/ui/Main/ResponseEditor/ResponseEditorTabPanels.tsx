@@ -1,7 +1,6 @@
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import type { ResponseTabContext } from '@harborclient/core/plugin/types';
 import type {
-  ScriptExecutionEvent,
   ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
@@ -52,13 +51,9 @@ interface Props {
 
   /**
    * Console output captured from scripts.
+   * Includes execution traces as debug-level lines.
    */
   scriptLogs: ScriptLogEntry[];
-
-  /**
-   * Ordered variable and flow-control activity from scripts.
-   */
-  executionEvents: ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors from the last send.
@@ -115,7 +110,6 @@ export function ResponseEditorTabPanels({
   requestUrl,
   testResults,
   scriptLogs,
-  executionEvents,
   scriptError,
   scriptErrors,
   requestTabId,
@@ -131,7 +125,6 @@ export function ResponseEditorTabPanels({
     requestUrl,
     testResults,
     scriptLogs,
-    executionEvents,
     scriptError,
     scriptErrors,
     requestTabId,

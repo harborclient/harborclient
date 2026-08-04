@@ -8,6 +8,8 @@ import {
   type MouseEvent
 } from 'react';
 import { formatAcceleratorDisplay } from '@harborclient/core/shortcuts';
+import type { ShellLayoutConfig } from '#/renderer/src/app/shell/types';
+import { defaultShellLayout } from '#/renderer/src/app/shell/defaultLayout';
 import {
   resolveSkipNavigationLinks,
   SKIP_NAVIGATION_ID,
@@ -24,6 +26,11 @@ interface Props {
    * Current panel visibility used to filter skip links.
    */
   visibility: SkipNavigationVisibility;
+
+  /**
+   * Shell zone placement used to order skip links left-to-right.
+   */
+  layout?: ShellLayoutConfig;
 
   /**
    * Opens the read-only keyboard shortcuts reference modal.
@@ -89,7 +96,11 @@ function formatMainNavShortcutLabel(accelerator: string): string {
  * Visually hidden skip navigation menu that appears when a link receives keyboard focus.
  * Lets keyboard users jump directly to major UI regions without tabbing through chrome.
  */
-export function SkipNavigation({ visibility, onOpenShortcuts }: Props): JSX.Element {
+export function SkipNavigation({
+  visibility,
+  layout = defaultShellLayout,
+  onOpenShortcuts
+}: Props): JSX.Element {
   const launchAnchorRef = useRef<HTMLDivElement>(null);
   const initialFocusAppliedRef = useRef(false);
   const [mainNavShortcutLabel, setMainNavShortcutLabel] = useState(
@@ -97,9 +108,10 @@ export function SkipNavigation({ visibility, onOpenShortcuts }: Props): JSX.Elem
   );
 
   /**
-   * Derives the skip links that match currently visible layout regions.
+   * Derives the skip links that match currently visible layout regions,
+   * ordered by shell zone placement.
    */
-  const links = useMemo(() => resolveSkipNavigationLinks(visibility), [visibility]);
+  const links = useMemo(() => resolveSkipNavigationLinks(visibility, layout), [visibility, layout]);
 
   /**
    * Loads the configured focus-main-nav accelerator for the Main nav shortcut hint.

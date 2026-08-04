@@ -14,6 +14,7 @@ import type {
   SendResult
 } from '../types';
 import { buildScriptRunInfo } from '../types/script';
+import { formatExecutionEventLogMessage } from './executionEventFormat';
 import { createScriptConsole, type ScriptConsole } from './scriptConsoleRegistry';
 import {
   applyScriptAuthSet,
@@ -968,6 +969,11 @@ export function createScriptApi(
 
   const emitExecutionEvent = (event: ScriptExecutionEvent): void => {
     state.executionEvents.push(event);
+    state.logs.push({
+      message: formatExecutionEventLogMessage(event),
+      level: 'log',
+      method: 'debug'
+    });
   };
 
   const info: ScriptRunInfo =

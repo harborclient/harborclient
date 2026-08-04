@@ -6,12 +6,7 @@ import type {
   SendResult
 } from '@harborclient/core/types';
 import { joinScriptLogMessages } from '@harborclient/core/scripting/scriptLogs';
-import {
-  formatFlowExecutionDetail,
-  formatFlowExecutionLabel,
-  formatVariableExecutionDetail,
-  formatVariableExecutionLabel
-} from '#/renderer/src/ui/Shared/ConsoleDetails/executionEventLabels';
+import { formatExecutionEventLogMessage } from '@harborclient/core/scripting/executionEventFormat';
 
 /**
  * Pretty-prints JSON response bodies when valid; returns raw text otherwise.
@@ -412,30 +407,17 @@ export interface ResponseExportPayload {
 }
 
 /**
- * Serializes one script execution event as a trace line matching the console Trace panel.
+ * Serializes one script execution event as a trace line for export.
  *
  * @param event - Variable or flow-control activity from script execution.
  * @returns Human-readable trace string for export.
  */
 function formatExecutionEventTrace(event: ScriptExecutionEvent): string {
-  const label =
-    event.type === 'variable'
-      ? formatVariableExecutionLabel(event)
-      : formatFlowExecutionLabel(event);
-  const detail =
-    event.type === 'variable'
-      ? formatVariableExecutionDetail(event)
-      : formatFlowExecutionDetail(event);
-
-  const parts: string[] = [];
+  const message = formatExecutionEventLogMessage(event);
   if (event.scriptName) {
-    parts.push(`[${event.scriptName}]`);
+    return `[${event.scriptName}] ${message}`;
   }
-  parts.push(label);
-  if (detail) {
-    parts.push('-', detail);
-  }
-  return parts.join(' ');
+  return message;
 }
 
 /**

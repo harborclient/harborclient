@@ -522,7 +522,6 @@ export function ResponseEditor({
                   requestUrl={requestUrl}
                   testResults={testResults}
                   scriptLogs={scriptLogs}
-                  executionEvents={executionEvents}
                   scriptError={scriptError}
                   scriptErrors={scriptErrors}
                   requestTabId={requestTabId}
@@ -536,7 +535,6 @@ export function ResponseEditor({
                   requestUrl={requestUrl}
                   testResults={testResults}
                   scriptLogs={scriptLogs}
-                  executionEvents={executionEvents}
                   scriptError={scriptError}
                   scriptErrors={scriptErrors}
                   requestTabId={requestTabId}
@@ -550,7 +548,6 @@ export function ResponseEditor({
                   requestUrl={requestUrl}
                   testResults={testResults}
                   scriptLogs={scriptLogs}
-                  executionEvents={executionEvents}
                   scriptError={scriptError}
                   scriptErrors={scriptErrors}
                   requestTabId={requestTabId}
@@ -565,7 +562,6 @@ export function ResponseEditor({
                     requestUrl={requestUrl}
                     testResults={testResults}
                     scriptLogs={scriptLogs}
-                    executionEvents={executionEvents}
                     scriptError={scriptError}
                     scriptErrors={scriptErrors}
                     requestTabId={requestTabId}
@@ -691,7 +687,6 @@ export function ResponseEditor({
         requestUrl={requestUrl}
         testResults={testResults}
         scriptLogs={scriptLogs}
-        executionEvents={executionEvents}
         scriptError={scriptError}
         scriptErrors={scriptErrors}
         requestTabId={requestTabId}

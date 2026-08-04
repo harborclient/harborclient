@@ -1,4 +1,4 @@
-import type { ScriptExecutionEvent } from '@harborclient/core/types';
+import type { ScriptExecutionEvent } from '../types/script';
 
 const SCOPE_LABELS: Record<'request' | 'collection' | 'folder' | 'environment' | 'global', string> =
   {
@@ -13,7 +13,7 @@ const SCOPE_LABELS: Record<'request' | 'collection' | 'folder' | 'environment' |
  * Returns a short action label for a variable execution event.
  *
  * @param event - Variable mutation captured during script execution.
- * @returns Human-readable action text for the console inspector.
+ * @returns Human-readable action text for logs and export.
  */
 export function formatVariableExecutionLabel(
   event: Extract<ScriptExecutionEvent, { type: 'variable' }>
@@ -33,7 +33,7 @@ export function formatVariableExecutionLabel(
  * Returns a short action label for a flow-control execution event.
  *
  * @param event - Flow directive captured during script execution.
- * @returns Human-readable action text for the console inspector.
+ * @returns Human-readable action text for logs and export.
  */
 export function formatFlowExecutionLabel(
   event: Extract<ScriptExecutionEvent, { type: 'flow' }>
@@ -89,30 +89,26 @@ export function formatFlowExecutionDetail(
 }
 
 /**
- * Returns the Key column text for a TRACE table row.
+ * Builds a single debug-log message for a script execution event.
  *
- * @param event - Variable or flow-control activity from a script run.
- * @returns Variable key, or undefined for flow events (no key).
+ * Script source is attached later via log enrichment (`scriptName`), so it is
+ * not included here.
+ *
+ * @param event - Variable or flow-control activity from script execution.
+ * @returns Human-readable line for the response Logs tab.
  */
-export function formatExecutionEventKey(event: ScriptExecutionEvent): string | undefined {
-  if (event.type === 'variable') {
-    return event.key;
-  }
-  return undefined;
-}
+export function formatExecutionEventLogMessage(event: ScriptExecutionEvent): string {
+  const label =
+    event.type === 'variable'
+      ? formatVariableExecutionLabel(event)
+      : formatFlowExecutionLabel(event);
+  const detail =
+    event.type === 'variable'
+      ? formatVariableExecutionDetail(event)
+      : formatFlowExecutionDetail(event);
 
-/**
- * Returns the Value column text for a TRACE table row.
- *
- * @param event - Variable or flow-control activity from a script run.
- * @returns Variable value (omitted for clear), flow target when present, or undefined.
- */
-export function formatExecutionEventValue(event: ScriptExecutionEvent): string | undefined {
-  if (event.type === 'variable') {
-    if (event.action === 'clear') {
-      return undefined;
-    }
-    return event.value ?? '';
+  if (detail) {
+    return `${label} - ${detail}`;
   }
-  return formatFlowExecutionDetail(event);
+  return label;
 }

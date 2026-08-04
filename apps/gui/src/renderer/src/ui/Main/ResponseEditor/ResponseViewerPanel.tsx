@@ -1,6 +1,5 @@
 import type { JSX } from 'react';
 import type {
-  ScriptExecutionEvent,
   ScriptLogEntry,
   ScriptRunError,
   ScriptTestResult,
@@ -42,13 +41,9 @@ interface Props {
 
   /**
    * Console output captured from scripts for the last send.
+   * Includes execution traces as debug-level lines.
    */
   scriptLogs: ScriptLogEntry[];
-
-  /**
-   * Ordered variable and flow-control activity from scripts for the last send.
-   */
-  executionEvents: ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors from the last send.
@@ -91,7 +86,6 @@ export function ResponseViewerPanel({
   requestUrl,
   testResults,
   scriptLogs,
-  executionEvents,
   scriptError,
   scriptErrors,
   requestTabId,
@@ -128,13 +122,7 @@ export function ResponseViewerPanel({
     case 'timing':
       return <Timing response={response} requestName={requestName} />;
     case 'console':
-      return (
-        <Console
-          response={response}
-          executionEvents={executionEvents}
-          requestTabId={requestTabId}
-        />
-      );
+      return <Console response={response} requestTabId={requestTabId} />;
     case 'logs':
       return (
         <Logs

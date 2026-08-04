@@ -3,7 +3,6 @@ import {
   DEFAULT_RESPONSE_EDITOR_SPLIT_SIZE,
   MIN_RESPONSE_EDITOR_SPLIT_SIZE,
   type ResponseEditorSplitState,
-  type ScriptExecutionEvent,
   type ScriptLogEntry,
   type ScriptRunError,
   type ScriptTestResult,
@@ -109,13 +108,9 @@ interface Props {
 
   /**
    * Console output captured from scripts.
+   * Includes execution traces as debug-level lines.
    */
   scriptLogs: ScriptLogEntry[];
-
-  /**
-   * Ordered variable and flow-control activity from scripts.
-   */
-  executionEvents: ScriptExecutionEvent[];
 
   /**
    * Aggregated script runtime errors from the last send.
@@ -177,7 +172,6 @@ export function ResponseEditorSplitViews({
   requestUrl,
   testResults,
   scriptLogs,
-  executionEvents,
   scriptError,
   scriptErrors,
   requestTabId,
@@ -440,7 +434,6 @@ export function ResponseEditorSplitViews({
     requestUrl,
     testResults,
     scriptLogs,
-    executionEvents,
     scriptError,
     scriptErrors,
     requestTabId,

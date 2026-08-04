@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { defaultShellLayout } from '#/renderer/src/app/shell/defaultLayout';
+import { withSidebarPlacement } from '#/renderer/src/app/shell/withSidebarPlacement';
 import {
   AI_SIDEBAR_SECTION_ID,
   APP_FOOTER_SECTION_ID,
@@ -32,8 +34,8 @@ function allVisibleRequestTab(
 }
 
 describe('resolveSkipNavigationLinks', () => {
-  it('returns all major region links when every panel is visible on a request tab', () => {
-    expect(resolveSkipNavigationLinks(allVisibleRequestTab())).toEqual([
+  it('returns all major region links in default shell layout order', () => {
+    expect(resolveSkipNavigationLinks(allVisibleRequestTab(), defaultShellLayout)).toEqual([
       {
         id: 'collections-sidebar',
         label: 'Skip to Collections sidebar',
@@ -50,14 +52,14 @@ describe('resolveSkipNavigationLinks', () => {
         targetId: RESPONSE_EDITOR_SECTION_ID
       },
       {
-        id: 'ai-sidebar',
-        label: 'Skip to AI sidebar',
-        targetId: AI_SIDEBAR_SECTION_ID
-      },
-      {
         id: 'git-sidebar',
         label: 'Skip to Git sidebar',
         targetId: GIT_SIDEBAR_SECTION_ID
+      },
+      {
+        id: 'ai-sidebar',
+        label: 'Skip to AI sidebar',
+        targetId: AI_SIDEBAR_SECTION_ID
       },
       {
         id: 'shortcuts-sidebar',
@@ -74,6 +76,22 @@ describe('resolveSkipNavigationLinks', () => {
         label: 'Skip to Footer',
         targetId: APP_FOOTER_SECTION_ID
       }
+    ]);
+  });
+
+  it('orders skip links by right sidebar placement when zones are swapped', () => {
+    const layout = withSidebarPlacement(defaultShellLayout, 'right');
+    const links = resolveSkipNavigationLinks(allVisibleRequestTab(), layout);
+
+    expect(links.map((link) => link.id)).toEqual([
+      'git-sidebar',
+      'ai-sidebar',
+      'shortcuts-sidebar',
+      'live-server-logs-sidebar',
+      'request-editor',
+      'response-editor',
+      'collections-sidebar',
+      'app-footer'
     ]);
   });
 
@@ -104,8 +122,8 @@ describe('resolveSkipNavigationLinks', () => {
 
     expect(links.map((link) => link.id)).toEqual([
       'collections-sidebar',
-      'ai-sidebar',
       'git-sidebar',
+      'ai-sidebar',
       'shortcuts-sidebar',
       'live-server-logs-sidebar',
       'app-footer'
@@ -122,8 +140,8 @@ describe('resolveSkipNavigationLinks', () => {
 
     expect(links.map((link) => link.id)).toEqual([
       'collections-sidebar',
-      'ai-sidebar',
       'git-sidebar',
+      'ai-sidebar',
       'shortcuts-sidebar',
       'live-server-logs-sidebar',
       'app-footer'

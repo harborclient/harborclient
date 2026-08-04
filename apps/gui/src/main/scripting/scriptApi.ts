@@ -2,6 +2,7 @@ import {
   createScriptConsole,
   type ScriptConsole
 } from '@harborclient/core/scripting/scriptConsoleRegistry';
+import { formatExecutionEventLogMessage } from '@harborclient/core/scripting/executionEventFormat';
 import type {
   KeyValue,
   ScriptExecutionEvent,
@@ -964,6 +965,11 @@ export function createScriptApi(
 
   const emitExecutionEvent = (event: ScriptExecutionEvent): void => {
     state.executionEvents.push(event);
+    state.logs.push({
+      message: formatExecutionEventLogMessage(event),
+      level: 'log',
+      method: 'debug'
+    });
   };
 
   const info: ScriptRunInfo =

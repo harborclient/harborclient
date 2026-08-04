@@ -59,7 +59,6 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
         <ConsoleDetails
           result={result}
           logs={entry.logs}
-          executionEvents={entry.executionEvents}
           scriptError={entry.scriptError}
           scriptErrors={entry.scriptErrors}
           requestTabId={entry.requestTabId}
