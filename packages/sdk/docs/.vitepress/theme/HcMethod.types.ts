@@ -1,5 +1,5 @@
 /**
- * Shape of one public `hc.*` API entry in `hc_manifest.json`.
+ * Shape of one public `hc.*` API entry in `hc_sdk_manifest.json`.
  */
 export interface HcMethodParam {
   /**
@@ -99,6 +99,6 @@ export interface HcMethodEntry {
 }
 
 /**
- * Root map of `hc_manifest.json` (`ui.registerModal` → entry).
+ * Root map of `hc_sdk_manifest.json` (`ui.registerModal` → entry).
  */
 export type HcManifest = Record<string, HcMethodEntry>;

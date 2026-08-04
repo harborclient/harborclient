@@ -223,10 +223,10 @@ JSDoc style already used in the codebase (see `src/renderer/src/ui/Main/RequestE
 and [`VariableInput`](packages/sdk/src/components/VariableInput/index.tsx) (`@harborclient/sdk/components`) for examples).
 
 When adding or renaming a public plugin `hc.*` API, update
-`packages/sdk/docs/.vitepress/hc_manifest.json` and the matching
+`packages/sdk/docs/.vitepress/hc_sdk_manifest.json` and the matching
 `<HcMethod />` docs page in the same change. See
 [`packages/sdk/AGENTS.md`](packages/sdk/AGENTS.md) → **Plugin API docs
-(`hc_manifest.json`)** for the `since` version rules.
+(`hc_sdk_manifest.json`)** for the `since` version rules.
 
 **Every function** — exported or local, component or helper — must have a JSDoc
 docblock. Explain what the function does and why, not just restate its name.

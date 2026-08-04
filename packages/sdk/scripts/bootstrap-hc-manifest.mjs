@@ -1,5 +1,5 @@
 /**
- * Bootstraps `hc_manifest.json` from the four SDK API markdown pages and
+ * Bootstraps `hc_sdk_manifest.json` from the four SDK API markdown pages and
  * optional git archaeology for `since` versions (fallback `2.0.0`).
  *
  * Usage:
@@ -16,7 +16,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(packageDir, '../..');
 const docsDir = path.join(packageDir, 'docs');
-const manifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const manifestPath = path.join(docsDir, '.vitepress/hc_sdk_manifest.json');
 const DEFAULT_SINCE = '2.0.0';
 
 const API_PAGES = [

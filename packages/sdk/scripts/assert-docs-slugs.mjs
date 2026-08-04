@@ -13,7 +13,7 @@ import { getHeadings, listHcMethodNames, toAnchor } from './docs-slugger.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
-const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const hcManifestPath = path.join(docsDir, '.vitepress/hc_sdk_manifest.json');
 const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
 
 /**
@@ -24,7 +24,7 @@ const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
 const loadHcNamespaces = async () => JSON.parse(await readFile(hcNamespacesPath, 'utf8'));
 
 /**
- * Loads and validates `hc_manifest.json` entries used by `<HcMethod>`.
+ * Loads and validates `hc_sdk_manifest.json` entries used by `<HcMethod>`.
  *
  * @returns {Promise<Record<string, { title: string; level: number; since: string; description: string }>>}
  */
@@ -57,7 +57,7 @@ const loadHcManifest = async () => {
   }
 
   if (errors.length > 0) {
-    console.error('hc_manifest.json validation errors:');
+    console.error('hc_sdk_manifest.json validation errors:');
     console.error(errors);
     process.exit(1);
   }
@@ -230,7 +230,7 @@ const verifyHcMethodTags = async (canonicalPages, hcManifest, namespaces) => {
   for (const page of canonicalPages.values()) {
     for (const name of listHcMethodNames(page.markdown)) {
       if (!hcManifest[name]) {
-        errors.push(`${page.label}: <HcMethod name="${name}" /> missing from hc_manifest.json`);
+        errors.push(`${page.label}: <HcMethod name="${name}" /> missing from hc_sdk_manifest.json`);
       }
 
       documented.add(name);
@@ -250,7 +250,7 @@ const verifyHcMethodTags = async (canonicalPages, hcManifest, namespaces) => {
 
     for (const name of listHcMethodNames(markdown)) {
       if (!hcManifest[name]) {
-        errors.push(`${label}: <HcMethod name="${name}" /> missing from hc_manifest.json`);
+        errors.push(`${label}: <HcMethod name="${name}" /> missing from hc_sdk_manifest.json`);
       }
 
       if (namespaceOfKey(name) !== ns.namespace) {
@@ -265,7 +265,7 @@ const verifyHcMethodTags = async (canonicalPages, hcManifest, namespaces) => {
 
   for (const key of Object.keys(hcManifest)) {
     if (!documented.has(key)) {
-      errors.push(`hc_manifest.json: ${key} is not documented on any generated API page`);
+      errors.push(`hc_sdk_manifest.json: ${key} is not documented on any generated API page`);
     }
   }
 
@@ -306,13 +306,13 @@ const verifyNamespaceRegistry = async (hcManifest, namespaces) => {
 
   for (const ns of fromManifest) {
     if (!registered.has(ns)) {
-      errors.push(`hc_namespaces.json: missing namespace ${ns} present in hc_manifest.json`);
+      errors.push(`hc_namespaces.json: missing namespace ${ns} present in hc_sdk_manifest.json`);
     }
   }
 
   for (const ns of registered) {
     if (!fromManifest.has(ns)) {
-      errors.push(`hc_namespaces.json: namespace ${ns} has no keys in hc_manifest.json`);
+      errors.push(`hc_namespaces.json: namespace ${ns} has no keys in hc_sdk_manifest.json`);
     }
   }
 

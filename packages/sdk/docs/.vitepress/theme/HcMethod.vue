@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Renders a full `hc.*` API reference block from `hc_manifest.json`.
+ * Renders a full `hc.*` API reference block from `hc_sdk_manifest.json`.
  *
  * Descriptions and examples go through markdown-it / Shiki so links and
  * fenced code match ordinary VitePress markdown pages.
@@ -8,7 +8,7 @@
 import { computed, ref, watchEffect } from 'vue';
 import MarkdownIt from 'markdown-it';
 import { codeToHtml } from 'shiki';
-import manifest from '../hc_manifest.json';
+import manifest from '../hc_sdk_manifest.json';
 import type { HcManifest, HcMethodEntry, HcMethodExample } from './HcMethod.types';
 
 const hcManifest = manifest as HcManifest;
@@ -59,7 +59,7 @@ const entry = computed((): HcMethodEntry => {
   const found = hcManifest[props.name];
 
   if (!found) {
-    throw new Error(`HcMethod: unknown API "${props.name}". Add it to hc_manifest.json.`);
+    throw new Error(`HcMethod: unknown API "${props.name}". Add it to hc_sdk_manifest.json.`);
   }
 
   return found;

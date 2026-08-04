@@ -1,6 +1,6 @@
 /**
  * Generates per-namespace API docs pages and the book-style API index from
- * `hc_namespaces.json`, `hc_manifest.json`, and optional introduction fragments.
+ * `hc_namespaces.json`, `hc_sdk_manifest.json`, and optional introduction fragments.
  */
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -12,7 +12,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
 const apiDir = path.join(docsDir, 'api');
-const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const hcManifestPath = path.join(docsDir, '.vitepress/hc_sdk_manifest.json');
 const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
 
 /**
@@ -54,7 +54,7 @@ const loadNamespaces = async () => {
 };
 
 /**
- * Loads `hc_manifest.json`.
+ * Loads `hc_sdk_manifest.json`.
  *
  * @returns {Promise<Record<string, { title: string; description?: string; level?: number }>>}
  */
@@ -252,13 +252,13 @@ const empty = namespaces.filter((entry) => !keysByNamespace.has(entry.namespace)
 
 if (missing.length > 0) {
   throw new Error(
-    `hc_namespaces.json missing namespaces present in hc_manifest.json: ${missing.join(', ')}`
+    `hc_namespaces.json missing namespaces present in hc_sdk_manifest.json: ${missing.join(', ')}`
   );
 }
 
 if (empty.length > 0) {
   throw new Error(
-    `hc_namespaces.json has namespaces with no hc_manifest.json keys: ${empty
+    `hc_namespaces.json has namespaces with no hc_sdk_manifest.json keys: ${empty
       .map((entry) => entry.namespace)
       .join(', ')}`
   );

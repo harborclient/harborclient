@@ -28,10 +28,10 @@ const ENV_PATH = path.join(scriptDir, '.env');
 const CACHE_PATH = path.join(scriptDir, '.cache', 'docs-embeddings.json');
 const HC_MANIFEST_PATH = path.join(
   repoRoot,
-  'packages/sdk/docs/.vitepress/hc_manifest.json'
+  'packages/sdk/docs/.vitepress/hc_sdk_manifest.json'
 );
 
-/** Cached hc_manifest.json contents (loaded once per run). */
+/** Cached hc_sdk_manifest.json contents (loaded once per run). */
 let hcManifestCache = null;
 
 const DOC_SOURCES = [
@@ -230,7 +230,7 @@ function stripFrontmatter(markdown) {
 }
 
 /**
- * Loads `hc_manifest.json` once for expanding `<HcMethod>` tags in docs.
+ * Loads `hc_sdk_manifest.json` once for expanding `<HcMethod>` tags in docs.
  *
  * @returns Manifest map, or an empty object when the file is missing.
  */
@@ -253,7 +253,7 @@ async function loadHcManifest() {
  * Replaces `<HcMethod name="…" />` tags with searchable markdown sections.
  *
  * @param markdown - Raw markdown that may contain HcMethod tags.
- * @param manifest - Loaded hc_manifest.json map.
+ * @param manifest - Loaded hc_sdk_manifest.json map.
  * @returns Markdown with expanded method reference prose.
  */
 function expandHcMethodTags(markdown, manifest) {

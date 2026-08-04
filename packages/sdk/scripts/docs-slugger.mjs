@@ -57,7 +57,7 @@ export const parseHcMethodTag = (line) => {
  *
  * @param {string} markdown Markdown contents.
  * @param {Record<string, { title: string; level: number }> | null | undefined} [manifest]
- *   Optional `hc_manifest.json` map for expanding HcMethod tags.
+ *   Optional `hc_sdk_manifest.json` map for expanding HcMethod tags.
  * @returns {{ level: number; title: string; anchor: string }[]} Heading metadata.
  */
 export const getHeadings = (markdown, manifest) => {
@@ -114,7 +114,7 @@ export const getHeadings = (markdown, manifest) => {
     }
 
     if (!manifest || !manifest[hcTag.name]) {
-      throw new Error(`HcMethod name="${hcTag.name}" is not present in hc_manifest.json`);
+      throw new Error(`HcMethod name="${hcTag.name}" is not present in hc_sdk_manifest.json`);
     }
 
     const entry = manifest[hcTag.name];

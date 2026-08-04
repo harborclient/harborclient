@@ -19,7 +19,7 @@ const watchFiles = [
   path.join(repoDir, 'scripts/docs-link-rewriter.mjs'),
   path.join(repoDir, 'scripts/docs-site.config.mjs'),
   path.join(repoDir, 'scripts/assert-docs-slugs.mjs'),
-  path.join(repoDir, 'docs/.vitepress/hc_manifest.json'),
+  path.join(repoDir, 'docs/.vitepress/hc_sdk_manifest.json'),
   path.join(repoDir, 'docs/.vitepress/hc_namespaces.json')
 ];
 

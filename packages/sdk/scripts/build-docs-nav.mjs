@@ -9,11 +9,11 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoDir = path.resolve(scriptDir, '..');
 const docsDir = path.join(repoDir, 'docs');
 const sidebarGeneratedPath = path.join(repoDir, 'docs/.vitepress/sidebar.generated.ts');
-const hcManifestPath = path.join(docsDir, '.vitepress/hc_manifest.json');
+const hcManifestPath = path.join(docsDir, '.vitepress/hc_sdk_manifest.json');
 const hcNamespacesPath = path.join(docsDir, '.vitepress/hc_namespaces.json');
 
 /**
- * Loads the SDK `hc_manifest.json` used to expand `<HcMethod>` tags into headings.
+ * Loads the SDK `hc_sdk_manifest.json` used to expand `<HcMethod>` tags into headings.
  *
  * @returns {Promise<Record<string, { title: string; level: number; since?: string }>>}
  */

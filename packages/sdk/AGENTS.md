@@ -57,18 +57,18 @@ pnpm check
 
 Fix any reported issues before finishing the task.
 
-## Plugin API docs (`hc_manifest.json`)
+## Plugin API docs (`hc_sdk_manifest.json`)
 
 Public `hc.*` reference docs are data-driven:
 
-- Method manifest: `packages/sdk/docs/.vitepress/hc_manifest.json`
+- Method manifest: `packages/sdk/docs/.vitepress/hc_sdk_manifest.json`
 - Namespace registry: `packages/sdk/docs/.vitepress/hc_namespaces.json`
 - Optional intros: `packages/sdk/docs/introductions/<namespace>.md`
 - Generated pages: `packages/sdk/docs/api/<namespace>.md` (do not hand-edit)
 
 When you add or rename a public `hc.*` API:
 
-1. Update `hc_manifest.json` in the same change.
+1. Update `hc_sdk_manifest.json` in the same change.
 2. Set `since` to the **planned HarborClient app release** from
    `apps/harborclient/package.json` → `version` (e.g. `2.11.0`), unless the
    feature is explicitly targeting a later version.
