@@ -6,5 +6,12 @@ export default tseslint.config(
     ignores: ['**/node_modules', '**/dist', '**/out', 'docs/**', 'scripts/**']
   },
   tseslint.configs.recommended,
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname
+      }
+    }
+  },
   eslintConfigPrettier
 );

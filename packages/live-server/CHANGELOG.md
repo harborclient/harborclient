@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
+
 ## 0.2.2 - 2026-08-02
 
 - feat(runtime): integrate runtime management and script injection capabilities. (`074fa871`)

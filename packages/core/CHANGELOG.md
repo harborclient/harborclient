@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
+
 ## 0.5.1 - 2026-08-03
 
 - feat(settings): enhance deep link handling for settings navigation. (`3d03652e`)

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
+
 ## 1.6.2 - 2026-08-04
 
 - docs(sdk): enhance API index formatting for improved readability. (`52517d89`)

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import toast from 'react-hot-toast';
-import { Button, FaIcon, Modal, ModalFooter } from '@harborclient/sdk/components';
-import { faPlus } from '#/renderer/src/fontawesome';
+import { Button, Modal, ModalFooter } from '@harborclient/sdk/components';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import {
   closeSaveRequestModal,
@@ -71,6 +70,13 @@ export function SaveRequestModalBody({ tabId }: Props): JSX.Element {
     }
     dispatch(closeSaveRequestModal());
   }, [dispatch, saving]);
+
+  /**
+   * Opens the create-collection modal so the user can add a save target.
+   */
+  const handleCreateCollection = useCallback((): void => {
+    dispatch(openCollectionModal({ mode: 'create' }));
+  }, [dispatch]);
 
   /**
    * Selects a collection as the save target (folder cleared to root).
@@ -157,15 +163,6 @@ export function SaveRequestModalBody({ tabId }: Props): JSX.Element {
                         Collections
                       </span>
                       <CollectionsHeaderActions />
-                      <Button
-                        type="button"
-                        variant="icon"
-                        aria-label="Add Collection"
-                        title="Add Collection"
-                        onClick={() => dispatch(openCollectionModal({ mode: 'create' }))}
-                      >
-                        <FaIcon icon={faPlus} className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto px-1 py-1">
                       <Collections />
@@ -182,7 +179,16 @@ export function SaveRequestModalBody({ tabId }: Props): JSX.Element {
           {submitError}
         </p>
       ) : null}
-      <ModalFooter>
+      <ModalFooter spaced>
+        <Button
+          type="button"
+          variant="secondary"
+          className="mr-auto"
+          disabled={saving}
+          onClick={handleCreateCollection}
+        >
+          Create collection
+        </Button>
         <Button type="button" variant="secondary" onClick={handleClose} disabled={saving}>
           Cancel
         </Button>

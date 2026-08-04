@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
+
 ## 1.3.0 - 2026-08-03
 
 - feat(sse): implement SSE session management and protocol handling. (`d9e051bc`)

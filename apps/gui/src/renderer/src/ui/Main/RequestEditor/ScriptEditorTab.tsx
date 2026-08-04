@@ -2,18 +2,11 @@ import { useEffect, useMemo, type JSX } from 'react';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { isRequestTab } from '#/renderer/src/store/tabs';
 import { mirrorLegacyScriptString } from '@harborclient/core/scriptRefs';
-import { resolveInheritedEnvironmentVariables } from '@harborclient/core/environmentTree';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectSnippets } from '#/renderer/src/store/selectors';
-import {
-  selectActiveEnvironmentId,
-  selectCollections,
-  selectEnvironments,
-  selectFoldersByCollection
-} from '#/renderer/src/store/selectors';
-import { closeTab, openPageTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { closeTab, updateTab } from '#/renderer/src/store/slices/tabsSlice';
 import { useMergedRequestVariables } from '#/renderer/src/hooks/useMergedRequestVariables';
-import { resolveVariableEditTarget } from './resolveVariableEditTarget';
+import { useEditVariableNavigation } from './useEditVariableNavigation';
 import { ScriptListEditor } from '#/renderer/src/ui/Shared/Script/ScriptListEditor';
 import {
   POST_REQUEST_SCRIPT_PLACEHOLDER,
@@ -39,11 +32,6 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
   const dispatch = useAppDispatch();
   const tabs = useAppSelector((state) => state.tabs.tabs);
   const snippets = useAppSelector(selectSnippets);
-  const collections = useAppSelector(selectCollections);
-  const environments = useAppSelector(selectEnvironments);
-  const foldersByCollection = useAppSelector(selectFoldersByCollection);
-  const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
-  const globalVariables = useAppSelector((state) => state.settings.general.globalVariables);
   const requestTab = tabs.find((entry) => entry.tabId === page.requestTabId);
   const linkedRequestTab = requestTab && isRequestTab(requestTab) ? requestTab : null;
   const draft = linkedRequestTab?.draft ?? null;
@@ -51,6 +39,7 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
     if (draft?.collection_id == null) return null;
     return draft.folder_id ?? null;
   }, [draft?.collection_id, draft?.folder_id]);
+  const onEditVariables = useEditVariableNavigation(draft?.collection_id ?? null, activeFolderId);
   const variables = useMergedRequestVariables(draft?.collection_id, activeFolderId);
   const scriptsKey = page.phase === 'pre' ? 'pre_request_scripts' : 'post_request_scripts';
   const legacyKey = page.phase === 'pre' ? 'pre_request_script' : 'post_request_script';
@@ -71,97 +60,6 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
   if (!draft || !scriptExists) {
     return <></>;
   }
-
-  /**
-   * Opens the page tab where the hovered variable is defined.
-   *
-   * @param key - Variable name from the editor token.
-   */
-  const handleEditVariables = (key: string): void => {
-    const activeCollection =
-      draft?.collection_id != null
-        ? collections.find((entry) => entry.id === draft.collection_id)
-        : undefined;
-    const activeEnvironment =
-      activeEnvironmentId != null
-        ? environments.find((entry) => entry.id === activeEnvironmentId)
-        : undefined;
-    let environmentVariables =
-      activeEnvironment?.variables.filter((variable) => variable.enabled !== false) ?? [];
-    if (activeEnvironment) {
-      try {
-        environmentVariables = resolveInheritedEnvironmentVariables(
-          activeEnvironment,
-          environments
-        );
-      } catch {
-        // Keep own enabled variables when the inheritance chain is invalid.
-      }
-    }
-
-    const activeFolder =
-      draft?.collection_id != null && activeFolderId != null
-        ? (foldersByCollection[draft.collection_id] ?? []).find(
-            (entry) => entry.id === activeFolderId
-          )
-        : undefined;
-
-    const target = resolveVariableEditTarget({
-      key,
-      globalVariables,
-      collectionVariables: activeCollection?.variables ?? [],
-      folderVariables: activeFolder?.variables ?? [],
-      environmentVariables,
-      activeCollectionId: draft?.collection_id ?? null,
-      activeFolderId,
-      activeEnvironmentId
-    });
-    if (target == null) {
-      return;
-    }
-
-    if (target.scope === 'environment' && target.environmentId != null) {
-      dispatch(
-        openPageTab({
-          type: 'environment',
-          id: target.environmentId,
-          focusVariableKey: key
-        })
-      );
-      return;
-    }
-
-    if (target.scope === 'collection' && target.collectionId != null) {
-      dispatch(
-        openPageTab({
-          type: 'collection',
-          id: target.collectionId,
-          focusVariableKey: key
-        })
-      );
-      return;
-    }
-
-    if (target.scope === 'folder' && target.folderId != null) {
-      dispatch(
-        openPageTab({
-          type: 'folder',
-          collectionId: target.collectionId ?? draft?.collection_id ?? 0,
-          id: target.folderId,
-          focusVariableKey: key
-        })
-      );
-      return;
-    }
-
-    dispatch(
-      openPageTab({
-        type: 'settings',
-        section: 'globals',
-        focusVariableKey: key
-      })
-    );
-  };
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -194,7 +92,7 @@ export function ScriptEditorTab({ page, tabId }: Props): JSX.Element {
           )
         }
         variables={variables}
-        onEditVariables={handleEditVariables}
+        onEditVariables={onEditVariables}
         snippets={snippets}
         placeholder={placeholder}
       />

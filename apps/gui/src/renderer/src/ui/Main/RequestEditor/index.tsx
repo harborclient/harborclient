@@ -102,13 +102,7 @@ import { RESPONSE_EDITOR_SECTION_ID } from '../ResponseEditor/focusResponseEdito
 import { REQUEST_EDITOR_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { TabBar } from './TabBar';
 import { MarkdownEditorTab } from './MarkdownEditorTab';
-
-interface Props {
-  /**
-   * Opens collection settings to edit variables.
-   */
-  onEditVariables: (key: string) => void;
-}
+import { useEditVariableNavigation } from './useEditVariableNavigation';
 
 interface CloseTabPrompt {
   tabId: string;
@@ -197,7 +191,7 @@ function mergeVariables(
 /**
  * Request editor: tab bar, editor, and response viewer.
  */
-export function RequestEditor({ onEditVariables }: Props): JSX.Element {
+export function RequestEditor(): JSX.Element {
   const dispatch = useAppDispatch();
   const { revealCollection, revealArchivedCollection, revealFolder } = useSidebarExpansion();
   const { aiAvailable, copyToChat } = useCopyToChat();
@@ -453,6 +447,8 @@ export function RequestEditor({ onEditVariables }: Props): JSX.Element {
     }
     return draft.folder_id ?? null;
   }, [activeMarkdownTab, draft.folder_id, draft.id, activeCollectionId, requestsByCollection]);
+
+  const onEditVariables = useEditVariableNavigation(activeCollectionId, activeFolderId);
 
   /**
    * Looks up the active folder record for variable merging and breadcrumb display.

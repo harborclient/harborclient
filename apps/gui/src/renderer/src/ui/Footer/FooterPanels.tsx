@@ -1,15 +1,29 @@
-import { useCallback, useMemo, type JSX } from 'react';
-import type { Variable } from '@harborclient/core/types';
-import type { ConsoleEntry } from '#/renderer/src/store';
+import { useCallback, useEffect, useMemo, type JSX } from 'react';
+import { useMcpServerStatus } from '#/renderer/src/hooks/useMcpServerStatus';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectBrowserTabWithSettingsOpen } from '#/renderer/src/store/selectors';
+import {
+  selectBrowserTabWithSettingsOpen,
+  selectConsoleEntries
+} from '#/renderer/src/store/selectors';
+import { clearConsole } from '#/renderer/src/store/slices/consoleSlice';
 import {
   closeLiveServerModal,
   selectLiveServerModal
 } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectActivePluginFooterPanelId,
-  togglePluginFooterPanel
+  selectLiveServerLogsFooterOpen,
+  selectShowConsole,
+  selectShowMcp,
+  selectShowTerminal,
+  selectShowVariables,
+  setShowLiveServerLogs,
+  setShowMcp,
+  toggleConsole,
+  toggleMcp,
+  togglePluginFooterPanel,
+  toggleTerminal,
+  toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
 import { usePluginFooterPanels } from '#/renderer/src/plugins/pluginHooks';
@@ -21,143 +35,42 @@ import { McpPanel } from './McpPanel';
 import { HostedFooterPanel } from './HostedFooterPanel';
 import { VariablesPanel } from './VariablesPanel';
 import { TerminalPanel } from './TerminalPanel';
+import { useActiveScopedVariables } from './useActiveScopedVariables';
 import { resolveScopedVariables } from './VariablesPanel/resolve';
-
-interface Props {
-  /**
-   * Whether the console panel is currently open.
-   */
-  consoleOpen: boolean;
-
-  /**
-   * Console log entries, newest first.
-   */
-  entries: ConsoleEntry[];
-
-  /**
-   * Toggles the console panel open/closed.
-   */
-  onToggleConsole: () => void;
-
-  /**
-   * Clears all console entries.
-   */
-  onClear: () => void;
-
-  /**
-   * Whether the variables panel is currently open.
-   */
-  variablesOpen: boolean;
-
-  /**
-   * Toggles the variables panel open/closed.
-   */
-  onToggleVariables: () => void;
-
-  /**
-   * Variables from app-wide global settings.
-   */
-  globalVariables: Variable[];
-
-  /**
-   * Variables from the active collection.
-   */
-  collectionVariables: Variable[];
-
-  /**
-   * Variables from the active folder.
-   */
-  folderVariables: Variable[];
-
-  /**
-   * Variables from the active environment.
-   */
-  environmentVariables: Variable[];
-
-  /**
-   * Name of the active collection, if any.
-   */
-  collectionName?: string;
-
-  /**
-   * Name of the active folder, if any.
-   */
-  folderName?: string;
-
-  /**
-   * Name of the active environment, if any.
-   */
-  environmentName?: string;
-
-  /**
-   * Whether the MCP server panel is currently open.
-   */
-  mcpOpen: boolean;
-
-  /**
-   * Toggles the MCP server panel open/closed.
-   */
-  onToggleMcp: () => void;
-
-  /**
-   * Whether the terminal panel is currently open.
-   */
-  terminalOpen: boolean;
-
-  /**
-   * Toggles the terminal panel open/closed.
-   */
-  onToggleTerminal: () => void;
-
-  /**
-   * Whether the live-server logs panel is currently open.
-   */
-  liveServerLogsOpen: boolean;
-
-  /**
-   * Closes the live-server logs panel (opened from a server row, not the footer bar).
-   */
-  onCloseLiveServerLogs: () => void;
-
-  /**
-   * Refreshes MCP server runtime status after panel saves.
-   */
-  onMcpStatusChange?: () => void;
-}
 
 /**
  * Slide-up footer panels anchored to the bottom of the main content column so
  * they span between the sidebars instead of the full app window width.
+ *
+ * Owns panel open state, console entries, scoped variables, and exclusive-close
+ * handling so the app shell can render `<FooterPanels />` with no props.
  */
-export function FooterPanels({
-  entries,
-  consoleOpen,
-  onToggleConsole,
-  onClear,
-  variablesOpen,
-  onToggleVariables,
-  globalVariables,
-  collectionVariables,
-  folderVariables,
-  environmentVariables,
-  collectionName,
-  folderName,
-  environmentName,
-  mcpOpen,
-  onToggleMcp,
-  terminalOpen,
-  onToggleTerminal,
-  liveServerLogsOpen,
-  onCloseLiveServerLogs,
-  onMcpStatusChange
-}: Props): JSX.Element {
+export function FooterPanels(): JSX.Element {
   const dispatch = useAppDispatch();
+  const mcpServerStatus = useMcpServerStatus();
+  const { refresh: refreshMcpServerStatus } = mcpServerStatus;
+  const {
+    globalVariables,
+    collectionVariables,
+    folderVariables,
+    environmentVariables,
+    collectionName,
+    folderName,
+    environmentName
+  } = useActiveScopedVariables();
   const pluginFooterPanels = usePluginFooterPanels();
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const liveServerModal = useAppSelector(selectLiveServerModal);
   const settingsBrowserTab = useAppSelector(selectBrowserTabWithSettingsOpen);
+  const consoleOpen = useAppSelector(selectShowConsole);
+  const entries = useAppSelector(selectConsoleEntries);
+  const variablesOpen = useAppSelector(selectShowVariables);
+  const showMcp = useAppSelector(selectShowMcp);
+  const terminalOpen = useAppSelector(selectShowTerminal);
+  const liveServerLogsOpen = useAppSelector(selectLiveServerLogsFooterOpen);
   const liveServerOpen = liveServerModal != null;
   const livePageSettingsOpen = settingsBrowserTab != null;
+  const mcpOpen = showMcp && mcpServerStatus.enabled;
 
   /**
    * Merges scoped variables for the variables panel content.
@@ -165,13 +78,22 @@ export function FooterPanels({
   const resolvedVariables = useMemo(
     () =>
       resolveScopedVariables(
-        globalVariables ?? [],
-        collectionVariables ?? [],
-        folderVariables ?? [],
-        environmentVariables ?? []
+        globalVariables,
+        collectionVariables,
+        folderVariables,
+        environmentVariables
       ),
     [globalVariables, collectionVariables, folderVariables, environmentVariables]
   );
+
+  /**
+   * Closes the MCP footer panel when the feature is disabled in Settings.
+   */
+  useEffect(() => {
+    if (!mcpServerStatus.enabled && showMcp) {
+      dispatch(setShowMcp(false));
+    }
+  }, [dispatch, mcpServerStatus.enabled, showMcp]);
 
   /**
    * Closes the live server editor when another footer panel is toggled open.
@@ -196,8 +118,8 @@ export function FooterPanels({
   const handleToggleConsole = useCallback((): void => {
     closeLiveServerEditor();
     closeLivePageSettings();
-    onToggleConsole();
-  }, [closeLivePageSettings, closeLiveServerEditor, onToggleConsole]);
+    dispatch(toggleConsole());
+  }, [closeLivePageSettings, closeLiveServerEditor, dispatch]);
 
   /**
    * Closes exclusive editors, then toggles the variables panel.
@@ -205,8 +127,8 @@ export function FooterPanels({
   const handleToggleVariables = useCallback((): void => {
     closeLiveServerEditor();
     closeLivePageSettings();
-    onToggleVariables();
-  }, [closeLivePageSettings, closeLiveServerEditor, onToggleVariables]);
+    dispatch(toggleVariables());
+  }, [closeLivePageSettings, closeLiveServerEditor, dispatch]);
 
   /**
    * Closes exclusive editors, then toggles the MCP panel.
@@ -214,8 +136,8 @@ export function FooterPanels({
   const handleToggleMcp = useCallback((): void => {
     closeLiveServerEditor();
     closeLivePageSettings();
-    onToggleMcp();
-  }, [closeLivePageSettings, closeLiveServerEditor, onToggleMcp]);
+    dispatch(toggleMcp());
+  }, [closeLivePageSettings, closeLiveServerEditor, dispatch]);
 
   /**
    * Closes exclusive editors, then toggles the terminal panel.
@@ -223,15 +145,29 @@ export function FooterPanels({
   const handleToggleTerminal = useCallback((): void => {
     closeLiveServerEditor();
     closeLivePageSettings();
-    onToggleTerminal();
-  }, [closeLivePageSettings, closeLiveServerEditor, onToggleTerminal]);
+    dispatch(toggleTerminal());
+  }, [closeLivePageSettings, closeLiveServerEditor, dispatch]);
+
+  /**
+   * Clears all console entries.
+   */
+  const handleClearConsole = useCallback((): void => {
+    dispatch(clearConsole());
+  }, [dispatch]);
 
   /**
    * Closes the live-server logs slide-up panel.
    */
   const handleCloseLiveServerLogs = useCallback((): void => {
-    onCloseLiveServerLogs();
-  }, [onCloseLiveServerLogs]);
+    dispatch(setShowLiveServerLogs(false));
+  }, [dispatch]);
+
+  /**
+   * Refreshes MCP server runtime status after panel saves.
+   */
+  const handleMcpStatusChange = useCallback((): void => {
+    void refreshMcpServerStatus();
+  }, [refreshMcpServerStatus]);
 
   /**
    * Closes the live server editor panel when not busy.
@@ -266,7 +202,7 @@ export function FooterPanels({
             entries={entries}
             open={consoleOpen}
             onClose={handleToggleConsole}
-            onClear={onClear}
+            onClear={handleClearConsole}
           />
           <VariablesPanel
             variables={resolvedVariables}
@@ -276,7 +212,11 @@ export function FooterPanels({
             folderName={folderName}
             environmentName={environmentName}
           />
-          <McpPanel open={mcpOpen} onClose={handleToggleMcp} onStatusChange={onMcpStatusChange} />
+          <McpPanel
+            open={mcpOpen}
+            onClose={handleToggleMcp}
+            onStatusChange={handleMcpStatusChange}
+          />
           <TerminalPanel open={terminalOpen} onClose={handleToggleTerminal} />
           {liveServerLogsOpen ? (
             <LiveServerLogsPanel open onClose={handleCloseLiveServerLogs} />

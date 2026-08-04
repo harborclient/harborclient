@@ -7,8 +7,7 @@ import {
   RowActionsMenu,
   StatusDot
 } from '@harborclient/sdk/components';
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import type { Variable } from '@harborclient/core/types';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 
 import {
   faBars,
@@ -21,19 +20,49 @@ import {
   faWandMagicSparkles
 } from '#/renderer/src/fontawesome';
 import { iconActionMenu, ACTION_MENU_ICON_CLASS } from '#/renderer/src/icons/customIcons';
+import { useMcpServerStatus } from '#/renderer/src/hooks/useMcpServerStatus';
 import { actionMenuToggleClass, footerButtonGroup } from '#/renderer/src/ui/Shared/classes';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectActiveEnvironmentId, selectEnvironments } from '#/renderer/src/store/selectors';
+import {
+  selectActiveEnvironmentId,
+  selectBrowserTabWithSettingsOpen,
+  selectConsoleEntries,
+  selectEnvironments
+} from '#/renderer/src/store/selectors';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
 import {
   selectActivePluginFooterPanelId,
-  togglePluginFooterPanel
+  selectAiSidebarVisible,
+  selectGitSidebarVisible,
+  selectShortcutsSidebarVisible,
+  selectShowConsole,
+  selectShowMcp,
+  selectShowRail,
+  selectShowRequestEditor,
+  selectShowResponseEditor,
+  selectShowTerminal,
+  selectShowVariables,
+  selectSidebarVisible,
+  toggleAiSidebar,
+  toggleConsole,
+  toggleGitSidebar,
+  toggleMcp,
+  togglePluginFooterPanel,
+  toggleRail,
+  toggleRequestEditor,
+  toggleResponseEditor,
+  toggleShortcutsSidebar,
+  toggleSidebar,
+  toggleTerminal,
+  toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
 import {
   closeActionMenuModal,
+  closeLiveServerModal,
   openActionMenuModal,
   selectActionMenuModal
 } from '#/renderer/src/store/slices/modalsSlice';
+import { setBrowserSettingsPanelOpen } from '#/renderer/src/store/slices/tabsSlice';
 import { HostedSurface } from '#/renderer/src/plugins/HostedSurface';
 import {
   usePluginFooterPanelIndicators,
@@ -42,6 +71,7 @@ import {
 } from '#/renderer/src/plugins/pluginHooks';
 import { handleFooterBarTabNavigation } from './footerBarTabNavigation';
 import { APP_FOOTER_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
+import { useActiveScopedVariables } from './useActiveScopedVariables';
 import { effectiveCount, resolveScopedVariables } from './VariablesPanel/resolve';
 
 /** Stable menu id for the footer environment picker. */
@@ -65,199 +95,90 @@ const STATUS_BAR_SLOT_STYLE = {
   height: FOOTER_STATUS_BAR_SLOT_HEIGHT
 } as const;
 
-interface Props {
-  /**
-   * Whether the console panel is currently open.
-   */
-  consoleOpen: boolean;
-
-  /**
-   * Number of entries in the console log.
-   */
-  entryCount: number;
-
-  /**
-   * Toggles the console panel open/closed.
-   */
-  onToggleConsole: () => void;
-
-  /**
-   * Whether the variables panel is currently open.
-   */
-  variablesOpen: boolean;
-
-  /**
-   * Toggles the variables panel open/closed.
-   */
-  onToggleVariables: () => void;
-
-  /**
-   * Variables from app-wide global settings.
-   */
-  globalVariables: Variable[];
-
-  /**
-   * Variables from the active collection.
-   */
-  collectionVariables: Variable[];
-
-  /**
-   * Variables from the active folder.
-   */
-  folderVariables: Variable[];
-
-  /**
-   * Variables from the active environment.
-   */
-  environmentVariables: Variable[];
-
-  /**
-   * Whether the sidebar is currently visible.
-   */
-  sidebarOpen: boolean;
-
-  /**
-   * Toggles the sidebar visible/hidden.
-   */
-  onToggleSidebar: () => void;
-
-  /**
-   * Whether the collections sidebar activity rail is currently visible.
-   */
-  railOpen: boolean;
-
-  /**
-   * Toggles the activity rail visible/hidden.
-   */
-  onToggleRail: () => void;
-
-  /**
-   * Whether the AI sidebar is currently visible.
-   */
-  aiSidebarOpen: boolean;
-
-  /**
-   * Toggles the AI sidebar visible/hidden.
-   */
-  onToggleAiSidebar: () => void;
-
-  /**
-   * Whether the Git sidebar is currently visible.
-   */
-  gitSidebarOpen: boolean;
-
-  /**
-   * Toggles the Git sidebar visible/hidden.
-   */
-  onToggleGitSidebar: () => void;
-
-  /**
-   * Whether the Shortcuts sidebar is currently visible.
-   */
-  shortcutsSidebarOpen: boolean;
-
-  /**
-   * Toggles the Shortcuts sidebar visible/hidden.
-   */
-  onToggleShortcutsSidebar: () => void;
-
-  /**
-   * Whether the request editor is currently visible.
-   */
-  requestEditorOpen: boolean;
-
-  /**
-   * Toggles the request editor visible/hidden.
-   */
-  onToggleRequestEditor: () => void;
-
-  /**
-   * Whether the response editor is currently visible.
-   */
-  responseEditorOpen: boolean;
-
-  /**
-   * Toggles the response editor visible/hidden.
-   */
-  onToggleResponseEditor: () => void;
-
-  /**
-   * Whether the MCP server panel is currently open.
-   */
-  mcpOpen: boolean;
-
-  /**
-   * Toggles the MCP server panel open/closed.
-   */
-  onToggleMcp: () => void;
-
-  /**
-   * Whether the terminal panel is currently open.
-   */
-  terminalOpen: boolean;
-
-  /**
-   * Toggles the terminal panel open/closed.
-   */
-  onToggleTerminal: () => void;
-
-  /**
-   * Whether the local MCP HTTP server is listening.
-   */
-  mcpServerRunning: boolean;
-
-  /**
-   * Whether the MCP server feature is enabled in Settings (shows the footer MCP button).
-   */
-  mcpServerEnabled: boolean;
-}
-
 /**
  * Persistent window footer bar with toggles for slide-up panels and layout controls.
  */
-export function Footer({
-  consoleOpen,
-  entryCount,
-  onToggleConsole,
-  variablesOpen,
-  onToggleVariables,
-  globalVariables,
-  collectionVariables,
-  folderVariables,
-  environmentVariables,
-  sidebarOpen,
-  onToggleSidebar,
-  railOpen,
-  onToggleRail,
-  aiSidebarOpen,
-  onToggleAiSidebar,
-  gitSidebarOpen,
-  onToggleGitSidebar,
-  shortcutsSidebarOpen,
-  onToggleShortcutsSidebar,
-  requestEditorOpen,
-  onToggleRequestEditor,
-  responseEditorOpen,
-  onToggleResponseEditor,
-  mcpOpen,
-  onToggleMcp,
-  terminalOpen,
-  onToggleTerminal,
-  mcpServerRunning,
-  mcpServerEnabled
-}: Props): JSX.Element {
+export function Footer(): JSX.Element {
   const dispatch = useAppDispatch();
   const pluginFooterPanels = usePluginFooterPanels();
   const pluginFooterPanelIndicators = usePluginFooterPanelIndicators();
   const statusBarItems = usePluginStatusBarItems();
+  const mcpServerStatus = useMcpServerStatus();
+  const { globalVariables, collectionVariables, folderVariables, environmentVariables } =
+    useActiveScopedVariables();
+
+  const consoleOpen = useAppSelector(selectShowConsole);
+  const entryCount = useAppSelector(selectConsoleEntries).length;
+  const variablesOpen = useAppSelector(selectShowVariables);
+  const showMcp = useAppSelector(selectShowMcp);
+  const terminalOpen = useAppSelector(selectShowTerminal);
+  const sidebarOpen = useAppSelector(selectSidebarVisible);
+  const railOpen = useAppSelector(selectShowRail);
+  const aiSidebarOpen = useAppSelector(selectAiSidebarVisible);
+  const gitSidebarOpen = useAppSelector(selectGitSidebarVisible);
+  const shortcutsSidebarOpen = useAppSelector(selectShortcutsSidebarVisible);
+  const requestEditorOpen = useAppSelector(selectShowRequestEditor);
+  const responseEditorOpen = useAppSelector(selectShowResponseEditor);
+  const settingsBrowserTab = useAppSelector(selectBrowserTabWithSettingsOpen);
   const activePluginFooterPanelId = useAppSelector(selectActivePluginFooterPanelId);
   const actionMenuOpen = useAppSelector(selectActionMenuModal)?.open === true;
   const environments = useAppSelector(selectEnvironments);
   const activeEnvironmentId = useAppSelector(selectActiveEnvironmentId);
+
+  const mcpServerEnabled = mcpServerStatus.enabled;
+  const mcpServerRunning = mcpServerStatus.running;
+  const mcpOpen = showMcp && mcpServerEnabled;
+
   const [envMenuOpen, setEnvMenuOpen] = useState<string | null>(null);
   const footerRef = useRef<HTMLElement>(null);
   const leftGroupRef = useRef<HTMLDivElement>(null);
   const rightIconsRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Closes the live page settings footer panel when open, even if that browser tab is not active.
+   */
+  const closeLivePageSettings = useCallback((): void => {
+    if (settingsBrowserTab == null) {
+      return;
+    }
+    dispatch(setBrowserSettingsPanelOpen({ tabId: settingsBrowserTab.tabId, open: false }));
+  }, [dispatch, settingsBrowserTab]);
+
+  /**
+   * Closes exclusive editors, then toggles the console panel.
+   */
+  const handleToggleConsole = useCallback((): void => {
+    dispatch(closeLiveServerModal());
+    closeLivePageSettings();
+    dispatch(toggleConsole());
+  }, [closeLivePageSettings, dispatch]);
+
+  /**
+   * Closes exclusive editors, then toggles the variables panel.
+   */
+  const handleToggleVariables = useCallback((): void => {
+    dispatch(closeLiveServerModal());
+    closeLivePageSettings();
+    dispatch(toggleVariables());
+  }, [closeLivePageSettings, dispatch]);
+
+  /**
+   * Closes exclusive editors, then toggles the MCP panel.
+   */
+  const handleToggleMcp = useCallback((): void => {
+    dispatch(closeLiveServerModal());
+    closeLivePageSettings();
+    dispatch(toggleMcp());
+  }, [closeLivePageSettings, dispatch]);
+
+  /**
+   * Closes exclusive editors, then toggles the terminal panel.
+   */
+  const handleToggleTerminal = useCallback((): void => {
+    dispatch(closeLiveServerModal());
+    closeLivePageSettings();
+    dispatch(toggleTerminal());
+  }, [closeLivePageSettings, dispatch]);
 
   /**
    * Attaches a native capture-phase Tab handler so focus wraps from the last
@@ -296,10 +217,10 @@ export function Footer({
   const resolvedVariables = useMemo(
     () =>
       resolveScopedVariables(
-        globalVariables ?? [],
-        collectionVariables ?? [],
-        folderVariables ?? [],
-        environmentVariables ?? []
+        globalVariables,
+        collectionVariables,
+        folderVariables,
+        environmentVariables
       ),
     [globalVariables, collectionVariables, folderVariables, environmentVariables]
   );
@@ -398,7 +319,7 @@ export function Footer({
             />
             <FooterButton
               active={variablesOpen}
-              onClick={onToggleVariables}
+              onClick={handleToggleVariables}
               controlsId="footer-variables-panel"
             >
               Variables
@@ -409,7 +330,7 @@ export function Footer({
             {mcpServerEnabled ? (
               <FooterButton
                 active={mcpOpen}
-                onClick={onToggleMcp}
+                onClick={handleToggleMcp}
                 controlsId="footer-mcp-panel"
                 aria-label={mcpServerRunning ? 'MCP, server running' : 'MCP, server stopped'}
               >
@@ -423,14 +344,14 @@ export function Footer({
             ) : null}
             <FooterButton
               active={terminalOpen}
-              onClick={onToggleTerminal}
+              onClick={handleToggleTerminal}
               controlsId="footer-terminal-panel"
             >
               <span className="inline-flex items-center gap-1">Terminal</span>
             </FooterButton>
             <FooterButton
               active={consoleOpen}
-              onClick={onToggleConsole}
+              onClick={handleToggleConsole}
               controlsId="footer-console-panel"
             >
               Console
@@ -475,49 +396,49 @@ export function Footer({
           ))}
           <div ref={rightIconsRef} className="flex items-center gap-2">
             <FooterIcon
-              onClick={onToggleRequestEditor}
+              onClick={() => dispatch(toggleRequestEditor())}
               icon={faPaperPlane}
               active={requestEditorOpen}
               activeStyle="selection"
               label="request editor"
             />
             <FooterIcon
-              onClick={onToggleResponseEditor}
+              onClick={() => dispatch(toggleResponseEditor())}
               icon={faInbox}
               active={responseEditorOpen}
               activeStyle="selection"
               label="response editor"
             />
             <FooterIcon
-              onClick={onToggleRail}
+              onClick={() => dispatch(toggleRail())}
               icon={faBars}
               active={railOpen}
               activeStyle="selection"
               label="rail"
             />
             <FooterIcon
-              onClick={onToggleSidebar}
+              onClick={() => dispatch(toggleSidebar())}
               icon={faTableColumns}
               active={sidebarOpen}
               activeStyle="selection"
               label="sidebar"
             />
             <FooterIcon
-              onClick={onToggleAiSidebar}
+              onClick={() => dispatch(toggleAiSidebar())}
               icon={faWandMagicSparkles}
               active={aiSidebarOpen}
               activeStyle="selection"
               label="agent chat"
             />
             <FooterIcon
-              onClick={onToggleGitSidebar}
+              onClick={() => dispatch(toggleGitSidebar())}
               icon={faCodeBranch}
               active={gitSidebarOpen}
               activeStyle="selection"
               label="git source control"
             />
             <FooterIcon
-              onClick={onToggleShortcutsSidebar}
+              onClick={() => dispatch(toggleShortcutsSidebar())}
               icon={faKeyboard}
               active={shortcutsSidebarOpen}
               activeStyle="selection"
