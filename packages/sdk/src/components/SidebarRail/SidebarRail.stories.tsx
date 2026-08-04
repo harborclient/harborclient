@@ -103,6 +103,7 @@ export const WithBadge: Story = {
         <div
           id="story-sidebar-rail-panel"
           role="tabpanel"
+          aria-labelledby="hc-sidebar-rail-tab-collections"
           className="flex flex-1 items-center justify-center text-muted"
         >
           Sidebar body

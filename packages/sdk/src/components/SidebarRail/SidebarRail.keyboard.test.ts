@@ -5,7 +5,11 @@ import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setHostReact } from '../../runtime/reactHost.js';
-import { SidebarRail, type SidebarRailItemData } from './index.js';
+import {
+  SidebarRail,
+  sidebarRailTabId,
+  type SidebarRailItemData
+} from './index.js';
 
 const railItems: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },
@@ -38,6 +42,11 @@ interface FixtureProps {
    * Optional panel id for aria-controls wiring.
    */
   panelId?: string;
+
+  /**
+   * Optional panel placement relative to the rail.
+   */
+  panelSide?: 'after' | 'before';
 }
 
 /**
@@ -51,7 +60,8 @@ function StatefulRail({
   initialExpanded = false,
   onSelect,
   onExpandedChange,
-  panelId
+  panelId,
+  panelSide
 }: FixtureProps) {
   const [activeId, setActiveId] = useState(initialActiveId);
   const [expanded, setExpanded] = useState(initialExpanded);
@@ -61,6 +71,7 @@ function StatefulRail({
     activeId,
     expanded,
     panelId,
+    panelSide,
     ariaLabel: 'Sidebar modes',
     onSelect: (id: string) => {
       setActiveId(id);
@@ -128,6 +139,7 @@ describe('SidebarRail keyboard', () => {
     expect(tabs[0]?.getAttribute('aria-selected')).toBe('true');
     expect(tabs[1]?.getAttribute('aria-selected')).toBe('false');
     expect(tabs[0]?.getAttribute('aria-controls')).toBe('hc-sidebar-rail-panel');
+    expect(tabs[0]?.id).toBe(sidebarRailTabId('collections'));
   });
 
   it('selects and focuses the next tab on ArrowDown, wrapping at the end', () => {
@@ -203,6 +215,132 @@ describe('SidebarRail keyboard', () => {
 
     expect(onSelect).toHaveBeenCalledWith('trash');
     expect(document.activeElement).toBe(tabs[2]);
+  });
+
+  it('moves focus into the linked tab panel on Enter', async () => {
+    const panel = document.createElement('div');
+    panel.id = 'hc-sidebar-rail-panel';
+    panel.setAttribute('role', 'tabpanel');
+    const panelButton = document.createElement('button');
+    panelButton.type = 'button';
+    panelButton.textContent = 'First panel control';
+    panel.appendChild(panelButton);
+    document.body.appendChild(panel);
+
+    act(() => {
+      root.render(
+        createElement(StatefulRail, {
+          initialActiveId: 'collections',
+          panelId: 'hc-sidebar-rail-panel'
+        })
+      );
+    });
+
+    const tabs = container.querySelectorAll('[role="tab"]');
+    const activeTab = tabs[0] as HTMLButtonElement;
+    activeTab.focus();
+
+    act(() => {
+      activeTab.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      );
+    });
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+    });
+
+    expect(document.activeElement).toBe(panelButton);
+    panel.remove();
+  });
+
+  it('selects a new mode and focuses the panel on ArrowRight', async () => {
+    const onSelect = vi.fn();
+    const panel = document.createElement('div');
+    panel.id = 'hc-sidebar-rail-panel';
+    const panelButton = document.createElement('button');
+    panelButton.type = 'button';
+    panelButton.textContent = 'Panel control';
+    panel.appendChild(panelButton);
+    document.body.appendChild(panel);
+
+    act(() => {
+      root.render(
+        createElement(StatefulRail, {
+          initialActiveId: 'collections',
+          panelId: 'hc-sidebar-rail-panel',
+          onSelect
+        })
+      );
+    });
+
+    const tabs = container.querySelectorAll('[role="tab"]');
+    const environmentsTab = tabs[1] as HTMLButtonElement;
+    environmentsTab.focus();
+
+    act(() => {
+      environmentsTab.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+      );
+    });
+
+    expect(onSelect).toHaveBeenCalledWith('environments');
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+    });
+
+    expect(document.activeElement).toBe(panelButton);
+    panel.remove();
+  });
+
+  it('uses ArrowLeft to enter the panel when panelSide is before', async () => {
+    const panel = document.createElement('div');
+    panel.id = 'hc-sidebar-rail-panel';
+    const panelButton = document.createElement('button');
+    panelButton.type = 'button';
+    panelButton.textContent = 'Panel control';
+    panel.appendChild(panelButton);
+    document.body.appendChild(panel);
+
+    act(() => {
+      root.render(
+        createElement(StatefulRail, {
+          initialActiveId: 'collections',
+          panelId: 'hc-sidebar-rail-panel',
+          panelSide: 'before'
+        })
+      );
+    });
+
+    const tabs = container.querySelectorAll('[role="tab"]');
+    const activeTab = tabs[0] as HTMLButtonElement;
+    activeTab.focus();
+
+    act(() => {
+      activeTab.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true })
+      );
+    });
+
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+    });
+
+    expect(document.activeElement).toBe(panelButton);
+    panel.remove();
   });
 
   it('does not include the expand control in the tablist arrow ring', () => {

@@ -21,6 +21,7 @@ import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
   selectLiveServerLogsSidebarOpen,
+  selectShowRail,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShortcutsSidebarVisible,
@@ -78,6 +79,7 @@ export default function App(): JSX.Element {
   const activeTab = useAppSelector(selectActiveTab);
   const activeTabId = useAppSelector(selectActiveTabId);
   const sidebarVisible = useAppSelector(selectSidebarVisible);
+  const railVisible = useAppSelector(selectShowRail);
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
   const gitSidebarVisible = useAppSelector(selectGitSidebarVisible);
   const shortcutsSidebarVisible = useAppSelector(selectShortcutsSidebarVisible);
@@ -254,6 +256,7 @@ export default function App(): JSX.Element {
   const skipNavigationVisibility = useMemo((): SkipNavigationVisibility => {
     return {
       sidebarVisible,
+      railVisible: sidebarVisible && railVisible,
       requestEditorVisible,
       responseEditorVisible,
       aiSidebarVisible,
@@ -267,6 +270,7 @@ export default function App(): JSX.Element {
     aiSidebarVisible,
     gitSidebarVisible,
     liveServerLogsSidebarOpen,
+    railVisible,
     shortcutsSidebarVisible,
     requestEditorVisible,
     responseEditorVisible,

@@ -70,6 +70,7 @@ import { focusSidebarSearch } from '#/renderer/src/ui/Sidebars/CollectionSidebar
 import { tryToggleTerminalFind } from '#/renderer/src/ui/Footer/TerminalPanel/terminalFindShortcut';
 import { focusRequestUrl } from '#/renderer/src/ui/Main/RequestEditor/Editor/focusRequestUrl';
 import { runBrowserNavMenuAction } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/runBrowserNavMenuAction';
+import { closeActiveEditorTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/closeActiveEditorTab';
 import { focusFirstRequestTab } from '#/renderer/src/ui/Main/RequestEditor/TabBar/focusFirstRequestTab';
 import { focusResponseEditor } from '#/renderer/src/ui/Main/ResponseEditor/focusResponseEditor';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
@@ -374,6 +375,9 @@ export function useMenuActions(): void {
           break;
         case 'next-request-tab':
           dispatch(activateNextTab());
+          break;
+        case 'close-request-tab':
+          void closeActiveEditorTab(dispatch, store.getState);
           break;
         case 'about':
           dispatch(openAboutModal());

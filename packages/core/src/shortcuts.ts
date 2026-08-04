@@ -66,6 +66,7 @@ export type ShortcutId =
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
+  | 'close-request-tab'
   | 'set-method-get'
   | 'set-method-post'
   | 'set-method-put'
@@ -597,6 +598,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+Period',
     kind: 'action',
     actionId: 'next-request-tab'
+  },
+  {
+    id: 'close-request-tab',
+    label: 'Close active request tab',
+    defaultAccelerator: 'CmdOrCtrl+W',
+    kind: 'action',
+    actionId: 'close-request-tab'
   },
   {
     id: 'set-method-get',

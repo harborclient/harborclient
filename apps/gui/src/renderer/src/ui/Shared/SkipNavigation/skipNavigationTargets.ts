@@ -6,6 +6,9 @@ import type { ShellLayoutConfig, ShellPanelId } from '#/renderer/src/app/shell/t
 /** Stable id of the collections sidebar skip target wrapper in the app shell. */
 export const COLLECTIONS_SIDEBAR_SECTION_ID = 'collections-sidebar';
 
+/** Stable id of the activity rail skip target inside the collections sidebar. */
+export const SIDEBAR_RAIL_SECTION_ID = 'sidebar-rail';
+
 /** Stable id of the request editor root section in the main request editor. */
 export const REQUEST_EDITOR_SECTION_ID = 'request-editor';
 
@@ -57,6 +60,11 @@ export interface SkipNavigationVisibility {
    * Whether the collections sidebar panel is open.
    */
   sidebarVisible: boolean;
+
+  /**
+   * Whether the activity rail is shown beside the collections sidebar.
+   */
+  railVisible: boolean;
 
   /**
    * Whether the request editor panel is open.
@@ -116,6 +124,14 @@ function appendShellZoneSkipLinks(
       continue;
     }
 
+    if (panelId === 'collections-sidebar' && visibility.railVisible) {
+      links.push({
+        id: 'sidebar-rail',
+        label: 'Skip to rail',
+        targetId: SIDEBAR_RAIL_SECTION_ID
+      });
+    }
+
     links.push(meta.link);
   }
 }
@@ -125,8 +141,9 @@ function appendShellZoneSkipLinks(
  *
  * Order follows the shell layout (primary sidebars → request/response → secondary
  * sidebars → footer) so keyboard users match visual left-to-right placement.
- * Hidden panels and non-request tabs omit their links so users never land on
- * targets absent from the DOM.
+ * When the activity rail is visible, its link is inserted immediately before
+ * the collections sidebar link. Hidden panels and non-request tabs omit their
+ * links so users never land on targets absent from the DOM.
  *
  * @param visibility - Current panel and request-tab visibility flags.
  * @param layout - Shell zone placement; defaults to {@link defaultShellLayout}.

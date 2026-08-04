@@ -57,6 +57,7 @@ export type MenuActionId =
   | 'send-request'
   | 'previous-request-tab'
   | 'next-request-tab'
+  | 'close-request-tab'
   | 'set-method-get'
   | 'set-method-post'
   | 'set-method-put'

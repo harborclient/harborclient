@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- feat: add activity rail support and close request tab shortcut. (`2b7baf93`)
+
 ## 1.6.3 - 2026-08-04
 
 - refactor: update code editor theme to Nord. (`5fda54b0`)

@@ -10,6 +10,7 @@ import {
   REQUEST_EDITOR_SECTION_ID,
   RESPONSE_EDITOR_SECTION_ID,
   SHORTCUTS_SIDEBAR_SECTION_ID,
+  SIDEBAR_RAIL_SECTION_ID,
   resolveSkipNavigationLinks,
   type SkipNavigationVisibility
 } from './skipNavigationTargets';
@@ -22,6 +23,7 @@ function allVisibleRequestTab(
 ): SkipNavigationVisibility {
   return {
     sidebarVisible: true,
+    railVisible: true,
     requestEditorVisible: true,
     responseEditorVisible: true,
     aiSidebarVisible: true,
@@ -36,6 +38,11 @@ function allVisibleRequestTab(
 describe('resolveSkipNavigationLinks', () => {
   it('returns all major region links in default shell layout order', () => {
     expect(resolveSkipNavigationLinks(allVisibleRequestTab(), defaultShellLayout)).toEqual([
+      {
+        id: 'sidebar-rail',
+        label: 'Skip to rail',
+        targetId: SIDEBAR_RAIL_SECTION_ID
+      },
       {
         id: 'collections-sidebar',
         label: 'Skip to Collections sidebar',
@@ -90,6 +97,7 @@ describe('resolveSkipNavigationLinks', () => {
       'live-server-logs-sidebar',
       'request-editor',
       'response-editor',
+      'sidebar-rail',
       'collections-sidebar',
       'app-footer'
     ]);
@@ -99,6 +107,7 @@ describe('resolveSkipNavigationLinks', () => {
     const links = resolveSkipNavigationLinks(
       allVisibleRequestTab({
         sidebarVisible: false,
+        railVisible: false,
         aiSidebarVisible: false,
         gitSidebarVisible: false,
         shortcutsSidebarVisible: false,
@@ -113,6 +122,21 @@ describe('resolveSkipNavigationLinks', () => {
     ]);
   });
 
+  it('omits the rail link when the rail is hidden but collections remain', () => {
+    const links = resolveSkipNavigationLinks(allVisibleRequestTab({ railVisible: false }));
+
+    expect(links.map((link) => link.id)).toEqual([
+      'collections-sidebar',
+      'request-editor',
+      'response-editor',
+      'git-sidebar',
+      'ai-sidebar',
+      'shortcuts-sidebar',
+      'live-server-logs-sidebar',
+      'app-footer'
+    ]);
+  });
+
   it('omits request and response links outside a request tab', () => {
     const links = resolveSkipNavigationLinks(
       allVisibleRequestTab({
@@ -121,6 +145,7 @@ describe('resolveSkipNavigationLinks', () => {
     );
 
     expect(links.map((link) => link.id)).toEqual([
+      'sidebar-rail',
       'collections-sidebar',
       'git-sidebar',
       'ai-sidebar',
@@ -139,6 +164,7 @@ describe('resolveSkipNavigationLinks', () => {
     );
 
     expect(links.map((link) => link.id)).toEqual([
+      'sidebar-rail',
       'collections-sidebar',
       'git-sidebar',
       'ai-sidebar',
@@ -152,6 +178,7 @@ describe('resolveSkipNavigationLinks', () => {
     const hiddenPanels = resolveSkipNavigationLinks(
       allVisibleRequestTab({
         sidebarVisible: false,
+        railVisible: false,
         requestEditorVisible: false,
         responseEditorVisible: false,
         aiSidebarVisible: false,

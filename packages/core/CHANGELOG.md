@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: add activity rail support and close request tab shortcut. (`2b7baf93`)
 - feat: enhance context menu with JSON body formatting options. (`6381c2e6`)
 
 ## 0.5.3 - 2026-08-04

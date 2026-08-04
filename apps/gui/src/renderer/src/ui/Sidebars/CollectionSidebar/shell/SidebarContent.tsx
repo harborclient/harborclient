@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type JSX } from 'react';
+import { useCallback, useMemo, type JSX, type KeyboardEvent } from 'react';
 import type { SidebarMode, SidebarSectionKey } from '@harborclient/core/types';
 import { SIDEBAR_MODE_SECTIONS } from '@harborclient/core/sidebarExpansion';
 import type { SidebarPanelViewContext } from '@harborclient/sdk';
@@ -16,6 +16,8 @@ import {
   Sidebar,
   SidebarRail,
   SidebarSections,
+  focusSidebarRailTabFromPanel,
+  sidebarRailTabId,
   type SidebarRailItemData,
   type SidebarSectionConfig
 } from '@harborclient/sdk/components';
@@ -45,6 +47,7 @@ import { Collections, CollectionsHeaderActions } from '../Collections';
 import { Environments, EnvironmentsHeaderActions } from '../Environments';
 import { History, HistoryHeaderActions } from '../History';
 import { TeamHubRailAvatars } from './TeamHubRailAvatars';
+import { SIDEBAR_RAIL_SECTION_ID } from '#/renderer/src/ui/Shared/SkipNavigation/skipNavigationTargets';
 import { WorkflowHistory } from '../History/WorkflowHistory';
 import { WorkflowHistoryHeaderActions } from '../History/WorkflowHistoryHeaderActions';
 import { RunResults, RunsHeaderActions } from '../RunResults';
@@ -476,8 +479,35 @@ export function SidebarContent(): JSX.Element {
 
   const showPluginBody = activeRailItem != null || displayedPanel != null;
 
+  /**
+   * Returns focus from the sidebar tabpanel to the active rail tab when the
+   * user presses the arrow away from the panel (opposite of the panel-entry key).
+   *
+   * @param event - Keydown from inside the tabpanel.
+   */
+  const handleRailPanelKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLElement>): void => {
+      if (event.defaultPrevented) {
+        return;
+      }
+
+      const returnKey = sidebarPlacement === 'right' ? 'ArrowRight' : 'ArrowLeft';
+      if (event.key !== returnKey) {
+        return;
+      }
+
+      const panel = event.currentTarget;
+      if (focusSidebarRailTabFromPanel(panel)) {
+        event.preventDefault();
+      }
+    },
+    [sidebarPlacement]
+  );
+
   const rail = showRail ? (
     <SidebarRail
+      id={SIDEBAR_RAIL_SECTION_ID}
+      tabIndex={-1}
       items={railItems}
       activeId={railActiveId}
       expanded={sidebarRailExpanded}
@@ -485,6 +515,7 @@ export function SidebarContent(): JSX.Element {
       onSelect={handleRailSelect}
       ariaLabel="Sidebar modes"
       panelId={SIDEBAR_RAIL_PANEL_ID}
+      panelSide={sidebarPlacement === 'right' ? 'before' : 'after'}
       footer={<TeamHubRailAvatars expanded={sidebarRailExpanded} />}
     />
   ) : null;
@@ -502,6 +533,8 @@ export function SidebarContent(): JSX.Element {
       asideClassName="h-full min-h-0"
       bodyId={showRail ? SIDEBAR_RAIL_PANEL_ID : undefined}
       bodyRole={showRail ? 'tabpanel' : undefined}
+      bodyAriaLabelledBy={showRail ? sidebarRailTabId(railActiveId) : undefined}
+      bodyOnKeyDown={showRail ? handleRailPanelKeyDown : undefined}
       header={
         activeRailItem == null ? (
           <SidebarPanelSwitcher

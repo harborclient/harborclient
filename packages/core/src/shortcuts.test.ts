@@ -167,6 +167,9 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'next-request-tab')?.accelerator).toBe(
       'CmdOrCtrl+Shift+Period'
     );
+    expect(bindings.find((binding) => binding.id === 'close-request-tab')?.accelerator).toBe(
+      'CmdOrCtrl+W'
+    );
     expect(bindings.find((binding) => binding.id === 'set-method-get')?.accelerator).toBe(
       'Alt+Shift+1'
     );

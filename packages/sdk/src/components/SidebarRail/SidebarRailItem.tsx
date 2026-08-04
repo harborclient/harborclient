@@ -2,6 +2,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX, KeyboardEvent, Ref } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
 import { cn } from '../utils.js';
+import { sidebarRailTabId } from './focusSidebarRailPanel.js';
 
 /**
  * Shared focus-visible outline for rail tabs (matches TabBar / segment chrome).
@@ -72,7 +73,7 @@ interface Props {
   onSelect: () => void;
 
   /**
-   * Keyboard handler for tablist arrow-key navigation.
+   * Keyboard handler for tablist arrow-key navigation and panel entry.
    */
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
 
@@ -184,6 +185,7 @@ export function SidebarRailItem({
       <button
         type="button"
         role="tab"
+        id={sidebarRailTabId(item.id)}
         ref={buttonRef}
         className={railItemButtonClasses(active, expanded)}
         title={item.label}

@@ -1,4 +1,4 @@
-import { type JSX, type ReactNode } from 'react';
+import { type JSX, type KeyboardEvent, type ReactNode } from 'react';
 import { ResizeHandle, type UseResizableOptions, useResizable } from '../Resizable/index.js';
 import { Scrollbars } from '../Scrollbars/index.js';
 import { cn } from '../utils.js';
@@ -63,6 +63,16 @@ interface Props {
   bodyRole?: string;
 
   /**
+   * Optional `aria-labelledby` for the body (typically the active rail tab id).
+   */
+  bodyAriaLabelledBy?: string;
+
+  /**
+   * Optional keydown handler on the body (e.g. return focus to the rail tab).
+   */
+  bodyOnKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
+
+  /**
    * Additional classes for the resizable aside element.
    */
   asideClassName?: string;
@@ -114,6 +124,8 @@ export function Sidebar({
   bodyClassName,
   bodyId,
   bodyRole,
+  bodyAriaLabelledBy,
+  bodyOnKeyDown,
   asideClassName,
   resizeHandleClassName,
   resizeAriaLabel,
@@ -169,6 +181,8 @@ export function Sidebar({
     <Scrollbars
       id={bodyId}
       role={bodyRole}
+      aria-labelledby={bodyAriaLabelledBy}
+      onKeyDown={bodyOnKeyDown}
       axis={scrollAxis}
       autoHide={scrollbarAutoHide}
       className="min-h-0 flex-1"
@@ -176,7 +190,13 @@ export function Sidebar({
       {scrollBody}
     </Scrollbars>
   ) : (
-    <div id={bodyId} role={bodyRole} className={cn('flex min-h-0 flex-1 flex-col', bodyClassName)}>
+    <div
+      id={bodyId}
+      role={bodyRole}
+      aria-labelledby={bodyAriaLabelledBy}
+      className={cn('flex min-h-0 flex-1 flex-col', bodyClassName)}
+      onKeyDown={bodyOnKeyDown}
+    >
       {children}
     </div>
   );
