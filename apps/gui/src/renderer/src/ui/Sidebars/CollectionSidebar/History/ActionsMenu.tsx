@@ -112,6 +112,7 @@ export function ActionsMenu({
       menuId={menuId}
       openMenuId={openMenuId}
       onOpenChange={onOpenChange}
+      triggerTabIndex={-1}
       groups={menuGroups}
     />
   );

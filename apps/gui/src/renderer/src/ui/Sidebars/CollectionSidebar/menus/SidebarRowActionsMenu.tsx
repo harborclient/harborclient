@@ -92,6 +92,7 @@ export function SidebarRowActionsMenu({
               openMenuId={openMenuId}
               onOpenChange={onOpenChange ?? (() => undefined)}
               groups={allGroups}
+              triggerTabIndex={-1}
             />
           );
         }}

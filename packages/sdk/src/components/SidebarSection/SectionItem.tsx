@@ -64,6 +64,8 @@ type SectionItemProps = ItemStateProps<HTMLDivElement> & SectionContentProps;
  * Header chevron inset and title gap follow shared `SIDEBAR_CHEVRON_*` spacing.
  * Right-side controls use `hc-sidebar-section-header-actions` so host CSS can
  * apply a shared fixed square size across filter, clear, and add buttons.
+ * The title uses `hc-sidebar-section-label` with `tabIndex={-1}` so host
+ * shortcuts can move focus onto the section label without adding it to tab order.
  */
 const SectionItem = memo(function SectionItem({
   forwardedRef,
@@ -98,7 +100,10 @@ const SectionItem = memo(function SectionItem({
               className={`${SIDEBAR_CHEVRON_ICON_CLASS} text-sidebar-section-text`}
             />
           </span>
-          <h2 className="m-0 text-[15px] leading-none font-medium tracking-wide text-sidebar-section-text uppercase">
+          <h2
+            tabIndex={-1}
+            className="hc-sidebar-section-label m-0 text-[15px] leading-none font-medium tracking-wide text-sidebar-section-text uppercase"
+          >
             {title}
           </h2>
         </button>

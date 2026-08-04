@@ -9,9 +9,9 @@ import {
 } from 'react';
 import { FaIcon } from '../FaIcon/index.js';
 import { cn, resolveTabListKeyAction } from '../utils.js';
-import { focusSidebarRailPanel } from './focusSidebarRailPanel.js';
 import { SidebarRailItem, type SidebarRailItemData } from './SidebarRailItem.js';
 import { SidebarRailSeparator } from './SidebarRailSeparator.js';
+import { focusSidebarRailPanel } from './focusSidebarRailPanel.js';
 
 export type { SidebarRailItemData };
 export {

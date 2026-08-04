@@ -9,6 +9,16 @@ export { SidebarList } from './SidebarList.js';
 export { SidebarTree } from './SidebarTree.js';
 export { SidebarTreeGroup } from './SidebarTreeGroup.js';
 export { handleSidebarOptionKeyDown } from './sidebarListOption.js';
+export {
+  focusSidebarCompositeItem,
+  handleSidebarCompositeContainerKeyDown,
+  handleSidebarCompositeFocusIn,
+  isSidebarRowActionsMenuKey,
+  openSidebarRowActionsMenu,
+  querySidebarCompositeItems,
+  resolveSidebarCompositeFocusIndex,
+  setSidebarCompositeRovingTabIndex
+} from './sidebarCompositeNavigation.js';
 export { SortableSidebarItem } from './SortableSidebarItem.js';
 export { stopSortableDragPointerDown } from './stopSortableDragPointerDown.js';
 export { SidebarMarkerDot } from './SidebarMarkerDot.js';

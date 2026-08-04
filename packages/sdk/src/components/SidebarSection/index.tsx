@@ -118,7 +118,11 @@ export function SidebarSections({ sections, expanded, onToggle }: Props): JSX.El
   return (
     <AccordionRoot providerValue={providerValue}>
       {sections.map((section) => (
-        <nav key={section.key} aria-label={section.ariaLabel ?? section.title}>
+        <nav
+          key={section.key}
+          aria-label={section.ariaLabel ?? section.title}
+          data-sidebar-section={section.key}
+        >
           <SidebarSection
             itemKey={section.key}
             title={section.title}

@@ -27,6 +27,7 @@ import type { Environment } from '@harborclient/core/types';
 import {
   EmptySectionLabel,
   SidebarEnvironmentItem,
+  SidebarListbox,
   SidebarTree,
   SidebarTreeGroup
 } from '@harborclient/sdk/components';
@@ -485,6 +486,7 @@ export function Environments(): JSX.Element {
       childrenId?: string;
       level?: number;
       reorderDisabled: boolean;
+      subtree?: ReactNode;
     }
   ): JSX.Element => {
     const isActive = activeEnvironmentId === environment.id;
@@ -501,7 +503,8 @@ export function Environments(): JSX.Element {
       expanded = false,
       childrenId,
       level,
-      reorderDisabled
+      reorderDisabled,
+      subtree
     } = options;
 
     return (
@@ -562,6 +565,7 @@ export function Environments(): JSX.Element {
           parentUuid,
           siblingIds
         )}
+        subtree={subtree}
       />
     );
   };
@@ -590,28 +594,24 @@ export function Environments(): JSX.Element {
           const expanded = expandedEnvironmentIds.has(environment.id);
           const childrenId = `sidebar-environment-children-${environment.id}`;
 
-          return (
-            <div key={environment.id}>
-              {renderEnvironmentRow(environment, {
-                environmentIndex: index,
-                environmentsCount: nodes.length,
-                parentUuid,
-                siblingIds,
-                hasChildren,
-                expanded,
-                childrenId: hasChildren ? childrenId : undefined,
-                level,
-                reorderDisabled: false
-              })}
-              {hasChildren ? (
-                <AnimatedCollapse open={expanded}>
-                  <SidebarTreeGroup id={childrenId}>
-                    {renderEnvironmentNodes(children, level + 1, environment.uuid)}
-                  </SidebarTreeGroup>
-                </AnimatedCollapse>
-              ) : null}
-            </div>
-          );
+          return renderEnvironmentRow(environment, {
+            environmentIndex: index,
+            environmentsCount: nodes.length,
+            parentUuid,
+            siblingIds,
+            hasChildren,
+            expanded,
+            childrenId: hasChildren ? childrenId : undefined,
+            level,
+            reorderDisabled: false,
+            subtree: hasChildren ? (
+              <AnimatedCollapse open={expanded}>
+                <SidebarTreeGroup id={childrenId}>
+                  {renderEnvironmentNodes(children, level + 1, environment.uuid)}
+                </SidebarTreeGroup>
+              </AnimatedCollapse>
+            ) : undefined
+          });
         })}
       </SortableContext>
     );
@@ -649,17 +649,19 @@ export function Environments(): JSX.Element {
         ) : null}
 
         {!useTreeMode && flatEnvironments.length > 0 ? (
-          <SortableContext items={flatEnvironmentIds} strategy={verticalListSortingStrategy}>
-            {flatEnvironments.map((environment, environmentIndex) =>
-              renderEnvironmentRow(environment, {
-                environmentIndex,
-                environmentsCount: flatEnvironments.length,
-                parentUuid: null,
-                siblingIds: flatEnvironments.map((entry) => entry.id),
-                reorderDisabled: searchActive || markerFilterActive || sortActive
-              })
-            )}
-          </SortableContext>
+          <SidebarListbox aria-label="Environments" multiselectable>
+            <SortableContext items={flatEnvironmentIds} strategy={verticalListSortingStrategy}>
+              {flatEnvironments.map((environment, environmentIndex) =>
+                renderEnvironmentRow(environment, {
+                  environmentIndex,
+                  environmentsCount: flatEnvironments.length,
+                  parentUuid: null,
+                  siblingIds: flatEnvironments.map((entry) => entry.id),
+                  reorderDisabled: searchActive || markerFilterActive || sortActive
+                })
+              )}
+            </SortableContext>
+          </SidebarListbox>
         ) : null}
       </div>
 

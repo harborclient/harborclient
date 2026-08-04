@@ -1144,6 +1144,7 @@ export function Collections(): JSX.Element {
                       className={SIDEBAR_CHEVRON_BUTTON_CLASS}
                       onClick={() => toggleCollection(collection.id)}
                       onPointerDown={stopSortableDragPointerDown}
+                      tabIndex={-1}
                       aria-expanded={expanded}
                       aria-label={expanded ? 'Collapse' : 'Expand'}
                     >

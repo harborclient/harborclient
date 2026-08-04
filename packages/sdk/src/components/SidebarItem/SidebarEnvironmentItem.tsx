@@ -130,6 +130,11 @@ interface Props {
   dataSidebarEnvironmentId?: string | number;
 
   /**
+   * Nested tree group content owned by this treeitem (expanded children).
+   */
+  subtree?: ReactNode;
+
+  /**
    * HTML element for the row container. Use `li` inside {@link SidebarListbox}
    * or {@link SidebarTree}.
    */
@@ -173,6 +178,7 @@ export function SidebarEnvironmentItem({
   onEnter,
   actions,
   dataSidebarEnvironmentId,
+  subtree,
   as = 'li'
 }: Props): JSX.Element {
   const useTreeItem = as === 'li' && level != null;
@@ -203,7 +209,13 @@ export function SidebarEnvironmentItem({
       sortable={sortable}
       onContextMenu={onContextMenu}
       actions={actions}
+      subtree={subtree}
       as={as}
+      dataAttributes={
+        dataSidebarEnvironmentId != null
+          ? { 'data-sidebar-environment-id': String(dataSidebarEnvironmentId) }
+          : undefined
+      }
       listboxOption={
         useListboxOption
           ? {
@@ -235,9 +247,6 @@ export function SidebarEnvironmentItem({
       <span
         className={SIDEBAR_ITEM_BUTTON_CLASS}
         style={indentPx > 0 ? { paddingLeft: indentPx } : undefined}
-        {...(dataSidebarEnvironmentId != null
-          ? { 'data-sidebar-environment-id': String(dataSidebarEnvironmentId) }
-          : {})}
       >
         {showChevron ? (
           <button
@@ -250,6 +259,7 @@ export function SidebarEnvironmentItem({
             onPointerDown={stopSortableDragPointerDown}
             tabIndex={-1}
             aria-label={chevronLabel}
+            aria-expanded={expanded}
           >
             <FaIcon
               icon={expanded ? collapseIcon : expandIcon}

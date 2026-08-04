@@ -356,6 +356,7 @@ export function buildMenu(
             },
             {
               label: 'Browser',
+              accelerator: acceleratorFor(accelerators, 'new-browser-tab'),
               click: () => sendMenuAction(window, 'new-browser-tab')
             },
             {

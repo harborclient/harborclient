@@ -5,11 +5,7 @@ import * as React from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setHostReact } from '../../runtime/reactHost.js';
-import {
-  SidebarRail,
-  sidebarRailTabId,
-  type SidebarRailItemData
-} from './index.js';
+import { SidebarRail, type SidebarRailItemData, sidebarRailTabId } from './index.js';
 
 const railItems: SidebarRailItemData[] = [
   { id: 'collections', icon: faFolder, label: 'Collections' },

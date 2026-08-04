@@ -1,4 +1,8 @@
-import { EmptySectionLabel, SidebarHistoryItem } from '@harborclient/sdk/components';
+import {
+  EmptySectionLabel,
+  SidebarHistoryItem,
+  SidebarListbox
+} from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
 import type { RequestHistoryEntry } from '@harborclient/core/types/requestHistory';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -192,60 +196,64 @@ export function History(): JSX.Element {
       }}
     >
       {entries.length === 0 ? <EmptySectionLabel label="No requests" /> : null}
-      {entries.map((entry) => {
-        const isRun = entry.kind === 'run';
-        const normalized = normalizeRequestHistoryEntry(entry);
-        const rowDate = formatSidebarAbsoluteDate(entry.ts);
-        const rowTitle = isRun ? normalized.name : entry.url;
-        const menuId = `history-entry-${entry.id}`;
-        const selected = isSelected(entry.id);
-        const showBulkMenu = selected && selectionCount > 1;
+      {entries.length > 0 ? (
+        <SidebarListbox aria-label="History" multiselectable>
+          {entries.map((entry) => {
+            const isRun = entry.kind === 'run';
+            const normalized = normalizeRequestHistoryEntry(entry);
+            const rowDate = formatSidebarAbsoluteDate(entry.ts);
+            const rowTitle = isRun ? normalized.name : entry.url;
+            const menuId = `history-entry-${entry.id}`;
+            const selected = isSelected(entry.id);
+            const showBulkMenu = selected && selectionCount > 1;
 
-        return (
-          <SidebarHistoryItem
-            key={entry.id}
-            method={entry.method}
-            name={normalized.name ?? entry.url}
-            isRun={isRun}
-            status={isRun ? undefined : entry.status}
-            statusText={isRun ? undefined : entry.statusText}
-            statusDotVisible={showIndicators}
-            methodColors={showMethodColors}
-            runIcon={faPersonRunning}
-            selected={selected}
-            title={`${rowTitle} — ${rowDate}`}
-            ariaLabel={historyEntryAriaLabel(entry)}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleBeforeContextMenu(entry.id);
-              setInspectPointsByMenuId((prev) => ({
-                ...prev,
-                [menuId]: { x: event.clientX, y: event.clientY }
-              }));
-              setOpenMenuId(menuId);
-            }}
-            onClick={(event: MouseEvent<HTMLElement>) => {
-              handleRowClick(
-                entry.id,
-                { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                () => handleOpenEntry(entry)
-              );
-            }}
-            actions={
-              <ActionsMenu
-                entry={entry}
-                showBulkMenu={showBulkMenu}
-                openMenuId={openMenuId}
-                onOpenChange={setOpenMenuId}
-                inspectPoint={inspectPointsByMenuId[menuId]}
-                onDeleteEntry={handleDeleteEntry}
-                onDeleteSelected={handleDeleteSelected}
+            return (
+              <SidebarHistoryItem
+                key={entry.id}
+                method={entry.method}
+                name={normalized.name ?? entry.url}
+                isRun={isRun}
+                status={isRun ? undefined : entry.status}
+                statusText={isRun ? undefined : entry.statusText}
+                statusDotVisible={showIndicators}
+                methodColors={showMethodColors}
+                runIcon={faPersonRunning}
+                selected={selected}
+                title={`${rowTitle} — ${rowDate}`}
+                ariaLabel={historyEntryAriaLabel(entry)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleBeforeContextMenu(entry.id);
+                  setInspectPointsByMenuId((prev) => ({
+                    ...prev,
+                    [menuId]: { x: event.clientX, y: event.clientY }
+                  }));
+                  setOpenMenuId(menuId);
+                }}
+                onClick={(event: MouseEvent<HTMLElement>) => {
+                  handleRowClick(
+                    entry.id,
+                    { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                    () => handleOpenEntry(entry)
+                  );
+                }}
+                actions={
+                  <ActionsMenu
+                    entry={entry}
+                    showBulkMenu={showBulkMenu}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    inspectPoint={inspectPointsByMenuId[menuId]}
+                    onDeleteEntry={handleDeleteEntry}
+                    onDeleteSelected={handleDeleteSelected}
+                  />
+                }
               />
-            }
-          />
-        );
-      })}
+            );
+          })}
+        </SidebarListbox>
+      ) : null}
     </div>
   );
 }

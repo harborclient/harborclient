@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: enhance sidebar navigation and focus management. (`015e793a`)
 - feat: add activity rail support and close request tab shortcut. (`2b7baf93`)
 - feat: enhance context menu with JSON body formatting options. (`6381c2e6`)
 

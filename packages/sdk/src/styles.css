@@ -48,9 +48,25 @@
  * with document content and never overflows.
  */
 .hc-code-editor {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+/**
+ * Inset focus ring while CodeMirror content (or another descendant) is focused.
+ * Drawn as an overlay border so it is not clipped by OverlayScrollbars hosts and
+ * is not overridden by Tailwind `shadow-*` utilities on the same element.
+ */
+.hc-code-editor:focus-within::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border: 2px solid var(--mac-accent);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .hc-code-editor > div:first-child {

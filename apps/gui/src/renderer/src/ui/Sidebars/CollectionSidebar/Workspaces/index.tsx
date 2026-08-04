@@ -18,6 +18,7 @@ import {
 import {
   EmptySectionLabel,
   RowActionsMenu,
+  SidebarListbox,
   SidebarWorkspaceItem,
   buildReorderMenuGroup
 } from '@harborclient/sdk/components';
@@ -338,140 +339,145 @@ export function Workspaces(): JSX.Element {
       >
         {noMatches ? <div className="px-2 py-1.5 text-muted">No matching workspaces</div> : null}
         {!noMatches && groups.length === 0 ? <EmptySectionLabel label="No workspaces" /> : null}
-        <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
-          {groups.map((group, groupIndex) => {
-            const menuId = `tab-group-${group.id}`;
-            const selected = isSelected(group.id);
-            const showBulkMenu = selected && selectionCount > 1;
+        {groups.length > 0 ? (
+          <SidebarListbox aria-label="Workspaces" multiselectable>
+            <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
+              {groups.map((group, groupIndex) => {
+                const menuId = `tab-group-${group.id}`;
+                const selected = isSelected(group.id);
+                const showBulkMenu = selected && selectionCount > 1;
 
-            return (
-              <SidebarWorkspaceItem
-                key={group.id}
-                name={group.name}
-                summary={workspaceSummaryText(group)}
-                icon={faWindowRestore}
-                selected={selected}
-                markerDot={{
-                  marker: group.marker,
-                  visible: showMarkers,
-                  label: `Color marker for ${group.name}`
-                }}
-                sortable={{
-                  id: workspaceDragId(group.id),
-                  dragHandleLabel: `Reorder workspace "${group.name}"`,
-                  disabled: workspacesMarkerFilter != null || sortActive
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleBeforeContextMenu(group.id);
-                  setOpenMenuId(menuId);
-                }}
-                onClick={(event: MouseEvent<HTMLElement>) => {
-                  handleRowClick(
-                    group.id,
-                    { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                    () => scheduleOpenGroup(group)
-                  );
-                }}
-                onDoubleClick={() => handleConfigureWorkspace(group.id)}
-                onEnter={() => {
-                  handleConfigureWorkspace(group.id);
-                  focusWorkspaceSettings();
-                }}
-                actions={
-                  showBulkMenu ? (
-                    <RowActionsMenu
-                      menuId={menuId}
-                      openMenuId={openMenuId}
-                      onOpenChange={setOpenMenuId}
-                      groups={[
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger' as const,
-                            onSelect: () => {
-                              void handleDeleteSelected();
-                            }
-                          }
-                        ]
-                      ]}
-                    />
-                  ) : (
-                    <SidebarRowActionsMenu
-                      menuId={menuId}
-                      openMenuId={openMenuId}
-                      onOpenChange={setOpenMenuId}
-                      markerTarget={{
-                        kind: 'workspace',
-                        id: group.id,
-                        marker: group.marker ?? null
-                      }}
-                      groups={[
-                        ...(sortActive
-                          ? []
-                          : buildReorderMenuGroup(
-                              groupIndex,
-                              groups.length,
-                              (direction) => void moveWorkspace(group.id, direction)
-                            )),
-                        [
-                          {
-                            label: 'Save',
-                            onSelect: () => {
-                              void handleSaveGroup(group);
-                            }
-                          },
-                          {
-                            label: 'Settings',
-                            onSelect: () => handleConfigureWorkspace(group.id)
-                          },
-                          {
-                            label: 'Rename',
-                            onSelect: () =>
-                              dispatch(
-                                openWorkspaceModal({
-                                  mode: 'rename',
-                                  groupId: group.id,
-                                  name: group.name
-                                })
-                              )
-                          },
-                          {
-                            label: 'Clone',
-                            onSelect: () =>
-                              dispatch(
-                                openWorkspaceModal({
-                                  mode: 'clone',
-                                  groupId: group.id,
-                                  name: `Copy of ${group.name}`
-                                })
-                              )
-                          },
-                          {
-                            label: 'Export',
-                            onSelect: () => {
-                              void dispatch(exportWorkspace(group.id));
-                            }
-                          }
-                        ],
-                        [
-                          {
-                            label: 'Delete',
-                            variant: 'danger',
-                            onSelect: () => {
-                              void handleDeleteGroup(group);
-                            }
-                          }
-                        ]
-                      ]}
-                    />
-                  )
-                }
-              />
-            );
-          })}
-        </SortableContext>
+                return (
+                  <SidebarWorkspaceItem
+                    key={group.id}
+                    name={group.name}
+                    summary={workspaceSummaryText(group)}
+                    icon={faWindowRestore}
+                    selected={selected}
+                    markerDot={{
+                      marker: group.marker,
+                      visible: showMarkers,
+                      label: `Color marker for ${group.name}`
+                    }}
+                    sortable={{
+                      id: workspaceDragId(group.id),
+                      dragHandleLabel: `Reorder workspace "${group.name}"`,
+                      disabled: workspacesMarkerFilter != null || sortActive
+                    }}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleBeforeContextMenu(group.id);
+                      setOpenMenuId(menuId);
+                    }}
+                    onClick={(event: MouseEvent<HTMLElement>) => {
+                      handleRowClick(
+                        group.id,
+                        { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                        () => scheduleOpenGroup(group)
+                      );
+                    }}
+                    onDoubleClick={() => handleConfigureWorkspace(group.id)}
+                    onEnter={() => {
+                      handleConfigureWorkspace(group.id);
+                      focusWorkspaceSettings();
+                    }}
+                    actions={
+                      showBulkMenu ? (
+                        <RowActionsMenu
+                          menuId={menuId}
+                          openMenuId={openMenuId}
+                          onOpenChange={setOpenMenuId}
+                          triggerTabIndex={-1}
+                          groups={[
+                            [
+                              {
+                                label: 'Delete',
+                                variant: 'danger' as const,
+                                onSelect: () => {
+                                  void handleDeleteSelected();
+                                }
+                              }
+                            ]
+                          ]}
+                        />
+                      ) : (
+                        <SidebarRowActionsMenu
+                          menuId={menuId}
+                          openMenuId={openMenuId}
+                          onOpenChange={setOpenMenuId}
+                          markerTarget={{
+                            kind: 'workspace',
+                            id: group.id,
+                            marker: group.marker ?? null
+                          }}
+                          groups={[
+                            ...(sortActive
+                              ? []
+                              : buildReorderMenuGroup(
+                                  groupIndex,
+                                  groups.length,
+                                  (direction) => void moveWorkspace(group.id, direction)
+                                )),
+                            [
+                              {
+                                label: 'Save',
+                                onSelect: () => {
+                                  void handleSaveGroup(group);
+                                }
+                              },
+                              {
+                                label: 'Settings',
+                                onSelect: () => handleConfigureWorkspace(group.id)
+                              },
+                              {
+                                label: 'Rename',
+                                onSelect: () =>
+                                  dispatch(
+                                    openWorkspaceModal({
+                                      mode: 'rename',
+                                      groupId: group.id,
+                                      name: group.name
+                                    })
+                                  )
+                              },
+                              {
+                                label: 'Clone',
+                                onSelect: () =>
+                                  dispatch(
+                                    openWorkspaceModal({
+                                      mode: 'clone',
+                                      groupId: group.id,
+                                      name: `Copy of ${group.name}`
+                                    })
+                                  )
+                              },
+                              {
+                                label: 'Export',
+                                onSelect: () => {
+                                  void dispatch(exportWorkspace(group.id));
+                                }
+                              }
+                            ],
+                            [
+                              {
+                                label: 'Delete',
+                                variant: 'danger',
+                                onSelect: () => {
+                                  void handleDeleteGroup(group);
+                                }
+                              }
+                            ]
+                          ]}
+                        />
+                      )
+                    }
+                  />
+                );
+              })}
+            </SortableContext>
+          </SidebarListbox>
+        ) : null}
       </div>
 
       <DragOverlay dropAnimation={null}>

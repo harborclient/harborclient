@@ -4,6 +4,7 @@ import {
   RowActionsMenu,
   SidebarBadge,
   SidebarItem,
+  SidebarListbox,
   SidebarStatusDot,
   SIDEBAR_ITEM_BUTTON_CLASS
 } from '@harborclient/sdk/components';
@@ -347,168 +348,176 @@ export function LiveServers(): JSX.Element {
   return (
     <div className="flex flex-col gap-0.5 px-1 pb-1">
       {saved.length === 0 ? <EmptySectionLabel label="No live servers" /> : null}
-      {saved.map((server) => {
-        const menuId = `live-server-${server.id}`;
-        const instance = runningBySavedId.get(server.id);
-        const isRunning = instance != null;
-        const portLabel = isRunning
-          ? instance.origin
-          : server.port != null
-            ? `:${server.port}`
-            : 'auto port';
-        const subtitle = `${server.root} · ${portLabel}`;
-        const statusLabel = isRunning ? 'Running' : 'Stopped';
-        const connectionName = connectionNamesById[server.connectionId ?? primaryConnectionId];
+      {saved.length > 0 ? (
+        <SidebarListbox aria-label="Live servers">
+          {saved.map((server) => {
+            const menuId = `live-server-${server.id}`;
+            const instance = runningBySavedId.get(server.id);
+            const isRunning = instance != null;
+            const portLabel = isRunning
+              ? instance.origin
+              : server.port != null
+                ? `:${server.port}`
+                : 'auto port';
+            const subtitle = `${server.root} · ${portLabel}`;
+            const statusLabel = isRunning ? 'Running' : 'Stopped';
+            const connectionName = connectionNamesById[server.connectionId ?? primaryConnectionId];
 
-        /**
-         * Starts or opens the server when Enter is pressed on the row.
-         *
-         * @param event - Keyboard event from the listbox option.
-         */
-        const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
-          if (event.key !== 'Enter') {
-            return;
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          if (instance != null) {
-            handleOpen(instance);
-            return;
-          }
-          void handleStart(server);
-        };
-
-        return (
-          <SidebarItem
-            key={server.id}
-            selected={false}
-            onContextMenu={(event: MouseEvent) => {
+            /**
+             * Starts or opens the server when Enter is pressed on the row.
+             *
+             * @param event - Keyboard event from the listbox option.
+             */
+            const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+              if (event.key !== 'Enter') {
+                return;
+              }
               event.preventDefault();
-              setOpenMenuId(menuId);
-            }}
-            listboxOption={{
-              ariaLabel: `${server.name}, ${statusLabel}, ${subtitle}`,
-              onClick: (event: MouseEvent) => {
-                event.preventDefault();
-                scheduleStartOrOpen(server);
-              },
-              onDoubleClick: () => {
-                handleEdit(server);
-              },
-              onKeyDown: handleKeyDown
-            }}
-            actions={
-              <RowActionsMenu
-                menuId={menuId}
-                openMenuId={openMenuId}
-                onOpenChange={setOpenMenuId}
-                groups={[
-                  [
-                    isRunning
-                      ? {
-                          label: 'Open',
-                          onSelect: () => {
-                            if (instance != null) {
-                              handleOpen(instance);
+              event.stopPropagation();
+              if (instance != null) {
+                handleOpen(instance);
+                return;
+              }
+              void handleStart(server);
+            };
+
+            return (
+              <SidebarItem
+                key={server.id}
+                as="li"
+                selected={false}
+                onContextMenu={(event: MouseEvent) => {
+                  event.preventDefault();
+                  setOpenMenuId(menuId);
+                }}
+                listboxOption={{
+                  ariaLabel: `${server.name}, ${statusLabel}, ${subtitle}`,
+                  onClick: (event: MouseEvent) => {
+                    event.preventDefault();
+                    scheduleStartOrOpen(server);
+                  },
+                  onDoubleClick: () => {
+                    handleEdit(server);
+                  },
+                  onKeyDown: handleKeyDown
+                }}
+                actions={
+                  <RowActionsMenu
+                    menuId={menuId}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    triggerTabIndex={-1}
+                    groups={[
+                      [
+                        isRunning
+                          ? {
+                              label: 'Open',
+                              onSelect: () => {
+                                if (instance != null) {
+                                  handleOpen(instance);
+                                }
+                              }
                             }
-                          }
-                        }
-                      : {
-                          label: 'Start',
+                          : {
+                              label: 'Start',
+                              onSelect: () => {
+                                void handleStart(server);
+                              }
+                            },
+                        {
+                          label: 'Edit',
                           onSelect: () => {
-                            void handleStart(server);
+                            handleEdit(server);
                           }
                         },
-                    {
-                      label: 'Edit',
-                      onSelect: () => {
-                        handleEdit(server);
-                      }
-                    },
-                    {
-                      label: 'Open folder',
-                      onSelect: () => {
-                        void handleOpenFolder(server);
-                      }
-                    },
-                    {
-                      label: 'Logs',
-                      onSelect: () => {
-                        void dispatch(openLiveServerLogsForSavedId(server.id));
-                      }
-                    },
-                    buildCopyIdMenuItem(server.uuid),
-                    ...(aiAvailable
-                      ? [
-                          {
-                            label: 'Copy to chat',
-                            onSelect: () => {
-                              void copyToChat(buildLiveServerReferenceToken(server.uuid));
-                            }
+                        {
+                          label: 'Open folder',
+                          onSelect: () => {
+                            void handleOpenFolder(server);
                           }
-                        ]
-                      : []),
-                    {
-                      label: 'Export',
-                      onSelect: () => {
-                        void dispatch(exportLiveServer(server.id));
-                      }
-                    }
-                  ],
-                  [
-                    ...(isRunning
-                      ? [
-                          {
-                            label: 'Restart',
-                            onSelect: () => {
-                              if (instance != null) {
-                                void handleRestart(server, instance);
-                              }
-                            }
-                          },
-                          {
-                            label: 'Stop',
-                            variant: 'danger' as const,
-                            onSelect: () => {
-                              if (instance != null) {
-                                void handleStop(server, instance);
-                              }
-                            }
+                        },
+                        {
+                          label: 'Logs',
+                          onSelect: () => {
+                            void dispatch(openLiveServerLogsForSavedId(server.id));
                           }
-                        ]
-                      : []),
-                    {
-                      label: 'Delete',
-                      variant: 'danger',
-                      onSelect: () => {
-                        void handleDelete(server);
-                      }
-                    }
-                  ]
-                ]}
-              />
-            }
-          >
-            <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} gap-2 rounded-md px-2 py-1`}>
-              <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-              <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                <span className="min-w-0 shrink truncate">{server.name}</span>
-                {showStorageLocationBadges && connectionName ? (
-                  <SidebarBadge variant="info" title={`Stored in ${connectionName}`}>
-                    {connectionName}
-                  </SidebarBadge>
-                ) : null}
-                <span className="min-w-0 flex-1 truncate text-[14px] text-muted">{subtitle}</span>
-              </span>
-              <SidebarStatusDot
-                className={isRunning ? 'bg-success -mr-2' : 'bg-danger -mr-2'}
-                title={statusLabel}
-                srOnlyLabel={statusLabel}
-              />
-            </span>
-          </SidebarItem>
-        );
-      })}
+                        },
+                        buildCopyIdMenuItem(server.uuid),
+                        ...(aiAvailable
+                          ? [
+                              {
+                                label: 'Copy to chat',
+                                onSelect: () => {
+                                  void copyToChat(buildLiveServerReferenceToken(server.uuid));
+                                }
+                              }
+                            ]
+                          : []),
+                        {
+                          label: 'Export',
+                          onSelect: () => {
+                            void dispatch(exportLiveServer(server.id));
+                          }
+                        }
+                      ],
+                      [
+                        ...(isRunning
+                          ? [
+                              {
+                                label: 'Restart',
+                                onSelect: () => {
+                                  if (instance != null) {
+                                    void handleRestart(server, instance);
+                                  }
+                                }
+                              },
+                              {
+                                label: 'Stop',
+                                variant: 'danger' as const,
+                                onSelect: () => {
+                                  if (instance != null) {
+                                    void handleStop(server, instance);
+                                  }
+                                }
+                              }
+                            ]
+                          : []),
+                        {
+                          label: 'Delete',
+                          variant: 'danger',
+                          onSelect: () => {
+                            void handleDelete(server);
+                          }
+                        }
+                      ]
+                    ]}
+                  />
+                }
+              >
+                <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} gap-2 rounded-md px-2 py-1`}>
+                  <FaIcon icon={faServer} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                  <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                    <span className="min-w-0 shrink truncate">{server.name}</span>
+                    {showStorageLocationBadges && connectionName ? (
+                      <SidebarBadge variant="info" title={`Stored in ${connectionName}`}>
+                        {connectionName}
+                      </SidebarBadge>
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-muted">
+                      {subtitle}
+                    </span>
+                  </span>
+                  <SidebarStatusDot
+                    className={isRunning ? 'bg-success -mr-2' : 'bg-danger -mr-2'}
+                    title={statusLabel}
+                    srOnlyLabel={statusLabel}
+                  />
+                </span>
+              </SidebarItem>
+            );
+          })}
+        </SidebarListbox>
+      ) : null}
     </div>
   );
 }

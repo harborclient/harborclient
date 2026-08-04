@@ -37,9 +37,20 @@ interface Props {
   trailing?: ReactNode;
 
   /**
+   * Optional content rendered after trailing actions inside the row container.
+   * Use for nested `role="group"` regions owned by a treeitem.
+   */
+  subtree?: ReactNode;
+
+  /**
    * When true, renders a static row without drag-and-drop behavior.
    */
   disabled?: boolean;
+
+  /**
+   * Extra data attributes applied to the row container (focus target).
+   */
+  dataAttributes?: Record<string, string>;
 
   /**
    * Called when the user right-clicks the row container.
@@ -65,10 +76,11 @@ interface Props {
 
 /**
  * Wraps a sidebar row with dnd-kit sortable drag behavior. Reordering is activated
- * from a dedicated trailing grip handle so keyboard users can focus it and use the
- * keyboard sensor; listbox option interaction and nested row controls stay on the
- * row container. Keeping the handle after the label keeps leading content flush with
- * non-sortable sections such as Runs and History.
+ * from a dedicated trailing grip handle (mouse / programmatic focus). The handle is
+ * removed from Tab order so listbox/tree composites keep a single Tab stop per row;
+ * keyboard users reorder via Move up/down in the row actions menu. Keeping the handle
+ * after the label keeps leading content flush with non-sortable sections such as Runs
+ * and History.
  */
 export function SortableSidebarItem({
   id,
@@ -77,7 +89,9 @@ export function SortableSidebarItem({
   dragHandleLabel,
   children,
   trailing,
+  subtree,
   disabled = false,
+  dataAttributes,
   onRowContextMenu,
   role,
   'aria-selected': ariaSelected,
@@ -122,9 +136,15 @@ export function SortableSidebarItem({
 
   if (disabled) {
     return (
-      <Container className={className} onContextMenu={onRowContextMenu} {...interactiveProps}>
+      <Container
+        className={className}
+        onContextMenu={onRowContextMenu}
+        {...dataAttributes}
+        {...interactiveProps}
+      >
         {children}
         {trailing}
+        {subtree}
       </Container>
     );
   }
@@ -141,6 +161,7 @@ export function SortableSidebarItem({
       style={style}
       className={className}
       onContextMenu={onRowContextMenu}
+      {...dataAttributes}
       {...interactiveProps}
     >
       {children}
@@ -151,10 +172,12 @@ export function SortableSidebarItem({
         aria-label={dragHandleLabel}
         {...attributes}
         {...listeners}
+        tabIndex={-1}
       >
         <FaIcon icon={faGripVertical} className="h-2.5 w-2.5" aria-hidden />
       </button>
       {trailing}
+      {subtree}
     </Container>
   );
 }

@@ -133,6 +133,13 @@ interface Props extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
    * Whether the menu opens below or above the trigger. Defaults to opening downward.
    */
   placement?: 'down' | 'up';
+
+  /**
+   * Tab index for the menu trigger. Pass `-1` when the trigger lives inside a
+   * sidebar listbox/tree composite so the row remains the sole Tab stop; open
+   * the menu with click, Shift+F10, or ContextMenu from the focused row.
+   */
+  triggerTabIndex?: number;
 }
 
 const TYPEAHEAD_TIMEOUT_MS = 500;
@@ -164,6 +171,7 @@ export function RowActionsMenu({
   triggerClassName,
   triggerActive,
   placement = 'down',
+  triggerTabIndex,
   className,
   ...props
 }: Props): JSX.Element {
@@ -723,6 +731,7 @@ export function RowActionsMenu({
     'aria-haspopup': 'menu' as const,
     'aria-expanded': isOpen,
     'aria-controls': isOpen ? menuElementId : undefined,
+    ...(triggerTabIndex !== undefined ? { tabIndex: triggerTabIndex } : {}),
     onClick: handleTriggerClick,
     onKeyDown: handleTriggerKeyDown
   } as ButtonProps;
@@ -737,6 +746,7 @@ export function RowActionsMenu({
       aria-haspopup="menu"
       aria-expanded={isOpen}
       aria-controls={isOpen ? menuElementId : undefined}
+      tabIndex={triggerTabIndex}
       onClick={handleTriggerClick}
       onKeyDown={handleTriggerKeyDown}
     >

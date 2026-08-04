@@ -251,13 +251,16 @@ export interface Props extends Omit<
   language?: CodeEditorLanguage;
 
   /**
-   * When true, the editor cannot be edited.
+   * When true, prevents document edits (CodeMirror `EditorState.readOnly`) while the
+   * content DOM can still be focused and selected. Pair with {@link editable} only when
+   * you also need to remove `contenteditable` (which drops the editor from tab order).
    */
   readOnly?: boolean;
 
   /**
-   * When false, blocks user input while keeping normal editor chrome (gutters, border).
-   * Defaults to the inverse of {@link readOnly}. Use for temporary locks during async work.
+   * When false, sets `contenteditable="false"` on the content DOM so the editor leaves
+   * the tab order. Defaults to `true` even for {@link readOnly} viewers so keyboard
+   * users can focus and select text. Pass `false` for temporary input locks.
    */
   editable?: boolean;
 
@@ -1012,7 +1015,8 @@ export function CodeEditor({
   const resolvedTheme = themeOverride ?? config.theme;
   const resolvedSetup = setupOverride ?? (readOnly ? null : config.setup);
   const resolvedFontSize = normalizeCodeEditorFontSize(fontSize ?? config.fontSize);
-  const resolvedEditable = editable ?? !readOnly;
+  // Keep contenteditable for read-only viewers so they stay keyboard-focusable.
+  const resolvedEditable = editable ?? true;
   const [isDark, setIsDark] = useState(() => isAppearanceDark());
   const [selectionTooltip, setSelectionTooltip] = useState<SelectionTooltipState | null>(null);
   const selectionTooltipRef = useRef(selectionTooltip);
@@ -1627,9 +1631,16 @@ export function CodeEditor({
     };
   }, [resolvedSetup, readOnly]);
 
+  /**
+   * Shared inset panel chrome. Focus ring is drawn by SDK `styles.css`
+   * (`.hc-code-editor:focus-within::after`) so it stays visible inside
+   * OverlayScrollbars / overflow-hidden hosts such as the response Body viewer.
+   */
+  const editorSurfaceClass =
+    'overflow-hidden rounded-lg bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
   const wrapperClassName = readOnly
-    ? `hc-code-editor overflow-hidden rounded-lg bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag ${className}`
-    : `hc-code-editor min-h-36 resize-y overflow-hidden rounded-lg border border-separator bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--mac-accent)_35%,transparent),inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag ${className}`;
+    ? `hc-code-editor ${editorSurfaceClass} ${className}`
+    : `hc-code-editor min-h-36 resize-y border border-separator ${editorSurfaceClass} ${className}`;
 
   const selectionTooltipContent = selectionTooltip
     ? getVariableTooltipContent(selectionTooltip.key, variables ?? [])

@@ -48,7 +48,19 @@ export function isDirtyForClose(
   }
 
   if (isPageTab(tab) && (tab.page.type === 'collection' || tab.page.type === 'folder')) {
-    return isTabDirty(tab);
+    if (isTabDirty(tab)) {
+      return true;
+    }
+    if (tab.tabId !== activeTabId) {
+      return false;
+    }
+    return isActivePageTabDirty(
+      tab.page,
+      collectionSettingsDirty,
+      environmentSettingsDirty,
+      folderSettingsDirty,
+      workspaceSettingsDirty
+    );
   }
 
   if (isPageTab(tab) && tab.tabId === activeTabId) {

@@ -1,6 +1,7 @@
 import {
   EmptySectionLabel,
   RowActionsMenu,
+  SidebarListbox,
   SidebarWebsiteItem
 } from '@harborclient/sdk/components';
 import {
@@ -158,80 +159,85 @@ export function Websites(): JSX.Element {
   return (
     <div className="flex flex-col gap-0.5 px-1 pb-1">
       {websites.length === 0 ? <EmptySectionLabel label="No live pages" /> : null}
-      {websites.map((website) => {
-        const menuId = `website-${website.id}`;
-        const selected = activeWebsiteId === website.id;
-        const connectionName = connectionNamesById[website.connectionId ?? primaryConnectionId];
-        const openTab = tabs.find(
-          (tab) => isBrowserTab(tab) && tab.websiteId === website.id && tab.faviconDataUrl
-        );
-        const faviconDataUrl =
-          (openTab && isBrowserTab(openTab) ? openTab.faviconDataUrl : null) ??
-          website.faviconDataUrl;
-        return (
-          <SidebarWebsiteItem
-            key={website.id}
-            name={website.name}
-            faviconDataUrl={faviconDataUrl}
-            fallbackIcon={faGlobe}
-            connectionBadge={
-              showStorageLocationBadges && connectionName != null ? connectionName : undefined
-            }
-            selected={selected}
-            actions={
-              <RowActionsMenu
-                menuId={menuId}
-                openMenuId={openMenuId}
-                onOpenChange={setOpenMenuId}
-                groups={[
-                  [
-                    {
-                      label: 'Edit',
-                      onSelect: () => {
-                        handleEdit(website);
-                      }
-                    },
-                    buildCopyIdMenuItem(website.uuid),
-                    {
-                      label: 'Export',
-                      onSelect: () => {
-                        void dispatch(exportWebsite(website.id));
-                      }
-                    }
-                  ],
-                  [
-                    {
-                      label: 'Delete',
-                      variant: 'danger',
-                      onSelect: () => {
-                        void handleDelete(website);
-                      }
-                    }
-                  ]
-                ]}
+      {websites.length > 0 ? (
+        <SidebarListbox aria-label="Live pages">
+          {websites.map((website) => {
+            const menuId = `website-${website.id}`;
+            const selected = activeWebsiteId === website.id;
+            const connectionName = connectionNamesById[website.connectionId ?? primaryConnectionId];
+            const openTab = tabs.find(
+              (tab) => isBrowserTab(tab) && tab.websiteId === website.id && tab.faviconDataUrl
+            );
+            const faviconDataUrl =
+              (openTab && isBrowserTab(openTab) ? openTab.faviconDataUrl : null) ??
+              website.faviconDataUrl;
+            return (
+              <SidebarWebsiteItem
+                key={website.id}
+                name={website.name}
+                faviconDataUrl={faviconDataUrl}
+                fallbackIcon={faGlobe}
+                connectionBadge={
+                  showStorageLocationBadges && connectionName != null ? connectionName : undefined
+                }
+                selected={selected}
+                actions={
+                  <RowActionsMenu
+                    menuId={menuId}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    triggerTabIndex={-1}
+                    groups={[
+                      [
+                        {
+                          label: 'Edit',
+                          onSelect: () => {
+                            handleEdit(website);
+                          }
+                        },
+                        buildCopyIdMenuItem(website.uuid),
+                        {
+                          label: 'Export',
+                          onSelect: () => {
+                            void dispatch(exportWebsite(website.id));
+                          }
+                        }
+                      ],
+                      [
+                        {
+                          label: 'Delete',
+                          variant: 'danger',
+                          onSelect: () => {
+                            void handleDelete(website);
+                          }
+                        }
+                      ]
+                    ]}
+                  />
+                }
+                onClick={(event: MouseEvent) => {
+                  event.preventDefault();
+                  // Ignore the second click of a double-click so only settings open.
+                  if (event.detail > 1) {
+                    cancelPendingOpen();
+                    return;
+                  }
+                  scheduleOpen(website);
+                }}
+                onDoubleClick={(event: MouseEvent) => {
+                  event.preventDefault();
+                  handleEdit(website);
+                }}
+                onContextMenu={(event: MouseEvent) => {
+                  event.preventDefault();
+                  setOpenMenuId(menuId);
+                }}
+                onEnter={() => handleOpen(website)}
               />
-            }
-            onClick={(event: MouseEvent) => {
-              event.preventDefault();
-              // Ignore the second click of a double-click so only settings open.
-              if (event.detail > 1) {
-                cancelPendingOpen();
-                return;
-              }
-              scheduleOpen(website);
-            }}
-            onDoubleClick={(event: MouseEvent) => {
-              event.preventDefault();
-              handleEdit(website);
-            }}
-            onContextMenu={(event: MouseEvent) => {
-              event.preventDefault();
-              setOpenMenuId(menuId);
-            }}
-            onEnter={() => handleOpen(website)}
-          />
-        );
-      })}
+            );
+          })}
+        </SidebarListbox>
+      ) : null}
     </div>
   );
 }

@@ -43,8 +43,10 @@ interface Props {
 /**
  * Read-only pretty-printed response body for the Body viewer tab.
  *
- * Non-image, non-binary responses expose a Copy to chat selection toolbar when AI
- * is available and a request tab id is known. Binary bodies show base64 text.
+ * Uses a read-only CodeEditor that stays contenteditable so keyboard users can
+ * Tab into the viewer and see focus feedback. Non-image, non-binary responses
+ * expose a Copy to chat selection toolbar when AI is available and a request tab
+ * id is known. Binary bodies show base64 text.
  */
 export function Body({
   response,
@@ -115,6 +117,7 @@ export function Body({
       minHeight={fillHeight ? '0' : undefined}
       className={fillHeight ? 'response-body-editor' : undefined}
       selectionActions={copyToChatSelectionActions}
+      aria-label="Response body"
     />
   );
 }

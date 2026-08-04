@@ -2,6 +2,7 @@ import {
   EmptySectionLabel,
   FaIcon,
   SidebarItem,
+  SidebarListbox,
   SidebarStatusDot,
   SIDEBAR_ITEM_BUTTON_CLASS
 } from '@harborclient/sdk/components';
@@ -77,55 +78,66 @@ export function ServerLogs(): JSX.Element {
   return (
     <div className="flex flex-col gap-0.5 px-1 pb-1">
       {sessions.length === 0 ? <EmptySectionLabel label="No server logs" /> : null}
-      {sessions.map((session) => {
-        const subtitle = sessionSubtitle(session);
-        const statusLabel = session.active ? 'Logging' : 'Stopped';
-        const selected = selectedSessionId === session.id;
+      {sessions.length > 0 ? (
+        <SidebarListbox aria-label="Server logs">
+          {sessions.map((session) => {
+            const subtitle = sessionSubtitle(session);
+            const statusLabel = session.active ? 'Logging' : 'Stopped';
+            const selected = selectedSessionId === session.id;
 
-        /**
-         * Opens the session when Enter is pressed on the row.
-         *
-         * @param event - Keyboard event from the listbox option.
-         */
-        const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
-          if (event.key !== 'Enter') {
-            return;
-          }
-          event.preventDefault();
-          event.stopPropagation();
-          handleOpen(session);
-        };
+            /**
+             * Opens the session when Enter is pressed on the row.
+             *
+             * @param event - Keyboard event from the listbox option.
+             */
+            const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
+              if (event.key !== 'Enter') {
+                return;
+              }
+              event.preventDefault();
+              event.stopPropagation();
+              handleOpen(session);
+            };
 
-        return (
-          <SidebarItem
-            key={session.id}
-            selected={selected}
-            listboxOption={{
-              ariaLabel: `${session.serverName}, ${statusLabel}, ${subtitle}`,
-              onClick: (event: MouseEvent) => {
-                event.preventDefault();
-                handleOpen(session);
-              },
-              onKeyDown: handleKeyDown
-            }}
-          >
-            <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} gap-2 rounded-md px-2 py-1`}>
-              <FaIcon icon={faFileLines} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-              <span className="flex min-w-0 flex-1 items-baseline gap-2">
-                <span className="min-w-0 shrink truncate">{session.serverName}</span>
-                <span className="min-w-0 flex-1 truncate text-[14px] text-muted">{subtitle}</span>
-              </span>
-              {session.active ? (
-                <SidebarStatusDot
-                  className="bg-success"
-                  title={statusLabel}
-                  srOnlyLabel={statusLabel}
-                />
-              ) : null}
-            </span>
-          </SidebarItem>
-        );
-      })}
+            return (
+              <SidebarItem
+                key={session.id}
+                as="li"
+                selected={selected}
+                listboxOption={{
+                  ariaLabel: `${session.serverName}, ${statusLabel}, ${subtitle}`,
+                  onClick: (event: MouseEvent) => {
+                    event.preventDefault();
+                    handleOpen(session);
+                  },
+                  onKeyDown: handleKeyDown
+                }}
+              >
+                <span className={`${SIDEBAR_ITEM_BUTTON_CLASS} gap-2 rounded-md px-2 py-1`}>
+                  <FaIcon
+                    icon={faFileLines}
+                    className="h-3.5 w-3.5 shrink-0 text-muted"
+                    aria-hidden
+                  />
+                  <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                    <span className="min-w-0 shrink truncate">{session.serverName}</span>
+                    <span className="min-w-0 flex-1 truncate text-[14px] text-muted">
+                      {subtitle}
+                    </span>
+                  </span>
+                  {session.active ? (
+                    <SidebarStatusDot
+                      className="bg-success"
+                      title={statusLabel}
+                      srOnlyLabel={statusLabel}
+                    />
+                  ) : null}
+                </span>
+              </SidebarItem>
+            );
+          })}
+        </SidebarListbox>
+      ) : null}
     </div>
   );
 }

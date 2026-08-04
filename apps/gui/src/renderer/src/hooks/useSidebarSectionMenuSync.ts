@@ -4,11 +4,18 @@ import { useAppDispatch } from '#/renderer/src/store/hooks';
 import type { RootState } from '#/renderer/src/store/redux';
 import { focusFirstCollectionSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/navigation/focusFirstCollectionSidebar';
 import { focusFirstEnvironmentSidebar } from '#/renderer/src/ui/Sidebars/CollectionSidebar/navigation/focusFirstEnvironmentSidebar';
+import {
+  focusCollectionsSidebarHeading,
+  focusEnvironmentsSidebarHeading,
+  focusLiveServersSidebarHeading,
+  focusWorkflowsSidebarHeading
+} from '#/renderer/src/ui/Sidebars/CollectionSidebar/navigation/focusSidebarSectionHeading';
 import { useSidebarExpansion } from '#/renderer/src/ui/Sidebars/CollectionSidebar/expansion/useSidebarExpansion';
 
 /**
- * Handles sidebar mode shortcuts and focus-first-collection/environment actions.
- * Also syncs sidebar display Appearance checkboxes and handles their menu actions.
+ * Handles sidebar mode shortcuts, focus-first-collection/environment actions,
+ * and focus-*-sidebar section heading shortcuts. Also syncs sidebar display
+ * Appearance checkboxes and handles their menu actions.
  */
 export function useSidebarSectionMenuSync(): void {
   const dispatch = useAppDispatch();
@@ -17,6 +24,8 @@ export function useSidebarSectionMenuSync(): void {
     setActiveSidebarMode,
     setCollectionsSectionExpanded,
     setEnvironmentsSectionExpanded,
+    setWorkflowsSectionExpanded,
+    setLiveServersSectionExpanded,
     showStorageLocationBadges,
     showMarkers,
     showMethodColors,
@@ -118,6 +127,30 @@ export function useSidebarSectionMenuSync(): void {
             setEnvironmentsSectionExpanded
           });
           break;
+        case 'focus-collections-sidebar':
+          focusCollectionsSidebarHeading(dispatch, {
+            setActiveSidebarMode,
+            setCollectionsSectionExpanded
+          });
+          break;
+        case 'focus-environments-sidebar':
+          focusEnvironmentsSidebarHeading(dispatch, {
+            setActiveSidebarMode,
+            setEnvironmentsSectionExpanded
+          });
+          break;
+        case 'focus-workflows-sidebar':
+          focusWorkflowsSidebarHeading(dispatch, {
+            setActiveSidebarMode,
+            setWorkflowsSectionExpanded
+          });
+          break;
+        case 'focus-live-servers-sidebar':
+          focusLiveServersSidebarHeading(dispatch, {
+            setActiveSidebarMode,
+            setLiveServersSectionExpanded
+          });
+          break;
       }
     });
     return unsubscribe;
@@ -132,6 +165,8 @@ export function useSidebarSectionMenuSync(): void {
     toggleFilters,
     toggleSorting,
     setCollectionsSectionExpanded,
-    setEnvironmentsSectionExpanded
+    setEnvironmentsSectionExpanded,
+    setWorkflowsSectionExpanded,
+    setLiveServersSectionExpanded
   ]);
 }

@@ -53,6 +53,9 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'new-collection')?.accelerator).toBe(
       'CmdOrCtrl+Shift+N'
     );
+    expect(bindings.find((binding) => binding.id === 'new-browser-tab')?.accelerator).toBe(
+      'CmdOrCtrl+Alt+Shift+B'
+    );
     expect(bindings.find((binding) => binding.id === 'new-browser')?.accelerator).toBe(
       'CmdOrCtrl+Alt+N'
     );
@@ -210,6 +213,18 @@ describe('resolveShortcuts', () => {
       'Alt+Shift+T'
     );
     expect(bindings.find((binding) => binding.id === 'focus-main-nav')?.accelerator).toBe('F4');
+    expect(
+      bindings.find((binding) => binding.id === 'focus-collections-sidebar')?.accelerator
+    ).toBe('F1');
+    expect(
+      bindings.find((binding) => binding.id === 'focus-environments-sidebar')?.accelerator
+    ).toBe('F2');
+    expect(bindings.find((binding) => binding.id === 'focus-workflows-sidebar')?.accelerator).toBe(
+      'F6'
+    );
+    expect(
+      bindings.find((binding) => binding.id === 'focus-live-servers-sidebar')?.accelerator
+    ).toBe('F7');
     expect(bindings.find((binding) => binding.id === 'toggle-variables')?.accelerator).toBe(
       'Alt+Shift+V'
     );

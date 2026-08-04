@@ -5,12 +5,14 @@ import {
   VariableInput,
   fieldFrame
 } from '@harborclient/sdk/components';
-import type { JSX } from 'react';
+import type { JSX, KeyboardEvent } from 'react';
 import type { HttpMethod, RequestProtocol, Variable } from '@harborclient/core/types';
 
 import { faStop, faFloppyDisk } from '#/renderer/src/fontawesome';
 import { usePluginRequestToolbarActions } from '#/renderer/src/plugins/pluginHooks';
 import { urlSource } from '#/renderer/src/autocomplete/sources';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { focusResponseEditor } from '../../ResponseEditor/focusResponseEditor';
 import { REQUEST_URL_INPUT_ID } from './focusRequestUrl';
 
 interface Props {
@@ -104,6 +106,7 @@ export function UrlBar({
   onCancel,
   onEditVariables
 }: Props): JSX.Element {
+  const dispatch = useAppDispatch();
   const toolbarActions = usePluginRequestToolbarActions();
   const isSse = protocol === 'sse';
 
@@ -121,6 +124,29 @@ export function UrlBar({
    * Accessible name while a request or SSE session is active.
    */
   const busyLabel = isSse ? 'Disconnect SSE stream' : 'Cancel request';
+
+  /**
+   * Moves keyboard focus into the response editor when Down is pressed on Send.
+   *
+   * Mirrors tab-bar ArrowDown navigation so Send is a spatial jump point into
+   * the response panel without requiring Tab through every request editor control.
+   *
+   * @param event - Keyboard event from the Send / Connect button.
+   */
+  const handleSendKeyDown = (event: KeyboardEvent<HTMLButtonElement>): void => {
+    if (
+      event.key !== 'ArrowDown' ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    focusResponseEditor(dispatch);
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -166,6 +192,7 @@ export function UrlBar({
       <Button
         type="button"
         onClick={() => (sending ? onCancel() : onSend())}
+        onKeyDown={handleSendKeyDown}
         aria-label={sending ? busyLabel : idleLabel}
         className="hc-send-button inline-flex min-h-[35px] w-24 shrink-0 items-center justify-center"
       >

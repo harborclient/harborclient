@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type JSX, type MouseEvent } from 'react';
-import { EmptySectionLabel, SidebarRunItem } from '@harborclient/sdk/components';
+import { EmptySectionLabel, SidebarListbox, SidebarRunItem } from '@harborclient/sdk/components';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectRunResults } from '#/renderer/src/store/slices/runResultsSlice';
@@ -143,64 +143,68 @@ export function RunResults(): JSX.Element {
     >
       {runResults.length === 0 ? <EmptySectionLabel label="No saved runs" /> : null}
 
-      {runResults.map((runResult) => {
-        const menuId = `run-result-${runResult.id}`;
-        const connectionName = connectionNamesById[runResult.connectionId] ?? null;
-        const method = runResult.firstRequestMethod;
-        const summaryText = runResultSummaryText(runResult.summary);
-        const rowDate = formatRunResultRowDate(runResult.createdAt);
-        const selected = isSelected(runResult.id);
-        const showBulkMenu = selected && selectionCount > 1;
+      {runResults.length > 0 ? (
+        <SidebarListbox aria-label="Runs" multiselectable>
+          {runResults.map((runResult) => {
+            const menuId = `run-result-${runResult.id}`;
+            const connectionName = connectionNamesById[runResult.connectionId] ?? null;
+            const method = runResult.firstRequestMethod;
+            const summaryText = runResultSummaryText(runResult.summary);
+            const rowDate = formatRunResultRowDate(runResult.createdAt);
+            const selected = isSelected(runResult.id);
+            const showBulkMenu = selected && selectionCount > 1;
 
-        return (
-          <SidebarRunItem
-            key={runResult.id}
-            method={method ?? undefined}
-            label={runResult.label}
-            connectionBadge={
-              showStorageLocationBadges && connectionName != null ? connectionName : undefined
-            }
-            statusDotClassName={runResultStatusDotClass(runResult.summary)}
-            statusDotVisible={showIndicators}
-            methodColors={showMethodColors}
-            statusSummary={summaryText}
-            selected={selected}
-            title={`${runResult.label} — ${rowDate}`}
-            ariaLabel={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
-            dataSidebarRunResultId={runResult.id}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleBeforeContextMenu(runResult.id);
-              setInspectPointsByMenuId((prev) => ({
-                ...prev,
-                [menuId]: { x: event.clientX, y: event.clientY }
-              }));
-              setOpenMenuId(menuId);
-            }}
-            onClick={(event: MouseEvent<HTMLElement>) => {
-              handleRowClick(
-                runResult.id,
-                { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
-                () => onSelectRunResult(runResult.id)
-              );
-            }}
-            actions={
-              <ActionsMenu
-                runResult={runResult}
-                showBulkMenu={showBulkMenu}
-                openMenuId={openMenuId}
-                onOpenChange={setOpenMenuId}
-                inspectPoint={inspectPointsByMenuId[menuId]}
-                onDelete={onDeleteRunResult}
-                onDeleteSelected={() => {
-                  void handleDeleteSelected();
+            return (
+              <SidebarRunItem
+                key={runResult.id}
+                method={method ?? undefined}
+                label={runResult.label}
+                connectionBadge={
+                  showStorageLocationBadges && connectionName != null ? connectionName : undefined
+                }
+                statusDotClassName={runResultStatusDotClass(runResult.summary)}
+                statusDotVisible={showIndicators}
+                methodColors={showMethodColors}
+                statusSummary={summaryText}
+                selected={selected}
+                title={`${runResult.label} — ${rowDate}`}
+                ariaLabel={runResultAriaLabel(runResult.label, rowDate, method, summaryText)}
+                dataSidebarRunResultId={runResult.id}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleBeforeContextMenu(runResult.id);
+                  setInspectPointsByMenuId((prev) => ({
+                    ...prev,
+                    [menuId]: { x: event.clientX, y: event.clientY }
+                  }));
+                  setOpenMenuId(menuId);
                 }}
+                onClick={(event: MouseEvent<HTMLElement>) => {
+                  handleRowClick(
+                    runResult.id,
+                    { shiftKey: event.shiftKey, ctrlOrMetaKey: event.ctrlKey || event.metaKey },
+                    () => onSelectRunResult(runResult.id)
+                  );
+                }}
+                actions={
+                  <ActionsMenu
+                    runResult={runResult}
+                    showBulkMenu={showBulkMenu}
+                    openMenuId={openMenuId}
+                    onOpenChange={setOpenMenuId}
+                    inspectPoint={inspectPointsByMenuId[menuId]}
+                    onDelete={onDeleteRunResult}
+                    onDeleteSelected={() => {
+                      void handleDeleteSelected();
+                    }}
+                  />
+                }
               />
-            }
-          />
-        );
-      })}
+            );
+          })}
+        </SidebarListbox>
+      ) : null}
     </div>
   );
 }

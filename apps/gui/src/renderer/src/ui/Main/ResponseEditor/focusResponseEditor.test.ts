@@ -4,6 +4,7 @@ import {
   findFirstFocusableInResponseEditor,
   focusFirstElementInResponseEditor,
   focusResponseEditor,
+  RESPONSE_EDITOR_FOCUSABLE_SELECTOR,
   RESPONSE_EDITOR_SECTION_ID
 } from './focusResponseEditor';
 
@@ -42,6 +43,12 @@ function createFocusableStub(options: {
 
   return element as unknown as HTMLElement;
 }
+
+describe('RESPONSE_EDITOR_FOCUSABLE_SELECTOR', () => {
+  it('includes contenteditable so read-only CodeMirror viewers are tab stops', () => {
+    expect(RESPONSE_EDITOR_FOCUSABLE_SELECTOR).toContain('[contenteditable="true"]');
+  });
+});
 
 describe('findFirstFocusableInResponseEditor', () => {
   it('returns the first visible focusable element in document order', () => {

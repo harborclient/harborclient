@@ -9,13 +9,16 @@ const FOCUS_MAX_ATTEMPTS = 6;
 
 /**
  * Selector for native and custom tab stops inside the response editor.
+ * Includes `contenteditable` so read-only CodeMirror viewers (response Body)
+ * are found for programmatic focus the same way Tab reaches them.
  */
-const FOCUSABLE_SELECTOR = [
+export const RESPONSE_EDITOR_FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
   'input:not([disabled]):not([type="hidden"])',
   'select:not([disabled])',
   'textarea:not([disabled])',
+  '[contenteditable="true"]',
   '[tabindex]:not([tabindex="-1"])'
 ].join(', ');
 
@@ -54,7 +57,9 @@ function isVisibleFocusable(element: HTMLElement): boolean {
  * @returns First focusable element in document order, or null when none exist.
  */
 export function findFirstFocusableInResponseEditor(container: ParentNode): HTMLElement | null {
-  for (const candidate of container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) {
+  for (const candidate of container.querySelectorAll<HTMLElement>(
+    RESPONSE_EDITOR_FOCUSABLE_SELECTOR
+  )) {
     if (isVisibleFocusable(candidate)) {
       return candidate;
     }

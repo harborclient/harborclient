@@ -160,6 +160,17 @@ interface Props {
   actions?: ReactNode;
 
   /**
+   * Optional content rendered after actions inside the row (e.g. a nested
+   * {@link SidebarTreeGroup} owned by a treeitem).
+   */
+  subtree?: ReactNode;
+
+  /**
+   * Extra data attributes applied to the focusable row container.
+   */
+  dataAttributes?: Record<string, string>;
+
+  /**
    * When true, wraps the actions slot with {@link stopSortableDragPointerDown}.
    * Harmless when sortable: drag activation lives on the grip handle, not the row.
    */
@@ -194,6 +205,8 @@ export function SidebarItem({
   treeItem,
   onContextMenu,
   actions,
+  subtree,
+  dataAttributes,
   actionsStopDrag = true,
   as: Container = 'div',
   className,
@@ -276,6 +289,8 @@ export function SidebarItem({
         disabled={sortable.disabled}
         onRowContextMenu={onContextMenu}
         trailing={actionsNode}
+        subtree={subtree}
+        dataAttributes={dataAttributes}
         {...interactiveProps}
       >
         {children}
@@ -284,9 +299,15 @@ export function SidebarItem({
   }
 
   return (
-    <Container className={rowClassName} onContextMenu={onContextMenu} {...interactiveProps}>
+    <Container
+      className={rowClassName}
+      onContextMenu={onContextMenu}
+      {...dataAttributes}
+      {...interactiveProps}
+    >
       {children}
       {actionsNode}
+      {subtree}
     </Container>
   );
 }

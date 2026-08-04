@@ -249,6 +249,7 @@ export function ActionsMenu(props: Props): JSX.Element {
         menuId={menuId}
         openMenuId={props.openMenuId}
         onOpenChange={props.onOpenChange}
+        triggerTabIndex={-1}
         groups={[
           [
             {

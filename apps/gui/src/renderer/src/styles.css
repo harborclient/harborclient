@@ -649,6 +649,18 @@
     box-shadow: 0 0 0 var(--mac-interactive-focus-ring-width)
       color-mix(in srgb, var(--mac-accent) 35%, transparent);
   }
+
+  /**
+   * Sidebar section title labels use tabIndex={-1} for F1/F2/F6/F7 shortcuts.
+   * Match the interactive focus ring on both :focus and :focus-visible so
+   * programmatic focus is visible in Chromium.
+   */
+  .hc-sidebar-section-label:focus,
+  .hc-sidebar-section-label:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 var(--mac-interactive-focus-ring-width)
+      color-mix(in srgb, var(--mac-accent) 35%, transparent);
+  }
 }
 
 @layer components {
@@ -1753,6 +1765,13 @@
     outline: 2px solid var(--mac-accent);
     outline-offset: 1px;
     box-shadow: none;
+  }
+
+  /**
+   * High-contrast CodeEditor focus: solid accent inset overlay (matches SDK styles.css).
+   */
+  :root[data-theme='high-contrast'] .hc-code-editor:focus-within::after {
+    border-color: var(--mac-accent);
   }
 
   /**

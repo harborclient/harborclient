@@ -6,6 +6,7 @@ import type { MenuActionId } from './types/app';
 export type ShortcutId =
   | 'new-request'
   | 'new-collection'
+  | 'new-browser-tab'
   | 'new-browser'
   | 'new-live-server'
   | 'new-workflow'
@@ -41,6 +42,10 @@ export type ShortcutId =
   | 'focus-first-request-tab'
   | 'focus-response-editor'
   | 'focus-main-nav'
+  | 'focus-collections-sidebar'
+  | 'focus-environments-sidebar'
+  | 'focus-workflows-sidebar'
+  | 'focus-live-servers-sidebar'
   | 'browser-reload'
   | 'browser-go-back'
   | 'browser-go-forward'
@@ -178,6 +183,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Shift+N',
     kind: 'action',
     actionId: 'new-collection'
+  },
+  {
+    id: 'new-browser-tab',
+    label: 'New browser',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Shift+B',
+    kind: 'action',
+    actionId: 'new-browser-tab'
   },
   {
     id: 'new-browser',
@@ -416,6 +428,34 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'F4',
     kind: 'action',
     actionId: 'focus-main-nav'
+  },
+  {
+    id: 'focus-collections-sidebar',
+    label: 'Focus collections sidebar',
+    defaultAccelerator: 'F1',
+    kind: 'action',
+    actionId: 'focus-collections-sidebar'
+  },
+  {
+    id: 'focus-environments-sidebar',
+    label: 'Focus environments sidebar',
+    defaultAccelerator: 'F2',
+    kind: 'action',
+    actionId: 'focus-environments-sidebar'
+  },
+  {
+    id: 'focus-workflows-sidebar',
+    label: 'Focus workflows sidebar',
+    defaultAccelerator: 'F6',
+    kind: 'action',
+    actionId: 'focus-workflows-sidebar'
+  },
+  {
+    id: 'focus-live-servers-sidebar',
+    label: 'Focus live servers sidebar',
+    defaultAccelerator: 'F7',
+    kind: 'action',
+    actionId: 'focus-live-servers-sidebar'
   },
   {
     id: 'next-sidebar-list-item',
