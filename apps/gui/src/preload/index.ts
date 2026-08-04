@@ -4093,6 +4093,15 @@ function resetShortcuts(): Promise<ShortcutBinding[]> {
 }
 
 /**
+ * Pauses or resumes global shortcut capture so focused UI can receive key events.
+ *
+ * @param paused - True to pause dispatch and clear menu accelerators.
+ */
+function setShortcutCapturePaused(paused: boolean): Promise<void> {
+  return ipcRenderer.invoke('shortcuts:setCapturePaused', paused);
+}
+
+/**
  * Subscribes to window close and app quit attempts from the main process.
  *
  * @param callback - Handler invoked when the user tries to close or quit.
@@ -5551,6 +5560,7 @@ const api: Api = {
   getShortcuts,
   setShortcuts,
   resetShortcuts,
+  setShortcutCapturePaused,
   onBeforeClose,
   confirmClose,
   selectFiles,

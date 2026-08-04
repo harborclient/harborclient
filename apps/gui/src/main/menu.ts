@@ -4,6 +4,7 @@ import { getShortcutOverrides } from '#/main/settings/shortcutSettings';
 import { getPluginMenuContributions } from '#/main/plugins/pluginMenuContributions';
 import { mergePluginMenuItemsIntoTemplate } from '#/main/plugins/pluginMenuMerge';
 import { resolveAcceleratorMap, type ShortcutId } from '@harborclient/core/shortcuts';
+import { isShortcutCapturePaused } from '#/main/shortcutDispatch';
 import { stepZoomIn, stepZoomOut, resetZoom } from '#/main/window/zoom';
 import { BUILTIN_THEME_OPTIONS, type ThemeMenuOption } from '@harborclient/core/themes';
 import type { MenuActionId, ThemeSource } from '@harborclient/core/types';
@@ -272,6 +273,9 @@ export function buildAppearanceMenuItems(
  * @returns Electron accelerator string.
  */
 function acceleratorFor(accelerators: Map<ShortcutId, string>, id: ShortcutId): string {
+  if (isShortcutCapturePaused()) {
+    return '';
+  }
   return accelerators.get(id) ?? '';
 }
 
@@ -670,6 +674,10 @@ export function buildMenu(
           label: 'Keyboard Shortcuts',
           accelerator: acceleratorFor(accelerators, 'toggle-shortcuts-sidebar'),
           click: () => sendMenuAction(window, 'toggle-shortcuts-sidebar')
+        },
+        {
+          label: 'Shortcut Tutor',
+          click: () => sendMenuAction(window, 'shortcut-tutor')
         },
         {
           label: 'About',

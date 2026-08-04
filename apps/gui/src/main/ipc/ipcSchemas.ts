@@ -1389,6 +1389,7 @@ export const ipcArgSchemas = {
   aiChatSessionSet: z.tuple([aiChatSession]),
   collectionRunnerConfigSet: z.tuple([collectionRunnerConfig]),
   shortcutOverridesSet: z.tuple([shortcutOverrides]),
+  shortcutCapturePausedSet: z.tuple([z.boolean()]),
   setCookies: z.tuple([domain, z.array(keyValue)]),
   collectionUpdate: z.tuple([
     dbId,

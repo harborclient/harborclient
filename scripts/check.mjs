@@ -5,8 +5,9 @@
  * `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and `pnpm test` are
  * independent, but running them one after another rebuilds the SDK twice
  * (typecheck and test both need its dist output) and leaves cores idle.
- * This orchestrator builds the SDK once, then runs all four checks in
- * parallel and reports every failure instead of stopping at the first.
+ * This orchestrator builds the SDK and shortcut-runner once, then runs all
+ * four checks in parallel and reports every failure instead of stopping at
+ * the first.
  *
  * Test execution goes through `test:packages`, which keeps the GUI suite
  * (and its native-module ABI rebuild) sequential after the other packages.
@@ -42,6 +43,18 @@ const buildStatus = spawnSync('pnpm', ['build:sdk'], {
 if (buildStatus !== 0) {
   console.error('check: build:sdk failed')
   process.exit(buildStatus ?? 1)
+}
+
+console.log('Building shortcut-runner...')
+const shortcutRunnerBuildStatus = spawnSync('pnpm', ['build:shortcut-runner'], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  env: process.env
+}).status
+
+if (shortcutRunnerBuildStatus !== 0) {
+  console.error('check: build:shortcut-runner failed')
+  process.exit(shortcutRunnerBuildStatus ?? 1)
 }
 
 console.log('Running lint, format:check, typecheck, and tests in parallel...')

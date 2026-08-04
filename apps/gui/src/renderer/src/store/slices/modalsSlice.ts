@@ -312,6 +312,13 @@ export interface AboutModalState {
   version: string;
 }
 
+/**
+ * Open/closed state for the Shortcut Tutor training game dialog.
+ */
+export interface ShortcutTutorModalState {
+  open: boolean;
+}
+
 export interface UpdateModalState {
   open: boolean;
   loading: boolean;
@@ -628,6 +635,7 @@ export interface ModalsState {
   pendingLoadDocument: PendingLoadDocument | null;
   quitPrompt: string[] | null;
   about: AboutModalState;
+  shortcutTutor: ShortcutTutorModalState;
   update: UpdateModalState;
   syncModal: SyncModalState;
   collectionRunner: CollectionRunnerState | null;
@@ -653,6 +661,7 @@ const initialState: ModalsState = {
   pendingLoadDocument: null,
   quitPrompt: null,
   about: { open: false, version: '' },
+  shortcutTutor: { open: false },
   update: { open: false, loading: false, result: null, error: null },
   syncModal: { open: false, running: false, providers: [], completed: 0, total: 0 },
   collectionRunner: null,
@@ -1499,6 +1508,18 @@ const modalsSlice = createSlice({
       state.about.version = action.payload;
     },
     /**
+     * Opens the Shortcut Tutor training game dialog.
+     */
+    openShortcutTutorModal(state) {
+      state.shortcutTutor = { open: true };
+    },
+    /**
+     * Closes the Shortcut Tutor training game dialog.
+     */
+    closeShortcutTutorModal(state) {
+      state.shortcutTutor = { open: false };
+    },
+    /**
      * Opens the check-for-updates dialog.
      */
     openUpdateModal(state) {
@@ -1952,6 +1973,8 @@ export const {
   openAboutModal,
   closeAboutModal,
   setAboutVersion,
+  openShortcutTutorModal,
+  closeShortcutTutorModal,
   openUpdateModal,
   closeUpdateModal,
   setUpdateLoading,
@@ -2082,6 +2105,12 @@ export const selectQuitPrompt = (state: RootState): string[] | null => state.mod
  * Returns about dialog open state and version.
  */
 export const selectAboutModal = (state: RootState): AboutModalState => state.modals.about;
+
+/**
+ * Returns Shortcut Tutor dialog open state.
+ */
+export const selectShortcutTutorModal = (state: RootState): ShortcutTutorModalState =>
+  state.modals.shortcutTutor;
 /**
  * Returns check-for-updates dialog state.
  */
@@ -2163,6 +2192,7 @@ export const selectHasBlockingModal = (state: RootState): boolean => {
     modals.actionMenu != null ||
     modals.hostedModal != null ||
     modals.about.open ||
+    modals.shortcutTutor.open ||
     modals.update.open ||
     modals.syncModal.open
   );

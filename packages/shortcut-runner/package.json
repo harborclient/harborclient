@@ -1,0 +1,44 @@
+{
+  "name": "@harborclient/shortcut-runner-game",
+  "version": "0.3.1",
+  "private": true,
+  "description": "A compact React shortcut-training runner game for HarborClient.",
+  "type": "module",
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -b",
+    "preview": "vite preview"
+  },
+  "peerDependencies": {
+    "react": ">=18.3.0",
+    "react-dom": ">=18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/node": "^22.20.1",
+    "@vitejs/plugin-react": "^6.0.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}

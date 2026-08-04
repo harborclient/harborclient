@@ -141,6 +141,13 @@ export interface ApiSettings {
    */
   resetShortcuts: () => Promise<ShortcutBinding[]>;
   /**
+   * Pauses or resumes global shortcut capture so focused UI (e.g. Shortcut Tutor)
+   * can receive key events without menu accelerators stealing them.
+   *
+   * @param paused - True to pause dispatch and clear menu accelerators.
+   */
+  setShortcutCapturePaused: (paused: boolean) => Promise<void>;
+  /**
    * Fetches or returns a cached OAuth 2.0 access token using Client Credentials.
    *
    * @param cacheKey - Stable cache key; empty string skips persistence.

@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAppSelector } from '#/renderer/src/store/hooks';
 import { selectActiveBrowserTab } from '#/renderer/src/store/selectors';
 import { AboutModal } from '#/renderer/src/ui/Modals/AboutModal';
+import { ShortcutTutorModal } from '#/renderer/src/ui/Modals/ShortcutTutorModal';
 import { SyncModal } from '#/renderer/src/ui/Modals/SyncModal';
 import { UpdateModal } from '#/renderer/src/ui/Modals/UpdateModal';
 import { AlertModal } from '#/renderer/src/ui/Modals/AlertModal';
@@ -50,6 +51,7 @@ export function Modals(): JSX.Element {
       <UnsavedLoadPrompt />
       <QuitPrompt />
       <AboutModal />
+      <ShortcutTutorModal />
       <UpdateModal />
       <SyncModal />
       <AlertModal />

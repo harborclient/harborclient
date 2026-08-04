@@ -120,6 +120,15 @@ const harborWorkspaceAliases = {
   '@harborclient/live-server': resolve(__dirname, '../../packages/live-server/src'),
   '@harborclient/storage-sqlite': resolve(__dirname, '../../packages/storage-sqlite/src'),
   '@harborclient/team-hub-api': resolve(__dirname, '../../packages/team-hub-api/src'),
+  // Point at the library entry (not the package root) so the Vite demo App is not pulled in.
+  '@harborclient/shortcut-runner-game': resolve(
+    __dirname,
+    '../../packages/shortcut-runner/src/lib/index.ts'
+  ),
+  '@harborclient/shortcut-runner-game/style.css': resolve(
+    __dirname,
+    '../../packages/shortcut-runner/src/lib/ShortcutRunnerGame.css'
+  ),
   ...buildHarborSdkSourceAliases()
 };
 

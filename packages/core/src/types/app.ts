@@ -75,6 +75,7 @@ export type MenuActionId =
   | 'about'
   | 'check-for-updates'
   | 'toggle-shortcuts-sidebar'
+  | 'shortcut-tutor'
   | 'action-menu'
   | 'undo'
   | 'redo'

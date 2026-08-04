@@ -9,6 +9,34 @@ import {
 } from '@harborclient/core/shortcuts';
 
 /**
+ * When true, action/zoom shortcut dispatch is skipped so focused renderer UI
+ * (Shortcut Tutor) receives key events. Menu accelerators are cleared separately
+ * when the application menu is rebuilt after this flag changes.
+ */
+let shortcutCapturePaused = false;
+
+/**
+ * Returns whether global shortcut capture is currently paused.
+ *
+ * @returns True when action/zoom dispatch should no-op.
+ */
+export function isShortcutCapturePaused(): boolean {
+  return shortcutCapturePaused;
+}
+
+/**
+ * Pauses or resumes matching of application keyboard shortcuts in the main process.
+ *
+ * Callers must rebuild the application menu after changing this so accelerators
+ * are cleared or restored.
+ *
+ * @param paused - True to ignore shortcut chords until resumed.
+ */
+export function setShortcutCapturePaused(paused: boolean): void {
+  shortcutCapturePaused = paused;
+}
+
+/**
  * Applies a matched zoom shortcut to the main renderer web contents.
  *
  * @param window - Main browser window whose UI should scale.
@@ -60,7 +88,7 @@ function chordFromInput(input: Input): KeyChord {
  * @returns True when an action shortcut matched and was dispatched.
  */
 export function tryDispatchActionShortcut(window: BrowserWindow, input: Input): boolean {
-  if (input.type !== 'keyDown' || input.isAutoRepeat) {
+  if (shortcutCapturePaused || input.type !== 'keyDown' || input.isAutoRepeat) {
     return false;
   }
 
@@ -96,7 +124,7 @@ export function tryDispatchActionShortcut(window: BrowserWindow, input: Input): 
  * @returns True when a zoom shortcut matched and was applied.
  */
 function tryDispatchZoomShortcut(window: BrowserWindow, input: Input): boolean {
-  if (input.type !== 'keyDown' || input.isAutoRepeat) {
+  if (shortcutCapturePaused || input.type !== 'keyDown' || input.isAutoRepeat) {
     return false;
   }
 

@@ -80,6 +80,7 @@ import {
   setShortcutOverrides,
   validateShortcuts
 } from '#/main/settings/shortcutSettings';
+import { setShortcutCapturePaused } from '#/main/shortcutDispatch';
 import type { ThemeSource } from '@harborclient/core/types';
 
 /**
@@ -1046,5 +1047,11 @@ export function registerSettingsHandlers(db: IStorage): void {
     const bindings = resetShortcuts();
     rebuildAppMenu();
     return bindings;
+  });
+
+  // Pauses shortcut dispatch and clears menu accelerators (e.g. Shortcut Tutor).
+  handle('shortcuts:setCapturePaused', ipcArgSchemas.shortcutCapturePausedSet, (_event, paused) => {
+    setShortcutCapturePaused(paused);
+    rebuildAppMenu();
   });
 }

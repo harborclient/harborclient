@@ -10,6 +10,7 @@ import {
   openCollectionModal,
   closeLiveServerModal,
   openActionMenuModal,
+  openShortcutTutorModal,
   openSyncModal,
   openUpdateModal
 } from '#/renderer/src/store/slices/modalsSlice';
@@ -381,6 +382,9 @@ export function useMenuActions(): void {
           break;
         case 'about':
           dispatch(openAboutModal());
+          break;
+        case 'shortcut-tutor':
+          dispatch(openShortcutTutorModal());
           break;
         case 'toggle-shortcuts-sidebar':
           dispatch(toggleShortcutsSidebar());

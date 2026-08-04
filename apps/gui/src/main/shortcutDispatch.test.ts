@@ -76,4 +76,25 @@ describe('tryDispatchActionShortcut', () => {
     expect(matched).toBe(false);
     expect(send).not.toHaveBeenCalled();
   });
+
+  it('ignores chords while shortcut capture is paused', async () => {
+    const { setShortcutCapturePaused, tryDispatchActionShortcut } =
+      await import('./shortcutDispatch');
+    const send = vi.fn();
+    const window = {
+      webContents: { send }
+    } as unknown as BrowserWindow;
+
+    setShortcutCapturePaused(true);
+    try {
+      const matched = tryDispatchActionShortcut(
+        window,
+        makeInput({ key: 's', code: 'KeyS', control: true })
+      );
+      expect(matched).toBe(false);
+      expect(send).not.toHaveBeenCalled();
+    } finally {
+      setShortcutCapturePaused(false);
+    }
+  });
 });
