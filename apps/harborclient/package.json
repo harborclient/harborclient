@@ -1,7 +1,7 @@
 {
   "name": "@harborclient/harborclient",
   "productName": "HarborClient",
-  "version": "2.11.3",
+  "version": "2.11.4",
   "private": true,
   "description": "HarborClient is a native desktop API workbench for building, sending, and inspecting HTTP requests. Debug what actually went over the wire, keep collections close to your development workflow, and share them through Git, Postgres, MySQL, Firestore, and more.",
   "main": "../gui/out/main/index.js",
