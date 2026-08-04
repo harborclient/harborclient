@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.11.4 - 2026-08-04
+
 - feat: enhance sidebar navigation and focus management. (`015e793a`)
 - feat: add activity rail support and close request tab shortcut. (`2b7baf93`)
 
