@@ -1,6 +1,6 @@
 {
   "name": "@harborclient/team-hub-api",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "TypeScript client for the HarborClient Team Hub API.",
   "keywords": [
     "harborclient",
