@@ -78,7 +78,9 @@ When you add or rename a public `hc.*` API:
    edit generated `docs/api/*.md` by hand. Run `pnpm docs:build:nav` to regenerate.
 5. Do not invent SDK package versions (`sdk-v*`) for `since`.
 6. Do not edit site-synced copies under `harborclient/site`; sync pulls from
-   this package via `scripts/sync-sdk-hc-method.mjs`.
+   this package via `scripts/sync-sdk-hc-method.mjs` (HC method UI) and
+   `scripts/sync-sdk-docs-nav.mjs` (sidebar order from this package's
+   `docs-nav.config.mjs`).
 
 Do not re-run git archaeology for historical `since` values. New APIs always
 use the planned desktop release version above.

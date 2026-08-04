@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- docs(sdk): update AGENTS.md to include additional sync script details. (`61daf83a`)
 - docs(sdk): clean up API index documentation by removing empty entries. (`d6cfb700`)
 - refactor(sdk): replace installReact with setHostReact for improved plugin integration. (`3acb19dd`)
 - feat(docs): update SDK documentation and improve manifest guidelines. (`a85afcea`)
