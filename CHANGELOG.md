@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.11.3 - 2026-08-04
+
 - feat: enhance context menu with JSON body formatting options. (`6381c2e6`)
 - refactor: clean up BodyEditor layout and remove unused styles. (`39992629`)
 - feat: add footer component to the main application layout. (`726da17f`)
