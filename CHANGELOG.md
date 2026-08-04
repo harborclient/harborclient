@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(docs): update SDK documentation and improve manifest guidelines. (`a85afcea`)
+
 ## 2.11.1 - 2026-08-03
 
 - feat(docs): enhance SDK documentation and update API references. (`6331350c`)

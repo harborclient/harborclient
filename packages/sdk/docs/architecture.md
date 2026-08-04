@@ -1,8 +1,12 @@
 # Architecture
 
-## Two runtimes
+A HarborClient plugin is long-lived code the host loads into the desktop app. On activation, HarborClient imports your entry module and calls `activate(hc)`, passing the same `hc` API namespace used by [request scripts](https://harborclient.com/request-scripts) — but with a broader surface for UI, storage, HTTP hooks, and more.
 
-Plugins can ship a renderer entry, a main entry, or both:
+Where that code actually runs is the **runtime**: the process and sandbox HarborClient starts for your entry. HarborClient is an Electron app, so UI and privileged background work live in different processes. Plugins follow the same split. Your `manifest.json` can declare a **renderer** entry, a **main** entry, or both, depending on what the plugin needs to do.
+
+Most plugins only need the **renderer** runtime — React panels, tabs, and other UI that talk to the host over IPC. Add a **main** entry when you need HTTP lifecycle hooks, custom IPC handlers, or other background logic that should not run in the UI process. Theme-only packages can omit both entries.
+
+## Two runtimes
 
 | Entry        | Runs in              | Purpose                                   | Sandbox                                        |
 | ------------ | -------------------- | ----------------------------------------- | ---------------------------------------------- |
@@ -53,4 +57,4 @@ flowchart TD
 
 Registrations from `hc.ui.*` and similar APIs return **disposables** that the host tracks automatically on deactivation. Dispose custom resources (timers, focus sync, etc.) in `deactivate()` or React effect cleanup.
 
-See [Permissions](/permissions) for the capability model and [Dev workflow](/dev-workflow) for unpacked development loading.
+See [Permissions](/manifest#permissions) for the capability model and [Dev workflow](/dev-workflow) for unpacked development loading.

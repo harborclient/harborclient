@@ -104,6 +104,18 @@ function runPackageScript(filter, script) {
 }
 
 /**
+ * Former package doc routes that now live under a different path on harborclient.com.
+ *
+ * Keys are `${packageSlug}/${routePath}`; values are the replacement path under that
+ * package (may include a hash). Keeps GitHub Pages stubs working after merges.
+ *
+ * @type {Record<string, string>}
+ */
+const routeAliases = {
+  'sdk/package-layout': 'manifest#package-layout'
+};
+
+/**
  * Builds the harborclient.com destination URL for a package docs path.
  *
  * @param {string} packageSlug - Package URL segment.
@@ -111,25 +123,32 @@ function runPackageScript(filter, script) {
  * @returns {string} Absolute destination URL.
  */
 function destinationUrl(packageSlug, routePath) {
-  if (!routePath) {
+  const alias = routeAliases[`${packageSlug}/${routePath}`];
+  const resolvedPath = alias ?? routePath;
+
+  if (!resolvedPath) {
     return `${siteOrigin}/${packageSlug}/`;
   }
 
-  if (routePath.endsWith('/')) {
-    return `${siteOrigin}/${packageSlug}/${routePath}`;
+  if (resolvedPath.endsWith('/')) {
+    return `${siteOrigin}/${packageSlug}/${resolvedPath}`;
   }
 
-  return `${siteOrigin}/${packageSlug}/${routePath}`;
+  return `${siteOrigin}/${packageSlug}/${resolvedPath}`;
 }
 
 /**
  * Builds a minimal HTML redirect page that preserves hash fragments.
+ *
+ * When the destination already includes a hash (route alias), the incoming
+ * `location.hash` is ignored so aliases are not doubled.
  *
  * @param {string} destination - Absolute URL to redirect to.
  * @returns {string} HTML document contents.
  */
 function buildRedirectHtml(destination) {
   const escaped = destination.replace(/"/g, '&quot;');
+  const hasHash = destination.includes('#');
 
   return `<!doctype html>
 <html lang="en">
@@ -142,7 +161,8 @@ function buildRedirectHtml(destination) {
     <script>
       (function () {
         var destination = ${JSON.stringify(destination)};
-        location.replace(destination + location.hash);
+        var hasHash = ${JSON.stringify(hasHash)};
+        location.replace(hasHash ? destination : destination + location.hash);
       })();
     </script>
   </head>

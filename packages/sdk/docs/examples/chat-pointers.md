@@ -15,7 +15,7 @@ sequenceDiagram
   Host->>Chat: open sidebar, show @… badge
 ```
 
-See [hc.ai](/api/ai) for the API reference and [Permissions](/permissions) for the `ai` capability flag. For always-on prompt fragments and per-turn hooks, see [AI instructions and turn hooks](/examples/ai-instructions-turn-hooks).
+See [hc.ai](/api/ai) for the API reference and [Permissions](/manifest#permissions) for the `ai` capability flag. For always-on prompt fragments and per-turn hooks, see [AI instructions and turn hooks](/examples/ai-instructions-turn-hooks).
 
 ## Manifest
 
@@ -24,6 +24,8 @@ See [hc.ai](/api/ai) for the API reference and [Permissions](/permissions) for t
   "id": "com.example.scripts",
   "name": "Example Scripts",
   "version": "1.0.0",
+  "engines": { "harborclient": ">=2.8.8" },
+  "renderer": "dist/renderer.js",
   "permissions": ["ai", "ui"]
 }
 ```
@@ -76,7 +78,7 @@ export function activate(hc) {
 ### Default grammar
 
 ```jsx
-import { CodeEditor, CopyToChatButton } from '@harborclient/sdk/components';
+import { CodeEditor } from '@harborclient/sdk/components';
 
 function ScriptEditor({ scriptUuid, scriptName, source }) {
   return (
@@ -101,7 +103,7 @@ function ScriptEditor({ scriptUuid, scriptName, source }) {
 }
 ```
 
-Harbor builds `@plugin.com.example.scripts.script.<scriptUuid>#from.to`, stores your label/context snapshot, and inserts a badge into the composer.
+Harbor builds `@plugin.com.example.scripts.script.<scriptUuid>#from.to`, stores your label/context snapshot, and inserts a badge into the composer. Pair with [`CopyToChatButton`](/components/copy-to-chat-button) when you need a dedicated control outside the editor toolbar.
 
 ### Custom match
 

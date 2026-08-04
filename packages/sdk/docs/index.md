@@ -6,21 +6,18 @@ HarborClient plugins extend the app with installable packages: custom settings p
 
 To install or manage plugins in the app, see [Plugins](https://harborclient.com/plugins) (**File → Plugins**) or browse the [plugin marketplace](https://harborclient.com/plugins). For theme packages, see [Themes](https://harborclient.com/themes) (**File → Themes**). This guide covers package layout, the manifest, APIs, examples, and the development workflow.
 
+Looking for inspiration? [Explore the HarborClient developer blog](https://harborclient-blog.com/developer/) for deep dives, recipes, and real-world plugin patterns.
+
 ## Guide
 
 - [Install](/install) — add `@harborclient/sdk` to your plugin project
 - [Quick start](/usage) — minimal renderer and main entry examples
-- [Package layout](/package-layout) — directory structure for a `.hcp` package
-- [Manifest](/manifest) — `manifest.json` fields, metadata, and contribution types
-- [Permissions](/permissions) — capability model and install-time grants
+- [Manifest](/manifest) — package layout, `manifest.json` fields, permissions, and contribution types
 - [Architecture](/architecture) — renderer vs main runtimes and plugin lifecycle
 - [Building](/building) — bundling and packaging as `.hcp`
 - [Dev workflow](/dev-workflow) — unpacked loading, hot reload, and startup options
 - [API](/api/) — `hc.*` reference by namespace (UI, HTTP, Host, Themes, …)
 - [Index](/api-index) — alphabetical `hc.*` method index
-- [Snippets](/snippets) — types and import syntax for request script snippet files
 - [Components](/storybook/index.html) — interactive component explorer (Storybook)
-- [Examples](/examples/) — request logger, audit tab, Solarized theme, and import handler
+- [Examples](/examples/) — HTTP hooks, themes, import handlers, AI/MCP, sidebar replacement, and more
 - [Marketplace](/marketplace) — publish to the HarborClient plugin catalog
-- [Performance](/performance) — IPC and rendering best practices
-- [Plugins vs scripts](/vs-request-scripts) — how plugins differ from request scripts

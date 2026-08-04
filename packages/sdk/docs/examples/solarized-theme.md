@@ -16,7 +16,7 @@ You can ship the same palette with **JavaScript** (`registerTheme`) or with a **
   "name": "Solarized Theme",
   "version": "1.0.0",
   "categories": ["themes", "dark"],
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "renderer": "dist/renderer.js",
   "permissions": ["ui"],
   "contributes": {
@@ -83,7 +83,7 @@ Point the contribution at a Theme Designer export. HarborClient auto-registers t
   "name": "Solarized Theme",
   "version": "1.0.0",
   "categories": ["themes", "dark"],
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "permissions": ["ui"],
   "contributes": {
     "themes": [
@@ -140,4 +140,4 @@ Ship any extra CSS next to the JSON. On first read, HarborClient inlines the fil
 
 Packaging for a JSON-only theme: `manifest.json`, `exported.json`, and optionally `styles.css` (plus listing assets). No `dist/` bundle is required.
 
-See [hc.themes](/api/) for the full themes API reference, [JSON theme import](/api/themes) for envelope details, and [Theme plugins](/manifest#theme-plugins) for manifest classification.
+See [hc.themes](/api/themes) for the full themes API reference, [JSON theme import](/api/themes) for envelope details, and [Theme plugins](/manifest#theme-plugins) for manifest classification.

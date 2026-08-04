@@ -11,6 +11,8 @@ See [hc.ai](/api/ai) for the full reference and [Chat pointers](/examples/chat-p
   "id": "com.example.ai-policy",
   "name": "Example AI Policy",
   "version": "1.0.0",
+  "engines": { "harborclient": ">=2.0.0" },
+  "renderer": "dist/renderer.js",
   "permissions": ["ai"]
 }
 ```

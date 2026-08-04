@@ -44,7 +44,7 @@ Example file the handler recognizes:
   "name": "Request Bundle Import",
   "version": "1.0.0",
   "categories": ["import"],
-  "engines": { "harborclient": ">=1.9.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "renderer": "dist/renderer.js",
   "permissions": ["ui"],
   "contributes": {
@@ -78,7 +78,7 @@ export function consumePendingImport(): ImportFile | null {
 ## src/renderer.tsx
 
 ```tsx
-import { installReact, registerImportHandler } from '@harborclient/sdk';
+import { registerImportHandler } from '@harborclient/sdk';
 import type { PluginContext } from '@harborclient/sdk';
 import { ImportPreview } from './ImportPreview';
 import { setPendingImport } from './importSession';
@@ -105,8 +105,6 @@ function canImportRequestBundle(contents: string): boolean {
 }
 
 export function activate(hc: PluginContext): void {
-  installReact(hc.react);
-
   function ImportPreviewHost() {
     return <ImportPreview hc={hc} />;
   }
@@ -213,4 +211,4 @@ registerImportHandler(hc, '.json', {
 
 - **`canImport` must be cheap and conservative** — for `.json` files, parse once and check a discriminator field. Built-in importers already handle HarborClient exports, Postman, Bruno, HAR, OpenCollection, and OpenAPI; return `false` for those shapes.
 - **Register every extension you support** — `['.json', '.yaml', '.yml']` adds all three to the import file picker.
-- **Use `hc.host.createCollection`** for bulk collection creation. See [Themes and storage → hc.host](/api/host#hchostcreatecollectionpayload) for the payload shape.
+- **Use `hc.host.createCollection`** for bulk collection creation. See [Host → hc.host.createCollection](/api/host#hchostcreatecollectionpayload) for the payload shape.

@@ -51,82 +51,6 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Package layout",
-    "link": "/package-layout"
-  },
-  {
-    "text": "Manifest",
-    "link": "/manifest",
-    "items": [
-      {
-        "text": "Plugin metadata",
-        "link": "/manifest#plugin-metadata",
-        "items": [
-          {
-            "text": "summary",
-            "link": "/manifest#summary"
-          },
-          {
-            "text": "description",
-            "link": "/manifest#description"
-          }
-        ],
-        "collapsed": false
-      },
-      {
-        "text": "Permissions",
-        "link": "/manifest#permissions",
-        "items": [
-          {
-            "text": "icon",
-            "link": "/manifest#icon"
-          },
-          {
-            "text": "Screenshots",
-            "link": "/manifest#screenshots"
-          },
-          {
-            "text": "author, homepage, and bugs",
-            "link": "/manifest#author-homepage-and-bugs"
-          }
-        ],
-        "collapsed": false
-      },
-      {
-        "text": "Permissions",
-        "link": "/manifest#permissions-1"
-      },
-      {
-        "text": "Permissions",
-        "link": "/manifest#permissions-2"
-      },
-      {
-        "text": "Theme plugins",
-        "link": "/manifest#theme-plugins"
-      },
-      {
-        "text": "Contribution types",
-        "link": "/manifest#contribution-types",
-        "items": [
-          {
-            "text": "Replacing the Collections sidebar",
-            "link": "/manifest#replacing-the-collections-sidebar"
-          },
-          {
-            "text": "Activity-rail sidebar destinations",
-            "link": "/manifest#activity-rail-sidebar-destinations"
-          }
-        ],
-        "collapsed": false
-      }
-    ],
-    "collapsed": false
-  },
-  {
-    "text": "Permissions",
-    "link": "/permissions"
-  },
-  {
     "text": "Architecture",
     "link": "/architecture",
     "items": [
@@ -142,28 +66,55 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
+    "text": "Manifest",
+    "link": "/manifest",
+    "items": [
+      {
+        "text": "Package layout",
+        "link": "/manifest#package-layout"
+      },
+      {
+        "text": "Fields",
+        "link": "/manifest#fields"
+      },
+      {
+        "text": "Plugin metadata",
+        "link": "/manifest#plugin-metadata"
+      },
+      {
+        "text": "Permissions",
+        "link": "/manifest#permissions"
+      },
+      {
+        "text": "Theme plugins",
+        "link": "/manifest#theme-plugins"
+      },
+      {
+        "text": "Contribution types",
+        "link": "/manifest#contribution-types"
+      }
+    ],
+    "collapsed": false
+  },
+  {
     "text": "Building",
     "link": "/building",
     "items": [
-      {
-        "text": "Packaging as .hcp",
-        "link": "/building#packaging-as-hcp"
-      },
       {
         "text": "Recommended project setup",
         "link": "/building#recommended-project-setup"
       },
       {
-        "text": "Sign your plugin",
-        "link": "/building#sign-your-plugin"
-      },
-      {
-        "text": "TypeScript",
-        "link": "/building#typescript"
+        "text": "Build with pnpm",
+        "link": "/building#build-with-pnpm"
       },
       {
         "text": "Main entry",
         "link": "/building#main-entry"
+      },
+      {
+        "text": "Serve or package the plugin",
+        "link": "/building#serve-or-package-the-plugin"
       }
     ],
     "collapsed": false
@@ -237,556 +188,85 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "items": [
       {
         "text": "UI",
-        "link": "/api/ui",
-        "items": [
-          {
-            "text": "PluginContext and contribution types",
-            "link": "/api/ui#plugincontext-and-contribution-types"
-          },
-          {
-            "text": "hc.ui.closeModal(modalId?)",
-            "link": "/api/ui#hcuiclosemodalmodalid"
-          },
-          {
-            "text": "hc.ui.openModal(modalId, context?)",
-            "link": "/api/ui#hcuiopenmodalmodalid-context"
-          },
-          {
-            "text": "hc.ui.registerCollectionSettingsTab(tab)",
-            "link": "/api/ui#hcuiregistercollectionsettingstabtab"
-          },
-          {
-            "text": "hc.ui.registerContextMenuItem(item)",
-            "link": "/api/ui#hcuiregistercontextmenuitemitem"
-          },
-          {
-            "text": "hc.ui.registerFooterPanel(panel)",
-            "link": "/api/ui#hcuiregisterfooterpanelpanel"
-          },
-          {
-            "text": "hc.ui.registerLivePageChromeAction(action)",
-            "link": "/api/ui#hcuiregisterlivepagechromeactionaction"
-          },
-          {
-            "text": "hc.ui.registerMainView(view)",
-            "link": "/api/ui#hcuiregistermainviewview"
-          },
-          {
-            "text": "hc.ui.registerMenuItem(item)",
-            "link": "/api/ui#hcuiregistermenuitemitem"
-          },
-          {
-            "text": "hc.ui.registerModal(modal)",
-            "link": "/api/ui#hcuiregistermodalmodal"
-          },
-          {
-            "text": "hc.ui.registerRequestTab(tab)",
-            "link": "/api/ui#hcuiregisterrequesttabtab"
-          },
-          {
-            "text": "hc.ui.registerRequestToolbarAction(action)",
-            "link": "/api/ui#hcuiregisterrequesttoolbaractionaction"
-          },
-          {
-            "text": "hc.ui.registerResponseTab(tab)",
-            "link": "/api/ui#hcuiregisterresponsetabtab"
-          },
-          {
-            "text": "hc.ui.registerScriptEditorAction(action)",
-            "link": "/api/ui#hcuiregisterscripteditoractionaction"
-          },
-          {
-            "text": "hc.ui.registerSettingsSection(section)",
-            "link": "/api/ui#hcuiregistersettingssectionsection"
-          },
-          {
-            "text": "hc.ui.registerSidebarPanel(panel)",
-            "link": "/api/ui#hcuiregistersidebarpanelpanel"
-          },
-          {
-            "text": "hc.ui.registerSidebarRailItem(item)",
-            "link": "/api/ui#hcuiregistersidebarrailitemitem"
-          },
-          {
-            "text": "hc.ui.registerSidebarSection(section)",
-            "link": "/api/ui#hcuiregistersidebarsectionsection"
-          },
-          {
-            "text": "hc.ui.registerStatusBarItem(item)",
-            "link": "/api/ui#hcuiregisterstatusbaritemitem"
-          },
-          {
-            "text": "hc.ui.registerWorkflowActionBlock(block)",
-            "link": "/api/ui#hcuiregisterworkflowactionblockblock"
-          },
-          {
-            "text": "hc.ui.registerWorkflowToolbarAction(action)",
-            "link": "/api/ui#hcuiregisterworkflowtoolbaractionaction"
-          },
-          {
-            "text": "hc.ui.setFooterPanelIndicator(panelId, state)",
-            "link": "/api/ui#hcuisetfooterpanelindicatorpanelid-state"
-          },
-          {
-            "text": "hc.ui.showToast(message, options?)",
-            "link": "/api/ui#hcuishowtoastmessage-options"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/ui"
       },
       {
         "text": "Actions",
-        "link": "/api/actions",
-        "items": [
-          {
-            "text": "hc.actions.register(namespace, handlers)",
-            "link": "/api/actions#hcactionsregisternamespace-handlers"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/actions"
       },
       {
         "text": "Themes",
-        "link": "/api/themes",
-        "items": [
-          {
-            "text": "hc.themes.getActive()",
-            "link": "/api/themes#hcthemesgetactive"
-          },
-          {
-            "text": "hc.themes.onDidChange(listener)",
-            "link": "/api/themes#hcthemesondidchangelistener"
-          },
-          {
-            "text": "hc.themes.register(theme)",
-            "link": "/api/themes#hcthemesregistertheme"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/themes"
       },
       {
         "text": "Commands",
-        "link": "/api/commands",
-        "items": [
-          {
-            "text": "Global variables",
-            "link": "/api/commands#global-variables"
-          },
-          {
-            "text": "hc.commands.execute(id, ...args)",
-            "link": "/api/commands#hccommandsexecuteid-args"
-          },
-          {
-            "text": "hc.commands.register(id, handler)",
-            "link": "/api/commands#hccommandsregisterid-handler"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/commands"
       },
       {
         "text": "Storage",
-        "link": "/api/storage",
-        "items": [
-          {
-            "text": "Main entry",
-            "link": "/api/storage#main-entry"
-          },
-          {
-            "text": "hc.storage.get(key)",
-            "link": "/api/storage#hcstoragegetkey"
-          },
-          {
-            "text": "hc.storage.set(key, value)",
-            "link": "/api/storage#hcstoragesetkey-value"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/storage"
       },
       {
         "text": "Database",
-        "link": "/api/database",
-        "items": [
-          {
-            "text": "Main entry",
-            "link": "/api/database#main-entry"
-          },
-          {
-            "text": "hc.database.all(sql, params?)",
-            "link": "/api/database#hcdatabaseallsql-params"
-          },
-          {
-            "text": "hc.database.exec(sql)",
-            "link": "/api/database#hcdatabaseexecsql"
-          },
-          {
-            "text": "hc.database.get(sql, params?)",
-            "link": "/api/database#hcdatabasegetsql-params"
-          },
-          {
-            "text": "hc.database.run(sql, params?)",
-            "link": "/api/database#hcdatabaserunsql-params"
-          },
-          {
-            "text": "hc.database.transaction(fn)",
-            "link": "/api/database#hcdatabasetransactionfn"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/database"
       },
       {
         "text": "FS",
-        "link": "/api/fs",
-        "items": [
-          {
-            "text": "hc.fs.pickDirectory(defaultPath?)",
-            "link": "/api/fs#hcfspickdirectorydefaultpath"
-          },
-          {
-            "text": "hc.fs.pickFile(options?)",
-            "link": "/api/fs#hcfspickfileoptions"
-          },
-          {
-            "text": "hc.fs.readFile(path)",
-            "link": "/api/fs#hcfsreadfilepath"
-          },
-          {
-            "text": "hc.fs.saveFile(content, options?)",
-            "link": "/api/fs#hcfssavefilecontent-options"
-          },
-          {
-            "text": "hc.fs.writeBytes(path, bytes)",
-            "link": "/api/fs#hcfswritebytespath-bytes"
-          },
-          {
-            "text": "hc.fs.writeFile(path, content)",
-            "link": "/api/fs#hcfswritefilepath-content"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/fs"
       },
       {
         "text": "HTTP",
-        "link": "/api/http",
-        "items": [
-          {
-            "text": "Renderer",
-            "link": "/api/http#renderer"
-          },
-          {
-            "text": "Main entry",
-            "link": "/api/http#main-entry"
-          },
-          {
-            "text": "hc.http.onAfterScripts(handler)",
-            "link": "/api/http#hchttponafterscriptshandler"
-          },
-          {
-            "text": "hc.http.onAfterSend(handler)",
-            "link": "/api/http#hchttponaftersendhandler"
-          },
-          {
-            "text": "hc.http.onBeforeScripts(handler)",
-            "link": "/api/http#hchttponbeforescriptshandler"
-          },
-          {
-            "text": "hc.http.onBeforeSend(handler)",
-            "link": "/api/http#hchttponbeforesendhandler"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/http"
       },
       {
         "text": "IPC",
-        "link": "/api/ipc",
-        "items": [
-          {
-            "text": "Renderer",
-            "link": "/api/ipc#renderer"
-          },
-          {
-            "text": "Main entry",
-            "link": "/api/ipc#main-entry"
-          },
-          {
-            "text": "hc.ipc.handle(channel, handler)",
-            "link": "/api/ipc#hcipchandlechannel-handler"
-          },
-          {
-            "text": "hc.ipc.invoke(channel, ...args)",
-            "link": "/api/ipc#hcipcinvokechannel-args"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/ipc"
       },
       {
         "text": "Host",
-        "link": "/api/host",
-        "items": [
-          {
-            "text": "hc.host.applyRequestDraft(payload)",
-            "link": "/api/host#hchostapplyrequestdraftpayload"
-          },
-          {
-            "text": "hc.host.createCollection(payload)",
-            "link": "/api/host#hchostcreatecollectionpayload"
-          },
-          {
-            "text": "hc.host.fetch(input, init?)",
-            "link": "/api/host#hchostfetchinput-init"
-          },
-          {
-            "text": "hc.host.loadRequest(requestId)",
-            "link": "/api/host#hchostloadrequestrequestid"
-          },
-          {
-            "text": "hc.host.openImageView(payload)",
-            "link": "/api/host#hchostopenimageviewpayload"
-          },
-          {
-            "text": "hc.host.openRequestDraft(payload)",
-            "link": "/api/host#hchostopenrequestdraftpayload"
-          },
-          {
-            "text": "hc.host.send()",
-            "link": "/api/host#hchostsend"
-          },
-          {
-            "text": "hc.host.showEntityContextMenu(input)",
-            "link": "/api/host#hchostshowentitycontextmenuinput"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/host"
       },
       {
         "text": "Imports",
-        "link": "/api/imports",
-        "items": [
-          {
-            "text": "hc.imports.registerHandler(extensions, handler)",
-            "link": "/api/imports#hcimportsregisterhandlerextensions-handler"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/imports"
       },
       {
         "text": "MCP",
-        "link": "/api/mcp",
-        "items": [
-          {
-            "text": "hc.mcp.registerServer(config)",
-            "link": "/api/mcp#hcmcpregisterserverconfig"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/mcp"
       },
       {
         "text": "Live servers",
-        "link": "/api/liveServers",
-        "items": [
-          {
-            "text": "hc.liveServers.clearLogs(query)",
-            "link": "/api/liveServers#hcliveserversclearlogsquery"
-          },
-          {
-            "text": "hc.liveServers.create(input)",
-            "link": "/api/liveServers#hcliveserverscreateinput"
-          },
-          {
-            "text": "hc.liveServers.delete(id)",
-            "link": "/api/liveServers#hcliveserversdeleteid"
-          },
-          {
-            "text": "hc.liveServers.get(idOrUuid)",
-            "link": "/api/liveServers#hcliveserversgetidoruuid"
-          },
-          {
-            "text": "hc.liveServers.getLogs(query)",
-            "link": "/api/liveServers#hcliveserversgetlogsquery"
-          },
-          {
-            "text": "hc.liveServers.getStatus(query)",
-            "link": "/api/liveServers#hcliveserversgetstatusquery"
-          },
-          {
-            "text": "hc.liveServers.list()",
-            "link": "/api/liveServers#hcliveserverslist"
-          },
-          {
-            "text": "hc.liveServers.listRunning()",
-            "link": "/api/liveServers#hcliveserverslistrunning"
-          },
-          {
-            "text": "hc.liveServers.onRequestLog(listener)",
-            "link": "/api/liveServers#hcliveserversonrequestloglistener"
-          },
-          {
-            "text": "hc.liveServers.onRunningChanged(listener)",
-            "link": "/api/liveServers#hcliveserversonrunningchangedlistener"
-          },
-          {
-            "text": "hc.liveServers.start(input)",
-            "link": "/api/liveServers#hcliveserversstartinput"
-          },
-          {
-            "text": "hc.liveServers.stop(query)",
-            "link": "/api/liveServers#hcliveserversstopquery"
-          },
-          {
-            "text": "hc.liveServers.update(input)",
-            "link": "/api/liveServers#hcliveserversupdateinput"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/liveServers"
       },
       {
         "text": "Live pages",
-        "link": "/api/livePages",
-        "items": [
-          {
-            "text": "hc.livePages.create(input)",
-            "link": "/api/livePages#hclivepagescreateinput"
-          },
-          {
-            "text": "hc.livePages.delete(id)",
-            "link": "/api/livePages#hclivepagesdeleteid"
-          },
-          {
-            "text": "hc.livePages.get(idOrUuid)",
-            "link": "/api/livePages#hclivepagesgetidoruuid"
-          },
-          {
-            "text": "hc.livePages.list()",
-            "link": "/api/livePages#hclivepageslist"
-          },
-          {
-            "text": "hc.livePages.update(input)",
-            "link": "/api/livePages#hclivepagesupdateinput"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/livePages"
       },
       {
         "text": "Live page",
-        "link": "/api/livePage",
-        "items": [
-          {
-            "text": "hc.livePage",
-            "link": "/api/livePage#hclivepage"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/livePage"
       },
       {
         "text": "AI",
-        "link": "/api/ai",
-        "items": [
-          {
-            "text": "hc.ai.copyToChat(input)",
-            "link": "/api/ai#hcaicopytochatinput"
-          },
-          {
-            "text": "hc.ai.instructions.add(text)",
-            "link": "/api/ai#hcaiinstructionsaddtext"
-          },
-          {
-            "text": "hc.ai.onAfterTurn(handler)",
-            "link": "/api/ai#hcaionafterturnhandler"
-          },
-          {
-            "text": "hc.ai.onBeforeTurn(handler)",
-            "link": "/api/ai#hcaionbeforeturnhandler"
-          },
-          {
-            "text": "hc.ai.registerChatPointer(config)",
-            "link": "/api/ai#hcairegisterchatpointerconfig"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/ai"
       },
       {
         "text": "Server",
-        "link": "/api/server",
-        "items": [
-          {
-            "text": "hc.server.onRequest(handler)",
-            "link": "/api/server#hcserveronrequesthandler"
-          },
-          {
-            "text": "hc.server.start(options?)",
-            "link": "/api/server#hcserverstartoptions"
-          },
-          {
-            "text": "hc.server.stop()",
-            "link": "/api/server#hcserverstop"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/server"
       },
       {
         "text": "Scripts",
-        "link": "/api/scripts",
-        "items": [
-          {
-            "text": "hc.scripts",
-            "link": "/api/scripts#hcscripts"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/scripts"
       },
       {
         "text": "pluginId",
-        "link": "/api/pluginId",
-        "items": [
-          {
-            "text": "hc.pluginId",
-            "link": "/api/pluginId#hcpluginid"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/pluginId"
       },
       {
         "text": "React",
-        "link": "/api/react",
-        "items": [
-          {
-            "text": "hc.react",
-            "link": "/api/react#hcreact"
-          }
-        ],
-        "collapsed": false
+        "link": "/api/react"
       }
     ]
-  },
-  {
-    "text": "Snippets",
-    "link": "/snippets",
-    "items": [
-      {
-        "text": "TypeScript and editor support",
-        "link": "/snippets#typescript-and-editor-support"
-      },
-      {
-        "text": "Importable snippet names",
-        "link": "/snippets#importable-snippet-names"
-      },
-      {
-        "text": "Exporting from snippets",
-        "link": "/snippets#exporting-from-snippets"
-      },
-      {
-        "text": "Importing snippets",
-        "link": "/snippets#importing-snippets"
-      },
-      {
-        "text": "Limits",
-        "link": "/snippets#limits"
-      },
-      {
-        "text": "See also",
-        "link": "/snippets#see-also"
-      }
-    ],
-    "collapsed": false
   },
   {
     "text": "Examples",
@@ -859,19 +339,7 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "collapsed": false
   },
   {
-    "text": "Performance",
-    "link": "/performance"
-  },
-  {
-    "text": "Plugins vs scripts",
-    "link": "/vs-request-scripts"
-  },
-  {
-    "text": "License",
-    "link": "/license"
-  },
-  {
-    "text": "Index",
+    "text": "API Index",
     "link": "/api-index"
   }
 ]

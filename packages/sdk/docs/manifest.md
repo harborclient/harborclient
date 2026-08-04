@@ -1,6 +1,50 @@
 # Manifest
 
-Every plugin requires a manifest at the root of the `.hcp` archive. The example below shows every field; real plugins usually declare only the entries they use.
+Every plugin requires a `manifest.json` at the root of the `.hcp` archive (ZIP format). Pack that file with your bundled entry points and listing assets as shown below.
+
+## Package layout
+
+Author source in JS or TS, bundle to `dist/*.js`, then pack the manifest and output files into a `.hcp` file:
+
+```
+my-plugin/
+├── manifest.json
+├── README.md               # or description.md — full Markdown listing (see below)
+├── assets/
+│   ├── icon.png            # plugin icon (referenced by manifest)
+│   └── screenshots/        # gallery images for the Plugins or Themes detail modal
+│       ├── settings.png
+│       └── sidebar.png
+├── src/                    # author source (optional, not loaded at runtime)
+│   ├── renderer.tsx
+│   └── main.ts
+└── dist/
+    ├── renderer.js         # referenced by manifest "renderer"
+    ├── main.js             # referenced by manifest "main" (optional)
+    └── theme.css           # optional stylesheet for contributes.themes
+```
+
+At runtime HarborClient reads `manifest.json`, the Markdown description, icon, screenshots, and the files referenced under `dist/`.
+
+### Theme-only package (JSON import)
+
+An appearance theme that uses `contributes.themes[].import` can omit `renderer` / `main` and `dist/` entirely:
+
+```
+my-theme/
+├── manifest.json           # contributes.themes[].import → exported.json
+├── exported.json           # harborclientExport: "theme" envelope
+├── styles.css              # optional; inlined into exported.json on first read
+├── README.md
+└── assets/
+    └── icon.png
+```
+
+See [JSON theme import](/api/themes) and [Solarized theme](/examples/solarized-theme#json-import-no-javascript). See [Building](/building) for packaging steps.
+
+## Fields
+
+The example below shows every field; real plugins usually declare only the entries they use.
 
 ```json
 {
@@ -153,22 +197,42 @@ All URL fields must use `https://` (or `http://` for local development documenta
 
 ## Permissions
 
-Declare required capabilities in the `permissions` array. HarborClient summarizes them in the install confirmation dialog. See [Permissions](/permissions) for the full table.
+HarborClient uses a trusted-extension model similar to VS Code or Obsidian. Declare required capabilities in the `permissions` array. HarborClient summarizes them in the install confirmation dialog and enforces them in the main process on every privileged `hc.*` call.
 
-Common renderer permissions:
+| Permission         | Grants                                                                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ui`               | All `hc.ui.register*` methods, `hc.themes.register`, `hc.imports.registerHandler`, `registerImportHandler`, `hc.ui.showToast`, and `hc.commands.register` |
+| `storage`          | Plugin-scoped persistent key-value storage via `hc.storage`                                                                                               |
+| `database`         | Plugin-scoped private SQLite database via `hc.database` (one file per plugin under userData)                                                              |
+| `filesystem:pick`  | Open and save dialogs; read and write only user-selected paths                                                                                            |
+| `filesystem:read`  | Read from allowlisted paths (plugin directory plus granted paths)                                                                                         |
+| `filesystem:write` | Write to allowlisted paths                                                                                                                                |
+| `http`             | Hook into or send HTTP from main via `hc.http.onBeforeSend` / `onAfterSend`                                                                               |
+| `scripts:inject`   | Inject and observe pre/post request scripts via `hc.http.onBeforeScripts` / `onAfterScripts`                                                              |
+| `network`          | Outbound HTTP from the renderer via `hc.host.fetch` (gated by Settings → General)                                                                         |
+| `ipc`              | Register custom IPC handlers via `hc.ipc.handle`                                                                                                          |
+| `server`           | Local HTTP echo server via `hc.server` (express listener in the Electron main process)                                                                    |
+| `live-server`      | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                                                                                 |
+| `live-pages`       | Create, update, and delete saved Live Pages (websites) via `hc.livePages`                                                                                 |
+| `mcp`              | Register remote MCP client servers for Harbor's chat agent via `hc.mcp.registerServer`                                                                    |
+| `ai`               | Register `@plugin…` chat pointers, append-only agent instructions, turn hooks, and copy context into the AI sidebar via `hc.ai`                           |
+| `browser`          | Open and control embedded browser tabs via `hc.livePage` (focus, close, DOM, viewport/full-page screenshot; screenshot writes need `filesystem:write`)    |
 
-| Permission       | Use when your plugin needs to…                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------ |
-| `ui`             | Register settings, themes, commands, import handlers, or other UI contributions                        |
-| `mcp`            | Register remote MCP client servers with `hc.mcp.registerServer` for Harbor's chat agent                |
-| `ai`             | Register `@plugin…` chat pointers, append-only instructions, turn hooks, and copy-to-chat with `hc.ai` |
-| `browser`        | Open and control embedded browser tabs via `hc.livePage`                                               |
-| `live-server`    | Create, start, stop, and inspect Harbor Live Servers via `hc.liveServers`                              |
-| `live-pages`     | Create, update, and delete saved Live Pages via `hc.livePages`                                         |
-| `storage`        | Persist plugin-scoped key-value data with `hc.storage`                                                 |
-| `http`           | HTTP request hooks in the main process (`onBeforeSend` / `onAfterSend`)                                |
-| `scripts:inject` | Inject and observe pre/post request scripts (`onBeforeScripts` / `onAfterScripts`)                     |
-| `network`        | Send outbound HTTP from the renderer via `hc.host.fetch`                                               |
+Filesystem access never uses raw Node `fs` in plugin code. Use `hc.fs.*` helpers only; the host checks permissions and path allowlists on each call.
+
+Paths the user selects through `hc.fs.pickFile`, `hc.fs.pickDirectory`, or `hc.fs.saveFile` are added to the allowlist automatically and **persist across app restarts**. The host restores those grants when the plugin loads again; plugins do not need to re-prompt every session for the same file.
+
+### `live-server`
+
+Grants `hc.liveServers` for Harbor Live Server CRUD, start/stop, status, and access logs. This is separate from the `server` permission, which only covers the plugin-owned echo server (`hc.server`). Saved-config updates and deletes do not restart or stop running instances. Start does not open a browser tab; use `hc.livePage` when the `browser` permission is also granted.
+
+### `live-pages`
+
+Grants `hc.livePages` for saved Live Page (website) registry CRUD — list, get, create, update, and delete. Mutations update the sidebar registry only; they do **not** open or bind a browser tab. For tab control use `hc.livePage` with the `browser` permission. This is separate from `live-server` (local static file servers).
+
+### `browser`
+
+Grants `hc.livePage` for opening and controlling embedded browser tabs (focus, close, DOM query/evaluate/inject, viewport or full-page screenshot). Access is granted when the user installs or enables a plugin that declares `browser` — it is **not** gated by Settings → General → Allow script live page access (that setting applies only to request scripts). `page.screenshot` also requires `filesystem:write` to save the PNG. Pass `{ fullPage: true }` for a scroll-and-stitch capture.
 
 Example permission rationale in a plugin `description` Markdown file:
 

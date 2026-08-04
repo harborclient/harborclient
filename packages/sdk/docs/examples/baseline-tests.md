@@ -9,7 +9,7 @@ This example is a **main-only** plugin that injects shared post-request assertio
   "id": "com.example.baseline-tests",
   "name": "Baseline Tests",
   "version": "1.0.0",
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "main": "dist/main.js",
   "permissions": ["scripts:inject"]
 }

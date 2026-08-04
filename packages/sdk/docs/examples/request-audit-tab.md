@@ -9,7 +9,7 @@ This example adds a read-only **Audit** tab to the request editor. It summarizes
   "id": "com.example.request-audit",
   "name": "Request Audit",
   "version": "1.0.0",
-  "engines": { "harborclient": ">=1.9.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "renderer": "dist/renderer.js",
   "permissions": ["ui"],
   "contributes": {

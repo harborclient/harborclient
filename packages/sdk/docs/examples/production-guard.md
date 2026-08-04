@@ -2,7 +2,7 @@
 
 This example blocks sends to production hosts by injecting a pre-request `before-all` script that calls `hc.execution.skipRequest()`. Injection is more powerful than `onBeforeSend` here, because only script context can skip the HTTP send and leave a clear console message.
 
-Blocked host fragments are read from plugin storage (configure them from a renderer settings UI, or seed defaults at activation).
+Blocked host fragments are read from plugin storage. This walkthrough seeds a default list when nothing is stored yet; a follow-on can add a renderer settings contribution that writes `{ "blockedHosts": ["…"] }` under the `guard` key via `hc.storage`.
 
 ## manifest.json
 
@@ -11,7 +11,7 @@ Blocked host fragments are read from plugin storage (configure them from a rende
   "id": "com.example.production-guard",
   "name": "Production Guard",
   "version": "1.0.0",
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "main": "dist/main.js",
   "permissions": ["scripts:inject", "storage"]
 }
@@ -23,7 +23,7 @@ Blocked host fragments are read from plugin storage (configure them from a rende
 import type { MainPluginContext } from '@harborclient/sdk';
 
 /**
- * Config persisted by the plugin (optionally from a renderer settings UI).
+ * Config persisted by the plugin (optionally from a later settings contribution).
  */
 interface GuardConfig {
   /**
@@ -69,6 +69,6 @@ production-guard.hcp
     └── main.js
 ```
 
-Install from **File → Plugins → Install**. Sends whose URL contains a blocked fragment skip HTTP and show the guard message in the console. Store `{ "blockedHosts": ["…"] }` under the `guard` key via `hc.storage` (from a settings contribution) to customize the list.
+Install from **File → Plugins → Install**. Sends whose URL contains a blocked fragment skip HTTP and show the guard message in the console. Customize the list by storing `{ "blockedHosts": ["…"] }` under the `guard` key with `hc.storage`.
 
 See [hc.http.onBeforeScripts](/api/http#hchttponbeforescriptshandler).

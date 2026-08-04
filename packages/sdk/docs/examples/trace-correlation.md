@@ -11,7 +11,7 @@ Requires both `scripts:inject` (injection + data bag) and `http` / `storage` (af
   "id": "com.example.trace-correlation",
   "name": "Trace Correlation",
   "version": "1.0.0",
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.0.0" },
   "main": "dist/main.js",
   "permissions": ["scripts:inject", "http", "storage"]
 }

@@ -64,6 +64,8 @@ export const getHeadings = (markdown, manifest) => {
   const usedAnchors = new Map();
   /** @type {{ level: number; title: string; anchor: string }[]} */
   const headings = [];
+  /** Whether the current line is inside a fenced code block. */
+  let inFence = false;
 
   /**
    * Records one heading while preserving duplicate-anchor suffixes.
@@ -89,6 +91,15 @@ export const getHeadings = (markdown, manifest) => {
   };
 
   for (const line of markdown.split('\n')) {
+    if (/^(`{3,}|~{3,})/.test(line.trimStart())) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) {
+      continue;
+    }
+
     const headingMatch = /^(#{2,6})\s+(.+)$/.exec(line);
 
     if (headingMatch) {

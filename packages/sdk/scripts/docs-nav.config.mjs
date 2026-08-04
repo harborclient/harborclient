@@ -24,15 +24,12 @@ export const docsNav = [
   { kind: 'overview', title: 'Introduction' },
   { kind: 'page', slug: 'install', title: 'Install' },
   { kind: 'page', slug: 'usage', title: 'Quick start', maxDepth: 2 },
-  { kind: 'page', slug: 'package-layout', title: 'Package layout' },
-  { kind: 'page', slug: 'manifest', title: 'Manifest', maxDepth: 3 },
-  { kind: 'page', slug: 'permissions', title: 'Permissions' },
   { kind: 'page', slug: 'architecture', title: 'Architecture', maxDepth: 2 },
+  { kind: 'page', slug: 'manifest', title: 'Manifest', maxDepth: 2 },
   { kind: 'page', slug: 'building', title: 'Building' },
   { kind: 'page', slug: 'signing', title: 'Signing', maxDepth: 2 },
   { kind: 'page', slug: 'dev-workflow', title: 'Dev workflow', maxDepth: 2 },
-  { kind: 'api', title: 'API', maxDepth: 2 },
-  { kind: 'page', slug: 'snippets', title: 'Snippets', maxDepth: 2 },
+  { kind: 'api', title: 'API', maxDepth: 1 },
   {
     kind: 'group',
     slug: 'examples',
@@ -96,10 +93,7 @@ export const docsNav = [
     ]
   },
   { kind: 'page', slug: 'marketplace', title: 'Marketplace', maxDepth: 2 },
-  { kind: 'page', slug: 'performance', title: 'Performance' },
-  { kind: 'page', slug: 'vs-request-scripts', title: 'Plugins vs scripts' },
-  { kind: 'page', slug: 'license', title: 'License' },
-  { kind: 'page', slug: 'api-index', title: 'Index', pinnedBottom: true, maxDepth: 1 }
+  { kind: 'page', slug: 'api-index', title: 'API Index', pinnedBottom: true, maxDepth: 1 }
 ];
 
 /** Slugs of canonical overview pages committed under docs/<slug>/index.md. */

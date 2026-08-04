@@ -27,7 +27,7 @@ sequenceDiagram
   "id": "com.example.sidebar-tree",
   "name": "Example sidebar tree",
   "version": "1.0.0",
-  "main": "dist/main.js",
+  "engines": { "harborclient": ">=2.8.5" },
   "renderer": "dist/renderer.js",
   "permissions": ["ui"],
   "contributes": {
@@ -56,7 +56,6 @@ sequenceDiagram
 
 ```typescript
 import type { PluginContext } from '@harborclient/sdk';
-import { createRoot } from '@harborclient/sdk/react';
 import { SidebarTreePanel } from './SidebarTreePanel';
 
 export function activate(hc: PluginContext): void {

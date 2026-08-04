@@ -9,7 +9,7 @@ This example is a **main-only** plugin that logs every outbound HTTP request to 
   "id": "com.example.request-logger",
   "name": "Request Logger",
   "version": "1.0.0",
-  "engines": { "harborclient": ">=1.7.0" },
+  "engines": { "harborclient": ">=2.7.0" },
   "main": "dist/main.js",
   "permissions": ["http"]
 }
