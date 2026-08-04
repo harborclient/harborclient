@@ -15,19 +15,24 @@ export const SPELLING_SUGGESTION_LIMIT = 5;
 /** Data attribute marking a collection markdown document editor surface. */
 export const MARKDOWN_DOCUMENT_EDITOR_ATTR = 'data-markdown-document-editor';
 
+/** Data attribute marking the request JSON body CodeEditor surface. */
+export const JSON_BODY_EDITOR_ATTR = 'data-json-body-editor';
+
 /**
  * Builds the right-click context menu template for the main renderer.
  *
  * Spelling suggestions and dictionary actions appear first when spellcheck is
  * enabled and the click target contains a misspelled word. Copy and paste
  * follow. Format Document is offered only for collection markdown document
- * editors. Inspect Element is appended only when developer tooling is enabled.
+ * editors. Format is offered only for the request JSON body editor. Inspect
+ * Element is appended only when developer tooling is enabled.
  *
  * @param params - Electron context-menu event payload for the click target.
  * @param webContents - Web contents that received the right-click.
  * @param spellCheckEnabled - Whether spelling suggestions should be offered.
  * @param includeInspectElement - Whether to append the Inspect Element action.
  * @param includeFormatDocument - Whether to append the Format Document action.
+ * @param includeFormatJson - Whether to append the Format JSON body action.
  * @returns Menu template consumed by {@link Menu.buildFromTemplate}.
  */
 export function buildWebContextMenuTemplate(
@@ -35,7 +40,8 @@ export function buildWebContextMenuTemplate(
   webContents: WebContents,
   spellCheckEnabled: boolean,
   includeInspectElement: boolean,
-  includeFormatDocument = false
+  includeFormatDocument = false,
+  includeFormatJson = false
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = [];
   let spellingItemsAdded = false;
@@ -88,6 +94,18 @@ export function buildWebContextMenuTemplate(
     );
   }
 
+  if (includeFormatJson) {
+    template.push(
+      { type: 'separator' },
+      {
+        label: 'Format',
+        click: () => {
+          webContents.send('menu:action', 'format-json-body');
+        }
+      }
+    );
+  }
+
   if (includeInspectElement) {
     template.push(
       { type: 'separator' },
@@ -129,6 +147,28 @@ export async function isMarkdownDocumentEditorClick(
 }
 
 /**
+ * Returns whether the context-menu click target is inside the request JSON body editor.
+ *
+ * @param webContents - Web contents that received the right-click.
+ * @param x - Pointer X position in viewport pixels.
+ * @param y - Pointer Y position in viewport pixels.
+ * @returns True when the click is inside an element marked with
+ *   {@link JSON_BODY_EDITOR_ATTR}.
+ */
+export async function isJsonBodyEditorClick(
+  webContents: WebContents,
+  x: number,
+  y: number
+): Promise<boolean> {
+  return webContents.executeJavaScript(
+    `(function () {
+      const element = document.elementFromPoint(${x}, ${y});
+      return element != null && element.closest('[${JSON_BODY_EDITOR_ATTR}]') != null;
+    })()`
+  );
+}
+
+/**
  * Attaches a right-click context menu to the main window web contents.
  *
  * Copy is always available and enabled when the user has selected text. Paste is
@@ -136,9 +176,10 @@ export async function isMarkdownDocumentEditorClick(
  * paste is allowed (inputs, textareas, contenteditable regions, etc.).
  * Spelling suggestions and Add to Dictionary appear when spellcheck is enabled
  * and the click target contains a misspelled word. Format Document appears
- * only inside collection markdown document editors. Inspect Element is added
- * only when developer tooling is enabled (unpackaged builds or packaged builds
- * started with `--dev-mode`).
+ * only inside collection markdown document editors. Format appears only inside
+ * the request JSON body editor. Inspect Element is added only when developer
+ * tooling is enabled (unpackaged builds or packaged builds started with
+ * `--dev-mode`).
  *
  * @param window - Main application window to augment.
  */
@@ -146,17 +187,17 @@ export function attachWebContextMenu(window: BrowserWindow): void {
   const { webContents } = window;
   webContents.on('context-menu', (_event, params) => {
     void (async () => {
-      const includeFormatDocument = await isMarkdownDocumentEditorClick(
-        webContents,
-        params.x,
-        params.y
-      );
+      const [includeFormatDocument, includeFormatJson] = await Promise.all([
+        isMarkdownDocumentEditorClick(webContents, params.x, params.y),
+        isJsonBodyEditorClick(webContents, params.x, params.y)
+      ]);
       const template = buildWebContextMenuTemplate(
         params,
         webContents,
         getGeneralSettings().spellCheckEnabled,
         isDeveloperToolsEnabled(),
-        includeFormatDocument
+        includeFormatDocument,
+        includeFormatJson
       );
 
       const menu = Menu.buildFromTemplate(template);

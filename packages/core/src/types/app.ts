@@ -76,6 +76,7 @@ export type MenuActionId =
   | 'create-workspace'
   | 'deselect-all-sidebar'
   | 'format-markdown-document'
+  | 'format-json-body'
   | 'new-collection-git'
   | 'git-create-branch'
   | 'git-delete-branch'

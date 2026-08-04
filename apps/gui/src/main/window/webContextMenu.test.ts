@@ -247,4 +247,42 @@ describe('buildWebContextMenuTemplate', () => {
       'paste'
     ]);
   });
+
+  it('appends format only for json body editors', () => {
+    const webContents = createMockWebContents();
+    const template = buildWebContextMenuTemplate(
+      createContextMenuParams(),
+      webContents,
+      true,
+      false,
+      false,
+      true
+    );
+
+    expect(template.map((entry) => entry.label ?? entry.role ?? entry.type)).toEqual([
+      'copy',
+      'paste',
+      'separator',
+      'Format'
+    ]);
+
+    invokeMenuClick(template[3]);
+    expect(webContents.send).toHaveBeenCalledWith('menu:action', 'format-json-body');
+  });
+
+  it('omits format outside json body editors', () => {
+    const template = buildWebContextMenuTemplate(
+      createContextMenuParams(),
+      createMockWebContents(),
+      true,
+      false,
+      false,
+      false
+    );
+
+    expect(template.map((entry) => entry.label ?? entry.role ?? entry.type)).toEqual([
+      'copy',
+      'paste'
+    ]);
+  });
 });

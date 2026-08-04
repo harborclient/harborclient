@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat: enhance context menu with JSON body formatting options. (`6381c2e6`)
+
 ## 0.5.3 - 2026-08-04
 
 - feat: add sidebar switching functionality and enhance layout settings. (`0af21c33`)

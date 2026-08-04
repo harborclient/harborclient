@@ -7,7 +7,7 @@ import {
   COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY
 } from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
-import { useCallback, useId, useMemo, useState, type JSX } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type JSX } from 'react';
 import type { BodyType, FormDataPart, KeyValue, Variable } from '@harborclient/core/types';
 import { parseFormParts, serializeFormParts } from '@harborclient/core/formData';
 import { parseUrlEncodedParts, serializeUrlEncodedParts } from '@harborclient/core/urlencoded';
@@ -27,6 +27,7 @@ import {
 import { setRequestBodySelection } from '#/renderer/src/store/slices/requestBodySelectionsSlice';
 import { setShowAiSidebar } from '#/renderer/src/store/slices/navigationSlice';
 import { createNewChat } from '#/renderer/src/store/thunks/aiChat';
+import { formatBody } from '#/renderer/src/ui/Shared/responseFormatUtils';
 import { lineNumberAtOffset } from './markdownSelection';
 import {
   buildRequestBodyReferenceToken,
@@ -156,6 +157,31 @@ export function BodyEditor({
     },
     [update]
   );
+
+  /**
+   * Pretty-prints the JSON body when the user chooses Format from the native
+   * context menu. Invalid JSON is left unchanged.
+   */
+  useEffect(() => {
+    if (bodyType !== 'json') {
+      return;
+    }
+
+    const unsubscribe = window.api.onMenuAction((action) => {
+      if (action !== 'format-json-body') {
+        return;
+      }
+
+      const formatted = formatBody(body);
+      if (formatted === body) {
+        return;
+      }
+
+      update({ body: formatted });
+    });
+
+    return unsubscribe;
+  }, [body, bodyType, update]);
 
   /**
    * Updates structured urlencoded rows and clears any raw override.
@@ -397,6 +423,7 @@ export function BodyEditor({
             className="request-body-editor"
             aria-label={bodyType === 'json' ? 'JSON body' : 'Text body'}
             selectionActions={copyToChatSelectionActions}
+            {...(bodyType === 'json' ? { 'data-json-body-editor': '' } : {})}
           />
         </div>
       )}
