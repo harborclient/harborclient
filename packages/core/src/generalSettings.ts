@@ -72,7 +72,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   gitCommitAuthorName: '',
   gitCommitAuthorEmail: '',
   gitCommitAuthorPrompted: false,
-  codeEditorTheme: 'monokai',
+  codeEditorTheme: 'nord',
   codeEditorSetup: { ...DEFAULT_CODE_EDITOR_SETUP },
   codeEditorFontSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
   terminal: { ...DEFAULT_TERMINAL_SETTINGS },

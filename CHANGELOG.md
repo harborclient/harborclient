@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: update code editor theme to Nord. (`5fda54b0`)
 - refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
 
 ## 2.11.2 - 2026-08-04

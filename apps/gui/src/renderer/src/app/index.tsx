@@ -281,7 +281,6 @@ export default function App(): JSX.Element {
       <SidebarExpansionProvider onExpandCollection={handleExpandCollection}>
         <SidebarGitProvider>
           <SearchIndexProvider>
-            <Hosts />
             <div className={`flex h-screen flex-col overflow-hidden ${platformClassName()}`}>
               {/* Head */}
               <BusyIndicator isBusy={isBusy} />
@@ -291,6 +290,7 @@ export default function App(): JSX.Element {
               />
               <TitleBar />
 
+              {/* Main UI */}
               <SidebarModalsProvider>
                 <FileMenuEnvironmentHost />
                 <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -351,6 +351,7 @@ export default function App(): JSX.Element {
 
               <Footer />
               <Modals />
+              <Hosts />
             </div>
           </SearchIndexProvider>
         </SidebarGitProvider>

@@ -61,12 +61,12 @@ export function normalizeCodeEditorSetup(
 }
 
 /**
- * Normalizes a theme identifier, falling back to Monokai when unknown.
+ * Normalizes a theme identifier, falling back to Nord when unknown.
  *
  * @param value - Raw theme value from storage or input.
  */
 export function normalizeCodeEditorTheme(value: unknown): CodeEditorTheme {
-  return isCodeEditorTheme(value) ? value : 'monokai';
+  return isCodeEditorTheme(value) ? value : 'nord';
 }
 
 /**

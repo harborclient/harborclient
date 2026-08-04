@@ -7,15 +7,16 @@ import {
 } from './codeEditorSettings.js';
 
 describe('normalizeCodeEditorTheme', () => {
-  it('returns Monokai when value is missing or invalid', () => {
-    expect(normalizeCodeEditorTheme(undefined)).toBe('monokai');
-    expect(normalizeCodeEditorTheme(null)).toBe('monokai');
-    expect(normalizeCodeEditorTheme('')).toBe('monokai');
-    expect(normalizeCodeEditorTheme('not-a-theme')).toBe('monokai');
+  it('returns Nord when value is missing or invalid', () => {
+    expect(normalizeCodeEditorTheme(undefined)).toBe('nord');
+    expect(normalizeCodeEditorTheme(null)).toBe('nord');
+    expect(normalizeCodeEditorTheme('')).toBe('nord');
+    expect(normalizeCodeEditorTheme('not-a-theme')).toBe('nord');
   });
 
   it('preserves known theme identifiers', () => {
     expect(normalizeCodeEditorTheme('default')).toBe('default');
+    expect(normalizeCodeEditorTheme('nord')).toBe('nord');
     expect(normalizeCodeEditorTheme('monokai')).toBe('monokai');
     expect(normalizeCodeEditorTheme('dracula')).toBe('dracula');
   });
