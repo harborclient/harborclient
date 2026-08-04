@@ -297,6 +297,7 @@ export default function App(): JSX.Element {
                 <SaveRequestModal />
               </SidebarModalsProvider>
 
+              {/* Footer */}
               <Footer />
               <Modals />
               <Hosts />
