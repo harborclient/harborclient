@@ -10,6 +10,7 @@ import {
   setShowConsole,
   setShowMcp,
   setShowRail,
+  setSidebarPlacement,
   setShowRequestEditor,
   setShowResponseEditor,
   setShowSidebar,
@@ -96,6 +97,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
 
   dispatch(setShowSidebar(layout.showSidebar));
   dispatch(setShowRail(layout.showRail));
+  dispatch(setSidebarPlacement(layout.sidebarPlacement));
   if (layout.showGitSidebar) {
     dispatch(setShowGitSidebar(true));
   } else if (layout.showAiSidebar) {
@@ -125,6 +127,7 @@ export async function hydratePanelLayoutFromSettings(dispatch: LayoutDispatch): 
     void window.api.setPanelLayout({
       showSidebar: layout.showSidebar,
       showRail: layout.showRail,
+      sidebarPlacement: layout.sidebarPlacement,
       showAiSidebar: layout.showAiSidebar,
       showGitSidebar: layout.showGitSidebar,
       showShortcutsSidebar: layout.showShortcutsSidebar,

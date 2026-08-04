@@ -17,6 +17,7 @@ import {
   setShowGitSidebar,
   setShowMcp,
   setShowRail,
+  setSidebarPlacement,
   setShowRequestEditor,
   setShowResponseEditor,
   setShowShortcutsSidebar,
@@ -179,6 +180,7 @@ export async function captureWorkspaceLayout(state: RootState): Promise<Workspac
     panels: {
       showSidebar: navigation.showSidebar,
       showRail: navigation.showRail,
+      sidebarPlacement: navigation.sidebarPlacement,
       showAiSidebar: navigation.showAiSidebar,
       showGitSidebar: navigation.showGitSidebar,
       showShortcutsSidebar: navigation.showShortcutsSidebar,
@@ -219,6 +221,7 @@ export async function applyWorkspaceLayout(
 
   dispatch(setShowSidebar(panels.showSidebar));
   dispatch(setShowRail(panels.showRail));
+  dispatch(setSidebarPlacement(panels.sidebarPlacement));
   if (panels.showGitSidebar) {
     dispatch(setShowGitSidebar(true));
   } else if (panels.showAiSidebar) {

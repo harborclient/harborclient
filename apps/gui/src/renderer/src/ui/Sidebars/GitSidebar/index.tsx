@@ -18,6 +18,7 @@ import {
 } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { selectCollections, selectSelectedCollectionId } from '#/renderer/src/store/selectors';
+import { selectSidebarPlacement } from '#/renderer/src/store/slices/navigationSlice';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { useSidebarGit } from '#/renderer/src/ui/Sidebars/CollectionSidebar/git/sidebarGitContext';
 import { GitSidebarEmptyState } from './GitSidebarEmptyState';
@@ -27,13 +28,14 @@ import { GitCommitsSection } from './GitCommitsSection';
 import { useGitSidebarSections } from './useGitSidebarSections';
 
 /**
- * Right-side Git source-control panel with accordion sections for commit, changes,
- * and commits.
+ * Docked Git source-control panel with accordion sections for commit, changes,
+ * and commits. Side follows the opposite edge of the collections sidebar.
  */
 export function GitSidebar(): JSX.Element {
   const dispatch = useAppDispatch();
   const selectedCollectionId = useAppSelector(selectSelectedCollectionId);
   const collections = useAppSelector(selectCollections);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const { activeGitContext: gitContext, refreshGitSidebar, refreshGitStatuses } = useSidebarGit();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -248,7 +250,7 @@ export function GitSidebar(): JSX.Element {
 
   return (
     <Sidebar
-      side="right"
+      side={sidebarPlacement === 'left' ? 'right' : 'left'}
       ariaLabel="Git source control"
       storageKey="hc.gitSidebarWidth"
       defaultSize={360}

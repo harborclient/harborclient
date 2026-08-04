@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { closeLiveServerModal } from '#/renderer/src/store/slices/modalsSlice';
 import {
   selectLiveServerLogsPlacement,
+  selectSidebarPlacement,
   setShowLiveServerLogs,
   toggleLiveServerLogsPlacement
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -13,16 +14,18 @@ import { LiveServerLogsView } from '#/renderer/src/ui/Footer/LiveServerLogsPanel
 import { useLiveServerLogsController } from '#/renderer/src/ui/Footer/LiveServerLogsPanel/useLiveServerLogsController';
 
 /**
- * Right-sidebar host for the live-server logs viewer.
+ * Docked host for the live-server logs viewer.
  *
  * Mirrors the footer logs chrome (title, Clear / AI, dock toggle, close) and
  * mounts the shared {@link LiveServerLogsView} when placement is sidebar.
+ * Side follows the opposite edge of the collections sidebar.
  *
- * @returns Resizable right sidebar with streaming server logs.
+ * @returns Resizable sidebar with streaming server logs.
  */
 export function LiveServerLogsSidebar(): JSX.Element {
   const dispatch = useAppDispatch();
   const placement = useAppSelector(selectLiveServerLogsPlacement);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const controller = useLiveServerLogsController();
 
   /**
@@ -45,7 +48,7 @@ export function LiveServerLogsSidebar(): JSX.Element {
 
   return (
     <Sidebar
-      side="right"
+      side={sidebarPlacement === 'left' ? 'right' : 'left'}
       ariaLabel="Live server logs"
       scroll={false}
       storageKey="hc.liveServerLogsSidebarWidth"

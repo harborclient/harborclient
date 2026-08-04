@@ -4,7 +4,10 @@ import { hasAvailableAiModels } from '@harborclient/core/ai/models';
 
 import { faClockRotateLeft, faGear } from '#/renderer/src/fontawesome';
 import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
-import { selectAiSidebarVisible } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  selectAiSidebarVisible,
+  selectSidebarPlacement
+} from '#/renderer/src/store/slices/navigationSlice';
 import {
   selectGithubModelsConnected,
   selectHistoryOpen,
@@ -19,12 +22,14 @@ import { ConfigureApiKeysPrompt } from './ConfigureApiKeysPrompt';
 import { AiChat } from './Chat';
 
 /**
- * Right-side AI panel shell. Shows a configure-access prompt when no personal keys
- * or Team Hub LLM models are available.
+ * Docked AI panel shell. Shows a configure-access prompt when no personal keys
+ * or Team Hub LLM models are available. Side follows the opposite edge of the
+ * collections sidebar.
  */
 export function AiSidebar(): JSX.Element {
   const dispatch = useAppDispatch();
   const aiSidebarVisible = useAppSelector(selectAiSidebarVisible);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const historyOpen = useAppSelector(selectHistoryOpen);
   const hubModelGroups = useAppSelector(selectHubModelGroups);
   const githubConnected = useAppSelector(selectGithubModelsConnected);
@@ -84,7 +89,7 @@ export function AiSidebar(): JSX.Element {
 
   return (
     <Sidebar
-      side="right"
+      side={sidebarPlacement === 'left' ? 'right' : 'left'}
       ariaLabel="AI"
       scroll={false}
       storageKey="hc.aiSidebarWidth"

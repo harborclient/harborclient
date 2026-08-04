@@ -92,6 +92,7 @@ describe('matchActionSuggestions', () => {
     expect(ids).toContain('builtin:toggle-rail');
     expect(ids).toContain('builtin:hide-sidebars');
     expect(ids).toContain('builtin:show-sidebars');
+    expect(ids).toContain('builtin:switch-sidebars');
     expect(ids).toContain('builtin:toggle-filters');
     expect(ids).toContain('builtin:zoom-in');
     expect(ids).toContain('builtin:toggle-fullscreen');

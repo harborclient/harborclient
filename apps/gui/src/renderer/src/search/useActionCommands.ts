@@ -35,6 +35,7 @@ import {
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
+  toggleSidebarPlacement,
   toggleTerminal,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -210,6 +211,9 @@ export function useActionCommands(): UseActionCommandsResult {
       },
       'builtin:show-sidebars': () => {
         void dispatch(showSidebarsAndFooterPanels());
+      },
+      'builtin:switch-sidebars': () => {
+        dispatch(toggleSidebarPlacement());
       },
       'builtin:toggle-ai-sidebar': () => {
         dispatch(toggleAiSidebar());

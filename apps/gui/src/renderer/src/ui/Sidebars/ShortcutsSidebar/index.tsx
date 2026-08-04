@@ -1,15 +1,20 @@
 import { FaIcon, Sidebar } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import { faKeyboard } from '#/renderer/src/fontawesome';
+import { useAppSelector } from '#/renderer/src/store/hooks';
+import { selectSidebarPlacement } from '#/renderer/src/store/slices/navigationSlice';
 import { ShortcutsEditor } from './ShortcutsEditor';
 
 /**
- * Right-side Shortcuts editor panel with search, press-to-record editing, and restore defaults.
+ * Docked Shortcuts editor panel with search, press-to-record editing, and restore
+ * defaults. Side follows the opposite edge of the collections sidebar.
  */
 export function ShortcutsSidebar(): JSX.Element {
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
+
   return (
     <Sidebar
-      side="right"
+      side={sidebarPlacement === 'left' ? 'right' : 'left'}
       ariaLabel="Shortcuts"
       storageKey="hc.shortcutsSidebarWidth"
       defaultSize={360}

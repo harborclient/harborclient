@@ -35,6 +35,7 @@ function buildState(overrides?: {
     navigation: {
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: true,
       showShortcutsSidebar: false,
@@ -76,6 +77,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
     panels: {
       showSidebar: false,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,

@@ -1096,6 +1096,7 @@ export const workflowRunHistoryAddInput = z.object({
 export const panelLayout = z.object({
   showSidebar: z.boolean(),
   showRail: z.boolean(),
+  sidebarPlacement: z.enum(['left', 'right']),
   showAiSidebar: z.boolean(),
   showGitSidebar: z.boolean(),
   showShortcutsSidebar: z.boolean(),

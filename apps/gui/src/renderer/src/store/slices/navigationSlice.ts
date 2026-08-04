@@ -1,5 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { LiveServerLogsPlacement, ResponseEditorSplitState } from '@harborclient/core/types';
+import type {
+  LiveServerLogsPlacement,
+  ResponseEditorSplitState,
+  SidebarPlacement
+} from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /**
@@ -117,6 +121,10 @@ export interface NavigationState {
   workspaceSettingsDirty: boolean;
   showSidebar: boolean;
   showRail: boolean;
+  /**
+   * Which side of the main column hosts the collections sidebar (+ rail).
+   */
+  sidebarPlacement: SidebarPlacement;
   showAiSidebar: boolean;
   showGitSidebar: boolean;
   showShortcutsSidebar: boolean;
@@ -171,6 +179,7 @@ const initialState: NavigationState = {
   workspaceSettingsDirty: false,
   showSidebar: true,
   showRail: true,
+  sidebarPlacement: 'left',
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -276,6 +285,18 @@ const navigationSlice = createSlice({
      */
     setShowRail(state, action: PayloadAction<boolean>) {
       state.showRail = action.payload;
+    },
+    /**
+     * Sets which edge hosts the collections sidebar (+ rail).
+     */
+    setSidebarPlacement(state, action: PayloadAction<SidebarPlacement>) {
+      state.sidebarPlacement = action.payload;
+    },
+    /**
+     * Toggles collections between the left and right edges of the middle band.
+     */
+    toggleSidebarPlacement(state) {
+      state.sidebarPlacement = state.sidebarPlacement === 'left' ? 'right' : 'left';
     },
     /**
      * Toggles AI sidebar visibility and closes other right sidebars when opening.
@@ -710,6 +731,8 @@ export const {
   setShowSidebar,
   toggleRail,
   setShowRail,
+  setSidebarPlacement,
+  toggleSidebarPlacement,
   toggleAiSidebar,
   setShowAiSidebar,
   toggleGitSidebar,
@@ -787,6 +810,13 @@ export const selectSidebarVisible = (state: RootState): boolean => state.navigat
  * Returns the user activity-rail visibility preference.
  */
 export const selectShowRail = (state: RootState): boolean => state.navigation.showRail;
+
+/**
+ * Returns which edge hosts the collections sidebar (+ rail).
+ */
+export const selectSidebarPlacement = (state: RootState): SidebarPlacement =>
+  state.navigation.sidebarPlacement;
+
 /**
  * Returns the user AI sidebar visibility preference.
  */

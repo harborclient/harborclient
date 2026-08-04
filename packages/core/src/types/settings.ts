@@ -286,6 +286,11 @@ export function normalizeResponseEditorSplit(value: unknown): ResponseEditorSpli
 }
 
 /**
+ * Which horizontal edge hosts the collections sidebar (+ activity rail).
+ */
+export type SidebarPlacement = 'left' | 'right';
+
+/**
  * Persisted visibility for sidebars, request/response editors, and footer panels.
  */
 export interface PanelLayoutState {
@@ -298,6 +303,12 @@ export interface PanelLayoutState {
    * Whether the collections sidebar activity rail is shown when chrome allows it.
    */
   showRail: boolean;
+
+  /**
+   * Which side of the main column hosts the collections sidebar (+ rail).
+   * Other docked sidebars occupy the opposite edge.
+   */
+  sidebarPlacement: SidebarPlacement;
 
   /**
    * Whether the AI sidebar is shown when not hidden by an overlay.

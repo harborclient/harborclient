@@ -19,6 +19,7 @@ function panelLayout(overrides: Partial<PanelLayoutState> = {}): PanelLayoutStat
   return {
     showSidebar: true,
     showRail: true,
+    sidebarPlacement: 'left',
     showAiSidebar: false,
     showGitSidebar: false,
     showShortcutsSidebar: false,

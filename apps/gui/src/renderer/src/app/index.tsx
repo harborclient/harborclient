@@ -20,10 +20,11 @@ import { isRequestTab } from '#/renderer/src/store/tabs';
 import {
   selectAiSidebarVisible,
   selectGitSidebarVisible,
-  selectShortcutsSidebarVisible,
   selectLiveServerLogsSidebarOpen,
   selectShowRequestEditor,
   selectShowResponseEditor,
+  selectShortcutsSidebarVisible,
+  selectSidebarPlacement,
   selectSidebarVisible,
   toggleShortcutsSidebar
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -83,6 +84,7 @@ export default function App(): JSX.Element {
   const requestEditorVisible = useAppSelector(selectShowRequestEditor);
   const responseEditorVisible = useAppSelector(selectShowResponseEditor);
   const liveServerLogsSidebarOpen = useAppSelector(selectLiveServerLogsSidebarOpen);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const codeEditorTheme = useAppSelector(selectCodeEditorTheme);
   const codeEditorSetup = useAppSelector(selectCodeEditorSetup);
@@ -95,10 +97,12 @@ export default function App(): JSX.Element {
   useBrowserGuestOverlayCover();
 
   /**
-   * Zone placement for the middle band. Fixed to left until sidebar placement
-   * is persisted in panel-layout settings.
+   * Zone placement for the middle band from the persisted sidebar placement preference.
    */
-  const shellLayout = useMemo(() => withSidebarPlacement(defaultShellLayout, 'left'), []);
+  const shellLayout = useMemo(
+    () => withSidebarPlacement(defaultShellLayout, sidebarPlacement),
+    [sidebarPlacement]
+  );
 
   /**
    * Loads folders and requests when a collection tree is expanded in the sidebar,

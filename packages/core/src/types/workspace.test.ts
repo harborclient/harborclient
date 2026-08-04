@@ -18,6 +18,7 @@ function sampleLayout(overrides: Partial<WorkspaceLayout> = {}): WorkspaceLayout
     panels: {
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: true,
       showShortcutsSidebar: false,

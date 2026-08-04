@@ -26,6 +26,7 @@ describe('panelLayoutSettings', () => {
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -42,6 +43,57 @@ describe('panelLayoutSettings', () => {
       liveServerLogsPlacements: {},
       activePluginFooterPanelId: null
     });
+  });
+
+  it('defaults missing sidebarPlacement to left', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showRail: true,
+      showAiSidebar: false,
+      showGitSidebar: false,
+      showShortcutsSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
+      activePluginFooterPanelId: null
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout().sidebarPlacement).toBe('left');
+  });
+
+  it('preserves sidebarPlacement right from storage', async () => {
+    mockGet.mockReturnValue({
+      showSidebar: true,
+      showRail: true,
+      sidebarPlacement: 'right',
+      showAiSidebar: false,
+      showGitSidebar: false,
+      showShortcutsSidebar: false,
+      showRequestEditor: true,
+      showResponseEditor: true,
+      requestEditorSplitHeight: 340,
+      responseEditorSplit: null,
+      showConsole: false,
+      showVariables: false,
+      showMcp: false,
+      showTerminal: false,
+      showLiveServerLogs: false,
+      liveServerLogsPlacement: 'footer',
+      liveServerLogsPlacements: {},
+      activePluginFooterPanelId: null
+    });
+    const { getPanelLayout } = await import('#/main/settings/panelLayoutSettings');
+
+    expect(getPanelLayout().sidebarPlacement).toBe('right');
   });
 
   it('defaults missing live-server logs placement to footer', async () => {
@@ -65,6 +117,7 @@ describe('panelLayoutSettings', () => {
     mockGet.mockReturnValue({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -84,6 +137,7 @@ describe('panelLayoutSettings', () => {
     setPanelLayout({
       showSidebar: false,
       showRail: false,
+      sidebarPlacement: 'left',
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -104,6 +158,7 @@ describe('panelLayoutSettings', () => {
     expect(mockSet).toHaveBeenCalledWith('panelLayout', {
       showSidebar: false,
       showRail: false,
+      sidebarPlacement: 'left',
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -126,6 +181,7 @@ describe('panelLayoutSettings', () => {
     mockGet.mockReturnValue({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -145,6 +201,7 @@ describe('panelLayoutSettings', () => {
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -167,6 +224,7 @@ describe('panelLayoutSettings', () => {
     mockGet.mockReturnValue({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: true,
       showGitSidebar: false,
       showShortcutsSidebar: false,
@@ -188,6 +246,7 @@ describe('panelLayoutSettings', () => {
     expect(getPanelLayout()).toEqual({
       showSidebar: true,
       showRail: true,
+      sidebarPlacement: 'left',
       showAiSidebar: false,
       showGitSidebar: false,
       showShortcutsSidebar: false,

@@ -14,6 +14,7 @@ import {
   selectShowConsole,
   selectShowMcp,
   selectShowRail,
+  selectSidebarPlacement,
   selectShowRequestEditor,
   selectShowResponseEditor,
   selectShowSidebar,
@@ -31,6 +32,7 @@ export function usePersistedPanelLayout(): void {
   const dispatch = useAppDispatch();
   const showSidebar = useAppSelector(selectShowSidebar);
   const showRail = useAppSelector(selectShowRail);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const showAiSidebar = useAppSelector(selectShowAiSidebar);
   const showGitSidebar = useAppSelector(selectShowGitSidebar);
   const showShortcutsSidebar = useAppSelector(selectShowShortcutsSidebar);
@@ -80,6 +82,7 @@ export function usePersistedPanelLayout(): void {
     void window.api.setPanelLayout({
       showSidebar,
       showRail,
+      sidebarPlacement,
       showAiSidebar,
       showGitSidebar,
       showShortcutsSidebar,
@@ -99,6 +102,7 @@ export function usePersistedPanelLayout(): void {
   }, [
     showSidebar,
     showRail,
+    sidebarPlacement,
     showAiSidebar,
     showGitSidebar,
     showShortcutsSidebar,

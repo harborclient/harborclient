@@ -34,6 +34,7 @@ import {
   toggleRequestEditor,
   toggleResponseEditor,
   toggleSidebar,
+  toggleSidebarPlacement,
   toggleTerminal,
   toggleVariables
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -304,6 +305,9 @@ export function useMenuActions(): void {
           break;
         case 'show-sidebars':
           void dispatch(showSidebarsAndFooterPanels());
+          break;
+        case 'switch-sidebars':
+          dispatch(toggleSidebarPlacement());
           break;
         case 'focus-sidebar-search':
           if (!tryToggleTerminalFind()) {

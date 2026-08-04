@@ -71,6 +71,7 @@ describe('bootstrapShellForReveal', () => {
   const getPanelLayout = vi.fn(async () => ({
     showSidebar: true,
     showRail: true,
+    sidebarPlacement: 'left',
     showAiSidebar: false,
     showGitSidebar: false,
     showShortcutsSidebar: false,

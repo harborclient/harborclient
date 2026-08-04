@@ -32,6 +32,7 @@ export type ShortcutId =
   | 'toggle-rail'
   | 'hide-sidebars'
   | 'show-sidebars'
+  | 'switch-sidebars'
   | 'focus-sidebar-search'
   | 'focus-request-url'
   | 'focus-browser-address'
@@ -358,6 +359,13 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
     defaultAccelerator: 'CmdOrCtrl+Alt+H',
     kind: 'action',
     actionId: 'show-sidebars'
+  },
+  {
+    id: 'switch-sidebars',
+    label: 'Switch sidebars',
+    defaultAccelerator: 'CmdOrCtrl+Alt+Shift+S',
+    kind: 'action',
+    actionId: 'switch-sidebars'
   },
   {
     id: 'focus-sidebar-search',

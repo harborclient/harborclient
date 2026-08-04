@@ -526,6 +526,11 @@ export function buildMenu(
           accelerator: acceleratorFor(accelerators, 'show-sidebars'),
           click: () => sendMenuAction(window, 'show-sidebars')
         },
+        {
+          label: 'Switch sidebars',
+          accelerator: acceleratorFor(accelerators, 'switch-sidebars'),
+          click: () => sendMenuAction(window, 'switch-sidebars')
+        },
         { type: 'separator' },
         {
           role: 'togglefullscreen',

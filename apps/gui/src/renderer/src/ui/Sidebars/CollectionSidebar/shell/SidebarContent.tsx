@@ -32,6 +32,7 @@ import {
 import {
   selectActiveSidebarRailItemId,
   selectShowRail,
+  selectSidebarPlacement,
   setActiveSidebarPanel,
   setActiveSidebarRailItem
 } from '#/renderer/src/store/slices/navigationSlice';
@@ -115,6 +116,7 @@ export function SidebarContent(): JSX.Element {
   const runningLiveServers = useAppSelector(selectRunningLiveServers);
   const activeSidebarRailItemId = useAppSelector(selectActiveSidebarRailItemId);
   const userShowRail = useAppSelector(selectShowRail);
+  const sidebarPlacement = useAppSelector(selectSidebarPlacement);
   const sidebarSelection = useAppSelector(selectionFromState, selectionsEqual);
   /**
    * Stable view context for sidebar panel and rail-item HostedSurface mounts.
@@ -474,6 +476,68 @@ export function SidebarContent(): JSX.Element {
 
   const showPluginBody = activeRailItem != null || displayedPanel != null;
 
+  const rail = showRail ? (
+    <SidebarRail
+      items={railItems}
+      activeId={railActiveId}
+      expanded={sidebarRailExpanded}
+      onExpandedChange={setSidebarRailExpanded}
+      onSelect={handleRailSelect}
+      ariaLabel="Sidebar modes"
+      panelId={SIDEBAR_RAIL_PANEL_ID}
+      footer={<TeamHubRailAvatars expanded={sidebarRailExpanded} />}
+    />
+  ) : null;
+
+  const sidebarBody = (
+    <Sidebar
+      side={sidebarPlacement}
+      ariaLabel="Sidebar"
+      storageKey="hc.sidebarWidth"
+      defaultSize={400}
+      minSize={240}
+      getMaxSize={() => 640}
+      resizeAriaLabel="Resize sidebar"
+      scroll={!showPluginBody}
+      asideClassName="h-full min-h-0"
+      bodyId={showRail ? SIDEBAR_RAIL_PANEL_ID : undefined}
+      bodyRole={showRail ? 'tabpanel' : undefined}
+      header={
+        activeRailItem == null ? (
+          <SidebarPanelSwitcher
+            panels={switcherPanels}
+            activePanelId={activePanelId}
+            collectionsReplacement={collectionsReplacement}
+            showSwitcher={showSwitcher}
+          />
+        ) : undefined
+      }
+      bodyClassName={showPluginBody ? 'px-2 py-2' : 'pb-3'}
+    >
+      {activeRailItem != null ? (
+        <HostedSurface
+          pluginId={activeRailItem.pluginId}
+          contributionId={activeRailItem.contributionId}
+          kind="sidebarRailItems"
+          resizeMode="fill"
+          className="h-full"
+          context={sidebarPanelContext}
+        />
+      ) : displayedPanel != null ? (
+        <HostedSurface
+          pluginId={displayedPanel.pluginId}
+          contributionId={displayedPanel.contributionId}
+          kind="sidebarPanels"
+          resizeMode="fill"
+          className="h-full"
+          context={sidebarPanelContext}
+        />
+      ) : (
+        <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
+      )}
+    </Sidebar>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-sidebar">
       {showSearch ? (
@@ -482,64 +546,17 @@ export function SidebarContent(): JSX.Element {
         </div>
       ) : null}
       <div className="flex min-h-0 min-w-0 flex-1">
-        {showRail ? (
-          <SidebarRail
-            items={railItems}
-            activeId={railActiveId}
-            expanded={sidebarRailExpanded}
-            onExpandedChange={setSidebarRailExpanded}
-            onSelect={handleRailSelect}
-            ariaLabel="Sidebar modes"
-            panelId={SIDEBAR_RAIL_PANEL_ID}
-            footer={<TeamHubRailAvatars expanded={sidebarRailExpanded} />}
-          />
-        ) : null}
-        <Sidebar
-          side="left"
-          ariaLabel="Sidebar"
-          storageKey="hc.sidebarWidth"
-          defaultSize={400}
-          minSize={240}
-          getMaxSize={() => 640}
-          resizeAriaLabel="Resize sidebar"
-          scroll={!showPluginBody}
-          asideClassName="h-full min-h-0"
-          bodyId={showRail ? SIDEBAR_RAIL_PANEL_ID : undefined}
-          bodyRole={showRail ? 'tabpanel' : undefined}
-          header={
-            activeRailItem == null ? (
-              <SidebarPanelSwitcher
-                panels={switcherPanels}
-                activePanelId={activePanelId}
-                collectionsReplacement={collectionsReplacement}
-                showSwitcher={showSwitcher}
-              />
-            ) : undefined
-          }
-          bodyClassName={showPluginBody ? 'px-2 py-2' : 'pb-3'}
-        >
-          {activeRailItem != null ? (
-            <HostedSurface
-              pluginId={activeRailItem.pluginId}
-              contributionId={activeRailItem.contributionId}
-              kind="sidebarRailItems"
-              resizeMode="fill"
-              className="h-full"
-              context={sidebarPanelContext}
-            />
-          ) : displayedPanel != null ? (
-            <HostedSurface
-              pluginId={displayedPanel.pluginId}
-              contributionId={displayedPanel.contributionId}
-              kind="sidebarPanels"
-              resizeMode="fill"
-              className="h-full"
-              context={sidebarPanelContext}
-            />
-          ) : (
-            <SidebarSections sections={sections} expanded={expanded} onToggle={onToggle} />
-          )}
-        </Sidebar>
+        {sidebarPlacement === 'right' ? (
+          <>
+            {sidebarBody}
+            {rail}
+          </>
+        ) : (
+          <>
+            {rail}
+            {sidebarBody}
+          </>
+        )}
       </div>
     </div>
   );

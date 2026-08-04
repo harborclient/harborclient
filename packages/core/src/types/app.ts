@@ -25,6 +25,7 @@ export type MenuActionId =
   | 'toggle-rail'
   | 'hide-sidebars'
   | 'show-sidebars'
+  | 'switch-sidebars'
   | 'focus-sidebar-search'
   | 'focus-request-url'
   | 'focus-browser-address'

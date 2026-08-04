@@ -17,6 +17,7 @@ export const MAX_REQUEST_EDITOR_SPLIT_HEIGHT = 2000;
 export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showSidebar: true,
   showRail: true,
+  sidebarPlacement: 'left',
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -232,6 +233,7 @@ function normalizePanelLayout(input: Partial<PanelLayoutState>): PanelLayoutStat
   return {
     showSidebar: input.showSidebar !== false,
     showRail: input.showRail !== false,
+    sidebarPlacement: input.sidebarPlacement === 'right' ? 'right' : 'left',
     showAiSidebar,
     showGitSidebar,
     showShortcutsSidebar,

@@ -41,6 +41,7 @@ export type WorkspacePanelSizeKey = (typeof WORKSPACE_PANEL_SIZE_KEYS)[number];
 const DEFAULT_WORKSPACE_PANELS: PanelLayoutState = {
   showSidebar: true,
   showRail: true,
+  sidebarPlacement: 'left',
   showAiSidebar: false,
   showGitSidebar: false,
   showShortcutsSidebar: false,
@@ -205,6 +206,7 @@ const workspaceSidebarSortMode = z.enum([
 const workspacePanelsSchema = z.object({
   showSidebar: z.boolean(),
   showRail: z.boolean().default(true),
+  sidebarPlacement: z.enum(['left', 'right']).default('left'),
   showAiSidebar: z.boolean(),
   showGitSidebar: z.boolean(),
   showShortcutsSidebar: z.boolean(),
@@ -549,6 +551,7 @@ function normalizeWorkspacePanels(value: unknown): PanelLayoutState {
   return {
     showSidebar: input.showSidebar !== false,
     showRail: input.showRail !== false,
+    sidebarPlacement: input.sidebarPlacement === 'right' ? 'right' : 'left',
     showAiSidebar: !logsAsSidebar && input.showAiSidebar === true,
     showGitSidebar: !logsAsSidebar && input.showGitSidebar === true,
     showShortcutsSidebar: !logsAsSidebar && input.showShortcutsSidebar === true,

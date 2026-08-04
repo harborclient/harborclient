@@ -37,8 +37,8 @@ vi.mock('#/main/window/zoom', () => ({
   resetZoom: vi.fn()
 }));
 
-describe('buildMenu View hide/show sidebars', () => {
-  it('places Hide sidebars and Show sidebars after Theme with accelerators', async () => {
+describe('buildMenu View hide/show/switch sidebars', () => {
+  it('places Hide, Show, and Switch sidebars after Theme with accelerators', async () => {
     const { buildMenu } = await import('./menu');
     const window = {
       webContents: { send: vi.fn() }
@@ -56,12 +56,15 @@ describe('buildMenu View hide/show sidebars', () => {
 
     const hideItem = submenu[themeIndex + 1] as MenuItemConstructorOptions;
     const showItem = submenu[themeIndex + 2] as MenuItemConstructorOptions;
-    const separator = submenu[themeIndex + 3] as MenuItemConstructorOptions;
+    const switchItem = submenu[themeIndex + 3] as MenuItemConstructorOptions;
+    const separator = submenu[themeIndex + 4] as MenuItemConstructorOptions;
 
     expect(hideItem.label).toBe('Hide sidebars');
     expect(hideItem.accelerator).toBe(accelerators.get('hide-sidebars'));
     expect(showItem.label).toBe('Show sidebars');
     expect(showItem.accelerator).toBe(accelerators.get('show-sidebars'));
+    expect(switchItem.label).toBe('Switch sidebars');
+    expect(switchItem.accelerator).toBe(accelerators.get('switch-sidebars'));
     expect(separator).toEqual({ type: 'separator' });
 
     (hideItem.click as () => void)();
@@ -69,5 +72,8 @@ describe('buildMenu View hide/show sidebars', () => {
 
     (showItem.click as () => void)();
     expect(window.webContents.send).toHaveBeenCalledWith('menu:action', 'show-sidebars');
+
+    (switchItem.click as () => void)();
+    expect(window.webContents.send).toHaveBeenCalledWith('menu:action', 'switch-sidebars');
   });
 });

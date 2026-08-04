@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
+import type { SidebarPlacement } from '@harborclient/core/types';
 import type { RootState } from '#/renderer/src/store/redux';
 
 /** Shell catalog id for the main content column (request editor + footer panels). */
 export const MAIN_COLUMN_PANEL_ID = 'main-column';
+
+export type { SidebarPlacement };
 
 /**
  * Stable ids for panels that can be placed in an {@link ShellLayoutConfig} zone.
@@ -88,8 +91,3 @@ export interface ShellPanelDescriptor {
  * Declarative placement of panel ids into shell zones.
  */
 export type ShellLayoutConfig = Record<ShellZone, ShellPanelId[]>;
-
-/**
- * Collections-on-left vs collections-on-right placement preference.
- */
-export type SidebarPlacement = 'left' | 'right';

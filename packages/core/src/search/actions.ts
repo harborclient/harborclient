@@ -32,6 +32,7 @@ export const BUILTIN_ACTIONS: ActionCommandDefinition[] = [
   { id: 'builtin:toggle-git-sidebar', group: 'View', label: 'Git Sidebar' },
   { id: 'builtin:hide-sidebars', group: 'View', label: 'Hide sidebars' },
   { id: 'builtin:show-sidebars', group: 'View', label: 'Show sidebars' },
+  { id: 'builtin:switch-sidebars', group: 'View', label: 'Switch sidebars' },
   { id: 'builtin:toggle-request-editor', group: 'View', label: 'Request' },
   { id: 'builtin:toggle-response-editor', group: 'View', label: 'Response' },
   { id: 'builtin:toggle-shortcuts-sidebar', group: 'View', label: 'Shortcuts' },
