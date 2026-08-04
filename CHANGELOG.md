@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feat: add testing script and update TypeScript configurations. (`fad0c779`)
 - feat: integrate shortcut runner and enhance shortcut management. (`aaee9d78`)
 
 ## 2.11.4 - 2026-08-04

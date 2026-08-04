@@ -31,7 +31,12 @@
     linear-gradient(145deg, var(--hcsr-navy-900), var(--hcsr-navy-950));
   color: var(--hcsr-paper);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
     sans-serif;
   box-shadow:
     0 20px 70px rgba(2, 10, 22, 0.34),
@@ -104,7 +109,10 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   color: var(--hcsr-slate-300);
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .hcsr-icon-button:hover {
@@ -151,7 +159,10 @@
     rgba(4, 18, 34, 0.58);
   color: var(--hcsr-paper);
   text-align: left;
-  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
 }
 
 .hcsr-how-to-button:hover {
@@ -358,8 +369,7 @@
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(50, 210, 226, 0.08), transparent 62%),
-    var(--hcsr-navy-800);
+    linear-gradient(180deg, rgba(50, 210, 226, 0.08), transparent 62%), var(--hcsr-navy-800);
 }
 
 .hcsr-walkthrough-ground {
@@ -437,7 +447,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: color 150ms ease, transform 150ms ease;
+  transition:
+    color 150ms ease,
+    transform 150ms ease;
 }
 
 .hcsr-walkthrough-controls .hcsr-walkthrough-control--active {
@@ -527,7 +539,10 @@
   background: rgba(255, 255, 255, 0.035);
   color: var(--hcsr-paper);
   text-align: left;
-  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .hcsr-level-card:hover {
@@ -593,7 +608,10 @@
   border-radius: 10px;
   font-size: 12px !important;
   font-weight: 800 !important;
-  transition: transform 140ms ease, filter 140ms ease, background-color 140ms ease;
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    background-color 140ms ease;
 }
 
 .hcsr-primary-button {
@@ -777,8 +795,8 @@
   height: 30px;
   opacity: 0.24;
   background:
-    linear-gradient(90deg, transparent 0 6%, rgba(184, 199, 211, 0.9) 6% 10%, transparent 10% 17%)
-      0 20px / 90px 2px repeat-x,
+    linear-gradient(90deg, transparent 0 6%, rgba(184, 199, 211, 0.9) 6% 10%, transparent 10% 17%) 0
+      20px / 90px 2px repeat-x,
     linear-gradient(180deg, rgba(184, 199, 211, 0.45), transparent 2px);
 }
 
@@ -796,7 +814,7 @@
   bottom: 0;
   border-radius: 50%;
   background: inherit;
-  content: "";
+  content: '';
 }
 
 .hcsr-cloud::before {
@@ -1069,11 +1087,60 @@
   font-size: 13px;
 }
 
+.hcsr-progress-chart {
+  display: grid;
+  width: min(390px, 100%);
+  gap: 8px;
+  margin: 18px 0 0;
+}
+
+.hcsr-progress-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  width: 100%;
+  height: 50px;
+  padding: 10px 10px 8px;
+  border: 1px solid rgba(184, 199, 211, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.hcsr-progress-chart-bar {
+  flex: 1 1 0;
+  min-width: 4px;
+  max-width: 28px;
+  margin-inline: auto;
+  border-radius: 3px 3px 1px 1px;
+  background: rgba(184, 199, 211, 0.35);
+  transition: height 180ms ease;
+}
+
+.hcsr-progress-chart-bar--best:not(.hcsr-progress-chart-bar--current) {
+  background: rgba(50, 210, 226, 0.45);
+}
+
+.hcsr-progress-chart-bar--current {
+  background: var(--hcsr-cyan);
+  box-shadow: 0 0 12px rgba(50, 210, 226, 0.35);
+}
+
+.hcsr-progress-chart-caption {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  color: var(--hcsr-slate-300);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .hcsr-results {
   display: grid;
   width: min(390px, 100%);
   grid-template-columns: repeat(3, 1fr);
-  margin: 22px 0 20px;
+  margin: 12px 0 20px;
   overflow: hidden;
   border: 1px solid rgba(184, 199, 211, 0.16);
   border-radius: 12px;
@@ -1130,39 +1197,79 @@
 }
 
 @keyframes hcsr-jump {
-  0% { transform: translateY(0) rotate(0); }
-  38% { transform: translateY(-86px) rotate(-3deg); }
-  58% { transform: translateY(-82px) rotate(2deg); }
-  100% { transform: translateY(0) rotate(0); }
+  0% {
+    transform: translateY(0) rotate(0);
+  }
+  38% {
+    transform: translateY(-86px) rotate(-3deg);
+  }
+  58% {
+    transform: translateY(-82px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+  }
 }
 
 @keyframes hcsr-walkthrough-jump {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  42%, 58% { transform: translateY(-52px) rotate(-2deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  42%,
+  58% {
+    transform: translateY(-52px) rotate(-2deg);
+  }
 }
 
 @keyframes hcsr-hint-in {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes hcsr-stumble {
-  0% { transform: translateX(0) rotate(0); }
-  18% { transform: translateX(-7px) rotate(-9deg); }
-  38% { transform: translateX(5px) rotate(6deg); }
-  65% { transform: translateX(-2px) rotate(-2deg); }
-  100% { transform: translateX(0) rotate(0); }
+  0% {
+    transform: translateX(0) rotate(0);
+  }
+  18% {
+    transform: translateX(-7px) rotate(-9deg);
+  }
+  38% {
+    transform: translateX(5px) rotate(6deg);
+  }
+  65% {
+    transform: translateX(-2px) rotate(-2deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+  }
 }
 
 @keyframes hcsr-obstacle-hit {
-  0% { transform: translateX(-50%) rotate(0); }
-  45% { transform: translateX(-50%) rotate(13deg); }
-  100% { transform: translateX(-50%) rotate(8deg); }
+  0% {
+    transform: translateX(-50%) rotate(0);
+  }
+  45% {
+    transform: translateX(-50%) rotate(13deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(8deg);
+  }
 }
 
 @keyframes hcsr-cloud-drift {
-  from { translate: -10px 0; }
-  to { translate: 55px 0; }
+  from {
+    translate: -10px 0;
+  }
+  to {
+    translate: 55px 0;
+  }
 }
 
 @media (max-width: 480px) {

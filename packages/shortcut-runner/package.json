@@ -25,6 +25,7 @@
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json",
     "typecheck": "tsc -b",
+    "test": "node --experimental-strip-types --test src/lib/**/*.test.ts",
     "preview": "vite preview"
   },
   "peerDependencies": {

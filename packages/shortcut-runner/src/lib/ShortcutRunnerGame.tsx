@@ -6,14 +6,12 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
+  type PointerEvent as ReactPointerEvent
 } from 'react';
 import './ShortcutRunnerGame.css';
-import {
-  displayShortcut,
-  keyboardEventToShortcut,
-  normalizeShortcut,
-} from './shortcut';
+import { appendLevelScore } from './levelScoreHistory';
+import { ScoreProgressChart } from './ScoreProgressChart';
+import { displayShortcut, keyboardEventToShortcut, normalizeShortcut } from './shortcut';
 import { useGameAudio } from './useGameAudio';
 
 export interface ShortcutLevel {
@@ -29,6 +27,17 @@ export interface ShortcutGameStats {
   missed: number;
   score: number;
   longestStreak: number;
+}
+
+/**
+ * Derives accuracy percent from a finished run's stats.
+ *
+ * @param runStats - Correct / mistake / miss counts from the run.
+ * @returns Rounded accuracy from 0–100.
+ */
+function accuracyFromStats(runStats: ShortcutGameStats): number {
+  const attempts = runStats.correct + runStats.mistakes + runStats.missed;
+  return attempts === 0 ? 0 : Math.round((runStats.correct / attempts) * 100);
 }
 
 export interface ShortcutRunnerGameProps {
@@ -69,30 +78,30 @@ const EMPTY_STATS: ShortcutGameStats = {
   mistakes: 0,
   missed: 0,
   score: 0,
-  longestStreak: 0,
+  longestStreak: 0
 };
 
 const WALKTHROUGH_STEPS = [
   {
     title: 'Read the command',
-    body: 'The action you need to perform appears above the track.',
+    body: 'The action you need to perform appears above the track.'
   },
   {
     title: 'Enter the shortcut',
-    body: 'Try the demo shortcut now: Ctrl + Enter.',
+    body: 'Try the demo shortcut now: Ctrl + Enter.'
   },
   {
     title: 'Ask for a hint',
-    body: 'Press H to reveal the shortcut one key at a time.',
+    body: 'Press H to reveal the shortcut one key at a time.'
   },
   {
     title: 'Pause the game',
-    body: 'Press P to pause or resume without losing the round.',
+    body: 'Press P to pause or resume without losing the round.'
   },
   {
     title: 'Clear the obstacle',
-    body: 'Correct shortcuts make the dinosaur jump over the cactus.',
-  },
+    body: 'Correct shortcuts make the dinosaur jump over the cactus.'
+  }
 ] as const;
 
 function shuffled<T>(items: readonly T[]): T[] {
@@ -114,7 +123,7 @@ function makeTaskDeck(level: ShortcutLevel, requestedRounds: number): ShortcutTa
     .map(([shortcut, action]) => ({
       action,
       shortcut,
-      normalizedShortcut: normalizeShortcut(shortcut),
+      normalizedShortcut: normalizeShortcut(shortcut)
     }))
     .filter((task) => task.normalizedShortcut.length > 0);
 
@@ -147,13 +156,13 @@ function makeTaskDeck(level: ShortcutLevel, requestedRounds: number): ShortcutTa
 function updateStats(
   current: ShortcutGameStats,
   outcome: RoundOutcome | 'mistake',
-  streak: number,
+  streak: number
 ): ShortcutGameStats {
   if (outcome === 'mistake') {
     return {
       ...current,
       mistakes: current.mistakes + 1,
-      score: Math.max(0, current.score - 15),
+      score: Math.max(0, current.score - 15)
     };
   }
 
@@ -161,7 +170,7 @@ function updateStats(
     return {
       ...current,
       missed: current.missed + 1,
-      score: Math.max(0, current.score - 40),
+      score: Math.max(0, current.score - 40)
     };
   }
 
@@ -169,7 +178,7 @@ function updateStats(
     ...current,
     correct: current.correct + 1,
     score: current.score + 100 + Math.min(streak * 10, 100),
-    longestStreak: Math.max(current.longestStreak, streak),
+    longestStreak: Math.max(current.longestStreak, streak)
   };
 }
 
@@ -186,7 +195,7 @@ function formatLevelSpeed(level: ShortcutLevel): string {
 
 function ProgressiveShortcutHint({
   keys,
-  revealedCount,
+  revealedCount
 }: {
   keys: string[];
   revealedCount: number;
@@ -205,7 +214,11 @@ function ProgressiveShortcutHint({
           <kbd>{key}</kbd>
         </span>
       ))}
-      {incomplete && <span className="hcsr-progressive-plus" aria-hidden="true">+</span>}
+      {incomplete && (
+        <span className="hcsr-progressive-plus" aria-hidden="true">
+          +
+        </span>
+      )}
     </div>
   );
 }
@@ -264,7 +277,7 @@ function VolumeIcon({ muted }: { muted: boolean }) {
 function HowToPlayWalkthrough({
   open,
   onClose,
-  onStart,
+  onStart
 }: {
   open: boolean;
   onClose: () => void;
@@ -294,9 +307,12 @@ function HowToPlayWalkthrough({
     window.requestAnimationFrame(() => dialogRef.current?.focus());
   }, [open, resetWalkthrough]);
 
-  useEffect(() => () => {
-    if (jumpTimerRef.current !== null) window.clearTimeout(jumpTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (jumpTimerRef.current !== null) window.clearTimeout(jumpTimerRef.current);
+    },
+    []
+  );
 
   if (!open || !currentStep) return null;
 
@@ -364,14 +380,21 @@ function HowToPlayWalkthrough({
             <span className="hcsr-eyebrow">Interactive walkthrough</span>
             <h2 id="hcsr-walkthrough-title">{currentStep.title}</h2>
           </div>
-          <button type="button" className="hcsr-icon-button" onClick={onClose} aria-label="Close walkthrough">
+          <button
+            type="button"
+            className="hcsr-icon-button"
+            onClick={onClose}
+            aria-label="Close walkthrough"
+          >
             <span aria-hidden="true">×</span>
           </button>
         </div>
 
         <p className="hcsr-walkthrough-copy">{currentStep.body}</p>
 
-        <div className={`hcsr-walkthrough-stage hcsr-walkthrough-stage--${step}${demoPaused ? ' hcsr-walkthrough-stage--paused' : ''}`}>
+        <div
+          className={`hcsr-walkthrough-stage hcsr-walkthrough-stage--${step}${demoPaused ? ' hcsr-walkthrough-stage--paused' : ''}`}
+        >
           <div className="hcsr-walkthrough-command">
             <span>Use the shortcut for</span>
             <strong>Send Request</strong>
@@ -380,30 +403,55 @@ function HowToPlayWalkthrough({
                 <ProgressiveShortcutHint keys={demoKeys} revealedCount={demoHintCount} />
               )}
               {step === 1 && !completedSteps[1] && (
-                <span className="hcsr-walkthrough-try"><kbd>Ctrl</kbd><b>+</b><kbd>Enter</kbd></span>
+                <span className="hcsr-walkthrough-try">
+                  <kbd>Ctrl</kbd>
+                  <b>+</b>
+                  <kbd>Enter</kbd>
+                </span>
               )}
-              {step === 1 && completedSteps[1] && <span className="hcsr-walkthrough-success">Correct!</span>}
+              {step === 1 && completedSteps[1] && (
+                <span className="hcsr-walkthrough-success">Correct!</span>
+              )}
             </div>
           </div>
 
           <div className="hcsr-walkthrough-track" aria-hidden="true">
-            {demoPaused && <div className="hcsr-walkthrough-pause"><strong>Paused</strong><span>Press P again to resume</span></div>}
+            {demoPaused && (
+              <div className="hcsr-walkthrough-pause">
+                <strong>Paused</strong>
+                <span>Press P again to resume</span>
+              </div>
+            )}
             <div className="hcsr-walkthrough-ground" />
-            <div className={`hcsr-walkthrough-runner${demoJumping || step === 4 ? ' hcsr-walkthrough-runner--jumping' : ''}`}>
+            <div
+              className={`hcsr-walkthrough-runner${demoJumping || step === 4 ? ' hcsr-walkthrough-runner--jumping' : ''}`}
+            >
               <RunnerIcon />
             </div>
-            <div className="hcsr-walkthrough-cactus"><CactusIcon /></div>
+            <div className="hcsr-walkthrough-cactus">
+              <CactusIcon />
+            </div>
           </div>
 
           <div className="hcsr-walkthrough-controls">
-            <span className={step === 2 ? 'hcsr-walkthrough-control--active' : ''}><kbd>H</kbd> Hint</span>
-            <span className={step === 3 ? 'hcsr-walkthrough-control--active' : ''}><kbd>P</kbd> Pause</span>
+            <span className={step === 2 ? 'hcsr-walkthrough-control--active' : ''}>
+              <kbd>H</kbd> Hint
+            </span>
+            <span className={step === 3 ? 'hcsr-walkthrough-control--active' : ''}>
+              <kbd>P</kbd> Pause
+            </span>
           </div>
         </div>
 
-        <div className="hcsr-walkthrough-progress" aria-label={`Step ${step + 1} of ${WALKTHROUGH_STEPS.length}`}>
+        <div
+          className="hcsr-walkthrough-progress"
+          aria-label={`Step ${step + 1} of ${WALKTHROUGH_STEPS.length}`}
+        >
           {WALKTHROUGH_STEPS.map((_, index) => (
-            <span className={index <= step ? 'hcsr-walkthrough-progress--active' : ''} key={index} />
+            <span
+              className={index <= step ? 'hcsr-walkthrough-progress--active' : ''}
+              key={index}
+            />
           ))}
         </div>
 
@@ -420,10 +468,18 @@ function HowToPlayWalkthrough({
             <button
               type="button"
               className="hcsr-primary-button"
-              onClick={() => setStep((current) => Math.min(WALKTHROUGH_STEPS.length - 1, current + 1))}
+              onClick={() =>
+                setStep((current) => Math.min(WALKTHROUGH_STEPS.length - 1, current + 1))
+              }
               disabled={!canContinue}
             >
-              {canContinue ? 'Next' : step === 1 ? 'Press Ctrl + Enter' : step === 2 ? 'Press H' : 'Press P'}
+              {canContinue
+                ? 'Next'
+                : step === 1
+                  ? 'Press Ctrl + Enter'
+                  : step === 2
+                    ? 'Press H'
+                    : 'Press P'}
             </button>
           ) : (
             <button type="button" className="hcsr-primary-button" onClick={onStart}>
@@ -444,7 +500,7 @@ export function ShortcutRunnerGame({
   roundDurationMs = 5000,
   initialMuted = false,
   className = '',
-  onLevelComplete,
+  onLevelComplete
 }: ShortcutRunnerGameProps) {
   const [screen, setScreen] = useState<Screen>('menu');
   const [howToPlayOpen, setHowToPlayOpen] = useState(false);
@@ -461,6 +517,8 @@ export function ShortcutRunnerGame({
   const [paused, setPaused] = useState(false);
   const [stats, setStats] = useState<ShortcutGameStats>(EMPTY_STATS);
   const [streak, setStreak] = useState(0);
+  /** Score values for the selected level after the latest completed run is appended. */
+  const [levelScoreHistory, setLevelScoreHistory] = useState<number[]>([]);
 
   const gameRef = useRef<HTMLDivElement | null>(null);
   const obstacleXRef = useRef(START_X);
@@ -476,7 +534,7 @@ export function ShortcutRunnerGame({
   const currentTask = tasks[roundIndex];
   const currentShortcutKeys = useMemo(
     () => (currentTask ? displayShortcut(currentTask.normalizedShortcut) : []),
-    [currentTask],
+    [currentTask]
   );
   const keyCount = currentShortcutKeys.length;
   const activeLevelSpeed = getLevelSpeed(selectedLevel);
@@ -484,8 +542,8 @@ export function ShortcutRunnerGame({
   const rootStyle = {
     '--hcsr-width': `${width}px`,
     '--hcsr-height': `${height}px`,
-    width: `${width}px`,
-    height: `${height}px`,
+    'width': `${width}px`,
+    'height': `${height}px`
   } as CSSProperties;
 
   const clearTimers = useCallback(() => {
@@ -548,7 +606,7 @@ export function ShortcutRunnerGame({
       resetRound();
       startMusic();
     },
-    [clearTimers, levels, resetRound, roundsPerLevel, startMusic],
+    [clearTimers, levels, resetRound, roundsPerLevel, startMusic]
   );
 
   const returnToMenu = useCallback(() => {
@@ -609,18 +667,29 @@ export function ShortcutRunnerGame({
           if (nextIndex >= tasks.length) {
             stopMusic();
             setPaused(false);
-            setScreen('complete');
             setJumping(false);
             setStumbling(false);
             const completedLevel = levels[selectedLevelIndex];
-            if (completedLevel) onLevelComplete?.(completedLevel, nextStats);
+            if (completedLevel) {
+              const history = appendLevelScore(completedLevel.name, {
+                score: nextStats.score,
+                accuracy: accuracyFromStats(nextStats),
+                longestStreak: nextStats.longestStreak,
+                at: Date.now()
+              });
+              setLevelScoreHistory(history.map((entry) => entry.score));
+              onLevelComplete?.(completedLevel, nextStats);
+            } else {
+              setLevelScoreHistory([]);
+            }
+            setScreen('complete');
             return;
           }
 
           setRoundIndex(nextIndex);
           resetRound();
         },
-        outcome === 'correct' ? 720 : 1000,
+        outcome === 'correct' ? 720 : 1000
       );
     },
     [
@@ -633,8 +702,8 @@ export function ShortcutRunnerGame({
       roundIndex,
       selectedLevelIndex,
       stopMusic,
-      tasks.length,
-    ],
+      tasks.length
+    ]
   );
 
   useEffect(() => {
@@ -675,7 +744,7 @@ export function ShortcutRunnerGame({
     setHintKeyCount(nextCount);
     setFeedback({
       type: 'hint',
-      text: nextCount >= keyCount ? 'Full shortcut revealed.' : 'One more key revealed.',
+      text: nextCount >= keyCount ? 'Full shortcut revealed.' : 'One more key revealed.'
     });
     clearFeedbackLater(900);
   }, [clearFeedbackLater, keyCount]);
@@ -736,7 +805,7 @@ export function ShortcutRunnerGame({
       setStats(nextStats);
       setFeedback({
         type: 'error',
-        text: `That was ${displayShortcut(enteredShortcut).join(' + ')}. Try again.`,
+        text: `That was ${displayShortcut(enteredShortcut).join(' + ')}. Try again.`
       });
       clearFeedbackLater();
     },
@@ -748,8 +817,8 @@ export function ShortcutRunnerGame({
       playWrong,
       revealNextHintKey,
       screen,
-      togglePaused,
-    ],
+      togglePaused
+    ]
   );
 
   const accuracy = useMemo(() => {
@@ -796,17 +865,21 @@ export function ShortcutRunnerGame({
 
       {screen === 'menu' && (
         <main className="hcsr-menu">
-              <button
+          <button
             type="button"
             className="hcsr-how-to-button"
             onClick={() => setHowToPlayOpen(true)}
           >
-            <span className="hcsr-how-to-icon" aria-hidden="true">?</span>
+            <span className="hcsr-how-to-icon" aria-hidden="true">
+              ?
+            </span>
             <span>
               <strong>How to play</strong>
               <small>Open the interactive walkthrough</small>
             </span>
-            <span className="hcsr-how-to-arrow" aria-hidden="true">→</span>
+            <span className="hcsr-how-to-arrow" aria-hidden="true">
+              →
+            </span>
           </button>
 
           <div className="hcsr-level-heading">
@@ -834,10 +907,13 @@ export function ShortcutRunnerGame({
                   <span>
                     <strong>{level.name}</strong>
                     <small>
-                      {shortcutCount} shortcut{shortcutCount === 1 ? '' : 's'} · {formatLevelSpeed(level)}
+                      {shortcutCount} shortcut{shortcutCount === 1 ? '' : 's'} ·{' '}
+                      {formatLevelSpeed(level)}
                     </small>
                   </span>
-                  <span className="hcsr-level-check" aria-hidden="true">✓</span>
+                  <span className="hcsr-level-check" aria-hidden="true">
+                    ✓
+                  </span>
                 </button>
               );
             })}
@@ -863,7 +939,9 @@ export function ShortcutRunnerGame({
       {screen === 'playing' && currentTask && selectedLevel && (
         <main className={`hcsr-game${paused ? ' hcsr-game--paused' : ''}`}>
           <div className="hcsr-status-row">
-            <span>{selectedLevel.name} · {activeLevelSpeed}×</span>
+            <span>
+              {selectedLevel.name} · {activeLevelSpeed}×
+            </span>
             <span>
               Round {roundIndex + 1}/{tasks.length}
             </span>
@@ -875,18 +953,19 @@ export function ShortcutRunnerGame({
             <strong>{currentTask.action}</strong>
             <div className="hcsr-hint-slot">
               {hintKeyCount > 0 && (
-                <ProgressiveShortcutHint
-                  keys={currentShortcutKeys}
-                  revealedCount={hintKeyCount}
-                />
+                <ProgressiveShortcutHint keys={currentShortcutKeys} revealedCount={hintKeyCount} />
               )}
             </div>
           </div>
 
           <div className="hcsr-track" aria-hidden="true">
             <div className="hcsr-control-guide">
-              <span><kbd>H</kbd> Hint</span>
-              <span><kbd>P</kbd> Pause</span>
+              <span>
+                <kbd>H</kbd> Hint
+              </span>
+              <span>
+                <kbd>P</kbd> Pause
+              </span>
             </div>
             {paused && (
               <div className="hcsr-pause-overlay">
@@ -948,12 +1027,25 @@ export function ShortcutRunnerGame({
           <div className="hcsr-complete-mark">✓</div>
           <span className="hcsr-eyebrow">Level complete</span>
           <h2>{selectedLevel.name}</h2>
-          <p>You cleared {stats.correct} of {tasks.length} obstacles.</p>
+          <p>
+            You cleared {stats.correct} of {tasks.length} obstacles.
+          </p>
+
+          <ScoreProgressChart scores={levelScoreHistory} />
 
           <div className="hcsr-results">
-            <div><span>Score</span><strong>{stats.score}</strong></div>
-            <div><span>Accuracy</span><strong>{accuracy}%</strong></div>
-            <div><span>Best streak</span><strong>{stats.longestStreak}</strong></div>
+            <div>
+              <span>Score</span>
+              <strong>{stats.score}</strong>
+            </div>
+            <div>
+              <span>Accuracy</span>
+              <strong>{accuracy}%</strong>
+            </div>
+            <div>
+              <span>Best streak</span>
+              <strong>{stats.longestStreak}</strong>
+            </div>
           </div>
 
           <div className="hcsr-complete-actions">
