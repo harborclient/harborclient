@@ -4,7 +4,6 @@ import {
   KeyValueEditor,
   CodeEditor,
   Radio,
-  fieldFrame,
   COPY_TO_CHAT_SHORTCUT_CODEMIRROR_KEY
 } from '@harborclient/sdk/components';
 import type { CodeEditorTextSelection } from '@harborclient/sdk/components';
@@ -309,10 +308,8 @@ export function BodyEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div
-        className={`mb-2 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 ${fieldFrame} p-4`}
-      >
-        <span className="text-muted">Body type</span>
+      <div className="-mx-4 mb-3 flex shrink-0 flex-wrap items-center gap-x-8 gap-y-1 border-b border-separator px-4 pb-3">
+        <span className="text-muted ms-4">Body type</span>
         {BODY_TYPE_OPTIONS.map(({ value, label }) => (
           <FormGroup key={value} label={label} layout="radio">
             <Radio
@@ -388,7 +385,7 @@ export function BodyEditor({
         </>
       )}
       {bodyType !== 'none' && bodyType !== 'multipart' && bodyType !== 'urlencoded' && (
-        <div className={`flex min-h-0 flex-1 flex-col ${fieldFrame} p-4`}>
+        <div className="flex min-h-0 flex-1 flex-col">
           <CodeEditor
             value={body}
             onChange={handleBodyChange}

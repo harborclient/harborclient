@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: clean up BodyEditor layout and remove unused styles. (`39992629`)
 - feat: add footer component to the main application layout. (`726da17f`)
 - feat: add sidebar switching functionality and enhance layout settings. (`0af21c33`)
 - refactor: enhance script execution logging and clean up console components. (`ab0ecf3d`)
