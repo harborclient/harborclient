@@ -43,7 +43,7 @@ export function ShortcutTutorModal(): JSX.Element | null {
   }, [shortcutTutor.open]);
 
   /**
-   * Loads resolved shortcut bindings and builds the four tutor levels when opened.
+   * Loads resolved shortcut bindings and builds the five tutor levels when opened.
    */
   useEffect(() => {
     if (!shortcutTutor.open) {

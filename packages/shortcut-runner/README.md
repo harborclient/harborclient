@@ -10,7 +10,6 @@ The project includes:
 - Per-level scrolling speed
 - Progressive hints that reveal one shortcut key per H press
 - A key-count indicator for every command
-- A “How to play” button that opens an interactive keyboard walkthrough
 - Shortcut normalization for Ctrl, Alt, Shift, Meta/Command, function keys, arrows, and common aliases
 - Procedurally generated background music and sound effects using the Web Audio API
 - A mute control, score, streaks, accuracy, and level-completion callback
@@ -61,10 +60,7 @@ Add it to the consuming package:
 Then import the component and stylesheet:
 
 ```tsx
-import {
-  ShortcutRunnerGame,
-  type ShortcutLevel,
-} from '@harborclient/shortcut-runner-game';
+import { ShortcutRunnerGame, type ShortcutLevel } from '@harborclient/shortcut-runner-game';
 import '@harborclient/shortcut-runner-game/style.css';
 
 const levels: ShortcutLevel[] = [
@@ -73,17 +69,17 @@ const levels: ShortcutLevel[] = [
     speed: 0.8,
     shortcodes: {
       'ctrl+enter': 'Send Request',
-      'ctrl+l': 'Focus URL',
-    },
+      'ctrl+l': 'Focus URL'
+    }
   },
   {
     name: 'Level 2',
     speed: 1.25,
     shortcodes: {
-      F4: 'Do Something Harder',
-      'ctrl+alt+t': 'Start Server',
-    },
-  },
+      'F4': 'Do Something Harder',
+      'ctrl+alt+t': 'Start Server'
+    }
+  }
 ];
 
 export function ShortcutTraining() {
@@ -116,7 +112,7 @@ The `shortcodes` value is a `Record<string, string>` where each key is a configu
 - `H`: reveal the next key in the shortcut hint
 - `P`: pause or resume the game
 
-Both controls are displayed persistently inside the game area during play. The start screen also includes a **How to play** button that opens a five-step interactive walkthrough. The walkthrough asks the user to try `Ctrl+Enter`, `H`, and `P` before starting a level.
+Both controls are displayed persistently inside the game area during play.
 
 ## Progressive hints
 
@@ -135,16 +131,13 @@ The number of required keys is always shown at the bottom of the game. Press P t
 ```ts
 interface ShortcutRunnerGameProps {
   levels: ShortcutLevel[];
-  width?: number;             // default: 600
-  height?: number;            // default: 500
-  roundsPerLevel?: number;    // default: 6
-  roundDurationMs?: number;   // default: 5000 at speed 1
-  initialMuted?: boolean;     // default: false
+  width?: number; // default: 600
+  height?: number; // default: 500
+  roundsPerLevel?: number; // default: 6
+  roundDurationMs?: number; // default: 5000 at speed 1
+  initialMuted?: boolean; // default: false
   className?: string;
-  onLevelComplete?: (
-    level: ShortcutLevel,
-    stats: ShortcutGameStats,
-  ) => void;
+  onLevelComplete?: (level: ShortcutLevel, stats: ShortcutGameStats) => void;
 }
 
 interface ShortcutLevel {

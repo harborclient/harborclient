@@ -5,8 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent
+  type KeyboardEvent as ReactKeyboardEvent
 } from 'react';
 import './ShortcutRunnerGame.css';
 import { appendLevelScore } from './levelScoreHistory';
@@ -80,29 +79,6 @@ const EMPTY_STATS: ShortcutGameStats = {
   score: 0,
   longestStreak: 0
 };
-
-const WALKTHROUGH_STEPS = [
-  {
-    title: 'Read the command',
-    body: 'The action you need to perform appears above the track.'
-  },
-  {
-    title: 'Enter the shortcut',
-    body: 'Try the demo shortcut now: Ctrl + Enter.'
-  },
-  {
-    title: 'Ask for a hint',
-    body: 'Press H to reveal the shortcut one key at a time.'
-  },
-  {
-    title: 'Pause the game',
-    body: 'Press P to pause or resume without losing the round.'
-  },
-  {
-    title: 'Clear the obstacle',
-    body: 'Correct shortcuts make the dinosaur jump over the cactus.'
-  }
-] as const;
 
 function shuffled<T>(items: readonly T[]): T[] {
   const result = [...items];
@@ -274,224 +250,6 @@ function VolumeIcon({ muted }: { muted: boolean }) {
   );
 }
 
-function HowToPlayWalkthrough({
-  open,
-  onClose,
-  onStart
-}: {
-  open: boolean;
-  onClose: () => void;
-  onStart: () => void;
-}) {
-  const [step, setStep] = useState(0);
-  const [demoHintCount, setDemoHintCount] = useState(0);
-  const [demoJumping, setDemoJumping] = useState(false);
-  const [demoPaused, setDemoPaused] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({ 0: true });
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const jumpTimerRef = useRef<number | null>(null);
-  const currentStep = WALKTHROUGH_STEPS[step];
-  const demoKeys = ['Ctrl', 'Enter'];
-
-  const resetWalkthrough = useCallback(() => {
-    setStep(0);
-    setDemoHintCount(0);
-    setDemoJumping(false);
-    setDemoPaused(false);
-    setCompletedSteps({ 0: true });
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    resetWalkthrough();
-    window.requestAnimationFrame(() => dialogRef.current?.focus());
-  }, [open, resetWalkthrough]);
-
-  useEffect(
-    () => () => {
-      if (jumpTimerRef.current !== null) window.clearTimeout(jumpTimerRef.current);
-    },
-    []
-  );
-
-  if (!open || !currentStep) return null;
-
-  const markComplete = (stepIndex: number) => {
-    setCompletedSteps((current) => ({ ...current, [stepIndex]: true }));
-  };
-
-  const triggerDemoJump = () => {
-    if (jumpTimerRef.current !== null) window.clearTimeout(jumpTimerRef.current);
-    setDemoJumping(false);
-    window.requestAnimationFrame(() => setDemoJumping(true));
-    jumpTimerRef.current = window.setTimeout(() => setDemoJumping(false), 760);
-  };
-
-  const handleWalkthroughKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-
-    const enteredShortcut = keyboardEventToShortcut(event.nativeEvent);
-    if (!enteredShortcut || event.repeat) return;
-
-    if (step === 1 && enteredShortcut === 'ctrl+enter') {
-      event.preventDefault();
-      event.stopPropagation();
-      triggerDemoJump();
-      markComplete(step);
-      return;
-    }
-
-    if (step === 2 && enteredShortcut === 'h') {
-      event.preventDefault();
-      event.stopPropagation();
-      setDemoHintCount((current) => Math.min(current + 1, demoKeys.length));
-      markComplete(step);
-      return;
-    }
-
-    if (step === 3 && enteredShortcut === 'p') {
-      event.preventDefault();
-      event.stopPropagation();
-      setDemoPaused((current) => !current);
-      markComplete(step);
-    }
-  };
-
-  const canContinue = step === 0 || step === 4 || Boolean(completedSteps[step]);
-
-  return (
-    <div className="hcsr-walkthrough-backdrop" role="presentation" onPointerDown={onClose}>
-      <div
-        ref={dialogRef}
-        className="hcsr-walkthrough"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="hcsr-walkthrough-title"
-        tabIndex={-1}
-        onKeyDownCapture={handleWalkthroughKeyDown}
-        onPointerDown={(event: ReactPointerEvent<HTMLDivElement>) => event.stopPropagation()}
-      >
-        <div className="hcsr-walkthrough-header">
-          <div>
-            <span className="hcsr-eyebrow">Interactive walkthrough</span>
-            <h2 id="hcsr-walkthrough-title">{currentStep.title}</h2>
-          </div>
-          <button
-            type="button"
-            className="hcsr-icon-button"
-            onClick={onClose}
-            aria-label="Close walkthrough"
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-
-        <p className="hcsr-walkthrough-copy">{currentStep.body}</p>
-
-        <div
-          className={`hcsr-walkthrough-stage hcsr-walkthrough-stage--${step}${demoPaused ? ' hcsr-walkthrough-stage--paused' : ''}`}
-        >
-          <div className="hcsr-walkthrough-command">
-            <span>Use the shortcut for</span>
-            <strong>Send Request</strong>
-            <div className="hcsr-walkthrough-hint">
-              {step === 2 && demoHintCount > 0 && (
-                <ProgressiveShortcutHint keys={demoKeys} revealedCount={demoHintCount} />
-              )}
-              {step === 1 && !completedSteps[1] && (
-                <span className="hcsr-walkthrough-try">
-                  <kbd>Ctrl</kbd>
-                  <b>+</b>
-                  <kbd>Enter</kbd>
-                </span>
-              )}
-              {step === 1 && completedSteps[1] && (
-                <span className="hcsr-walkthrough-success">Correct!</span>
-              )}
-            </div>
-          </div>
-
-          <div className="hcsr-walkthrough-track" aria-hidden="true">
-            {demoPaused && (
-              <div className="hcsr-walkthrough-pause">
-                <strong>Paused</strong>
-                <span>Press P again to resume</span>
-              </div>
-            )}
-            <div className="hcsr-walkthrough-ground" />
-            <div
-              className={`hcsr-walkthrough-runner${demoJumping || step === 4 ? ' hcsr-walkthrough-runner--jumping' : ''}`}
-            >
-              <RunnerIcon />
-            </div>
-            <div className="hcsr-walkthrough-cactus">
-              <CactusIcon />
-            </div>
-          </div>
-
-          <div className="hcsr-walkthrough-controls">
-            <span className={step === 2 ? 'hcsr-walkthrough-control--active' : ''}>
-              <kbd>H</kbd> Hint
-            </span>
-            <span className={step === 3 ? 'hcsr-walkthrough-control--active' : ''}>
-              <kbd>P</kbd> Pause
-            </span>
-          </div>
-        </div>
-
-        <div
-          className="hcsr-walkthrough-progress"
-          aria-label={`Step ${step + 1} of ${WALKTHROUGH_STEPS.length}`}
-        >
-          {WALKTHROUGH_STEPS.map((_, index) => (
-            <span
-              className={index <= step ? 'hcsr-walkthrough-progress--active' : ''}
-              key={index}
-            />
-          ))}
-        </div>
-
-        <div className="hcsr-walkthrough-actions">
-          <button
-            type="button"
-            className="hcsr-secondary-button"
-            onClick={() => setStep((current) => Math.max(0, current - 1))}
-            disabled={step === 0}
-          >
-            Back
-          </button>
-          {step < WALKTHROUGH_STEPS.length - 1 ? (
-            <button
-              type="button"
-              className="hcsr-primary-button"
-              onClick={() =>
-                setStep((current) => Math.min(WALKTHROUGH_STEPS.length - 1, current + 1))
-              }
-              disabled={!canContinue}
-            >
-              {canContinue
-                ? 'Next'
-                : step === 1
-                  ? 'Press Ctrl + Enter'
-                  : step === 2
-                    ? 'Press H'
-                    : 'Press P'}
-            </button>
-          ) : (
-            <button type="button" className="hcsr-primary-button" onClick={onStart}>
-              Start selected level
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function ShortcutRunnerGame({
   levels,
   width = 600,
@@ -503,7 +261,6 @@ export function ShortcutRunnerGame({
   onLevelComplete
 }: ShortcutRunnerGameProps) {
   const [screen, setScreen] = useState<Screen>('menu');
-  const [howToPlayOpen, setHowToPlayOpen] = useState(false);
   const [selectedLevelIndex, setSelectedLevelIndex] = useState(0);
   const [tasks, setTasks] = useState<ShortcutTask[]>([]);
   const [roundIndex, setRoundIndex] = useState(0);
@@ -601,7 +358,6 @@ export function ShortcutRunnerGame({
       setStreak(0);
       streakRef.current = 0;
       setPaused(false);
-      setHowToPlayOpen(false);
       setScreen('playing');
       resetRound();
       startMusic();
@@ -865,23 +621,6 @@ export function ShortcutRunnerGame({
 
       {screen === 'menu' && (
         <main className="hcsr-menu">
-          <button
-            type="button"
-            className="hcsr-how-to-button"
-            onClick={() => setHowToPlayOpen(true)}
-          >
-            <span className="hcsr-how-to-icon" aria-hidden="true">
-              ?
-            </span>
-            <span>
-              <strong>How to play</strong>
-              <small>Open the interactive walkthrough</small>
-            </span>
-            <span className="hcsr-how-to-arrow" aria-hidden="true">
-              →
-            </span>
-          </button>
-
           <div className="hcsr-level-heading">
             <div>
               <span className="hcsr-eyebrow">Build muscle memory</span>
@@ -927,12 +666,6 @@ export function ShortcutRunnerGame({
           >
             Start {selectedLevel?.name ?? 'level'}
           </button>
-
-          <HowToPlayWalkthrough
-            open={howToPlayOpen}
-            onClose={() => setHowToPlayOpen(false)}
-            onStart={() => startLevel(selectedLevelIndex)}
-          />
         </main>
       )}
 

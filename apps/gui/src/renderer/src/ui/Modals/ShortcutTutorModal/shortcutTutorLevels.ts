@@ -80,6 +80,41 @@ const LEVEL_3_EXTRA_IDS: readonly ShortcutId[] = [
 ];
 
 /**
+ * Advanced shortcuts added in Level 4 (cumulative with Levels 1–3).
+ *
+ * Covers edit chords, browser navigation, zoom, focus helpers, remaining
+ * toggles, and extra git / help bindings that are not in Levels 1–3.
+ */
+const LEVEL_4_EXTRA_IDS: readonly ShortcutId[] = [
+  'undo',
+  'redo',
+  'cut',
+  'copy',
+  'paste',
+  'select-all',
+  'browser-go-back',
+  'browser-go-forward',
+  'zoom-in',
+  'zoom-out',
+  'reset-zoom',
+  'toggle-fullscreen',
+  'focus-first-collection',
+  'focus-first-environment',
+  'focus-first-request-tab',
+  'next-sidebar-list-item',
+  'previous-sidebar-list-item',
+  'toggle-request-editor',
+  'toggle-response-editor',
+  'toggle-run-results-section',
+  'toggle-storage-locations',
+  'toggle-color-markers',
+  'toggle-indicators',
+  'toggle-shortcuts-sidebar',
+  'new-browser-tab',
+  'git-merge'
+];
+
+/**
  * Builds a shortcodes map for the given shortcut ids from resolved bindings.
  *
  * Skips empty accelerators. When two ids resolve to the same game shortcode,
@@ -115,9 +150,9 @@ function buildShortcodes(
 }
 
 /**
- * Builds the four cumulative Shortcut Tutor levels from the user's bindings.
+ * Builds the five cumulative Shortcut Tutor levels from the user's bindings.
  *
- * Levels 1–3 grow from everyday to power-user chords; Level 4 includes every
+ * Levels 1–4 grow from everyday to advanced chords; Level 5 includes every
  * binding that has a non-empty accelerator.
  *
  * @param bindings - Resolved shortcut bindings from settings.
@@ -133,7 +168,8 @@ export function buildShortcutTutorLevels(
   const level1Ids = LEVEL_1_IDS;
   const level2Ids = [...LEVEL_1_IDS, ...LEVEL_2_EXTRA_IDS];
   const level3Ids = [...level2Ids, ...LEVEL_3_EXTRA_IDS];
-  const level4Ids = bindings
+  const level4Ids = [...level3Ids, ...LEVEL_4_EXTRA_IDS];
+  const level5Ids = bindings
     .filter((binding) => binding.accelerator.trim().length > 0)
     .map((binding) => binding.id);
 
@@ -154,9 +190,14 @@ export function buildShortcutTutorLevels(
       shortcodes: buildShortcodes(level3Ids, bindingsById, platform)
     },
     {
-      name: 'Level 4 · Everything',
-      speed: 1.5,
+      name: 'Level 4 · Advanced',
+      speed: 1.4,
       shortcodes: buildShortcodes(level4Ids, bindingsById, platform)
+    },
+    {
+      name: 'Level 5 · Everything',
+      speed: 1.6,
+      shortcodes: buildShortcodes(level5Ids, bindingsById, platform)
     }
   ];
 }

@@ -18,18 +18,20 @@ function defaultBindings(): ShortcutBinding[] {
 }
 
 describe('buildShortcutTutorLevels', () => {
-  it('builds four cumulative levels with increasing shortcode counts', () => {
+  it('builds five cumulative levels with increasing shortcode counts', () => {
     const levels = buildShortcutTutorLevels(defaultBindings(), 'linux');
 
-    expect(levels).toHaveLength(4);
+    expect(levels).toHaveLength(5);
     expect(levels[0]?.name).toContain('Level 1');
     expect(levels[3]?.name).toContain('Level 4');
+    expect(levels[4]?.name).toContain('Level 5');
 
     const counts = levels.map((level) => Object.keys(level.shortcodes).length);
     expect(counts[0]).toBeGreaterThan(0);
     expect(counts[1]).toBeGreaterThan(counts[0]!);
     expect(counts[2]).toBeGreaterThan(counts[1]!);
     expect(counts[3]).toBeGreaterThan(counts[2]!);
+    expect(counts[4]).toBeGreaterThan(counts[3]!);
   });
 
   it('includes send-request in level 1 using the resolved accelerator', () => {
@@ -37,9 +39,9 @@ describe('buildShortcutTutorLevels', () => {
     expect(levels[0]?.shortcodes['f5']).toBe('Send request');
   });
 
-  it('skips empty accelerators in level 4', () => {
+  it('skips empty accelerators in level 5', () => {
     const levels = buildShortcutTutorLevels(defaultBindings(), 'linux');
-    const labels = Object.values(levels[3]?.shortcodes ?? {});
+    const labels = Object.values(levels[4]?.shortcodes ?? {});
     expect(labels).not.toContain('New collection (Git)');
   });
 });
