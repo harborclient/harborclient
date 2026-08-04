@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.3 - 2026-08-04
+
 - refactor: update ESLint configurations and clean up code. (`fa5f53c9`)
 
 ## 0.7.0 - 2026-08-03
