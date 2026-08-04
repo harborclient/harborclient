@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.11.2 - 2026-08-04
+
 - docs(sdk): enhance API index formatting for improved readability. (`52517d89`)
 - feat(docs): add hc_sdk_manifest.json for comprehensive SDK action and command documentation. (`39adb007`)
 - docs(sdk): update AGENTS.md to include additional sync script details. (`61daf83a`)
