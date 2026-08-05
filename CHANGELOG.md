@@ -3,6 +3,9 @@
 ## Unreleased
 
 - chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
+
+## 2.11.5 - 2026-08-05
+
 - fix: update dimensions and hint logic in Shortcut Runner. (`456b2a68`)
 - feat: update Shortcut Tutor to include five levels. (`c82f9cfe`)
 - feat: add testing script and update TypeScript configurations. (`fad0c779`)
