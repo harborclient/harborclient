@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.6.7 - 2026-08-05
+
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
 
 ## 1.6.6 - 2026-08-05
