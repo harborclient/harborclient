@@ -31,7 +31,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
         throw new Error('Authenticated API token is required');
       }
 
-      return reply.send(buildSessionPayload(user, apiToken));
+      return reply.send(buildSessionPayload(user, apiToken, request.tenantId));
     }
   });
 }

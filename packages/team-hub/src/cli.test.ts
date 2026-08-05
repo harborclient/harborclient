@@ -308,7 +308,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       llm: null,
       plugins: null,
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
     expect(createServerMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -577,7 +578,7 @@ ${sampleDbSection}${sampleRedisSection}`);
       }),
       'system-user-id'
     );
-    expect(db.migrate).toHaveBeenCalledOnce();
+    expect(db.migrate).toHaveBeenCalled();
     expect(db.disconnect).toHaveBeenCalledOnce();
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Created user "Alice"'));
     expect(log).toHaveBeenCalledWith('- id: user-1');

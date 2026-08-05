@@ -206,6 +206,7 @@ describe('FirestoreDatabase collections', () => {
             set: setMock,
             get: vi.fn().mockResolvedValue({ exists: false })
           }),
+          where: vi.fn().mockReturnThis(),
           orderBy: vi.fn().mockReturnThis(),
           get: getMock
         });

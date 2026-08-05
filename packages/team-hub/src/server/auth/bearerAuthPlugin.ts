@@ -46,7 +46,10 @@ export function buildAuthThrottleKey(request: FastifyRequest, token: string | nu
 /**
  * Builds an onRequest hook that validates bearer tokens against the database.
  *
- * @param db - Database used to resolve active token hashes and owning users.
+ * Prefer {@link FastifyRequest.db} when the tenant resolution hook has already
+ * attached a scoped handle; otherwise falls back to the provided root database.
+ *
+ * @param db - Fallback database used when `request.db` is not yet set.
  * @param throttleStore - Redis-backed store for failed auth throttling.
  * @returns Hook that rejects unauthenticated requests with HTTP 401.
  */
@@ -60,6 +63,7 @@ export function createBearerAuthHook(db: IDatabase, throttleStore: IThrottleStor
   return async function bearerAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const policy = throttleStore.getPolicy();
     const token = extractBearer(request.headers.authorization);
+    const scopedDb = request.db ?? db;
     const throttleKey = buildAuthThrottleKey(request, token);
 
     try {
@@ -83,7 +87,7 @@ export function createBearerAuthHook(db: IDatabase, throttleStore: IThrottleStor
       return reply.header('WWW-Authenticate', 'Bearer').code(401).send({ error: 'Unauthorized' });
     }
 
-    const record = await db.findActiveApiTokenByHash(hashToken(token));
+    const record = await scopedDb.findActiveApiTokenByHash(hashToken(token));
     if (!record) {
       try {
         await throttleStore.recordFailure(throttleKey);
@@ -94,7 +98,7 @@ export function createBearerAuthHook(db: IDatabase, throttleStore: IThrottleStor
       return reply.header('WWW-Authenticate', 'Bearer').code(401).send({ error: 'Unauthorized' });
     }
 
-    const user = await db.findUserById(record.userId);
+    const user = await scopedDb.findUserById(record.userId);
     if (!user) {
       try {
         await throttleStore.recordFailure(throttleKey);
@@ -113,6 +117,6 @@ export function createBearerAuthHook(db: IDatabase, throttleStore: IThrottleStor
 
     request.apiToken = record;
     request.user = user;
-    void db.touchApiTokenLastUsed(record.id, new Date()).catch(() => undefined);
+    void scopedDb.touchApiTokenLastUsed(record.id, new Date()).catch(() => undefined);
   };
 }

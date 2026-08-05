@@ -24,9 +24,44 @@ export interface FirestoreDatabaseConfig {
 }
 
 /**
+ * Firestore document shape for persisted tenant namespaces.
+ */
+export interface FirestoreTenantDocument {
+  /**
+   * Human-readable tenant label for operator listings.
+   */
+  name: string;
+
+  /**
+   * When the tenant was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the tenant was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * User who created the tenant, when known.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the tenant, when known.
+   */
+  updatedByUserId: string | null;
+}
+
+/**
  * Firestore document shape for persisted user accounts.
  */
 export interface FirestoreUserDocument {
+  /**
+   * Tenant namespace identifier scoping this user account.
+   */
+  tenantId?: string;
+
   /**
    * Unique display name for the account.
    */
@@ -103,6 +138,11 @@ export interface FirestoreUserDocument {
  */
 export interface FirestoreInvitationDocument {
   /**
+   * Tenant namespace identifier scoping this invitation.
+   */
+  tenantId?: string;
+
+  /**
    * Invited user identifier.
    */
   userId: string;
@@ -153,6 +193,11 @@ export interface FirestoreInvitationDocument {
  */
 export interface FirestoreApiTokenDocument {
   /**
+   * Tenant namespace identifier scoping this token.
+   */
+  tenantId?: string;
+
+  /**
    * Owning user identifier.
    */
   userId: string;
@@ -202,6 +247,11 @@ export interface FirestoreApiTokenDocument {
  * Firestore document shape for persisted collections.
  */
 export interface FirestoreCollectionDocument {
+  /**
+   * Tenant namespace identifier scoping this collection.
+   */
+  tenantId?: string;
+
   /**
    * Display name for the collection.
    */
@@ -268,6 +318,11 @@ export interface FirestoreCollectionDocument {
  */
 export interface FirestoreEnvironmentDocument {
   /**
+   * Tenant namespace identifier scoping this environment.
+   */
+  tenantId?: string;
+
+  /**
    * Display name for the environment.
    */
   name: string;
@@ -318,6 +373,11 @@ export interface FirestoreEnvironmentDocument {
  */
 export interface FirestoreSnippetDocument {
   /**
+   * Tenant namespace identifier scoping this snippet.
+   */
+  tenantId?: string;
+
+  /**
    * Display name for the snippet.
    */
   name: string;
@@ -367,6 +427,11 @@ export interface FirestoreSnippetDocument {
  * Firestore document shared by live servers and live pages.
  */
 export interface FirestorePayloadEntityDocument {
+  /**
+   * Tenant namespace identifier scoping this entity.
+   */
+  tenantId?: string;
+
   name: string;
   payload: Record<string, unknown>;
   createdAt: Date;
@@ -380,6 +445,11 @@ export interface FirestorePayloadEntityDocument {
  * Firestore document shape for persisted folders.
  */
 export interface FirestoreFolderDocument {
+  /**
+   * Tenant namespace identifier scoping this folder.
+   */
+  tenantId?: string;
+
   /**
    * Parent collection identifier.
    */
@@ -430,6 +500,11 @@ export interface FirestoreFolderDocument {
  * Firestore document shape for persisted saved requests.
  */
 export interface FirestoreRequestDocument {
+  /**
+   * Tenant namespace identifier scoping this request.
+   */
+  tenantId?: string;
+
   /**
    * Parent collection identifier.
    */
@@ -536,6 +611,11 @@ export interface FirestoreRequestDocument {
  */
 export interface FirestoreDocumentDocument {
   /**
+   * Tenant namespace identifier scoping this document.
+   */
+  tenantId?: string;
+
+  /**
    * Parent collection identifier.
    */
   collectionId: string;
@@ -587,6 +667,11 @@ export interface FirestoreDocumentDocument {
 }
 export interface FirestoreAuditLogDocument {
   /**
+   * Tenant namespace identifier scoping this audit entry.
+   */
+  tenantId?: string;
+
+  /**
    * Acting user identifier, when known.
    */
   userId: string | null;
@@ -627,6 +712,11 @@ export interface FirestoreAuditLogDocument {
  */
 export interface FirestoreLlmUsageDocument {
   /**
+   * Tenant namespace identifier scoping this usage record.
+   */
+  tenantId?: string;
+
+  /**
    * Owning user identifier.
    */
   userId: string;
@@ -661,6 +751,11 @@ export interface FirestoreLlmUsageDocument {
  * Firestore document shape for per-request LLM usage log entries.
  */
 export interface FirestoreLlmUsageLogDocument {
+  /**
+   * Tenant namespace identifier scoping this log entry.
+   */
+  tenantId?: string;
+
   /**
    * User who consumed tokens.
    */
@@ -726,6 +821,11 @@ export interface FirestoreLlmUsageLogDocument {
  * Firestore document shape for persisted run result snapshots.
  */
 export interface FirestoreRunResultDocument {
+  /**
+   * Tenant namespace identifier scoping this run result.
+   */
+  tenantId?: string;
+
   /**
    * Whether the snapshot is a collection-wide or single-request run.
    */

@@ -1,14 +1,29 @@
 import { DEFAULT_AUTH_JSON } from '#/db/types.js';
 
 /**
+ * DDL for creating the tenants table when absent.
+ */
+export const TENANTS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS tenants (
+  id VARCHAR(36) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36) NULL,
+  updated_by_user_id VARCHAR(36) NULL
+)
+`.trim();
+
+/**
  * DDL for creating the api_tokens table when absent.
  */
 export const API_TOKENS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS api_tokens (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   user_id VARCHAR(36) NULL,
   name VARCHAR(255) NOT NULL,
-  token_hash CHAR(64) NOT NULL UNIQUE,
+  token_hash CHAR(64) NOT NULL,
   token_prefix VARCHAR(255) NOT NULL,
   created_at DATETIME NOT NULL,
   last_used_at DATETIME NULL,
@@ -17,7 +32,8 @@ CREATE TABLE IF NOT EXISTS api_tokens (
   updated_by_user_id VARCHAR(36) NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE KEY api_tokens_tenant_id_token_hash (tenant_id, token_hash)
 )
 `.trim();
 
@@ -27,6 +43,7 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 export const COLLECTIONS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS collections (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   name VARCHAR(255) NOT NULL,
   variables LONGTEXT NOT NULL,
   headers LONGTEXT NOT NULL,
@@ -48,6 +65,7 @@ CREATE TABLE IF NOT EXISTS collections (
 export const ENVIRONMENTS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS environments (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   name VARCHAR(255) NOT NULL,
   variables LONGTEXT NOT NULL,
   created_at DATETIME NOT NULL,
@@ -67,6 +85,7 @@ CREATE TABLE IF NOT EXISTS environments (
 export const SNIPPETS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS snippets (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   name VARCHAR(255) NOT NULL,
   code LONGTEXT NOT NULL,
   scope VARCHAR(32) NOT NULL DEFAULT 'any',
@@ -87,6 +106,7 @@ CREATE TABLE IF NOT EXISTS snippets (
 export const LIVE_SERVERS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS live_servers (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   name VARCHAR(255) NOT NULL,
   payload LONGTEXT NOT NULL DEFAULT ('{}'),
   created_at DATETIME NOT NULL,
@@ -105,6 +125,7 @@ CREATE TABLE IF NOT EXISTS live_servers (
 export const LIVE_PAGES_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS live_pages (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   name VARCHAR(255) NOT NULL,
   payload LONGTEXT NOT NULL DEFAULT ('{}'),
   created_at DATETIME NOT NULL,
@@ -123,6 +144,7 @@ CREATE TABLE IF NOT EXISTS live_pages (
 export const FOLDERS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS folders (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   collection_id VARCHAR(36) NOT NULL,
   parent_folder_id VARCHAR(36) NULL,
   name VARCHAR(255) NOT NULL,
@@ -144,6 +166,7 @@ CREATE TABLE IF NOT EXISTS folders (
 export const REQUESTS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS requests (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   collection_id VARCHAR(36) NOT NULL,
   folder_id VARCHAR(36) NULL,
   name VARCHAR(255) NOT NULL,
@@ -176,6 +199,7 @@ CREATE TABLE IF NOT EXISTS requests (
 export const DOCUMENTS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS documents (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   collection_id VARCHAR(36) NOT NULL,
   folder_id VARCHAR(36) NULL,
   name VARCHAR(255) NOT NULL,
@@ -198,7 +222,8 @@ CREATE TABLE IF NOT EXISTS documents (
 export const USERS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL UNIQUE,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  name VARCHAR(255) NOT NULL,
   role VARCHAR(16) NOT NULL,
   collection_access LONGTEXT NOT NULL,
   environment_access LONGTEXT NOT NULL,
@@ -210,7 +235,8 @@ CREATE TABLE IF NOT EXISTS users (
   created_by_user_id VARCHAR(36) NULL,
   updated_by_user_id VARCHAR(36) NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE KEY users_tenant_id_name (tenant_id, name)
 )
 `.trim();
 
@@ -220,6 +246,7 @@ CREATE TABLE IF NOT EXISTS users (
 export const AUDIT_LOG_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS audit_log (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   user_id VARCHAR(36) NULL,
   user_name VARCHAR(255) NULL,
   action VARCHAR(16) NOT NULL,
@@ -356,13 +383,14 @@ ALTER TABLE users
 export const LLM_USAGE_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS llm_usage (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   user_id VARCHAR(36) NOT NULL,
   period VARCHAR(7) NOT NULL,
   prompt_tokens INT NOT NULL DEFAULT 0,
   completion_tokens INT NOT NULL DEFAULT 0,
   total_tokens INT NOT NULL DEFAULT 0,
   updated_at DATETIME NOT NULL,
-  UNIQUE KEY llm_usage_user_period (user_id, period),
+  UNIQUE KEY llm_usage_tenant_user_period (tenant_id, user_id, period),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )
 `.trim();
@@ -373,6 +401,7 @@ CREATE TABLE IF NOT EXISTS llm_usage (
 export const LLM_USAGE_LOG_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS llm_usage_log (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   user_id VARCHAR(36) NOT NULL,
   api_token_id VARCHAR(36) NULL,
   period VARCHAR(7) NOT NULL,
@@ -465,6 +494,7 @@ WHERE role = 'user' AND collection_access LIKE '%"*"%'
 export const RUN_RESULTS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS run_results (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   kind VARCHAR(64) NOT NULL,
   label VARCHAR(512) NOT NULL,
   collection_name VARCHAR(512),
@@ -485,8 +515,9 @@ CREATE TABLE IF NOT EXISTS run_results (
 export const USER_INVITATIONS_MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS user_invitations (
   id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
   user_id VARCHAR(36) NOT NULL,
-  code_hash CHAR(64) NOT NULL UNIQUE,
+  code_hash CHAR(64) NOT NULL,
   code_prefix VARCHAR(32) NOT NULL,
   expires_at DATETIME NOT NULL,
   redeemed_at DATETIME,
@@ -496,6 +527,7 @@ CREATE TABLE IF NOT EXISTS user_invitations (
   updated_by_user_id VARCHAR(36),
   INDEX user_invitations_user_id_idx (user_id),
   INDEX user_invitations_expires_at_idx (expires_at),
+  UNIQUE KEY user_invitations_tenant_id_code_hash (tenant_id, code_hash),
   CONSTRAINT user_invitations_user_id_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT user_invitations_created_by_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT user_invitations_updated_by_fk FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -541,9 +573,43 @@ export const MARKER_MIGRATIONS_SQL = [
 ];
 
 /**
+ * Adds tenant_id columns and tenant-scoped unique constraints on existing databases.
+ *
+ * Fresh installs already include tenant_id in CREATE TABLE statements; these migrations
+ * upgrade older schemas that predate multitenancy. Each entry is one statement because
+ * mysql2 executes one statement per call unless multipleStatements is enabled.
+ */
+export const TENANT_ID_COLUMNS_MIGRATION_SQL = [
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE user_invitations ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE collections ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE environments ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE snippets ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE live_servers ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE live_pages ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE folders ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE requests ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE llm_usage ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE llm_usage_log ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE run_results ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `DROP INDEX IF EXISTS name ON users`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_tenant_id_name ON users (tenant_id, name)`,
+  `DROP INDEX IF EXISTS token_hash ON api_tokens`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS api_tokens_tenant_id_token_hash ON api_tokens (tenant_id, token_hash)`,
+  `DROP INDEX IF EXISTS code_hash ON user_invitations`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS user_invitations_tenant_id_code_hash ON user_invitations (tenant_id, code_hash)`,
+  `DROP INDEX IF EXISTS llm_usage_user_period ON llm_usage`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS llm_usage_tenant_user_period ON llm_usage (tenant_id, user_id, period)`
+];
+
+/**
  * Ordered MySQL migrations applied by {@link MysqlDatabase.migrate}.
  */
 export const MYSQL_MIGRATIONS = [
+  TENANTS_MIGRATION_SQL,
   USERS_MIGRATION_SQL,
   API_TOKENS_MIGRATION_SQL,
   COLLECTIONS_MIGRATION_SQL,
@@ -580,5 +646,6 @@ export const MYSQL_MIGRATIONS = [
   USER_INVITATIONS_MIGRATION_SQL,
   ...MARKER_MIGRATIONS_SQL,
   ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL,
-  REQUESTS_PROTOCOL_MIGRATION_SQL
+  REQUESTS_PROTOCOL_MIGRATION_SQL,
+  ...TENANT_ID_COLUMNS_MIGRATION_SQL
 ];

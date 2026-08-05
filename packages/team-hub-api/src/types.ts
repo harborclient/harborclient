@@ -9,6 +9,16 @@ import type {
 import type { TeamHubAuthConfig } from './auth.js';
 
 /**
+ * Default tenant identifier used when multitenancy is not configured.
+ */
+export const DEFAULT_TEAM_HUB_TENANT_ID = '__default__';
+
+/**
+ * HTTP header name sent to specify the target tenant in multitenancy mode.
+ */
+export const TEAM_HUB_TENANT_HEADER = 'X-Harbor-Tenant';
+
+/**
  * Response body from `GET /plugins/sources`.
  */
 export interface PluginSourcesResponse {
@@ -43,6 +53,14 @@ export interface TeamHubClientConfig {
    * Request timeout in milliseconds; defaults to 30 seconds when omitted.
    */
   requestTimeoutMs?: number;
+
+  /**
+   * Tenant identifier for multitenancy mode.
+   *
+   * When omitted, the server routes requests to the default tenant. Whitespace
+   * is trimmed; an empty string is treated as undefined.
+   */
+  tenantId?: string;
 }
 
 /**
@@ -128,6 +146,14 @@ export interface SessionResponse {
    * Derived capability flags for clients such as HarborClient.
    */
   capabilities: SessionCapabilities;
+
+  /**
+   * Tenant identifier for the authenticated session.
+   *
+   * Omitted on servers without multitenancy enabled or when the session routes
+   * to the default tenant.
+   */
+  tenantId?: string;
 }
 
 /**

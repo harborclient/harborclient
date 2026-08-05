@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Refactor Team Hub integration to support tenantId. (`1baf9475`)
+
 ## 1.6.6 - 2026-08-05
 
 - Refactor UI components to remove `app-no-drag` class. (`c9cbe40e`)

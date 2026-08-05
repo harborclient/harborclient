@@ -5,6 +5,10 @@ import {
 } from 'fastify-type-provider-zod';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Mocked } from 'vitest';
+import {
+  DEFAULT_MULTITENANCY_CONFIG,
+  type MultitenancyConfig
+} from '#/config/multitenancyConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
 import { createStubThrottleStore } from '#/server/auth/throttle/stubThrottleStore.js';
@@ -23,6 +27,11 @@ export interface CreatePublicTestAppOptions {
    * Throttle store stub; defaults to a permissive stub.
    */
   throttleStore?: Mocked<IThrottleStore>;
+
+  /**
+   * Multitenancy configuration; defaults to disabled.
+   */
+  multitenancy?: MultitenancyConfig;
 }
 
 /**
@@ -35,6 +44,11 @@ export async function createPublicTestApp(
   options: CreatePublicTestAppOptions
 ): Promise<FastifyInstance> {
   const throttleStore = options.throttleStore ?? createDefaultThrottleStoreStub();
+  const multitenancy = options.multitenancy ?? DEFAULT_MULTITENANCY_CONFIG;
+
+  options.db.forTenant.mockImplementation(() => options.db);
+  options.db.findTenantById.mockResolvedValue(null);
+  options.db.getTenantId.mockReturnValue('__default__');
 
   const app = Fastify().withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
@@ -44,7 +58,8 @@ export async function createPublicTestApp(
     await registerPublicRoutes(publicApp, {
       version: '0.1.0',
       db: options.db,
-      throttleStore
+      throttleStore,
+      getMultitenancy: () => multitenancy
     });
   });
 

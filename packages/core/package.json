@@ -60,7 +60,8 @@
   },
   "scripts": {
     "prebuild": "pnpm --filter @harborclient/sdk build && pnpm --filter @harborclient/http build",
-    "build": "tsc -p tsconfig.build.json && node scripts/assert-dist-publishable.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-theme-catalog.mjs && node scripts/assert-dist-publishable.mjs",
+    "build:theme-catalog": "node scripts/build-theme-catalog.mjs",
     "clean": "rm -rf dist && find src -type f \\( -name '*.js' -o -name '*.d.ts' -o -name '*.js.map' -o -name '*.d.ts.map' \\) -delete",
     "lint": "eslint --cache .",
     "typecheck": "tsc --noEmit -p tsconfig.json",

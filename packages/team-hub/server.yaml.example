@@ -2,10 +2,11 @@
 # Copy to server.yaml and adjust for your environment.
 #
 # Required sections: server, db, redis
-# Optional sections: logging, llm, plugins, docs
+# Optional sections: logging, llm, plugins, docs, multitenancy
 #
 # While team-hub start is running, db/redis/llm/plugins/docs reload live via SIGHUP or
-# POST /admin/config/reload. Changes to server.host or server.port require a restart.
+# POST /admin/config/reload. Changes to server.host, server.port, or multitenancy.enabled
+# require a restart.
 
 # HTTP listen address for the Team Hub API.
 server:
@@ -119,3 +120,10 @@ redis:
 #
 # docs:
 #   searchIndexPath: /app/data/docsSearchIndex.json
+
+# Optional multitenancy. When omitted or disabled, every request uses the reserved
+# default tenant "__default__" and clients never need a tenant header.
+# Enable only for advanced multi-tenant deployments; create tenants via the CLI.
+#
+# multitenancy:
+#   enabled: false

@@ -24,6 +24,7 @@ export {
   summarizeInvitationAccess,
   type InvitationLinkParams
 } from './invitationLinks.js';
+export { DEFAULT_TEAM_HUB_TENANT_ID, TEAM_HUB_TENANT_HEADER } from './types.js';
 export type {
   AdminEntityConfig,
   AdminResourceOption,

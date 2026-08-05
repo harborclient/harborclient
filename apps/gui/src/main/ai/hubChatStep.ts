@@ -1,4 +1,5 @@
-import { TeamHubClient } from '@harborclient/team-hub-api';
+import { TEAM_HUB_TENANT_HEADER } from '@harborclient/team-hub-api';
+import { createTeamHubClient } from '#/main/settings/teamHubClient';
 import { getHubOpenAiCapability, setHubOpenAiCapability } from './hubCapabilities';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
@@ -34,6 +35,13 @@ interface HubConnection {
    * Bearer token for hub API access.
    */
   token: string;
+
+  /**
+   * Tenant identifier for multitenancy mode.
+   *
+   * When omitted or blank, requests route to the default tenant.
+   */
+  tenantId?: string;
 }
 
 /**
@@ -99,15 +107,21 @@ async function fetchHubChatStep(
   });
   const tools = mergeMcpClientTools(stepMode);
 
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${hub.token}`
+  };
+
+  if (hub.tenantId) {
+    headers[TEAM_HUB_TENANT_HEADER] = hub.tenantId;
+  }
+
   let response: Response;
   try {
     response = await fetch(`${hub.baseUrl}/llm/chat/step`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${hub.token}`
-      },
+      headers,
       body: JSON.stringify({
         model: input.model,
         messages: stepMode.messages,
@@ -154,9 +168,7 @@ export async function listHubLlmModels(): Promise<HubLlmModelGroup[]> {
   await Promise.all(
     hubs.map(async (hub) => {
       try {
-        const client = new TeamHubClient({
-          baseUrl: hub.baseUrl,
-          token: hub.token,
+        const client = createTeamHubClient(hub, {
           requestTimeoutMs: HUB_LLM_REQUEST_TIMEOUT_MS
         });
         const listing = await client.listLlmModels();
@@ -201,16 +213,15 @@ export async function runHubChatCompletionStep(
 
   const connection: HubConnection = {
     baseUrl: hub.baseUrl.replace(/\/+$/, ''),
-    token: hub.token
+    token: hub.token,
+    tenantId: hub.tenantId
   };
 
   if (options?.signal) {
     return fetchHubChatStep(connection, input, options.signal);
   }
 
-  const client = new TeamHubClient({
-    baseUrl: hub.baseUrl,
-    token: hub.token,
+  const client = createTeamHubClient(hub, {
     requestTimeoutMs: HUB_LLM_REQUEST_TIMEOUT_MS
   });
 

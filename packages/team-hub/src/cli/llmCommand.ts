@@ -1,14 +1,62 @@
-import { Command } from 'commander';
+import { Command, InvalidArgumentError } from 'commander';
 import { mergeGlobalOptions } from '#/cli/globalOptions.js';
 import { loadServerConfig } from '#/config/serverConfig.js';
 import { createDatabase } from '#/db/index.js';
 import type { LlmUsageLogRecord } from '#/db/types.js';
+import {
+  DEFAULT_TENANT_ID,
+  isDefaultTenantId,
+  normalizeTenantId
+} from '#/config/multitenancyConfig.js';
 
 export interface LlmCommandOptions {
   /**
    * Path to the server YAML config file (from global `-c` / `--config`).
    */
   config: string;
+
+  /**
+   * Optional tenant identifier (defaults to {@link DEFAULT_TENANT_ID}).
+   */
+  tenant?: string;
+}
+
+/**
+ * Parses and validates an optional tenant id from CLI input.
+ *
+ * @param value - Tenant id string from a Commander option.
+ * @returns Trimmed and validated tenant id.
+ * @throws {InvalidArgumentError} When the id is invalid.
+ */
+function parseOptionalTenantId(value: string): string {
+  try {
+    return normalizeTenantId(value);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new InvalidArgumentError(error.message);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Resolves the effective tenant id from CLI options and validates multitenancy config.
+ *
+ * @param options - Parsed command options including optional tenant flag.
+ * @param multitenancyEnabled - Whether multitenancy is enabled in server.yaml.
+ * @returns Effective tenant id (default or parsed).
+ * @throws {Error} When a non-default tenant is used but multitenancy is disabled.
+ */
+function resolveTenantId(options: { tenant?: string }, multitenancyEnabled: boolean): string {
+  const tenantId = options.tenant ?? DEFAULT_TENANT_ID;
+  if (!multitenancyEnabled && !isDefaultTenantId(tenantId)) {
+    throw new Error(
+      'Multitenancy is disabled in server.yaml. Set multitenancy.enabled to true to use non-default tenants.'
+    );
+  }
+
+  return tenantId;
 }
 
 /**
@@ -81,13 +129,16 @@ function printLlmUsageLog(
  */
 export async function llmListCommand(options: LlmCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const entries = await db.listLlmUsageLogs();
   const users = await db.listUsers();
   const tokens = await db.listApiTokens();
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (entries.length === 0) {
     console.log('No LLM usage records found.');
@@ -119,6 +170,7 @@ export function registerLlmCommand(
   llm
     .command('list')
     .description('List all per-request LLM usage log entries')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the LLM list subcommand after merging global CLI options.

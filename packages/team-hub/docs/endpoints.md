@@ -7,12 +7,21 @@ Team Hub exposes a JSON HTTP API for shared collections, environments, snippets,
 - **Base URL:** `http://127.0.0.1:8788` (default from `server.yaml`)
 - **Content-Type:** `application/json` for request and response bodies
 - **Protected routes:** `Authorization: Bearer hbk_...`
+- **Tenant (optional):** `X-Harbor-Tenant: <tenant-id>` — omitted requests use the reserved default tenant `__default__`. Non-default tenants require `multitenancy.enabled: true` (see [Configuration — multitenancy](./configuration.md#multitenancy)).
 
 Example authenticated request:
 
 ```bash
 curl -s http://127.0.0.1:8788/collections \
   -H "Authorization: Bearer hbk_your_token_here"
+```
+
+Example with an explicit tenant (advanced):
+
+```bash
+curl -s http://127.0.0.1:8788/collections \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -H "X-Harbor-Tenant: acme"
 ```
 
 ## Conventions

@@ -5,6 +5,8 @@ import {
 } from 'fastify-type-provider-zod';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Mocked } from 'vitest';
+import type { MultitenancyConfig } from '#/config/multitenancyConfig.js';
+import { DEFAULT_MULTITENANCY_CONFIG } from '#/config/multitenancyConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { ApiTokenRecord, UserRecord } from '#/db/types.js';
 import { hashToken } from '#/server/auth/apiTokens.js';
@@ -91,6 +93,11 @@ export interface CreateProtectedTestAppOptions {
   docs?: import('#/config/docsConfig.js').DocsConfig | null;
 
   /**
+   * Multitenancy configuration; defaults to disabled.
+   */
+  multitenancy?: MultitenancyConfig;
+
+  /**
    * Config reload handler for admin reload route tests.
    */
   reloadConfig?: () => Promise<ReloadResult>;
@@ -110,6 +117,11 @@ export async function createProtectedTestApp(
   const llm = options.llm ?? null;
   const plugins = options.plugins ?? null;
   const docs = options.docs ?? null;
+  const multitenancy = options.multitenancy ?? DEFAULT_MULTITENANCY_CONFIG;
+
+  options.db.forTenant.mockImplementation(() => options.db);
+  options.db.findTenantById.mockResolvedValue(null);
+  options.db.getTenantId.mockReturnValue('__default__');
 
   if (options.withValidAuth) {
     options.db.findActiveApiTokenByHash.mockResolvedValue(sampleApiTokenRecord);
@@ -129,6 +141,7 @@ export async function createProtectedTestApp(
       getLlm: () => llm,
       getPlugins: () => plugins,
       getDocs: () => docs,
+      getMultitenancy: () => multitenancy,
       reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] }))
     });
   });

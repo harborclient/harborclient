@@ -412,7 +412,8 @@ export const sessionResponseSchema = z.object({
     dataApi: z.boolean(),
     managementApi: z.boolean(),
     llm: z.boolean()
-  })
+  }),
+  tenantId: z.string().optional()
 }) satisfies z.ZodType<SessionResponse>;
 
 /**

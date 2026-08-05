@@ -215,7 +215,7 @@ describe('applySelectionActionToolbarUpdate', () => {
     expect(scheduleShow).toHaveBeenCalledOnce();
   });
 
-  it('does not dismiss collapsed selection while suppressCollapseDismiss is set', () => {
+  it('consumes suppressCollapseDismiss on the first collapsed update without dismissing', () => {
     const controller = createSelectionActionToolbarController();
     controller.suppressCollapseDismiss = true;
     controller.isToolbarOpen = true;
@@ -244,6 +244,38 @@ describe('applySelectionActionToolbarUpdate', () => {
     );
 
     expect(dismissToolbar).not.toHaveBeenCalled();
+    expect(controller.suppressCollapseDismiss).toBe(false);
+  });
+
+  it('dismisses on a second collapsed update after suppressCollapseDismiss was consumed', () => {
+    const controller = createSelectionActionToolbarController();
+    controller.suppressCollapseDismiss = true;
+    controller.isToolbarOpen = true;
+
+    const dismissToolbar = vi.fn();
+    const view = createMockView({ doc: 'hello', from: 1, to: 1 });
+    const options = {
+      isEnabled: () => true,
+      isOpen: () => true,
+      notifyToolbarChange: vi.fn(),
+      clearShowTimer: vi.fn(),
+      scheduleShow: vi.fn(),
+      showImmediately: vi.fn(),
+      dismissToolbar
+    };
+    const collapsedUpdate = {
+      selectionSet: true,
+      docChanged: false,
+      viewportChanged: false,
+      view,
+      state: view.state
+    };
+
+    applySelectionActionToolbarUpdate(controller, collapsedUpdate, options);
+    applySelectionActionToolbarUpdate(controller, collapsedUpdate, options);
+
+    expect(dismissToolbar).toHaveBeenCalledOnce();
+    expect(controller.suppressCollapseDismiss).toBe(false);
   });
 
   it('dismisses collapsed selection when not dragging and not suppressed', () => {
@@ -273,6 +305,56 @@ describe('applySelectionActionToolbarUpdate', () => {
 
     expect(dismissToolbar).toHaveBeenCalledOnce();
   });
+
+  it('dismisses after keyboard collapse following a drag-select finalize', () => {
+    const controller = createSelectionActionToolbarController();
+    controller.isPointerSelecting = true;
+    controller.lastNonEmptySelection = createToolbarState();
+
+    const dismissToolbar = vi.fn();
+    const showImmediately = vi.fn();
+
+    finalizeSelectionActionToolbarOnPointerUp(
+      controller,
+      createMockView({ doc: 'hello', from: 0, to: 0 }),
+      {
+        isOpen: () => false,
+        scheduleShow: vi.fn(),
+        showImmediately,
+        dismissToolbar
+      }
+    );
+
+    expect(showImmediately).toHaveBeenCalledOnce();
+    expect(controller.suppressCollapseDismiss).toBe(true);
+
+    const collapsedView = createMockView({ doc: 'hello', from: 3, to: 3 });
+    const options = {
+      isEnabled: () => true,
+      isOpen: () => true,
+      notifyToolbarChange: vi.fn(),
+      clearShowTimer: vi.fn(),
+      scheduleShow: vi.fn(),
+      showImmediately: vi.fn(),
+      dismissToolbar
+    };
+    const collapsedUpdate = {
+      selectionSet: true,
+      docChanged: false,
+      viewportChanged: false,
+      view: collapsedView,
+      state: collapsedView.state
+    };
+
+    // Gutter race: first collapse is suppressed and consumes the one-shot flag.
+    applySelectionActionToolbarUpdate(controller, collapsedUpdate, options);
+    expect(dismissToolbar).not.toHaveBeenCalled();
+    expect(controller.suppressCollapseDismiss).toBe(false);
+
+    // Arrow-key collapse: toolbar must dismiss.
+    applySelectionActionToolbarUpdate(controller, collapsedUpdate, options);
+    expect(dismissToolbar).toHaveBeenCalledOnce();
+  });
 });
 
 describe('finalizeSelectionActionToolbarOnPointerUp', () => {
@@ -289,7 +371,8 @@ describe('finalizeSelectionActionToolbarOnPointerUp', () => {
     finalizeSelectionActionToolbarOnPointerUp(controller, collapsedView, {
       isOpen: () => false,
       scheduleShow,
-      showImmediately
+      showImmediately,
+      dismissToolbar: vi.fn()
     });
 
     expect(showImmediately).toHaveBeenCalledWith(cached);
@@ -309,7 +392,8 @@ describe('finalizeSelectionActionToolbarOnPointerUp', () => {
     finalizeSelectionActionToolbarOnPointerUp(controller, liveView, {
       isOpen: () => false,
       scheduleShow: vi.fn(),
-      showImmediately
+      showImmediately,
+      dismissToolbar: vi.fn()
     });
 
     expect(showImmediately).toHaveBeenCalledWith({
@@ -332,35 +416,42 @@ describe('finalizeSelectionActionToolbarOnPointerUp', () => {
     finalizeSelectionActionToolbarOnPointerUp(controller, view, {
       isOpen: () => false,
       scheduleShow: vi.fn(),
-      showImmediately
+      showImmediately,
+      dismissToolbar: vi.fn()
     });
     finalizeSelectionActionToolbarOnPointerUp(controller, view, {
       isOpen: () => false,
       scheduleShow: vi.fn(),
-      showImmediately
+      showImmediately,
+      dismissToolbar: vi.fn()
     });
 
     expect(showImmediately).toHaveBeenCalledOnce();
     expect(controller.suppressCollapseDismiss).toBe(true);
   });
 
-  it('keeps suppressCollapseDismiss until the next pointerdown clears it', () => {
+  it('dismisses when pointerup has no live selection and no cached snapshot', () => {
     const controller = createSelectionActionToolbarController();
     controller.isPointerSelecting = true;
-    controller.lastNonEmptySelection = createToolbarState();
+    controller.isToolbarOpen = true;
+    controller.lastNonEmptySelection = null;
 
-    finalizeSelectionActionToolbarOnPointerUp(
-      controller,
-      createMockView({ doc: 'hello', from: 0, to: 0 }),
-      {
-        isOpen: () => false,
-        scheduleShow: vi.fn(),
-        showImmediately: vi.fn()
-      }
-    );
+    const dismissToolbar = vi.fn(() => {
+      controller.suppressCollapseDismiss = false;
+    });
+    const showImmediately = vi.fn();
+    const view = createMockView({ doc: 'hello', from: 2, to: 2 });
 
-    expect(controller.suppressCollapseDismiss).toBe(true);
-    controller.suppressCollapseDismiss = false;
+    finalizeSelectionActionToolbarOnPointerUp(controller, view, {
+      isOpen: () => true,
+      scheduleShow: vi.fn(),
+      showImmediately,
+      dismissToolbar
+    });
+
+    expect(showImmediately).not.toHaveBeenCalled();
+    expect(dismissToolbar).toHaveBeenCalledOnce();
     expect(controller.suppressCollapseDismiss).toBe(false);
+    expect(controller.isPointerSelecting).toBe(false);
   });
 });

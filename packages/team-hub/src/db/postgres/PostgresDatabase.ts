@@ -12,6 +12,7 @@ import {
   type AuditLogSqlRow
 } from '#/db/auditLogRows.js';
 import { BOOTSTRAP_USER_NAME } from '#/db/bootstrapUsers.js';
+import { DEFAULT_TENANT_ID } from '#/config/multitenancyConfig.js';
 import {
   mapCollectionSqlRow,
   mapDocumentSqlRow,
@@ -94,6 +95,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
   UpdateLiveServerRecordInput,
@@ -134,6 +136,16 @@ export class PostgresDatabase implements IDatabase {
    * Cached identifier for the internal system user, when provisioned during migrate.
    */
   private systemUserId: string | null = null;
+
+  /**
+   * Tenant identifier for this database instance.
+   */
+  private tenantId: string = DEFAULT_TENANT_ID;
+
+  /**
+   * Whether this instance owns the pool (should end it on disconnect).
+   */
+  private ownsPool: boolean = true;
 
   /**
    * Creates a Postgres database instance from validated config.
@@ -191,7 +203,7 @@ export class PostgresDatabase implements IDatabase {
    * Closes the Postgres connection pool and releases resources.
    */
   async disconnect(): Promise<void> {
-    if (!this.pool) {
+    if (!this.pool || !this.ownsPool) {
       return;
     }
 
@@ -207,6 +219,7 @@ export class PostgresDatabase implements IDatabase {
       await this.query(sql);
     }
 
+    await this.ensureDefaultTenant();
     await this.ensureSystemUser();
     await this.migrateOrphanTokensToBootstrapUser();
   }
@@ -219,15 +232,204 @@ export class PostgresDatabase implements IDatabase {
   }
 
   /**
+   * Returns the tenant identifier for this database instance.
+   */
+  getTenantId(): string {
+    return this.tenantId;
+  }
+
+  /**
+   * Creates a new database instance scoped to a different tenant.
+   *
+   * @param tenantId - Tenant identifier to scope queries to.
+   * @returns Database instance for the specified tenant.
+   */
+  forTenant(tenantId: string): IDatabase {
+    if (tenantId === this.tenantId) {
+      return this;
+    }
+
+    const instance = new PostgresDatabase(this.config);
+    instance.pool = this.pool;
+    instance.tenantId = tenantId;
+    instance.ownsPool = false;
+    instance.systemUserId = null;
+    return instance;
+  }
+
+  /**
+   * Ensures the default tenant exists in the tenants table.
+   */
+  async ensureDefaultTenant(): Promise<void> {
+    const existing = await this.findTenantById(DEFAULT_TENANT_ID);
+    if (existing) {
+      return;
+    }
+
+    const now = new Date();
+    await this.query(
+      `INSERT INTO tenants (id, name, created_at, updated_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO NOTHING`,
+      [DEFAULT_TENANT_ID, 'Default', now, now]
+    );
+  }
+
+  /**
+   * Lists all tenants ordered by name.
+   */
+  async listTenants(): Promise<TenantRecord[]> {
+    const result = await this.query<{
+      id: string;
+      name: string;
+      created_at: Date;
+      updated_at: Date;
+      created_by_user_id: string | null;
+      updated_by_user_id: string | null;
+    }>(
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants ORDER BY name ASC'
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      createdByUserId: row.created_by_user_id,
+      updatedByUserId: row.updated_by_user_id
+    }));
+  }
+
+  /**
+   * Creates a new tenant.
+   *
+   * @param id - Unique tenant identifier.
+   * @param name - Display name for the tenant.
+   * @param actingUserId - User performing the create action.
+   */
+  async createTenant(id: string, name: string, actingUserId: string): Promise<TenantRecord> {
+    if (id === DEFAULT_TENANT_ID) {
+      throw new Error('Cannot create tenant with reserved ID');
+    }
+
+    const trimmedName = trimRequiredName(name, 'Tenant name');
+    const now = new Date();
+
+    const result = await this.query<{
+      id: string;
+      name: string;
+      created_at: Date;
+      updated_at: Date;
+      created_by_user_id: string | null;
+      updated_by_user_id: string | null;
+    }>(
+      `INSERT INTO tenants (id, name, created_at, updated_at, created_by_user_id, updated_by_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id`,
+      [id, trimmedName, now, now, actingUserId, actingUserId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Tenant not found after insert');
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      createdByUserId: row.created_by_user_id,
+      updatedByUserId: row.updated_by_user_id
+    };
+  }
+
+  /**
+   * Finds a tenant by stable identifier.
+   *
+   * @param id - Tenant identifier to look up.
+   */
+  async findTenantById(id: string): Promise<TenantRecord | null> {
+    const result = await this.query<{
+      id: string;
+      name: string;
+      created_at: Date;
+      updated_at: Date;
+      created_by_user_id: string | null;
+      updated_by_user_id: string | null;
+    }>(
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants WHERE id = $1 LIMIT 1',
+      [id]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      createdByUserId: row.created_by_user_id,
+      updatedByUserId: row.updated_by_user_id
+    };
+  }
+
+  /**
+   * Deletes a tenant and all associated data.
+   *
+   * @param id - Tenant identifier to delete.
+   * @param actingUserId - User performing the delete action.
+   */
+  async deleteTenant(id: string, actingUserId: string): Promise<void> {
+    if (id === DEFAULT_TENANT_ID) {
+      throw new Error('Cannot delete default tenant');
+    }
+
+    void actingUserId;
+
+    const client = await this.requirePool().connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query('DELETE FROM documents WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM requests WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM folders WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM run_results WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM llm_usage_log WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM llm_usage WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM audit_log WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM user_invitations WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM api_tokens WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM snippets WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM live_pages WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM live_servers WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM environments WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM collections WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM users WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM tenants WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Lists audit log entries ordered newest-first with optional filters.
    *
    * @param options - Optional limit and filter criteria.
    */
   async listAuditLog(options?: ListAuditLogOptions): Promise<AuditLogRecord[]> {
     const limit = options?.limit ?? 100;
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-    let paramIndex = 1;
+    const conditions: string[] = ['tenant_id = $1'];
+    const params: unknown[] = [this.tenantId];
+    let paramIndex = 2;
 
     if (options?.userId) {
       conditions.push(`user_id = $${paramIndex++}`);
@@ -244,12 +446,11 @@ export class PostgresDatabase implements IDatabase {
       params.push(options.entityId);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     params.push(limit);
 
     const result = await this.query<AuditLogSqlRow>(
       `SELECT ${AUDIT_LOG_SELECT_COLUMNS} FROM audit_log
-      ${whereClause}
+      WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC
       LIMIT $${paramIndex}`,
       params
@@ -273,6 +474,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<UserSqlRow>(
       `INSERT INTO users (
         id,
+        tenant_id,
         name,
         role,
         collection_access,
@@ -287,10 +489,11 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING ${USER_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         trimmedName,
         input.role,
         serializeAccessList(input.collectionAccess),
@@ -324,7 +527,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - User identifier to look up.
    */
   async findUserById(id: string): Promise<UserRecord | null> {
-    const result = await this.query<UserSqlRow>(`${USER_SELECT} WHERE id = $1 LIMIT 1`, [id]);
+    const result = await this.query<UserSqlRow>(
+      `${USER_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapUserSqlRow(row) : null;
   }
@@ -335,7 +541,10 @@ export class PostgresDatabase implements IDatabase {
    * @param name - User name to look up.
    */
   async findUserByName(name: string): Promise<UserRecord | null> {
-    const result = await this.query<UserSqlRow>(`${USER_SELECT} WHERE name = $1 LIMIT 1`, [name]);
+    const result = await this.query<UserSqlRow>(
+      `${USER_SELECT} WHERE name = $1 AND tenant_id = $2 LIMIT 1`,
+      [name, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapUserSqlRow(row) : null;
   }
@@ -344,7 +553,10 @@ export class PostgresDatabase implements IDatabase {
    * Lists all user accounts ordered by name.
    */
   async listUsers(): Promise<UserRecord[]> {
-    const result = await this.query<UserSqlRow>(`${USER_SELECT} ORDER BY name ASC`);
+    const result = await this.query<UserSqlRow>(
+      `${USER_SELECT} WHERE tenant_id = $1 ORDER BY name ASC`,
+      [this.tenantId]
+    );
     return result.rows.map(mapUserSqlRow);
   }
 
@@ -398,7 +610,7 @@ export class PostgresDatabase implements IDatabase {
         llm_monthly_token_limit = $10,
         updated_at = $11,
         updated_by_user_id = $12
-      WHERE id = $13`,
+      WHERE id = $13 AND tenant_id = $14`,
       [
         name,
         role,
@@ -412,7 +624,8 @@ export class PostgresDatabase implements IDatabase {
         llmMonthlyTokenLimit,
         updatedAt,
         actingUserId,
-        id
+        id,
+        this.tenantId
       ]
     );
 
@@ -440,8 +653,11 @@ export class PostgresDatabase implements IDatabase {
     const client = await this.requirePool().connect();
     try {
       await client.query('BEGIN');
-      await client.query('DELETE FROM api_tokens WHERE user_id = $1', [id]);
-      await client.query('DELETE FROM users WHERE id = $1', [id]);
+      await client.query('DELETE FROM api_tokens WHERE user_id = $1 AND tenant_id = $2', [
+        id,
+        this.tenantId
+      ]);
+      await client.query('DELETE FROM users WHERE id = $1 AND tenant_id = $2', [id, this.tenantId]);
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK');
@@ -458,7 +674,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async migrateOrphanTokensToBootstrapUser(): Promise<void> {
     const orphanResult = await this.query<{ count: string }>(
-      'SELECT COUNT(*)::text AS count FROM api_tokens WHERE user_id IS NULL'
+      'SELECT COUNT(*)::text AS count FROM api_tokens WHERE user_id IS NULL AND tenant_id = $1',
+      [this.tenantId]
     );
     const orphanCount = Number(orphanResult.rows[0]?.count ?? 0);
     if (orphanCount === 0) {
@@ -486,9 +703,10 @@ export class PostgresDatabase implements IDatabase {
       );
     }
 
-    await this.query('UPDATE api_tokens SET user_id = $1 WHERE user_id IS NULL', [
-      bootstrapUser.id
-    ]);
+    await this.query(
+      'UPDATE api_tokens SET user_id = $1 WHERE user_id IS NULL AND tenant_id = $2',
+      [bootstrapUser.id, this.tenantId]
+    );
   }
 
   /**
@@ -501,6 +719,7 @@ export class PostgresDatabase implements IDatabase {
     await this.query(
       `INSERT INTO api_tokens (
         id,
+        tenant_id,
         user_id,
         name,
         token_hash,
@@ -510,9 +729,10 @@ export class PostgresDatabase implements IDatabase {
         revoked_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         record.id,
+        this.tenantId,
         record.userId,
         record.name,
         record.tokenHash,
@@ -537,10 +757,11 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<ApiTokenSqlRow>(
       `${API_TOKEN_SELECT}
       WHERE token_hash = $1
+        AND tenant_id = $2
         AND revoked_at IS NULL
         AND user_id IS NOT NULL
       LIMIT 1`,
-      [tokenHash]
+      [tokenHash, this.tenantId]
     );
 
     const row = result.rows[0];
@@ -553,8 +774,10 @@ export class PostgresDatabase implements IDatabase {
   async listApiTokens(): Promise<ApiTokenRecord[]> {
     const result = await this.query<ApiTokenSqlRow>(
       `${API_TOKEN_SELECT}
-      WHERE user_id IS NOT NULL
-      ORDER BY created_at DESC`
+      WHERE tenant_id = $1
+        AND user_id IS NOT NULL
+      ORDER BY created_at DESC`,
+      [this.tenantId]
     );
 
     return result.rows.map(mapApiTokenSqlRow);
@@ -569,8 +792,9 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<ApiTokenSqlRow>(
       `${API_TOKEN_SELECT}
       WHERE user_id = $1
+        AND tenant_id = $2
       ORDER BY created_at DESC`,
-      [userId]
+      [userId, this.tenantId]
     );
 
     return result.rows.map(mapApiTokenSqlRow);
@@ -582,9 +806,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Token identifier to look up.
    */
   async findApiTokenById(id: string): Promise<ApiTokenRecord | null> {
-    const result = await this.query<ApiTokenSqlRow>(`${API_TOKEN_SELECT} WHERE id = $1 LIMIT 1`, [
-      id
-    ]);
+    const result = await this.query<ApiTokenSqlRow>(
+      `${API_TOKEN_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapApiTokenSqlRow(row) : null;
   }
@@ -596,7 +821,10 @@ export class PostgresDatabase implements IDatabase {
    * @param actingUserId - User performing the delete action.
    */
   async deleteApiToken(id: string, actingUserId: string): Promise<boolean> {
-    const result = await this.query('DELETE FROM api_tokens WHERE id = $1', [id]);
+    const result = await this.query('DELETE FROM api_tokens WHERE id = $1 AND tenant_id = $2', [
+      id,
+      this.tenantId
+    ]);
     const deleted = (result.rowCount ?? 0) > 0;
     if (deleted) {
       await this.recordAuditEntry(actingUserId, 'delete', 'api_token', id);
@@ -617,8 +845,9 @@ export class PostgresDatabase implements IDatabase {
       SET revoked_at = $2,
         updated_by_user_id = $3
       WHERE id = $1
+        AND tenant_id = $4
         AND revoked_at IS NULL`,
-      [id, new Date(), actingUserId]
+      [id, new Date(), actingUserId, this.tenantId]
     );
 
     const revoked = (result.rowCount ?? 0) > 0;
@@ -636,7 +865,11 @@ export class PostgresDatabase implements IDatabase {
    * @param when - Timestamp of the authenticated request.
    */
   async touchApiTokenLastUsed(id: string, when: Date): Promise<void> {
-    await this.query(`UPDATE api_tokens SET last_used_at = $2 WHERE id = $1`, [id, when]);
+    await this.query(`UPDATE api_tokens SET last_used_at = $2 WHERE id = $1 AND tenant_id = $3`, [
+      id,
+      when,
+      this.tenantId
+    ]);
   }
 
   /**
@@ -664,6 +897,7 @@ export class PostgresDatabase implements IDatabase {
       const userResult = await client.query<UserSqlRow>(
         `INSERT INTO users (
           id,
+          tenant_id,
           name,
           role,
           collection_access,
@@ -678,10 +912,11 @@ export class PostgresDatabase implements IDatabase {
           updated_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         RETURNING ${USER_SELECT_COLUMNS}`,
         [
           userId,
+          this.tenantId,
           trimmedName,
           input.role,
           serializeAccessList(input.collectionAccess),
@@ -707,6 +942,7 @@ export class PostgresDatabase implements IDatabase {
       await client.query(
         `INSERT INTO user_invitations (
           id,
+          tenant_id,
           user_id,
           code_hash,
           code_prefix,
@@ -716,9 +952,10 @@ export class PostgresDatabase implements IDatabase {
           created_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           invitation.id,
+          this.tenantId,
           invitation.userId,
           invitation.codeHash,
           invitation.codePrefix,
@@ -766,6 +1003,7 @@ export class PostgresDatabase implements IDatabase {
     await this.query(
       `INSERT INTO user_invitations (
         id,
+        tenant_id,
         user_id,
         code_hash,
         code_prefix,
@@ -775,9 +1013,10 @@ export class PostgresDatabase implements IDatabase {
         created_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         invitation.id,
+        this.tenantId,
         invitation.userId,
         invitation.codeHash,
         invitation.codePrefix,
@@ -801,8 +1040,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async findInvitationById(id: string): Promise<InvitationRecord | null> {
     const result = await this.query<InvitationSqlRow>(
-      `${INVITATION_SELECT} WHERE id = $1 LIMIT 1`,
-      [id]
+      `${INVITATION_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
     );
     const row = result.rows[0];
     return row ? mapInvitationSqlRow(row) : null;
@@ -815,8 +1054,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async findInvitationByCodeHash(codeHash: string): Promise<InvitationRecord | null> {
     const result = await this.query<InvitationSqlRow>(
-      `${INVITATION_SELECT} WHERE code_hash = $1 LIMIT 1`,
-      [codeHash]
+      `${INVITATION_SELECT} WHERE code_hash = $1 AND tenant_id = $2 LIMIT 1`,
+      [codeHash, this.tenantId]
     );
     const row = result.rows[0];
     return row ? mapInvitationSqlRow(row) : null;
@@ -827,7 +1066,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listInvitations(): Promise<InvitationRecord[]> {
     const result = await this.query<InvitationSqlRow>(
-      `${INVITATION_SELECT} ORDER BY created_at DESC`
+      `${INVITATION_SELECT} WHERE tenant_id = $1 ORDER BY created_at DESC`,
+      [this.tenantId]
     );
     return result.rows.map(mapInvitationSqlRow);
   }
@@ -844,11 +1084,12 @@ export class PostgresDatabase implements IDatabase {
       `UPDATE user_invitations
       SET revoked_at = $1, updated_by_user_id = $2
       WHERE id = $3
+        AND tenant_id = $4
         AND redeemed_at IS NULL
         AND revoked_at IS NULL
         AND expires_at > $1
       RETURNING id`,
-      [now, actingUserId, id]
+      [now, actingUserId, id, this.tenantId]
     );
 
     if (!result.rows[0]) {
@@ -881,18 +1122,19 @@ export class PostgresDatabase implements IDatabase {
         `UPDATE user_invitations
         SET redeemed_at = $1, updated_by_user_id = $2
         WHERE code_hash = $3
+          AND tenant_id = $4
           AND redeemed_at IS NULL
           AND revoked_at IS NULL
           AND expires_at > $1
         RETURNING ${INVITATION_SELECT_COLUMNS}`,
-        [now, actingUserId, codeHash]
+        [now, actingUserId, codeHash, this.tenantId]
       );
 
       const invitationRow = claimResult.rows[0];
       if (!invitationRow) {
         const existingResult = await client.query<InvitationSqlRow>(
-          `${INVITATION_SELECT} WHERE code_hash = $1 LIMIT 1`,
-          [codeHash]
+          `${INVITATION_SELECT} WHERE code_hash = $1 AND tenant_id = $2 LIMIT 1`,
+          [codeHash, this.tenantId]
         );
         const existingRow = existingResult.rows[0];
         if (!existingRow) {
@@ -912,9 +1154,10 @@ export class PostgresDatabase implements IDatabase {
       }
 
       const invitation = mapInvitationSqlRow(invitationRow);
-      const userResult = await client.query<UserSqlRow>(`${USER_SELECT} WHERE id = $1 LIMIT 1`, [
-        invitation.userId
-      ]);
+      const userResult = await client.query<UserSqlRow>(
+        `${USER_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+        [invitation.userId, this.tenantId]
+      );
       const userRow = userResult.rows[0];
       if (!userRow) {
         throw new Error('User not found');
@@ -927,6 +1170,7 @@ export class PostgresDatabase implements IDatabase {
       await client.query(
         `INSERT INTO api_tokens (
           id,
+          tenant_id,
           user_id,
           name,
           token_hash,
@@ -936,9 +1180,10 @@ export class PostgresDatabase implements IDatabase {
           revoked_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           record.id,
+          this.tenantId,
           record.userId,
           record.name,
           record.tokenHash,
@@ -969,7 +1214,10 @@ export class PostgresDatabase implements IDatabase {
    * Lists all collections ordered by name.
    */
   async listCollections(): Promise<CollectionRecord[]> {
-    const result = await this.query<CollectionSqlRow>(`${COLLECTION_SELECT} ORDER BY name ASC`);
+    const result = await this.query<CollectionSqlRow>(
+      `${COLLECTION_SELECT} WHERE tenant_id = $1 ORDER BY name ASC`,
+      [this.tenantId]
+    );
     return result.rows.map(mapCollectionSqlRow);
   }
 
@@ -987,6 +1235,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<CollectionSqlRow>(
       `INSERT INTO collections (
         id,
+        tenant_id,
         name,
         variables,
         headers,
@@ -997,9 +1246,9 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, '[]', '[]', $3, '', '', $4, $5, $6, $7)
+      ) VALUES ($1, $2, $3, '[]', '[]', $4, '', '', $5, $6, $7, $8)
       RETURNING ${COLLECTION_SELECT_COLUMNS}`,
-      [id, trimmedName, DEFAULT_AUTH_JSON, now, now, actingUserId, actingUserId]
+      [id, this.tenantId, trimmedName, DEFAULT_AUTH_JSON, now, now, actingUserId, actingUserId]
     );
 
     const row = result.rows[0];
@@ -1043,7 +1292,7 @@ export class PostgresDatabase implements IDatabase {
         updated_at = $7,
         updated_by_user_id = $8,
         marker = $9
-      WHERE id = $10`,
+      WHERE id = $10 AND tenant_id = $11`,
             [
               trimmedName,
               JSON.stringify(variables),
@@ -1054,7 +1303,8 @@ export class PostgresDatabase implements IDatabase {
               updatedAt,
               actingUserId,
               serializeSidebarMarker(marker),
-              id
+              id,
+              this.tenantId
             ]
           )
         : await this.query(
@@ -1067,7 +1317,7 @@ export class PostgresDatabase implements IDatabase {
         post_request_script = $6,
         updated_at = $7,
         updated_by_user_id = $8
-      WHERE id = $9`,
+      WHERE id = $9 AND tenant_id = $10`,
             [
               trimmedName,
               JSON.stringify(variables),
@@ -1077,7 +1327,8 @@ export class PostgresDatabase implements IDatabase {
               postRequestScript,
               updatedAt,
               actingUserId,
-              id
+              id,
+              this.tenantId
             ]
           );
 
@@ -1087,9 +1338,10 @@ export class PostgresDatabase implements IDatabase {
 
     await this.recordAuditEntry(actingUserId, 'update', 'collection', id);
 
-    const selectResult = await this.query<CollectionSqlRow>(`${COLLECTION_SELECT} WHERE id = $1`, [
-      id
-    ]);
+    const selectResult = await this.query<CollectionSqlRow>(
+      `${COLLECTION_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = selectResult.rows[0];
     if (!row) {
       throw new Error('Collection not found');
@@ -1106,7 +1358,10 @@ export class PostgresDatabase implements IDatabase {
    */
   async deleteCollection(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'collection', id);
-    await this.query('DELETE FROM collections WHERE id = $1', [id]);
+    await this.query('DELETE FROM collections WHERE id = $1 AND tenant_id = $2', [
+      id,
+      this.tenantId
+    ]);
   }
 
   /**
@@ -1115,7 +1370,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Collection ID to look up.
    */
   async findCollectionById(id: string): Promise<CollectionRecord | null> {
-    const result = await this.query<CollectionSqlRow>(`${COLLECTION_SELECT} WHERE id = $1`, [id]);
+    const result = await this.query<CollectionSqlRow>(
+      `${COLLECTION_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapCollectionSqlRow(row) : null;
   }
@@ -1138,8 +1396,8 @@ export class PostgresDatabase implements IDatabase {
       SET deletion_locked = $1,
         updated_at = $2,
         updated_by_user_id = $3
-      WHERE id = $4`,
-      [deletionLocked, updatedAt, actingUserId, id]
+      WHERE id = $4 AND tenant_id = $5`,
+      [deletionLocked, updatedAt, actingUserId, id, this.tenantId]
     );
 
     if ((result.rowCount ?? 0) === 0) {
@@ -1148,9 +1406,10 @@ export class PostgresDatabase implements IDatabase {
 
     await this.recordAuditEntry(actingUserId, 'update', 'collection', id);
 
-    const selectResult = await this.query<CollectionSqlRow>(`${COLLECTION_SELECT} WHERE id = $1`, [
-      id
-    ]);
+    const selectResult = await this.query<CollectionSqlRow>(
+      `${COLLECTION_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = selectResult.rows[0];
     if (!row) {
       throw new Error('Collection not found');
@@ -1163,7 +1422,10 @@ export class PostgresDatabase implements IDatabase {
    * Lists all environments ordered by name.
    */
   async listEnvironments(): Promise<EnvironmentRecord[]> {
-    const result = await this.query<EnvironmentSqlRow>(`${ENVIRONMENT_SELECT} ORDER BY name ASC`);
+    const result = await this.query<EnvironmentSqlRow>(
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = $1 ORDER BY name ASC`,
+      [this.tenantId]
+    );
     return result.rows.map(mapEnvironmentSqlRow);
   }
 
@@ -1181,15 +1443,16 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<EnvironmentSqlRow>(
       `INSERT INTO environments (
         id,
+        tenant_id,
         name,
         variables,
         created_at,
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, '[]', $3, $4, $5, $6)
+      ) VALUES ($1, $2, $3, '[]', $4, $5, $6, $7)
       RETURNING ${ENVIRONMENT_SELECT_COLUMNS}`,
-      [id, trimmedName, now, now, actingUserId, actingUserId]
+      [id, this.tenantId, trimmedName, now, now, actingUserId, actingUserId]
     );
 
     const row = result.rows[0];
@@ -1237,10 +1500,11 @@ export class PostgresDatabase implements IDatabase {
     }
     params.push(id);
 
+    params.push(this.tenantId);
     const result = await this.query(
       `UPDATE environments
       SET ${setClauses.join(',\n        ')}
-      WHERE id = $${params.length}`,
+      WHERE id = $${params.length - 1} AND tenant_id = $${params.length}`,
       params
     );
 
@@ -1251,8 +1515,8 @@ export class PostgresDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'environment', id);
 
     const selectResult = await this.query<EnvironmentSqlRow>(
-      `${ENVIRONMENT_SELECT} WHERE id = $1`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
     );
     const row = selectResult.rows[0];
     if (!row) {
@@ -1270,8 +1534,14 @@ export class PostgresDatabase implements IDatabase {
    */
   async deleteEnvironment(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'environment', id);
-    await this.query('UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = $1', [id]);
-    await this.query('DELETE FROM environments WHERE id = $1', [id]);
+    await this.query(
+      'UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = $1 AND tenant_id = $2',
+      [id, this.tenantId]
+    );
+    await this.query('DELETE FROM environments WHERE id = $1 AND tenant_id = $2', [
+      id,
+      this.tenantId
+    ]);
   }
 
   /**
@@ -1280,7 +1550,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Environment ID to look up.
    */
   async findEnvironmentById(id: string): Promise<EnvironmentRecord | null> {
-    const result = await this.query<EnvironmentSqlRow>(`${ENVIRONMENT_SELECT} WHERE id = $1`, [id]);
+    const result = await this.query<EnvironmentSqlRow>(
+      `${ENVIRONMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapEnvironmentSqlRow(row) : null;
   }
@@ -1303,8 +1576,8 @@ export class PostgresDatabase implements IDatabase {
       SET deletion_locked = $1,
         updated_at = $2,
         updated_by_user_id = $3
-      WHERE id = $4`,
-      [deletionLocked, updatedAt, actingUserId, id]
+      WHERE id = $4 AND tenant_id = $5`,
+      [deletionLocked, updatedAt, actingUserId, id, this.tenantId]
     );
 
     if ((result.rowCount ?? 0) === 0) {
@@ -1314,8 +1587,8 @@ export class PostgresDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'environment', id);
 
     const selectResult = await this.query<EnvironmentSqlRow>(
-      `${ENVIRONMENT_SELECT} WHERE id = $1`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
     );
     const row = selectResult.rows[0];
     if (!row) {
@@ -1330,7 +1603,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listSnippets(): Promise<SnippetRecord[]> {
     const result = await this.query<SnippetSqlRow>(
-      `${SNIPPET_SELECT} ORDER BY sort_order ASC, name ASC`
+      `${SNIPPET_SELECT} WHERE tenant_id = $1 ORDER BY sort_order ASC, name ASC`,
+      [this.tenantId]
     );
     return result.rows.map(mapSnippetSqlRow);
   }
@@ -1353,13 +1627,15 @@ export class PostgresDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const maxResult = await this.query<{ max_order: number | null }>(
-      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets WHERE tenant_id = $1',
+      [this.tenantId]
     );
     const maxOrder = maxResult.rows[0]?.max_order ?? -1;
 
     const result = await this.query<SnippetSqlRow>(
       `INSERT INTO snippets (
         id,
+        tenant_id,
         name,
         code,
         scope,
@@ -1368,9 +1644,20 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING ${SNIPPET_SELECT_COLUMNS}`,
-      [id, trimmedName, code, scope, maxOrder + 1, now, now, actingUserId, actingUserId]
+      [
+        id,
+        this.tenantId,
+        trimmedName,
+        code,
+        scope,
+        maxOrder + 1,
+        now,
+        now,
+        actingUserId,
+        actingUserId
+      ]
     );
 
     const row = result.rows[0];
@@ -1404,8 +1691,8 @@ export class PostgresDatabase implements IDatabase {
         scope = $3,
         updated_at = $4,
         updated_by_user_id = $5
-      WHERE id = $6`,
-      [trimmedName, code, scope, updatedAt, actingUserId, id]
+      WHERE id = $6 AND tenant_id = $7`,
+      [trimmedName, code, scope, updatedAt, actingUserId, id, this.tenantId]
     );
 
     if ((result.rowCount ?? 0) === 0) {
@@ -1414,7 +1701,10 @@ export class PostgresDatabase implements IDatabase {
 
     await this.recordAuditEntry(actingUserId, 'update', 'snippet', id);
 
-    const selectResult = await this.query<SnippetSqlRow>(`${SNIPPET_SELECT} WHERE id = $1`, [id]);
+    const selectResult = await this.query<SnippetSqlRow>(
+      `${SNIPPET_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = selectResult.rows[0];
     if (!row) {
       throw new Error('Snippet not found');
@@ -1431,7 +1721,7 @@ export class PostgresDatabase implements IDatabase {
    */
   async deleteSnippet(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'snippet', id);
-    await this.query('DELETE FROM snippets WHERE id = $1', [id]);
+    await this.query('DELETE FROM snippets WHERE id = $1 AND tenant_id = $2', [id, this.tenantId]);
   }
 
   /**
@@ -1440,7 +1730,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Snippet ID to look up.
    */
   async findSnippetById(id: string): Promise<SnippetRecord | null> {
-    const result = await this.query<SnippetSqlRow>(`${SNIPPET_SELECT} WHERE id = $1`, [id]);
+    const result = await this.query<SnippetSqlRow>(
+      `${SNIPPET_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapSnippetSqlRow(row) : null;
   }
@@ -1463,8 +1756,8 @@ export class PostgresDatabase implements IDatabase {
       SET deletion_locked = $1,
         updated_at = $2,
         updated_by_user_id = $3
-      WHERE id = $4`,
-      [deletionLocked, updatedAt, actingUserId, id]
+      WHERE id = $4 AND tenant_id = $5`,
+      [deletionLocked, updatedAt, actingUserId, id, this.tenantId]
     );
 
     if ((result.rowCount ?? 0) === 0) {
@@ -1473,7 +1766,10 @@ export class PostgresDatabase implements IDatabase {
 
     await this.recordAuditEntry(actingUserId, 'update', 'snippet', id);
 
-    const selectResult = await this.query<SnippetSqlRow>(`${SNIPPET_SELECT} WHERE id = $1`, [id]);
+    const selectResult = await this.query<SnippetSqlRow>(
+      `${SNIPPET_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = selectResult.rows[0];
     if (!row) {
       throw new Error('Snippet not found');
@@ -1636,7 +1932,8 @@ export class PostgresDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T[]> {
     const result = await this.query<PayloadEntitySqlRow>(
-      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} ORDER BY name ASC`
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE tenant_id = $1 ORDER BY name ASC`,
+      [this.tenantId]
     );
     return result.rows.map(mapper);
   }
@@ -1655,9 +1952,9 @@ export class PostgresDatabase implements IDatabase {
     const now = new Date();
     const name = trimRequiredName(input.name, 'Entity name');
     const result = await this.query<PayloadEntitySqlRow>(
-      `INSERT INTO ${table} (id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
-      [id, name, JSON.stringify(input.payload), now, now, actingUserId, actingUserId]
+      `INSERT INTO ${table} (id, tenant_id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
+      [id, this.tenantId, name, JSON.stringify(input.payload), now, now, actingUserId, actingUserId]
     );
     const row = result.rows[0];
     if (!row) throw new Error('Entity not found after insert');
@@ -1678,13 +1975,14 @@ export class PostgresDatabase implements IDatabase {
   ): Promise<T> {
     const result = await this.query<PayloadEntitySqlRow>(
       `UPDATE ${table} SET name = $1, payload = $2, updated_at = $3, updated_by_user_id = $4
-       WHERE id = $5 RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
+       WHERE id = $5 AND tenant_id = $6 RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
       [
         trimRequiredName(input.name, 'Entity name'),
         JSON.stringify(input.payload),
         new Date(),
         actingUserId,
-        id
+        id,
+        this.tenantId
       ]
     );
     const row = result.rows[0];
@@ -1703,7 +2001,7 @@ export class PostgresDatabase implements IDatabase {
     actingUserId: string
   ): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', entityType, id);
-    await this.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    await this.query(`DELETE FROM ${table} WHERE id = $1 AND tenant_id = $2`, [id, this.tenantId]);
   }
 
   /**
@@ -1715,8 +2013,8 @@ export class PostgresDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T | null> {
     const result = await this.query<PayloadEntitySqlRow>(
-      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE id = $1`,
-      [id]
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
     );
     return result.rows[0] ? mapper(result.rows[0]) : null;
   }
@@ -1734,8 +2032,8 @@ export class PostgresDatabase implements IDatabase {
   ): Promise<T> {
     const result = await this.query<PayloadEntitySqlRow>(
       `UPDATE ${table} SET deletion_locked = $1, updated_at = $2, updated_by_user_id = $3
-       WHERE id = $4 RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
-      [deletionLocked, new Date(), actingUserId, id]
+       WHERE id = $4 AND tenant_id = $5 RETURNING ${PAYLOAD_ENTITY_SELECT_COLUMNS}`,
+      [deletionLocked, new Date(), actingUserId, id, this.tenantId]
     );
     const row = result.rows[0];
     if (!row) throw new Error('Entity not found');
@@ -1750,8 +2048,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listRequests(collectionId: string): Promise<SavedRequestRecord[]> {
     const result = await this.query<RequestSqlRow>(
-      `${REQUEST_SELECT} WHERE collection_id = $1 ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${REQUEST_SELECT} WHERE collection_id = $1 AND tenant_id = $2 ORDER BY sort_order ASC, name ASC`,
+      [collectionId, this.tenantId]
     );
     return result.rows.map(mapRequestSqlRow);
   }
@@ -1762,7 +2060,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Request identifier to look up.
    */
   async findRequestById(id: string): Promise<SavedRequestRecord | null> {
-    const result = await this.query<RequestSqlRow>(`${REQUEST_SELECT} WHERE id = $1 LIMIT 1`, [id]);
+    const result = await this.query<RequestSqlRow>(
+      `${REQUEST_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapRequestSqlRow(row) : null;
   }
@@ -1785,8 +2086,8 @@ export class PostgresDatabase implements IDatabase {
 
     if (folderId != null) {
       const folderResult = await this.query<{ collection_id: string }>(
-        'SELECT collection_id FROM folders WHERE id = $1',
-        [folderId]
+        'SELECT collection_id FROM folders WHERE id = $1 AND tenant_id = $2',
+        [folderId, this.tenantId]
       );
       const folderRow = folderResult.rows[0];
       if (!folderRow || folderRow.collection_id !== input.collectionId) {
@@ -1814,7 +2115,7 @@ export class PostgresDatabase implements IDatabase {
           marker = $15,
           updated_at = $16,
           updated_by_user_id = $17
-        WHERE id = $18`,
+        WHERE id = $18 AND tenant_id = $19`,
         [
           input.collectionId,
           folderId,
@@ -1833,16 +2134,18 @@ export class PostgresDatabase implements IDatabase {
           serializedMarker,
           now,
           actingUserId,
-          input.id
+          input.id,
+          this.tenantId
         ]
       );
 
       if ((result.rowCount ?? 0) > 0) {
         await this.recordAuditEntry(actingUserId, 'update', 'request', input.id);
 
-        const selectResult = await this.query<RequestSqlRow>(`${REQUEST_SELECT} WHERE id = $1`, [
-          input.id
-        ]);
+        const selectResult = await this.query<RequestSqlRow>(
+          `${REQUEST_SELECT} WHERE id = $1 AND tenant_id = $2`,
+          [input.id, this.tenantId]
+        );
         const row = selectResult.rows[0];
         if (row) {
           return mapRequestSqlRow(row);
@@ -1853,8 +2156,9 @@ export class PostgresDatabase implements IDatabase {
     const maxResult = await this.query<{ max_order: number | null }>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM requests
        WHERE collection_id = $1
-         AND (($2::text IS NULL AND folder_id IS NULL) OR folder_id = $2)`,
-      [input.collectionId, folderId]
+         AND tenant_id = $2
+         AND (($3::text IS NULL AND folder_id IS NULL) OR folder_id = $3)`,
+      [input.collectionId, this.tenantId, folderId]
     );
     const maxOrder = maxResult.rows[0]?.max_order ?? -1;
     const id = randomUUID();
@@ -1862,6 +2166,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<RequestSqlRow>(
       `INSERT INTO requests (
         id,
+        tenant_id,
         collection_id,
         folder_id,
         name,
@@ -1882,10 +2187,11 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
       RETURNING ${REQUEST_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         input.collectionId,
         folderId,
         trimmedName,
@@ -1927,7 +2233,7 @@ export class PostgresDatabase implements IDatabase {
    */
   async deleteRequest(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'request', id);
-    await this.query('DELETE FROM requests WHERE id = $1', [id]);
+    await this.query('DELETE FROM requests WHERE id = $1 AND tenant_id = $2', [id, this.tenantId]);
   }
 
   /**
@@ -1937,8 +2243,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listFolders(collectionId: string): Promise<FolderRecord[]> {
     const result = await this.query<FolderSqlRow>(
-      `${FOLDER_SELECT} WHERE collection_id = $1 ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${FOLDER_SELECT} WHERE collection_id = $1 AND tenant_id = $2 ORDER BY sort_order ASC, name ASC`,
+      [collectionId, this.tenantId]
     );
     return result.rows.map(mapFolderSqlRow);
   }
@@ -1949,7 +2255,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Folder identifier to look up.
    */
   async findFolderById(id: string): Promise<FolderRecord | null> {
-    const result = await this.query<FolderSqlRow>(`${FOLDER_SELECT} WHERE id = $1 LIMIT 1`, [id]);
+    const result = await this.query<FolderSqlRow>(
+      `${FOLDER_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapFolderSqlRow(row) : null;
   }
@@ -1979,14 +2288,15 @@ export class PostgresDatabase implements IDatabase {
     const maxResult = await this.query<{ max_order: number | null }>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order
        FROM folders
-       WHERE collection_id = $1 AND parent_folder_id IS NOT DISTINCT FROM $2`,
-      [collectionId, parentFolderId]
+       WHERE collection_id = $1 AND tenant_id = $2 AND parent_folder_id IS NOT DISTINCT FROM $3`,
+      [collectionId, this.tenantId, parentFolderId]
     );
     const maxOrder = maxResult.rows[0]?.max_order ?? -1;
 
     const result = await this.query<FolderSqlRow>(
       `INSERT INTO folders (
         id,
+        tenant_id,
         collection_id,
         parent_folder_id,
         name,
@@ -1995,10 +2305,11 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING ${FOLDER_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         collectionId,
         parentFolderId,
         trimmedName,
@@ -2043,18 +2354,25 @@ export class PostgresDatabase implements IDatabase {
         updated_at = $2,
         updated_by_user_id = $3,
         marker = $4
-      WHERE id = $5
+      WHERE id = $5 AND tenant_id = $6
       RETURNING ${FOLDER_SELECT_COLUMNS}`,
-            [trimmedName, updatedAt, actingUserId, serializeSidebarMarker(marker), id]
+            [
+              trimmedName,
+              updatedAt,
+              actingUserId,
+              serializeSidebarMarker(marker),
+              id,
+              this.tenantId
+            ]
           )
         : await this.query<FolderSqlRow>(
             `UPDATE folders
       SET name = $1,
         updated_at = $2,
         updated_by_user_id = $3
-      WHERE id = $4
+      WHERE id = $4 AND tenant_id = $5
       RETURNING ${FOLDER_SELECT_COLUMNS}`,
-            [trimmedName, updatedAt, actingUserId, id]
+            [trimmedName, updatedAt, actingUserId, id, this.tenantId]
           );
     const row = result.rows[0];
     if (!row) {
@@ -2075,7 +2393,7 @@ export class PostgresDatabase implements IDatabase {
   async deleteFolder(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'folder', id);
 
-    await this.query('DELETE FROM folders WHERE id = $1', [id]);
+    await this.query('DELETE FROM folders WHERE id = $1 AND tenant_id = $2', [id, this.tenantId]);
   }
 
   /**
@@ -2125,8 +2443,8 @@ export class PostgresDatabase implements IDatabase {
     const updatedAt = new Date();
     await this.query(
       `UPDATE folders SET parent_folder_id = $1, updated_at = $2, updated_by_user_id = $3
-       WHERE id = $4`,
-      [parentFolderId, updatedAt, actingUserId, id]
+       WHERE id = $4 AND tenant_id = $5`,
+      [parentFolderId, updatedAt, actingUserId, id, this.tenantId]
     );
     await this.reorderFolders(
       folder.collectionId,
@@ -2166,8 +2484,17 @@ export class PostgresDatabase implements IDatabase {
             updated_by_user_id = $3
           WHERE id = $4
             AND collection_id = $5
-            AND parent_folder_id IS NOT DISTINCT FROM $6`,
-          [index, updatedAt, actingUserId, orderedFolderIds[index], collectionId, parentFolderId]
+            AND tenant_id = $6
+            AND parent_folder_id IS NOT DISTINCT FROM $7`,
+          [
+            index,
+            updatedAt,
+            actingUserId,
+            orderedFolderIds[index],
+            collectionId,
+            this.tenantId,
+            parentFolderId
+          ]
         );
       }
       await client.query('COMMIT');
@@ -2206,8 +2533,16 @@ export class PostgresDatabase implements IDatabase {
             folder_id = $2,
             updated_at = $3,
             updated_by_user_id = $4
-          WHERE id = $5 AND collection_id = $6`,
-          [index, folderId, updatedAt, actingUserId, orderedRequestIds[index], collectionId]
+          WHERE id = $5 AND collection_id = $6 AND tenant_id = $7`,
+          [
+            index,
+            folderId,
+            updatedAt,
+            actingUserId,
+            orderedRequestIds[index],
+            collectionId,
+            this.tenantId
+          ]
         );
       }
       await client.query('COMMIT');
@@ -2250,9 +2585,10 @@ export class PostgresDatabase implements IDatabase {
     ): Promise<string[]> => {
       const result = await client.query<{ id: string }>(
         `SELECT id FROM requests WHERE collection_id = $1
-         AND (($2::text IS NULL AND folder_id IS NULL) OR folder_id = $2)
+         AND tenant_id = $2
+         AND (($3::text IS NULL AND folder_id IS NULL) OR folder_id = $3)
          ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId]
+        [collectionId, this.tenantId, targetFolderId]
       );
       return result.rows.map((row) => row.id);
     };
@@ -2274,8 +2610,8 @@ export class PostgresDatabase implements IDatabase {
             folder_id = $2,
             updated_at = $3,
             updated_by_user_id = $4
-          WHERE id = $5`,
-          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex]]
+          WHERE id = $5 AND tenant_id = $6`,
+          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex], this.tenantId]
         );
       }
     };
@@ -2283,9 +2619,10 @@ export class PostgresDatabase implements IDatabase {
     try {
       await client.query('BEGIN');
 
-      const requestResult = await client.query<RequestSqlRow>(`${REQUEST_SELECT} WHERE id = $1`, [
-        requestId
-      ]);
+      const requestResult = await client.query<RequestSqlRow>(
+        `${REQUEST_SELECT} WHERE id = $1 AND tenant_id = $2`,
+        [requestId, this.tenantId]
+      );
       const requestRow = requestResult.rows[0];
       if (!requestRow) {
         throw new Error('Request not found');
@@ -2297,8 +2634,8 @@ export class PostgresDatabase implements IDatabase {
 
       if (folderId != null) {
         const folderResult = await client.query<{ collection_id: string }>(
-          'SELECT collection_id FROM folders WHERE id = $1',
-          [folderId]
+          'SELECT collection_id FROM folders WHERE id = $1 AND tenant_id = $2',
+          [folderId, this.tenantId]
         );
         const folderRow = folderResult.rows[0];
         if (!folderRow || folderRow.collection_id !== collectionId) {
@@ -2346,8 +2683,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listDocuments(collectionId: string): Promise<DocumentRecord[]> {
     const result = await this.query<DocumentSqlRow>(
-      `${DOCUMENT_SELECT} WHERE collection_id = $1 ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${DOCUMENT_SELECT} WHERE collection_id = $1 AND tenant_id = $2 ORDER BY sort_order ASC, name ASC`,
+      [collectionId, this.tenantId]
     );
     return result.rows.map(mapDocumentSqlRow);
   }
@@ -2358,9 +2695,10 @@ export class PostgresDatabase implements IDatabase {
    * @param id - Document identifier to look up.
    */
   async findDocumentById(id: string): Promise<DocumentRecord | null> {
-    const result = await this.query<DocumentSqlRow>(`${DOCUMENT_SELECT} WHERE id = $1 LIMIT 1`, [
-      id
-    ]);
+    const result = await this.query<DocumentSqlRow>(
+      `${DOCUMENT_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapDocumentSqlRow(row) : null;
   }
@@ -2379,8 +2717,8 @@ export class PostgresDatabase implements IDatabase {
 
     if (folderId != null) {
       const folderResult = await this.query<{ collection_id: string }>(
-        'SELECT collection_id FROM folders WHERE id = $1',
-        [folderId]
+        'SELECT collection_id FROM folders WHERE id = $1 AND tenant_id = $2',
+        [folderId, this.tenantId]
       );
       const folderRow = folderResult.rows[0];
       if (!folderRow || folderRow.collection_id !== input.collectionId) {
@@ -2398,7 +2736,7 @@ export class PostgresDatabase implements IDatabase {
           marker = $5,
           updated_at = $6,
           updated_by_user_id = $7
-        WHERE id = $8`,
+        WHERE id = $8 AND tenant_id = $9`,
         [
           input.collectionId,
           folderId,
@@ -2407,16 +2745,18 @@ export class PostgresDatabase implements IDatabase {
           serializedMarker,
           now,
           actingUserId,
-          input.id
+          input.id,
+          this.tenantId
         ]
       );
 
       if ((result.rowCount ?? 0) > 0) {
         await this.recordAuditEntry(actingUserId, 'update', 'document', input.id);
 
-        const selectResult = await this.query<DocumentSqlRow>(`${DOCUMENT_SELECT} WHERE id = $1`, [
-          input.id
-        ]);
+        const selectResult = await this.query<DocumentSqlRow>(
+          `${DOCUMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+          [input.id, this.tenantId]
+        );
         const row = selectResult.rows[0];
         if (row) {
           return mapDocumentSqlRow(row);
@@ -2427,8 +2767,9 @@ export class PostgresDatabase implements IDatabase {
     const maxResult = await this.query<{ max_order: number | null }>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM documents
        WHERE collection_id = $1
-         AND (($2::text IS NULL AND folder_id IS NULL) OR folder_id = $2)`,
-      [input.collectionId, folderId]
+         AND tenant_id = $2
+         AND (($3::text IS NULL AND folder_id IS NULL) OR folder_id = $3)`,
+      [input.collectionId, this.tenantId, folderId]
     );
     const maxOrder = maxResult.rows[0]?.max_order ?? -1;
     const id = randomUUID();
@@ -2436,6 +2777,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<DocumentSqlRow>(
       `INSERT INTO documents (
         id,
+        tenant_id,
         collection_id,
         folder_id,
         name,
@@ -2446,10 +2788,11 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING ${DOCUMENT_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         input.collectionId,
         folderId,
         trimmedName,
@@ -2481,7 +2824,7 @@ export class PostgresDatabase implements IDatabase {
    */
   async deleteDocument(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'document', id);
-    await this.query('DELETE FROM documents WHERE id = $1', [id]);
+    await this.query('DELETE FROM documents WHERE id = $1 AND tenant_id = $2', [id, this.tenantId]);
   }
 
   /**
@@ -2506,8 +2849,16 @@ export class PostgresDatabase implements IDatabase {
             folder_id = $2,
             updated_at = $3,
             updated_by_user_id = $4
-          WHERE id = $5 AND collection_id = $6`,
-          [index, folderId, updatedAt, actingUserId, orderedDocumentIds[index], collectionId]
+          WHERE id = $5 AND collection_id = $6 AND tenant_id = $7`,
+          [
+            index,
+            folderId,
+            updatedAt,
+            actingUserId,
+            orderedDocumentIds[index],
+            collectionId,
+            this.tenantId
+          ]
         );
       }
       await client.query('COMMIT');
@@ -2550,9 +2901,10 @@ export class PostgresDatabase implements IDatabase {
     ): Promise<string[]> => {
       const result = await client.query<{ id: string }>(
         `SELECT id FROM documents WHERE collection_id = $1
-         AND (($2::text IS NULL AND folder_id IS NULL) OR folder_id = $2)
+         AND tenant_id = $2
+         AND (($3::text IS NULL AND folder_id IS NULL) OR folder_id = $3)
          ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId]
+        [collectionId, this.tenantId, targetFolderId]
       );
       return result.rows.map((row) => row.id);
     };
@@ -2574,8 +2926,8 @@ export class PostgresDatabase implements IDatabase {
             folder_id = $2,
             updated_at = $3,
             updated_by_user_id = $4
-          WHERE id = $5`,
-          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex]]
+          WHERE id = $5 AND tenant_id = $6`,
+          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex], this.tenantId]
         );
       }
     };
@@ -2584,8 +2936,8 @@ export class PostgresDatabase implements IDatabase {
       await client.query('BEGIN');
 
       const documentResult = await client.query<DocumentSqlRow>(
-        `${DOCUMENT_SELECT} WHERE id = $1`,
-        [documentId]
+        `${DOCUMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+        [documentId, this.tenantId]
       );
       const documentRow = documentResult.rows[0];
       if (!documentRow) {
@@ -2598,8 +2950,8 @@ export class PostgresDatabase implements IDatabase {
 
       if (folderId != null) {
         const folderResult = await client.query<{ collection_id: string }>(
-          'SELECT collection_id FROM folders WHERE id = $1',
-          [folderId]
+          'SELECT collection_id FROM folders WHERE id = $1 AND tenant_id = $2',
+          [folderId, this.tenantId]
         );
         const folderRow = folderResult.rows[0];
         if (!folderRow || folderRow.collection_id !== collectionId) {
@@ -2648,8 +3000,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async getLlmUsage(userId: string, period: string): Promise<LlmUsageRecord | null> {
     const result = await this.query<LlmUsageSqlRow>(
-      `${LLM_USAGE_SELECT} WHERE user_id = $1 AND period = $2 LIMIT 1`,
-      [userId, period]
+      `${LLM_USAGE_SELECT} WHERE user_id = $1 AND period = $2 AND tenant_id = $3 LIMIT 1`,
+      [userId, period, this.tenantId]
     );
     const row = result.rows[0];
     return row ? mapLlmUsageSqlRow(row) : null;
@@ -2676,20 +3028,21 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<LlmUsageSqlRow>(
       `INSERT INTO llm_usage (
         id,
+        tenant_id,
         user_id,
         period,
         prompt_tokens,
         completion_tokens,
         total_tokens,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (user_id, period) DO UPDATE
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (tenant_id, user_id, period) DO UPDATE
       SET prompt_tokens = llm_usage.prompt_tokens + EXCLUDED.prompt_tokens,
         completion_tokens = llm_usage.completion_tokens + EXCLUDED.completion_tokens,
         total_tokens = llm_usage.total_tokens + EXCLUDED.total_tokens,
         updated_at = EXCLUDED.updated_at
       RETURNING ${LLM_USAGE_SELECT_COLUMNS}`,
-      [id, userId, period, promptTokens, completionTokens, totalDelta, now]
+      [id, this.tenantId, userId, period, promptTokens, completionTokens, totalDelta, now]
     );
 
     const row = result.rows[0];
@@ -2712,6 +3065,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<LlmUsageLogSqlRow>(
       `INSERT INTO llm_usage_log (
         id,
+        tenant_id,
         user_id,
         api_token_id,
         period,
@@ -2724,10 +3078,11 @@ export class PostgresDatabase implements IDatabase {
         had_tool_calls,
         message_count,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING ${LLM_USAGE_LOG_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         input.userId,
         input.apiTokenId,
         input.period,
@@ -2756,7 +3111,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listLlmUsageLogs(): Promise<LlmUsageLogRecord[]> {
     const result = await this.query<LlmUsageLogSqlRow>(
-      `${LLM_USAGE_LOG_SELECT} ORDER BY created_at DESC`
+      `${LLM_USAGE_LOG_SELECT} WHERE tenant_id = $1 ORDER BY created_at DESC`,
+      [this.tenantId]
     );
 
     return result.rows.map(mapLlmUsageLogSqlRow);
@@ -2767,8 +3123,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listRunResultsForUser(userId: string): Promise<RunResultRecord[]> {
     const result = await this.query<RunResultSqlRow>(
-      `${RUN_RESULT_SELECT} WHERE created_by_user_id = $1 ORDER BY created_at DESC`,
-      [userId]
+      `${RUN_RESULT_SELECT} WHERE created_by_user_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`,
+      [userId, this.tenantId]
     );
     return result.rows.map(mapRunResultSqlRow);
   }
@@ -2778,7 +3134,8 @@ export class PostgresDatabase implements IDatabase {
    */
   async listAllRunResults(): Promise<RunResultRecord[]> {
     const result = await this.query<RunResultSqlRow>(
-      `${RUN_RESULT_SELECT} ORDER BY created_at DESC`
+      `${RUN_RESULT_SELECT} WHERE tenant_id = $1 ORDER BY created_at DESC`,
+      [this.tenantId]
     );
     return result.rows.map(mapRunResultSqlRow);
   }
@@ -2798,6 +3155,7 @@ export class PostgresDatabase implements IDatabase {
     const result = await this.query<RunResultSqlRow>(
       `INSERT INTO run_results (
         id,
+        tenant_id,
         kind,
         label,
         collection_name,
@@ -2808,10 +3166,11 @@ export class PostgresDatabase implements IDatabase {
         payload,
         created_at,
         created_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING ${RUN_RESULT_SELECT_COLUMNS}`,
       [
         id,
+        this.tenantId,
         metadata.kind,
         label,
         metadata.collectionName,
@@ -2838,7 +3197,10 @@ export class PostgresDatabase implements IDatabase {
    * Finds a run result by id.
    */
   async findRunResultById(id: string): Promise<RunResultRecord | null> {
-    const result = await this.query<RunResultSqlRow>(`${RUN_RESULT_SELECT} WHERE id = $1`, [id]);
+    const result = await this.query<RunResultSqlRow>(
+      `${RUN_RESULT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
     const row = result.rows[0];
     return row ? mapRunResultSqlRow(row) : null;
   }
@@ -2847,7 +3209,10 @@ export class PostgresDatabase implements IDatabase {
    * Deletes a run result by id.
    */
   async deleteRunResult(id: string, actingUserId: string): Promise<void> {
-    const result = await this.query('DELETE FROM run_results WHERE id = $1', [id]);
+    const result = await this.query('DELETE FROM run_results WHERE id = $1 AND tenant_id = $2', [
+      id,
+      this.tenantId
+    ]);
     if ((result.rowCount ?? 0) === 0) {
       throw new Error('Run result not found');
     }
@@ -2889,6 +3254,7 @@ export class PostgresDatabase implements IDatabase {
     await this.query(
       `INSERT INTO users (
         id,
+        tenant_id,
         name,
         role,
         collection_access,
@@ -2903,9 +3269,10 @@ export class PostgresDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         id,
+        this.tenantId,
         SYSTEM_USER_NAME,
         input.role,
         serializeAccessList(input.collectionAccess),
@@ -2952,6 +3319,7 @@ export class PostgresDatabase implements IDatabase {
     await this.query(
       `INSERT INTO audit_log (
         id,
+        tenant_id,
         user_id,
         user_name,
         action,
@@ -2959,9 +3327,10 @@ export class PostgresDatabase implements IDatabase {
         entity_id,
         created_at,
         metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         id,
+        this.tenantId,
         actingUserId,
         userName,
         action,

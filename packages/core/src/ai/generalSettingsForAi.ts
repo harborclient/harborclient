@@ -253,6 +253,105 @@ export type SanitizedGeneralSettingsForAi = Omit<GeneralSettings, 'proxy'> & {
 };
 
 /**
+ * Every field {@link mergeGeneralSettingsAiPatch} knows how to apply.
+ *
+ * Kept beside the merge function so a field added to one and not the other is
+ * reported as unknown instead of being silently dropped.
+ */
+export const GENERAL_SETTINGS_AI_PATCH_KEYS: readonly (keyof GeneralSettingsAiPatch)[] = [
+  'requestTimeoutMs',
+  'scriptTimeoutMs',
+  'allowScriptNetworkRequests',
+  'allowedNetworkPlugins',
+  'allowScriptFileRead',
+  'allowScriptFileWrite',
+  'allowScriptWebpage',
+  'scriptFileRoot',
+  'workflowResultsDirectory',
+  'maxResponseSizeMb',
+  'verifySsl',
+  'followRedirects',
+  'startWebpageUrl',
+  'userAgent',
+  'customUserAgents',
+  'scrollbarAutoHide',
+  'wrapTabs',
+  'closeToTray',
+  'spellCheckEnabled',
+  'warnWhenSwitchingThemes',
+  'warnWhenExitingWithUnsavedChanges',
+  'warnWhenClosingUnsavedRequests',
+  'warnWhenEditingSnippet',
+  'warnWhenCloningSnippet',
+  'warnWhenClickingReadonlySnippet',
+  'warnWhenCreatingWorkspace',
+  'warnWhenOpeningWorkspace',
+  'warnWhenAgentUsesTerminal',
+  'trustedExternalDomains',
+  'allowAllExternalDomains',
+  'dismissedRequestEditorNotices',
+  'dismissedLiveServerNotices',
+  'gitAutoAdd',
+  'externalMergeEditorPath',
+  'gitCommitAuthorName',
+  'gitCommitAuthorEmail',
+  'gitCommitAuthorPrompted',
+  'codeEditorTheme',
+  'codeEditorSetup',
+  'codeEditorFontSize',
+  'proxy',
+  'globalVariables',
+  'logFilePath'
+];
+
+/**
+ * Settings-adjacent names the model reaches for that this tool cannot apply.
+ *
+ * Each maps to the tool that actually owns the setting so a rejected patch can
+ * redirect the agent instead of leaving it to guess.
+ */
+const GENERAL_SETTINGS_AI_PATCH_REDIRECTS: Readonly<Record<string, string>> = {
+  theme: 'set_theme',
+  appearance: 'set_theme',
+  appearanceTheme: 'set_theme',
+  colorScheme: 'set_theme',
+  themeSource: 'set_theme'
+};
+
+/**
+ * Lists patch keys that {@link mergeGeneralSettingsAiPatch} would silently drop.
+ *
+ * @param patch - Candidate settings patch from the model.
+ * @returns Unknown key names in the order they appear on the patch.
+ */
+export function listUnknownGeneralSettingsAiPatchKeys(patch: object): string[] {
+  const known = new Set<string>(GENERAL_SETTINGS_AI_PATCH_KEYS);
+  return Object.keys(patch).filter((key) => !known.has(key));
+}
+
+/**
+ * Builds the error message for a patch containing keys this tool cannot apply.
+ *
+ * @param unknownKeys - Keys rejected by {@link listUnknownGeneralSettingsAiPatchKeys}.
+ * @returns Message naming the bad keys and, where known, the right tool to use.
+ */
+export function formatUnknownGeneralSettingsAiPatchError(unknownKeys: readonly string[]): string {
+  const redirects = unknownKeys
+    .map((key) => {
+      const tool = GENERAL_SETTINGS_AI_PATCH_REDIRECTS[key];
+      return tool ? `Use ${tool} to change "${key}".` : '';
+    })
+    .filter((hint) => hint.length > 0);
+
+  const unique = [...new Set(redirects)];
+  const suffix = unique.length > 0 ? ` ${unique.join(' ')}` : '';
+
+  return `update_general_settings cannot set: ${unknownKeys.join(
+    ', '
+  )}. No settings were changed.${suffix}`;
+}
+
+/**
  * Returns whether a patch object contains at least one own enumerable key.
  *
  * @param patch - Candidate settings patch from the model.

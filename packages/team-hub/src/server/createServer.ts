@@ -5,6 +5,7 @@ import {
   type ZodTypeProvider
 } from 'fastify-type-provider-zod';
 import { DEFAULT_LOGGING_CONFIG } from '#/config/loggingConfig.js';
+import { DEFAULT_MULTITENANCY_CONFIG } from '#/config/multitenancyConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
 import { registerHttpLogging } from '#/server/logging/httpLogging.js';
@@ -94,6 +95,9 @@ export async function createServer(
     getLlm: ctx ? () => ctx.getLlm() : () => legacyConfig?.llm ?? null,
     getPlugins: ctx ? () => ctx.getPlugins() : () => legacyConfig?.plugins ?? null,
     getDocs: ctx ? () => ctx.getDocs() : () => legacyConfig?.docs ?? null,
+    getMultitenancy: ctx
+      ? () => ctx.getMultitenancy()
+      : () => legacyConfig?.multitenancy ?? DEFAULT_MULTITENANCY_CONFIG,
     reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] }))
   });
 

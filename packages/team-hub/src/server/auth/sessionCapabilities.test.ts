@@ -35,7 +35,7 @@ const baseToken: ApiTokenRecord = {
 
 describe('buildSessionPayload', () => {
   it('maps user-role accounts to data and LLM capabilities', () => {
-    expect(buildSessionPayload(baseUser, baseToken)).toEqual({
+    expect(buildSessionPayload(baseUser, baseToken, '__default__')).toEqual({
       user: {
         id: 'user-1',
         name: 'Alice',
@@ -49,7 +49,8 @@ describe('buildSessionPayload', () => {
         dataApi: true,
         managementApi: false,
         llm: true
-      }
+      },
+      tenantId: '__default__'
     });
   });
 
@@ -64,7 +65,7 @@ describe('buildSessionPayload', () => {
       llmAccess: false
     };
 
-    expect(buildSessionPayload(adminUser, baseToken)).toEqual({
+    expect(buildSessionPayload(adminUser, baseToken, '__default__')).toEqual({
       user: {
         id: 'user-1',
         name: 'Alice',
@@ -78,7 +79,8 @@ describe('buildSessionPayload', () => {
         dataApi: false,
         managementApi: true,
         llm: false
-      }
+      },
+      tenantId: '__default__'
     });
   });
 
@@ -94,6 +96,6 @@ describe('buildSessionPayload', () => {
       llmModels: ['*']
     };
 
-    expect(buildSessionPayload(adminUser, baseToken).capabilities.llm).toBe(false);
+    expect(buildSessionPayload(adminUser, baseToken, '__default__').capabilities.llm).toBe(false);
   });
 });

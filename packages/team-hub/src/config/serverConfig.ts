@@ -9,12 +9,18 @@ import {
   normalizeLoggingConfig,
   type LoggingConfig
 } from '#/config/loggingConfig.js';
+import {
+  DEFAULT_MULTITENANCY_CONFIG,
+  normalizeMultitenancyConfig,
+  type MultitenancyConfig
+} from '#/config/multitenancyConfig.js';
 import { normalizePluginsConfig, type PluginsConfig } from '#/config/pluginsConfig.js';
 import {
   dbSectionSchema,
   docsSectionSchema,
   llmSectionSchema,
   loggingSectionSchema,
+  multitenancySectionSchema,
   pluginsSectionSchema,
   redisSectionSchema,
   serverConfigDocumentSchema,
@@ -66,6 +72,11 @@ export interface ServerConfig {
    * Normalized logging settings (defaults apply when the section is omitted).
    */
   logging: LoggingConfig;
+
+  /**
+   * Normalized multitenancy settings (defaults apply when the section is omitted).
+   */
+  multitenancy: MultitenancyConfig;
 }
 
 /**
@@ -247,6 +258,15 @@ function parseServerConfig(document: unknown): ServerConfig {
     logging = normalizeLoggingConfig(parsedLoggingSection.data);
   }
 
+  let multitenancy = DEFAULT_MULTITENANCY_CONFIG;
+  if (root.multitenancy !== undefined) {
+    const parsedMultitenancySection = multitenancySectionSchema.safeParse(root.multitenancy);
+    if (!parsedMultitenancySection.success) {
+      throw new ConfigError(formatZodError(parsedMultitenancySection.error));
+    }
+    multitenancy = normalizeMultitenancyConfig(parsedMultitenancySection.data);
+  }
+
   return {
     port: parsedDocument.data.server.port,
     host: parsedDocument.data.server.host,
@@ -255,7 +275,8 @@ function parseServerConfig(document: unknown): ServerConfig {
     llm,
     plugins,
     docs,
-    logging
+    logging,
+    multitenancy
   };
 }
 

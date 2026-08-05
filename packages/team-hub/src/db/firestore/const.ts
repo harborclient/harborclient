@@ -1,4 +1,9 @@
 /**
+ * Firestore collection name for tenant namespace documents.
+ */
+export const TENANTS_COLLECTION = 'tenants';
+
+/**
  * Firestore collection name for user account documents.
  */
 export const USERS_COLLECTION = 'users';

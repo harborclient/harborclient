@@ -29,11 +29,11 @@ import {
 import { setTeamHubConnected, setTeamHubUserName } from '#/main/settings/teamHubConnectionState';
 import { deleteTeamHub, listTeamHubs, saveTeamHub } from '#/main/settings/teamHubSettings';
 import { refreshTeamHubPluginSources } from '#/main/settings/teamHubPluginSources';
+import { createTeamHubClient } from '#/main/settings/teamHubClient';
 import { clearTrustedKeysCache } from '#/main/plugins/pluginSignature';
 import { resyncUserTeamHubsSharingServer } from '#/main/settings/teamHubCollectionResync';
 import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
 import {
-  TeamHubClient,
   type FolderRecord,
   type SavedRequestRecord,
   type SnippetRecord
@@ -94,7 +94,7 @@ async function verifyTeamHubBearerSession(
   baseUrl: string,
   token: string
 ): Promise<TeamHubVerifiedSession> {
-  const client = new TeamHubClient({ baseUrl, token });
+  const client = createTeamHubClient({ baseUrl, token });
   const session = await client.getSession();
   return {
     user: session.user,
@@ -418,7 +418,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     return client.listAdminUsers();
   });
 
@@ -432,7 +432,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const updated = await client.updateAdminUser(userId, input);
 
       if (db instanceof RoutingStorage) {
@@ -450,7 +450,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     await client.deleteAdminUser(userId);
   });
 
@@ -461,7 +461,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     const created = await client.createAdminUser(input);
 
     if (db instanceof RoutingStorage) {
@@ -481,7 +481,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const created = await client.createAdminInvitedUser(input);
 
       if (db instanceof RoutingStorage) {
@@ -502,7 +502,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       return client.createAdminUserInvitation(userId, input ?? {});
     }
   );
@@ -514,7 +514,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     return client.listAdminInvitations();
   });
 
@@ -528,7 +528,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.revokeAdminInvitation(invitationId);
     }
   );
@@ -538,7 +538,7 @@ export function registerSettingsHandlers(db: IStorage): void {
     'teamHubs:previewInvitation',
     ipcArgSchemas.teamHubInvitationPreview,
     async (_event, baseUrl, code) => {
-      const client = new TeamHubClient({ baseUrl });
+      const client = createTeamHubClient({ baseUrl, token: '' });
       return client.previewInvitation({ secret: code });
     }
   );
@@ -548,7 +548,7 @@ export function registerSettingsHandlers(db: IStorage): void {
     'teamHubs:redeemInvitation',
     ipcArgSchemas.teamHubInvitationRedeem,
     async (_event, baseUrl, code, tokenName) => {
-      const client = new TeamHubClient({ baseUrl });
+      const client = createTeamHubClient({ baseUrl, token: '' });
       const redeemed = await client.redeemInvitation({
         secret: code,
         tokenName
@@ -572,7 +572,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     return client.listAdminTokens();
   });
 
@@ -586,7 +586,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       return client.createAdminUserToken(userId, input);
     }
   );
@@ -601,7 +601,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.deleteAdminToken(tokenId);
     }
   );
@@ -613,7 +613,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     return client.listAdminResourceOptions();
   });
 
@@ -627,7 +627,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const [folders, requests] = await Promise.all([
         client.listAdminCollectionFolders(collectionId),
         client.listAdminCollectionRequests(collectionId)
@@ -646,7 +646,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.deleteAdminCollection(collectionId);
     }
   );
@@ -661,7 +661,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.deleteAdminRequest(requestId);
     }
   );
@@ -676,7 +676,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.deleteAdminEnvironment(environmentId);
     }
   );
@@ -691,7 +691,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       return client.updateAdminCollectionDeletionLocked(collectionId, deletionLocked);
     }
   );
@@ -706,7 +706,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       return client.updateAdminEnvironmentDeletionLocked(environmentId, deletionLocked);
     }
   );
@@ -718,7 +718,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     const snippets = await client.listAdminSnippets();
     return snippets.map(mapTeamHubAdminSnippet);
   });
@@ -733,7 +733,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const snippet = await client.createAdminSnippet(input);
       return mapTeamHubAdminSnippet(snippet);
     }
@@ -749,7 +749,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const snippet = await client.updateAdminSnippet(snippetId, input);
       return mapTeamHubAdminSnippet(snippet);
     }
@@ -765,7 +765,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await client.deleteAdminSnippet(snippetId);
     }
   );
@@ -780,7 +780,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       const records = await asTeamHubRunResultClient(client).listAdminRunResults();
       return records.map(mapTeamHubAdminRunResult);
     }
@@ -796,7 +796,7 @@ export function registerSettingsHandlers(db: IStorage): void {
         throw new Error(`Unknown team hub: ${hubId}`);
       }
 
-      const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+      const client = createTeamHubClient(hub);
       await asTeamHubRunResultClient(client).deleteAdminRunResult(runResultId);
     }
   );
@@ -808,7 +808,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       throw new Error(`Unknown team hub: ${hubId}`);
     }
 
-    const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+    const client = createTeamHubClient(hub);
     const result = await client.reloadConfig();
 
     await refreshTeamHubPluginSources().catch((err) => {

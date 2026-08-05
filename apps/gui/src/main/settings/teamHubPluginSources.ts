@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { listConnectedTeamHubs } from './teamHubSettings';
-import { TeamHubClient } from '@harborclient/team-hub-api';
+import { createTeamHubClient } from './teamHubClient';
 import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 import type { TeamHubPluginSource, TeamHubPluginSourcesView } from '@harborclient/core/types';
@@ -124,7 +124,7 @@ export async function refreshTeamHubPluginSources(): Promise<TeamHubPluginSource
   await Promise.all(
     hubs.map(async (hub) => {
       try {
-        const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+        const client = createTeamHubClient(hub);
         const sources = await client.getPluginSources();
         next.hubs[hub.id] = {
           hubId: hub.id,

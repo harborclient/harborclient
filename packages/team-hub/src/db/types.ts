@@ -12,6 +12,7 @@ export type AuditAction = 'create' | 'update' | 'delete' | 'reorder' | 'move';
  * Entity kinds tracked by the audit log.
  */
 export type AuditEntityType =
+  | 'tenant'
   | 'user'
   | 'api_token'
   | 'invitation'
@@ -93,6 +94,41 @@ export interface ListAuditLogOptions {
    * Restrict results to a specific entity id.
    */
   entityId?: string;
+}
+
+/**
+ * Stored metadata for a Team Hub tenant namespace.
+ */
+export interface TenantRecord {
+  /**
+   * Stable tenant identifier used in `X-Harbor-Tenant` and CLI flags.
+   */
+  id: string;
+
+  /**
+   * Human-readable tenant label for operator listings.
+   */
+  name: string;
+
+  /**
+   * When the tenant was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the tenant was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * User who created the tenant, when known.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the tenant, when known.
+   */
+  updatedByUserId: string | null;
 }
 
 /**

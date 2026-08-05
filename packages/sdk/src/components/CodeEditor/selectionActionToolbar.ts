@@ -48,8 +48,10 @@ export interface SelectionActionToolbarController {
    */
   lastNonEmptySelection: SelectionActionToolbarState | null;
   /**
-   * When true, ignore collapsed-selection dismissals that race pointerup
-   * (CodeMirror may collapse into the gutter in the same event turn).
+   * One-shot shield: ignore the next collapsed/unusable selection dismissal that
+   * races pointerup (CodeMirror may collapse into the gutter in the same event
+   * turn). Cleared after it is consumed, when the toolbar hides, or on the next
+   * pointerdown.
    */
   suppressCollapseDismiss: boolean;
 }
@@ -179,15 +181,39 @@ export function createSelectionActionToolbarController(): SelectionActionToolbar
 }
 
 /**
+ * Returns whether a collapsed or unusable selection should skip dismissal.
+ *
+ * During a pointer drag, collapses are ignored so RTL gutter releases can still
+ * finalize. Immediately after pointerup, {@link SelectionActionToolbarController.suppressCollapseDismiss}
+ * is a one-shot shield for the gutter race; it is consumed here so later collapses
+ * (arrow keys, typing, clicks) dismiss the toolbar normally.
+ *
+ * @param controller - Shared toolbar controller.
+ * @returns True when this update should not dismiss the toolbar.
+ */
+function shouldSuppressCollapseDismiss(controller: SelectionActionToolbarController): boolean {
+  if (controller.isPointerSelecting) {
+    return true;
+  }
+
+  if (controller.suppressCollapseDismiss) {
+    controller.suppressCollapseDismiss = false;
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Applies a view update to the selection toolbar controller.
  *
- * Encodes the RTL-gutter fix: collapsed selections during a pointer drag (or
- * immediately after pointerup) do not dismiss a previously captured selection.
+ * Encodes the RTL-gutter fix: collapsed selections during a pointer drag do not
+ * dismiss a previously captured selection. A one-shot post-pointerup shield
+ * ignores a single gutter-induced collapse, then later collapses dismiss normally.
  *
  * @param controller - Shared toolbar controller.
  * @param update - CodeMirror view update.
  * @param options - Enable/open callbacks and notify/dismiss helpers.
- * @returns Whether the toolbar should remain open after this update (for tests).
  */
 export function applySelectionActionToolbarUpdate(
   controller: SelectionActionToolbarController,
@@ -213,9 +239,9 @@ export function applySelectionActionToolbarUpdate(
 
   const { from, to } = update.state.selection.main;
   if (from === to) {
-    // During drag or immediately after pointer finalize, CodeMirror may collapse
+    // During drag or on the one-shot post-pointerup race, CodeMirror may collapse
     // into the gutter; keep the last non-empty selection for finalize.
-    if (controller.isPointerSelecting || controller.suppressCollapseDismiss) {
+    if (shouldSuppressCollapseDismiss(controller)) {
       return;
     }
     options.dismissToolbar();
@@ -224,7 +250,7 @@ export function applySelectionActionToolbarUpdate(
 
   const nextState = buildSelectionActionToolbarState(update.view);
   if (!nextState) {
-    if (controller.isPointerSelecting || controller.suppressCollapseDismiss) {
+    if (shouldSuppressCollapseDismiss(controller)) {
       return;
     }
     options.dismissToolbar();
@@ -252,11 +278,12 @@ export function applySelectionActionToolbarUpdate(
  * Finalizes the toolbar after a primary-button pointer drag ends.
  *
  * Prefers the live selection; falls back to {@link SelectionActionToolbarController.lastNonEmptySelection}
- * so RTL releases into the gutter still reveal Copy to chat.
+ * so RTL releases into the gutter still reveal Copy to chat. When neither yields a
+ * snapshot, dismisses any open or pending toolbar so a plain click collapses it.
  *
  * @param controller - Shared toolbar controller.
  * @param view - CodeMirror editor view at pointerup.
- * @param options - Open check and show helpers.
+ * @param options - Open check, show, and dismiss helpers.
  */
 export function finalizeSelectionActionToolbarOnPointerUp(
   controller: SelectionActionToolbarController,
@@ -265,6 +292,7 @@ export function finalizeSelectionActionToolbarOnPointerUp(
     isOpen: () => boolean;
     scheduleShow: (state: SelectionActionToolbarState) => void;
     showImmediately: (state: SelectionActionToolbarState) => void;
+    dismissToolbar: () => void;
   }
 ): void {
   if (!controller.isPointerSelecting) {
@@ -284,7 +312,10 @@ export function finalizeSelectionActionToolbarOnPointerUp(
 
   if (controller.pendingState != null && !options.isOpen()) {
     options.scheduleShow(controller.pendingState);
+    return;
   }
+
+  options.dismissToolbar();
 }
 
 /**
@@ -324,6 +355,7 @@ export function createSelectionActionToolbarExtensions(
     controller.isToolbarOpen = state != null;
     if (state == null) {
       controller.pendingState = null;
+      controller.suppressCollapseDismiss = false;
     }
     onToolbarChange(state);
   };
@@ -332,10 +364,13 @@ export function createSelectionActionToolbarExtensions(
    * Hides the toolbar immediately and cancels any pending reveal.
    *
    * Does not clear {@link SelectionActionToolbarController.lastNonEmptySelection}
-   * so a later pointerup can still recover an RTL gutter collapse.
+   * so a later pointerup can still recover an RTL gutter collapse. Clears
+   * {@link SelectionActionToolbarController.suppressCollapseDismiss} so a closed
+   * toolbar never starts out suppressed.
    */
   const dismissToolbar = (): void => {
     clearShowTimer();
+    controller.suppressCollapseDismiss = false;
     if (controller.isToolbarOpen || controller.pendingState != null) {
       notifyToolbarChange(null);
     }
@@ -385,7 +420,8 @@ export function createSelectionActionToolbarExtensions(
     finalizeSelectionActionToolbarOnPointerUp(controller, activeView, {
       isOpen,
       scheduleShow,
-      showImmediately
+      showImmediately,
+      dismissToolbar
     });
   };
 

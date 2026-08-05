@@ -552,7 +552,8 @@ export const teamHub = z.object({
   id: z.string(),
   name: z.string().trim().min(1),
   baseUrl: z.string().trim().min(1),
-  token: z.string().trim().min(1)
+  token: z.string().trim().min(1),
+  tenantId: z.string().optional()
 }) satisfies z.ZodType<TeamHub>;
 
 /**

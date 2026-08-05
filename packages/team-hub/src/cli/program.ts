@@ -7,6 +7,12 @@ import {
 import { registerLlmCommand, type LlmCommandOptions } from '#/cli/llmCommand.js';
 import { registerMigrateCommand, type MigrateCommandOptions } from '#/cli/migrateCommand.js';
 import {
+  registerTenantCommand,
+  type TenantCommandOptions,
+  type TenantCreateCommandOptions,
+  type TenantDeleteCommandOptions
+} from '#/cli/tenantCommand.js';
+import {
   registerUserCommand,
   type UserCommandOptions,
   type UserCreateCommandOptions,
@@ -40,6 +46,15 @@ export interface ProgramDependencies {
    */
   llmCommand?: {
     list?: (options: LlmCommandOptions) => Promise<void>;
+  };
+
+  /**
+   * Optional overrides for tenant subcommand handlers (used in tests).
+   */
+  tenantCommand?: {
+    list?: (options: TenantCommandOptions) => Promise<void>;
+    create?: (options: TenantCreateCommandOptions) => Promise<void>;
+    delete?: (options: TenantDeleteCommandOptions) => Promise<void>;
   };
 
   /**
@@ -84,6 +99,7 @@ export function createProgram(version: string, deps: ProgramDependencies = {}): 
   registerMigrateCommand(program, deps.migrateCommand);
   registerCollectionCommand(program, deps.collectionCommand);
   registerLlmCommand(program, deps.llmCommand);
+  registerTenantCommand(program, deps.tenantCommand);
   registerUserCommand(program, deps.userCommand);
 
   return program;

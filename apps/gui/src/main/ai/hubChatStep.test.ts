@@ -18,21 +18,29 @@ vi.mock('#/main/settings/teamHubSettings', () => ({
   ])
 }));
 
-vi.mock('@harborclient/team-hub-api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@harborclient/team-hub-api')>()),
-  TeamHubClient: vi.fn(function TeamHubClientMock() {
-    return {
-      completeChatStep
-    };
-  })
+vi.mock('#/main/settings/teamHubClient', () => ({
+  createTeamHubClient: vi.fn(() => ({
+    completeChatStep
+  }))
 }));
 
 describe('runHubChatCompletionStep', () => {
   /**
    * Resets hub client mocks between examples so call counts stay isolated.
    */
-  beforeEach(() => {
+  beforeEach(async () => {
     completeChatStep.mockClear();
+    const { createTeamHubClient } = await import('#/main/settings/teamHubClient');
+    const { listConnectedTeamHubs } = await import('#/main/settings/teamHubSettings');
+    vi.mocked(createTeamHubClient).mockClear();
+    vi.mocked(listConnectedTeamHubs).mockReturnValue([
+      {
+        id: 'hub-1',
+        name: 'Team Hub',
+        baseUrl: 'http://127.0.0.1:8788',
+        token: 'hbk_test'
+      }
+    ]);
   });
 
   it('forwards tools and the system prompt to the Team Hub client', async () => {
@@ -77,6 +85,75 @@ describe('runHubChatCompletionStep', () => {
       })
     );
     expect(result.content).toBe('Stopped path');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('includes tenant header when hub has tenantId', async () => {
+    const { listConnectedTeamHubs } = await import('#/main/settings/teamHubSettings');
+    vi.mocked(listConnectedTeamHubs).mockReturnValue([
+      {
+        id: 'hub-1',
+        name: 'Team Hub',
+        baseUrl: 'http://127.0.0.1:8788',
+        token: 'hbk_test',
+        tenantId: 'tenant-123'
+      }
+    ]);
+
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: 'Tenant response' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await runHubChatCompletionStep(
+      {
+        hubId: 'hub-1',
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: 'Hi' }]
+      },
+      { signal: controller.signal }
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:8788/llm/chat/step',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Harbor-Tenant': 'tenant-123'
+        })
+      })
+    );
+
+    vi.unstubAllGlobals();
+  });
+
+  it('omits tenant header when hub has no tenantId', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: 'Default tenant response' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await runHubChatCompletionStep(
+      {
+        hubId: 'hub-1',
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: 'Hi' }]
+      },
+      { signal: controller.signal }
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:8788/llm/chat/step',
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          'X-Harbor-Tenant': expect.anything()
+        })
+      })
+    );
 
     vi.unstubAllGlobals();
   });

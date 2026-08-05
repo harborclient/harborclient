@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { DocsConfig } from '#/config/docsConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
+import type { MultitenancyConfig } from '#/config/multitenancyConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
 import { ConfigError, loadServerConfig, type ServerConfig } from '#/config/serverConfig.js';
 import { createDatabase, type IDatabase } from '#/db/index.js';
@@ -98,6 +99,13 @@ export interface RuntimeContext {
   getDocs(): DocsConfig | null;
 
   /**
+   * Returns the current normalized multitenancy configuration.
+   *
+   * Changes to multitenancy.enabled require a process restart.
+   */
+  getMultitenancy(): MultitenancyConfig;
+
+  /**
    * Winston logger configured at process startup from server.yaml.
    */
   readonly logger: Logger;
@@ -124,6 +132,7 @@ interface RuntimeContextState {
   llm: LlmConfig | null;
   plugins: PluginsConfig | null;
   docs: DocsConfig | null;
+  multitenancy: MultitenancyConfig;
 }
 
 const runtimeContextStates = new WeakMap<RuntimeContext, RuntimeContextState>();
@@ -198,7 +207,8 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     throttleHolder: { underlying: createThrottleStore(config.redis) },
     llm: config.llm,
     plugins: config.plugins,
-    docs: config.docs
+    docs: config.docs,
+    multitenancy: config.multitenancy
   };
 
   const ctx: RuntimeContext = {
@@ -214,6 +224,7 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     getLlm: () => state.llm,
     getPlugins: () => state.plugins,
     getDocs: () => state.docs,
+    getMultitenancy: () => state.multitenancy,
     logger: createLogger(config.logging)
   };
 
@@ -229,6 +240,7 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
 export async function connectRuntimeContext(ctx: RuntimeContext): Promise<void> {
   const state = getState(ctx);
   await state.dbHolder.underlying.connect();
+  await state.dbHolder.underlying.ensureDefaultTenant();
   await state.dbHolder.underlying.ensureSystemUser();
   await state.throttleHolder.underlying.connect();
 }

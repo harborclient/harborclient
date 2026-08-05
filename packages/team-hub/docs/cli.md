@@ -39,6 +39,9 @@ team-hub -v start
 | `migrate` | Apply database schema migrations |
 | `collection list` | List stored collections |
 | `llm list` | List all per-request LLM usage log entries |
+| `tenant list` | List all tenant records |
+| `tenant create <id>` | Create a non-default tenant namespace |
+| `tenant delete <id>` | Delete a non-default tenant and all of its data |
 | `user create` | Create a user account |
 | `user list` | List user accounts |
 | `user show <id>` | Show one user account |
@@ -94,11 +97,12 @@ List all collections stored in the database.
 ```bash
 team-hub collection list
 team-hub collection list -c server.yaml
+team-hub collection list --tenant my_tenant
 ```
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
-| _(none)_ | — | Uses global options only |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Example output:
 
@@ -127,11 +131,12 @@ List all per-request LLM usage log entries stored in `llm_usage_log`, newest fir
 ```bash
 team-hub llm list
 team-hub llm list -c server.yaml
+team-hub llm list --tenant my_tenant
 ```
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
-| _(none)_ | — | Uses global options only |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Example output:
 
@@ -159,9 +164,84 @@ No LLM usage records found.
 
 See [LLM Proxy — Usage logging](./llm.md#usage-logging) for how records are created.
 
+## tenant
+
+Manage tenant namespaces for data isolation when multitenancy is enabled.
+
+### tenant list
+
+List all tenant records.
+
+```bash
+team-hub tenant list
+team-hub tenant list -c server.yaml
+```
+
+| Option | Required | Description |
+| ------ | -------- | ----------- |
+| _(none)_ | — | Uses global options only |
+
+Prints each tenant with id, name, created timestamp, and updated timestamp. Always shows at least the automatic `__default__` tenant.
+
+Example output:
+
+```text
+- id: __default__
+  name: Default Tenant
+  created: 2026-01-01T00:00:00.000Z
+  updated: 2026-01-01T00:00:00.000Z
+- id: org-acme
+  name: Acme Inc
+  created: 2026-01-15T10:00:00.000Z
+  updated: 2026-01-15T10:00:00.000Z
+```
+
+### tenant create
+
+Create a new non-default tenant namespace. Requires `multitenancy.enabled: true` in server.yaml.
+
+```bash
+team-hub tenant create org-acme --name "Acme Inc"
+```
+
+| Argument / option | Required | Description |
+| ----------------- | -------- | ----------- |
+| `<id>` | Yes | Unique tenant identifier (letters, digits, underscores, hyphens) |
+| `--name <name>` | Yes | Human-readable tenant label |
+
+The reserved id `__default__` cannot be created or deleted. Tenant ids are case-sensitive, up to 64 characters, and may only contain letters, digits, underscores, and hyphens.
+
+On success, prints:
+
+```text
+Created tenant "Acme Inc" (org-acme).
+- id: org-acme
+  name: Acme Inc
+  created: 2026-01-15T10:00:00.000Z
+  updated: 2026-01-15T10:00:00.000Z
+```
+
+### tenant delete
+
+Delete a non-default tenant and all of its tenant-scoped data. Requires `multitenancy.enabled: true` in server.yaml.
+
+```bash
+team-hub tenant delete org-acme
+```
+
+| Argument / option | Required | Description |
+| ----------------- | -------- | ----------- |
+| `<id>` | Yes | Tenant identifier to delete |
+
+The reserved id `__default__` cannot be deleted. Deleting a tenant removes all users, tokens, collections, environments, and other tenant-scoped data permanently.
+
+On success, prints `Deleted tenant "<name>" (<id>).` When the id is not found, prints `No tenant found with id "<id>".`
+
 ## user
 
 Manage user accounts. User accounts have a role of `user` or `admin` and, for `user` accounts, collection and environment access lists. See [Authentication — Roles and access](./auth.md#roles-and-access) for the full permission model.
+
+User commands accept a `--tenant <id>` flag to operate on a specific tenant namespace (defaults to `__default__`). When using a non-default tenant, multitenancy must be enabled in server.yaml.
 
 ### user create
 
@@ -180,6 +260,7 @@ team-hub user create --name ops --role admin
 | `--role <role>` | Yes | `admin` or `user` |
 | `--collection-access <id>` | No | Collection id or `*`; repeatable |
 | `--environment-access <id>` | No | Environment id or `*`; repeatable |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 **Access list rules**
 
@@ -212,11 +293,12 @@ List all user accounts.
 
 ```bash
 team-hub user list
+team-hub user list --tenant my_tenant
 ```
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
-| _(none)_ | — | Uses global options only |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Prints each user with id, name, role, access lists, LLM settings, current-month token usage (`llm tokens used (YYYY-MM)`), and timestamps. When no users exist, prints `No users found.`
 
@@ -226,11 +308,13 @@ Show a single user account by id.
 
 ```bash
 team-hub user show <user-id>
+team-hub user show <user-id> --tenant my_tenant
 ```
 
 | Argument / option | Required | Description |
 | ----------------- | -------- | ----------- |
 | `<id>` | Yes | User identifier |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Prints the same fields as `user list` for one account, including current-month LLM token usage (`llm tokens used (YYYY-MM)`). When the id is not found, prints `No user found with id <user-id>.`
 
@@ -241,6 +325,7 @@ Update an existing user account.
 ```bash
 team-hub user update <user-id> --name "Alice Smith"
 team-hub user update <user-id> --role user --collection-access '*'
+team-hub user update <user-id> --name "Bob" --tenant my_tenant
 ```
 
 | Argument / option | Required | Description |
@@ -250,6 +335,7 @@ team-hub user update <user-id> --role user --collection-access '*'
 | `--role <role>` | No | New role (`admin` or `user`) |
 | `--collection-access <id>` | No | Replacement collection access list; repeatable |
 | `--environment-access <id>` | No | Replacement environment access list; repeatable |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Omitted access flags keep the existing lists (unless changing role to `admin`, which clears them). Passing access flags replaces the entire list for that field. Same wildcard and admin-role rules as `user create` apply.
 
@@ -261,11 +347,13 @@ Delete a user account and revoke all of their API tokens.
 
 ```bash
 team-hub user delete <user-id>
+team-hub user delete <user-id> --tenant my_tenant
 ```
 
 | Argument / option | Required | Description |
 | ----------------- | -------- | ----------- |
 | `<id>` | Yes | User identifier |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 On success, prints `Deleted user "<name>" (<user-id>).` When the id is not found, prints `No user found with id <user-id>.`
 
@@ -273,18 +361,22 @@ On success, prints `Deleted user "<name>" (<user-id>).` When the id is not found
 
 Manage API bearer tokens. Tokens belong to a user and inherit that user's access scope. See [Authentication — Token inheritance](./auth.md#access).
 
+Token commands accept a `--tenant <id>` flag to operate on a specific tenant namespace (defaults to `__default__`). When using a non-default tenant, multitenancy must be enabled in server.yaml.
+
 ### user token create
 
 Create a new API bearer token for an existing user.
 
 ```bash
 team-hub user token create --user <user-id> --name "Alice laptop"
+team-hub user token create --user <user-id> --name "Bob CI" --tenant my_tenant
 ```
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
 | `--user <userId>` | Yes | Owning user identifier |
 | `--name <name>` | Yes | Human-readable token label |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Prints the one-time secret prefixed with `hbk_`. Store it immediately — the server only persists a sha256 hash.
 
@@ -305,11 +397,13 @@ List stored API bearer tokens.
 ```bash
 team-hub user token list
 team-hub user token list --user <user-id>
+team-hub user token list --tenant my_tenant
 ```
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
 | `--user <userId>` | No | Limit output to tokens owned by one user |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 Each token entry includes id, owning user id, name, prefix, created time, last used time, and revoked time (`-` when unset). When no tokens match, prints `No API tokens found.`
 
@@ -319,11 +413,13 @@ Revoke an API bearer token by id.
 
 ```bash
 team-hub user token revoke <token-id>
+team-hub user token revoke <token-id> --tenant my_tenant
 ```
 
 | Argument / option | Required | Description |
 | ----------------- | -------- | ----------- |
 | `<id>` | Yes | Token identifier |
+| `--tenant <id>` | No | Tenant namespace (default: `__default__`) |
 
 On success, prints `Revoked API token <token-id>.` When the token is not found or already revoked, prints `No active API token found with id <token-id>.`
 

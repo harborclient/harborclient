@@ -18,3 +18,6 @@ logging:
   level: ${TEAM_HUB_LOGGING_LEVEL}
   file: ${TEAM_HUB_LOGGING_FILE}
   console: ${TEAM_HUB_LOGGING_CONSOLE}
+
+multitenancy:
+  enabled: ${TEAM_HUB_MULTITENANCY_ENABLED}

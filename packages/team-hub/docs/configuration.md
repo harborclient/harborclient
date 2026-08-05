@@ -12,15 +12,16 @@ The canonical example at the repository root is [`server.yaml.example`](https://
 
 ## Sections overview
 
-| Section   | Required | Live reload | Notes                                                 |
-| --------- | -------- | ----------- | ----------------------------------------------------- |
-| `server`  | Yes      | No          | Changes to `host` or `port` require a process restart |
-| `db`      | Yes      | Yes         | Reconnects when the raw `db` mapping changes          |
-| `redis`   | Yes      | Yes         | Reconnects when the raw `redis` mapping changes       |
-| `logging` | No       | No          | Applied at process startup; restart after changes     |
-| `llm`     | No       | Yes         | Omit to disable hub-proxied LLM routes                |
-| `plugins` | No       | Yes         | Omit to return empty plugin source lists              |
-| `docs`    | No       | Yes         | Optional path to the documentation search index       |
+| Section         | Required | Live reload | Notes                                                 |
+| --------------- | -------- | ----------- | ----------------------------------------------------- |
+| `server`        | Yes      | No          | Changes to `host` or `port` require a process restart |
+| `db`            | Yes      | Yes         | Reconnects when the raw `db` mapping changes          |
+| `redis`         | Yes      | Yes         | Reconnects when the raw `redis` mapping changes       |
+| `logging`       | No       | No          | Applied at process startup; restart after changes     |
+| `llm`           | No       | Yes         | Omit to disable hub-proxied LLM routes                |
+| `plugins`       | No       | Yes         | Omit to return empty plugin source lists              |
+| `docs`          | No       | Yes         | Optional path to the documentation search index       |
+| `multitenancy`  | No       | No          | Applied at process startup; restart after changes     |
 
 Reload triggers while `team-hub start` is running:
 
@@ -245,6 +246,25 @@ docs:
 
 Hub-native docs search also requires `llm.providers.openai.apiKey`. Without OpenAI or a readable index file, `search_docs` is removed from hub chat tool lists.
 
+## multitenancy
+
+Optional tenant isolation. Omit this section (or leave `enabled: false`) for a normal single-tenant install. Every request then uses the reserved default tenant `__default__`, and clients do not need a tenant header.
+
+| Key       | Type    | Required | Default | Description                                                                 |
+| --------- | ------- | -------- | ------- | --------------------------------------------------------------------------- |
+| `enabled` | boolean | No       | `false` | When true, non-default tenants may be selected via `X-Harbor-Tenant`        |
+
+When `enabled` is `false`, only the default tenant is accepted. A non-default `X-Harbor-Tenant` header returns **400**. When `enabled` is `true`, clients may send `X-Harbor-Tenant: <tenant-id>` to select another tenant created with the CLI (`team-hub tenant create`). Missing headers still resolve to `__default__`.
+
+`__default__` is reserved: it is created automatically on migrate and cannot be created, renamed, or deleted by operators.
+
+```yaml
+multitenancy:
+  enabled: false
+```
+
+Restart `team-hub start` after changing `multitenancy.enabled`. Tenant records are managed with the CLI — see [CLI](./cli.md).
+
 ## Docker environment variables
 
 The all-in-one Docker image renders `/etc/team-hub/server.yaml` from environment variables on first boot (when the file is missing or empty). Restarts preserve an existing file; mount a host `server.yaml` to survive container recreation. The CLI does not read `TEAM_HUB_CONFIG`; pass `-c /etc/team-hub/server.yaml` explicitly.
@@ -264,6 +284,7 @@ The all-in-one Docker image renders `/etc/team-hub/server.yaml` from environment
 | `TEAM_HUB_LOGGING_LEVEL`   | `info`                           | `logging.level`   |
 | `TEAM_HUB_LOGGING_FILE`    | `/var/log/team-hub/team-hub.log` | `logging.file`    |
 | `TEAM_HUB_LOGGING_CONSOLE` | `true`                           | `logging.console` |
+| `TEAM_HUB_MULTITENANCY_ENABLED` | `false`                     | `multitenancy.enabled` |
 
 `llm` and `plugins` are not generated from environment variables in the default template. Mount a custom `server.yaml` or extend deployment tooling for those sections. Logging applies at process startup — restart the container after changing logging env vars. See [Deploy](./deploy.md).
 

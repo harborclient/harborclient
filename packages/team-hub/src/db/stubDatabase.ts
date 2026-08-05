@@ -9,10 +9,17 @@ import type { IDatabase } from '#/db/IDatabase.js';
  * @returns Database stub whose methods can be configured per test.
  */
 export function createStubDatabase(): Mocked<IDatabase> {
-  return {
+  const db = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     migrate: vi.fn(),
+    getTenantId: vi.fn().mockReturnValue('__default__'),
+    forTenant: vi.fn(),
+    ensureDefaultTenant: vi.fn(),
+    listTenants: vi.fn().mockResolvedValue([]),
+    createTenant: vi.fn(),
+    findTenantById: vi.fn(),
+    deleteTenant: vi.fn(),
     ensureSystemUser: vi.fn(),
     getSystemUserId: vi.fn().mockReturnValue('system-user-id'),
     listAuditLog: vi.fn().mockResolvedValue([]),
@@ -96,5 +103,8 @@ export function createStubDatabase(): Mocked<IDatabase> {
     createRunResult: vi.fn(),
     findRunResultById: vi.fn(),
     deleteRunResult: vi.fn()
-  };
+  } as Mocked<IDatabase>;
+
+  db.forTenant.mockImplementation(() => db);
+  return db;
 }

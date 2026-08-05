@@ -52,6 +52,47 @@ describe('teamHubSettings', () => {
     expect(settingsStore.teamHubSecrets).toBeTruthy();
   });
 
+  it('persists tenantId when provided', () => {
+    const saved = saveTeamHub({
+      id: '',
+      name: 'Team Hub',
+      baseUrl: 'http://127.0.0.1:8788',
+      token: 'hbk_test',
+      tenantId: 'tenant-123'
+    });
+
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.tenantId).toBe('tenant-123');
+    expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
+      {
+        id: saved[0]?.id,
+        name: 'Team Hub',
+        baseUrl: 'http://127.0.0.1:8788',
+        tenantId: 'tenant-123'
+      }
+    ]);
+  });
+
+  it('normalizes blank tenantId to undefined', () => {
+    const saved = saveTeamHub({
+      id: '',
+      name: 'Team Hub',
+      baseUrl: 'http://127.0.0.1:8788',
+      token: 'hbk_test',
+      tenantId: '  '
+    });
+
+    expect(saved).toHaveLength(1);
+    expect(saved[0]?.tenantId).toBeUndefined();
+    expect(JSON.parse(settingsStore.teamHubs ?? '[]')).toEqual([
+      {
+        id: saved[0]?.id,
+        name: 'Team Hub',
+        baseUrl: 'http://127.0.0.1:8788'
+      }
+    ]);
+  });
+
   it('updates an existing team hub by id', () => {
     const created = saveTeamHub({
       id: '',

@@ -1,4 +1,5 @@
-import { TeamHubClient, TeamHubClientError } from '@harborclient/team-hub-api';
+import { TeamHubClientError, type TeamHubClient } from '@harborclient/team-hub-api';
+import { createTeamHubClient } from './teamHubClient';
 import { setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
 import type {
   TeamHub,
@@ -106,7 +107,7 @@ async function probeLiveEntityServices(
  * @returns Scan result with service flags, management capability, or a non-throwing error message.
  */
 async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResult> {
-  const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+  const client = createTeamHubClient(hub);
 
   try {
     await client.checkHealth();

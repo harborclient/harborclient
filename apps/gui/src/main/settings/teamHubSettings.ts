@@ -31,6 +31,14 @@ interface StoredTeamHub {
   baseUrl: string;
 
   /**
+   * Tenant identifier for multitenancy mode.
+   *
+   * When omitted, requests route to the default tenant. Whitespace is trimmed;
+   * blank strings are normalized to undefined.
+   */
+  tenantId?: string;
+
+  /**
    * Legacy inline bearer token migrated to the encrypted sidecar.
    */
   token?: string;
@@ -44,7 +52,14 @@ interface StoredTeamHub {
 function persistTeamHubMetadata(hubs: StoredTeamHub[]): void {
   getLocalDatabase().setSetting(
     TEAM_HUBS_KEY,
-    JSON.stringify(hubs.map(({ id, name, baseUrl }) => ({ id, name, baseUrl })))
+    JSON.stringify(
+      hubs.map(({ id, name, baseUrl, tenantId }) => ({
+        id,
+        name,
+        baseUrl,
+        ...(tenantId ? { tenantId } : {})
+      }))
+    )
   );
 }
 
@@ -58,12 +73,15 @@ function normalizeTeamHub(input: StoredTeamHub | TeamHub): TeamHub {
   const id = input.id.trim();
   const inlineToken = 'token' in input ? String(input.token ?? '').trim() : '';
   const token = inlineToken || getTeamHubToken(id) || '';
+  const trimmedTenant = input.tenantId?.trim();
+  const tenantId = trimmedTenant && trimmedTenant.length > 0 ? trimmedTenant : undefined;
 
   return {
     id,
     name: input.name.trim(),
     baseUrl: input.baseUrl.trim().replace(/\/+$/, ''),
-    token
+    token,
+    ...(tenantId ? { tenantId } : {})
   };
 }
 
@@ -129,7 +147,8 @@ export function saveTeamHub(input: TeamHub): TeamHub[] {
   const metadata: StoredTeamHub = {
     id: normalized.id,
     name: normalized.name,
-    baseUrl: normalized.baseUrl
+    baseUrl: normalized.baseUrl,
+    ...(normalized.tenantId ? { tenantId: normalized.tenantId } : {})
   };
   const index = stored.findIndex((hub) => hub.id === normalized.id);
 

@@ -33,7 +33,8 @@ describe('GET /health', () => {
         llm: null,
         plugins: null,
         docs: null,
-        logging: DEFAULT_LOGGING_CONFIG
+        logging: DEFAULT_LOGGING_CONFIG,
+        multitenancy: { enabled: false }
       },
       { version: '0.1.0', db: createHealthStubDatabase(), throttleStore: createStubThrottleStore() }
     );

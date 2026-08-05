@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refactor Team Hub integration to support tenantId. (`1baf9475`)
+
 ## 0.7.6 - 2026-08-05
 
 - chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)

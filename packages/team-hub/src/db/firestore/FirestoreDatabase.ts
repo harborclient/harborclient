@@ -18,11 +18,13 @@ import {
   REQUESTS_COLLECTION,
   RUN_RESULTS_COLLECTION,
   SNIPPETS_COLLECTION,
+  TENANTS_COLLECTION,
   USERS_COLLECTION,
   WRITE_BATCH_LIMIT
 } from '#/db/firestore/const.js';
 import { createSystemUserInput, SYSTEM_USER_NAME } from '#/db/systemUsers.js';
 import { firestoreConfigSchema } from '#/db/firestore/schemas.js';
+import { DEFAULT_TENANT_ID } from '#/config/multitenancyConfig.js';
 import type {
   FirestoreApiTokenDocument,
   FirestoreAuditLogDocument,
@@ -38,6 +40,7 @@ import type {
   FirestoreDocumentDocument,
   FirestoreRunResultDocument,
   FirestoreSnippetDocument,
+  FirestoreTenantDocument,
   FirestoreUserDocument
 } from '#/db/firestore/types.js';
 import {
@@ -93,6 +96,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
   UpdateLiveServerRecordInput,
@@ -117,11 +121,30 @@ export class FirestoreDatabase implements IDatabase {
   private systemUserId: string | null = null;
 
   /**
+   * Tenant namespace for this database instance.
+   */
+  private readonly tenantId: string;
+
+  /**
+   * When true, this instance owns the Firestore client and must disconnect it.
+   */
+  private readonly ownsClient: boolean;
+
+  /**
    * Creates a Firestore database instance from validated config.
    *
    * @param config - Parsed Firestore connection settings.
+   * @param tenantId - Tenant namespace identifier; defaults to {@link DEFAULT_TENANT_ID}.
+   * @param ownsClient - When true, disconnect terminates the client; defaults to true.
    */
-  constructor(private readonly config: FirestoreDatabaseConfig) {}
+  constructor(
+    private readonly config: FirestoreDatabaseConfig,
+    tenantId: string = DEFAULT_TENANT_ID,
+    ownsClient = true
+  ) {
+    this.tenantId = tenantId;
+    this.ownsClient = ownsClient;
+  }
 
   /**
    * Validates raw config and constructs a {@link FirestoreDatabase}.
@@ -162,9 +185,11 @@ export class FirestoreDatabase implements IDatabase {
 
   /**
    * Terminates the Firestore client and releases resources.
+   *
+   * Only disconnects when this instance owns the client; shared clients remain active.
    */
   async disconnect(): Promise<void> {
-    if (!this.client) {
+    if (!this.client || !this.ownsClient) {
       return;
     }
 
@@ -173,9 +198,11 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Firestore uses schemaless documents; provisions the system user and migrates orphan tokens.
+   * Firestore uses schemaless documents; provisions the default tenant, system user,
+   * and migrates orphan tokens.
    */
   async migrate(): Promise<void> {
+    await this.ensureDefaultTenant();
     await this.ensureSystemUser();
     await this.migrateOrphanTokensToBootstrapUser();
     await this.migrateSnippetAccessBackfill();
@@ -189,13 +216,198 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
+   * Returns the tenant namespace identifier for this database instance.
+   */
+  getTenantId(): string {
+    return this.tenantId;
+  }
+
+  /**
+   * Creates a new database instance scoped to a different tenant, sharing the
+   * same Firestore client.
+   *
+   * @param tenantId - Target tenant namespace identifier.
+   * @returns New database instance scoped to the specified tenant.
+   */
+  forTenant(tenantId: string): FirestoreDatabase {
+    const scoped = new FirestoreDatabase(this.config, tenantId, false);
+    scoped.client = this.client;
+    scoped.systemUserId = this.systemUserId;
+    return scoped;
+  }
+
+  /**
+   * Ensures the default tenant exists in the global tenants collection.
+   *
+   * Inserts directly without tenant filtering since this is the bootstrap operation.
+   */
+  async ensureDefaultTenant(): Promise<void> {
+    const client = this.requireClient();
+    const docRef = client.collection(TENANTS_COLLECTION).doc(DEFAULT_TENANT_ID);
+    const snapshot = await docRef.get();
+    if (snapshot.exists) {
+      return;
+    }
+
+    const now = new Date();
+    const data: FirestoreTenantDocument = {
+      name: 'Default',
+      createdAt: now,
+      updatedAt: now,
+      createdByUserId: null,
+      updatedByUserId: null
+    };
+    await docRef.set(data);
+  }
+
+  /**
+   * Lists all tenants ordered by creation time.
+   *
+   * Tenant records are global and not filtered by the instance's tenant scope.
+   */
+  async listTenants(): Promise<TenantRecord[]> {
+    const snapshot = await this.requireClient()
+      .collection(TENANTS_COLLECTION)
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() as FirestoreTenantDocument;
+      return {
+        id: doc.id,
+        name: data.name,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        createdByUserId: data.createdByUserId,
+        updatedByUserId: data.updatedByUserId
+      };
+    });
+  }
+
+  /**
+   * Creates a new tenant namespace in the global tenants collection.
+   *
+   * @param id - Unique tenant identifier for the namespace.
+   * @param name - Human-readable tenant label.
+   * @param actingUserId - User performing the create action.
+   * @returns Created tenant record.
+   * @throws {Error} When the tenant id is reserved or already exists.
+   */
+  async createTenant(id: string, name: string, actingUserId: string): Promise<TenantRecord> {
+    if (id === DEFAULT_TENANT_ID) {
+      throw new Error('Cannot create the reserved default tenant.');
+    }
+
+    const client = this.requireClient();
+    const docRef = client.collection(TENANTS_COLLECTION).doc(id);
+    const snapshot = await docRef.get();
+    if (snapshot.exists) {
+      throw new Error('Tenant already exists.');
+    }
+
+    const now = new Date();
+    const data: FirestoreTenantDocument = {
+      name,
+      createdAt: now,
+      updatedAt: now,
+      createdByUserId: actingUserId,
+      updatedByUserId: actingUserId
+    };
+
+    await docRef.set(data);
+    await this.recordAuditEntry(actingUserId, 'create', 'tenant', id);
+
+    return {
+      id,
+      name: data.name,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      createdByUserId: data.createdByUserId,
+      updatedByUserId: data.updatedByUserId
+    };
+  }
+
+  /**
+   * Finds a tenant by stable identifier in the global tenants collection.
+   *
+   * @param id - Tenant identifier to look up.
+   * @returns Tenant record, or null when not found.
+   */
+  async findTenantById(id: string): Promise<TenantRecord | null> {
+    const snapshot = await this.requireClient().collection(TENANTS_COLLECTION).doc(id).get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreTenantDocument;
+    return {
+      id: snapshot.id,
+      name: data.name,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      createdByUserId: data.createdByUserId,
+      updatedByUserId: data.updatedByUserId
+    };
+  }
+
+  /**
+   * Deletes a tenant namespace and all of its data across all collections.
+   *
+   * @param id - Tenant identifier to delete.
+   * @param actingUserId - User performing the delete action.
+   * @throws {Error} When attempting to delete the default tenant.
+   */
+  async deleteTenant(id: string, actingUserId: string): Promise<void> {
+    if (id === DEFAULT_TENANT_ID) {
+      throw new Error('Cannot delete the default tenant.');
+    }
+
+    void actingUserId;
+
+    const client = this.requireClient();
+    const collections = [
+      USERS_COLLECTION,
+      API_TOKENS_COLLECTION,
+      INVITATIONS_COLLECTION,
+      COLLECTIONS_COLLECTION,
+      ENVIRONMENTS_COLLECTION,
+      SNIPPETS_COLLECTION,
+      LIVE_SERVERS_COLLECTION,
+      LIVE_PAGES_COLLECTION,
+      FOLDERS_COLLECTION,
+      REQUESTS_COLLECTION,
+      DOCUMENTS_COLLECTION,
+      AUDIT_LOG_COLLECTION,
+      LLM_USAGE_COLLECTION,
+      LLM_USAGE_LOG_COLLECTION,
+      RUN_RESULTS_COLLECTION
+    ];
+
+    const refs: DocumentReference[] = [];
+    for (const collection of collections) {
+      const snapshot = await client.collection(collection).where('tenantId', '==', id).get();
+      for (const doc of snapshot.docs) {
+        refs.push(doc.ref);
+      }
+    }
+
+    refs.push(client.collection(TENANTS_COLLECTION).doc(id));
+    await this.commitBatchedDeletes(refs);
+    await this.recordAuditEntry(actingUserId, 'delete', 'tenant', id);
+  }
+
+  /**
    * Lists audit log entries ordered newest-first with optional filters.
+   *
+   * Filters by the instance's tenant namespace.
    *
    * @param options - Optional limit and filter criteria.
    */
   async listAuditLog(options: ListAuditLogOptions = {}): Promise<AuditLogRecord[]> {
     const limit = options.limit ?? 100;
-    let query: Query = this.requireClient().collection(AUDIT_LOG_COLLECTION);
+    let query: Query = this.requireClient()
+      .collection(AUDIT_LOG_COLLECTION)
+      .where('tenantId', '==', this.tenantId);
 
     if (options.userId !== undefined) {
       query = query.where('userId', '==', options.userId);
@@ -227,7 +439,8 @@ export class FirestoreDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const attributionUserId = trimmedName === SYSTEM_USER_NAME ? id : actingUserId;
-    const data: FirestoreUserDocument = {
+    const data: FirestoreUserDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimmedName,
       role: input.role,
       collectionAccess: input.collectionAccess,
@@ -266,7 +479,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreUser(id, snapshot.data() as FirestoreUserDocument);
+    const data = snapshot.data() as FirestoreUserDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreUser(id, data as FirestoreUserDocument);
   }
 
   /**
@@ -277,6 +495,7 @@ export class FirestoreDatabase implements IDatabase {
   async findUserByName(name: string): Promise<UserRecord | null> {
     const snapshot = await this.requireClient()
       .collection(USERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('name', '==', name)
       .limit(1)
       .get();
@@ -293,7 +512,11 @@ export class FirestoreDatabase implements IDatabase {
    * Lists all user accounts ordered by name.
    */
   async listUsers(): Promise<UserRecord[]> {
-    const snapshot = await this.requireClient().collection(USERS_COLLECTION).orderBy('name').get();
+    const snapshot = await this.requireClient()
+      .collection(USERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .orderBy('name')
+      .get();
     return snapshot.docs.map((doc) =>
       mapFirestoreUser(doc.id, doc.data() as FirestoreUserDocument)
     );
@@ -370,6 +593,7 @@ export class FirestoreDatabase implements IDatabase {
     const client = this.requireClient();
     const tokenSnapshot = await client
       .collection(API_TOKENS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('userId', '==', id)
       .get();
 
@@ -390,7 +614,10 @@ export class FirestoreDatabase implements IDatabase {
    */
   async migrateOrphanTokensToBootstrapUser(): Promise<void> {
     const client = this.requireClient();
-    const snapshot = await client.collection(API_TOKENS_COLLECTION).get();
+    const snapshot = await client
+      .collection(API_TOKENS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .get();
     const orphanDocs = snapshot.docs.filter((doc) => {
       const data = doc.data() as Partial<FirestoreApiTokenDocument>;
       return data.userId === undefined || data.userId === null || data.userId === '';
@@ -436,7 +663,11 @@ export class FirestoreDatabase implements IDatabase {
    */
   async migrateSnippetAccessBackfill(): Promise<void> {
     const client = this.requireClient();
-    const snapshot = await client.collection(USERS_COLLECTION).where('role', '==', 'user').get();
+    const snapshot = await client
+      .collection(USERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('role', '==', 'user')
+      .get();
     if (snapshot.docs.length === 0) {
       return;
     }
@@ -479,6 +710,7 @@ export class FirestoreDatabase implements IDatabase {
    */
   async createApiToken(record: ApiTokenRecord, actingUserId: string): Promise<void> {
     await this.requireClient().collection(API_TOKENS_COLLECTION).doc(record.id).set({
+      tenantId: this.tenantId,
       userId: record.userId,
       name: record.name,
       tokenHash: record.tokenHash,
@@ -501,6 +733,7 @@ export class FirestoreDatabase implements IDatabase {
   async findActiveApiTokenByHash(tokenHash: string): Promise<ApiTokenRecord | null> {
     const snapshot = await this.requireClient()
       .collection(API_TOKENS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('tokenHash', '==', tokenHash)
       .limit(1)
       .get();
@@ -524,6 +757,7 @@ export class FirestoreDatabase implements IDatabase {
   async listApiTokens(): Promise<ApiTokenRecord[]> {
     const snapshot = await this.requireClient()
       .collection(API_TOKENS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('createdAt', 'desc')
       .get();
 
@@ -540,6 +774,7 @@ export class FirestoreDatabase implements IDatabase {
   async listApiTokensByUserId(userId: string): Promise<ApiTokenRecord[]> {
     const snapshot = await this.requireClient()
       .collection(API_TOKENS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('userId', '==', userId)
       .orderBy('createdAt', 'desc')
       .get();
@@ -561,7 +796,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreApiToken(snapshot.id, snapshot.data() as FirestoreApiTokenDocument);
+    const data = snapshot.data() as FirestoreApiTokenDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreApiToken(snapshot.id, data as FirestoreApiTokenDocument);
   }
 
   /**
@@ -654,7 +894,8 @@ export class FirestoreDatabase implements IDatabase {
       createdByUserId: actingUserId,
       updatedByUserId: actingUserId
     };
-    const invitationData: FirestoreInvitationDocument = {
+    const invitationData: FirestoreInvitationDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       userId: invitation.userId,
       codeHash: invitation.codeHash,
       codePrefix: invitation.codePrefix,
@@ -667,7 +908,11 @@ export class FirestoreDatabase implements IDatabase {
     };
 
     await client.runTransaction(async (transaction) => {
-      transaction.set(userRef, userData);
+      const userDataWithTenant: FirestoreUserDocument & { tenantId: string } = {
+        ...userData,
+        tenantId: this.tenantId
+      };
+      transaction.set(userRef, userDataWithTenant);
       transaction.set(invitationRef, invitationData);
     });
 
@@ -683,6 +928,8 @@ export class FirestoreDatabase implements IDatabase {
   /**
    * Persists a new onboarding invitation for an existing user account.
    *
+   * Scopes the invitation to the instance's tenant namespace.
+   *
    * @param invitation - Invitation metadata including the stored code hash.
    * @param actingUserId - User performing the create action.
    */
@@ -695,7 +942,8 @@ export class FirestoreDatabase implements IDatabase {
       throw new Error('User not found');
     }
 
-    const data: FirestoreInvitationDocument = {
+    const data: FirestoreInvitationDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       userId: invitation.userId,
       codeHash: invitation.codeHash,
       codePrefix: invitation.codePrefix,
@@ -713,7 +961,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds an invitation by stable identifier.
+   * Finds an invitation by stable identifier within the instance's tenant namespace.
    *
    * @param id - Invitation identifier to look up.
    */
@@ -723,17 +971,23 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreInvitation(snapshot.id, snapshot.data() as FirestoreInvitationDocument);
+    const data = snapshot.data() as FirestoreInvitationDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreInvitation(snapshot.id, data as FirestoreInvitationDocument);
   }
 
   /**
-   * Finds an invitation by the sha256 hash of its secret.
+   * Finds an invitation by the sha256 hash of its secret within the instance's tenant namespace.
    *
    * @param codeHash - sha256 hex digest of the invitation secret.
    */
   async findInvitationByCodeHash(codeHash: string): Promise<InvitationRecord | null> {
     const snapshot = await this.requireClient()
       .collection(INVITATIONS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('codeHash', '==', codeHash)
       .limit(1)
       .get();
@@ -747,11 +1001,12 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all invitations ordered by creation time descending.
+   * Lists all invitations ordered by creation time descending within the instance's tenant namespace.
    */
   async listInvitations(): Promise<InvitationRecord[]> {
     const snapshot = await this.requireClient()
       .collection(INVITATIONS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('createdAt', 'desc')
       .get();
 
@@ -761,7 +1016,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Revokes a pending invitation by id.
+   * Revokes a pending invitation by id within the instance's tenant namespace.
    *
    * @param id - Invitation identifier to revoke.
    * @param actingUserId - User performing the revoke action.
@@ -773,7 +1028,11 @@ export class FirestoreDatabase implements IDatabase {
       return false;
     }
 
-    const data = snapshot.data() as FirestoreInvitationDocument;
+    const data = snapshot.data() as FirestoreInvitationDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return false;
+    }
+
     const now = new Date();
     if (
       data.redeemedAt !== null ||
@@ -791,6 +1050,8 @@ export class FirestoreDatabase implements IDatabase {
   /**
    * Atomically consumes a pending invitation and issues a permanent API token.
    *
+   * Scopes the search and token creation to the instance's tenant namespace.
+   *
    * @param codeHash - sha256 hex digest of the invitation secret.
    * @param tokenName - Label stored on the newly created API token.
    * @param actingUserId - Internal user attributed with the redemption action.
@@ -804,6 +1065,7 @@ export class FirestoreDatabase implements IDatabase {
     const client = this.requireClient();
     const invitationQuery = client
       .collection(INVITATIONS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('codeHash', '==', codeHash)
       .limit(1);
 
@@ -855,7 +1117,8 @@ export class FirestoreDatabase implements IDatabase {
       secret = generated.secret;
 
       const tokenRef = client.collection(API_TOKENS_COLLECTION).doc(token.id);
-      const tokenData: FirestoreApiTokenDocument = {
+      const tokenData: FirestoreApiTokenDocument & { tenantId: string } = {
+        tenantId: this.tenantId,
         userId: token.userId,
         name: token.name,
         tokenHash: token.tokenHash,
@@ -876,11 +1139,12 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all collections ordered by name.
+   * Lists all collections ordered by name within the instance's tenant namespace.
    */
   async listCollections(): Promise<CollectionRecord[]> {
     const snapshot = await this.requireClient()
       .collection(COLLECTIONS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('name')
       .get();
 
@@ -890,7 +1154,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Creates a new collection with the given name.
+   * Creates a new collection with the given name within the instance's tenant namespace.
    *
    * @param name - Display name for the collection.
    * @param actingUserId - User performing the create action.
@@ -899,7 +1163,8 @@ export class FirestoreDatabase implements IDatabase {
     const trimmedName = trimRequiredName(name, 'Collection name');
     const id = randomUUID();
     const now = new Date();
-    const data: FirestoreCollectionDocument = {
+    const data: FirestoreCollectionDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimmedName,
       variables: [],
       headers: [],
@@ -975,7 +1240,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Deletes a collection and all of its requests and folders.
+   * Deletes a collection and all of its requests and folders within the instance's tenant namespace.
    *
    * @param id - Collection ID to delete.
    * @param actingUserId - User performing the delete action.
@@ -986,14 +1251,17 @@ export class FirestoreDatabase implements IDatabase {
     const client = this.requireClient();
     const requestsSnap = await client
       .collection(REQUESTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', id)
       .get();
     const documentsSnap = await client
       .collection(DOCUMENTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', id)
       .get();
     const foldersSnap = await client
       .collection(FOLDERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', id)
       .get();
 
@@ -1008,7 +1276,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a collection by stable identifier.
+   * Finds a collection by stable identifier within the instance's tenant namespace.
    *
    * @param id - Collection ID to look up.
    */
@@ -1018,7 +1286,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreCollection(id, snapshot.data() as FirestoreCollectionDocument);
+    const data = snapshot.data() as FirestoreCollectionDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreCollection(id, data as FirestoreCollectionDocument);
   }
 
   /**
@@ -1058,11 +1331,12 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all environments ordered by name.
+   * Lists all environments ordered by name within the instance's tenant namespace.
    */
   async listEnvironments(): Promise<EnvironmentRecord[]> {
     const snapshot = await this.requireClient()
       .collection(ENVIRONMENTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('name')
       .get();
 
@@ -1072,7 +1346,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Creates a new environment with the given name.
+   * Creates a new environment with the given name within the instance's tenant namespace.
    *
    * @param name - Display name for the environment.
    * @param actingUserId - User performing the create action.
@@ -1081,7 +1355,8 @@ export class FirestoreDatabase implements IDatabase {
     const trimmedName = trimRequiredName(name, 'Environment name');
     const id = randomUUID();
     const now = new Date();
-    const data: FirestoreEnvironmentDocument = {
+    const data: FirestoreEnvironmentDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimmedName,
       variables: [],
       createdAt: now,
@@ -1148,7 +1423,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Deletes an environment and orphans any direct children (clears their parentUuid).
+   * Deletes an environment and orphans any direct children within the instance's tenant namespace.
    *
    * @param id - Environment ID to delete.
    * @param actingUserId - User performing the delete action.
@@ -1158,6 +1433,7 @@ export class FirestoreDatabase implements IDatabase {
     const client = this.requireClient();
     const children = await client
       .collection(ENVIRONMENTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('parentUuid', '==', id)
       .get();
     const batch = client.batch();
@@ -1169,7 +1445,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds an environment by stable identifier.
+   * Finds an environment by stable identifier within the instance's tenant namespace.
    *
    * @param id - Environment ID to look up.
    */
@@ -1179,7 +1455,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreEnvironment(id, snapshot.data() as FirestoreEnvironmentDocument);
+    const data = snapshot.data() as FirestoreEnvironmentDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreEnvironment(id, data as FirestoreEnvironmentDocument);
   }
 
   /**
@@ -1219,10 +1500,13 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all snippets ordered by sort order then name.
+   * Lists all snippets ordered by sort order then name within the instance's tenant namespace.
    */
   async listSnippets(): Promise<SnippetRecord[]> {
-    const snapshot = await this.requireClient().collection(SNIPPETS_COLLECTION).get();
+    const snapshot = await this.requireClient()
+      .collection(SNIPPETS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .get();
 
     return snapshot.docs
       .map((doc) => mapFirestoreSnippet(doc.id, doc.data() as FirestoreSnippetDocument))
@@ -1236,7 +1520,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Creates a new snippet with the given fields.
+   * Creates a new snippet with the given fields within the instance's tenant namespace.
    *
    * @param name - Display name for the snippet.
    * @param code - JavaScript source for the snippet.
@@ -1254,7 +1538,8 @@ export class FirestoreDatabase implements IDatabase {
     const now = new Date();
     const existing = await this.listSnippets();
     const maxOrder = existing.reduce((max, snippet) => Math.max(max, snippet.sortOrder), -1);
-    const data: FirestoreSnippetDocument = {
+    const data: FirestoreSnippetDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimmedName,
       code,
       scope,
@@ -1325,7 +1610,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a snippet by stable identifier.
+   * Finds a snippet by stable identifier within the instance's tenant namespace.
    *
    * @param id - Snippet ID to look up.
    */
@@ -1335,7 +1620,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreSnippet(id, snapshot.data() as FirestoreSnippetDocument);
+    const data = snapshot.data() as FirestoreSnippetDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreSnippet(id, data as FirestoreSnippetDocument);
   }
 
   /**
@@ -1521,13 +1811,16 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists one of the fixed payload-entity collections.
+   * Lists one of the fixed payload-entity collections within the instance's tenant namespace.
    */
   private async listPayloadEntities<T>(
     collection: string,
     mapper: (id: string, data: FirestorePayloadEntityDocument) => T
   ): Promise<T[]> {
-    const snapshot = await this.requireClient().collection(collection).get();
+    const snapshot = await this.requireClient()
+      .collection(collection)
+      .where('tenantId', '==', this.tenantId)
+      .get();
     return snapshot.docs
       .map((doc) => mapper(doc.id, doc.data() as FirestorePayloadEntityDocument))
       .sort((left, right) => {
@@ -1538,7 +1831,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Creates a JSON-payload Firestore entity.
+   * Creates a JSON-payload Firestore entity within the instance's tenant namespace.
    */
   private async createPayloadEntity<T>(
     collection: string,
@@ -1549,7 +1842,8 @@ export class FirestoreDatabase implements IDatabase {
   ): Promise<T> {
     const id = randomUUID();
     const now = new Date();
-    const data: FirestorePayloadEntityDocument = {
+    const data: FirestorePayloadEntityDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimRequiredName(input.name, 'Entity name'),
       payload: input.payload,
       createdAt: now,
@@ -1604,7 +1898,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds one JSON-payload Firestore entity.
+   * Finds one JSON-payload Firestore entity within the instance's tenant namespace.
    */
   private async findPayloadEntity<T>(
     collection: string,
@@ -1612,7 +1906,16 @@ export class FirestoreDatabase implements IDatabase {
     mapper: (id: string, data: FirestorePayloadEntityDocument) => T
   ): Promise<T | null> {
     const snapshot = await this.requireClient().collection(collection).doc(id).get();
-    return snapshot.exists ? mapper(id, snapshot.data() as FirestorePayloadEntityDocument) : null;
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestorePayloadEntityDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapper(id, data as FirestorePayloadEntityDocument);
   }
 
   /**
@@ -1641,13 +1944,14 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all saved requests in a collection.
+   * Lists all saved requests in a collection within the instance's tenant namespace.
    *
    * @param collectionId - Collection to query.
    */
   async listRequests(collectionId: string): Promise<SavedRequestRecord[]> {
     const snapshot = await this.requireClient()
       .collection(REQUESTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', collectionId)
       .get();
 
@@ -1663,7 +1967,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a saved request by id.
+   * Finds a saved request by id within the instance's tenant namespace.
    *
    * @param id - Request identifier to look up.
    */
@@ -1673,7 +1977,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreRequest(id, snapshot.data() as FirestoreRequestDocument);
+    const data = snapshot.data() as FirestoreRequestDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreRequest(id, data as FirestoreRequestDocument);
   }
 
   /**
@@ -1757,7 +2066,8 @@ export class FirestoreDatabase implements IDatabase {
       .filter((request) => request.folderId === folderId)
       .reduce((max, request) => Math.max(max, request.sortOrder), -1);
     const id = randomUUID();
-    const data: FirestoreRequestDocument = {
+    const data: FirestoreRequestDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       collectionId: input.collectionId,
       folderId,
       name: trimmedName,
@@ -1797,13 +2107,14 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all folders in a collection.
+   * Lists all folders in a collection within the instance's tenant namespace.
    *
    * @param collectionId - Collection to query.
    */
   async listFolders(collectionId: string): Promise<FolderRecord[]> {
     const snapshot = await this.requireClient()
       .collection(FOLDERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', collectionId)
       .get();
 
@@ -1819,7 +2130,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a folder by id.
+   * Finds a folder by id within the instance's tenant namespace.
    *
    * @param id - Folder identifier to look up.
    */
@@ -1829,7 +2140,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreFolder(id, snapshot.data() as FirestoreFolderDocument);
+    const data = snapshot.data() as FirestoreFolderDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreFolder(id, data as FirestoreFolderDocument);
   }
 
   /**
@@ -1858,7 +2174,8 @@ export class FirestoreDatabase implements IDatabase {
     const maxOrder = existingFolders
       .filter((folder) => folder.parentFolderId === parentFolderId)
       .reduce((max, folder) => Math.max(max, folder.sortOrder), -1);
-    const data: FirestoreFolderDocument = {
+    const data: FirestoreFolderDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       collectionId,
       parentFolderId,
       name: trimmedName,
@@ -1947,12 +2264,20 @@ export class FirestoreDatabase implements IDatabase {
     const ids = [...descendantIds];
     const requestSnapshots = await Promise.all(
       ids.map((folderId) =>
-        client.collection(REQUESTS_COLLECTION).where('folderId', '==', folderId).get()
+        client
+          .collection(REQUESTS_COLLECTION)
+          .where('tenantId', '==', this.tenantId)
+          .where('folderId', '==', folderId)
+          .get()
       )
     );
     const documentSnapshots = await Promise.all(
       ids.map((folderId) =>
-        client.collection(DOCUMENTS_COLLECTION).where('folderId', '==', folderId).get()
+        client
+          .collection(DOCUMENTS_COLLECTION)
+          .where('tenantId', '==', this.tenantId)
+          .where('folderId', '==', folderId)
+          .get()
       )
     );
     const refs = [
@@ -2200,13 +2525,14 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all documents in a collection.
+   * Lists all documents in a collection within the instance's tenant namespace.
    *
    * @param collectionId - Collection to query.
    */
   async listDocuments(collectionId: string): Promise<DocumentRecord[]> {
     const snapshot = await this.requireClient()
       .collection(DOCUMENTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('collectionId', '==', collectionId)
       .get();
 
@@ -2222,7 +2548,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a document by id.
+   * Finds a document by id within the instance's tenant namespace.
    *
    * @param id - Document identifier to look up.
    */
@@ -2232,7 +2558,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreDocument(id, snapshot.data() as FirestoreDocumentDocument);
+    const data = snapshot.data() as FirestoreDocumentDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDocument(id, data as FirestoreDocumentDocument);
   }
 
   /**
@@ -2296,7 +2627,8 @@ export class FirestoreDatabase implements IDatabase {
       .filter((document) => document.folderId === folderId)
       .reduce((max, document) => Math.max(max, document.sortOrder), -1);
     const id = randomUUID();
-    const data: FirestoreDocumentDocument = {
+    const data: FirestoreDocumentDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       collectionId: input.collectionId,
       folderId,
       name: trimmedName,
@@ -2462,24 +2794,29 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Returns monthly LLM usage for a user, or null when no usage has been recorded.
+   * Returns monthly LLM usage for a user within the instance's tenant namespace, or null when no usage has been recorded.
    *
    * @param userId - Owning user identifier.
    * @param period - UTC calendar month key (`YYYY-MM`).
    */
   async getLlmUsage(userId: string, period: string): Promise<LlmUsageRecord | null> {
-    const docId = `${userId}_${period}`;
+    const docId = `${this.tenantId}_${userId}_${period}`;
     const snapshot = await this.requireClient().collection(LLM_USAGE_COLLECTION).doc(docId).get();
 
     if (!snapshot.exists) {
       return null;
     }
 
-    return mapFirestoreLlmUsage(docId, snapshot.data() as FirestoreLlmUsageDocument);
+    const data = snapshot.data() as FirestoreLlmUsageDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreLlmUsage(docId, data as FirestoreLlmUsageDocument);
   }
 
   /**
-   * Atomically increments monthly LLM token usage for a user.
+   * Atomically increments monthly LLM token usage for a user within the instance's tenant namespace.
    *
    * @param userId - Owning user identifier.
    * @param period - UTC calendar month key (`YYYY-MM`).
@@ -2492,7 +2829,7 @@ export class FirestoreDatabase implements IDatabase {
     promptTokens: number,
     completionTokens: number
   ): Promise<LlmUsageRecord> {
-    const docId = `${userId}_${period}`;
+    const docId = `${this.tenantId}_${userId}_${period}`;
     const docRef = this.requireClient().collection(LLM_USAGE_COLLECTION).doc(docId);
     const now = new Date();
     const totalDelta = promptTokens + completionTokens;
@@ -2500,7 +2837,8 @@ export class FirestoreDatabase implements IDatabase {
     await this.requireClient().runTransaction(async (transaction) => {
       const snapshot = await transaction.get(docRef);
       if (!snapshot.exists) {
-        const data: FirestoreLlmUsageDocument = {
+        const data: FirestoreLlmUsageDocument & { tenantId: string } = {
+          tenantId: this.tenantId,
           userId,
           period,
           promptTokens,
@@ -2530,13 +2868,14 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists run results saved by the given user, newest first.
+   * Lists run results saved by the given user within the instance's tenant namespace, newest first.
    *
    * @param userId - Owning user identifier.
    */
   async listRunResultsForUser(userId: string): Promise<RunResultRecord[]> {
     const snapshot = await this.requireClient()
       .collection(RUN_RESULTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .where('createdByUserId', '==', userId)
       .orderBy('createdAt', 'desc')
       .get();
@@ -2547,11 +2886,12 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all run results for admin inspection, newest first.
+   * Lists all run results for admin inspection within the instance's tenant namespace, newest first.
    */
   async listAllRunResults(): Promise<RunResultRecord[]> {
     const snapshot = await this.requireClient()
       .collection(RUN_RESULTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('createdAt', 'desc')
       .get();
 
@@ -2561,7 +2901,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Creates a standalone run result snapshot.
+   * Creates a standalone run result snapshot within the instance's tenant namespace.
    *
    * @param input - HarborClient export payload and optional label.
    * @param actingUserId - User performing the create action.
@@ -2574,7 +2914,8 @@ export class FirestoreDatabase implements IDatabase {
     const label = input.label?.trim() || buildDefaultRunResultLabel(metadata);
     const id = randomUUID();
     const now = new Date();
-    const data: FirestoreRunResultDocument = {
+    const data: FirestoreRunResultDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       kind: metadata.kind,
       label,
       collectionName: metadata.collectionName,
@@ -2591,7 +2932,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Finds a run result by stable identifier.
+   * Finds a run result by stable identifier within the instance's tenant namespace.
    *
    * @param id - Run result ID to look up.
    */
@@ -2601,7 +2942,12 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    return mapFirestoreRunResult(id, snapshot.data() as FirestoreRunResultDocument);
+    const data = snapshot.data() as FirestoreRunResultDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreRunResult(id, data as FirestoreRunResultDocument);
   }
 
   /**
@@ -2622,14 +2968,15 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Inserts a per-request LLM usage log entry.
+   * Inserts a per-request LLM usage log entry within the instance's tenant namespace.
    *
    * @param input - Usage details for one successful completion step.
    */
   async createLlmUsageLog(input: CreateLlmUsageLogInput): Promise<LlmUsageLogRecord> {
     const id = randomUUID();
     const now = new Date();
-    const data: FirestoreLlmUsageLogDocument = {
+    const data: FirestoreLlmUsageLogDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       userId: input.userId,
       apiTokenId: input.apiTokenId,
       period: input.period,
@@ -2650,11 +2997,12 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Lists all per-request LLM usage log entries, newest first.
+   * Lists all per-request LLM usage log entries within the instance's tenant namespace, newest first.
    */
   async listLlmUsageLogs(): Promise<LlmUsageLogRecord[]> {
     const snapshot = await this.requireClient()
       .collection(LLM_USAGE_LOG_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
       .orderBy('createdAt', 'desc')
       .get();
 
@@ -2681,7 +3029,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Ensures the internal system user exists and caches its identifier.
+   * Ensures the internal system user exists within the instance's tenant namespace and caches its identifier.
    *
    * Inserts directly rather than calling {@link createUser} to avoid recursion
    * during migration bootstrap.
@@ -2697,7 +3045,8 @@ export class FirestoreDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const trimmedName = trimRequiredName(input.name, 'User name');
-    const data: FirestoreUserDocument = {
+    const data: FirestoreUserDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       name: trimmedName,
       role: input.role,
       collectionAccess: input.collectionAccess,
@@ -2719,7 +3068,7 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
-   * Persists a single audit log entry for a mutating action.
+   * Persists a single audit log entry for a mutating action within the instance's tenant namespace.
    *
    * @param actingUserId - User performing the action.
    * @param action - CRUD or structural action performed.
@@ -2740,7 +3089,8 @@ export class FirestoreDatabase implements IDatabase {
     );
     const id = randomUUID();
     const now = new Date();
-    const data: FirestoreAuditLogDocument = {
+    const data: FirestoreAuditLogDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
       userId: actingUserId,
       userName,
       action,

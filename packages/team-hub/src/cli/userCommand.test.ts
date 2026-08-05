@@ -4,7 +4,10 @@ import { userCreateCommand } from '#/cli/userCommand.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 
 vi.mock('#/config/serverConfig.js', () => ({
-  loadServerConfig: vi.fn(() => ({ db: { driver: 'postgres' } }))
+  loadServerConfig: vi.fn(() => ({
+    db: { driver: 'postgres' },
+    multitenancy: { enabled: false }
+  }))
 }));
 
 vi.mock('#/db/index.js', () => ({
@@ -15,14 +18,18 @@ vi.mock('#/db/index.js', () => ({
  * Builds a minimal database mock for user create command tests.
  */
 function createDatabaseMock(): IDatabase {
-  return {
+  const db = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     migrate: vi.fn(),
+    forTenant: vi.fn(),
     getSystemUserId: vi.fn(() => 'system-user-id'),
+    ensureSystemUser: vi.fn(),
     listCollections: vi.fn(async () => [{ id: 'collection-1', name: 'Shared API' }]),
     listEnvironments: vi.fn(async () => [{ id: 'env-1', name: 'Production' }]),
     listSnippets: vi.fn(async () => [{ id: 'snippet-1', name: 'Auth helper' }]),
+    listLiveServers: vi.fn(async () => []),
+    listLivePages: vi.fn(async () => []),
     createUser: vi.fn(async (input) => ({
       id: 'user-id',
       name: input.name,
@@ -30,6 +37,8 @@ function createDatabaseMock(): IDatabase {
       collectionAccess: input.collectionAccess ?? [],
       environmentAccess: input.environmentAccess ?? [],
       snippetAccess: input.snippetAccess ?? [],
+      liveServerAccess: input.liveServerAccess ?? [],
+      livePageAccess: input.livePageAccess ?? [],
       llmAccess: input.llmAccess ?? false,
       llmModels: input.llmModels ?? [],
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
@@ -40,6 +49,8 @@ function createDatabaseMock(): IDatabase {
     })),
     createApiToken: vi.fn()
   } as unknown as IDatabase;
+  (db.forTenant as ReturnType<typeof vi.fn>).mockReturnValue(db);
+  return db;
 }
 
 describe('userCreateCommand llm model flags', () => {

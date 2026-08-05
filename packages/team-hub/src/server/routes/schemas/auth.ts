@@ -27,5 +27,6 @@ export const sessionResponseSchema = z.object({
     id: z.string(),
     prefix: z.string()
   }),
-  capabilities: sessionCapabilitiesSchema
+  capabilities: sessionCapabilitiesSchema,
+  tenantId: z.string()
 });

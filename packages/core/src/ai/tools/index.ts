@@ -25,6 +25,7 @@ import { getScriptRunDiagnosticsTool } from './getScriptRunDiagnostics';
 import { getScriptingApiReferenceTool } from './getScriptingApiReference';
 import { getSelectedCollectionTool } from './getSelectedCollection';
 import { getSidebarRequestTool } from './getSidebarRequest';
+import { getThemeTokenTool } from './getThemeToken';
 import { gitCommitsTool } from './gitCommits';
 import { gitDiffTool } from './gitDiff';
 import { gitFileDiffTool } from './gitFileDiff';
@@ -35,10 +36,13 @@ import { listEnvironmentsTool } from './listEnvironments';
 import { listLiveServersTool } from './listLiveServers';
 import { listRequestsTool } from './listRequests';
 import { listRunningLiveServersTool } from './listRunningLiveServers';
+import { listThemeTokensTool } from './listThemeTokens';
+import { listThemesTool } from './listThemes';
 import { queryResponseBodyTool } from './queryResponseBody';
 import { searchDocsTool } from './searchDocs';
 import { sendActiveRequestTool } from './sendActiveRequest';
 import { setActiveEnvironmentTool } from './setActiveEnvironment';
+import { setThemeTool } from './setTheme';
 import { startLiveServerTool } from './startLiveServer';
 import { stopLiveServerTool } from './stopLiveServer';
 import { terminalExecTool } from './terminalExec';
@@ -46,6 +50,7 @@ import { updateActiveRequestTool } from './updateActiveRequest';
 import { updateGeneralSettingsTool } from './updateGeneralSettings';
 import { updateLiveServerTool } from './updateLiveServer';
 import { updateRequestScriptTool } from './updateRequestScript';
+import { updateThemeTokenTool } from './updateThemeToken';
 import { webpageEvaluateTool } from './webpageEvaluate';
 import { webpageInjectScriptTool } from './webpageInjectScript';
 import { webpageInjectStylesheetTool } from './webpageInjectStylesheet';
@@ -72,6 +77,7 @@ export type { GetLiveServerToolArgs } from './getLiveServer';
 export type { GetLiveServerLogsToolArgs } from './getLiveServerLogs';
 export type { GetMarkdownDocumentToolArgs } from './getMarkdownDocument';
 export type { GetScriptRunDiagnosticsToolArgs } from './getScriptRunDiagnostics';
+export type { GetThemeTokenToolArgs } from './getThemeToken';
 export type { GitCommitsToolArgs } from './gitCommits';
 export type { GitDiffToolArgs } from './gitDiff';
 export type { GitFileDiffToolArgs } from './gitFileDiff';
@@ -82,12 +88,14 @@ export type { QueryResponseBodyToolArgs } from './queryResponseBody';
 export type { SearchDocsToolArgs } from './searchDocs';
 export type { SendActiveRequestToolArgs } from './sendActiveRequest';
 export type { SetActiveEnvironmentToolArgs } from './setActiveEnvironment';
+export type { SetThemeToolArgs } from './setTheme';
 export type { StartLiveServerToolArgs } from './startLiveServer';
 export type { StopLiveServerToolArgs } from './stopLiveServer';
 export type { TerminalExecToolArgs } from './terminalExec';
 export type { UpdateGeneralSettingsToolArgs } from './updateGeneralSettings';
 export type { UpdateLiveServerToolArgs } from './updateLiveServer';
 export type { UpdateRequestScriptToolArgs } from './updateRequestScript';
+export type { UpdateThemeTokenToolArgs } from './updateThemeToken';
 export type { WebpageEvaluateToolArgs } from './webpageEvaluate';
 export type { WebpageInjectScriptToolArgs } from './webpageInjectScript';
 export type { WebpageInjectStylesheetToolArgs } from './webpageInjectStylesheet';
@@ -121,6 +129,11 @@ export const AI_TOOLS = [
   updateRequestScriptTool,
   getGeneralSettingsTool,
   updateGeneralSettingsTool,
+  listThemesTool,
+  setThemeTool,
+  listThemeTokensTool,
+  getThemeTokenTool,
+  updateThemeTokenTool,
   createCollectionTool,
   createFolderTool,
   createRequestTool,

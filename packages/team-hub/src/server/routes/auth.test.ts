@@ -40,7 +40,8 @@ describe('GET /auth/session', () => {
         dataApi: true,
         managementApi: false,
         llm: true
-      }
+      },
+      tenantId: '__default__'
     });
 
     await app.close();
@@ -83,7 +84,8 @@ describe('GET /auth/session', () => {
         dataApi: false,
         managementApi: true,
         llm: false
-      }
+      },
+      tenantId: '__default__'
     });
 
     await app.close();

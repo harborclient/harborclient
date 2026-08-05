@@ -19,6 +19,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantRecord,
   UpdateUserInput,
   UserRecord,
   Variable,
@@ -55,6 +56,58 @@ export interface IDatabase {
   migrate(): Promise<void>;
 
   /**
+   * Returns the tenant id this database handle is scoped to.
+   */
+  getTenantId(): string;
+
+  /**
+   * Returns a database handle scoped to the given tenant.
+   *
+   * The returned handle shares the underlying connection with this instance.
+   * Entity reads and writes are isolated to `tenantId`.
+   *
+   * @param tenantId - Tenant namespace to bind.
+   */
+  forTenant(tenantId: string): IDatabase;
+
+  /**
+   * Ensures the reserved default tenant row exists.
+   *
+   * Idempotent; safe to call from migrate and CLI startup.
+   */
+  ensureDefaultTenant(): Promise<void>;
+
+  /**
+   * Lists all tenant records ordered by id.
+   */
+  listTenants(): Promise<TenantRecord[]>;
+
+  /**
+   * Creates a non-default tenant namespace.
+   *
+   * @param id - Stable tenant identifier.
+   * @param name - Human-readable tenant label.
+   * @param actingUserId - User performing the create action.
+   * @returns The newly created tenant record.
+   */
+  createTenant(id: string, name: string, actingUserId: string): Promise<TenantRecord>;
+
+  /**
+   * Finds a tenant by stable identifier.
+   *
+   * @param id - Tenant identifier to look up.
+   */
+  findTenantById(id: string): Promise<TenantRecord | null>;
+
+  /**
+   * Deletes a non-default tenant and all of its tenant-scoped data.
+   *
+   * @param id - Tenant identifier to delete.
+   * @param actingUserId - User performing the delete action.
+   */
+  deleteTenant(id: string, actingUserId: string): Promise<void>;
+
+  /**
    * Returns the stable identifier of the internal system user, when provisioned.
    */
   getSystemUserId(): string | null;
@@ -63,7 +116,7 @@ export interface IDatabase {
    * Provisions the internal system user when missing and caches its id.
    *
    * Idempotent and safe to call on every connect; assumes migrations have
-   * already created the schema.
+   * already created the schema. Scoped to the current tenant.
    */
   ensureSystemUser(): Promise<void>;
 

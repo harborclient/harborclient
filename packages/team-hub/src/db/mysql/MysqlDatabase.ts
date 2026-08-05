@@ -94,6 +94,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
   UpdateLiveServerRecordInput,
@@ -101,6 +102,7 @@ import type {
   Variable
 } from '#/db/types.js';
 import { formatZodError } from '#/db/validation.js';
+import { DEFAULT_TENANT_ID, isDefaultTenantId } from '#/config/multitenancyConfig.js';
 
 const COLLECTION_SELECT = `SELECT ${COLLECTION_SELECT_COLUMNS} FROM collections`;
 const ENVIRONMENT_SELECT = `SELECT ${ENVIRONMENT_SELECT_COLUMNS} FROM environments`;
@@ -134,11 +136,36 @@ export class MysqlDatabase implements IDatabase {
   private systemUserId: string | null = null;
 
   /**
+   * Tenant namespace for all entity queries on this database instance.
+   *
+   * Defaults to {@link DEFAULT_TENANT_ID}. Use {@link forTenant} to create
+   * a scoped instance for a different tenant without opening a new connection.
+   */
+  private readonly tenantId: string;
+
+  /**
+   * When true, this instance owns the connection pool and will close it on disconnect.
+   *
+   * Set to false by {@link forTenant} so shared pool instances remain open when
+   * a tenant-scoped handle is discarded.
+   */
+  private readonly ownsPool: boolean;
+
+  /**
    * Creates a MySQL database instance from validated config.
    *
    * @param config - Parsed MySQL connection settings.
+   * @param tenantId - Optional tenant namespace; defaults to {@link DEFAULT_TENANT_ID}.
+   * @param ownsPool - Whether this instance owns the pool; defaults to true.
    */
-  constructor(private readonly config: MysqlDatabaseConfig) {}
+  constructor(
+    private readonly config: MysqlDatabaseConfig,
+    tenantId?: string,
+    ownsPool?: boolean
+  ) {
+    this.tenantId = tenantId ?? DEFAULT_TENANT_ID;
+    this.ownsPool = ownsPool ?? true;
+  }
 
   /**
    * Validates raw config and constructs a {@link MysqlDatabase}.
@@ -187,9 +214,12 @@ export class MysqlDatabase implements IDatabase {
 
   /**
    * Closes the MySQL connection pool and releases resources.
+   *
+   * Only closes the pool when this instance owns it; tenant-scoped handles
+   * created by {@link forTenant} leave the shared pool open.
    */
   async disconnect(): Promise<void> {
-    if (!this.pool) {
+    if (!this.pool || !this.ownsPool) {
       return;
     }
 
@@ -205,6 +235,7 @@ export class MysqlDatabase implements IDatabase {
       await this.executeStatement(sql);
     }
 
+    await this.ensureDefaultTenant();
     await this.ensureSystemUser();
     await this.migrateOrphanTokensToBootstrapUser();
   }
@@ -217,14 +248,208 @@ export class MysqlDatabase implements IDatabase {
   }
 
   /**
+   * Returns the tenant namespace for this database instance.
+   *
+   * All entity queries are scoped to this tenant. Use {@link forTenant} to
+   * create a handle for a different tenant without opening a new connection.
+   */
+  getTenantId(): string {
+    return this.tenantId;
+  }
+
+  /**
+   * Creates a tenant-scoped database handle that shares the same connection pool.
+   *
+   * The returned instance uses the same pool as the parent but operates in a
+   * different tenant namespace. Calling disconnect on the tenant-scoped handle
+   * does not close the shared pool.
+   *
+   * @param tenantId - Tenant identifier for the new handle.
+   * @returns Database instance scoped to the given tenant.
+   */
+  forTenant(tenantId: string): IDatabase {
+    const scoped = new MysqlDatabase(this.config, tenantId, false);
+    scoped.pool = this.pool;
+    scoped.systemUserId = this.systemUserId;
+    return scoped;
+  }
+
+  /**
+   * Ensures the default tenant exists in the tenants table.
+   *
+   * Inserts the reserved {@link DEFAULT_TENANT_ID} tenant when it does not
+   * already exist. Called during migration before other tenant operations.
+   */
+  async ensureDefaultTenant(): Promise<void> {
+    const existing = await this.findTenantById(DEFAULT_TENANT_ID);
+    if (existing) {
+      return;
+    }
+
+    const id = DEFAULT_TENANT_ID;
+    const name = 'Default';
+    const now = new Date();
+
+    await this.executeStatement(
+      `INSERT INTO tenants (
+        id,
+        name,
+        created_at,
+        updated_at,
+        created_by_user_id,
+        updated_by_user_id
+      ) VALUES (?, ?, ?, ?, NULL, NULL)`,
+      [id, name, now, now]
+    );
+  }
+
+  /**
+   * Lists all tenants ordered by name.
+   *
+   * This is a global operation not scoped by {@link tenantId}; it returns
+   * all tenants in the registry.
+   */
+  async listTenants(): Promise<TenantRecord[]> {
+    const rows = await this.queryRows<TenantRecord & RowDataPacket>(
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants ORDER BY name ASC'
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      createdByUserId: row.created_by_user_id,
+      updatedByUserId: row.updated_by_user_id
+    }));
+  }
+
+  /**
+   * Creates a new tenant namespace.
+   *
+   * Rejects attempts to create a tenant with the reserved {@link DEFAULT_TENANT_ID}.
+   * This is a global operation not scoped by {@link tenantId}.
+   *
+   * @param id - Stable tenant identifier.
+   * @param name - Human-readable tenant label.
+   * @param actingUserId - User performing the create action.
+   * @returns Newly created tenant record.
+   * @throws {Error} When the tenant id is reserved or already exists.
+   */
+  async createTenant(id: string, name: string, actingUserId: string): Promise<TenantRecord> {
+    if (isDefaultTenantId(id)) {
+      throw new Error('Cannot create tenant with reserved default id.');
+    }
+
+    const trimmedName = trimRequiredName(name, 'Tenant name');
+    const now = new Date();
+
+    await this.executeStatement(
+      `INSERT INTO tenants (
+        id,
+        name,
+        created_at,
+        updated_at,
+        created_by_user_id,
+        updated_by_user_id
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, trimmedName, now, now, actingUserId, actingUserId]
+    );
+
+    await this.recordAuditEntry(actingUserId, 'create', 'tenant', id);
+
+    const created = await this.findTenantById(id);
+    if (!created) {
+      throw new Error('Tenant not found after insert');
+    }
+
+    return created;
+  }
+
+  /**
+   * Finds a tenant by stable identifier.
+   *
+   * This is a global operation not scoped by {@link tenantId}.
+   *
+   * @param id - Tenant identifier to look up.
+   */
+  async findTenantById(id: string): Promise<TenantRecord | null> {
+    const rows = await this.queryRows<TenantRecord & RowDataPacket>(
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants WHERE id = ? LIMIT 1',
+      [id]
+    );
+    const row = rows[0];
+    return row
+      ? {
+          id: row.id,
+          name: row.name,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          createdByUserId: row.created_by_user_id,
+          updatedByUserId: row.updated_by_user_id
+        }
+      : null;
+  }
+
+  /**
+   * Deletes a tenant namespace and cascades to all tenant-scoped rows.
+   *
+   * Rejects attempts to delete the reserved {@link DEFAULT_TENANT_ID}.
+   * Deletes all tenant-scoped entity rows (users, collections, etc.) before
+   * removing the tenant record itself. This is a global operation not scoped
+   * by {@link tenantId}.
+   *
+   * @param id - Tenant identifier to delete.
+   * @param actingUserId - User performing the delete action.
+   * @throws {Error} When attempting to delete the default tenant.
+   */
+  async deleteTenant(id: string, actingUserId: string): Promise<void> {
+    if (isDefaultTenantId(id)) {
+      throw new Error('Cannot delete the default tenant.');
+    }
+
+    void actingUserId;
+
+    const connection = await this.requirePool().getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.execute('DELETE FROM api_tokens WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM user_invitations WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM users WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM run_results WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM llm_usage_log WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM llm_usage WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM documents WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM requests WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM folders WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM live_pages WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM live_servers WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM snippets WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM environments WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM collections WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM audit_log WHERE tenant_id = ?', [id]);
+      await connection.execute('DELETE FROM tenants WHERE id = ?', [id]);
+
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+
+    await this.recordAuditEntry(actingUserId, 'delete', 'tenant', id);
+  }
+
+  /**
    * Lists audit log entries ordered newest-first with optional filters.
    *
    * @param options - Optional limit and filter criteria.
    */
   async listAuditLog(options: ListAuditLogOptions = {}): Promise<AuditLogRecord[]> {
     const limit = options.limit ?? 100;
-    const conditions: string[] = [];
-    const params: Array<string | number> = [];
+    const conditions: string[] = ['tenant_id = ?'];
+    const params: Array<string | number> = [this.tenantId];
 
     if (options.userId !== undefined) {
       conditions.push('user_id = ?');
@@ -241,7 +466,7 @@ export class MysqlDatabase implements IDatabase {
       params.push(options.entityId);
     }
 
-    const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = ` WHERE ${conditions.join(' AND ')}`;
     const rows = await this.queryRows<AuditLogSqlRow & RowDataPacket>(
       `${AUDIT_LOG_SELECT}${whereClause} ORDER BY created_at DESC LIMIT ?`,
       [...params, limit]
@@ -266,6 +491,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO users (
         id,
+        tenant_id,
         name,
         role,
         collection_access,
@@ -280,9 +506,10 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         trimmedName,
         input.role,
         serializeAccessList(input.collectionAccess),
@@ -317,8 +544,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findUserById(id: string): Promise<UserRecord | null> {
     const rows = await this.queryRows<UserSqlRow & RowDataPacket>(
-      `${USER_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${USER_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapUserSqlRow(row) : null;
@@ -331,8 +558,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findUserByName(name: string): Promise<UserRecord | null> {
     const rows = await this.queryRows<UserSqlRow & RowDataPacket>(
-      `${USER_SELECT} WHERE name = ? LIMIT 1`,
-      [name]
+      `${USER_SELECT} WHERE tenant_id = ? AND name = ? LIMIT 1`,
+      [this.tenantId, name]
     );
     const row = rows[0];
     return row ? mapUserSqlRow(row) : null;
@@ -343,7 +570,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listUsers(): Promise<UserRecord[]> {
     const rows = await this.queryRows<UserSqlRow & RowDataPacket>(
-      `${USER_SELECT} ORDER BY name ASC`
+      `${USER_SELECT} WHERE tenant_id = ? ORDER BY name ASC`,
+      [this.tenantId]
     );
     return rows.map(mapUserSqlRow);
   }
@@ -398,7 +626,7 @@ export class MysqlDatabase implements IDatabase {
         llm_monthly_token_limit = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
+      WHERE tenant_id = ? AND id = ?`,
       [
         name,
         role,
@@ -412,6 +640,7 @@ export class MysqlDatabase implements IDatabase {
         llmMonthlyTokenLimit,
         updatedAt,
         actingUserId,
+        this.tenantId,
         id
       ]
     );
@@ -440,8 +669,14 @@ export class MysqlDatabase implements IDatabase {
     const connection = await this.requirePool().getConnection();
     try {
       await connection.beginTransaction();
-      await connection.execute('DELETE FROM api_tokens WHERE user_id = ?', [id]);
-      await connection.execute('DELETE FROM users WHERE id = ?', [id]);
+      await connection.execute('DELETE FROM api_tokens WHERE tenant_id = ? AND user_id = ?', [
+        this.tenantId,
+        id
+      ]);
+      await connection.execute('DELETE FROM users WHERE tenant_id = ? AND id = ?', [
+        this.tenantId,
+        id
+      ]);
       await connection.commit();
     } catch (err) {
       await connection.rollback();
@@ -458,7 +693,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async migrateOrphanTokensToBootstrapUser(): Promise<void> {
     const rows = await this.queryRows<{ count: number } & RowDataPacket>(
-      'SELECT COUNT(*) AS count FROM api_tokens WHERE user_id IS NULL'
+      'SELECT COUNT(*) AS count FROM api_tokens WHERE tenant_id = ? AND user_id IS NULL',
+      [this.tenantId]
     );
     const orphanCount = rows[0]?.count ?? 0;
     if (orphanCount === 0) {
@@ -486,9 +722,10 @@ export class MysqlDatabase implements IDatabase {
       );
     }
 
-    await this.executeStatement('UPDATE api_tokens SET user_id = ? WHERE user_id IS NULL', [
-      bootstrapUser.id
-    ]);
+    await this.executeStatement(
+      'UPDATE api_tokens SET user_id = ? WHERE tenant_id = ? AND user_id IS NULL',
+      [bootstrapUser.id, this.tenantId]
+    );
   }
 
   /**
@@ -501,6 +738,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO api_tokens (
         id,
+        tenant_id,
         user_id,
         name,
         token_hash,
@@ -510,9 +748,10 @@ export class MysqlDatabase implements IDatabase {
         revoked_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         record.id,
+        this.tenantId,
         record.userId,
         record.name,
         record.tokenHash,
@@ -536,11 +775,12 @@ export class MysqlDatabase implements IDatabase {
   async findActiveApiTokenByHash(tokenHash: string): Promise<ApiTokenRecord | null> {
     const rows = await this.queryRows<ApiTokenSqlRow & RowDataPacket>(
       `${API_TOKEN_SELECT}
-      WHERE token_hash = ?
+      WHERE tenant_id = ?
+        AND token_hash = ?
         AND revoked_at IS NULL
         AND user_id IS NOT NULL
       LIMIT 1`,
-      [tokenHash]
+      [this.tenantId, tokenHash]
     );
 
     const row = rows[0];
@@ -553,8 +793,10 @@ export class MysqlDatabase implements IDatabase {
   async listApiTokens(): Promise<ApiTokenRecord[]> {
     const rows = await this.queryRows<ApiTokenSqlRow & RowDataPacket>(
       `${API_TOKEN_SELECT}
-      WHERE user_id IS NOT NULL
-      ORDER BY created_at DESC`
+      WHERE tenant_id = ?
+        AND user_id IS NOT NULL
+      ORDER BY created_at DESC`,
+      [this.tenantId]
     );
 
     return rows.map(mapApiTokenSqlRow);
@@ -568,9 +810,10 @@ export class MysqlDatabase implements IDatabase {
   async listApiTokensByUserId(userId: string): Promise<ApiTokenRecord[]> {
     const rows = await this.queryRows<ApiTokenSqlRow & RowDataPacket>(
       `${API_TOKEN_SELECT}
-      WHERE user_id = ?
+      WHERE tenant_id = ?
+        AND user_id = ?
       ORDER BY created_at DESC`,
-      [userId]
+      [this.tenantId, userId]
     );
 
     return rows.map(mapApiTokenSqlRow);
@@ -583,8 +826,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findApiTokenById(id: string): Promise<ApiTokenRecord | null> {
     const rows = await this.queryRows<ApiTokenSqlRow & RowDataPacket>(
-      `${API_TOKEN_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${API_TOKEN_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapApiTokenSqlRow(row) : null;
@@ -597,7 +840,10 @@ export class MysqlDatabase implements IDatabase {
    * @param actingUserId - User performing the delete action.
    */
   async deleteApiToken(id: string, actingUserId: string): Promise<boolean> {
-    const result = await this.executeStatement('DELETE FROM api_tokens WHERE id = ?', [id]);
+    const result = await this.executeStatement(
+      'DELETE FROM api_tokens WHERE tenant_id = ? AND id = ?',
+      [this.tenantId, id]
+    );
     const deleted = (result.affectedRows ?? 0) > 0;
     if (deleted) {
       await this.recordAuditEntry(actingUserId, 'delete', 'api_token', id);
@@ -617,9 +863,10 @@ export class MysqlDatabase implements IDatabase {
       `UPDATE api_tokens
       SET revoked_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?
+      WHERE tenant_id = ?
+        AND id = ?
         AND revoked_at IS NULL`,
-      [new Date(), actingUserId, id]
+      [new Date(), actingUserId, this.tenantId, id]
     );
 
     const revoked = (result.affectedRows ?? 0) > 0;
@@ -637,7 +884,10 @@ export class MysqlDatabase implements IDatabase {
    * @param when - Timestamp of the authenticated request.
    */
   async touchApiTokenLastUsed(id: string, when: Date): Promise<void> {
-    await this.executeStatement(`UPDATE api_tokens SET last_used_at = ? WHERE id = ?`, [when, id]);
+    await this.executeStatement(
+      `UPDATE api_tokens SET last_used_at = ? WHERE tenant_id = ? AND id = ?`,
+      [when, this.tenantId, id]
+    );
   }
 
   /**
@@ -665,6 +915,7 @@ export class MysqlDatabase implements IDatabase {
       await connection.execute(
         `INSERT INTO users (
           id,
+          tenant_id,
           name,
           role,
           collection_access,
@@ -679,9 +930,10 @@ export class MysqlDatabase implements IDatabase {
           updated_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
+          this.tenantId,
           trimmedName,
           input.role,
           serializeAccessList(input.collectionAccess),
@@ -700,8 +952,8 @@ export class MysqlDatabase implements IDatabase {
       );
 
       const [userRows] = await connection.execute<(UserSqlRow & RowDataPacket)[]>(
-        `${USER_SELECT} WHERE id = ? LIMIT 1`,
-        [userId]
+        `${USER_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+        [this.tenantId, userId]
       );
       const userRow = userRows[0];
       if (!userRow) {
@@ -711,6 +963,7 @@ export class MysqlDatabase implements IDatabase {
       await connection.execute(
         `INSERT INTO user_invitations (
           id,
+          tenant_id,
           user_id,
           code_hash,
           code_prefix,
@@ -720,9 +973,10 @@ export class MysqlDatabase implements IDatabase {
           created_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           invitation.id,
+          this.tenantId,
           invitation.userId,
           invitation.codeHash,
           invitation.codePrefix,
@@ -770,6 +1024,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO user_invitations (
         id,
+        tenant_id,
         user_id,
         code_hash,
         code_prefix,
@@ -779,9 +1034,10 @@ export class MysqlDatabase implements IDatabase {
         created_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         invitation.id,
+        this.tenantId,
         invitation.userId,
         invitation.codeHash,
         invitation.codePrefix,
@@ -805,8 +1061,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findInvitationById(id: string): Promise<InvitationRecord | null> {
     const rows = await this.queryRows<InvitationSqlRow & RowDataPacket>(
-      `${INVITATION_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${INVITATION_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapInvitationSqlRow(row) : null;
@@ -819,8 +1075,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findInvitationByCodeHash(codeHash: string): Promise<InvitationRecord | null> {
     const rows = await this.queryRows<InvitationSqlRow & RowDataPacket>(
-      `${INVITATION_SELECT} WHERE code_hash = ? LIMIT 1`,
-      [codeHash]
+      `${INVITATION_SELECT} WHERE tenant_id = ? AND code_hash = ? LIMIT 1`,
+      [this.tenantId, codeHash]
     );
     const row = rows[0];
     return row ? mapInvitationSqlRow(row) : null;
@@ -831,7 +1087,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listInvitations(): Promise<InvitationRecord[]> {
     const rows = await this.queryRows<InvitationSqlRow & RowDataPacket>(
-      `${INVITATION_SELECT} ORDER BY created_at DESC`
+      `${INVITATION_SELECT} WHERE tenant_id = ? ORDER BY created_at DESC`,
+      [this.tenantId]
     );
     return rows.map(mapInvitationSqlRow);
   }
@@ -848,11 +1105,12 @@ export class MysqlDatabase implements IDatabase {
       `UPDATE user_invitations
       SET revoked_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?
+      WHERE tenant_id = ?
+        AND id = ?
         AND redeemed_at IS NULL
         AND revoked_at IS NULL
         AND expires_at > ?`,
-      [now, actingUserId, id, now]
+      [now, actingUserId, this.tenantId, id, now]
     );
 
     const revoked = (result.affectedRows ?? 0) > 0;
@@ -885,17 +1143,18 @@ export class MysqlDatabase implements IDatabase {
         `UPDATE user_invitations
         SET redeemed_at = ?,
           updated_by_user_id = ?
-        WHERE code_hash = ?
+        WHERE tenant_id = ?
+          AND code_hash = ?
           AND redeemed_at IS NULL
           AND revoked_at IS NULL
           AND expires_at > ?`,
-        [now, actingUserId, codeHash, now]
+        [now, actingUserId, this.tenantId, codeHash, now]
       );
 
       if ((updateResult.affectedRows ?? 0) === 0) {
         const [existingRows] = await connection.execute<(InvitationSqlRow & RowDataPacket)[]>(
-          `${INVITATION_SELECT} WHERE code_hash = ? LIMIT 1`,
-          [codeHash]
+          `${INVITATION_SELECT} WHERE tenant_id = ? AND code_hash = ? LIMIT 1`,
+          [this.tenantId, codeHash]
         );
         const existingRow = existingRows[0];
         if (!existingRow) {
@@ -915,8 +1174,8 @@ export class MysqlDatabase implements IDatabase {
       }
 
       const [rows] = await connection.execute<(InvitationSqlRow & RowDataPacket)[]>(
-        `${INVITATION_SELECT} WHERE code_hash = ? LIMIT 1`,
-        [codeHash]
+        `${INVITATION_SELECT} WHERE tenant_id = ? AND code_hash = ? LIMIT 1`,
+        [this.tenantId, codeHash]
       );
       const invitationRow = rows[0];
       if (!invitationRow) {
@@ -925,8 +1184,8 @@ export class MysqlDatabase implements IDatabase {
 
       const invitation = mapInvitationSqlRow(invitationRow);
       const [userRows] = await connection.execute<(UserSqlRow & RowDataPacket)[]>(
-        `${USER_SELECT} WHERE id = ? LIMIT 1`,
-        [invitation.userId]
+        `${USER_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+        [this.tenantId, invitation.userId]
       );
       const userRow = userRows[0];
       if (!userRow) {
@@ -939,6 +1198,7 @@ export class MysqlDatabase implements IDatabase {
       await connection.execute(
         `INSERT INTO api_tokens (
           id,
+          tenant_id,
           user_id,
           name,
           token_hash,
@@ -948,9 +1208,10 @@ export class MysqlDatabase implements IDatabase {
           revoked_at,
           created_by_user_id,
           updated_by_user_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           record.id,
+          this.tenantId,
           record.userId,
           record.name,
           record.tokenHash,
@@ -982,7 +1243,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listCollections(): Promise<CollectionRecord[]> {
     const rows = await this.queryRows<CollectionSqlRow & RowDataPacket>(
-      `${COLLECTION_SELECT} ORDER BY name ASC`
+      `${COLLECTION_SELECT} WHERE tenant_id = ? ORDER BY name ASC`,
+      [this.tenantId]
     );
     return rows.map(mapCollectionSqlRow);
   }
@@ -1001,6 +1263,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO collections (
         id,
+        tenant_id,
         name,
         variables,
         headers,
@@ -1011,15 +1274,24 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, '[]', '[]', ?, '', '', ?, ?, ?, ?)`,
-      [id, trimmedName, MYSQL_DEFAULT_AUTH_JSON, now, now, actingUserId, actingUserId]
+      ) VALUES (?, ?, ?, '[]', '[]', ?, '', '', ?, ?, ?, ?)`,
+      [
+        id,
+        this.tenantId,
+        trimmedName,
+        MYSQL_DEFAULT_AUTH_JSON,
+        now,
+        now,
+        actingUserId,
+        actingUserId
+      ]
     );
 
     await this.recordAuditEntry(actingUserId, 'create', 'collection', id);
 
     const rows = await this.queryRows<CollectionSqlRow & RowDataPacket>(
-      `${COLLECTION_SELECT} WHERE id = ?`,
-      [id]
+      `${COLLECTION_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1060,7 +1332,7 @@ export class MysqlDatabase implements IDatabase {
         updated_at = ?,
         updated_by_user_id = ?,
         marker = ?
-      WHERE id = ?`,
+      WHERE tenant_id = ? AND id = ?`,
             [
               trimmedName,
               JSON.stringify(variables),
@@ -1071,6 +1343,7 @@ export class MysqlDatabase implements IDatabase {
               updatedAt,
               actingUserId,
               serializeSidebarMarker(marker),
+              this.tenantId,
               id
             ]
           )
@@ -1084,7 +1357,7 @@ export class MysqlDatabase implements IDatabase {
         post_request_script = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
+      WHERE tenant_id = ? AND id = ?`,
             [
               trimmedName,
               JSON.stringify(variables),
@@ -1094,6 +1367,7 @@ export class MysqlDatabase implements IDatabase {
               postRequestScript,
               updatedAt,
               actingUserId,
+              this.tenantId,
               id
             ]
           );
@@ -1105,8 +1379,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'collection', id);
 
     const rows = await this.queryRows<CollectionSqlRow & RowDataPacket>(
-      `${COLLECTION_SELECT} WHERE id = ?`,
-      [id]
+      `${COLLECTION_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1124,7 +1398,10 @@ export class MysqlDatabase implements IDatabase {
    */
   async deleteCollection(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'collection', id);
-    await this.executeStatement('DELETE FROM collections WHERE id = ?', [id]);
+    await this.executeStatement('DELETE FROM collections WHERE tenant_id = ? AND id = ?', [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -1134,8 +1411,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findCollectionById(id: string): Promise<CollectionRecord | null> {
     const rows = await this.queryRows<CollectionSqlRow & RowDataPacket>(
-      `${COLLECTION_SELECT} WHERE id = ?`,
-      [id]
+      `${COLLECTION_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapCollectionSqlRow(row) : null;
@@ -1159,8 +1436,8 @@ export class MysqlDatabase implements IDatabase {
       SET deletion_locked = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
-      [deletionLocked ? 1 : 0, updatedAt, actingUserId, id]
+      WHERE tenant_id = ? AND id = ?`,
+      [deletionLocked ? 1 : 0, updatedAt, actingUserId, this.tenantId, id]
     );
 
     if ((result.affectedRows ?? 0) === 0) {
@@ -1170,8 +1447,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'collection', id);
 
     const rows = await this.queryRows<CollectionSqlRow & RowDataPacket>(
-      `${COLLECTION_SELECT} WHERE id = ?`,
-      [id]
+      `${COLLECTION_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1186,7 +1463,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listEnvironments(): Promise<EnvironmentRecord[]> {
     const rows = await this.queryRows<EnvironmentSqlRow & RowDataPacket>(
-      `${ENVIRONMENT_SELECT} ORDER BY name ASC`
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = ? ORDER BY name ASC`,
+      [this.tenantId]
     );
     return rows.map(mapEnvironmentSqlRow);
   }
@@ -1205,21 +1483,22 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO environments (
         id,
+        tenant_id,
         name,
         variables,
         created_at,
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, '[]', ?, ?, ?, ?)`,
-      [id, trimmedName, now, now, actingUserId, actingUserId]
+      ) VALUES (?, ?, ?, '[]', ?, ?, ?, ?)`,
+      [id, this.tenantId, trimmedName, now, now, actingUserId, actingUserId]
     );
 
     await this.recordAuditEntry(actingUserId, 'create', 'environment', id);
 
     const rows = await this.queryRows<EnvironmentSqlRow & RowDataPacket>(
-      `${ENVIRONMENT_SELECT} WHERE id = ?`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1262,12 +1541,13 @@ export class MysqlDatabase implements IDatabase {
       setClauses.push('parent_uuid = ?');
       params.push(parentUuid?.trim() || null);
     }
+    params.push(this.tenantId);
     params.push(id);
 
     const result = await this.executeStatement(
       `UPDATE environments
       SET ${setClauses.join(',\n        ')}
-      WHERE id = ?`,
+      WHERE tenant_id = ? AND id = ?`,
       params
     );
 
@@ -1278,8 +1558,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'environment', id);
 
     const rows = await this.queryRows<EnvironmentSqlRow & RowDataPacket>(
-      `${ENVIRONMENT_SELECT} WHERE id = ?`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1298,10 +1578,13 @@ export class MysqlDatabase implements IDatabase {
   async deleteEnvironment(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'environment', id);
     await this.executeStatement(
-      'UPDATE environments SET parent_uuid = NULL WHERE parent_uuid = ?',
-      [id]
+      'UPDATE environments SET parent_uuid = NULL WHERE tenant_id = ? AND parent_uuid = ?',
+      [this.tenantId, id]
     );
-    await this.executeStatement('DELETE FROM environments WHERE id = ?', [id]);
+    await this.executeStatement('DELETE FROM environments WHERE tenant_id = ? AND id = ?', [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -1311,8 +1594,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findEnvironmentById(id: string): Promise<EnvironmentRecord | null> {
     const rows = await this.queryRows<EnvironmentSqlRow & RowDataPacket>(
-      `${ENVIRONMENT_SELECT} WHERE id = ?`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapEnvironmentSqlRow(row) : null;
@@ -1336,8 +1619,8 @@ export class MysqlDatabase implements IDatabase {
       SET deletion_locked = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
-      [deletionLocked ? 1 : 0, updatedAt, actingUserId, id]
+      WHERE tenant_id = ? AND id = ?`,
+      [deletionLocked ? 1 : 0, updatedAt, actingUserId, this.tenantId, id]
     );
 
     if ((result.affectedRows ?? 0) === 0) {
@@ -1347,8 +1630,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'environment', id);
 
     const rows = await this.queryRows<EnvironmentSqlRow & RowDataPacket>(
-      `${ENVIRONMENT_SELECT} WHERE id = ?`,
-      [id]
+      `${ENVIRONMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1363,7 +1646,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listSnippets(): Promise<SnippetRecord[]> {
     const rows = await this.queryRows<SnippetSqlRow & RowDataPacket>(
-      `${SNIPPET_SELECT} ORDER BY sort_order ASC, name ASC`
+      `${SNIPPET_SELECT} WHERE tenant_id = ? ORDER BY sort_order ASC, name ASC`,
+      [this.tenantId]
     );
     return rows.map(mapSnippetSqlRow);
   }
@@ -1386,13 +1670,15 @@ export class MysqlDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const maxRows = await this.queryRows<{ max_order: number | null } & RowDataPacket>(
-      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets'
+      'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM snippets WHERE tenant_id = ?',
+      [this.tenantId]
     );
     const maxOrder = maxRows[0]?.max_order ?? -1;
 
     await this.executeStatement(
       `INSERT INTO snippets (
         id,
+        tenant_id,
         name,
         code,
         scope,
@@ -1402,15 +1688,27 @@ export class MysqlDatabase implements IDatabase {
         created_by_user_id,
         updated_by_user_id,
         deletion_locked
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, trimmedName, code, scope, maxOrder + 1, now, now, actingUserId, actingUserId, 0]
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        this.tenantId,
+        trimmedName,
+        code,
+        scope,
+        maxOrder + 1,
+        now,
+        now,
+        actingUserId,
+        actingUserId,
+        0
+      ]
     );
 
     await this.recordAuditEntry(actingUserId, 'create', 'snippet', id);
 
     const rows = await this.queryRows<SnippetSqlRow & RowDataPacket>(
-      `${SNIPPET_SELECT} WHERE id = ?`,
-      [id]
+      `${SNIPPET_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1441,8 +1739,8 @@ export class MysqlDatabase implements IDatabase {
         scope = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
-      [trimmedName, code, scope, updatedAt, actingUserId, id]
+      WHERE tenant_id = ? AND id = ?`,
+      [trimmedName, code, scope, updatedAt, actingUserId, this.tenantId, id]
     );
 
     if ((result.affectedRows ?? 0) === 0) {
@@ -1452,8 +1750,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'snippet', id);
 
     const rows = await this.queryRows<SnippetSqlRow & RowDataPacket>(
-      `${SNIPPET_SELECT} WHERE id = ?`,
-      [id]
+      `${SNIPPET_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1471,7 +1769,10 @@ export class MysqlDatabase implements IDatabase {
    */
   async deleteSnippet(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'snippet', id);
-    await this.executeStatement('DELETE FROM snippets WHERE id = ?', [id]);
+    await this.executeStatement('DELETE FROM snippets WHERE tenant_id = ? AND id = ?', [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -1481,8 +1782,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findSnippetById(id: string): Promise<SnippetRecord | null> {
     const rows = await this.queryRows<SnippetSqlRow & RowDataPacket>(
-      `${SNIPPET_SELECT} WHERE id = ?`,
-      [id]
+      `${SNIPPET_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapSnippetSqlRow(row) : null;
@@ -1506,8 +1807,8 @@ export class MysqlDatabase implements IDatabase {
       SET deletion_locked = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
-      [deletionLocked ? 1 : 0, updatedAt, actingUserId, id]
+      WHERE tenant_id = ? AND id = ?`,
+      [deletionLocked ? 1 : 0, updatedAt, actingUserId, this.tenantId, id]
     );
 
     if ((result.affectedRows ?? 0) === 0) {
@@ -1517,8 +1818,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'snippet', id);
 
     const rows = await this.queryRows<SnippetSqlRow & RowDataPacket>(
-      `${SNIPPET_SELECT} WHERE id = ?`,
-      [id]
+      `${SNIPPET_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1682,7 +1983,8 @@ export class MysqlDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T[]> {
     const rows = await this.queryRows<PayloadEntitySqlRow & RowDataPacket>(
-      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} ORDER BY name ASC`
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE tenant_id = ? ORDER BY name ASC`,
+      [this.tenantId]
     );
     return rows.map(mapper);
   }
@@ -1700,10 +2002,11 @@ export class MysqlDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     await this.executeStatement(
-      `INSERT INTO ${table} (id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO ${table} (id, tenant_id, name, payload, created_at, updated_at, created_by_user_id, updated_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         trimRequiredName(input.name, 'Entity name'),
         JSON.stringify(input.payload),
         now,
@@ -1730,12 +2033,13 @@ export class MysqlDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T> {
     const result = await this.executeStatement(
-      `UPDATE ${table} SET name = ?, payload = ?, updated_at = ?, updated_by_user_id = ? WHERE id = ?`,
+      `UPDATE ${table} SET name = ?, payload = ?, updated_at = ?, updated_by_user_id = ? WHERE tenant_id = ? AND id = ?`,
       [
         trimRequiredName(input.name, 'Entity name'),
         JSON.stringify(input.payload),
         new Date(),
         actingUserId,
+        this.tenantId,
         id
       ]
     );
@@ -1756,7 +2060,10 @@ export class MysqlDatabase implements IDatabase {
     actingUserId: string
   ): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', entityType, id);
-    await this.executeStatement(`DELETE FROM ${table} WHERE id = ?`, [id]);
+    await this.executeStatement(`DELETE FROM ${table} WHERE tenant_id = ? AND id = ?`, [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -1768,8 +2075,8 @@ export class MysqlDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T | null> {
     const rows = await this.queryRows<PayloadEntitySqlRow & RowDataPacket>(
-      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE id = ?`,
-      [id]
+      `SELECT ${PAYLOAD_ENTITY_SELECT_COLUMNS} FROM ${table} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     return rows[0] ? mapper(rows[0]) : null;
   }
@@ -1786,8 +2093,8 @@ export class MysqlDatabase implements IDatabase {
     mapper: (row: PayloadEntitySqlRow) => T
   ): Promise<T> {
     const result = await this.executeStatement(
-      `UPDATE ${table} SET deletion_locked = ?, updated_at = ?, updated_by_user_id = ? WHERE id = ?`,
-      [deletionLocked ? 1 : 0, new Date(), actingUserId, id]
+      `UPDATE ${table} SET deletion_locked = ?, updated_at = ?, updated_by_user_id = ? WHERE tenant_id = ? AND id = ?`,
+      [deletionLocked ? 1 : 0, new Date(), actingUserId, this.tenantId, id]
     );
     if (result.affectedRows === 0) throw new Error('Entity not found');
     await this.recordAuditEntry(actingUserId, 'update', entityType, id);
@@ -1803,8 +2110,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listRequests(collectionId: string): Promise<SavedRequestRecord[]> {
     const rows = await this.queryRows<RequestSqlRow & RowDataPacket>(
-      `${REQUEST_SELECT} WHERE collection_id = ? ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${REQUEST_SELECT} WHERE tenant_id = ? AND collection_id = ? ORDER BY sort_order ASC, name ASC`,
+      [this.tenantId, collectionId]
     );
     return rows.map(mapRequestSqlRow);
   }
@@ -1816,8 +2123,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findRequestById(id: string): Promise<SavedRequestRecord | null> {
     const rows = await this.queryRows<RequestSqlRow & RowDataPacket>(
-      `${REQUEST_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${REQUEST_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapRequestSqlRow(row) : null;
@@ -1841,8 +2148,8 @@ export class MysqlDatabase implements IDatabase {
 
     if (folderId != null) {
       const folderRows = await this.queryRows<{ collection_id: string } & RowDataPacket>(
-        'SELECT collection_id FROM folders WHERE id = ?',
-        [folderId]
+        'SELECT collection_id FROM folders WHERE tenant_id = ? AND id = ?',
+        [this.tenantId, folderId]
       );
       const folderRow = folderRows[0];
       if (!folderRow || folderRow.collection_id !== input.collectionId) {
@@ -1870,7 +2177,7 @@ export class MysqlDatabase implements IDatabase {
           marker = ?,
           updated_at = ?,
           updated_by_user_id = ?
-        WHERE id = ?`,
+        WHERE tenant_id = ? AND id = ?`,
         [
           input.collectionId,
           folderId,
@@ -1889,6 +2196,7 @@ export class MysqlDatabase implements IDatabase {
           serializedMarker,
           now,
           actingUserId,
+          this.tenantId,
           input.id
         ]
       );
@@ -1897,8 +2205,8 @@ export class MysqlDatabase implements IDatabase {
         await this.recordAuditEntry(actingUserId, 'update', 'request', input.id);
 
         const rows = await this.queryRows<RequestSqlRow & RowDataPacket>(
-          `${REQUEST_SELECT} WHERE id = ?`,
-          [input.id]
+          `${REQUEST_SELECT} WHERE tenant_id = ? AND id = ?`,
+          [this.tenantId, input.id]
         );
         const row = rows[0];
         if (row) {
@@ -1909,9 +2217,9 @@ export class MysqlDatabase implements IDatabase {
 
     const maxRows = await this.queryRows<{ max_order: number | null } & RowDataPacket>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM requests
-       WHERE collection_id = ?
+       WHERE tenant_id = ? AND collection_id = ?
          AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`,
-      [input.collectionId, folderId, folderId]
+      [this.tenantId, input.collectionId, folderId, folderId]
     );
     const maxOrder = maxRows[0]?.max_order ?? -1;
     const id = randomUUID();
@@ -1919,6 +2227,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO requests (
         id,
+        tenant_id,
         collection_id,
         folder_id,
         name,
@@ -1939,9 +2248,10 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         input.collectionId,
         folderId,
         trimmedName,
@@ -1968,8 +2278,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'create', 'request', id);
 
     const rows = await this.queryRows<RequestSqlRow & RowDataPacket>(
-      `${REQUEST_SELECT} WHERE id = ?`,
-      [id]
+      `${REQUEST_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -1987,7 +2297,10 @@ export class MysqlDatabase implements IDatabase {
    */
   async deleteRequest(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'request', id);
-    await this.executeStatement('DELETE FROM requests WHERE id = ?', [id]);
+    await this.executeStatement('DELETE FROM requests WHERE tenant_id = ? AND id = ?', [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -1997,8 +2310,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listFolders(collectionId: string): Promise<FolderRecord[]> {
     const rows = await this.queryRows<FolderSqlRow & RowDataPacket>(
-      `${FOLDER_SELECT} WHERE collection_id = ? ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${FOLDER_SELECT} WHERE tenant_id = ? AND collection_id = ? ORDER BY sort_order ASC, name ASC`,
+      [this.tenantId, collectionId]
     );
     return rows.map(mapFolderSqlRow);
   }
@@ -2010,8 +2323,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findFolderById(id: string): Promise<FolderRecord | null> {
     const rows = await this.queryRows<FolderSqlRow & RowDataPacket>(
-      `${FOLDER_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${FOLDER_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapFolderSqlRow(row) : null;
@@ -2042,14 +2355,15 @@ export class MysqlDatabase implements IDatabase {
     const maxRows = await this.queryRows<{ max_order: number | null } & RowDataPacket>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order
        FROM folders
-       WHERE collection_id = ? AND parent_folder_id <=> ?`,
-      [collectionId, parentFolderId]
+       WHERE tenant_id = ? AND collection_id = ? AND parent_folder_id <=> ?`,
+      [this.tenantId, collectionId, parentFolderId]
     );
     const maxOrder = maxRows[0]?.max_order ?? -1;
 
     await this.executeStatement(
       `INSERT INTO folders (
         id,
+        tenant_id,
         collection_id,
         parent_folder_id,
         name,
@@ -2058,9 +2372,10 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         collectionId,
         parentFolderId,
         trimmedName,
@@ -2075,8 +2390,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'create', 'folder', id);
 
     const rows = await this.queryRows<FolderSqlRow & RowDataPacket>(
-      `${FOLDER_SELECT} WHERE id = ?`,
-      [id]
+      `${FOLDER_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -2109,16 +2424,23 @@ export class MysqlDatabase implements IDatabase {
         updated_at = ?,
         updated_by_user_id = ?,
         marker = ?
-      WHERE id = ?`,
-            [trimmedName, updatedAt, actingUserId, serializeSidebarMarker(marker), id]
+      WHERE tenant_id = ? AND id = ?`,
+            [
+              trimmedName,
+              updatedAt,
+              actingUserId,
+              serializeSidebarMarker(marker),
+              this.tenantId,
+              id
+            ]
           )
         : await this.executeStatement(
             `UPDATE folders
       SET name = ?,
         updated_at = ?,
         updated_by_user_id = ?
-      WHERE id = ?`,
-            [trimmedName, updatedAt, actingUserId, id]
+      WHERE tenant_id = ? AND id = ?`,
+            [trimmedName, updatedAt, actingUserId, this.tenantId, id]
           );
 
     if ((result.affectedRows ?? 0) === 0) {
@@ -2128,8 +2450,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'update', 'folder', id);
 
     const rows = await this.queryRows<FolderSqlRow & RowDataPacket>(
-      `${FOLDER_SELECT} WHERE id = ?`,
-      [id]
+      `${FOLDER_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -2173,10 +2495,19 @@ export class MysqlDatabase implements IDatabase {
     const connection = await this.requirePool().getConnection();
     try {
       await connection.beginTransaction();
-      await connection.execute(`DELETE FROM documents WHERE folder_id IN (${placeholders})`, ids);
-      await connection.execute(`DELETE FROM requests WHERE folder_id IN (${placeholders})`, ids);
+      await connection.execute(
+        `DELETE FROM documents WHERE tenant_id = ? AND folder_id IN (${placeholders})`,
+        [this.tenantId, ...ids]
+      );
+      await connection.execute(
+        `DELETE FROM requests WHERE tenant_id = ? AND folder_id IN (${placeholders})`,
+        [this.tenantId, ...ids]
+      );
       for (const folderId of ids.reverse()) {
-        await connection.execute('DELETE FROM folders WHERE id = ?', [folderId]);
+        await connection.execute('DELETE FROM folders WHERE tenant_id = ? AND id = ?', [
+          this.tenantId,
+          folderId
+        ]);
       }
       await connection.commit();
     } catch (err) {
@@ -2232,8 +2563,8 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `UPDATE folders
        SET parent_folder_id = ?, updated_at = ?, updated_by_user_id = ?
-       WHERE id = ?`,
-      [parentFolderId, new Date(), actingUserId, id]
+       WHERE tenant_id = ? AND id = ?`,
+      [parentFolderId, new Date(), actingUserId, this.tenantId, id]
     );
     await this.reorderFolders(
       folder.collectionId,
@@ -2271,8 +2602,16 @@ export class MysqlDatabase implements IDatabase {
           SET sort_order = ?,
             updated_at = ?,
             updated_by_user_id = ?
-          WHERE id = ? AND collection_id = ? AND parent_folder_id <=> ?`,
-          [index, updatedAt, actingUserId, orderedFolderIds[index], collectionId, parentFolderId]
+          WHERE tenant_id = ? AND id = ? AND collection_id = ? AND parent_folder_id <=> ?`,
+          [
+            index,
+            updatedAt,
+            actingUserId,
+            this.tenantId,
+            orderedFolderIds[index],
+            collectionId,
+            parentFolderId
+          ]
         );
       }
       await connection.commit();
@@ -2311,8 +2650,16 @@ export class MysqlDatabase implements IDatabase {
             folder_id = ?,
             updated_at = ?,
             updated_by_user_id = ?
-          WHERE id = ? AND collection_id = ?`,
-          [index, folderId, updatedAt, actingUserId, orderedRequestIds[index], collectionId]
+          WHERE tenant_id = ? AND id = ? AND collection_id = ?`,
+          [
+            index,
+            folderId,
+            updatedAt,
+            actingUserId,
+            this.tenantId,
+            orderedRequestIds[index],
+            collectionId
+          ]
         );
       }
       await connection.commit();
@@ -2354,10 +2701,10 @@ export class MysqlDatabase implements IDatabase {
       targetFolderId: string | null
     ): Promise<string[]> => {
       const [rows] = await connection.execute<(RowDataPacket & { id: string })[]>(
-        `SELECT id FROM requests WHERE collection_id = ?
+        `SELECT id FROM requests WHERE tenant_id = ? AND collection_id = ?
          AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
          ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId, targetFolderId]
+        [this.tenantId, collectionId, targetFolderId, targetFolderId]
       );
       return rows.map((row) => row.id);
     };
@@ -2379,8 +2726,8 @@ export class MysqlDatabase implements IDatabase {
             folder_id = ?,
             updated_at = ?,
             updated_by_user_id = ?
-          WHERE id = ?`,
-          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex]]
+          WHERE tenant_id = ? AND id = ?`,
+          [sortIndex, targetFolderId, updatedAt, actingUserId, this.tenantId, orderedIds[sortIndex]]
         );
       }
     };
@@ -2389,8 +2736,8 @@ export class MysqlDatabase implements IDatabase {
       await connection.beginTransaction();
 
       const [requestRows] = await connection.execute<(RequestSqlRow & RowDataPacket)[]>(
-        `${REQUEST_SELECT} WHERE id = ?`,
-        [requestId]
+        `${REQUEST_SELECT} WHERE tenant_id = ? AND id = ?`,
+        [this.tenantId, requestId]
       );
       const requestRow = requestRows[0];
       if (!requestRow) {
@@ -2404,7 +2751,10 @@ export class MysqlDatabase implements IDatabase {
       if (folderId != null) {
         const [folderRows] = await connection.execute<
           (RowDataPacket & { collection_id: string })[]
-        >('SELECT collection_id FROM folders WHERE id = ?', [folderId]);
+        >('SELECT collection_id FROM folders WHERE tenant_id = ? AND id = ?', [
+          this.tenantId,
+          folderId
+        ]);
         const folderRow = folderRows[0];
         if (!folderRow || folderRow.collection_id !== collectionId) {
           throw new Error('Folder not found');
@@ -2451,8 +2801,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listDocuments(collectionId: string): Promise<DocumentRecord[]> {
     const rows = await this.queryRows<DocumentSqlRow & RowDataPacket>(
-      `${DOCUMENT_SELECT} WHERE collection_id = ? ORDER BY sort_order ASC, name ASC`,
-      [collectionId]
+      `${DOCUMENT_SELECT} WHERE tenant_id = ? AND collection_id = ? ORDER BY sort_order ASC, name ASC`,
+      [this.tenantId, collectionId]
     );
     return rows.map(mapDocumentSqlRow);
   }
@@ -2464,8 +2814,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findDocumentById(id: string): Promise<DocumentRecord | null> {
     const rows = await this.queryRows<DocumentSqlRow & RowDataPacket>(
-      `${DOCUMENT_SELECT} WHERE id = ? LIMIT 1`,
-      [id]
+      `${DOCUMENT_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapDocumentSqlRow(row) : null;
@@ -2485,8 +2835,8 @@ export class MysqlDatabase implements IDatabase {
 
     if (folderId != null) {
       const folderRows = await this.queryRows<{ collection_id: string } & RowDataPacket>(
-        'SELECT collection_id FROM folders WHERE id = ?',
-        [folderId]
+        'SELECT collection_id FROM folders WHERE tenant_id = ? AND id = ?',
+        [this.tenantId, folderId]
       );
       const folderRow = folderRows[0];
       if (!folderRow || folderRow.collection_id !== input.collectionId) {
@@ -2504,7 +2854,7 @@ export class MysqlDatabase implements IDatabase {
           marker = ?,
           updated_at = ?,
           updated_by_user_id = ?
-        WHERE id = ?`,
+        WHERE tenant_id = ? AND id = ?`,
         [
           input.collectionId,
           folderId,
@@ -2513,6 +2863,7 @@ export class MysqlDatabase implements IDatabase {
           serializedMarker,
           now,
           actingUserId,
+          this.tenantId,
           input.id
         ]
       );
@@ -2521,8 +2872,8 @@ export class MysqlDatabase implements IDatabase {
         await this.recordAuditEntry(actingUserId, 'update', 'document', input.id);
 
         const rows = await this.queryRows<DocumentSqlRow & RowDataPacket>(
-          `${DOCUMENT_SELECT} WHERE id = ?`,
-          [input.id]
+          `${DOCUMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+          [this.tenantId, input.id]
         );
         const row = rows[0];
         if (row) {
@@ -2533,9 +2884,9 @@ export class MysqlDatabase implements IDatabase {
 
     const maxRows = await this.queryRows<{ max_order: number | null } & RowDataPacket>(
       `SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM documents
-       WHERE collection_id = ?
+       WHERE tenant_id = ? AND collection_id = ?
          AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)`,
-      [input.collectionId, folderId, folderId]
+      [this.tenantId, input.collectionId, folderId, folderId]
     );
     const maxOrder = maxRows[0]?.max_order ?? -1;
     const id = randomUUID();
@@ -2543,6 +2894,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO documents (
         id,
+        tenant_id,
         collection_id,
         folder_id,
         name,
@@ -2553,9 +2905,10 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         input.collectionId,
         folderId,
         trimmedName,
@@ -2572,8 +2925,8 @@ export class MysqlDatabase implements IDatabase {
     await this.recordAuditEntry(actingUserId, 'create', 'document', id);
 
     const rows = await this.queryRows<DocumentSqlRow & RowDataPacket>(
-      `${DOCUMENT_SELECT} WHERE id = ?`,
-      [id]
+      `${DOCUMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -2591,7 +2944,10 @@ export class MysqlDatabase implements IDatabase {
    */
   async deleteDocument(id: string, actingUserId: string): Promise<void> {
     await this.recordAuditEntry(actingUserId, 'delete', 'document', id);
-    await this.executeStatement('DELETE FROM documents WHERE id = ?', [id]);
+    await this.executeStatement('DELETE FROM documents WHERE tenant_id = ? AND id = ?', [
+      this.tenantId,
+      id
+    ]);
   }
 
   /**
@@ -2616,8 +2972,16 @@ export class MysqlDatabase implements IDatabase {
             folder_id = ?,
             updated_at = ?,
             updated_by_user_id = ?
-          WHERE id = ? AND collection_id = ?`,
-          [index, folderId, updatedAt, actingUserId, orderedDocumentIds[index], collectionId]
+          WHERE tenant_id = ? AND id = ? AND collection_id = ?`,
+          [
+            index,
+            folderId,
+            updatedAt,
+            actingUserId,
+            this.tenantId,
+            orderedDocumentIds[index],
+            collectionId
+          ]
         );
       }
       await connection.commit();
@@ -2659,10 +3023,10 @@ export class MysqlDatabase implements IDatabase {
       targetFolderId: string | null
     ): Promise<string[]> => {
       const rows = await this.queryRows<{ id: string } & RowDataPacket>(
-        `SELECT id FROM documents WHERE collection_id = ?
+        `SELECT id FROM documents WHERE tenant_id = ? AND collection_id = ?
          AND ((? IS NULL AND folder_id IS NULL) OR folder_id = ?)
          ORDER BY sort_order ASC, name ASC`,
-        [collectionId, targetFolderId, targetFolderId]
+        [this.tenantId, collectionId, targetFolderId, targetFolderId]
       );
       return rows.map((row) => row.id);
     };
@@ -2684,8 +3048,8 @@ export class MysqlDatabase implements IDatabase {
             folder_id = ?,
             updated_at = ?,
             updated_by_user_id = ?
-          WHERE id = ?`,
-          [sortIndex, targetFolderId, updatedAt, actingUserId, orderedIds[sortIndex]]
+          WHERE tenant_id = ? AND id = ?`,
+          [sortIndex, targetFolderId, updatedAt, actingUserId, this.tenantId, orderedIds[sortIndex]]
         );
       }
     };
@@ -2694,8 +3058,8 @@ export class MysqlDatabase implements IDatabase {
       await connection.beginTransaction();
 
       const documentRows = await this.queryRows<DocumentSqlRow & RowDataPacket>(
-        `${DOCUMENT_SELECT} WHERE id = ?`,
-        [documentId]
+        `${DOCUMENT_SELECT} WHERE tenant_id = ? AND id = ?`,
+        [this.tenantId, documentId]
       );
       const documentRow = documentRows[0];
       if (!documentRow) {
@@ -2708,8 +3072,8 @@ export class MysqlDatabase implements IDatabase {
 
       if (folderId != null) {
         const folderRows = await this.queryRows<{ collection_id: string } & RowDataPacket>(
-          'SELECT collection_id FROM folders WHERE id = ?',
-          [folderId]
+          'SELECT collection_id FROM folders WHERE tenant_id = ? AND id = ?',
+          [this.tenantId, folderId]
         );
         const folderRow = folderRows[0];
         if (!folderRow || folderRow.collection_id !== collectionId) {
@@ -2758,8 +3122,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async getLlmUsage(userId: string, period: string): Promise<LlmUsageRecord | null> {
     const [rows] = await this.requirePool().execute<(LlmUsageSqlRow & RowDataPacket)[]>(
-      `${LLM_USAGE_SELECT} WHERE user_id = ? AND period = ? LIMIT 1`,
-      [userId, period]
+      `${LLM_USAGE_SELECT} WHERE tenant_id = ? AND user_id = ? AND period = ? LIMIT 1`,
+      [this.tenantId, userId, period]
     );
     const row = rows[0];
     return row ? mapLlmUsageSqlRow(row) : null;
@@ -2786,19 +3150,20 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO llm_usage (
         id,
+        tenant_id,
         user_id,
         period,
         prompt_tokens,
         completion_tokens,
         total_tokens,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         prompt_tokens = prompt_tokens + VALUES(prompt_tokens),
         completion_tokens = completion_tokens + VALUES(completion_tokens),
         total_tokens = total_tokens + VALUES(total_tokens),
         updated_at = VALUES(updated_at)`,
-      [id, userId, period, promptTokens, completionTokens, totalDelta, now]
+      [id, this.tenantId, userId, period, promptTokens, completionTokens, totalDelta, now]
     );
 
     const usage = await this.getLlmUsage(userId, period);
@@ -2821,6 +3186,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO llm_usage_log (
         id,
+        tenant_id,
         user_id,
         api_token_id,
         period,
@@ -2833,9 +3199,10 @@ export class MysqlDatabase implements IDatabase {
         had_tool_calls,
         message_count,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         input.userId,
         input.apiTokenId,
         input.period,
@@ -2852,8 +3219,8 @@ export class MysqlDatabase implements IDatabase {
     );
 
     const rows = await this.queryRows<LlmUsageLogSqlRow & RowDataPacket>(
-      `${LLM_USAGE_LOG_SELECT} WHERE id = ?`,
-      [id]
+      `${LLM_USAGE_LOG_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -2868,7 +3235,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listLlmUsageLogs(): Promise<LlmUsageLogRecord[]> {
     const rows = await this.queryRows<LlmUsageLogSqlRow & RowDataPacket>(
-      `${LLM_USAGE_LOG_SELECT} ORDER BY created_at DESC`
+      `${LLM_USAGE_LOG_SELECT} WHERE tenant_id = ? ORDER BY created_at DESC`,
+      [this.tenantId]
     );
 
     return rows.map(mapLlmUsageLogSqlRow);
@@ -2879,8 +3247,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listRunResultsForUser(userId: string): Promise<RunResultRecord[]> {
     const rows = await this.queryRows<RunResultSqlRow & RowDataPacket>(
-      `${RUN_RESULT_SELECT} WHERE created_by_user_id = ? ORDER BY created_at DESC`,
-      [userId]
+      `${RUN_RESULT_SELECT} WHERE tenant_id = ? AND created_by_user_id = ? ORDER BY created_at DESC`,
+      [this.tenantId, userId]
     );
     return rows.map(mapRunResultSqlRow);
   }
@@ -2890,7 +3258,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async listAllRunResults(): Promise<RunResultRecord[]> {
     const rows = await this.queryRows<RunResultSqlRow & RowDataPacket>(
-      `${RUN_RESULT_SELECT} ORDER BY created_at DESC`
+      `${RUN_RESULT_SELECT} WHERE tenant_id = ? ORDER BY created_at DESC`,
+      [this.tenantId]
     );
     return rows.map(mapRunResultSqlRow);
   }
@@ -2910,6 +3279,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO run_results (
         id,
+        tenant_id,
         kind,
         label,
         collection_name,
@@ -2920,9 +3290,10 @@ export class MysqlDatabase implements IDatabase {
         payload,
         created_at,
         created_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         metadata.kind,
         label,
         metadata.collectionName,
@@ -2937,8 +3308,8 @@ export class MysqlDatabase implements IDatabase {
     );
 
     const rows = await this.queryRows<RunResultSqlRow & RowDataPacket>(
-      `${RUN_RESULT_SELECT} WHERE id = ?`,
-      [id]
+      `${RUN_RESULT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     if (!row) {
@@ -2954,8 +3325,8 @@ export class MysqlDatabase implements IDatabase {
    */
   async findRunResultById(id: string): Promise<RunResultRecord | null> {
     const rows = await this.queryRows<RunResultSqlRow & RowDataPacket>(
-      `${RUN_RESULT_SELECT} WHERE id = ?`,
-      [id]
+      `${RUN_RESULT_SELECT} WHERE tenant_id = ? AND id = ?`,
+      [this.tenantId, id]
     );
     const row = rows[0];
     return row ? mapRunResultSqlRow(row) : null;
@@ -2965,7 +3336,10 @@ export class MysqlDatabase implements IDatabase {
    * Deletes a run result by id.
    */
   async deleteRunResult(id: string, actingUserId: string): Promise<void> {
-    const result = await this.executeStatement('DELETE FROM run_results WHERE id = ?', [id]);
+    const result = await this.executeStatement(
+      'DELETE FROM run_results WHERE tenant_id = ? AND id = ?',
+      [this.tenantId, id]
+    );
     if ((result as ResultSetHeader).affectedRows === 0) {
       throw new Error('Run result not found');
     }
@@ -2991,6 +3365,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO users (
         id,
+        tenant_id,
         name,
         role,
         collection_access,
@@ -3005,9 +3380,10 @@ export class MysqlDatabase implements IDatabase {
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         trimmedName,
         input.role,
         serializeAccessList(input.collectionAccess),
@@ -3051,6 +3427,7 @@ export class MysqlDatabase implements IDatabase {
     await this.executeStatement(
       `INSERT INTO audit_log (
         id,
+        tenant_id,
         user_id,
         user_name,
         action,
@@ -3058,9 +3435,10 @@ export class MysqlDatabase implements IDatabase {
         entity_id,
         created_at,
         metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        this.tenantId,
         actingUserId,
         userName,
         action,

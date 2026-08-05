@@ -28,6 +28,14 @@ export interface TeamHub {
   token: string;
 
   /**
+   * Tenant identifier for multitenancy mode.
+   *
+   * When omitted or empty, requests route to the default tenant. The client
+   * trims whitespace and normalizes blank strings to undefined.
+   */
+  tenantId?: string;
+
+  /**
    * When false, the hub is soft-disconnected: config and token remain but the
    * storage backend is unmounted. Omitted or true means connected. Populated
    * by the main process when listing hubs; not persisted on save.

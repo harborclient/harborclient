@@ -3,6 +3,7 @@ import type { CustomThemeDraft } from '#/renderer/src/ui/Tabs/Plugins/hooks/useC
 import themeDesignerReducer, {
   beginEditSession,
   beginNewSession,
+  patchDraftToken,
   clearSession,
   commitBaseline,
   initializeSession,
@@ -173,6 +174,22 @@ describe('themeDesignerSlice', () => {
 
     expect(state.history.present).toEqual(draft);
     expect(state.history.past).toHaveLength(0);
+  });
+});
+
+describe('patchDraftToken', () => {
+  it('updates present and persisted drafts for one token without marking dirty', () => {
+    const draft = baseDraft();
+    let state = themeDesignerReducer(undefined, initializeSession({ draft, activeTheme: 'dark' }));
+
+    state = themeDesignerReducer(
+      state,
+      patchDraftToken({ kind: 'color', token: 'accent', value: '#abcdef' })
+    );
+
+    expect(state.history.present.colors.accent).toBe('#abcdef');
+    expect(state.persistedDraft.colors.accent).toBe('#abcdef');
+    expect(selectThemeDesignerIsDirty(rootStateWithThemeDesigner(state))).toBe(false);
   });
 });
 

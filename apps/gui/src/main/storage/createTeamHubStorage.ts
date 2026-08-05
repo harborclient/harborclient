@@ -2,7 +2,7 @@ import { join } from 'path';
 import { TeamHubStorage } from './TeamHubStorage';
 import { TeamHubIdMap } from './TeamHubIdMap';
 import { TeamHubFolderSettings } from './TeamHubFolderSettings';
-import { TeamHubClient } from '@harborclient/team-hub-api';
+import { createTeamHubClient } from '#/main/settings/teamHubClient';
 import type { TeamHub } from '@harborclient/core/types';
 
 /**
@@ -30,7 +30,7 @@ export async function createTeamHubStorage(
   idMap.init();
   const folderSettings = new TeamHubFolderSettings(dbPath);
   folderSettings.init();
-  const client = new TeamHubClient({ baseUrl: hub.baseUrl, token: hub.token });
+  const client = createTeamHubClient(hub);
   const db = new TeamHubStorage(client, idMap, folderSettings);
   await db.init();
   return db;

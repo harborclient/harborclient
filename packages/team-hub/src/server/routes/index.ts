@@ -1,9 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import type { DocsConfig } from '#/config/docsConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
+import {
+  DEFAULT_MULTITENANCY_CONFIG,
+  type MultitenancyConfig
+} from '#/config/multitenancyConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
+import {
+  createBearerAuthHook,
+  registerBearerAuthDecorator
+} from '#/server/auth/bearerAuthPlugin.js';
+import {
+  createTenantAwareDatabase,
+  createTenantResolutionHook,
+  registerTenantDecorator
+} from '#/server/auth/tenantContext.js';
 import { registerAdminRoutes } from '#/server/routes/admin.js';
 import { registerAuthRoutes } from '#/server/routes/auth.js';
 import { registerInvitationRoutes } from '#/server/routes/invitations.js';
@@ -20,10 +33,6 @@ import { registerRequestRoutes } from '#/server/routes/requests.js';
 import { registerRunResultRoutes } from '#/server/routes/runResults.js';
 import { registerLlmRoutes } from '#/server/routes/llm.js';
 import { registerPluginsRoutes } from '#/server/routes/plugins.js';
-import {
-  createBearerAuthHook,
-  registerBearerAuthDecorator
-} from '#/server/auth/bearerAuthPlugin.js';
 import type { ReloadResult } from '#/server/runtimeContext.js';
 
 export interface RegisterRoutesOptions {
@@ -33,7 +42,7 @@ export interface RegisterRoutesOptions {
   version: string;
 
   /**
-   * Database used to validate bearer tokens on protected routes.
+   * Root database used for tenant lookups and scoped via {@link IDatabase.forTenant}.
    */
   db: IDatabase;
 
@@ -58,6 +67,11 @@ export interface RegisterRoutesOptions {
   getDocs: () => DocsConfig | null;
 
   /**
+   * Returns the current normalized multitenancy configuration from server.yaml.
+   */
+  getMultitenancy: () => MultitenancyConfig;
+
+  /**
    * Reloads server.yaml and returns a per-section report.
    */
   reloadConfig: () => Promise<ReloadResult>;
@@ -66,18 +80,30 @@ export interface RegisterRoutesOptions {
 /**
  * Registers routes that do not require authentication.
  *
+ * Health and join stay global. Invitation preview/redeem resolve a tenant so
+ * invite codes stay isolated per tenant namespace.
+ *
  * @param app - Fastify server or encapsulated scope.
  * @param options - Shared route metadata such as app version.
  */
 export async function registerPublicRoutes(
   app: FastifyInstance,
-  options: Pick<RegisterRoutesOptions, 'version' | 'db' | 'throttleStore'>
+  options: Pick<RegisterRoutesOptions, 'version' | 'db' | 'throttleStore' | 'getMultitenancy'>
 ): Promise<void> {
   await registerHealthRoute(app, options.version);
   await registerJoinRoute(app);
-  await registerInvitationRoutes(app, {
-    db: options.db,
-    throttleStore: options.throttleStore
+
+  await app.register(async (invitationApp) => {
+    registerTenantDecorator(invitationApp);
+    invitationApp.addHook(
+      'onRequest',
+      createTenantResolutionHook(options.db, options.getMultitenancy)
+    );
+    const tenantAwareDb = createTenantAwareDatabase(options.db);
+    await registerInvitationRoutes(invitationApp, {
+      db: tenantAwareDb,
+      throttleStore: options.throttleStore
+    });
   });
 }
 
@@ -91,26 +117,29 @@ export async function registerProtectedRoutes(
   app: FastifyInstance,
   options: RegisterRoutesOptions
 ): Promise<void> {
+  registerTenantDecorator(app);
   registerBearerAuthDecorator(app);
-  app.addHook('onRequest', createBearerAuthHook(options.db, options.throttleStore));
+  app.addHook('onRequest', createTenantResolutionHook(options.db, options.getMultitenancy));
+  const tenantAwareDb = createTenantAwareDatabase(options.db);
+  app.addHook('onRequest', createBearerAuthHook(tenantAwareDb, options.throttleStore));
 
   await registerAuthRoutes(app);
   await registerAdminRoutes(app, {
-    db: options.db,
+    db: tenantAwareDb,
     getLlm: options.getLlm,
     reloadConfig: options.reloadConfig
   });
-  await registerCollectionRoutes(app, options.db);
-  await registerEnvironmentRoutes(app, options.db);
-  await registerSnippetRoutes(app, options.db);
-  await registerLiveServerRoutes(app, options.db);
-  await registerLivePageRoutes(app, options.db);
-  await registerFolderRoutes(app, options.db);
-  await registerRequestRoutes(app, options.db);
-  await registerDocumentRoutes(app, options.db);
-  await registerRunResultRoutes(app, options.db);
+  await registerCollectionRoutes(app, tenantAwareDb);
+  await registerEnvironmentRoutes(app, tenantAwareDb);
+  await registerSnippetRoutes(app, tenantAwareDb);
+  await registerLiveServerRoutes(app, tenantAwareDb);
+  await registerLivePageRoutes(app, tenantAwareDb);
+  await registerFolderRoutes(app, tenantAwareDb);
+  await registerRequestRoutes(app, tenantAwareDb);
+  await registerDocumentRoutes(app, tenantAwareDb);
+  await registerRunResultRoutes(app, tenantAwareDb);
   await registerLlmRoutes(app, {
-    db: options.db,
+    db: tenantAwareDb,
     getLlm: options.getLlm,
     getDocs: options.getDocs
   });
@@ -137,4 +166,11 @@ export async function registerRoutes(
   await app.register(async (protectedApp) => {
     await registerProtectedRoutes(protectedApp, options);
   });
+}
+
+/**
+ * Default multitenancy getter used by tests that omit an explicit config.
+ */
+export function defaultGetMultitenancy(): MultitenancyConfig {
+  return DEFAULT_MULTITENANCY_CONFIG;
 }

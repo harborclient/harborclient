@@ -1,0 +1,1445 @@
+{
+  "--mac-surface": {
+    "name": "--mac-surface",
+    "token": "surface",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Surface",
+    "description": "Main content background.",
+    "defaults": {
+      "light": "#f5f5f7",
+      "dark": "#1e1e1e",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-header": {
+    "name": "--mac-header",
+    "token": "header",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Header",
+    "description": "Top header strip (sidebar search + request tab bar).",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-page-header": {
+    "name": "--mac-page-header",
+    "token": "page-header",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Page header",
+    "description": "Page title header background (`PageHeader`).",
+    "defaults": {
+      "light": "#f5f5f7",
+      "dark": "#1e1e1e",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-page-header-text": {
+    "name": "--mac-page-header-text",
+    "token": "page-header-text",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Page header text",
+    "description": "Page title header primary text.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-page-header-muted": {
+    "name": "--mac-page-header-muted",
+    "token": "page-header-muted",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Page header muted",
+    "description": "Page title header description and decorative icons.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#d0d0d0"
+    }
+  },
+  "--mac-footer": {
+    "name": "--mac-footer",
+    "token": "footer",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Footer",
+    "description": "Footer status bar background.",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-control": {
+    "name": "--mac-control",
+    "token": "control",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Control",
+    "description": "Panels, inputs, footer bar.",
+    "defaults": {
+      "light": "#ffffff",
+      "dark": "#3a3a3c",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-field": {
+    "name": "--mac-field",
+    "token": "field",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Field",
+    "description": "Input field fill.",
+    "defaults": {
+      "light": "#ffffff",
+      "dark": "#191919",
+      "highContrast": "#141414"
+    }
+  },
+  "--mac-separator": {
+    "name": "--mac-separator",
+    "token": "separator",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Separator",
+    "description": "Borders and dividers.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.08)",
+      "dark": "rgba(255, 255, 255, 0.08)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-terminal": {
+    "name": "--mac-terminal",
+    "token": "terminal",
+    "kind": "color",
+    "group": "Layout",
+    "label": "Terminal",
+    "description": "Footer terminal background.",
+    "defaults": {
+      "light": "#000000",
+      "dark": "#000000",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-sidebar-rail": {
+    "name": "--mac-sidebar-rail",
+    "token": "sidebar-rail",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar rail",
+    "description": "Activity rail background.",
+    "defaults": {
+      "light": "#ffffff",
+      "dark": "#313131",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-sidebar-rail-active": {
+    "name": "--mac-sidebar-rail-active",
+    "token": "sidebar-rail-active",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar rail active",
+    "description": "Active/hover activity rail section fill.",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#c9a008"
+    }
+  },
+  "--mac-sidebar-rail-text": {
+    "name": "--mac-sidebar-rail-text",
+    "token": "sidebar-rail-text",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar rail text",
+    "description": "Activity rail icons and labels.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "#ffffff",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-sidebar-rail-separator": {
+    "name": "--mac-sidebar-rail-separator",
+    "token": "sidebar-rail-separator",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar rail separator",
+    "description": "Activity rail hairline between item groups.",
+    "defaults": {
+      "light": "#ededed",
+      "dark": "#3e3e3e",
+      "highContrast": "#d6b408"
+    }
+  },
+  "--mac-sidebar": {
+    "name": "--mac-sidebar",
+    "token": "sidebar",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar",
+    "description": "Left sidebar background.",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-sidebar-toolbar": {
+    "name": "--mac-sidebar-toolbar",
+    "token": "sidebar-toolbar",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar toolbar",
+    "description": "Sidebar/footer toolbar strip background.",
+    "defaults": {
+      "light": "#d0d0d1",
+      "dark": "#1e1e1e",
+      "highContrast": "#141414"
+    }
+  },
+  "--mac-sidebar-section": {
+    "name": "--mac-sidebar-section",
+    "token": "sidebar-section",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar section",
+    "description": "Sidebar section headers.",
+    "defaults": {
+      "light": "rgba(0, 122, 204, 0.18)",
+      "dark": "#343437",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-sidebar-section-text": {
+    "name": "--mac-sidebar-section-text",
+    "token": "sidebar-section-text",
+    "kind": "color",
+    "group": "Rail & Sidebars",
+    "label": "Sidebar section text",
+    "description": "Sidebar section header labels and chevrons.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-breadcrumb-background": {
+    "name": "--mac-breadcrumb-background",
+    "token": "breadcrumb-background",
+    "kind": "color",
+    "group": "Breadcrumb",
+    "label": "Breadcrumb background",
+    "description": "Request editor breadcrumb bar track.",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-breadcrumb-segment": {
+    "name": "--mac-breadcrumb-segment",
+    "token": "breadcrumb-segment",
+    "kind": "color",
+    "group": "Breadcrumb",
+    "label": "Breadcrumb segment",
+    "description": "Breadcrumb chevron segment fill (collection/folder crumbs).",
+    "defaults": {
+      "light": "#f5f5f7",
+      "dark": "#323234",
+      "highContrast": "#141414"
+    }
+  },
+  "--mac-breadcrumb-current": {
+    "name": "--mac-breadcrumb-current",
+    "token": "breadcrumb-current",
+    "kind": "color",
+    "group": "Breadcrumb",
+    "label": "Breadcrumb current",
+    "description": "Trailing request-name breadcrumb segment fill.",
+    "defaults": {
+      "light": "#ffffff",
+      "dark": "#3a3a3c",
+      "highContrast": "#1f1f1f"
+    }
+  },
+  "--mac-text": {
+    "name": "--mac-text",
+    "token": "text",
+    "kind": "color",
+    "group": "Text",
+    "label": "Text",
+    "description": "Primary text.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-text-secondary": {
+    "name": "--mac-text-secondary",
+    "token": "text-secondary",
+    "kind": "color",
+    "group": "Text",
+    "label": "Text secondary",
+    "description": "Secondary labels.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.65)",
+      "dark": "rgba(255, 255, 255, 0.65)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-muted": {
+    "name": "--mac-muted",
+    "token": "muted",
+    "kind": "color",
+    "group": "Text",
+    "label": "Muted",
+    "description": "De-emphasized text.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#d0d0d0"
+    }
+  },
+  "--mac-footer-text": {
+    "name": "--mac-footer-text",
+    "token": "footer-text",
+    "kind": "color",
+    "group": "Text",
+    "label": "Footer text",
+    "description": "Footer primary text (active segment buttons, selection-style icons).",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-footer-muted": {
+    "name": "--mac-footer-muted",
+    "token": "footer-muted",
+    "kind": "color",
+    "group": "Text",
+    "label": "Footer muted",
+    "description": "Footer de-emphasized text (inactive segment buttons).",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-accent": {
+    "name": "--mac-accent",
+    "token": "accent",
+    "kind": "color",
+    "group": "Interactive",
+    "label": "Accent",
+    "description": "Links, focus rings, primary actions.",
+    "defaults": {
+      "light": "#007acc",
+      "dark": "#4098dc",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-selection": {
+    "name": "--mac-selection",
+    "token": "selection",
+    "kind": "color",
+    "group": "Interactive",
+    "label": "Selection",
+    "description": "Selected row / highlight fill.",
+    "defaults": {
+      "light": "rgba(0, 122, 204, 0.18)",
+      "dark": "rgba(64, 152, 220, 0.22)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-doc-markdown": {
+    "name": "--mac-doc-markdown",
+    "token": "doc-markdown",
+    "kind": "color",
+    "group": "Interactive",
+    "label": "Markdown document",
+    "description": "Collection sidebar markdown document icon.",
+    "defaults": {
+      "light": "#007acc",
+      "dark": "#4098dc",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-footer-icon-active": {
+    "name": "--mac-footer-icon-active",
+    "token": "footer-icon-active",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Footer icon active",
+    "description": "Active footer icon toggle color.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-toolbar-action-active": {
+    "name": "--mac-toolbar-action-active",
+    "token": "toolbar-action-active",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Toolbar action active",
+    "description": "Pressed sidebar toolbar action icon color.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-tab-underline": {
+    "name": "--mac-tab-underline",
+    "token": "tab-underline",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Tab underline",
+    "description": "Active request tab underline.",
+    "defaults": {
+      "light": "#007acc",
+      "dark": "#ffffff",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-resize-separator": {
+    "name": "--mac-resize-separator",
+    "token": "resize-separator",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Resize separator",
+    "description": "Resizable panel separator track and edge border.",
+    "defaults": {
+      "light": "#ffffff",
+      "dark": "#3a3a3c",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-resize-handle": {
+    "name": "--mac-resize-handle",
+    "token": "resize-handle",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Resize handle",
+    "description": "Resizable panel grip (and high-contrast chrome accents).",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.29)",
+      "dark": "rgba(255, 255, 255, 0.29)",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-variable-token": {
+    "name": "--mac-variable-token",
+    "token": "variable-token",
+    "kind": "color",
+    "group": "Chrome",
+    "label": "Variable token",
+    "description": "`{{variable}}` syntax highlight in editors.",
+    "defaults": {
+      "light": "#007acc",
+      "dark": "#4098dc",
+      "highContrast": "#5fe3f0"
+    }
+  },
+  "--mac-tab-bar": {
+    "name": "--mac-tab-bar",
+    "token": "tab-bar",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Tab bar strip",
+    "description": "Request editor tab bar strip background.",
+    "defaults": {
+      "light": "#ececee",
+      "dark": "#252526",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-tab-active": {
+    "name": "--mac-tab-active",
+    "token": "tab-active",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Active tab",
+    "description": "Active request/editor tab fill.",
+    "defaults": {
+      "light": "#f5f5f7",
+      "dark": "#1e1e1e",
+      "highContrast": "#000000"
+    }
+  },
+  "--mac-tab-inactive": {
+    "name": "--mac-tab-inactive",
+    "token": "tab-inactive",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Inactive tab",
+    "description": "Inactive request/editor tab fill.",
+    "defaults": {
+      "light": "rgba(255, 255, 255, 0.2)",
+      "dark": "rgba(58, 58, 60, 0.2)",
+      "highContrast": "rgba(0, 0, 0, 0.2)"
+    }
+  },
+  "--mac-tab-hover": {
+    "name": "--mac-tab-hover",
+    "token": "tab-hover",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Hover / focus",
+    "description": "Inactive request/editor tab hover and focus-visible fill.",
+    "defaults": {
+      "light": "rgba(0, 122, 204, 0.108)",
+      "dark": "rgba(64, 152, 220, 0.132)",
+      "highContrast": "rgba(255, 214, 10, 0.6)"
+    }
+  },
+  "--mac-tab-text": {
+    "name": "--mac-tab-text",
+    "token": "tab-text",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Active tab text",
+    "description": "Active (and hover/focus) request/editor tab label color.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.85)",
+      "dark": "rgba(255, 255, 255, 0.85)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-tab-text-inactive": {
+    "name": "--mac-tab-text-inactive",
+    "token": "tab-text-inactive",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Inactive tab text",
+    "description": "Inactive request/editor tab label color.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#d0d0d0"
+    }
+  },
+  "--mac-tab-unsaved": {
+    "name": "--mac-tab-unsaved",
+    "token": "tab-unsaved",
+    "kind": "color",
+    "group": "Tabs",
+    "label": "Unsaved tab text",
+    "description": "Request/markdown tab title when the tab has unsaved changes.",
+    "defaults": {
+      "light": "#b45309",
+      "dark": "#ffb340",
+      "highContrast": "#5fe3f0"
+    }
+  },
+  "--mac-danger": {
+    "name": "--mac-danger",
+    "token": "danger",
+    "kind": "color",
+    "group": "Status",
+    "label": "Danger",
+    "description": "Status colors.",
+    "defaults": {
+      "light": "#ff3b30",
+      "dark": "#ff453a",
+      "highContrast": "#ff8a80"
+    }
+  },
+  "--mac-danger-light": {
+    "name": "--mac-danger-light",
+    "token": "danger-light",
+    "kind": "color",
+    "group": "Status",
+    "label": "Danger light",
+    "description": "Status colors.",
+    "defaults": {
+      "light": "#d70015",
+      "dark": "#ff6961",
+      "highContrast": "#ffb4af"
+    }
+  },
+  "--mac-warning": {
+    "name": "--mac-warning",
+    "token": "warning",
+    "kind": "color",
+    "group": "Status",
+    "label": "Warning",
+    "description": "Status colors.",
+    "defaults": {
+      "light": "#ff9500",
+      "dark": "#ff9f0a",
+      "highContrast": "#ffb340"
+    }
+  },
+  "--mac-success": {
+    "name": "--mac-success",
+    "token": "success",
+    "kind": "color",
+    "group": "Status",
+    "label": "Success",
+    "description": "Status colors.",
+    "defaults": {
+      "light": "#34c759",
+      "dark": "#30d158",
+      "highContrast": "#5ce06a"
+    }
+  },
+  "--mac-info": {
+    "name": "--mac-info",
+    "token": "info",
+    "kind": "color",
+    "group": "Status",
+    "label": "Info",
+    "description": "Status colors.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.55)",
+      "dark": "rgba(255, 255, 255, 0.55)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-method-get": {
+    "name": "--mac-method-get",
+    "token": "method-get",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "GET",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#2d8a4e",
+      "dark": "#2d8a4e",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-post": {
+    "name": "--mac-method-post",
+    "token": "method-post",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "POST",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#0066cc",
+      "dark": "#2f8eed",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-put": {
+    "name": "--mac-method-put",
+    "token": "method-put",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "PUT",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#b8860b",
+      "dark": "#b8860b",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-patch": {
+    "name": "--mac-method-patch",
+    "token": "method-patch",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "PATCH",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#7b5ea7",
+      "dark": "#7b5ea7",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-delete": {
+    "name": "--mac-method-delete",
+    "token": "method-delete",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "DELETE",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#c0392b",
+      "dark": "#de5445",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-head": {
+    "name": "--mac-method-head",
+    "token": "method-head",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "HEAD",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#6e6e73",
+      "dark": "#6e6e73",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-options": {
+    "name": "--mac-method-options",
+    "token": "method-options",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "OPTIONS",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#6e6e73",
+      "dark": "#6e6e73",
+      "highContrast": "#ffd60a"
+    }
+  },
+  "--mac-method-sse": {
+    "name": "--mac-method-sse",
+    "token": "method-sse",
+    "kind": "color",
+    "group": "HTTP methods",
+    "label": "SSE",
+    "description": "HTTP method / SSE badge colors.",
+    "defaults": {
+      "light": "#0f766e",
+      "dark": "#0f766e",
+      "highContrast": "#0f766e"
+    }
+  },
+  "--mac-scrollbar-track": {
+    "name": "--mac-scrollbar-track",
+    "token": "scrollbar-track",
+    "kind": "color",
+    "group": "Scrollbar",
+    "label": "Scrollbar track",
+    "description": "Scrollbar track and thumb colors.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.06)",
+      "dark": "rgba(255, 255, 255, 0.06)",
+      "highContrast": "transparent"
+    }
+  },
+  "--mac-scrollbar-thumb": {
+    "name": "--mac-scrollbar-thumb",
+    "token": "scrollbar-thumb",
+    "kind": "color",
+    "group": "Scrollbar",
+    "label": "Scrollbar thumb",
+    "description": "Scrollbar track and thumb colors.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.44)",
+      "dark": "rgba(255, 255, 255, 0.44)",
+      "highContrast": "#9e9e9e"
+    }
+  },
+  "--mac-scrollbar-thumb-hover": {
+    "name": "--mac-scrollbar-thumb-hover",
+    "token": "scrollbar-thumb-hover",
+    "kind": "color",
+    "group": "Scrollbar",
+    "label": "Scrollbar thumb hover",
+    "description": "Scrollbar track and thumb colors.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.55)",
+      "dark": "rgba(255, 255, 255, 0.55)",
+      "highContrast": "#d0d0d0"
+    }
+  },
+  "--mac-scrollbar-thumb-active": {
+    "name": "--mac-scrollbar-thumb-active",
+    "token": "scrollbar-thumb-active",
+    "kind": "color",
+    "group": "Scrollbar",
+    "label": "Scrollbar thumb active",
+    "description": "Scrollbar track and thumb colors.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.66)",
+      "dark": "rgba(255, 255, 255, 0.66)",
+      "highContrast": "#ffffff"
+    }
+  },
+  "--mac-script-stage-before-all": {
+    "name": "--mac-script-stage-before-all",
+    "token": "script-stage-before-all",
+    "kind": "color",
+    "group": "Script stages",
+    "label": "Before all",
+    "description": "Script row stage accent colors.",
+    "defaults": {
+      "light": "#1360ae",
+      "dark": "#1360ae",
+      "highContrast": "#1360ae"
+    }
+  },
+  "--mac-script-stage-before-each": {
+    "name": "--mac-script-stage-before-each",
+    "token": "script-stage-before-each",
+    "kind": "color",
+    "group": "Script stages",
+    "label": "Before each",
+    "description": "Script row stage accent colors.",
+    "defaults": {
+      "light": "#007acc",
+      "dark": "#4098dc",
+      "highContrast": "#0a84ff"
+    }
+  },
+  "--mac-script-stage-main": {
+    "name": "--mac-script-stage-main",
+    "token": "script-stage-main",
+    "kind": "color",
+    "group": "Script stages",
+    "label": "Main",
+    "description": "Script row stage accent colors.",
+    "defaults": {
+      "light": "#32d2e2",
+      "dark": "#32d2e2",
+      "highContrast": "#32d2e2"
+    }
+  },
+  "--mac-script-stage-after-each": {
+    "name": "--mac-script-stage-after-each",
+    "token": "script-stage-after-each",
+    "kind": "color",
+    "group": "Script stages",
+    "label": "After each",
+    "description": "Script row stage accent colors.",
+    "defaults": {
+      "light": "#ff9f0a",
+      "dark": "#ff9f0a",
+      "highContrast": "#ff9f0a"
+    }
+  },
+  "--mac-script-stage-after-all": {
+    "name": "--mac-script-stage-after-all",
+    "token": "script-stage-after-all",
+    "kind": "color",
+    "group": "Script stages",
+    "label": "After all",
+    "description": "Script row stage accent colors.",
+    "defaults": {
+      "light": "#ae7213",
+      "dark": "#ae7213",
+      "highContrast": "#ae7213"
+    }
+  },
+  "--mac-git-staged": {
+    "name": "--mac-git-staged",
+    "token": "git-staged",
+    "kind": "color",
+    "group": "Git",
+    "label": "Git staged",
+    "description": "Git-backed request names staged for commit.",
+    "defaults": {
+      "light": "#34c759",
+      "dark": "#30d158",
+      "highContrast": "#5ce06a"
+    }
+  },
+  "--mac-git-uncommitted": {
+    "name": "--mac-git-uncommitted",
+    "token": "git-uncommitted",
+    "kind": "color",
+    "group": "Git",
+    "label": "Git uncommitted",
+    "description": "Git-backed request names with both staged and unstaged changes.",
+    "defaults": {
+      "light": "#ff9500",
+      "dark": "#ff9f0a",
+      "highContrast": "#ffb340"
+    }
+  },
+  "--mac-git-unstaged": {
+    "name": "--mac-git-unstaged",
+    "token": "git-unstaged",
+    "kind": "color",
+    "group": "Git",
+    "label": "Git unstaged",
+    "description": "Git-backed request names with tracked unstaged changes.",
+    "defaults": {
+      "light": "rgba(0, 0, 0, 0.58)",
+      "dark": "rgba(255, 255, 255, 0.58)",
+      "highContrast": "#d0d0d0"
+    }
+  },
+  "--mac-git-untracked": {
+    "name": "--mac-git-untracked",
+    "token": "git-untracked",
+    "kind": "color",
+    "group": "Git",
+    "label": "Git untracked",
+    "description": "Git-backed request names for new files not yet added to the repository.",
+    "defaults": {
+      "light": "#34c759",
+      "dark": "#30d158",
+      "highContrast": "#5ce06a"
+    }
+  },
+  "--mac-layout-font-family": {
+    "name": "--mac-layout-font-family",
+    "token": "layout-font-family",
+    "kind": "metric",
+    "group": "Layout",
+    "label": "Font family",
+    "description": "Layout font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-layout-font-size": {
+    "name": "--mac-layout-font-size",
+    "token": "layout-font-size",
+    "kind": "metric",
+    "group": "Layout",
+    "label": "Font size",
+    "description": "Layout font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-layout-border-width": {
+    "name": "--mac-layout-border-width",
+    "token": "layout-border-width",
+    "kind": "metric",
+    "group": "Layout",
+    "label": "Border width",
+    "description": "Layout border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-layout-radius": {
+    "name": "--mac-layout-radius",
+    "token": "layout-radius",
+    "kind": "metric",
+    "group": "Layout",
+    "label": "Radius",
+    "description": "Layout radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-breadcrumb-font-family": {
+    "name": "--mac-breadcrumb-font-family",
+    "token": "breadcrumb-font-family",
+    "kind": "metric",
+    "group": "Breadcrumb",
+    "label": "Font family",
+    "description": "Breadcrumb font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-breadcrumb-font-size": {
+    "name": "--mac-breadcrumb-font-size",
+    "token": "breadcrumb-font-size",
+    "kind": "metric",
+    "group": "Breadcrumb",
+    "label": "Font size",
+    "description": "Breadcrumb font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-breadcrumb-border-width": {
+    "name": "--mac-breadcrumb-border-width",
+    "token": "breadcrumb-border-width",
+    "kind": "metric",
+    "group": "Breadcrumb",
+    "label": "Border width",
+    "description": "Breadcrumb border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-breadcrumb-radius": {
+    "name": "--mac-breadcrumb-radius",
+    "token": "breadcrumb-radius",
+    "kind": "metric",
+    "group": "Breadcrumb",
+    "label": "Radius",
+    "description": "Breadcrumb radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-text-font-family": {
+    "name": "--mac-text-font-family",
+    "token": "text-font-family",
+    "kind": "metric",
+    "group": "Text",
+    "label": "Font family",
+    "description": "Text font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-text-font-family-mono": {
+    "name": "--mac-text-font-family-mono",
+    "token": "text-font-family-mono",
+    "kind": "metric",
+    "group": "Text",
+    "label": "Mono font family",
+    "description": "Text mono font family metric.",
+    "defaults": {
+      "light": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "dark": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "highContrast": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    }
+  },
+  "--mac-text-font-size": {
+    "name": "--mac-text-font-size",
+    "token": "text-font-size",
+    "kind": "metric",
+    "group": "Text",
+    "label": "Font size",
+    "description": "Text font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-text-font-size-sm": {
+    "name": "--mac-text-font-size-sm",
+    "token": "text-font-size-sm",
+    "kind": "metric",
+    "group": "Text",
+    "label": "Font size (sm)",
+    "description": "Text font size (sm) metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-text-font-size-lg": {
+    "name": "--mac-text-font-size-lg",
+    "token": "text-font-size-lg",
+    "kind": "metric",
+    "group": "Text",
+    "label": "Font size (lg)",
+    "description": "Text font size (lg) metric.",
+    "defaults": {
+      "light": "16px",
+      "dark": "16px",
+      "highContrast": "16px"
+    }
+  },
+  "--mac-interactive-font-family": {
+    "name": "--mac-interactive-font-family",
+    "token": "interactive-font-family",
+    "kind": "metric",
+    "group": "Interactive",
+    "label": "Font family",
+    "description": "Interactive font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-interactive-font-size": {
+    "name": "--mac-interactive-font-size",
+    "token": "interactive-font-size",
+    "kind": "metric",
+    "group": "Interactive",
+    "label": "Font size",
+    "description": "Interactive font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-interactive-border-width": {
+    "name": "--mac-interactive-border-width",
+    "token": "interactive-border-width",
+    "kind": "metric",
+    "group": "Interactive",
+    "label": "Border width",
+    "description": "Interactive border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-interactive-radius": {
+    "name": "--mac-interactive-radius",
+    "token": "interactive-radius",
+    "kind": "metric",
+    "group": "Interactive",
+    "label": "Radius",
+    "description": "Interactive radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-interactive-focus-ring-width": {
+    "name": "--mac-interactive-focus-ring-width",
+    "token": "interactive-focus-ring-width",
+    "kind": "metric",
+    "group": "Interactive",
+    "label": "Focus ring width",
+    "description": "Interactive focus ring width metric.",
+    "defaults": {
+      "light": "3px",
+      "dark": "3px",
+      "highContrast": "3px"
+    }
+  },
+  "--mac-chrome-font-family": {
+    "name": "--mac-chrome-font-family",
+    "token": "chrome-font-family",
+    "kind": "metric",
+    "group": "Chrome",
+    "label": "Font family",
+    "description": "Chrome font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-chrome-font-size": {
+    "name": "--mac-chrome-font-size",
+    "token": "chrome-font-size",
+    "kind": "metric",
+    "group": "Chrome",
+    "label": "Font size",
+    "description": "Chrome font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-chrome-border-width": {
+    "name": "--mac-chrome-border-width",
+    "token": "chrome-border-width",
+    "kind": "metric",
+    "group": "Chrome",
+    "label": "Border width",
+    "description": "Chrome border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-chrome-radius": {
+    "name": "--mac-chrome-radius",
+    "token": "chrome-radius",
+    "kind": "metric",
+    "group": "Chrome",
+    "label": "Radius",
+    "description": "Chrome radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-tab-font-family": {
+    "name": "--mac-tab-font-family",
+    "token": "tab-font-family",
+    "kind": "metric",
+    "group": "Tabs",
+    "label": "Font family",
+    "description": "Tabs font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-tab-font-size": {
+    "name": "--mac-tab-font-size",
+    "token": "tab-font-size",
+    "kind": "metric",
+    "group": "Tabs",
+    "label": "Font size",
+    "description": "Tabs font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-tab-border-width": {
+    "name": "--mac-tab-border-width",
+    "token": "tab-border-width",
+    "kind": "metric",
+    "group": "Tabs",
+    "label": "Border width",
+    "description": "Tabs border width metric.",
+    "defaults": {
+      "light": "2px",
+      "dark": "2px",
+      "highContrast": "2px"
+    }
+  },
+  "--mac-tab-radius": {
+    "name": "--mac-tab-radius",
+    "token": "tab-radius",
+    "kind": "metric",
+    "group": "Tabs",
+    "label": "Radius",
+    "description": "Tabs radius metric.",
+    "defaults": {
+      "light": "9999px",
+      "dark": "9999px",
+      "highContrast": "9999px"
+    }
+  },
+  "--mac-status-font-family": {
+    "name": "--mac-status-font-family",
+    "token": "status-font-family",
+    "kind": "metric",
+    "group": "Status",
+    "label": "Font family",
+    "description": "Status font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-status-font-size": {
+    "name": "--mac-status-font-size",
+    "token": "status-font-size",
+    "kind": "metric",
+    "group": "Status",
+    "label": "Font size",
+    "description": "Status font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-status-border-width": {
+    "name": "--mac-status-border-width",
+    "token": "status-border-width",
+    "kind": "metric",
+    "group": "Status",
+    "label": "Border width",
+    "description": "Status border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-status-radius": {
+    "name": "--mac-status-radius",
+    "token": "status-radius",
+    "kind": "metric",
+    "group": "Status",
+    "label": "Radius",
+    "description": "Status radius metric.",
+    "defaults": {
+      "light": "9999px",
+      "dark": "9999px",
+      "highContrast": "9999px"
+    }
+  },
+  "--mac-method-font-family": {
+    "name": "--mac-method-font-family",
+    "token": "method-font-family",
+    "kind": "metric",
+    "group": "HTTP methods",
+    "label": "Font family",
+    "description": "HTTP methods font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-method-font-size": {
+    "name": "--mac-method-font-size",
+    "token": "method-font-size",
+    "kind": "metric",
+    "group": "HTTP methods",
+    "label": "Font size",
+    "description": "HTTP methods font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-method-border-width": {
+    "name": "--mac-method-border-width",
+    "token": "method-border-width",
+    "kind": "metric",
+    "group": "HTTP methods",
+    "label": "Border width",
+    "description": "HTTP methods border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-method-radius": {
+    "name": "--mac-method-radius",
+    "token": "method-radius",
+    "kind": "metric",
+    "group": "HTTP methods",
+    "label": "Radius",
+    "description": "HTTP methods radius metric.",
+    "defaults": {
+      "light": "0.25rem",
+      "dark": "0.25rem",
+      "highContrast": "0.25rem"
+    }
+  },
+  "--mac-script-stage-font-family": {
+    "name": "--mac-script-stage-font-family",
+    "token": "script-stage-font-family",
+    "kind": "metric",
+    "group": "Script stages",
+    "label": "Font family",
+    "description": "Script stages font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-script-stage-font-size": {
+    "name": "--mac-script-stage-font-size",
+    "token": "script-stage-font-size",
+    "kind": "metric",
+    "group": "Script stages",
+    "label": "Font size",
+    "description": "Script stages font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-script-stage-border-width": {
+    "name": "--mac-script-stage-border-width",
+    "token": "script-stage-border-width",
+    "kind": "metric",
+    "group": "Script stages",
+    "label": "Border width",
+    "description": "Script stages border width metric.",
+    "defaults": {
+      "light": "3px",
+      "dark": "3px",
+      "highContrast": "3px"
+    }
+  },
+  "--mac-script-stage-radius": {
+    "name": "--mac-script-stage-radius",
+    "token": "script-stage-radius",
+    "kind": "metric",
+    "group": "Script stages",
+    "label": "Radius",
+    "description": "Script stages radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-git-font-family": {
+    "name": "--mac-git-font-family",
+    "token": "git-font-family",
+    "kind": "metric",
+    "group": "Git",
+    "label": "Font family",
+    "description": "Git font family metric.",
+    "defaults": {
+      "light": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "dark": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      "highContrast": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    }
+  },
+  "--mac-git-font-size": {
+    "name": "--mac-git-font-size",
+    "token": "git-font-size",
+    "kind": "metric",
+    "group": "Git",
+    "label": "Font size",
+    "description": "Git font size metric.",
+    "defaults": {
+      "light": "14px",
+      "dark": "14px",
+      "highContrast": "14px"
+    }
+  },
+  "--mac-git-border-width": {
+    "name": "--mac-git-border-width",
+    "token": "git-border-width",
+    "kind": "metric",
+    "group": "Git",
+    "label": "Border width",
+    "description": "Git border width metric.",
+    "defaults": {
+      "light": "1px",
+      "dark": "1px",
+      "highContrast": "1px"
+    }
+  },
+  "--mac-git-radius": {
+    "name": "--mac-git-radius",
+    "token": "git-radius",
+    "kind": "metric",
+    "group": "Git",
+    "label": "Radius",
+    "description": "Git radius metric.",
+    "defaults": {
+      "light": "0.375rem",
+      "dark": "0.375rem",
+      "highContrast": "0.375rem"
+    }
+  },
+  "--mac-scrollbar-width": {
+    "name": "--mac-scrollbar-width",
+    "token": "scrollbar-width",
+    "kind": "metric",
+    "group": "Scrollbar",
+    "label": "Width",
+    "description": "Scrollbar width metric.",
+    "defaults": {
+      "light": "8px",
+      "dark": "8px",
+      "highContrast": "8px"
+    }
+  }
+}

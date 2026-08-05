@@ -57,7 +57,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       llm: null,
       plugins: null,
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
   });
 
@@ -85,7 +86,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       llm: null,
       plugins: null,
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
   });
 
@@ -136,7 +138,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       },
       plugins: null,
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
   });
 
@@ -175,7 +178,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       },
       plugins: null,
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
   });
 
@@ -215,7 +219,8 @@ ${sampleDbSection}${sampleRedisSection}plugins:
         trusted: ['https://harborclient.com/plugins/trusted.json']
       },
       docs: null,
-      logging: DEFAULT_LOGGING_CONFIG
+      logging: DEFAULT_LOGGING_CONFIG,
+      multitenancy: { enabled: false }
     });
   });
 
@@ -359,6 +364,26 @@ ${sampleDbSection}${sampleRedisSection}logging:
 `);
 
     expect(() => loadServerConfig(configPath)).toThrow(ConfigError);
+  });
+
+  it('loads an optional multitenancy section', () => {
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}multitenancy:
+  enabled: true
+`);
+
+    expect(loadServerConfig(configPath).multitenancy).toEqual({ enabled: true });
+  });
+
+  it('defaults multitenancy to disabled when omitted', () => {
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}`);
+
+    expect(loadServerConfig(configPath).multitenancy).toEqual({ enabled: false });
   });
 
   it('throws on invalid host values', () => {

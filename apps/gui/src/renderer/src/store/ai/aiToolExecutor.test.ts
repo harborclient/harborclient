@@ -56,10 +56,28 @@ import {
 } from '#/renderer/src/ui/Footer/TerminalPanel/terminalRegistry';
 import { DEFAULT_GENERAL_SETTINGS } from '@harborclient/core/generalSettings';
 import { REDACTED_PROXY_PASSWORD } from '@harborclient/core/ai/generalSettingsForAi';
+import {
+  CUSTOM_THEME_METRICS,
+  CUSTOM_THEME_TOKENS,
+  type CustomTheme
+} from '@harborclient/core/types/customTheme';
 import type { GeneralSettings } from '@harborclient/core/types';
 
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn(), loading: vi.fn(), dismiss: vi.fn() }
+}));
+
+const applyThemePreferenceMock = vi.fn<(theme: string) => Promise<void>>();
+
+vi.mock('#/renderer/src/plugins/themeRuntime', () => ({
+  applyThemePreference: (theme: string) => applyThemePreferenceMock(theme)
+}));
+
+const showConfirmMock = vi.fn<() => Promise<{ confirmed: boolean; checkboxChecked: boolean }>>();
+
+vi.mock('#/renderer/src/ui/Modals/dialogHelpers', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('#/renderer/src/ui/Modals/dialogHelpers')>()),
+  showConfirm: () => showConfirmMock()
 }));
 
 const listRequestsMock = vi.fn<(collectionId: number) => Promise<SavedRequest[]>>();
@@ -111,6 +129,21 @@ const moveLiveServerApiMock =
 const getActiveStorageIdMock = vi.fn<() => Promise<string>>();
 const deleteLiveServerApiMock = vi.fn<(id: number) => Promise<LiveServer[]>>();
 const setGeneralSettingsMock = vi.fn<(settings: GeneralSettings) => Promise<void>>();
+const getThemeMock = vi.fn<() => Promise<string>>();
+const setThemeApiMock = vi.fn<(theme: string) => Promise<void>>();
+const listCustomThemesMock = vi.fn<() => Promise<CustomTheme[]>>();
+const getCustomThemeMock = vi.fn<(id: string) => Promise<CustomTheme | null>>();
+const saveCustomThemeMock =
+  vi.fn<
+    (input: {
+      id?: string;
+      title: string;
+      type: CustomTheme['type'];
+      colors: CustomTheme['colors'];
+      metrics?: CustomTheme['metrics'];
+      stylesheet?: string;
+    }) => Promise<CustomTheme>
+  >();
 
 /**
  * Minimal in-memory localStorage mock for store persistence subscribers.
@@ -263,11 +296,45 @@ beforeEach(() => {
       getActiveStorageId: getActiveStorageIdMock,
       deleteLiveServer: deleteLiveServerApiMock,
       setGeneralSettings: setGeneralSettingsMock,
+      getTheme: getThemeMock,
+      setTheme: setThemeApiMock,
+      listCustomThemes: listCustomThemesMock,
+      getCustomTheme: getCustomThemeMock,
+      saveCustomTheme: saveCustomThemeMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
       cancelRequest: vi.fn()
     }
   });
   clearTerminalRegistry();
+  applyThemePreferenceMock.mockReset();
+  applyThemePreferenceMock.mockResolvedValue(undefined);
+  getThemeMock.mockReset();
+  getThemeMock.mockResolvedValue('dark');
+  setThemeApiMock.mockReset();
+  setThemeApiMock.mockResolvedValue(undefined);
+  listCustomThemesMock.mockReset();
+  listCustomThemesMock.mockResolvedValue([]);
+  showConfirmMock.mockReset();
+  showConfirmMock.mockResolvedValue({ confirmed: true, checkboxChecked: false });
+  getCustomThemeMock.mockReset();
+  getCustomThemeMock.mockResolvedValue({
+    id: 'dark',
+    title: 'Dark',
+    type: 'dark',
+    colors: { accent: '#007acc', surface: '#1e1e1e' },
+    metrics: { 'layout-radius': '0.375rem' },
+    builtin: true
+  });
+  saveCustomThemeMock.mockReset();
+  saveCustomThemeMock.mockImplementation(async (input) => ({
+    id: input.id ?? 'new-theme',
+    title: input.title,
+    type: input.type,
+    colors: input.colors,
+    metrics: input.metrics,
+    stylesheet: input.stylesheet,
+    builtin: input.id === 'dark' || input.id === 'light' || input.id === 'high-contrast'
+  }));
   listRequestsMock.mockReset();
   listRequestsMock.mockResolvedValue([]);
   listFoldersMock.mockReset();
@@ -321,6 +388,23 @@ beforeEach(() => {
   setGeneralSettingsMock.mockReset();
   setGeneralSettingsMock.mockResolvedValue(undefined);
 });
+
+/**
+ * Builds a custom theme fixture for theme-token tool tests.
+ *
+ * @param overrides - Partial theme fields.
+ */
+function customThemeFixture(overrides: Partial<CustomTheme> = {}): CustomTheme {
+  return {
+    id: 'dark',
+    title: 'Dark',
+    type: 'dark',
+    colors: { accent: '#007acc', surface: '#1e1e1e' },
+    metrics: { 'layout-radius': '0.375rem' },
+    builtin: true,
+    ...overrides
+  };
+}
 
 /**
  * Builds a minimal saved live server for AI tool tests.
@@ -577,6 +661,315 @@ describe('executeAiTool', () => {
 
     expect(result).toEqual({ error: 'Provide at least one settings field to update.' });
     expect(setGeneralSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an update_general_settings patch with a theme key instead of silently succeeding', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_general_settings',
+        { theme: 'light' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('update_general_settings cannot set: theme');
+    expect(result.error).toContain('No settings were changed.');
+    expect(result.error).toContain('Use set_theme');
+    expect(result).not.toHaveProperty('updated');
+    expect(setGeneralSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it('lists selectable themes and flags the active one', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    getThemeMock.mockResolvedValue('custom:ocean');
+    listCustomThemesMock.mockResolvedValue([
+      { id: 'light', title: 'Light', type: 'light', colors: {}, builtin: true },
+      { id: 'ocean', title: 'Ocean', type: 'dark', colors: {} }
+    ]);
+
+    const result = JSON.parse(
+      await executeAiTool('list_themes', {}, { getState: store.getState, dispatch: store.dispatch })
+    ) as Array<{ value: string; label: string; kind: string; isActive: boolean }>;
+
+    expect(result.map((option) => option.value)).toEqual([
+      'system',
+      'light',
+      'dark',
+      'high-contrast',
+      'custom:ocean'
+    ]);
+    expect(result.filter((option) => option.isActive).map((option) => option.value)).toEqual([
+      'custom:ocean'
+    ]);
+  });
+
+  it('switches the active theme via set_theme after the user confirms', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, warnWhenSwitchingThemes: true })
+    );
+    getThemeMock.mockResolvedValue('dark');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'light' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({
+      applied: true,
+      theme: 'light',
+      label: 'Light',
+      previousTheme: 'dark'
+    });
+    expect(showConfirmMock).toHaveBeenCalledTimes(1);
+    expect(applyThemePreferenceMock).toHaveBeenCalledWith('light');
+    expect(setThemeApiMock).toHaveBeenCalledWith('light');
+  });
+
+  it('reports applied:false and leaves the theme alone when the user declines', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, warnWhenSwitchingThemes: true })
+    );
+    getThemeMock.mockResolvedValue('dark');
+    showConfirmMock.mockResolvedValue({ confirmed: false, checkboxChecked: false });
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'light' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({ applied: false, cancelled: true, theme: 'light' });
+    expect(result.message).toContain('declined');
+    expect(applyThemePreferenceMock).not.toHaveBeenCalled();
+    expect(setThemeApiMock).not.toHaveBeenCalled();
+  });
+
+  it('skips the confirmation when warnWhenSwitchingThemes is off', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, warnWhenSwitchingThemes: false })
+    );
+    getThemeMock.mockResolvedValue('dark');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'system' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({ applied: true, theme: 'system' });
+    expect(showConfirmMock).not.toHaveBeenCalled();
+    expect(setThemeApiMock).toHaveBeenCalledWith('system');
+  });
+
+  it('turns off the theme-switch warning when the user checks "Do not ask again"', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, warnWhenSwitchingThemes: true })
+    );
+    getThemeMock.mockResolvedValue('dark');
+    showConfirmMock.mockResolvedValue({ confirmed: true, checkboxChecked: true });
+
+    await executeAiTool(
+      'set_theme',
+      { theme: 'light' },
+      { getState: store.getState, dispatch: store.dispatch }
+    );
+
+    expect(store.getState().settings.general.warnWhenSwitchingThemes).toBe(false);
+    expect(setThemeApiMock).toHaveBeenCalledWith('light');
+  });
+
+  it('resolves a custom theme by display label', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    store.dispatch(
+      setGeneralSettingsState({ ...DEFAULT_GENERAL_SETTINGS, warnWhenSwitchingThemes: false })
+    );
+    getThemeMock.mockResolvedValue('dark');
+    listCustomThemesMock.mockResolvedValue([
+      { id: 'ocean', title: 'Ocean', type: 'dark', colors: {} }
+    ]);
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'Ocean' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({ applied: true, theme: 'custom:ocean', label: 'Ocean' });
+    expect(setThemeApiMock).toHaveBeenCalledWith('custom:ocean');
+  });
+
+  it('reports alreadyActive without re-applying the current theme', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    getThemeMock.mockResolvedValue('dark');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'dark mode' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toMatchObject({ applied: true, alreadyActive: true, theme: 'dark' });
+    expect(setThemeApiMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown theme without changing the appearance', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'set_theme',
+        { theme: 'solarized' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('Unknown theme: solarized');
+    expect(setThemeApiMock).not.toHaveBeenCalled();
+    expect(applyThemePreferenceMock).not.toHaveBeenCalled();
+  });
+
+  it('lists every theme token with catalog metadata', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'list_theme_tokens',
+        {},
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    ) as Array<{ name: string; token: string; kind: string; defaults: unknown }>;
+
+    expect(result).toHaveLength(CUSTOM_THEME_TOKENS.length + CUSTOM_THEME_METRICS.length);
+    const accent = result.find((entry) => entry.token === 'accent');
+    expect(accent).toMatchObject({
+      name: '--mac-accent',
+      kind: 'color',
+      group: 'Interactive',
+      label: 'Accent'
+    });
+    expect(accent?.defaults).toEqual(
+      expect.objectContaining({
+        light: expect.any(String),
+        dark: expect.any(String),
+        highContrast: expect.any(String)
+      })
+    );
+  });
+
+  it('returns one theme token with currentValue from --mac-* CSS', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const previousDocument = globalThis.document;
+    const previousGetComputedStyle = globalThis.getComputedStyle;
+    globalThis.document = {
+      documentElement: {} as HTMLElement
+    } as Document;
+    globalThis.getComputedStyle = ((element: Element) => {
+      void element;
+      return {
+        getPropertyValue: (property: string) => (property === '--mac-accent' ? '  #112233  ' : '')
+      } as CSSStyleDeclaration;
+    }) as typeof getComputedStyle;
+
+    try {
+      const result = JSON.parse(
+        await executeAiTool(
+          'get_theme_token',
+          { token: '--mac-accent' },
+          { getState: store.getState, dispatch: store.dispatch }
+        )
+      );
+
+      expect(result).toMatchObject({
+        name: '--mac-accent',
+        token: 'accent',
+        kind: 'color',
+        currentValue: '#112233'
+      });
+    } finally {
+      globalThis.document = previousDocument;
+      globalThis.getComputedStyle = previousGetComputedStyle;
+    }
+  });
+
+  it('updates a theme token on the active theme file and re-applies it', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    getThemeMock.mockResolvedValue('dark');
+    getCustomThemeMock.mockResolvedValue(customThemeFixture());
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'update_theme_token',
+        { token: 'accent', value: '#ff5500' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({
+      themeId: 'dark',
+      themeTitle: 'Dark',
+      token: 'accent',
+      name: '--mac-accent',
+      previousValue: '#007acc',
+      value: '#ff5500'
+    });
+    expect(saveCustomThemeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'dark',
+        colors: expect.objectContaining({ accent: '#ff5500', surface: '#1e1e1e' })
+      })
+    );
+    expect(applyThemePreferenceMock).toHaveBeenCalledWith('dark');
+  });
+
+  it('rejects update_theme_token for plugin themes and unknown tokens', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    getThemeMock.mockResolvedValue('plugin:com.example:solarized');
+    const pluginResult = JSON.parse(
+      await executeAiTool(
+        'update_theme_token',
+        { token: 'accent', value: '#fff' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(pluginResult.error).toMatch(/plugin theme/i);
+    expect(saveCustomThemeMock).not.toHaveBeenCalled();
+
+    getThemeMock.mockResolvedValue('dark');
+    const unknownResult = JSON.parse(
+      await executeAiTool(
+        'update_theme_token',
+        { token: 'not-a-token', value: '#fff' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(unknownResult.error).toMatch(/Unknown theme token/);
+
+    const emptyResult = JSON.parse(
+      await executeAiTool(
+        'update_theme_token',
+        { token: 'accent', value: '   ' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+    expect(emptyResult.error).toMatch(/non-empty CSS value/);
   });
 
   it('returns active request summary for the open tab', async () => {

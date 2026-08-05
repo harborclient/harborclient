@@ -19,6 +19,7 @@ export TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT:-6379}"
 export TEAM_HUB_LOGGING_LEVEL="${TEAM_HUB_LOGGING_LEVEL:-info}"
 export TEAM_HUB_LOGGING_FILE="${TEAM_HUB_LOGGING_FILE:-/var/log/team-hub/team-hub.log}"
 export TEAM_HUB_LOGGING_CONSOLE="${TEAM_HUB_LOGGING_CONSOLE:-true}"
+export TEAM_HUB_MULTITENANCY_ENABLED="${TEAM_HUB_MULTITENANCY_ENABLED:-false}"
 
 PGDATA="${PGDATA:-/var/lib/postgresql/data}"
 SUPERVISOR_CONF="/etc/team-hub/supervisord.generated.conf"
@@ -74,7 +75,7 @@ chmod 755 /var/log/team-hub /var/run/team-hub
 # Renders server.yaml from env vars on first boot only. Preserves manual edits and
 # mounted configs across restarts unless TEAM_HUB_FORCE_CONFIG_GENERATE=true.
 if [ "${TEAM_HUB_FORCE_CONFIG_GENERATE:-false}" = "true" ] || [ ! -s "${TEAM_HUB_CONFIG}" ]; then
-  envsubst '${TEAM_HUB_PORT} ${TEAM_HUB_HOST} ${TEAM_HUB_DB_DRIVER} ${TEAM_HUB_DB_HOST} ${TEAM_HUB_DB_PORT} ${TEAM_HUB_DB_USER} ${TEAM_HUB_DB_PASSWORD} ${TEAM_HUB_DB_DATABASE} ${TEAM_HUB_REDIS_HOST} ${TEAM_HUB_REDIS_PORT} ${TEAM_HUB_LOGGING_LEVEL} ${TEAM_HUB_LOGGING_FILE} ${TEAM_HUB_LOGGING_CONSOLE}' \
+  envsubst '${TEAM_HUB_PORT} ${TEAM_HUB_HOST} ${TEAM_HUB_DB_DRIVER} ${TEAM_HUB_DB_HOST} ${TEAM_HUB_DB_PORT} ${TEAM_HUB_DB_USER} ${TEAM_HUB_DB_PASSWORD} ${TEAM_HUB_DB_DATABASE} ${TEAM_HUB_REDIS_HOST} ${TEAM_HUB_REDIS_PORT} ${TEAM_HUB_LOGGING_LEVEL} ${TEAM_HUB_LOGGING_FILE} ${TEAM_HUB_LOGGING_CONSOLE} ${TEAM_HUB_MULTITENANCY_ENABLED}' \
     < /docker/server.yaml.template > "${TEAM_HUB_CONFIG}"
 else
   echo "entrypoint: keeping existing config at ${TEAM_HUB_CONFIG}"

@@ -61,7 +61,8 @@ describe('TeamHubClient', () => {
           dataApi: true,
           managementApi: false,
           llm: true
-        }
+        },
+        tenantId: '__default__'
       };
 
       const fetchMock = vi.fn().mockResolvedValue(
@@ -105,7 +106,8 @@ describe('TeamHubClient', () => {
               dataApi: false,
               managementApi: true,
               llm: false
-            }
+            },
+            tenantId: '__default__'
           }),
           {
             status: 200,
@@ -2069,6 +2071,216 @@ describe('TeamHubClient', () => {
           })
         })
       );
+    });
+  });
+
+  describe('multitenancy', () => {
+    it('does not send X-Harbor-Tenant header when tenantId is omitted', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: '__default__'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token });
+      await client.getSession();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/session',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.not.objectContaining({
+            'X-Harbor-Tenant': expect.any(String)
+          })
+        })
+      );
+    });
+
+    it('does not send X-Harbor-Tenant header when tenantId is empty string', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: '__default__'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: '' });
+      await client.getSession();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/session',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.not.objectContaining({
+            'X-Harbor-Tenant': expect.any(String)
+          })
+        })
+      );
+    });
+
+    it('does not send X-Harbor-Tenant header when tenantId is whitespace only', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: '__default__'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: '   ' });
+      await client.getSession();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/session',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.not.objectContaining({
+            'X-Harbor-Tenant': expect.any(String)
+          })
+        })
+      );
+    });
+
+    it('sends X-Harbor-Tenant header when tenantId is configured', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: 'org-123'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: 'org-123' });
+      await client.getSession();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/session',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'X-Harbor-Tenant': 'org-123',
+            Authorization: `Bearer ${token}`
+          })
+        })
+      );
+    });
+
+    it('trims whitespace from tenantId before sending', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: 'org-456'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: '  org-456  ' });
+      await client.getSession();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/session',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'X-Harbor-Tenant': 'org-456'
+          })
+        })
+      );
+    });
+
+    it('sends X-Harbor-Tenant header in reloadConfig when configured', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            sections: [{ section: 'db', status: 'unchanged' }]
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: 'tenant-789' });
+      await client.reloadConfig();
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/admin/config/reload',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'X-Harbor-Tenant': 'tenant-789',
+            Authorization: `Bearer ${token}`
+          })
+        })
+      );
+    });
+
+    it('includes tenantId in session response', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            user: { id: 'u-1', name: 'alice', role: 'user' },
+            token: { id: 't-1', prefix: 'hbk_' },
+            capabilities: { dataApi: true, managementApi: false, llm: false },
+            tenantId: 'custom-tenant'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = new TeamHubClient({ baseUrl, token, tenantId: 'custom-tenant' });
+      const session = await client.getSession();
+
+      expect(session.tenantId).toBe('custom-tenant');
     });
   });
 });

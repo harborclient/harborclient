@@ -34,17 +34,36 @@ import {
   type SearchDocsToolArgs,
   type SendActiveRequestToolArgs,
   type SetActiveEnvironmentToolArgs,
+  type SetThemeToolArgs,
   type StartLiveServerToolArgs,
   type StopLiveServerToolArgs,
   type TerminalExecToolArgs,
+  type GetThemeTokenToolArgs,
   type UpdateGeneralSettingsToolArgs,
   type UpdateLiveServerToolArgs,
-  type UpdateRequestScriptToolArgs
+  type UpdateRequestScriptToolArgs,
+  type UpdateThemeTokenToolArgs
 } from '@harborclient/core/ai/tools';
 import { getScriptingApiReferenceText } from '@harborclient/core/ai/scriptingApiReference';
 import {
+  buildThemeTokenPatch,
+  resolveActiveThemeFileForUpdate
+} from '@harborclient/core/ai/themeTokensForAi';
+import {
+  listThemesForAi,
+  resolveThemeSelection,
+  type AiThemeOption
+} from '@harborclient/core/ai/themesForAi';
+import {
+  getThemeTokenCatalogEntry,
+  listThemeTokenCatalog,
+  normalizeThemeTokenInput
+} from '@harborclient/core/theme/themeTokenCatalog';
+import {
+  formatUnknownGeneralSettingsAiPatchError,
   hasGeneralSettingsAiPatch,
   listChangedGeneralSettingsKeys,
+  listUnknownGeneralSettingsAiPatchKeys,
   mergeGeneralSettingsAiPatch,
   sanitizeGeneralSettingsForAi,
   type SanitizedGeneralSettingsForAi
@@ -69,8 +88,18 @@ import {
 } from '#/renderer/src/store/tabs';
 import { mirrorLegacyScriptString, resolveScriptSourceCode } from '@harborclient/core/scriptRefs';
 import { setActiveEnvironmentId } from '#/renderer/src/store/slices/environmentsSlice';
-import { selectShowTerminal } from '#/renderer/src/store/slices/navigationSlice';
+import {
+  bumpCustomThemesReloadNonce,
+  selectShowTerminal
+} from '#/renderer/src/store/slices/navigationSlice';
+import {
+  patchDraftToken,
+  selectThemeDesignerEditingId,
+  selectThemeDesignerInitialized
+} from '#/renderer/src/store/slices/themeDesignerSlice';
 import { updateTab } from '#/renderer/src/store/slices/tabsSlice';
+import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
+import { resolveSystemBuiltinTheme } from '#/renderer/src/theme';
 import {
   selectActiveEnvironmentId,
   selectConsoleEntries,
@@ -100,7 +129,7 @@ import {
   openOrReuseWebpageTab,
   queryWebpageDom
 } from '#/renderer/src/store/browser/webpageSession';
-import type { RootState } from '#/renderer/src/store/redux';
+import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
 import { patchGeneralSettings } from '#/renderer/src/store/thunks/settings';
 import { selectActiveTerminal, selectTerminals } from '#/renderer/src/store/slices/terminalsSlice';
@@ -113,7 +142,9 @@ import {
   pluginRequestToSaveInput,
   validateCreateCollectionPayload
 } from '#/renderer/src/plugins/hostRequestCommands';
-import type { CreateCollectionRequest } from '@harborclient/sdk';
+import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
+import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
+import type { CreateCollectionRequest, ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import { createFolder, refreshRequests } from '#/renderer/src/store/thunks/collections';
 import {
   createSavedLiveServer,
@@ -329,6 +360,16 @@ export async function executeAiTool(
         return JSON.stringify(getGeneralSettings(ctx));
       case 'update_general_settings':
         return JSON.stringify(await updateGeneralSettings(args, ctx));
+      case 'list_themes':
+        return JSON.stringify(await listThemes());
+      case 'set_theme':
+        return JSON.stringify(await setTheme(args, ctx));
+      case 'list_theme_tokens':
+        return JSON.stringify(listThemeTokens());
+      case 'get_theme_token':
+        return JSON.stringify(getThemeToken(args));
+      case 'update_theme_token':
+        return JSON.stringify(await updateThemeToken(args, ctx));
       case 'create_collection':
         return JSON.stringify(await createCollectionTool(args, ctx));
       case 'create_folder':
@@ -1410,6 +1451,299 @@ function getGeneralSettings(ctx: AiToolContext): SanitizedGeneralSettingsForAi {
 }
 
 /**
+ * Returns the full `--mac-*` theme token catalog for the AI agent.
+ *
+ * @returns Ordered catalog entries with defaults and descriptions.
+ */
+function listThemeTokens(): ReturnType<typeof listThemeTokenCatalog> {
+  return listThemeTokenCatalog();
+}
+
+/**
+ * Collects every selectable appearance theme with the active one flagged.
+ *
+ * Reads the same three sources the View menu uses: the persisted preference,
+ * saved custom themes on disk, and themes contributed by loaded plugins.
+ *
+ * @returns Ordered theme options for `list_themes` and `set_theme` resolution.
+ */
+async function listThemes(): Promise<AiThemeOption[]> {
+  const [activeTheme, customThemes] = await Promise.all([
+    window.api.getTheme(),
+    window.api.listCustomThemes()
+  ]);
+
+  return listThemesForAi({
+    activeTheme,
+    customThemes,
+    pluginThemes: getRegisteredPluginThemes().map((entry) => ({
+      pluginId: entry.pluginId,
+      id: entry.id,
+      title: entry.title
+    }))
+  });
+}
+
+/**
+ * Result of a `set_theme` call that did not end in an error.
+ *
+ * `applied` is always present so the model can distinguish a real switch from a
+ * confirmation the user declined; both cases are otherwise well-formed results.
+ */
+type SetThemeResult = {
+  /**
+   * True only when the appearance actually changed or was already correct.
+   */
+  applied: boolean;
+
+  /**
+   * Resolved `ThemeSource` value for the requested theme.
+   */
+  theme: string;
+
+  /**
+   * Display label for the requested theme.
+   */
+  label: string;
+
+  /**
+   * Preference in effect before the call.
+   */
+  previousTheme: string;
+
+  /**
+   * Present when the theme was already active and nothing needed to change.
+   */
+  alreadyActive?: boolean;
+
+  /**
+   * Present when the user dismissed the theme-switch confirmation.
+   */
+  cancelled?: boolean;
+
+  /**
+   * Human-readable outcome the model should relay to the user.
+   */
+  message: string;
+};
+
+/**
+ * Switches the active appearance theme and persists the preference.
+ *
+ * Mirrors the View menu path in `selectThemeFromMenu`: when
+ * `warnWhenSwitchingThemes` is enabled the user confirms first, and checking
+ * "Do not ask again" turns the warning off. Declining leaves the theme
+ * untouched and reports `applied: false` rather than a silent success.
+ *
+ * @param args - Theme value or display label from the model.
+ * @param ctx - Tool context with Redux getState and dispatch.
+ * @returns Outcome summary, or an error object for unknown themes.
+ */
+async function setTheme(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<SetThemeResult | { error: string }> {
+  const parsed = (args ?? {}) as SetThemeToolArgs;
+  if (typeof parsed.theme !== 'string') {
+    return { error: 'Provide a theme name or value. Call list_themes to see the options.' };
+  }
+
+  const options = await listThemes();
+  const resolved = resolveThemeSelection(parsed.theme, options);
+  if ('error' in resolved) {
+    return resolved;
+  }
+
+  const previousTheme = options.find((option) => option.isActive)?.value ?? '';
+  if (resolved.isActive) {
+    return {
+      applied: true,
+      alreadyActive: true,
+      theme: resolved.value,
+      label: resolved.label,
+      previousTheme,
+      message: `${resolved.label} is already the active theme.`
+    };
+  }
+
+  if (ctx.getState().settings.general.warnWhenSwitchingThemes) {
+    const confirmation = await showConfirm(ctx.dispatch as AppDispatch, {
+      title: 'Switch theme?',
+      message: `Switch appearance to ${resolved.label}?`,
+      confirmLabel: 'Switch theme',
+      checkboxLabel: 'Do not ask again'
+    });
+
+    if (!confirmation.confirmed) {
+      return {
+        applied: false,
+        cancelled: true,
+        theme: resolved.value,
+        label: resolved.label,
+        previousTheme,
+        message: `The user declined the confirmation, so the theme is still ${previousTheme}.`
+      };
+    }
+
+    if (confirmation.checkboxChecked) {
+      await ctx
+        .dispatch(
+          patchGeneralSettings({
+            ...ctx.getState().settings.general,
+            warnWhenSwitchingThemes: false
+          })
+        )
+        .unwrap();
+    }
+  }
+
+  await applyThemePreference(resolved.value);
+  await window.api.setTheme(resolved.value);
+
+  return {
+    applied: true,
+    theme: resolved.value,
+    label: resolved.label,
+    previousTheme,
+    message: `Switched the appearance theme to ${resolved.label}.`
+  };
+}
+
+/**
+ * Reads the currently resolved CSS value for one `--mac-*` token from `:root`.
+ *
+ * @param token - Bare token id without the `--mac-` prefix.
+ * @returns Trimmed computed value, or empty string when unavailable.
+ */
+function readResolvedThemeTokenValue(token: string): string {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  return getComputedStyle(document.documentElement).getPropertyValue(`--mac-${token}`).trim();
+}
+
+/**
+ * Returns one theme token's catalog metadata and live resolved CSS value.
+ *
+ * @param args - Tool arguments with a token id or `--mac-*` name.
+ * @returns Catalog entry plus currentValue, or an error object.
+ */
+function getThemeToken(
+  args: unknown
+): (ReturnType<typeof getThemeTokenCatalogEntry> & { currentValue: string }) | { error: string } {
+  const parsed = (args ?? {}) as GetThemeTokenToolArgs;
+  if (typeof parsed.token !== 'string' || parsed.token.trim().length === 0) {
+    return { error: 'Provide a theme token id or --mac-* name.' };
+  }
+
+  let token: string;
+  try {
+    token = normalizeThemeTokenInput(parsed.token);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Unknown theme token.' };
+  }
+
+  const entry = getThemeTokenCatalogEntry(token);
+  if (!entry) {
+    return { error: `Unknown theme token: ${parsed.token}` };
+  }
+
+  return {
+    ...entry,
+    currentValue: readResolvedThemeTokenValue(token)
+  };
+}
+
+/**
+ * Persists one `--mac-*` token on the active theme file and re-applies the theme.
+ *
+ * @param args - Token id/name and new CSS value.
+ * @param ctx - Tool context with Redux getState and dispatch.
+ * @returns Update summary or an error object.
+ */
+async function updateThemeToken(
+  args: unknown,
+  ctx: AiToolContext
+): Promise<
+  | {
+      themeId: string;
+      themeTitle: string;
+      token: string;
+      name: string;
+      previousValue: string;
+      value: string;
+    }
+  | { error: string }
+> {
+  const parsed = (args ?? {}) as UpdateThemeTokenToolArgs;
+  if (typeof parsed.token !== 'string' || parsed.token.trim().length === 0) {
+    return { error: 'Provide a theme token id or --mac-* name.' };
+  }
+  if (typeof parsed.value !== 'string') {
+    return { error: 'Provide a CSS value for the theme token.' };
+  }
+
+  const activeTheme = await window.api.getTheme();
+  const resolved = resolveActiveThemeFileForUpdate(activeTheme, resolveSystemBuiltinTheme);
+  if ('error' in resolved) {
+    return resolved;
+  }
+
+  const theme = await window.api.getCustomTheme(resolved.themeId);
+  if (!theme) {
+    return { error: `Active theme file not found: ${resolved.themeId}` };
+  }
+
+  const patch = buildThemeTokenPatch(theme, parsed.token, parsed.value);
+  if ('error' in patch) {
+    return patch;
+  }
+
+  const saved = await window.api.saveCustomTheme({
+    id: theme.id,
+    title: theme.title,
+    type: theme.type,
+    colors: patch.colors,
+    ...(patch.metrics !== undefined ? { metrics: patch.metrics } : {}),
+    ...(theme.stylesheet !== undefined ? { stylesheet: theme.stylesheet } : {})
+  });
+
+  await applyThemePreference(resolved.activeTheme);
+  ctx.dispatch(bumpCustomThemesReloadNonce());
+
+  const state = ctx.getState();
+  if (selectThemeDesignerInitialized(state) && selectThemeDesignerEditingId(state) === saved.id) {
+    if (patch.entry.kind === 'color') {
+      ctx.dispatch(
+        patchDraftToken({
+          kind: 'color',
+          token: patch.entry.token as ThemeColorToken,
+          value: patch.value
+        })
+      );
+    } else {
+      ctx.dispatch(
+        patchDraftToken({
+          kind: 'metric',
+          token: patch.entry.token as ThemeMetricToken,
+          value: patch.value
+        })
+      );
+    }
+  }
+
+  return {
+    themeId: saved.id,
+    themeTitle: saved.title,
+    token: patch.entry.token,
+    name: patch.entry.name,
+    previousValue: patch.previousValue,
+    value: patch.value
+  };
+}
+
+/**
  * Applies a General Settings patch, persists it, and returns the updated values.
  *
  * @param args - Partial settings from the model.
@@ -1426,6 +1760,11 @@ async function updateGeneralSettings(
   const patch = (args ?? {}) as UpdateGeneralSettingsToolArgs;
   if (!hasGeneralSettingsAiPatch(patch)) {
     return { error: 'Provide at least one settings field to update.' };
+  }
+
+  const unknownKeys = listUnknownGeneralSettingsAiPatchKeys(patch);
+  if (unknownKeys.length > 0) {
+    return { error: formatUnknownGeneralSettingsAiPatchError(unknownKeys) };
   }
 
   const before = ctx.getState().settings.general;

@@ -158,6 +158,7 @@ export class TeamHubClient implements ITeamHubClient {
   private readonly baseUrl: string;
   private readonly token: string | undefined;
   private readonly requestTimeoutMs: number;
+  private readonly tenantId: string | undefined;
 
   /**
    * Creates a client bound to a HarborClient Server instance and bearer token.
@@ -168,6 +169,9 @@ export class TeamHubClient implements ITeamHubClient {
     this.baseUrl = config.baseUrl.replace(/\/+$/, '');
     this.token = config.token;
     this.requestTimeoutMs = config.requestTimeoutMs ?? DEFAULT_TEAM_HUB_REQUEST_TIMEOUT_MS;
+
+    const trimmedTenant = config.tenantId?.trim();
+    this.tenantId = trimmedTenant && trimmedTenant.length > 0 ? trimmedTenant : undefined;
   }
 
   /**
@@ -233,6 +237,10 @@ export class TeamHubClient implements ITeamHubClient {
       }
 
       headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    if (this.tenantId) {
+      headers['X-Harbor-Tenant'] = this.tenantId;
     }
 
     let requestBody: string | undefined;
@@ -741,14 +749,20 @@ export class TeamHubClient implements ITeamHubClient {
     const method = 'POST';
     const path = '/admin/config/reload';
 
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      Authorization: `Bearer ${this.token}`
+    };
+
+    if (this.tenantId) {
+      headers['X-Harbor-Tenant'] = this.tenantId;
+    }
+
     let response: Response;
     try {
       response = await fetch(this.buildUrl(path), {
         method,
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${this.token}`
-        },
+        headers,
         signal: AbortSignal.timeout(this.requestTimeoutMs)
       });
     } catch (err) {

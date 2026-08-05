@@ -64,6 +64,11 @@ export interface SessionPayload {
    * Derived capability flags for clients such as HarborClient.
    */
   capabilities: SessionCapabilities;
+
+  /**
+   * Effective tenant id for this authenticated session.
+   */
+  tenantId: string;
 }
 
 /**
@@ -71,9 +76,14 @@ export interface SessionPayload {
  *
  * @param user - User account resolved from the bearer token.
  * @param apiToken - Active API token record used for authentication.
+ * @param tenantId - Effective tenant id for the authenticated request.
  * @returns Session payload suitable for JSON serialization.
  */
-export function buildSessionPayload(user: UserRecord, apiToken: ApiTokenRecord): SessionPayload {
+export function buildSessionPayload(
+  user: UserRecord,
+  apiToken: ApiTokenRecord,
+  tenantId: string
+): SessionPayload {
   return {
     user: {
       id: user.id,
@@ -88,6 +98,7 @@ export function buildSessionPayload(user: UserRecord, apiToken: ApiTokenRecord):
       dataApi: canUseDataApi(user),
       managementApi: isAdmin(user),
       llm: canUseLlm(user)
-    }
+    },
+    tenantId
   };
 }

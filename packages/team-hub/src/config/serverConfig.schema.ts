@@ -151,6 +151,13 @@ export const loggingSectionSchema = z.object({
 });
 
 /**
+ * Zod schema for the optional `multitenancy` section of the config file.
+ */
+export const multitenancySectionSchema = z.object({
+  enabled: z.boolean().optional()
+});
+
+/**
  * Zod schema for the full server config document (`server.yaml` root mapping).
  */
 export const serverConfigDocumentSchema = z.object({
@@ -160,7 +167,8 @@ export const serverConfigDocumentSchema = z.object({
   llm: llmSectionSchema.optional(),
   plugins: pluginsSectionSchema.optional(),
   docs: docsSectionSchema.optional(),
-  logging: loggingSectionSchema.optional()
+  logging: loggingSectionSchema.optional(),
+  multitenancy: multitenancySectionSchema.optional()
 });
 
 /**
@@ -187,3 +195,8 @@ export type DocsSection = z.infer<typeof docsSectionSchema>;
  * Validated shape of the optional logging section.
  */
 export type LoggingSection = z.infer<typeof loggingSectionSchema>;
+
+/**
+ * Validated shape of the optional multitenancy section.
+ */
+export type MultitenancySection = z.infer<typeof multitenancySectionSchema>;

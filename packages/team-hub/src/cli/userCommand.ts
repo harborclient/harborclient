@@ -18,6 +18,11 @@ import {
 } from '#/server/admin/userValidation.js';
 import { currentUsagePeriod, listHubOfferedModels } from '#/server/llm/models.js';
 import type { IDatabase } from '#/db/IDatabase.js';
+import {
+  DEFAULT_TENANT_ID,
+  isDefaultTenantId,
+  normalizeTenantId
+} from '#/config/multitenancyConfig.js';
 
 /**
  * Ensures schema migrations ran and returns the internal system user id for CLI actions.
@@ -36,11 +41,54 @@ async function requireSystemUserId(db: IDatabase): Promise<string> {
   return systemUserId;
 }
 
+/**
+ * Parses and validates an optional tenant id from CLI input.
+ *
+ * @param value - Tenant id string from a Commander option.
+ * @returns Trimmed and validated tenant id.
+ * @throws {InvalidArgumentError} When the id is invalid.
+ */
+function parseOptionalTenantId(value: string): string {
+  try {
+    return normalizeTenantId(value);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new InvalidArgumentError(error.message);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Resolves the effective tenant id from CLI options and validates multitenancy config.
+ *
+ * @param options - Parsed command options including optional tenant flag.
+ * @param multitenancyEnabled - Whether multitenancy is enabled in server.yaml.
+ * @returns Effective tenant id (default or parsed).
+ * @throws {Error} When a non-default tenant is used but multitenancy is disabled.
+ */
+function resolveTenantId(options: { tenant?: string }, multitenancyEnabled: boolean): string {
+  const tenantId = options.tenant ?? DEFAULT_TENANT_ID;
+  if (!multitenancyEnabled && !isDefaultTenantId(tenantId)) {
+    throw new Error(
+      'Multitenancy is disabled in server.yaml. Set multitenancy.enabled to true to use non-default tenants.'
+    );
+  }
+
+  return tenantId;
+}
+
 export interface UserCommandOptions {
   /**
    * Path to the server YAML config file (from global `-c` / `--config`).
    */
   config: string;
+
+  /**
+   * Optional tenant identifier (defaults to {@link DEFAULT_TENANT_ID}).
+   */
+  tenant?: string;
 }
 
 export interface UserCreateCommandOptions extends UserCommandOptions {
@@ -450,7 +498,8 @@ function printAccessListWarnings(warnings: string[]): void {
  */
 export async function userCreateCommand(options: UserCreateCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
   const access = mapValidationError(() =>
     normalizeAccessForRole(
       options.role,
@@ -462,7 +511,9 @@ export async function userCreateCommand(options: UserCreateCommandOptions): Prom
     )
   );
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const catalogs = await loadAccessCatalogs(db, config.llm);
   const llmModels = readLlmModelsOption(options);
@@ -499,7 +550,7 @@ export async function userCreateCommand(options: UserCreateCommandOptions): Prom
   );
   const { record, secret } = generateApiToken(user.id, user.name);
   await db.createApiToken(record, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   console.log(`Created user "${user.name}" (${user.id}) with role ${user.role}.`);
   printUser(user);
@@ -550,7 +601,8 @@ export async function userInviteCreateCommand(
   options: UserInviteCreateCommandOptions
 ): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
   const access = mapValidationError(() =>
     normalizeAccessForRole(
       options.role,
@@ -562,7 +614,9 @@ export async function userInviteCreateCommand(
     )
   );
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const catalogs = await loadAccessCatalogs(db, config.llm);
   const llmModels = readLlmModelsOption(options);
@@ -602,7 +656,7 @@ export async function userInviteCreateCommand(
     invitation,
     actingUserId
   );
-  await db.disconnect();
+  await rootDb.disconnect();
 
   console.log(
     `Created invited user "${created.user.name}" (${created.user.id}) with role ${created.user.role}.`
@@ -619,11 +673,14 @@ export async function userInviteCreateCommand(
  */
 export async function userInviteListCommand(options: UserCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const [invitations, users] = await Promise.all([db.listInvitations(), db.listUsers()]);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (invitations.length === 0) {
     console.log('No invitations found.');
@@ -650,12 +707,15 @@ export async function userInviteRevokeCommand(
   options: UserInviteRevokeCommandOptions
 ): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const revoked = await db.revokeInvitation(options.id, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (revoked) {
     console.log(`Revoked invitation ${options.id}.`);
@@ -672,9 +732,12 @@ export async function userInviteRevokeCommand(
  */
 export async function userListCommand(options: UserCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const [users, catalogs] = await Promise.all([db.listUsers(), loadAccessCatalogs(db, config.llm)]);
   const period = currentUsagePeriod();
   const tokensUsedByUser = await Promise.all(
@@ -683,7 +746,7 @@ export async function userListCommand(options: UserCommandOptions): Promise<void
       return usage?.totalTokens ?? 0;
     })
   );
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (users.length === 0) {
     console.log('No users found.');
@@ -715,23 +778,26 @@ export async function userListCommand(options: UserCommandOptions): Promise<void
  */
 export async function userShowCommand(options: UserUpdateCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const [user, catalogs] = await Promise.all([
     db.findUserById(options.id),
     loadAccessCatalogs(db, config.llm)
   ]);
 
   if (!user) {
-    await db.disconnect();
+    await rootDb.disconnect();
     console.log(`No user found with id ${options.id}.`);
     return;
   }
 
   const period = currentUsagePeriod();
   const usage = await db.getLlmUsage(user.id, period);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   printAccessListWarnings(
     buildAccessListWarnings(
@@ -756,13 +822,16 @@ export async function userShowCommand(options: UserUpdateCommandOptions): Promis
  */
 export async function userUpdateCommand(options: UserUpdateCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const existing = await db.findUserById(options.id);
   if (!existing) {
-    await db.disconnect();
+    await rootDb.disconnect();
     console.log(`No user found with id ${options.id}.`);
     return;
   }
@@ -820,7 +889,7 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
   };
 
   const user = await db.updateUser(options.id, input, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   console.log(`Updated user "${user.name}" (${user.id}).`);
 }
@@ -832,19 +901,22 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
  */
 export async function userDeleteCommand(options: UserUpdateCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const existing = await db.findUserById(options.id);
   if (!existing) {
-    await db.disconnect();
+    await rootDb.disconnect();
     console.log(`No user found with id ${options.id}.`);
     return;
   }
 
   await db.deleteUser(options.id, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   console.log(`Deleted user "${existing.name}" (${existing.id}).`);
 }
@@ -858,19 +930,22 @@ export async function userTokenCreateCommand(
   options: UserTokenCreateCommandOptions
 ): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const user = await db.findUserById(options.user);
   if (!user) {
-    await db.disconnect();
+    await rootDb.disconnect();
     throw new Error(`No user found with id ${options.user}.`);
   }
 
   const { record, secret } = generateApiToken(user.id, options.name);
   await db.createApiToken(record, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   printCreatedApiToken(user, record, secret);
 }
@@ -882,13 +957,16 @@ export async function userTokenCreateCommand(
  */
 export async function userTokenListCommand(options: UserTokenListCommandOptions): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const tokens = options.user
     ? await db.listApiTokensByUserId(options.user)
     : await db.listApiTokens();
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (tokens.length === 0) {
     console.log('No API tokens found.');
@@ -915,12 +993,15 @@ export async function userTokenRevokeCommand(
   options: UserTokenRevokeCommandOptions
 ): Promise<void> {
   const config = loadServerConfig(options.config);
-  const db = createDatabase(config.db);
+  const tenantId = resolveTenantId(options, config.multitenancy?.enabled ?? false);
+  const rootDb = createDatabase(config.db);
 
-  await db.connect();
+  await rootDb.connect();
+  await rootDb.migrate();
+  const db = rootDb.forTenant(tenantId);
   const actingUserId = await requireSystemUserId(db);
   const revoked = await db.revokeApiToken(options.id, actingUserId);
-  await db.disconnect();
+  await rootDb.disconnect();
 
   if (revoked) {
     console.log(`Revoked API token ${options.id}.`);
@@ -997,6 +1078,7 @@ export function registerUserCommand(
     .option('--llm-model <id>', 'LLM model id or * (repeatable)', parseAccessFlag, [] as string[])
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
     .option('--expires-in-hours <hours>', 'Invitation lifetime in hours', parsePositiveInt)
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user invite create subcommand after merging global CLI options.
@@ -1012,6 +1094,7 @@ export function registerUserCommand(
   invite
     .command('list')
     .description('List stored onboarding invitations')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user invite list subcommand after merging global CLI options.
@@ -1025,6 +1108,7 @@ export function registerUserCommand(
     .command('revoke')
     .description('Revoke a pending onboarding invitation by id')
     .argument('<id>', 'Invitation identifier to revoke')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user invite revoke subcommand after merging global CLI options.
@@ -1078,6 +1162,7 @@ export function registerUserCommand(
     .option('--llm-access', 'Enable hub-proxied LLM access for the user')
     .option('--llm-model <id>', 'LLM model id or * (repeatable)', parseAccessFlag, [] as string[])
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user create subcommand after merging global CLI options.
@@ -1090,6 +1175,7 @@ export function registerUserCommand(
   user
     .command('list')
     .description('List stored user accounts')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user list subcommand after merging global CLI options.
@@ -1103,6 +1189,7 @@ export function registerUserCommand(
     .command('show')
     .description('Show a user account by id')
     .argument('<id>', 'User identifier')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user show subcommand after merging global CLI options.
@@ -1157,6 +1244,7 @@ export function registerUserCommand(
       [] as string[]
     )
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user update subcommand after merging global CLI options.
@@ -1192,6 +1280,7 @@ export function registerUserCommand(
     .command('delete')
     .description('Delete a user account and revoke their tokens')
     .argument('<id>', 'User identifier')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user delete subcommand after merging global CLI options.
@@ -1208,6 +1297,7 @@ export function registerUserCommand(
     .description('Create a new API bearer token for a user')
     .requiredOption('--user <userId>', 'Owning user identifier')
     .requiredOption('--name <name>', 'Human-readable token label', parseRequiredName)
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user token create subcommand after merging global CLI options.
@@ -1221,6 +1311,7 @@ export function registerUserCommand(
     .command('list')
     .description('List stored API bearer tokens')
     .option('--user <userId>', 'Limit output to a single user')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user token list subcommand after merging global CLI options.
@@ -1234,6 +1325,7 @@ export function registerUserCommand(
     .command('revoke')
     .description('Revoke an API bearer token by id')
     .argument('<id>', 'Token identifier to revoke')
+    .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**
        * Runs the user token revoke subcommand after merging global CLI options.

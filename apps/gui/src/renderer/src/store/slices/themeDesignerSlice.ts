@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import type { RootState } from '#/renderer/src/store/redux';
 import {
   DEFAULT_CUSTOM_THEME_TITLE,
@@ -166,6 +167,34 @@ const themeDesignerSlice = createSlice({
      */
     resetToPersisted(state) {
       state.history = resetThemeHistory(state.persistedDraft);
+    },
+
+    /**
+     * Applies one externally persisted token change to both present and persisted drafts.
+     *
+     * Used when the AI agent (or another host path) saves a token to disk so the open
+     * Designer session stays aligned without wiping unrelated local edits.
+     */
+    patchDraftToken(
+      state,
+      action: PayloadAction<
+        | { kind: 'color'; token: ThemeColorToken; value: string }
+        | { kind: 'metric'; token: ThemeMetricToken; value: string }
+      >
+    ) {
+      if (!state.initialized) {
+        return;
+      }
+
+      const { kind, token, value } = action.payload;
+      if (kind === 'color') {
+        state.history.present.colors[token] = value;
+        state.persistedDraft.colors[token] = value;
+        return;
+      }
+
+      state.history.present.metrics[token] = value;
+      state.persistedDraft.metrics[token] = value;
     }
   }
 });
@@ -181,7 +210,8 @@ export const {
   commitBaseline,
   undo,
   redo,
-  resetToPersisted
+  resetToPersisted,
+  patchDraftToken
 } = themeDesignerSlice.actions;
 
 /**
