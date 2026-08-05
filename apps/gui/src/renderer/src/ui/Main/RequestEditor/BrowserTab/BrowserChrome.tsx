@@ -43,7 +43,7 @@ const addressInputWrapperClassName =
 /**
  * Address input element classes — height/padding match {@link addressInputWrapperClassName}.
  */
-const addressInputClassName = 'app-no-drag h-full px-0 py-0 leading-none';
+const addressInputClassName = 'h-full px-0 py-0 leading-none';
 
 interface Props {
   /**

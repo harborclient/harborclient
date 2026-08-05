@@ -105,7 +105,7 @@ function isToolbarActionActive(action: ToolbarAction): boolean {
  */
 function toolbarActionButtonClasses(active: boolean): string {
   return cn(
-    'hc-toolbar-action app-no-drag inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-none',
+    'hc-toolbar-action inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-none',
     active
       ? 'bg-sidebar-section text-toolbar-action-active'
       : 'bg-transparent text-text hover:bg-selection focus-visible:bg-selection focus-visible:text-text',
@@ -164,7 +164,7 @@ export function Toolbar({
       role="toolbar"
       aria-label={ariaLabel}
       className={cn(
-        'hc-toolbar app-no-drag flex min-w-0 shrink-0 flex-wrap items-center gap-y-1 border-b border-separator bg-sidebar-toolbar px-2 py-2',
+        'hc-toolbar flex min-w-0 shrink-0 flex-wrap items-center gap-y-1 border-b border-separator bg-sidebar-toolbar px-2 py-2',
         className
       )}
     >

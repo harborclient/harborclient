@@ -72,7 +72,7 @@ export function EditableSegment({
           ref={inputRef}
           variant="plain"
           aria-label={editableLabel}
-          className="app-no-drag w-full min-w-0 border-none bg-transparent p-0 font-semibold text-text outline-none"
+          className="w-full min-w-0 border-none bg-transparent p-0 font-semibold text-text outline-none"
           type="text"
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
@@ -89,7 +89,7 @@ export function EditableSegment({
           type="button"
           aria-current="page"
           aria-label={editableLabel}
-          className="app-no-drag inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          className="inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           onClick={onStartEditing}
         >
           <span className="min-w-0 truncate">

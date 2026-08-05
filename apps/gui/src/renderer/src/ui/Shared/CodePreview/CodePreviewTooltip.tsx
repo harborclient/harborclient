@@ -118,7 +118,7 @@ export function CodePreviewTooltip({
     <div className="relative min-w-0">
       <button
         type="button"
-        className="w-full cursor-pointer truncate rounded-sm border-none bg-transparent p-0 text-left font-mono text-[14px] italic text-muted/50 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent app-no-drag"
+        className="w-full cursor-pointer truncate rounded-sm border-none bg-transparent p-0 text-left font-mono text-[14px] italic text-muted/50 outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent"
         aria-label={`${actionLabel}. ${preview.firstLine}`}
         aria-describedby={hasTooltip && tooltipOpen ? tooltipId : undefined}
         tabIndex={0}

@@ -72,7 +72,6 @@ export function ErrorPageRow({
       <td className="w-6 p-1 text-center align-middle">
         <Checkbox
           id={enabledId}
-          className="app-no-drag"
           checked={page.enabled !== false}
           disabled={disabled}
           aria-label={`${rowLabel} enabled`}

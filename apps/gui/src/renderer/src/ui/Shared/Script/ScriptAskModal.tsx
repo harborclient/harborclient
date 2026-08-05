@@ -223,16 +223,12 @@ export function ScriptAskModal({
   };
 
   return portalToBody(
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 bg-transparent app-no-drag"
-      onClick={handleDismiss}
-    >
+    <div ref={overlayRef} className="fixed inset-0 z-50 bg-transparent" onClick={handleDismiss}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="absolute w-[min(360px,calc(100vw-24px))] rounded-2xl border border-separator bg-surface p-3 shadow-xl app-no-drag"
+        className="absolute w-[min(360px,calc(100vw-24px))] rounded-2xl border border-separator bg-surface p-3 shadow-xl"
         style={panelStyle}
         onClick={(event) => event.stopPropagation()}
       >

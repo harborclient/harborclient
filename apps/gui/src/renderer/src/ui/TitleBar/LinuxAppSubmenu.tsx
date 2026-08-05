@@ -120,7 +120,7 @@ export function LinuxAppSubmenu({ label, items, position, onClose }: Props): JSX
       ref={menuRef}
       role="menu"
       aria-label={label}
-      className="fixed z-50 min-w-[240px] rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
+      className="fixed z-50 min-w-[240px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: clampedPosition.x, top: clampedPosition.y }}
     >
       {items.map((item) => (

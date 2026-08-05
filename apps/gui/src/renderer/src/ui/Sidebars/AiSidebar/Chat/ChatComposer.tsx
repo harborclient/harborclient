@@ -228,7 +228,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   };
 
   return (
-    <div className="flex shrink-0 flex-col gap-2 p-3 app-no-drag">
+    <div className="flex shrink-0 flex-col gap-2 p-3">
       <p role="status" aria-live="polite" className="sr-only">
         {composerAnnouncement}
       </p>

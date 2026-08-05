@@ -3,7 +3,7 @@
  */
 
 export const segmentGroup =
-  'flex min-w-0 max-w-full w-full p-3 border-b border-separator shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
+  'flex min-w-0 max-w-full w-full p-3 border-b border-separator shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]';
 
 const segmentFocusVisible =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
@@ -15,8 +15,8 @@ const segmentFocusVisible =
  */
 export function segment(active: boolean): string {
   return active
-    ? `cursor-pointer rounded-md border-none bg-selection px-3 h-[32px] leading-none text-text app-no-drag ${segmentFocusVisible}`
-    : `cursor-pointer rounded-md border-none bg-transparent px-3 h-[32px] leading-none text-muted hover:text-text app-no-drag ${segmentFocusVisible}`;
+    ? `cursor-pointer rounded-md border-none bg-selection px-3 h-[32px] leading-none text-text ${segmentFocusVisible}`
+    : `cursor-pointer rounded-md border-none bg-transparent px-3 h-[32px] leading-none text-muted hover:text-text ${segmentFocusVisible}`;
 }
 
 /**

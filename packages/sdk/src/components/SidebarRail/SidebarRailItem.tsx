@@ -148,7 +148,7 @@ function railItemSectionClasses(active: boolean): string {
  */
 function railItemButtonClasses(active: boolean, expanded: boolean): string {
   return cn(
-    'hc-sidebar-rail-item app-no-drag relative inline-flex min-h-12 w-full shrink-0 cursor-pointer items-center rounded-none border-none bg-transparent py-5',
+    'hc-sidebar-rail-item relative inline-flex min-h-12 w-full shrink-0 cursor-pointer items-center rounded-none border-none bg-transparent py-5',
     expanded ? 'gap-2 px-3' : 'justify-center',
     !active && 'hover:bg-sidebar-rail-active',
     railItemFocusVisible

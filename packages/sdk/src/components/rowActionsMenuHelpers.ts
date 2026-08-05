@@ -5,8 +5,7 @@ import type { MenuItem } from './RowActionsMenu/index.js';
  * `RowActionsMenu` panel and its flyout `Submenu` panels.
  */
 export function menuItemClass(variant: MenuItem['variant'], disabled?: boolean): string {
-  const base =
-    'flex w-full items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left app-no-drag';
+  const base = 'flex w-full items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left';
 
   if (disabled) {
     return `${base} cursor-not-allowed text-muted opacity-60`;

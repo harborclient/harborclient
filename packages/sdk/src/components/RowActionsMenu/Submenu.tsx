@@ -233,7 +233,7 @@ export function Submenu({
       ref={panelRef}
       id={menuElementId}
       role="menu"
-      className="hc-row-actions-menu-panel hc-row-actions-submenu-panel app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-row-actions-menu-panel hc-row-actions-submenu-panel fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: position.x, top: position.y }}
       onKeyDown={handleKeyDown}
       onMouseEnter={onMouseEnter}

@@ -83,7 +83,7 @@ export function SidebarCommitItem({
     <Container>
       <button
         type="button"
-        className="hc-sidebar-commit-item group app-no-drag flex w-full cursor-pointer rounded-md p-2 text-left hover:bg-selection/60"
+        className="hc-sidebar-commit-item group flex w-full cursor-pointer rounded-md p-2 text-left hover:bg-selection/60"
         onClick={onClick}
       >
         <div className="mr-2 flex shrink-0 flex-col items-center gap-0.5 self-start">

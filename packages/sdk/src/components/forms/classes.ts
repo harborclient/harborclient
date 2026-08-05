@@ -14,8 +14,7 @@ export type FieldVariant = 'control' | 'surface' | 'plain';
 export const fieldFrame = 'overflow-hidden rounded-lg border border-separator bg-field';
 
 /** Inset control style for standard settings and editor fields. */
-export const field =
-  'rounded-lg border border-separator bg-field px-2.5 py-1.5 text-text app-no-drag';
+export const field = 'rounded-lg border border-separator bg-field px-2.5 py-1.5 text-text';
 
 /** Surface style for modal and Team Hub form fields. */
 export const surfaceField =

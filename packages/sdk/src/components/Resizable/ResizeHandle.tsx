@@ -82,7 +82,7 @@ export function ResizeHandle({
       role="separator"
       tabIndex={0}
       className={cn(
-        'hc-resize-handle font-inherit app-no-drag m-0 flex shrink-0 items-center justify-center bg-resize-separator p-0 text-inherit hover:bg-selection/60',
+        'hc-resize-handle font-inherit m-0 flex shrink-0 items-center justify-center bg-resize-separator p-0 text-inherit hover:bg-selection/60',
         isHorizontal
           ? 'h-1.5 w-full cursor-row-resize border-b border-resize-separator'
           : 'h-full w-1.5 cursor-col-resize border-r border-resize-separator',

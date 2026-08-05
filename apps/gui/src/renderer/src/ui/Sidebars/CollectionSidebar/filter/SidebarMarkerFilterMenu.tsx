@@ -236,7 +236,7 @@ export function SidebarMarkerFilterMenu({
       id={listboxId}
       role="listbox"
       aria-label="Color marker"
-      className="hc-sidebar-marker-filter-listbox app-no-drag fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-sidebar-marker-filter-listbox fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ top: position.y, left: position.x, width: LISTBOX_WIDTH_PX }}
       onKeyDown={handleListboxKeyDown}
     >
@@ -253,7 +253,7 @@ export function SidebarMarkerFilterMenu({
             role="option"
             aria-selected={selected}
             tabIndex={index === focusedIndex ? 0 : -1}
-            className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection app-no-drag"
+            className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection"
             onClick={(event) => {
               event.stopPropagation();
               selectOption(option.marker);

@@ -137,7 +137,7 @@ export function TerminalTabButton({
         <Input
           ref={inputRef}
           variant="plain"
-          className="w-full min-w-0 border-none bg-transparent p-0 text-text outline-none app-no-drag"
+          className="w-full min-w-0 border-none bg-transparent p-0 text-text outline-none"
           type="text"
           value={draftTitle}
           aria-label="Rename terminal tab"

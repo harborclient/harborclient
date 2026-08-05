@@ -25,7 +25,7 @@ export function EntryRow({ entry, expanded, onToggle }: Props): JSX.Element {
     <div className="border-b border-separator last:border-b-0">
       <button
         type="button"
-        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[14px] hover:bg-selection/60 app-no-drag"
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[14px] hover:bg-selection/60"
         aria-expanded={expanded}
         aria-controls={`console-entry-${entry.id}-details`}
         onClick={onToggle}

@@ -121,7 +121,6 @@ export function FormDataEditor({
           <tr key={index}>
             <TableCell className="hc-form-data-editor-cell w-6 p-1 text-center">
               <Checkbox
-                className="app-no-drag"
                 checked={row.enabled}
                 onChange={(e) => updateRow(index, { enabled: e.target.checked })}
                 aria-label={`Enable row ${index + 1}`}
@@ -160,7 +159,6 @@ export function FormDataEditor({
               {row.type === 'text' ? (
                 <VariableInput
                   wrapperClassName={`${fieldFrame} w-full`}
-                  className="app-no-drag"
                   value={row.value}
                   onChange={(value) => updateRow(index, { value })}
                   variables={variables}
@@ -188,7 +186,7 @@ export function FormDataEditor({
                       <span className="truncate">{fileBasename(filePath)}</span>
                       <button
                         type="button"
-                        className="app-no-drag inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-muted hover:bg-selection hover:text-text"
+                        className="inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-muted hover:bg-selection hover:text-text"
                         onClick={() => removeFile(index, filePath)}
                         title={`Remove file ${fileBasename(filePath)}`}
                         aria-label={`Remove file ${fileBasename(filePath)}`}

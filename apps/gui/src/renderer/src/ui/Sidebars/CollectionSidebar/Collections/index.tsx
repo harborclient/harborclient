@@ -1155,7 +1155,7 @@ export function Collections(): JSX.Element {
                     </button>
                     <button
                       type="button"
-                      className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit app-no-drag`}
+                      className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit`}
                       data-sidebar-collection-id={collection.id}
                       aria-current={selected ? 'true' : undefined}
                       onClick={() => handleCollectionNameClick(collection.id, expanded)}

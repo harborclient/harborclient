@@ -61,7 +61,7 @@ export function getFooterPanelMaxSize(containerRef: RefObject<HTMLDivElement | n
 export function footerPanelClassName(open: boolean): string {
   return [
     'absolute inset-x-0 bottom-full z-40 flex flex-col border-t border-separator bg-surface',
-    'transition-transform duration-300 ease-out app-no-drag',
+    'transition-transform duration-300 ease-out',
     open
       ? 'translate-y-0 shadow-[0_-4px_16px_rgba(0,0,0,0.12)]'
       : 'translate-y-full pointer-events-none shadow-none'
@@ -70,4 +70,4 @@ export function footerPanelClassName(open: boolean): string {
 
 /** Shared close-button styling for footer slide-up panels. */
 export const footerPanelCloseButtonClassName =
-  'inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-full border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text app-no-drag';
+  'inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-full border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text';

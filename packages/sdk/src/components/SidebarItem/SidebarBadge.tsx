@@ -88,7 +88,7 @@ function variantClasses(variant: SidebarBadgeVariant, interactive: boolean): str
       base,
       'min-w-[22px] justify-center rounded-full bg-selection px-2 font-normal text-muted shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]',
       interactive &&
-        'app-no-drag cursor-pointer hover:text-text focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
+        'cursor-pointer hover:text-text focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
     );
   }
 
@@ -96,7 +96,7 @@ function variantClasses(variant: SidebarBadgeVariant, interactive: boolean): str
     base,
     'rounded bg-info/15 px-1.5 font-medium text-info',
     interactive &&
-      'app-no-drag cursor-pointer hover:bg-info/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
+      'cursor-pointer hover:bg-info/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
   );
 }
 

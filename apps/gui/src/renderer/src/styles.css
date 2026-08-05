@@ -1247,8 +1247,30 @@
     box-shadow: none;
   }
 
+  /*
+   * Electron frameless / hidden-inset window chrome.
+   * Put `app-drag` only on regions that should move the window. Interactive
+   * descendants are opted out by the selectors below (or explicit `app-no-drag`
+   * for non-semantic clickables). Do not sprinkle `app-no-drag` through AppShell.
+   */
   .app-drag {
     -webkit-app-region: drag;
+  }
+
+  .app-drag button,
+  .app-drag a,
+  .app-drag input,
+  .app-drag select,
+  .app-drag textarea,
+  .app-drag label,
+  .app-drag nav,
+  .app-drag [role='button'],
+  .app-drag [role='menuitem'],
+  .app-drag [role='menu'],
+  .app-drag [role='menubar'],
+  .app-drag [role='listbox'],
+  .app-drag [role='option'] {
+    -webkit-app-region: no-drag;
   }
 
   .app-no-drag {

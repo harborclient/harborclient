@@ -108,7 +108,7 @@ export function MethodSelect({
         aria-haspopup="listbox"
         aria-label="Request method or protocol"
         className={cn(
-          'hc-method-select app-no-drag w-[100px] shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-left text-[14px] leading-none font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+          'hc-method-select w-[100px] shrink-0 cursor-pointer border-none bg-transparent px-2 py-1.5 text-left text-[14px] leading-none font-normal focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
           methodColorClass(colorKey),
           className
         )}

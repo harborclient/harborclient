@@ -52,7 +52,7 @@ export function SortMenuOption({
       role="option"
       aria-selected={selected}
       tabIndex={focused ? 0 : -1}
-      className="app-no-drag flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection"
+      className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection"
       onClick={(event) => {
         event.stopPropagation();
         onSelect();

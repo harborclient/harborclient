@@ -39,7 +39,7 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'aria-label' | 
   activeStyle?: ActiveStyle;
 }
 
-const footerIconBase = `inline-flex ${footerIconButtonSizeClass} shrink-0 cursor-pointer items-center justify-center rounded-md border-none app-no-drag`;
+const footerIconBase = `inline-flex ${footerIconButtonSizeClass} shrink-0 cursor-pointer items-center justify-center rounded-md border-none`;
 
 /**
  * Square icon toggle styles for footer sidebar buttons.

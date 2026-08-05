@@ -61,7 +61,7 @@ export function SidebarPanelSwitcher({
     >
       <button
         type="button"
-        className={`rounded px-2 py-1 text-[14px] app-no-drag ${
+        className={`rounded px-2 py-1 text-[14px] ${
           activePanelId == null
             ? 'bg-accent/15 font-medium text-accent'
             : 'text-muted hover:bg-control hover:text-text'
@@ -81,7 +81,7 @@ export function SidebarPanelSwitcher({
         <button
           key={panel.id}
           type="button"
-          className={`rounded px-2 py-1 text-[14px] app-no-drag ${
+          className={`rounded px-2 py-1 text-[14px] ${
             activePanelId === panel.id
               ? 'bg-accent/15 font-medium text-accent'
               : 'text-muted hover:bg-control hover:text-text'

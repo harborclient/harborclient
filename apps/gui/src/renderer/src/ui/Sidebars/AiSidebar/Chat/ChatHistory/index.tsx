@@ -229,7 +229,7 @@ export function ChatHistory({ anchorRef, onClose, onOpenChat }: Props): JSX.Elem
     <div
       id={AI_CHAT_HISTORY_MENU_ID}
       aria-label="Chat history"
-      className="fixed z-50 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-md border border-separator bg-sidebar shadow-md app-no-drag"
+      className="fixed z-50 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-md border border-separator bg-sidebar shadow-md"
       style={{ top: position.top, left: position.left }}
     >
       <div className="shrink-0 border-b border-separator px-2 py-2">

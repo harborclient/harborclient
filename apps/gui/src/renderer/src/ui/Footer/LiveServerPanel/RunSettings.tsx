@@ -232,7 +232,6 @@ export function RunSettings({
             value={runCommand}
             variables={variables}
             placeholder={commandPlaceholder}
-            className="app-no-drag"
             onChange={(value) => {
               if (!fieldsDisabled) {
                 onRunCommandChange(value);

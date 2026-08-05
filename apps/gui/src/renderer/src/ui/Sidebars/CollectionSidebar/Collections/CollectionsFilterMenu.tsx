@@ -279,7 +279,7 @@ export function CollectionsFilterMenu({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="hc-collections-filter-menu app-no-drag fixed z-50 rounded-md border border-separator bg-surface p-3 shadow-md"
+      className="hc-collections-filter-menu fixed z-50 rounded-md border border-separator bg-surface p-3 shadow-md"
       style={{ top: position.y, left: position.x, width: MENU_WIDTH_PX }}
     >
       <h2 id={titleId} className="m-0 mb-3 text-[15px] font-medium text-text">

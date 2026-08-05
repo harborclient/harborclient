@@ -3,17 +3,17 @@ import type { JSX } from 'react';
 import { faMinus, faWindowMaximize, faXmark } from '#/renderer/src/fontawesome';
 
 const controlButtonClass =
-  'inline-flex h-9 w-10 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text app-no-drag';
+  'inline-flex h-9 w-10 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text';
 
 const closeButtonClass =
-  'inline-flex h-9 w-10 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-danger/15 hover:text-danger app-no-drag';
+  'inline-flex h-9 w-10 shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-danger/15 hover:text-danger';
 
 /**
  * Minimize, maximize, and close buttons for frameless Linux window chrome.
  */
 export function LinuxWindowControls(): JSX.Element {
   return (
-    <div className="flex shrink-0 app-no-drag">
+    <div className="flex shrink-0">
       <button
         type="button"
         className={controlButtonClass}

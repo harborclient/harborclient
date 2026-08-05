@@ -203,7 +203,7 @@ export function AiModelSelectMenu({
       id={menuId}
       role="listbox"
       aria-label={ariaLabel}
-      className="fixed z-50 max-h-64 overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-lg app-no-drag"
+      className="fixed z-50 max-h-64 overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-lg"
       style={{ left: position.left, top: position.top, width: position.width, minWidth: 200 }}
     >
       {groups.map((group) => (
@@ -229,7 +229,7 @@ export function AiModelSelectMenu({
                 data-model-index={index}
                 aria-selected={selected}
                 tabIndex={active ? 0 : -1}
-                className={`flex w-full cursor-pointer border-none px-3 py-1.5 text-left text-text app-no-drag ${
+                className={`flex w-full cursor-pointer border-none px-3 py-1.5 text-left text-text ${
                   selected || active ? 'bg-selection' : 'bg-transparent hover:bg-selection'
                 }`}
                 onClick={() => {

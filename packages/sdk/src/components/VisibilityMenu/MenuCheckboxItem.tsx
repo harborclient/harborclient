@@ -4,7 +4,7 @@ import { FaIcon } from '../FaIcon/index.js';
 import { cn } from '../utils.js';
 
 const menuItemClass =
-  'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection app-no-drag';
+  'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection';
 
 interface Props {
   checked: boolean;

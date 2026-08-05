@@ -223,7 +223,7 @@ export function MethodSelectMenu({
       id={listboxId}
       role="listbox"
       aria-label="Request method or protocol"
-      className="hc-method-select-listbox app-no-drag fixed z-50 max-h-[320px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-method-select-listbox fixed z-50 max-h-[320px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ top: position.y, left: position.x, width: menuWidth }}
       onKeyDown={handleListboxKeyDown}
     >

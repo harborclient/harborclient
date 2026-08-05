@@ -128,7 +128,7 @@ export function AiModelSelect({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         className={[
-          'flex min-w-0 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-muted app-no-drag',
+          'flex min-w-0 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-muted',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className
         ]

@@ -117,7 +117,6 @@ export function KeyValueEditor({
             <tr key={index}>
               <TableCell className="hc-key-value-editor-cell w-6 text-center">
                 <Checkbox
-                  className="app-no-drag"
                   checked={normalizedRow.enabled}
                   onChange={(e) => updateRow(index, { enabled: e.target.checked })}
                   aria-label={`Enable row ${index + 1}`}
@@ -138,7 +137,6 @@ export function KeyValueEditor({
               <TableCell className="hc-key-value-editor-cell">
                 <VariableInput
                   wrapperClassName={`${fieldFrame} w-full`}
-                  className="app-no-drag"
                   value={normalizedRow.value}
                   onChange={(value) => updateRow(index, { value })}
                   variables={variables}

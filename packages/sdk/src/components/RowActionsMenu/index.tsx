@@ -583,7 +583,7 @@ export function RowActionsMenu({
       id={menuElementId}
       role="menu"
       tabIndex={hasEnabledItems ? undefined : -1}
-      className="hc-row-actions-menu-panel app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-row-actions-menu-panel fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: menuPosition.x, top: menuPosition.y }}
       onKeyDown={handleMenuKeyDown}
       onMouseLeave={() => {

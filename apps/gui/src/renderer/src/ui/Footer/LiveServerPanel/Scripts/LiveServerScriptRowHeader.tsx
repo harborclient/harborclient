@@ -37,7 +37,7 @@ export function LiveServerScriptRowHeader({
     <div className={`flex min-w-0 flex-1 items-center gap-2 ${SCRIPT_ROW_TITLE_CLASS}`}>
       <Input
         variant="plain"
-        className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none app-no-drag`}
+        className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none`}
         type="text"
         value={matchPath}
         onChange={(event) => onMatchPathChange(event.target.value)}

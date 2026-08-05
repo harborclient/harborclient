@@ -72,7 +72,7 @@ export function TeamHubRailAvatar({
   return (
     <button
       type="button"
-      className={`hc-team-hub-rail-avatar app-no-drag inline-flex w-full cursor-pointer items-center rounded-none border-none bg-transparent text-sidebar-rail-text hover:bg-sidebar-rail-active ${
+      className={`hc-team-hub-rail-avatar inline-flex w-full cursor-pointer items-center rounded-none border-none bg-transparent text-sidebar-rail-text hover:bg-sidebar-rail-active ${
         expanded ? 'gap-2 px-3 py-1' : 'justify-center'
       } ${avatarFocusVisible}`}
       aria-label={ariaLabel}

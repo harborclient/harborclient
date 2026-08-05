@@ -163,7 +163,6 @@ export function UrlBar({
         <div className="h-5 w-px shrink-0 bg-separator" />
         <VariableInput
           id={REQUEST_URL_INPUT_ID}
-          className="app-no-drag"
           value={url}
           onChange={onUrlChange}
           variables={variables}

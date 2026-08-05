@@ -20,7 +20,7 @@ export function ChatHistoryShowMoreButton({ label, onClick }: Props): JSX.Elemen
     <button
       type="button"
       aria-label={label}
-      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-accent hover:bg-selection app-no-drag"
+      className="mx-1 mt-1 w-[calc(100%-0.5rem)] cursor-pointer rounded-md border-none bg-transparent px-2 py-1.5 text-left text-accent hover:bg-selection"
       onClick={onClick}
     >
       Show more

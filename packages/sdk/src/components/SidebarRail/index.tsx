@@ -234,7 +234,7 @@ export function SidebarRail({
     <div
       {...props}
       className={cn(
-        'hc-sidebar-rail app-no-drag flex h-full shrink-0 flex-col bg-sidebar-rail text-sidebar-rail-text',
+        'hc-sidebar-rail flex h-full shrink-0 flex-col bg-sidebar-rail text-sidebar-rail-text',
         expanded ? 'w-[168px]' : 'w-18',
         'transition-[width] duration-200 ease-out motion-reduce:transition-none',
         className
@@ -268,7 +268,7 @@ export function SidebarRail({
         <button
           type="button"
           className={cn(
-            'hc-sidebar-rail-expand app-no-drag inline-flex min-h-12 w-full cursor-pointer items-center rounded-none border-none bg-transparent py-3 text-sidebar-rail-text',
+            'hc-sidebar-rail-expand inline-flex min-h-12 w-full cursor-pointer items-center rounded-none border-none bg-transparent py-3 text-sidebar-rail-text',
             expanded ? 'gap-2 px-3' : 'justify-center',
             'hover:bg-sidebar-rail-active',
             railExpandFocusVisible

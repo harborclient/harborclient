@@ -93,8 +93,8 @@ export function LinuxAppSubmenuItem({ item, onActivate }: Props): JSX.Element {
   };
 
   const parentClass = item.enabled
-    ? 'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text hover:bg-selection app-no-drag'
-    : 'flex w-full cursor-default items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text-secondary opacity-60 app-no-drag';
+    ? 'flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text hover:bg-selection'
+    : 'flex w-full cursor-default items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-text-secondary opacity-60';
 
   return (
     <div
@@ -125,7 +125,7 @@ export function LinuxAppSubmenuItem({ item, onActivate }: Props): JSX.Element {
             ref={flyoutRef}
             role="menu"
             aria-label={item.label}
-            className="min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md app-no-drag"
+            className="min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
           >
             {item.submenu.map((child) => (
               <LinuxAppSubmenuLeaf

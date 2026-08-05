@@ -129,7 +129,7 @@ export function WorkflowPlayDialogTitle({ workflowId, name, titleId }: Props): J
           aria-label="Workflow name"
           aria-invalid={error != null}
           aria-describedby={error != null ? `${titleId}-error` : undefined}
-          className="app-no-drag w-full min-w-0 border-none bg-transparent p-0 text-[15px] font-semibold text-text outline-none"
+          className="w-full min-w-0 border-none bg-transparent p-0 text-[15px] font-semibold text-text outline-none"
           type="text"
           value={draftName}
           disabled={saving}
@@ -154,7 +154,7 @@ export function WorkflowPlayDialogTitle({ workflowId, name, titleId }: Props): J
           id={titleId}
           aria-label={`Rename workflow: ${name}`}
           title="Rename workflow"
-          className="app-no-drag inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          className="inline-flex max-w-full min-w-0 cursor-text items-center border-none bg-transparent p-0 text-left text-[15px] font-semibold text-text hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           onClick={startEditing}
           onPointerDown={stopDragPointerDown}
         >

@@ -18,8 +18,8 @@ import { statusDotVariantClass } from '../StatusDot/index.js';
 export function sourceRow(selected: boolean, compact = false): string {
   const py = compact ? 'py-0' : 'py-0.5';
   return selected
-    ? `group flex items-center gap-1 rounded-md bg-selection pl-1.5 pr-0 ${py} app-no-drag`
-    : `group flex items-center gap-1 rounded-md pl-1.5 pr-0 ${py} hover:bg-selection/60 app-no-drag`;
+    ? `group flex items-center gap-1 rounded-md bg-selection pl-1.5 pr-0 ${py}`
+    : `group flex items-center gap-1 rounded-md pl-1.5 pr-0 ${py} hover:bg-selection/60`;
 }
 
 /**
@@ -88,20 +88,20 @@ export function statusDotClass(status: number): string {
  * Standard primary button classes for sidebar item label areas.
  */
 export const SIDEBAR_ITEM_BUTTON_CLASS =
-  'flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit app-no-drag';
+  'flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent py-0 text-left text-inherit';
 
 /**
  * Tailwind classes for the sortable row drag handle. Hidden until row hover or handle focus.
  */
 export const SIDEBAR_DRAG_HANDLE_CLASS =
-  'app-no-drag inline-flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 hover:text-text focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:cursor-grabbing group-hover:opacity-100';
+  'inline-flex h-4 w-4 shrink-0 cursor-grab items-center justify-center rounded border-none bg-transparent p-0 text-muted opacity-0 hover:text-text focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:cursor-grabbing group-hover:opacity-100';
 
 /**
  * Expand/collapse chevron button (collection and folder rows). 16×16 hit target
  * sized to match Cursor’s file explorer twistie.
  */
 export const SIDEBAR_CHEVRON_BUTTON_CLASS =
-  'app-no-drag inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text';
+  'inline-flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-muted hover:text-text';
 
 /**
  * Expand/collapse chevron glyph size (12×12), forced past Font Awesome's

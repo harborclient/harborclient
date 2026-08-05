@@ -270,7 +270,7 @@ export function Footer(): JSX.Element {
       id={APP_FOOTER_SECTION_ID}
       tabIndex={-1}
       ref={footerRef}
-      className="relative z-50 flex shrink-0 items-stretch border-t border-separator bg-footer app-no-drag"
+      className="relative z-50 flex shrink-0 items-stretch border-t border-separator bg-footer"
     >
       <button
         type="button"

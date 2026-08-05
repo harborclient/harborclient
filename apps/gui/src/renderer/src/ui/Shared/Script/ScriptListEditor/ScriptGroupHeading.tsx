@@ -139,7 +139,7 @@ export function ScriptGroupHeading({
     <div className="hc-sidebar-section-header flex min-h-8 items-center justify-between gap-2 border-b border-sidebar-rail-separator bg-sidebar-section py-1 pl-0.5 pr-3">
       <button
         type="button"
-        className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
+        className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => onExpandedChange(!expanded)}

@@ -26,8 +26,8 @@ interface Props extends Omit<
  */
 function footerSegment(active: boolean): string {
   return active
-    ? 'cursor-pointer rounded-md border-none bg-surface px-2 py-0.5 text-[14px] text-footer-text shadow-sm app-no-drag'
-    : 'cursor-pointer rounded-md border-none bg-transparent px-2 py-0.5 text-[14px] text-footer-muted hover:text-footer-text app-no-drag';
+    ? 'cursor-pointer rounded-md border-none bg-surface px-2 py-0.5 text-[14px] text-footer-text shadow-sm'
+    : 'cursor-pointer rounded-md border-none bg-transparent px-2 py-0.5 text-[14px] text-footer-muted hover:text-footer-text';
 }
 
 /**

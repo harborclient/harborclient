@@ -35,7 +35,7 @@ export function SidebarCollapseAllHeader({
       <div className="hc-sidebar-section-header-actions flex shrink-0 items-center gap-1">
         <button
           type="button"
-          className="hc-sidebar-add-button app-no-drag inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
+          className="hc-sidebar-add-button inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
           aria-label={ariaLabel}
           title={title}
           onClick={onClick}

@@ -60,7 +60,7 @@ export function ScriptRowStageBorder({
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className={`${SCRIPT_ROW_STAGE_BORDER_CLASS} cursor-grab border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing app-no-drag`}
+        className={`${SCRIPT_ROW_STAGE_BORDER_CLASS} cursor-grab border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-accent active:cursor-grabbing`}
         style={stripStyle}
         aria-label={reorderLabel}
         title={reorderLabel}

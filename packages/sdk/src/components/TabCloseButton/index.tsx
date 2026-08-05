@@ -36,7 +36,7 @@ export function TabCloseButton({
       {...props}
       type="button"
       className={cn(
-        'hc-tab-close-button app-no-drag inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-full border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text',
+        'hc-tab-close-button inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center self-center rounded-full border-none bg-transparent text-[14px] text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text',
         className
       )}
       title={title}

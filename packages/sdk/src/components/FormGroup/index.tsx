@@ -188,8 +188,8 @@ export function FormGroup({
 
   if (layout === 'radio') {
     const wrapperClasses = extra
-      ? `hc-form-group inline-flex cursor-pointer items-center gap-1.5 text-text app-no-drag ${extra}`
-      : 'hc-form-group inline-flex cursor-pointer items-center gap-1.5 text-text app-no-drag';
+      ? `hc-form-group inline-flex cursor-pointer items-center gap-1.5 text-text ${extra}`
+      : 'hc-form-group inline-flex cursor-pointer items-center gap-1.5 text-text';
     const linkedChildren = enhanceControl(children, { id: controlId });
     return (
       <label htmlFor={controlId} className={wrapperClasses}>

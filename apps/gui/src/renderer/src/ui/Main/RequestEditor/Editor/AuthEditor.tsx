@@ -157,7 +157,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="username"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -176,7 +175,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="password"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -224,7 +222,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="https://example.com/oauth/token"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -245,7 +242,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="client id"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -266,7 +262,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="client secret"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -285,7 +280,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="read write"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>
@@ -306,7 +300,6 @@ export function AuthEditor({
                   variables={variables}
                   onEditVariable={onEditVariables}
                   placeholder="optional audience"
-                  className="app-no-drag"
                 />
               </FormGroup>
             </div>

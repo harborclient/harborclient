@@ -138,12 +138,12 @@ export function TabBarShell<TId extends string | number>({
       onKeyDown={exiting ? undefined : handleTabKeyDown}
       {...(sortableDisabled || exiting ? {} : listeners)}
     >
-      <span className="app-no-drag flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit">
+      <span className="flex min-w-0 flex-1 items-center gap-1.5 py-2 text-inherit">
         {item.content}
       </span>
       {!exiting && (
         <span
-          className="app-no-drag flex shrink-0 items-center self-center"
+          className="flex shrink-0 items-center self-center"
           onPointerDown={(event) => event.stopPropagation()}
         >
           <TabCloseButton

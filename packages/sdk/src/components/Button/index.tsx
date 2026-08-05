@@ -39,7 +39,7 @@ export type ButtonProps =
   | (BaseProps & { variant: IconButtonVariant } & AccessibleName)
   | (BaseProps & { variant?: Exclude<ButtonVariant, IconButtonVariant> });
 
-const BUTTON_BASE = 'inline-flex cursor-pointer items-center rounded-full app-no-drag';
+const BUTTON_BASE = 'inline-flex cursor-pointer items-center rounded-full';
 
 /**
  * Keyboard focus ring for variants that use `shadow-sm`. Host apps often style

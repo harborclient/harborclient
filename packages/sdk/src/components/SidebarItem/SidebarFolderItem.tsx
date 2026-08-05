@@ -198,7 +198,7 @@ export function SidebarFolderItem({
         />
       </button>
       <span
-        className={`app-no-drag ${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none font-medium text-inherit`}
+        className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none font-medium text-inherit`}
         aria-current={selected ? 'true' : undefined}
       >
         <span className="inline-flex min-w-0 items-center gap-1.5">

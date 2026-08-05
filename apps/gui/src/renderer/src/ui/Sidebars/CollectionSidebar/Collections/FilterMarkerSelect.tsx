@@ -258,7 +258,7 @@ export function FilterMarkerSelect({ value, markers, onChange, id }: Props): JSX
             id={listboxId}
             role="listbox"
             aria-label="Color marker"
-            className="hc-collections-filter-marker-listbox app-no-drag fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
+            className="hc-collections-filter-marker-listbox fixed z-50 max-h-[240px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
             style={{ top: position.y, left: position.x, width: LISTBOX_WIDTH_PX }}
             onKeyDown={handleListboxKeyDown}
           >
@@ -274,7 +274,7 @@ export function FilterMarkerSelect({ value, markers, onChange, id }: Props): JSX
                   role="option"
                   aria-selected={selected}
                   tabIndex={index === focusedIndex ? 0 : -1}
-                  className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection app-no-drag"
+                  className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] text-text hover:bg-selection"
                   onClick={(event) => {
                     event.stopPropagation();
                     selectOption(option.marker);
@@ -310,7 +310,7 @@ export function FilterMarkerSelect({ value, markers, onChange, id }: Props): JSX
         aria-expanded={open}
         aria-controls={listboxId}
         aria-haspopup="listbox"
-        className="hc-select flex w-full cursor-pointer items-center gap-2 rounded-lg border border-separator bg-field px-2.5 py-1.5 text-left text-[14px] text-text app-no-drag focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="hc-select flex w-full cursor-pointer items-center gap-2 rounded-lg border border-separator bg-field px-2.5 py-1.5 text-left text-[14px] text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={toggleListbox}
       >
         {value != null ? (

@@ -132,8 +132,8 @@ export interface Props extends Omit<
  * The variable tooltip is portaled to `document.body` so fixed positioning is not
  * trapped under host chrome (for example request tabs above a scroll container).
  *
- * Token highlight color (`text-[#32D2E2]`) and the tooltip `app-no-drag` class rely on
- * host styling in HarborClient `styles.css`.
+ * Token highlight color (`text-[#32D2E2]`) relies on host styling in HarborClient
+ * `styles.css`.
  */
 export function VariableInput({
   value,

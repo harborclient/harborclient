@@ -17,7 +17,7 @@ export {
 
 /** Shared chrome for the labeled breadcrumb-style Copy to chat control. */
 const LABELED_BUTTON_CLASS =
-  'hc-copy-to-chat-button hc-code-editor-selection-action app-no-drag inline-flex cursor-pointer items-stretch overflow-hidden rounded-lg border-none bg-breadcrumb-background p-0 text-[14px] text-text shadow-sm hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent';
+  'hc-copy-to-chat-button hc-code-editor-selection-action inline-flex cursor-pointer items-stretch overflow-hidden rounded-lg border-none bg-breadcrumb-background p-0 text-[14px] text-text shadow-sm hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent';
 
 export interface Props {
   /**

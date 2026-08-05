@@ -427,7 +427,7 @@ export function AnchorMenuPanel({
       role="menu"
       tabIndex={hasEnabledItems ? undefined : -1}
       className={cn(
-        'hc-anchor-menu-panel hc-row-actions-menu-panel app-no-drag fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md',
+        'hc-anchor-menu-panel hc-row-actions-menu-panel fixed z-50 min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md',
         className
       )}
       style={{ left: menuPosition.x, top: menuPosition.y }}

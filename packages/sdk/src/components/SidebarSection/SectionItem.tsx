@@ -92,7 +92,7 @@ const SectionItem = memo(function SectionItem({
         <button
           {...buttonProps}
           type="button"
-          className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
+          className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
         >
           <span className={SIDEBAR_CHEVRON_SLOT_CLASS}>
             <FaIcon
@@ -113,7 +113,7 @@ const SectionItem = memo(function SectionItem({
             {onAdd ? (
               <button
                 type="button"
-                className="hc-sidebar-add-button app-no-drag inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
+                className="hc-sidebar-add-button inline-flex shrink-0 cursor-pointer items-center justify-center border-none bg-transparent text-muted hover:bg-selection hover:text-text focus-visible:bg-selection focus-visible:text-text"
                 title={addLabel ?? 'Add'}
                 aria-label={addLabel ?? 'Add'}
                 onClick={onAdd}

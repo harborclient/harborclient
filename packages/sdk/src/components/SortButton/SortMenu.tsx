@@ -211,7 +211,7 @@ export function SortMenu({
       id={listboxId}
       role="listbox"
       aria-label={ariaLabel}
-      className="hc-sort-menu-listbox app-no-drag fixed z-50 max-h-[280px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-sort-menu-listbox fixed z-50 max-h-[280px] overflow-y-auto rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ top: position.y, left: position.x, width: LISTBOX_WIDTH_PX }}
       onKeyDown={handleListboxKeyDown}
     >

@@ -57,7 +57,7 @@ export function appendVariableTooltipValueRow(
 
   const copyBtn = document.createElement('button');
   copyBtn.type = 'button';
-  copyBtn.className = 'cm-variable-tooltip-copy app-no-drag';
+  copyBtn.className = 'cm-variable-tooltip-copy';
   copyBtn.setAttribute('aria-label', `Copy value for ${key}`);
   copyBtn.appendChild(createTooltipIcon(COPY_ICON_PATH));
 
@@ -107,7 +107,7 @@ export function buildVariableTooltipDom(
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = 'Edit value';
-    btn.className = 'cm-variable-tooltip-edit app-no-drag';
+    btn.className = 'cm-variable-tooltip-edit';
     btn.setAttribute('aria-label', `Edit value for ${key}`);
     btn.addEventListener('mousedown', (event) => {
       event.preventDefault();

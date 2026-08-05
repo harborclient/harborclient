@@ -52,7 +52,7 @@ export function CrumbSegment({ segment, shape }: Props): JSX.Element {
           type="button"
           className={cn(
             contentClass,
-            'app-no-drag focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
+            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
           )}
           aria-label={accessibleName}
           onClick={handleClick}

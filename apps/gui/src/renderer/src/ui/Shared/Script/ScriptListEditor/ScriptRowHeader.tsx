@@ -64,7 +64,7 @@ export function ScriptRowHeader({ script, snippets, onNameChange }: Props): JSX.
       <Input
         ref={labelInputRef}
         variant="plain"
-        className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none app-no-drag`}
+        className={`min-w-0 flex-1 border-none bg-transparent p-0 ${SCRIPT_ROW_TITLE_CLASS} outline-none`}
         type="text"
         value={script.name ?? ''}
         onChange={(event) => onNameChange(event.target.value)}
@@ -89,7 +89,7 @@ export function ScriptRowHeader({ script, snippets, onNameChange }: Props): JSX.
   ) : (
     <button
       type="button"
-      className={`flex min-w-0 flex-1 cursor-text items-center gap-1 border-none bg-transparent p-0 text-left ${SCRIPT_ROW_TITLE_CLASS} hover:opacity-80 app-no-drag`}
+      className={`flex min-w-0 flex-1 cursor-text items-center gap-1 border-none bg-transparent p-0 text-left ${SCRIPT_ROW_TITLE_CLASS} hover:opacity-80`}
       aria-label={`Rename ${accessibleLabel}${ariaLabelSuffix}`}
       onClick={() => setEditingLabel(true)}
       onPointerDown={stopDragPointerDown}

@@ -340,7 +340,6 @@ export function BodyEditor({
           <FormGroup key={value} label={label} layout="radio">
             <Radio
               name={bodyTypeGroupName}
-              className="app-no-drag"
               checked={bodyType === value}
               onChange={() => handleBodyTypeChange(value)}
             />

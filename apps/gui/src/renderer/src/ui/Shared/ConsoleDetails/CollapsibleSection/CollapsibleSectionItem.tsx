@@ -58,7 +58,7 @@ export const CollapsibleSectionItem = memo(function CollapsibleSectionItem({
         <button
           {...buttonProps}
           type="button"
-          className="app-no-drag inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
+          className="inline-flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left"
         >
           <span className={SIDEBAR_CHEVRON_SLOT_CLASS}>
             <FaIcon

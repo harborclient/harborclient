@@ -60,7 +60,6 @@ describe('SidebarBadge', () => {
     expect(badge.tagName).toBe('BUTTON');
     expect((badge as HTMLButtonElement).type).toBe('button');
     expect(badge.className).toContain('hover:bg-info/25');
-    expect(badge.className).toContain('app-no-drag');
   });
 
   it('renders a recessed count badge with rounded-full styling', () => {

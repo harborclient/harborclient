@@ -83,7 +83,7 @@ export function RawBodyDrawer({
       <div className="flex shrink-0 items-center gap-2 border-b border-separator px-3 py-2">
         <button
           type="button"
-          className="app-no-drag inline-flex items-center gap-2 text-left text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex items-center gap-2 text-left text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-expanded={open}
           aria-controls={panelId}
           onClick={onToggle}

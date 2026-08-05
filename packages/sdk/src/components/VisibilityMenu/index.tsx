@@ -202,7 +202,7 @@ export function VisibilityMenu<T extends string>({
         <div
           id={menuElementId}
           role="menu"
-          className="hc-visibility-menu-panel app-no-drag absolute top-full right-0 z-10 mt-0.5 min-w-[140px] rounded-md border border-separator bg-surface py-1 shadow-md"
+          className="hc-visibility-menu-panel absolute top-full right-0 z-10 mt-0.5 min-w-[140px] rounded-md border border-separator bg-surface py-1 shadow-md"
           onKeyDown={handleMenuKeyDown}
         >
           {items.map((item, index) => {

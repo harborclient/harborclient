@@ -53,7 +53,7 @@ export const scriptRowIconButtonClass =
  * Uses tight padding unlike SDK `segmentGroup`, which targets full-width tab headers.
  */
 export const footerButtonGroup =
-  'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag [border-radius:var(--mac-chrome-radius)]';
+  'inline-flex min-w-0 items-center rounded-md p-0.5 shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] [border-radius:var(--mac-chrome-radius)]';
 
 /**
  * Inset status panel for git branch and working-tree summary in the Changes section.
@@ -72,6 +72,6 @@ export const gitWorkingTreeStatusPanel =
  */
 export function actionMenuToggleClass(active: boolean): string {
   const base =
-    'hc-action-menu-toggle flex w-18 shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white app-no-drag';
+    'hc-action-menu-toggle flex w-18 shrink-0 cursor-pointer items-center justify-center self-stretch bg-accent px-2.5 text-white';
   return active ? `${base} shadow-inner` : `${base} hover:brightness-110`;
 }

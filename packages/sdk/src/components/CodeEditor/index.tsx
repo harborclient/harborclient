@@ -975,8 +975,8 @@ function buildPlaceholderExtensions(options: {
 /**
  * CodeMirror wrapper for editable request bodies and read-only response views.
  *
- * Styling relies on host CSS variables (`--mac-*`, `--font-mono`) and the `.app-no-drag`
- * class defined in HarborClient `styles.css`.
+ * Styling relies on host CSS variables (`--mac-*`, `--font-mono`) defined in
+ * HarborClient `styles.css`.
  */
 export function CodeEditor({
   value,
@@ -1637,7 +1637,7 @@ export function CodeEditor({
    * OverlayScrollbars / overflow-hidden hosts such as the response Body viewer.
    */
   const editorSurfaceClass =
-    'overflow-hidden rounded-lg bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)] app-no-drag';
+    'overflow-hidden rounded-lg bg-control shadow-[inset_0_0.5px_1px_rgba(0,0,0,0.06)]';
   const wrapperClassName = readOnly
     ? `hc-code-editor ${editorSurfaceClass} ${className}`
     : `hc-code-editor min-h-36 resize-y border border-separator ${editorSurfaceClass} ${className}`;
@@ -1654,7 +1654,7 @@ export function CodeEditor({
         ref={selectionToolbarElementRef}
         role="toolbar"
         aria-label="Selection actions"
-        className="hc-code-editor-selection-toolbar app-no-drag pointer-events-auto fixed z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1 bg-transparent p-0 text-[14px] text-text"
+        className="hc-code-editor-selection-toolbar pointer-events-auto fixed z-50 flex -translate-x-1/2 -translate-y-full items-center gap-1 bg-transparent p-0 text-[14px] text-text"
         style={{
           top: selectionActionToolbar.top - SELECTION_TOOLBAR_OFFSET_PX,
           left: selectionActionToolbar.left
@@ -1725,7 +1725,7 @@ export function CodeEditor({
         <div
           id={tooltipId}
           role="tooltip"
-          className="hc-code-editor-tooltip app-no-drag pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-1.5 rounded-lg border border-separator bg-surface px-3 py-2 text-text shadow-md"
+          className="hc-code-editor-tooltip pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-1.5 rounded-lg border border-separator bg-surface px-3 py-2 text-text shadow-md"
           style={{ top: selectionTooltip.top - 4, left: selectionTooltip.left }}
         >
           <VariableTooltipValue

@@ -282,7 +282,7 @@ export function Cookies(): JSX.Element {
                 <button
                   key={domain}
                   type="button"
-                  className={`w-full rounded-md border-none px-2 py-1 text-left text-[15px] app-no-drag ${
+                  className={`w-full rounded-md border-none px-2 py-1 text-left text-[15px] ${
                     active
                       ? 'bg-selection text-text'
                       : 'bg-transparent text-muted hover:bg-hover hover:text-text'

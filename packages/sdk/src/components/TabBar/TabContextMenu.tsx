@@ -165,7 +165,7 @@ export function TabContextMenu({
       ref={menuRef}
       role="menu"
       aria-label={ariaLabel}
-      className="hc-tab-context-menu app-no-drag fixed z-[70] min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
+      className="hc-tab-context-menu fixed z-[70] min-w-[200px] rounded-md border border-separator bg-surface py-1 shadow-md"
       style={{ left: clampedPosition.x, top: clampedPosition.y }}
       onKeyDown={handleMenuKeyDown}
     >

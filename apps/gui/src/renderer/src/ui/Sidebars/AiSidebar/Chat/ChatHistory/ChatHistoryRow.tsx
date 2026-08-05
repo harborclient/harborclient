@@ -49,7 +49,7 @@ export function ChatHistoryRow({
     <div className="group relative mx-1 flex items-center rounded-md hover:bg-selection focus-within:bg-selection">
       <button
         type="button"
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate border-none bg-transparent px-2 py-2 text-left text-text app-no-drag"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 truncate border-none bg-transparent px-2 py-2 text-left text-text"
         onClick={() => onOpenChat(chat.id)}
       >
         <FaIcon icon={faComment} className="h-3.5 w-3.5 shrink-0" aria-hidden />

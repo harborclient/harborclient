@@ -56,7 +56,7 @@ export function MethodSelectOption({
       aria-selected={selected}
       tabIndex={focused ? 0 : -1}
       className={cn(
-        'app-no-drag flex w-full cursor-pointer items-center border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] font-normal hover:bg-selection',
+        'flex w-full cursor-pointer items-center border-none bg-transparent px-3.5 py-1.5 text-left text-[14px] font-normal hover:bg-selection',
         methodColorClass(colorKey),
         selected ? 'bg-selection/60' : ''
       )}

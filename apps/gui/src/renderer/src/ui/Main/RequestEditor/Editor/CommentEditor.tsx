@@ -535,7 +535,7 @@ export function CommentEditor({
           markdown={value}
           onChange={handleChange}
           plugins={plugins}
-          className="request-comment-editor app-no-drag min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+          className="request-comment-editor min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
           contentEditableClassName="request-comment-editor-content bg-field outline-none"
         />
       </div>

@@ -12,7 +12,7 @@ import { LinuxAppSubmenu } from './LinuxAppSubmenu';
 const ROOT_MENU_LABELS: RootMenuLabel[] = ['File', 'Edit', 'View', 'Team', 'Git', 'Help'];
 
 const menuButtonClass =
-  'cursor-pointer rounded-sm border-none bg-transparent px-2.5 py-1 text-text hover:bg-selection app-no-drag';
+  'cursor-pointer rounded-sm border-none bg-transparent px-2.5 py-1 text-text hover:bg-selection';
 
 interface OpenMenuState {
   /** Root menu label currently open. */
@@ -78,11 +78,7 @@ export function LinuxMenuBar(): JSX.Element {
 
   return (
     <>
-      <nav
-        aria-label="Application menu"
-        role="menubar"
-        className="flex shrink-0 items-center px-1 app-no-drag"
-      >
+      <nav aria-label="Application menu" role="menubar" className="flex shrink-0 items-center px-1">
         {ROOT_MENU_LABELS.map((label) => (
           <button
             key={label}
