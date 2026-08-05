@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.7 - 2026-08-05
+
 - Refactor TeamHubClient tests to simplify header definitions. (`5d86b07c`)
 - Refactor Team Hub access control and capabilities. (`a41e59c2`)
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
