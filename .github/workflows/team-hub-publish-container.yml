@@ -2,8 +2,9 @@ name: Team Hub publish container
 
 # Builds and publishes the production Team Hub Docker image to GitHub Container Registry.
 #
-# Triggered automatically when a team-hub-v* release tag is pushed (for example by
-# team-hub-release.yml). Also supports manual runs for a specific ref.
+# Triggered automatically when a team-hub-v* release tag is pushed, or explicitly
+# by team-hub-release.yml after a release (required because release commits use
+# [skip ci], which suppresses tag-push workflow triggers).
 #
 # Published tags (for team-hub-v1.2.3):
 #   ghcr.io/harborclient/team-hub:1.2.3

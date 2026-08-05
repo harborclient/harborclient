@@ -14,12 +14,12 @@ run-name: >-
 #     -f branch=main \
 #     -f bump=minor
 #
-# Release commits use `[skip ci]` and do not re-trigger.
+# Release commits use `[skip ci]` and do not re-trigger branch CI.
+# Tag pushes for those commits are also skipped by GitHub Actions, so this
+# workflow explicitly triggers team-hub-publish-container.yml after tagging.
 #
 # Tags use the `team-hub-v*` prefix so they do not collide with desktop app `v*` tags.
-# Pushing the tag also triggers team-hub-publish-container.yml, which publishes
-# ghcr.io/harborclient/team-hub:<version> to GitHub Container Registry.
-#
+# The container publish publishes ghcr.io/harborclient/team-hub:<version> to GHCR.
 # Required setup BEFORE the first run:
 #
 #   1. Repository secret `NPM_TOKEN`: an npm automation token (or a granular
@@ -54,6 +54,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  actions: write
 
 concurrency:
   group: team-hub-release-${{ inputs.branch }}
@@ -197,3 +198,15 @@ jobs:
           gh release create "team-hub-v${VERSION}"
           --generate-notes
           --title "@harborclient/team-hub v${VERSION}"
+
+      - name: Publish container image to GHCR
+        if: env.VERSION != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="team-hub-v${VERSION}"
+          echo "Triggering container publish for ${TAG} (release commits use [skip ci], which suppresses tag-push workflows)."
+          gh workflow run team-hub-publish-container.yml \
+            --ref main \
+            -f ref="${TAG}"

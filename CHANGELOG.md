@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update Team Hub workflows to improve release and publish logic. (`af16e3c8`)
 - Refactor TeamHubClient tests to simplify header definitions. (`5d86b07c`)
 - Update Team Hub documentation to clarify deployment CLI requirements. (`de7631f9`)
 - Update Team Hub publish workflow to enhance tag resolution and conditional logic. (`46507c17`)
