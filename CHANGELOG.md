@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor TeamHubClient tests to simplify header definitions. (`5d86b07c`)
 - Update Team Hub documentation to clarify deployment CLI requirements. (`de7631f9`)
 - Update Team Hub publish workflow to enhance tag resolution and conditional logic. (`46507c17`)
 - Enhance Team Hub deployment workflow and documentation. (`34eddbd7`)
