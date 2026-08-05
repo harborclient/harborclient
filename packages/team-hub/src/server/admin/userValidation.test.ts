@@ -51,16 +51,18 @@ describe('userValidation', () => {
     );
   });
 
-  it('rejects LLM access on admin roles', () => {
-    expect(() => normalizeLlmForRole('admin', true, [])).toThrow(
-      'Admin users cannot have LLM access.'
-    );
-    expect(() => normalizeLlmForRole('admin', false, ['gpt-4o'])).toThrow(
-      'Admin users cannot have LLM access.'
-    );
+  it('allows LLM access on admin roles', () => {
+    expect(normalizeLlmForRole('admin', true, ['gpt-4o'])).toEqual({
+      llmAccess: true,
+      llmModels: ['gpt-4o']
+    });
+    expect(normalizeLlmForRole('admin', false, [])).toEqual({
+      llmAccess: false,
+      llmModels: []
+    });
   });
 
-  it('clears LLM access when changing role to admin', () => {
+  it('preserves LLM access when changing role to admin', () => {
     const input = buildAdminUserUpdateInput(
       { ...existing, llmAccess: true, llmModels: ['gpt-4o'] },
       { role: 'admin' }
@@ -73,13 +75,13 @@ describe('userValidation', () => {
       snippetAccess: [],
       liveServerAccess: [],
       livePageAccess: [],
-      llmAccess: false,
-      llmModels: [],
+      llmAccess: true,
+      llmModels: ['gpt-4o'],
       llmMonthlyTokenLimit: undefined
     });
   });
 
-  it('clears access when changing role to admin', () => {
+  it('clears entity access lists when changing role to admin', () => {
     const input = buildAdminUserUpdateInput(existing, { role: 'admin' });
     expect(input.collectionAccess).toEqual([]);
     expect(input.environmentAccess).toEqual([]);

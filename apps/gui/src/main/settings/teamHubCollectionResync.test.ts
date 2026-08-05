@@ -1,17 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { RoutingStorage } from '#/main/storage/RoutingStorage';
 import type { TeamHub } from '@harborclient/core/types';
 import { resyncUserTeamHubsSharingServer } from './teamHubCollectionResync';
-
-vi.mock('#/main/settings/teamHubSessionScan', () => ({
-  scanTeamHubSessions: vi.fn()
-}));
-
-import { scanTeamHubSessions } from './teamHubSessionScan';
-
-beforeEach(() => {
-  vi.mocked(scanTeamHubSessions).mockReset();
-});
 
 const adminHub: TeamHub = {
   id: 'hub-admin',
@@ -50,47 +40,8 @@ function createRouterMock(
 }
 
 describe('resyncUserTeamHubsSharingServer', () => {
-  it('syncs mounted user hubs on the same server URL', async () => {
-    vi.mocked(scanTeamHubSessions).mockResolvedValue([
-      {
-        hubId: 'hub-admin',
-        managementApi: true,
-        services: {
-          storage: true,
-          llm: false,
-          openai: false,
-          pluginCatalog: false,
-          snippets: false,
-          admin: true
-        }
-      },
-      {
-        hubId: 'hub-user',
-        managementApi: false,
-        services: {
-          storage: true,
-          llm: false,
-          openai: false,
-          pluginCatalog: false,
-          snippets: false,
-          admin: false
-        }
-      },
-      {
-        hubId: 'hub-other',
-        managementApi: false,
-        services: {
-          storage: true,
-          llm: false,
-          openai: false,
-          pluginCatalog: false,
-          snippets: false,
-          admin: false
-        }
-      }
-    ]);
-
-    const router = createRouterMock(['hub-user', 'hub-other']);
+  it('syncs all mounted hubs on the same server URL including the admin hub', async () => {
+    const router = createRouterMock(['hub-admin', 'hub-user', 'hub-other']);
 
     await resyncUserTeamHubsSharingServer(router as RoutingStorage, adminHub.id, [
       adminHub,
@@ -98,38 +49,13 @@ describe('resyncUserTeamHubsSharingServer', () => {
       otherServerHub
     ]);
 
-    expect(router.syncTeamHub).toHaveBeenCalledTimes(1);
+    expect(router.syncTeamHub).toHaveBeenCalledTimes(2);
+    expect(router.syncTeamHub).toHaveBeenCalledWith('hub-admin');
     expect(router.syncTeamHub).toHaveBeenCalledWith('hub-user');
+    expect(router.syncTeamHub).not.toHaveBeenCalledWith('hub-other');
   });
 
-  it('skips admin hubs and unmounted user hubs', async () => {
-    vi.mocked(scanTeamHubSessions).mockResolvedValue([
-      {
-        hubId: 'hub-admin',
-        managementApi: true,
-        services: {
-          storage: true,
-          llm: false,
-          openai: false,
-          pluginCatalog: false,
-          snippets: false,
-          admin: true
-        }
-      },
-      {
-        hubId: 'hub-user',
-        managementApi: false,
-        services: {
-          storage: true,
-          llm: false,
-          openai: false,
-          pluginCatalog: false,
-          snippets: false,
-          admin: false
-        }
-      }
-    ]);
-
+  it('skips unmounted hubs on the same server', async () => {
     const router = createRouterMock([]);
 
     await resyncUserTeamHubsSharingServer(router as RoutingStorage, adminHub.id, [
@@ -145,7 +71,6 @@ describe('resyncUserTeamHubsSharingServer', () => {
 
     await resyncUserTeamHubsSharingServer(router as RoutingStorage, 'missing', [userHub]);
 
-    expect(scanTeamHubSessions).not.toHaveBeenCalled();
     expect(router.syncTeamHub).not.toHaveBeenCalled();
   });
 });

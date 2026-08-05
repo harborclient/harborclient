@@ -857,8 +857,8 @@ export async function userUpdateCommand(options: UserUpdateCommandOptions): Prom
       livePageAccess
     )
   );
-  const llmAccess = role === 'admin' ? false : (options.llmAccess ?? existing.llmAccess);
-  const llmModels = role === 'admin' ? [] : (options.llmModels ?? existing.llmModels);
+  const llmAccess = options.llmAccess ?? existing.llmAccess;
+  const llmModels = options.llmModels ?? existing.llmModels;
   const llm = mapValidationError(() => normalizeLlmForRole(role, llmAccess, llmModels));
   const catalogs = await loadAccessCatalogs(db, config.llm);
   validateSubmittedAccessListsOrThrow(

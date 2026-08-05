@@ -574,7 +574,7 @@ export class RoutingStorage implements IStorage {
       try {
         if (backend.connectionType === 'team-hub' && backend.db instanceof TeamHubStorage) {
           const hubDb = backend.db;
-          if (await hubDb.hasManagementApi()) {
+          if (!(await hubDb.hasDataApi())) {
             this.purgeTeamHubSidebarCollections(connectionId, hubDb);
             continue;
           }
@@ -2459,10 +2459,10 @@ export class RoutingStorage implements IStorage {
       throw new Error(`Team hub backend for "${hubId}" is unavailable.`);
     }
 
-    if (await hubDb.hasManagementApi()) {
+    if (!(await hubDb.hasDataApi())) {
       this.purgeTeamHubSidebarCollections(hubId, hubDb);
       logVerbose(
-        `Skipped collection sync for admin team hub "${backend.connectionName}"; sidebar entries were cleared.`
+        `Skipped collection sync for team hub "${backend.connectionName}" without data API; sidebar entries were cleared.`
       );
       return;
     }
@@ -2511,7 +2511,7 @@ export class RoutingStorage implements IStorage {
     hubDb: TeamHubStorage,
     connectionName: string
   ): Promise<void> {
-    if (await hubDb.hasManagementApi()) {
+    if (!(await hubDb.hasDataApi())) {
       return;
     }
 

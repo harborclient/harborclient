@@ -117,8 +117,9 @@ describe('collection routes', () => {
     await app.close();
   });
 
-  it('returns 403 for admin users on mutating collection routes', async () => {
+  it('creates a collection for admin users', async () => {
     const db = createStubDatabase();
+    db.createCollection.mockResolvedValue(sampleCollection);
     const app = await createProtectedTestApp({
       db,
       withValidAuth: true,
@@ -137,8 +138,9 @@ describe('collection routes', () => {
       payload: { name: 'Shared API' }
     });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ error: 'Forbidden' });
+    expect(response.statusCode).toBe(200);
+    expect(db.createCollection).toHaveBeenCalledWith('Shared API', 'user-1');
+    expect(response.json().name).toBe('Shared API');
 
     await app.close();
   });

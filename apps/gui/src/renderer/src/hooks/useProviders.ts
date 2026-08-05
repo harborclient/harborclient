@@ -32,7 +32,7 @@ export interface ProviderOption {
  */
 export interface UseProvidersOptions {
   /**
-   * When true, omits admin-token team hubs because they cannot store collections.
+   * Deprecated no-op. Admin tokens have data API access and remain in provider lists.
    */
   excludeAdminTeamHubs?: boolean;
 
@@ -112,47 +112,15 @@ export function providerOptionLabel(provider: ProviderOption): string {
 }
 
 /**
- * Removes admin-token team hubs from a provider list for collection pickers.
+ * Returns providers suitable for collection pickers.
+ *
+ * Admin hubs are included — admin tokens also have data API access.
  *
  * @param providers - Full merged provider list from IPC.
- * @param adminHubIds - Hub connection ids whose tokens report management API access.
- * @param retainConnectionId - Optional provider id to keep even when it is an admin hub.
- * @returns Filtered provider options safe to show in collection provider dropdowns.
+ * @returns Provider options for collection provider dropdowns.
  */
-export function filterCollectionProviders(
-  providers: ProviderOption[],
-  adminHubIds: ReadonlySet<string>,
-  retainConnectionId?: string
-): ProviderOption[] {
-  return providers.filter(
-    (provider) =>
-      provider.kind !== 'team-hub' ||
-      !adminHubIds.has(provider.id) ||
-      provider.id === retainConnectionId
-  );
-}
-
-/**
- * Builds admin hub ids from session scan results.
- *
- * @param scanResults - Session scan results from IPC, or undefined when the scan failed.
- * @returns Hub ids whose tokens report management API access.
- */
-function adminHubIdsFromScanResults(
-  scanResults: Awaited<ReturnType<typeof window.api.scanTeamHubSessions>> | undefined
-): Set<string> {
-  const adminHubIds = new Set<string>();
-  if (scanResults === undefined) {
-    return adminHubIds;
-  }
-
-  for (const result of scanResults) {
-    if (result.managementApi) {
-      adminHubIds.add(result.hubId);
-    }
-  }
-
-  return adminHubIds;
+export function filterCollectionProviders(providers: ProviderOption[]): ProviderOption[] {
+  return providers;
 }
 
 /**
@@ -307,7 +275,6 @@ export function useProviders(
           window.api.listStorageConnections(),
           window.api.listTeamHubs(),
           window.api.getActiveStorageId(),
-          excludeAdminTeamHubs ||
           excludeSnippetUnsupportedTeamHubs ||
           excludeLiveServerUnsupportedTeamHubs ||
           excludeLivePageUnsupportedTeamHubs
@@ -334,13 +301,7 @@ export function useProviders(
             }))
         ];
         let visibleProviders = merged;
-        if (excludeAdminTeamHubs) {
-          visibleProviders = filterCollectionProviders(
-            visibleProviders,
-            adminHubIdsFromScanResults(scanResults),
-            retainConnectionId
-          );
-        }
+        void excludeAdminTeamHubs;
         if (excludeSnippetUnsupportedTeamHubs) {
           visibleProviders = filterSnippetProviders(
             visibleProviders,

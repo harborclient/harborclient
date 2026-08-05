@@ -34,74 +34,74 @@ export function canUseManagementApi(user: UserRecord): boolean {
  * Returns true when the user may call entity data API routes for collections,
  * environments, snippets, folders, and requests.
  *
+ * Both `user` and `admin` roles may use the data API. Admins have implicit full
+ * entity access; users are scoped by access lists.
+ *
  * @param user - Authenticated user attached to the request.
- * @returns True for `user`-role accounts; false for admins.
+ * @returns True for `user`- and `admin`-role accounts.
  */
 export function canUseDataApi(user: UserRecord): boolean {
-  return user.role === 'user';
+  return user.role === 'user' || user.role === 'admin';
 }
 
 /**
  * Returns true when the user may list collections via `GET /collections`.
  *
- * Admins receive the full catalog; mutations and nested reads remain blocked.
+ * Admins receive the full catalog (implicit full access).
  *
  * @param user - Authenticated user attached to the request.
  * @returns True for `user`- and `admin`-role accounts.
  */
 export function canListCollections(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
  * Returns true when the user may list environments via `GET /environments`.
  *
- * Admins receive the full catalog; mutations remain blocked.
+ * Admins receive the full catalog (implicit full access).
  *
  * @param user - Authenticated user attached to the request.
  * @returns True for `user`- and `admin`-role accounts.
  */
 export function canListEnvironments(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
  * Returns true when the user may list snippets via `GET /snippets`.
  *
- * Admins receive the full catalog; mutations remain blocked.
+ * Admins receive the full catalog (implicit full access).
  *
  * @param user - Authenticated user attached to the request.
  * @returns True for `user`- and `admin`-role accounts.
  */
 export function canListSnippets(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
  * Returns whether the user may list live servers.
  */
 export function canListLiveServers(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
  * Returns whether the user may list live pages.
  */
 export function canListLivePages(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
  * Returns true when the user may list their own run results via `GET /run-results`.
  *
- * Admins receive an empty list (they created none) rather than a 403, matching the
- * collections/environments/snippets listing endpoints.
- *
  * @param user - Authenticated user attached to the request.
  * @returns True for `user`- and `admin`-role accounts.
  */
 export function canListRunResults(user: UserRecord): boolean {
-  return canUseDataApi(user) || canUseManagementApi(user);
+  return canUseDataApi(user);
 }
 
 /**
@@ -117,13 +117,15 @@ export function hasWildcardAccess(access: string[]): boolean {
 /**
  * Returns true when the user may read or mutate a specific collection.
  *
+ * Admins have implicit full access; users are scoped by `collectionAccess`.
+ *
  * @param user - Authenticated user attached to the request.
  * @param collectionId - Collection identifier being accessed.
  * @returns True when the user role and access list permit the collection.
  */
 export function canAccessCollection(user: UserRecord, collectionId: string): boolean {
-  if (user.role === 'admin') {
-    return false;
+  if (isAdmin(user)) {
+    return true;
   }
 
   if (hasWildcardAccess(user.collectionAccess)) {
@@ -136,13 +138,15 @@ export function canAccessCollection(user: UserRecord, collectionId: string): boo
 /**
  * Returns true when the user may read or mutate a specific environment.
  *
+ * Admins have implicit full access; users are scoped by `environmentAccess`.
+ *
  * @param user - Authenticated user attached to the request.
  * @param environmentId - Environment identifier being accessed.
  * @returns True when the user role and access list permit the environment.
  */
 export function canAccessEnvironment(user: UserRecord, environmentId: string): boolean {
-  if (user.role === 'admin') {
-    return false;
+  if (isAdmin(user)) {
+    return true;
   }
 
   if (hasWildcardAccess(user.environmentAccess)) {
@@ -155,13 +159,15 @@ export function canAccessEnvironment(user: UserRecord, environmentId: string): b
 /**
  * Returns true when the user may read or mutate a specific snippet.
  *
+ * Admins have implicit full access; users are scoped by `snippetAccess`.
+ *
  * @param user - Authenticated user attached to the request.
  * @param snippetId - Snippet identifier being accessed.
  * @returns True when the user role and access list permit the snippet.
  */
 export function canAccessSnippet(user: UserRecord, snippetId: string): boolean {
-  if (user.role === 'admin') {
-    return false;
+  if (isAdmin(user)) {
+    return true;
   }
 
   if (hasWildcardAccess(user.snippetAccess)) {
@@ -173,22 +179,28 @@ export function canAccessSnippet(user: UserRecord, snippetId: string): boolean {
 
 /**
  * Returns whether the user may access a live server.
+ *
+ * Admins have implicit full access; users are scoped by `liveServerAccess`.
  */
 export function canAccessLiveServer(user: UserRecord, id: string): boolean {
-  return (
-    user.role !== 'admin' &&
-    (hasWildcardAccess(user.liveServerAccess) || user.liveServerAccess.includes(id))
-  );
+  if (isAdmin(user)) {
+    return true;
+  }
+
+  return hasWildcardAccess(user.liveServerAccess) || user.liveServerAccess.includes(id);
 }
 
 /**
  * Returns whether the user may access a live page.
+ *
+ * Admins have implicit full access; users are scoped by `livePageAccess`.
  */
 export function canAccessLivePage(user: UserRecord, id: string): boolean {
-  return (
-    user.role !== 'admin' &&
-    (hasWildcardAccess(user.livePageAccess) || user.livePageAccess.includes(id))
-  );
+  if (isAdmin(user)) {
+    return true;
+  }
+
+  return hasWildcardAccess(user.livePageAccess) || user.livePageAccess.includes(id);
 }
 
 /**
@@ -275,45 +287,55 @@ export function canDeleteRunResult(user: UserRecord, runResult: RunResultRecord)
 /**
  * Returns true when the user may create new collections via the API.
  *
+ * Admins may always create; users need wildcard collection access.
+ *
  * @param user - Authenticated user attached to the request.
- * @returns True when the user has wildcard collection access.
+ * @returns True when the user may create collections.
  */
 export function canCreateCollection(user: UserRecord): boolean {
-  return user.role === 'user' && hasWildcardAccess(user.collectionAccess);
+  return isAdmin(user) || (user.role === 'user' && hasWildcardAccess(user.collectionAccess));
 }
 
 /**
  * Returns true when the user may create new environments via the API.
  *
+ * Admins may always create; users need wildcard environment access.
+ *
  * @param user - Authenticated user attached to the request.
- * @returns True when the user has wildcard environment access.
+ * @returns True when the user may create environments.
  */
 export function canCreateEnvironment(user: UserRecord): boolean {
-  return user.role === 'user' && hasWildcardAccess(user.environmentAccess);
+  return isAdmin(user) || (user.role === 'user' && hasWildcardAccess(user.environmentAccess));
 }
 
 /**
  * Returns true when the user may create new snippets via the API.
  *
+ * Admins may always create; users need wildcard snippet access.
+ *
  * @param user - Authenticated user attached to the request.
- * @returns True when the user has wildcard snippet access.
+ * @returns True when the user may create snippets.
  */
 export function canCreateSnippet(user: UserRecord): boolean {
-  return user.role === 'user' && hasWildcardAccess(user.snippetAccess);
+  return isAdmin(user) || (user.role === 'user' && hasWildcardAccess(user.snippetAccess));
 }
 
 /**
  * Returns whether the user may create live servers.
+ *
+ * Admins may always create; users need wildcard live-server access.
  */
 export function canCreateLiveServer(user: UserRecord): boolean {
-  return user.role === 'user' && hasWildcardAccess(user.liveServerAccess);
+  return isAdmin(user) || (user.role === 'user' && hasWildcardAccess(user.liveServerAccess));
 }
 
 /**
  * Returns whether the user may create live pages.
+ *
+ * Admins may always create; users need wildcard live-page access.
  */
 export function canCreateLivePage(user: UserRecord): boolean {
-  return user.role === 'user' && hasWildcardAccess(user.livePageAccess);
+  return isAdmin(user) || (user.role === 'user' && hasWildcardAccess(user.livePageAccess));
 }
 
 /**
@@ -400,11 +422,13 @@ export function filterAccessibleLivePages(
 /**
  * Returns true when the user may call hub-proxied LLM routes.
  *
+ * LLM access is controlled by the account flag for both `user` and `admin` roles.
+ *
  * @param user - Authenticated user attached to the request.
  * @returns True when LLM access is enabled for the account.
  */
 export function canUseLlm(user: UserRecord): boolean {
-  return user.role !== 'admin' && user.llmAccess;
+  return user.llmAccess;
 }
 
 /**

@@ -615,6 +615,16 @@ export class TeamHubStorage implements IStorage {
   }
 
   /**
+   * Returns whether the hub token may call entity data API routes.
+   *
+   * Admin tokens include data API access (implicit full entity scope).
+   */
+  async hasDataApi(): Promise<boolean> {
+    const session = await this.client.getSession();
+    return session.capabilities.dataApi;
+  }
+
+  /**
    * Returns the server UUID for a mapped local collection id.
    *
    * @param localCollectionId - Provider-local collection id from the id map.

@@ -54,7 +54,7 @@ describe('buildSessionPayload', () => {
     });
   });
 
-  it('maps admin-role accounts to management capability only', () => {
+  it('maps admin-role accounts to data and management capabilities', () => {
     const adminUser: UserRecord = {
       ...baseUser,
       role: 'admin',
@@ -76,7 +76,7 @@ describe('buildSessionPayload', () => {
         prefix: 'hbk_AbCd1234'
       },
       capabilities: {
-        dataApi: false,
+        dataApi: true,
         managementApi: true,
         llm: false
       },
@@ -84,7 +84,7 @@ describe('buildSessionPayload', () => {
     });
   });
 
-  it('denies LLM capability for admin accounts even when llmAccess is stale', () => {
+  it('grants LLM capability for admin accounts when llmAccess is enabled', () => {
     const adminUser: UserRecord = {
       ...baseUser,
       role: 'admin',
@@ -96,6 +96,6 @@ describe('buildSessionPayload', () => {
       llmModels: ['*']
     };
 
-    expect(buildSessionPayload(adminUser, baseToken, '__default__').capabilities.llm).toBe(false);
+    expect(buildSessionPayload(adminUser, baseToken, '__default__').capabilities.llm).toBe(true);
   });
 });

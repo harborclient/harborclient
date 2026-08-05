@@ -85,7 +85,7 @@ describe('scanTeamHubSessions', () => {
             jsonResponse({
               user: { id: 'user-admin', name: 'ops', role: 'admin' },
               token: { id: 'token-admin', prefix: 'hbk_admin' },
-              capabilities: { dataApi: false, managementApi: true, llm: false }
+              capabilities: { dataApi: true, managementApi: true, llm: false }
             })
           );
         }

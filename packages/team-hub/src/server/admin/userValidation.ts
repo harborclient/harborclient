@@ -38,30 +38,21 @@ export function validateAccessList(access: string[]): void {
 }
 
 /**
- * Normalizes LLM access for admin accounts and validates model access lists.
+ * Validates LLM access flags and model access lists for any role.
  *
- * @param role - Target user role.
+ * Admins may be granted LLM access the same way as users.
+ *
+ * @param _role - Target user role (unused; kept for call-site compatibility).
  * @param llmAccess - Parsed LLM access flag.
  * @param llmModels - Parsed LLM model access ids.
  * @returns LLM fields suitable for persistence.
- * @throws {ValidationError} When admins receive LLM access or lists are invalid.
+ * @throws {ValidationError} When model lists are invalid.
  */
 export function normalizeLlmForRole(
-  role: UserRole,
+  _role: UserRole,
   llmAccess: boolean,
   llmModels: string[]
 ): Pick<UpdateUserInput, 'llmAccess' | 'llmModels'> {
-  if (role === 'admin') {
-    if (llmAccess || llmModels.length > 0) {
-      throw new ValidationError('Admin users cannot have LLM access.');
-    }
-
-    return {
-      llmAccess: false,
-      llmModels: []
-    };
-  }
-
   validateAccessList(llmModels);
 
   return {
@@ -443,8 +434,8 @@ export function buildAdminUserUpdateInput(
     liveServerAccess,
     livePageAccess
   );
-  const llmAccess = role === 'admin' ? false : (body.llmAccess ?? existing.llmAccess);
-  const llmModels = role === 'admin' ? [] : (body.llmModels ?? existing.llmModels);
+  const llmAccess = body.llmAccess ?? existing.llmAccess;
+  const llmModels = body.llmModels ?? existing.llmModels;
   const llm = normalizeLlmForRole(role, llmAccess, llmModels);
 
   return {
@@ -493,8 +484,8 @@ export function buildAdminUserCreateInput(body: {
     liveServerAccess,
     livePageAccess
   );
-  const llmAccess = body.role === 'admin' ? false : (body.llmAccess ?? false);
-  const llmModels = body.role === 'admin' ? [] : (body.llmModels ?? []);
+  const llmAccess = body.llmAccess ?? false;
+  const llmModels = body.llmModels ?? [];
   const llm = normalizeLlmForRole(body.role, llmAccess, llmModels);
 
   return {

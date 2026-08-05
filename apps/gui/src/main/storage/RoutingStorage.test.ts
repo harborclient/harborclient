@@ -74,9 +74,9 @@ const SERVER_COLLECTION_RECORD = {
 const cleanups: Array<() => void | Promise<void>> = [];
 
 /**
- * Default user-token session mock for team hub client tests.
+ * Default session mock for team hub client tests.
  *
- * @param managementApi - When true, simulates an admin-token connection.
+ * @param managementApi - When true, simulates an admin-token connection (also has data API).
  */
 function userTeamHubSessionMock(managementApi = false): SessionResponse {
   return {
@@ -87,8 +87,27 @@ function userTeamHubSessionMock(managementApi = false): SessionResponse {
     },
     token: { id: 'token-1', prefix: 'hbk_test' },
     capabilities: {
-      dataApi: !managementApi,
+      dataApi: true,
       managementApi,
+      llm: false
+    }
+  };
+}
+
+/**
+ * Session mock for a token without entity data API access.
+ */
+function noDataApiTeamHubSessionMock(): SessionResponse {
+  return {
+    user: {
+      id: 'user-1',
+      name: 'User',
+      role: 'user'
+    },
+    token: { id: 'token-1', prefix: 'hbk_test' },
+    capabilities: {
+      dataApi: false,
+      managementApi: false,
       llm: false
     }
   };
@@ -1040,7 +1059,7 @@ describeSqlite('RoutingStorage syncTeamHub', () => {
     expect(database.listRegistry()[0]?.connectionId).toBe(HUB_A.id);
   });
 
-  it('skips collection import for admin-token team hub connections', async () => {
+  it('imports collections for admin-token team hub connections', async () => {
     const listCollections = vi.fn().mockResolvedValue([SERVER_COLLECTION_RECORD]);
     const { router, database } = await createRoutingFixtureWithHub({
       getSession: vi.fn().mockResolvedValue(userTeamHubSessionMock(true)),
@@ -1049,14 +1068,15 @@ describeSqlite('RoutingStorage syncTeamHub', () => {
 
     await router.syncTeamHub(HUB_A.id);
 
-    expect(database.listRegistry()).toEqual([]);
-    expect(listCollections).not.toHaveBeenCalled();
+    expect(database.listRegistry()).toHaveLength(1);
+    expect(database.listRegistry()[0]?.name).toBe('Team API');
+    expect(listCollections).toHaveBeenCalled();
   });
 
-  it('purges stale sidebar entries when syncing an admin-token team hub', async () => {
+  it('purges stale sidebar entries when syncing a hub without data API', async () => {
     const listCollections = vi.fn().mockResolvedValue([SERVER_COLLECTION_RECORD]);
     const { router, database, hubDb } = await createRoutingFixtureWithHub({
-      getSession: vi.fn().mockResolvedValue(userTeamHubSessionMock(true)),
+      getSession: vi.fn().mockResolvedValue(noDataApiTeamHubSessionMock()),
       listCollections
     });
 

@@ -103,7 +103,7 @@ describe('TeamHubClient', () => {
               prefix: 'hbk_AdMn5678'
             },
             capabilities: {
-              dataApi: false,
+              dataApi: true,
               managementApi: true,
               llm: false
             },
@@ -121,7 +121,7 @@ describe('TeamHubClient', () => {
       const result = await client.getSession();
 
       expect(result.capabilities).toEqual({
-        dataApi: false,
+        dataApi: true,
         managementApi: true,
         llm: false
       });
@@ -226,8 +226,8 @@ describe('TeamHubClient', () => {
         expect.objectContaining({
           method: 'PUT',
           headers: expect.objectContaining({
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
             'Content-Type': 'application/json'
           }),
           body: JSON.stringify({ name: 'alice-renamed' })
@@ -2194,7 +2194,7 @@ describe('TeamHubClient', () => {
           method: 'GET',
           headers: expect.objectContaining({
             'X-Harbor-Tenant': 'org-123',
-            Authorization: `Bearer ${token}`
+            'Authorization': `Bearer ${token}`
           })
         })
       );
@@ -2254,7 +2254,7 @@ describe('TeamHubClient', () => {
           method: 'POST',
           headers: expect.objectContaining({
             'X-Harbor-Tenant': 'tenant-789',
-            Authorization: `Bearer ${token}`
+            'Authorization': `Bearer ${token}`
           })
         })
       );

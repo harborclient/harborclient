@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor Team Hub access control and capabilities. (`a41e59c2`)
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
 
 ## 0.7.6 - 2026-08-05

@@ -203,11 +203,7 @@ export function TeamUserForm(props: Props): JSX.Element {
       )}
 
       <FormGroup label="LLM access" htmlFor="team-user-llm-access" layout="checkbox">
-        <Checkbox
-          id="team-user-llm-access"
-          disabled={fieldsDisabled || isAdminRole}
-          {...register('llmAccess')}
-        />
+        <Checkbox id="team-user-llm-access" disabled={fieldsDisabled} {...register('llmAccess')} />
       </FormGroup>
 
       <AccessListInput
@@ -217,7 +213,7 @@ export function TeamUserForm(props: Props): JSX.Element {
         inputId="team-user-llm-models"
         placeholder="* or comma-separated model ids"
         suggestions={modelSuggestions}
-        disabled={fieldsDisabled || isAdminRole}
+        disabled={fieldsDisabled}
       />
 
       <FormGroup
@@ -230,7 +226,7 @@ export function TeamUserForm(props: Props): JSX.Element {
           type="number"
           min={1}
           variant="surface"
-          disabled={fieldsDisabled || isAdminRole}
+          disabled={fieldsDisabled}
           placeholder="Leave blank for unlimited"
           aria-invalid={errors.llmMonthlyTokenLimitText ? true : undefined}
           {...register('llmMonthlyTokenLimitText', {

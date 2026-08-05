@@ -98,8 +98,9 @@ describe('environment routes', () => {
     await app.close();
   });
 
-  it('returns 403 for admin users on mutating environment routes', async () => {
+  it('creates an environment for admin users', async () => {
     const db = createStubDatabase();
+    db.createEnvironment.mockResolvedValue(sampleEnvironment);
     const app = await createProtectedTestApp({
       db,
       withValidAuth: true,
@@ -118,8 +119,9 @@ describe('environment routes', () => {
       payload: { name: 'Production' }
     });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ error: 'Forbidden' });
+    expect(response.statusCode).toBe(200);
+    expect(db.createEnvironment).toHaveBeenCalledWith('Production', 'user-1');
+    expect(response.json().id).toBe('env-1');
 
     await app.close();
   });

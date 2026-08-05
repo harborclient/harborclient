@@ -81,7 +81,7 @@ describe('GET /auth/session', () => {
         prefix: sampleApiTokenRecord.tokenPrefix
       },
       capabilities: {
-        dataApi: false,
+        dataApi: true,
         managementApi: true,
         llm: false
       },

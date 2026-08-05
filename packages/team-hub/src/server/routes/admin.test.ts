@@ -461,8 +461,8 @@ describe('PUT /admin/users/:id', () => {
       collectionAccess: [],
       environmentAccess: [],
       snippetAccess: [],
-      llmAccess: false,
-      llmModels: []
+      llmAccess: true,
+      llmModels: ['gpt-4o']
     });
     mockAccessCatalogs(db);
 
@@ -498,8 +498,8 @@ describe('PUT /admin/users/:id', () => {
         collectionAccess: [],
         environmentAccess: [],
         snippetAccess: [],
-        llmAccess: false,
-        llmModels: []
+        llmAccess: true,
+        llmModels: ['gpt-4o']
       }),
       'admin-1'
     );

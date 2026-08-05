@@ -239,7 +239,7 @@ On success, prints `Deleted tenant "<name>" (<id>).` When the id is not found, p
 
 ## user
 
-Manage user accounts. User accounts have a role of `user` or `admin` and, for `user` accounts, collection and environment access lists. See [Authentication — Roles and access](./auth.md#roles-and-access) for the full permission model.
+Manage user accounts. User accounts have a role of `user` or `admin`. `user` accounts use collection and environment access lists; `admin` accounts have implicit full entity access plus management API privileges. See [Authentication — Roles and access](./auth.md#roles-and-access) for the full permission model.
 
 User commands accept a `--tenant <id>` flag to operate on a specific tenant namespace (defaults to `__default__`). When using a non-default tenant, multitenancy must be enabled in server.yaml.
 
@@ -264,7 +264,7 @@ team-hub user create --name ops --role admin
 
 **Access list rules**
 
-- Only `user`-role accounts use access lists. Passing `--collection-access` or `--environment-access` for an `admin` account is rejected.
+- Only `user`-role accounts use access lists. Passing `--collection-access` or `--environment-access` for an `admin` account is rejected (`admin` accounts get implicit full entity access). Admins may still be granted LLM access with the same LLM flags as users.
 - Use `*` to grant all resources of that type. The wildcard must be the only entry — the CLI rejects combinations like `*` plus a specific id.
 - Repeat the flag to add multiple ids: `--collection-access <id1> --collection-access <id2>`.
 

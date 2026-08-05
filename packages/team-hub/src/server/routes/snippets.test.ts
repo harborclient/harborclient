@@ -146,8 +146,9 @@ describe('snippet routes', () => {
     await app.close();
   });
 
-  it('returns 403 for admin users on mutating snippet routes', async () => {
+  it('creates a snippet for admin users', async () => {
     const db = createStubDatabase();
+    db.createSnippet.mockResolvedValue(sampleSnippet);
     const app = await createProtectedTestApp({
       db,
       withValidAuth: true,
@@ -164,11 +165,17 @@ describe('snippet routes', () => {
       method: 'POST',
       url: '/snippets',
       headers: authHeader(),
-      payload: { name: 'Auth helper' }
+      payload: { name: 'Auth helper', code: 'console.log("ok");', scope: 'pre-request' }
     });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ error: 'Forbidden' });
+    expect(response.statusCode).toBe(200);
+    expect(db.createSnippet).toHaveBeenCalledWith(
+      'Auth helper',
+      'console.log("ok");',
+      'pre-request',
+      'user-1'
+    );
+    expect(response.json().id).toBe('snippet-1');
 
     await app.close();
   });

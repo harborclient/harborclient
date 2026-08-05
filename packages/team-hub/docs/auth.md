@@ -1,6 +1,6 @@
 # Authentication
 
-Team Hub protects API routes with database-backed bearer tokens tied to user accounts. HarborClient desktop clients authenticate with `user`-role tokens for shared data; operators authenticate with `admin`-role tokens for account management via the REST API. The CLI remains available for user and token administration.
+Team Hub protects API routes with database-backed bearer tokens tied to user accounts. Every account can use the entity data API; `admin`-role accounts additionally receive management API access. HarborClient desktop clients typically use one hub connection per person — an admin token is enough for both shared data and operator UI. The CLI remains available for user and token administration.
 
 ## Prerequisites
 
@@ -23,15 +23,15 @@ Every account has a role of either `user` or `admin`. Set the role when creating
 | Role | Purpose | Entity HTTP API | Management HTTP API | API tokens |
 | ---- | ------- | --------------- | ------------------- | ---------- |
 | `user` | HarborClient desktop clients | Scoped — [API Endpoints](./endpoints.md) | No (403) | Yes |
-| `admin` | Operators and automation | List on `GET /collections`, `GET /environments`, and `GET /snippets`; delete and configure deletion lock via `/admin/*` | List/update/delete users; configure collections, environments, and snippets via `/admin/*` | Yes |
+| `admin` | Operators (also full data users) | Full entity access (implicit `*`) | List/update/delete users; configure collections, environments, and snippets via `/admin/*` | Yes |
 
 **`admin` accounts**
 
 - Can receive bearer tokens for REST authentication.
-- May call `GET /collections`, `GET /environments`, and `GET /snippets` (returns the full catalog; no content mutations).
-- Cannot read or mutate individual collection/environment/snippet content, folders, or requests (403 on other entity routes).
-- Can delete collections, environments, and snippets via `DELETE /admin/collections/:id`, `DELETE /admin/environments/:id`, and `DELETE /admin/snippets/:id`, and toggle a per-entity `deletionLocked` flag via the matching `PUT /admin/*/:id` routes.
-- Do not use access lists (always stored empty); passing `--collection-access`, `--environment-access`, or `--snippet-access` on create or update is rejected.
+- Are users plus management privileges: they may call the full entity data API with implicit access to every collection, environment, snippet, live server, and live page (create, read, update, and scoped deletes).
+- Can delete collections, environments, and snippets via `DELETE /admin/collections/:id`, `DELETE /admin/environments/:id`, and `DELETE /admin/snippets/:id` (including locked or others' resources), and toggle a per-entity `deletionLocked` flag via the matching `PUT /admin/*/:id` routes.
+- Do not use entity access lists (always stored empty; implicit full access); passing `--collection-access`, `--environment-access`, or `--snippet-access` on create or update is rejected.
+- May be granted hub LLM access via `llmAccess` / model lists the same way as users.
 - Can list, update, and delete user accounts via `GET`, `PUT`, and `DELETE /admin/users`. Deleting a user permanently removes their API tokens.
 - Can list collection, environment, snippet, and hub LLM model metadata via `GET /admin/collections`, `GET /admin/environments`, `GET /admin/snippets`, and `GET /admin/llm/models` when assigning user access lists. List entries include `deletionLocked`.
 
@@ -45,7 +45,7 @@ Every account has a role of either `user` or `admin`. Set the role when creating
 
 ### Access
 
-Access lists scope what a `user`-role account can see and change on entity routes. Both fields are independent JSON arrays of UUID strings on the user record. Only `user`-role accounts use these fields; `admin` accounts always have `[]` and cannot mutate entity routes or read nested collection data.
+Access lists scope what a `user`-role account can see and change on entity routes. The fields are independent JSON arrays of UUID strings on the user record. Only `user`-role accounts use these fields; `admin` accounts always store `[]` and receive implicit full entity access instead.
 
 **Wildcard `*`**
 
@@ -107,7 +107,7 @@ Example for a `user`-role token:
 }
 ```
 
-For an `admin`-role token, `dataApi` is `false` and `managementApi` is `true`. HarborClient can use this endpoint when saving a team hub connection to decide whether to show operator administration UI.
+For an `admin`-role token, `dataApi` and `managementApi` are both `true`; `llm` follows the account's `llmAccess` flag. HarborClient uses this endpoint when saving a team hub connection to mount shared data and decide whether to show operator administration UI.
 
 See [API Endpoints — GET /auth/session](./endpoints.md#get-authsession) for the full route reference.
 

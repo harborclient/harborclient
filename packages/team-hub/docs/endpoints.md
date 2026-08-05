@@ -133,11 +133,11 @@ Use this route to discover whether a token belongs to a `user` or `admin` accoun
 }
 ```
 
-| Capability      | `user` role                        | `admin` role |
-| --------------- | ---------------------------------- | ------------ |
-| `dataApi`       | `true`                             | `false`      |
-| `managementApi` | `false`                            | `true`       |
-| `llm`           | `true` when `llmAccess` is enabled | `false`      |
+| Capability      | `user` role                        | `admin` role                       |
+| --------------- | ---------------------------------- | ---------------------------------- |
+| `dataApi`       | `true`                             | `true` (implicit full entity access) |
+| `managementApi` | `false`                            | `true`                             |
+| `llm`           | `true` when `llmAccess` is enabled | `true` when `llmAccess` is enabled |
 
 **Response `401`:** Missing, malformed, unknown, or revoked bearer token.
 
@@ -611,7 +611,7 @@ Collections are top-level workspaces that hold folders, saved requests, and coll
 
 ### GET /collections
 
-Lists all collections ordered by name. Results are filtered by the authenticated user's collection access list. `admin`-role tokens receive the full catalog but cannot mutate collections or read nested folders and requests.
+Lists all collections ordered by name. Results are filtered by the authenticated user's collection access list. `admin`-role tokens receive the full catalog (implicit full access) and may also mutate collections and nested folders/requests.
 
 **Auth:** Bearer token required.
 
@@ -708,7 +708,7 @@ Environments hold named variable sets used across requests.
 
 ### GET /environments
 
-Lists all environments ordered by name. Results are filtered by the authenticated user's environment access list. `admin`-role tokens receive the full catalog but cannot mutate environments.
+Lists all environments ordered by name. Results are filtered by the authenticated user's environment access list. `admin`-role tokens receive the full catalog (implicit full access) and may also mutate environments.
 
 **Auth:** Bearer token required.
 
@@ -810,7 +810,7 @@ Snippets hold reusable JavaScript for pre-request and post-request scripts.
 
 ### GET /snippets
 
-Lists all snippets ordered by `sortOrder` then name. Results are filtered by the authenticated user's snippet access list. `admin`-role tokens receive the full catalog but cannot mutate snippets.
+Lists all snippets ordered by `sortOrder` then name. Results are filtered by the authenticated user's snippet access list. `admin`-role tokens receive the full catalog (implicit full access) and may also mutate snippets.
 
 **Auth:** Bearer token required.
 

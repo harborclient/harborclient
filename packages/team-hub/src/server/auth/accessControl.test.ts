@@ -187,15 +187,17 @@ describe('accessControl', () => {
     expect(canUseManagementApi(baseUser)).toBe(false);
   });
 
-  it('denies admins and scoped users correctly for collections', () => {
-    expect(canAccessCollection(adminUser, 'collection-a')).toBe(false);
+  it('grants admins full collection access and scopes users by list', () => {
+    expect(canAccessCollection(adminUser, 'collection-a')).toBe(true);
+    expect(canAccessCollection(adminUser, 'collection-b')).toBe(true);
     expect(canAccessCollection(baseUser, 'collection-a')).toBe(true);
     expect(canAccessCollection(baseUser, 'collection-b')).toBe(false);
     expect(canAccessCollection(wildcardUser, 'collection-b')).toBe(true);
   });
 
-  it('denies admins and scoped users correctly for environments', () => {
-    expect(canAccessEnvironment(adminUser, 'env-a')).toBe(false);
+  it('grants admins full environment access and scopes users by list', () => {
+    expect(canAccessEnvironment(adminUser, 'env-a')).toBe(true);
+    expect(canAccessEnvironment(adminUser, 'env-b')).toBe(true);
     expect(canAccessEnvironment(baseUser, 'env-a')).toBe(true);
     expect(canAccessEnvironment(baseUser, 'env-b')).toBe(false);
     expect(canAccessEnvironment(wildcardUser, 'env-b')).toBe(true);
@@ -217,12 +219,16 @@ describe('accessControl', () => {
     );
     expect(canDeleteCollection(adminUser, sampleCollections[0])).toBe(false);
     expect(
+      canDeleteCollection(adminUser, { ...sampleCollections[0], createdByUserId: adminUser.id })
+    ).toBe(true);
+    expect(
       canDeleteCollection(baseUser, { ...sampleCollections[0], createdByUserId: 'other-user' })
     ).toBe(false);
     expect(canDeleteCollection(baseUser, { ...sampleCollections[0], createdByUserId: null })).toBe(
       false
     );
     expect(canDeleteEnvironment(baseUser, sampleEnvironments[0])).toBe(true);
+    expect(canDeleteEnvironment(adminUser, sampleEnvironments[0])).toBe(true);
     expect(canDeleteEnvironment(baseUser, { ...sampleEnvironments[0], deletionLocked: true })).toBe(
       false
     );
@@ -235,14 +241,18 @@ describe('accessControl', () => {
     );
     expect(canDeleteRequest(baseUser, { ...sampleRequest, createdByUserId: null })).toBe(false);
     expect(canDeleteRequest(adminUser, sampleRequest)).toBe(false);
+    expect(canDeleteRequest(adminUser, { ...sampleRequest, createdByUserId: adminUser.id })).toBe(
+      true
+    );
   });
 
-  it('allows create only for wildcard users', () => {
-    expect(canUseDataApi(adminUser)).toBe(false);
+  it('allows create for admins and wildcard users', () => {
+    expect(canUseDataApi(adminUser)).toBe(true);
     expect(canUseDataApi(baseUser)).toBe(true);
-    expect(canCreateCollection(adminUser)).toBe(false);
+    expect(canCreateCollection(adminUser)).toBe(true);
     expect(canCreateCollection(baseUser)).toBe(false);
     expect(canCreateCollection(wildcardUser)).toBe(true);
+    expect(canCreateEnvironment(adminUser)).toBe(true);
     expect(canCreateEnvironment(wildcardUser)).toBe(true);
   });
 
@@ -267,7 +277,7 @@ describe('accessControl', () => {
 
     expect(canUseLlm(baseUser)).toBe(false);
     expect(canUseLlm(llmUser)).toBe(true);
-    expect(canUseLlm({ ...llmUser, role: 'admin' })).toBe(false);
+    expect(canUseLlm({ ...llmUser, role: 'admin' })).toBe(true);
     expect(isLlmModelAllowed(llmUser, 'gpt-4o')).toBe(true);
     expect(isLlmModelAllowed(llmUser, 'gpt-4o-mini')).toBe(false);
     expect(isLlmModelAllowed({ ...llmUser, llmModels: ['*'] }, 'gpt-4o-mini')).toBe(true);
