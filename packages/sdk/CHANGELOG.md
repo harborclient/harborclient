@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance CLI and UI theme support with new tab color tokens. (`7864533e`)
 - chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
 
 ## 1.6.4 - 2026-08-04

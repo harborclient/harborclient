@@ -86,6 +86,12 @@
   --color-muted: var(--mac-muted);
   --color-accent: var(--mac-accent);
   --color-tab-underline: var(--mac-tab-underline, var(--mac-accent));
+  --color-tab-bar: var(--mac-tab-bar, var(--mac-header, var(--mac-sidebar)));
+  --color-tab-active: var(--mac-tab-active, var(--mac-surface));
+  --color-tab-inactive: var(--mac-tab-inactive);
+  --color-tab-hover: var(--mac-tab-hover);
+  --color-tab-text: var(--mac-tab-text, var(--mac-text));
+  --color-tab-text-inactive: var(--mac-tab-text-inactive, var(--mac-muted));
   --color-resize-separator: var(--mac-resize-separator, var(--mac-control));
   --color-resize-handle: var(--mac-resize-handle, var(--mac-accent));
   --color-variable-token: var(--mac-variable-token, var(--mac-accent));
@@ -165,6 +171,12 @@
     --mac-muted: rgba(0, 0, 0, 0.58);
     --mac-accent: #007acc;
     --mac-tab-underline: var(--mac-accent);
+    --mac-tab-bar: var(--mac-header);
+    --mac-tab-active: var(--mac-surface);
+    --mac-tab-inactive: color-mix(in srgb, var(--mac-control) 20%, transparent);
+    --mac-tab-hover: color-mix(in srgb, var(--mac-selection) 60%, transparent);
+    --mac-tab-text: var(--mac-text);
+    --mac-tab-text-inactive: var(--mac-muted);
     --mac-resize-separator: var(--mac-control);
     --mac-resize-handle: color-mix(in srgb, var(--mac-muted) 50%, transparent);
     --mac-variable-token: var(--mac-accent);
@@ -872,8 +884,8 @@
   }
 
   :root[data-theme='high-contrast'] .hc-tab-bar [role='tab'][aria-selected='true'] {
-    background-color: var(--mac-surface) !important;
-    border-bottom-color: var(--mac-surface) !important;
+    background-color: var(--mac-tab-active) !important;
+    border-bottom-color: var(--mac-tab-active) !important;
   }
 
   :root[data-theme='high-contrast'] .hc-tab-bar [role='tab']:not([aria-selected='true']) {

@@ -39,7 +39,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   'Chrome':
     'Active footer icons and toolbar actions, the active tab underline, pane resize separators and grips, and variable tokens in editors.',
   'Tabs':
-    'Request and editor tab chrome: unsaved indicator color plus tab typography, borders, and radius.',
+    'Request and editor tab chrome: bar strip, active/inactive/hover fills, active and inactive label colors, unsaved indicator, plus tab typography, borders, and radius.',
   'Status':
     'Semantic colors for danger, warning, success, and info (errors, alerts, and pass/fail) — plus status badge typography.',
   'HTTP methods':

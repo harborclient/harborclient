@@ -185,6 +185,12 @@ export const CUSTOM_THEME_TOKEN_LABELS: Record<ThemeColorToken, string> = {
   'accent': 'Accent',
   'selection': 'Selection',
   'doc-markdown': 'Markdown document',
+  'tab-bar': 'Tab bar strip',
+  'tab-active': 'Active tab',
+  'tab-inactive': 'Inactive tab',
+  'tab-hover': 'Hover / focus',
+  'tab-text': 'Active tab text',
+  'tab-text-inactive': 'Inactive tab text',
   'tab-unsaved': 'Unsaved tab text',
   'tab-underline': 'Tab underline',
   'resize-separator': 'Resize separator',
@@ -325,7 +331,15 @@ export const CUSTOM_THEME_TOKEN_GROUPS: CustomThemeTokenGroup[] = [
   },
   {
     label: 'Tabs',
-    tokens: ['tab-unsaved']
+    tokens: [
+      'tab-bar',
+      'tab-active',
+      'tab-inactive',
+      'tab-hover',
+      'tab-text',
+      'tab-text-inactive',
+      'tab-unsaved'
+    ]
   },
   {
     label: 'Status',

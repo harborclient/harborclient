@@ -21,9 +21,12 @@ pnpm cli -- GET https://httpbin.org/get
 
 ```bash
 harborclient GET https://httpbin.org/get
+harborclient GET https://httpbin.org/get -p
 harborclient POST https://httpbin.org/post --json '{"hello":"world"}'
 harborclient GET https://httpbin.org/headers -H 'X-Token: secret' -v
 ```
+
+Use `-p` / `--pretty` to pretty-print JSON response bodies (non-JSON bodies are left unchanged).
 
 ## Run a saved collection
 

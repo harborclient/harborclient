@@ -565,7 +565,7 @@ export function TabBar<TId extends string | number>({
 
         <DragOverlay>
           {activeDragTab ? (
-            <div className="rounded-t-lg border border-separator bg-surface px-3 py-2 text-[14px] font-medium shadow-md">
+            <div className="rounded-t-lg border border-separator bg-tab-active px-3 py-2 text-[14px] font-medium shadow-md">
               {activeDragTab.dragLabel}
             </div>
           ) : null}
@@ -582,7 +582,7 @@ export function TabBar<TId extends string | number>({
   const scrollContainer = renderScrollContainer ?? defaultScrollContainer;
 
   const containerClassName = cn(
-    'app-no-drag flex shrink-0 items-end bg-header pr-2 pl-0',
+    'app-no-drag flex shrink-0 items-end bg-tab-bar pr-2 pl-0',
     className
   );
 

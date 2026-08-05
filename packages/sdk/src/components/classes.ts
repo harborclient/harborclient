@@ -32,6 +32,6 @@ export function segment(active: boolean): string {
  */
 export function tabItem(active: boolean): string {
   return active
-    ? 'relative z-[1] border-separator/70 border-b-surface bg-surface text-text [border-bottom-width:var(--mac-tab-border-width)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
-    : 'border-separator/50 border-b-separator/50 bg-control/20 text-muted [border-bottom-width:var(--mac-tab-border-width)] hover:bg-selection/60 hover:text-text focus-visible:bg-selection/60 focus-visible:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
+    ? 'relative z-[1] border-separator/70 border-b-tab-active bg-tab-active text-tab-text [border-bottom-width:var(--mac-tab-border-width)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent'
+    : 'border-separator/50 border-b-separator/50 bg-tab-inactive text-tab-text-inactive [border-bottom-width:var(--mac-tab-border-width)] hover:bg-tab-hover hover:text-tab-text focus-visible:bg-tab-hover focus-visible:text-tab-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 }

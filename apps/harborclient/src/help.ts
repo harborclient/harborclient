@@ -31,6 +31,7 @@ Ad-hoc CLI options:
   --timeout <ms>               Request timeout in milliseconds
   --no-verify-ssl              Disable TLS certificate verification
   -v, --verbose                Print response headers
+  -p, --pretty                 Pretty-print JSON response bodies
 
 Collection run options:
   run <name-or-uuid>           Run all requests in a saved collection
@@ -50,6 +51,7 @@ Live server options:
 Examples:
   harborclient
   harborclient GET https://httpbin.org/get
+  harborclient GET https://httpbin.org/get -p
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
   harborclient workflow run "My Workflow" --export ./results

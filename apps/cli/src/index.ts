@@ -1,4 +1,5 @@
 import type { HttpMethod } from '@harborclient/core/types';
+import { formatResponseBody } from './formatResponseBody';
 import { runCollection } from './runCollection';
 import { runServersCommand } from './runServers';
 import { runWorkflowCommand } from './runWorkflow';
@@ -28,6 +29,7 @@ Ad-hoc options:
   --timeout <ms>               Request timeout in milliseconds
   --no-verify-ssl              Disable TLS certificate verification
   -v, --verbose                Print response headers
+  -p, --pretty                 Pretty-print JSON response bodies
   -h, --help                   Show this help
 
 Collection run options:
@@ -47,6 +49,7 @@ Live server options:
 
 Examples:
   harborclient GET https://httpbin.org/get
+  harborclient GET https://httpbin.org/get -p
   harborclient POST https://httpbin.org/post --json '{"ok":true}'
   harborclient run "My Collection"
   harborclient workflow run "My Workflow" --export ./results
@@ -206,6 +209,7 @@ export async function runCli(argv: string[]): Promise<number> {
   let timeoutMs: number | undefined;
   let verifySsl: boolean | undefined;
   let verbose = false;
+  let pretty = false;
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i]!;
@@ -239,6 +243,8 @@ export async function runCli(argv: string[]): Promise<number> {
       verifySsl = false;
     } else if (arg === '-v' || arg === '--verbose') {
       verbose = true;
+    } else if (arg === '-p' || arg === '--pretty') {
+      pretty = true;
     } else {
       console.error(`Unknown option: ${arg}`);
       return 1;
@@ -268,10 +274,7 @@ export async function runCli(argv: string[]): Promise<number> {
     console.error('');
   }
 
-  process.stdout.write(result.body);
-  if (result.body && !result.body.endsWith('\n')) {
-    process.stdout.write('\n');
-  }
+  process.stdout.write(formatResponseBody(result.body, pretty));
 
   return result.status >= 400 ? 1 : 0;
 }

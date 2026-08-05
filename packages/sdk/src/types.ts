@@ -1171,6 +1171,12 @@ export interface StatusBarItemContribution {
  * - `accent` — links, focus rings, primary actions
  * - `selection` — selected row / highlight fill
  * - `doc-markdown` — collection sidebar markdown document icon
+ * - `tab-bar` — request editor tab bar strip background
+ * - `tab-active` — active request/editor tab fill
+ * - `tab-inactive` — inactive request/editor tab fill
+ * - `tab-hover` — inactive request/editor tab hover and focus-visible fill
+ * - `tab-text` — active (and hover/focus) request/editor tab label color
+ * - `tab-text-inactive` — inactive request/editor tab label color
  * - `tab-unsaved` — request/markdown tab title when the tab has unsaved changes
  * - `tab-underline` — active request tab underline
  * - `resize-separator` — resizable panel separator track and edge border
@@ -1217,6 +1223,12 @@ export type ThemeColorToken =
   | 'accent'
   | 'selection'
   | 'doc-markdown'
+  | 'tab-bar'
+  | 'tab-active'
+  | 'tab-inactive'
+  | 'tab-hover'
+  | 'tab-text'
+  | 'tab-text-inactive'
   | 'tab-unsaved'
   | 'tab-underline'
   | 'resize-separator'

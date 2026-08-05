@@ -40,6 +40,28 @@ describe('customTheme Chrome resize tokens', () => {
   });
 });
 
+describe('customTheme Tabs color tokens', () => {
+  it('exposes tab bar fills and text colors in the Designer Tabs group', () => {
+    const tabs = CUSTOM_THEME_TOKEN_GROUPS.find((group) => group.label === 'Tabs');
+
+    expect(tabs?.tokens).toEqual([
+      'tab-bar',
+      'tab-active',
+      'tab-inactive',
+      'tab-hover',
+      'tab-text',
+      'tab-text-inactive',
+      'tab-unsaved'
+    ]);
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-bar']).toBe('Tab bar strip');
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-active']).toBe('Active tab');
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-inactive']).toBe('Inactive tab');
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-hover']).toBe('Hover / focus');
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-text']).toBe('Active tab text');
+    expect(CUSTOM_THEME_TOKEN_LABELS['tab-text-inactive']).toBe('Inactive tab text');
+  });
+});
+
 describe('customTheme Rail & Sidebars color tokens', () => {
   it('groups rail and sidebar colors in a dedicated Designer category', () => {
     const railGroup = CUSTOM_THEME_TOKEN_GROUPS.find((group) => group.label === 'Rail & Sidebars');

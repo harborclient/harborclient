@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance CLI and UI theme support with new tab color tokens. (`7864533e`)
 - Refine branding guidelines and update plugin documentation. (`420cf616`)
 - Update branding guidelines to clarify logo usage and UI representation. (`a986967d`)
 - Update branding guidelines and enhance plugin catalog. (`227421b6`)

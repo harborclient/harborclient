@@ -85,45 +85,52 @@ Use `defineTheme(theme)` when you want to define the theme object in a separate 
 
 Override any of these keys in `colors`. Each maps to `--mac-<token>` on the document root.
 
-| Token                                                  | Used for                                                 |
-| ------------------------------------------------------ | -------------------------------------------------------- |
-| `surface`                                              | Main content background                                  |
-| `header`                                               | Top header strip (sidebar search + request tab bar)      |
-| `page-header`                                          | Page title header background (`PageHeader`)              |
-| `page-header-text`                                     | Page title header primary text                           |
-| `page-header-muted`                                    | Page title header description and decorative icons       |
-| `sidebar`                                              | Left sidebar background                                  |
-| `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                  |
-| `sidebar-rail`                                         | Activity rail background                                 |
-| `sidebar-rail-active`                                  | Active/hover activity rail section fill                  |
-| `sidebar-rail-text`                                    | Activity rail icons and labels                           |
-| `sidebar-rail-separator`                               | Activity rail hairline between item groups               |
-| `sidebar-section`                                      | Sidebar section headers                                  |
-| `sidebar-section-text`                                 | Sidebar section header labels and chevrons               |
-| `footer`                                               | Footer status bar background                             |
-| `footer-text`                                          | Footer primary text                                      |
-| `footer-muted`                                         | Footer de-emphasized text                                |
-| `footer-icon-active`                                   | Active footer icon toggle color                          |
-| `toolbar-action-active`                                | Pressed sidebar toolbar action icon color                |
-| `breadcrumb-background`                                | Request editor breadcrumb bar track                      |
-| `breadcrumb-segment`                                   | Breadcrumb chevron segment fill                          |
-| `git-staged`                                           | Git-backed request names staged for commit               |
-| `git-uncommitted`                                      | Git-backed request names with tracked unstaged changes   |
-| `git-unstaged`                                         | Git-backed request names not yet added to the repository |
-| `control`                                              | Panels, inputs, footer bar                               |
-| `field`                                                | Input field fill                                         |
-| `separator`                                            | Borders and dividers                                     |
-| `text`                                                 | Primary text                                             |
-| `text-secondary`                                       | Secondary labels                                         |
-| `muted`                                                | De-emphasized text                                       |
-| `accent`                                               | Links, focus rings, primary actions                      |
-| `selection`                                            | Selected row / highlight fill                            |
-| `tab-underline`                                        | Active request tab underline                             |
-| `resize-separator`                                     | Resizable panel separator track and edge border          |
-| `resize-handle`                                        | Resizable panel grip (and high-contrast chrome accents)  |
-| `variable-token`                                       | `{{variable}}` syntax highlight in editors               |
-| `danger`, `danger-light`, `warning`, `success`, `info` | Status colors                                            |
-| `method-get`, `method-post`, …                         | HTTP method badge colors                                 |
+| Token                                                  | Used for                                                    |
+| ------------------------------------------------------ | ----------------------------------------------------------- |
+| `surface`                                              | Main content background                                     |
+| `header`                                               | Top header strip (sidebar search + request tab bar)         |
+| `page-header`                                          | Page title header background (`PageHeader`)                 |
+| `page-header-text`                                     | Page title header primary text                              |
+| `page-header-muted`                                    | Page title header description and decorative icons          |
+| `sidebar`                                              | Left sidebar background                                     |
+| `sidebar-toolbar`                                      | Sidebar/footer toolbar strip background                     |
+| `sidebar-rail`                                         | Activity rail background                                    |
+| `sidebar-rail-active`                                  | Active/hover activity rail section fill                     |
+| `sidebar-rail-text`                                    | Activity rail icons and labels                              |
+| `sidebar-rail-separator`                               | Activity rail hairline between item groups                  |
+| `sidebar-section`                                      | Sidebar section headers                                     |
+| `sidebar-section-text`                                 | Sidebar section header labels and chevrons                  |
+| `footer`                                               | Footer status bar background                                |
+| `footer-text`                                          | Footer primary text                                         |
+| `footer-muted`                                         | Footer de-emphasized text                                   |
+| `footer-icon-active`                                   | Active footer icon toggle color                             |
+| `toolbar-action-active`                                | Pressed sidebar toolbar action icon color                   |
+| `breadcrumb-background`                                | Request editor breadcrumb bar track                         |
+| `breadcrumb-segment`                                   | Breadcrumb chevron segment fill                             |
+| `git-staged`                                           | Git-backed request names staged for commit                  |
+| `git-uncommitted`                                      | Git-backed request names with tracked unstaged changes      |
+| `git-unstaged`                                         | Git-backed request names not yet added to the repository    |
+| `control`                                              | Panels, inputs, footer bar                                  |
+| `field`                                                | Input field fill                                            |
+| `separator`                                            | Borders and dividers                                        |
+| `text`                                                 | Primary text                                                |
+| `text-secondary`                                       | Secondary labels                                            |
+| `muted`                                                | De-emphasized text                                          |
+| `accent`                                               | Links, focus rings, primary actions                         |
+| `selection`                                            | Selected row / highlight fill                               |
+| `tab-bar`                                              | Request editor tab bar strip background                     |
+| `tab-active`                                           | Active request/editor tab fill                              |
+| `tab-inactive`                                         | Inactive request/editor tab fill                            |
+| `tab-hover`                                            | Inactive request/editor tab hover and focus-visible fill    |
+| `tab-text`                                             | Active (and hover/focus) request/editor tab label color     |
+| `tab-text-inactive`                                    | Inactive request/editor tab label color                     |
+| `tab-unsaved`                                          | Request/markdown tab title when the tab has unsaved changes |
+| `tab-underline`                                        | Active request tab underline                                |
+| `resize-separator`                                     | Resizable panel separator track and edge border             |
+| `resize-handle`                                        | Resizable panel grip (and high-contrast chrome accents)     |
+| `variable-token`                                       | `{{variable}}` syntax highlight in editors                  |
+| `danger`, `danger-light`, `warning`, `success`, `info` | Status colors                                               |
+| `method-get`, `method-post`, …                         | HTTP method badge colors                                    |
 
 See the [Solarized theme example](/examples/solarized-theme) for a complete theme plugin.
 
