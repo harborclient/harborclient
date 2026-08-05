@@ -14,6 +14,10 @@
       "ref": "v1.1.1"
     },
     {
+      "repoUrl": "https://github.com/harborclient/plugin-cli-request",
+      "ref": "v1.0.1"
+    },
+    {
       "repoUrl": "https://github.com/harborclient/plugin-hello-sidebar",
       "ref": "v1.0.1"
     },
