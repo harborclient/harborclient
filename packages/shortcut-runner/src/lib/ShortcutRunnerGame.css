@@ -757,7 +757,7 @@
   align-items: flex-end;
   gap: 3px;
   width: 100%;
-  height: 50px;
+  height: 130px;
   padding: 10px 10px 8px;
   border: 1px solid rgba(184, 199, 211, 0.16);
   border-radius: 12px;
@@ -765,10 +765,8 @@
 }
 
 .hcsr-progress-chart-bar {
-  flex: 1 1 0;
+  flex: 0 0 28px;
   min-width: 4px;
-  max-width: 28px;
-  margin-inline: auto;
   border-radius: 3px 3px 1px 1px;
   background: rgba(184, 199, 211, 0.35);
   transition: height 180ms ease;

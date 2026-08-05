@@ -9,7 +9,7 @@ import {
 import { buildShortcutTutorLevels } from './shortcutTutorLevels';
 
 /**
- * Dialog hosting the Shortcut Runner training game at its default 600×500 size.
+ * Dialog hosting the Shortcut Runner training game at its default 600×600 size.
  *
  * Loads the user's current shortcut bindings for progressive levels and pauses
  * global shortcut capture while open so chords reach the game instead of the app.
@@ -98,7 +98,7 @@ export function ShortcutTutorModal(): JSX.Element | null {
         </p>
       ) : (
         <div className="flex justify-center">
-          <ShortcutRunnerGame levels={levels} width={600} height={500} />
+          <ShortcutRunnerGame levels={levels} width={600} height={600} />
         </div>
       )}
     </Modal>

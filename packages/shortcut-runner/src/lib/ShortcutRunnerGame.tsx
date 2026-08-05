@@ -253,7 +253,7 @@ function VolumeIcon({ muted }: { muted: boolean }) {
 export function ShortcutRunnerGame({
   levels,
   width = 600,
-  height = 500,
+  height = 600,
   roundsPerLevel = 6,
   roundDurationMs = 5000,
   initialMuted = false,
@@ -492,18 +492,36 @@ export function ShortcutRunnerGame({
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  const revealNextHintKey = useCallback(() => {
-    if (keyCount === 0) return;
+  /**
+   * Reveals the next key in the progressive shortcut hint for the current round.
+   *
+   * @param options.announce - When true (default), updates the feedback line with
+   *   a hint message. Pass false when the caller already shows its own feedback.
+   * @returns Whether a previously hidden key was revealed.
+   */
+  const revealNextHintKey = useCallback(
+    (options?: { announce?: boolean }): boolean => {
+      if (keyCount === 0) return false;
 
-    const nextCount = Math.min(hintKeyCountRef.current + 1, keyCount);
-    hintKeyCountRef.current = nextCount;
-    setHintKeyCount(nextCount);
-    setFeedback({
-      type: 'hint',
-      text: nextCount >= keyCount ? 'Full shortcut revealed.' : 'One more key revealed.'
-    });
-    clearFeedbackLater(900);
-  }, [clearFeedbackLater, keyCount]);
+      const previousCount = hintKeyCountRef.current;
+      const nextCount = Math.min(previousCount + 1, keyCount);
+      if (nextCount === previousCount) return false;
+
+      hintKeyCountRef.current = nextCount;
+      setHintKeyCount(nextCount);
+
+      if (options?.announce !== false) {
+        setFeedback({
+          type: 'hint',
+          text: nextCount >= keyCount ? 'Full shortcut revealed.' : 'One more key revealed.'
+        });
+        clearFeedbackLater(900);
+      }
+
+      return true;
+    },
+    [clearFeedbackLater, keyCount]
+  );
 
   const togglePaused = useCallback(() => {
     const nextPaused = !paused;
@@ -556,12 +574,15 @@ export function ShortcutRunnerGame({
       }
 
       playWrong();
+      const revealedHint = revealNextHintKey({ announce: false });
       const nextStats = updateStats(statsRef.current, 'mistake', streakRef.current);
       statsRef.current = nextStats;
       setStats(nextStats);
       setFeedback({
         type: 'error',
-        text: `That was ${displayShortcut(enteredShortcut).join(' + ')}. Try again.`
+        text: revealedHint
+          ? `That was ${displayShortcut(enteredShortcut).join(' + ')}. Hint revealed — try again.`
+          : `That was ${displayShortcut(enteredShortcut).join(' + ')}. Try again.`
       });
       clearFeedbackLater();
     },

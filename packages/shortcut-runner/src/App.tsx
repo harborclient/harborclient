@@ -84,7 +84,7 @@ export default function App() {
         <span>Component demo</span>
         <h1>HarborClient Shortcut Sprint</h1>
         <p>
-          The game is intentionally constrained to a 600×500 panel so it can live inside a settings,
+          The game is intentionally constrained to a 600×600 panel so it can live inside a settings,
           onboarding, or training screen.
         </p>
       </section>

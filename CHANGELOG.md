@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: update dimensions and hint logic in Shortcut Runner. (`456b2a68`)
 - feat: update Shortcut Tutor to include five levels. (`c82f9cfe`)
 - feat: add testing script and update TypeScript configurations. (`fad0c779`)
 - feat: integrate shortcut runner and enhance shortcut management. (`aaee9d78`)

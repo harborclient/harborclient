@@ -8,7 +8,7 @@ The project includes:
 - A standalone Vite demo
 - A Vite library build with generated TypeScript declarations
 - Per-level scrolling speed
-- Progressive hints that reveal one shortcut key per H press
+- Progressive hints that reveal one shortcut key per H press, or automatically after a wrong shortcut
 - A key-count indicator for every command
 - Shortcut normalization for Ctrl, Alt, Shift, Meta/Command, function keys, arrows, and common aliases
 - Procedurally generated background music and sound effects using the Web Audio API
@@ -110,13 +110,14 @@ The `shortcodes` value is a `Record<string, string>` where each key is a configu
 ## Game controls
 
 - `H`: reveal the next key in the shortcut hint
+- Wrong shortcut: also reveals the next hint key
 - `P`: pause or resume the game
 
 Both controls are displayed persistently inside the game area during play.
 
 ## Progressive hints
 
-During a round, pressing plain H reveals one key at a time. For `ctrl+alt+t`, the hint progresses like this:
+During a round, pressing plain H reveals one key at a time. Entering the wrong shortcut also reveals the next key automatically. For `ctrl+alt+t`, the hint progresses like this:
 
 ```text
 Ctrl+
@@ -132,7 +133,7 @@ The number of required keys is always shown at the bottom of the game. Press P t
 interface ShortcutRunnerGameProps {
   levels: ShortcutLevel[];
   width?: number; // default: 600
-  height?: number; // default: 500
+  height?: number; // default: 600
   roundsPerLevel?: number; // default: 6
   roundDurationMs?: number; // default: 5000 at speed 1
   initialMuted?: boolean; // default: false
@@ -147,7 +148,7 @@ interface ShortcutLevel {
 }
 ```
 
-The component is 600×500 pixels by default and uses `max-width: 100%`, so it can shrink horizontally in a narrower container.
+The component is 600×600 pixels by default and uses `max-width: 100%`, so it can shrink horizontally in a narrower container.
 
 ## Shortcut syntax
 

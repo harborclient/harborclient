@@ -9,10 +9,10 @@ export default defineConfig({
       entry: fileURLToPath(new URL('./src/lib/index.ts', import.meta.url)),
       formats: ['es'],
       fileName: 'index',
-      cssFileName: 'style',
+      cssFileName: 'style'
     },
     rolldownOptions: {
-      external: ['react', 'react/jsx-runtime'],
-    },
-  },
+      external: ['react', 'react/jsx-runtime']
+    }
+  }
 });
