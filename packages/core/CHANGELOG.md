@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.5 - 2026-08-05
+
 - feat: integrate shortcut runner and enhance shortcut management. (`aaee9d78`)
 
 ## 0.5.4 - 2026-08-04
