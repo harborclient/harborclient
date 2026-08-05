@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 const OAUTH_SECRETS_KEY = 'oauthTokens';
 
@@ -28,10 +28,11 @@ interface StoredOAuthSecret {
  * Reads all stored OAuth tokens from the local registry.
  */
 function readAllOAuthSecrets(): Record<string, StoredOAuthSecret> {
-  return parseJson<Record<string, StoredOAuthSecret>>(
-    getLocalDatabase().getSetting(OAUTH_SECRETS_KEY),
-    {}
-  );
+  const parsed = parseJson(getLocalDatabase().getSetting(OAUTH_SECRETS_KEY), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  return parsed as Record<string, StoredOAuthSecret>;
 }
 
 /**

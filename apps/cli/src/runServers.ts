@@ -129,7 +129,8 @@ export async function runServersCommand(options: RunServersOptions): Promise<num
     if (trimmed === '') {
       return undefined;
     }
-    const runtimes = normalizeRuntimes(parseJson<unknown>(database.getSetting('runtimes'), []));
+    const parsed = parseJson(database.getSetting('runtimes'), []);
+    const runtimes = normalizeRuntimes(Array.isArray(parsed) ? parsed : []);
     return runtimes.find((runtime) => runtime.id === trimmed);
   }
 

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
+
 ## 1.6.4 - 2026-08-04
 
 - feat: enhance sidebar navigation and focus management. (`015e793a`)

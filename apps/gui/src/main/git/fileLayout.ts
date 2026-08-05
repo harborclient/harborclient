@@ -21,7 +21,7 @@ import type {
   WebsiteExport
 } from '@harborclient/core/types';
 import type { RequestExport } from '@harborclient/core/types/request';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import { readScriptRefsFromJson } from '@harborclient/core/scriptRefs';
 import type { AuthConfig } from '@harborclient/core/auth';
 import { defaultAuth } from '@harborclient/core/auth';
@@ -576,11 +576,8 @@ function parseRequestMetaFromText(text: string | null): ParsedRequestMeta {
   if (text == null || !text.trim()) {
     return { uuid: null, name: null, method: null };
   }
-  const parsed = parseJson(
-    text,
-    null as { uuid?: unknown; name?: unknown; method?: unknown } | null
-  );
-  if (parsed == null) {
+  const parsed = parseJson(text, null);
+  if (!isPlainObject(parsed)) {
     return { uuid: null, name: null, method: null };
   }
   const uuid =
@@ -613,11 +610,11 @@ function parseDocumentDisplayNameFromManifest(
   if (manifestText == null || !manifestText.trim()) {
     return null;
   }
-  const parsed = parseJson(manifestText, null as { documents?: StoredDocumentRef[] } | null);
-  if (parsed == null) {
+  const parsed = parseJson(manifestText, null);
+  if (!isPlainObject(parsed)) {
     return null;
   }
-  for (const document of parsed.documents ?? []) {
+  for (const document of Array.isArray(parsed.documents) ? parsed.documents : []) {
     if (document.file.toLowerCase() === fileName.toLowerCase() && document.name.trim()) {
       return document.name.trim();
     }
@@ -673,8 +670,8 @@ function parseCollectionDisplayNameFromManifest(manifestText: string | null): st
   if (manifestText == null || !manifestText.trim()) {
     return null;
   }
-  const parsed = parseJson(manifestText, null as { name?: string } | null);
-  if (parsed == null || typeof parsed.name !== 'string' || !parsed.name.trim()) {
+  const parsed = parseJson(manifestText, null);
+  if (!isPlainObject(parsed) || typeof parsed.name !== 'string' || !parsed.name.trim()) {
     return null;
   }
   return parsed.name.trim();
@@ -1990,7 +1987,17 @@ export function readGitProviderSettings(
   if (!existsSync(path)) {
     return {};
   }
-  return parseJson<Record<string, string>>(readFileSync(path, 'utf-8'), {});
+  const parsed = parseJson(readFileSync(path, 'utf-8'), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  const settings: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === 'string') {
+      settings[key] = value;
+    }
+  }
+  return settings;
 }
 
 /**

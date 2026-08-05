@@ -68,6 +68,14 @@ function normalizeTeamHub(input: StoredTeamHub | TeamHub): TeamHub {
 }
 
 /**
+ * Reads stored team hub metadata rows from the local registry.
+ */
+function readStoredTeamHubs(): StoredTeamHub[] {
+  const parsed = parseJson(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  return Array.isArray(parsed) ? (parsed as StoredTeamHub[]) : [];
+}
+
+/**
  * Lists all configured team hubs with bearer tokens resolved from encrypted storage.
  *
  * Includes soft-connection flags (`connected`, `userName`) from the connection-state
@@ -76,7 +84,7 @@ function normalizeTeamHub(input: StoredTeamHub | TeamHub): TeamHub {
  * @returns Normalized team hub records from local storage.
  */
 export function listTeamHubs(): TeamHub[] {
-  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const stored = readStoredTeamHubs();
   return stored.map((entry) => {
     const hub = normalizeTeamHub(entry);
     const userName = getTeamHubUserName(hub.id);
@@ -117,7 +125,7 @@ export function saveTeamHub(input: TeamHub): TeamHub[] {
     storeTeamHubToken(id, normalized.token);
   }
 
-  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const stored = readStoredTeamHubs();
   const metadata: StoredTeamHub = {
     id: normalized.id,
     name: normalized.name,
@@ -143,7 +151,7 @@ export function saveTeamHub(input: TeamHub): TeamHub[] {
  * @throws When no team hub matches the given id.
  */
 export function deleteTeamHub(id: string): TeamHub[] {
-  const stored = parseJson<StoredTeamHub[]>(getLocalDatabase().getSetting(TEAM_HUBS_KEY), []);
+  const stored = readStoredTeamHubs();
   const nextStored = stored.filter((hub) => hub.id !== id);
 
   if (nextStored.length === stored.length) {

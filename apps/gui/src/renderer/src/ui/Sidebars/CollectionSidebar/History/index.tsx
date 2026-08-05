@@ -65,12 +65,13 @@ async function openHistoryRequestEntry(entry: RequestHistoryEntry): Promise<void
 function historyEntryAriaLabel(entry: RequestHistoryEntry): string {
   const normalized = normalizeRequestHistoryEntry(entry);
   const date = formatSidebarAbsoluteDate(entry.ts);
+  const corruptSuffix = entry.corrupt ? ', corrupt data' : '';
 
   if (entry.kind === 'run') {
-    return `Open run ${normalized.name}, ${entry.method}, ${date}`;
+    return `Open run ${normalized.name}, ${entry.method}, ${date}${corruptSuffix}`;
   }
 
-  return `Open ${normalized.name}, ${entry.method} ${entry.url}, status ${entry.status}, ${date}`;
+  return `Open ${normalized.name}, ${entry.method} ${entry.url}, status ${entry.status}, ${date}${corruptSuffix}`;
 }
 
 /**
@@ -217,6 +218,7 @@ export function History(): JSX.Element {
                 statusText={isRun ? undefined : entry.statusText}
                 statusDotVisible={showIndicators}
                 methodColors={showMethodColors}
+                corrupt={entry.corrupt === true}
                 runIcon={faPersonRunning}
                 selected={selected}
                 title={`${rowTitle} — ${rowDate}`}

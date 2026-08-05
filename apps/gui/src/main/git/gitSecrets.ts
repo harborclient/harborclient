@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import { normalizeGitHostKey } from '@harborclient/core/gitUrl';
 import { listStorageConnections } from '#/main/settings/storageSettings';
 import { getGitIdentity, persistGitIdentityAuth, upsertGitIdentity } from './gitIdentities';
@@ -32,10 +32,11 @@ interface StoredGitSecret {
  * Reads all stored git host secrets from the local registry.
  */
 function readAllGitSecrets(): Record<string, StoredGitSecret> {
-  return parseJson<Record<string, StoredGitSecret>>(
-    getLocalDatabase().getSetting(GIT_SECRETS_KEY),
-    {}
-  );
+  const parsed = parseJson(getLocalDatabase().getSetting(GIT_SECRETS_KEY), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  return parsed as Record<string, StoredGitSecret>;
 }
 
 /**

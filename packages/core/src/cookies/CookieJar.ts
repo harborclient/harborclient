@@ -1,5 +1,6 @@
+import { z } from 'zod';
 import type { ICookieJar } from '../interfaces';
-import { parseJson } from '../parseJson';
+import { isPlainObject, parseJson } from '../parseJson';
 import type { KeyValue } from '../types';
 
 const STORE_KEY = 'cookieJar';
@@ -7,6 +8,16 @@ const STORE_KEY = 'cookieJar';
 interface StoredCookie extends KeyValue {
   secure?: boolean;
 }
+
+/**
+ * One persisted cookie row. Extra fields are ignored; invalid rows are dropped.
+ */
+const storedCookieSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+  enabled: z.boolean().optional(),
+  secure: z.boolean().optional()
+});
 
 /**
  * Minimal persistence contract required by the portable cookie jar.
@@ -190,16 +201,52 @@ export class CookieJar implements ICookieJar {
 
   /**
    * Reads persisted cookies keyed by hostname.
+   *
+   * Corrupt JSON, non-object roots, invalid domain entries, and malformed cookie
+   * rows are skipped so a damaged jar degrades to an empty or partial map.
    */
   private getJarMap(): Record<string, StoredCookie[]> {
-    const stored = parseJson<Record<string, StoredCookie[]>>(
-      this.storage.getSetting(STORE_KEY),
-      {}
-    );
-    if (!stored || typeof stored !== 'object') {
+    return this.normalizeJarMap(parseJson(this.storage.getSetting(STORE_KEY), {}));
+  }
+
+  /**
+   * Coerces an unknown parsed value into a hostname → cookies map.
+   *
+   * @param value - Parsed cookie jar JSON (or fallback).
+   * @returns Validated map; empty when the root value is unusable.
+   */
+  private normalizeJarMap(value: unknown): Record<string, StoredCookie[]> {
+    if (!isPlainObject(value)) {
       return {};
     }
-    return stored;
+
+    const jar: Record<string, StoredCookie[]> = {};
+    for (const [rawDomain, rawCookies] of Object.entries(value)) {
+      const domain = typeof rawDomain === 'string' ? rawDomain.trim().toLowerCase() : '';
+      if (!domain || !Array.isArray(rawCookies)) {
+        continue;
+      }
+
+      const cookies: StoredCookie[] = [];
+      for (const entry of rawCookies) {
+        const parsed = storedCookieSchema.safeParse(entry);
+        if (!parsed.success) {
+          continue;
+        }
+        cookies.push({
+          key: parsed.data.key,
+          value: parsed.data.value,
+          enabled: parsed.data.enabled !== false,
+          secure: parsed.data.secure === true
+        });
+      }
+
+      if (cookies.length > 0) {
+        jar[domain] = cookies;
+      }
+    }
+
+    return jar;
   }
 
   /**

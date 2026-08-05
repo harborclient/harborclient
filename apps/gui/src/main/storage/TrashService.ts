@@ -188,6 +188,11 @@ export class TrashService {
     if (!item) {
       throw new Error('Trash item not found');
     }
+    if (item.corrupt) {
+      throw new Error(
+        'This trash item has corrupt stored data and cannot be restored. Permanently delete it instead.'
+      );
+    }
 
     switch (item.entityType) {
       case 'collection':

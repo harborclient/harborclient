@@ -9,7 +9,7 @@ export const PLUGIN_DATABASES_DIR = 'plugin-databases';
 export const PLUGIN_DB_TX_TIMEOUT_MS = 30_000;
 
 const PLUGIN_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9.-]*\.[a-zA-Z][a-zA-Z0-9.-]+$/;
-const FORBIDDEN_EXEC_PATTERN = /\b(attach|detach|load_extension)\b/i;
+const FORBIDDEN_SQL_PATTERN = /\b(attach|detach|load_extension)\b/i;
 
 /**
  * Result of a mutating plugin SQL statement.
@@ -100,11 +100,12 @@ export class PluginDatabaseManager {
    * Executes a multi-statement SQL script (migrations / DDL).
    *
    * @param pluginId - Plugin manifest id.
-   * @param sql - DDL script rejected when it contains ATTACH, DETACH, or load_extension.
+   * @param sql - DDL script; rejected when it contains ATTACH, DETACH, or load_extension
+   *   (same gate as get/all/run).
    */
   exec(pluginId: string, sql: string): Promise<void> {
     return this.#enqueue(pluginId, () => {
-      assertSafeExecSql(sql);
+      assertSafePluginSql(sql);
       this.#open(pluginId).exec(sql);
     });
   }
@@ -263,6 +264,8 @@ export class PluginDatabaseManager {
     params: unknown[],
     txnId?: string
   ): unknown {
+    assertSafePluginSql(sql);
+
     if (txnId) {
       this.#requireTransaction(pluginId, txnId);
     }
@@ -364,14 +367,15 @@ export function assertValidPluginId(pluginId: string): void {
 }
 
 /**
- * Rejects dangerous statements in multi-statement exec scripts.
+ * Rejects ATTACH, DETACH, and load_extension on every plugin SQL entry point
+ * (get/all/run/exec) so plugins cannot break per-file DB isolation.
  *
- * @param sql - Raw SQL script.
+ * @param sql - Raw SQL statement or script.
  */
-export function assertSafeExecSql(sql: string): void {
+export function assertSafePluginSql(sql: string): void {
   const stripped = sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
-  if (FORBIDDEN_EXEC_PATTERN.test(stripped)) {
-    throw new Error('Plugin database exec rejects ATTACH, DETACH, and load_extension.');
+  if (FORBIDDEN_SQL_PATTERN.test(stripped)) {
+    throw new Error('Plugin database rejects ATTACH, DETACH, and load_extension.');
   }
 }
 

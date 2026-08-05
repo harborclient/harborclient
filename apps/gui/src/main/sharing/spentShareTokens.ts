@@ -56,9 +56,11 @@ function isValidSpentShareEntry(entry: SpentShareEntry, now: number): boolean {
  */
 function loadAndPruneSpentShares(now: number): SpentShareEntry[] {
   const raw = getLocalDatabase().getSetting(SPENT_SHARES_SETTING);
-  const parsed = parseJson<SpentShareEntry[]>(raw, []);
-  const entries = parsed.filter((entry) => isValidSpentShareEntry(entry, now));
-  if (entries.length !== parsed.length) {
+  const parsed = parseJson(raw, []);
+  const entries = (Array.isArray(parsed) ? parsed : []).filter((entry) =>
+    isValidSpentShareEntry(entry as SpentShareEntry, now)
+  );
+  if (entries.length !== (Array.isArray(parsed) ? parsed.length : 0)) {
     persistSpentShares(entries);
   }
   return entries;

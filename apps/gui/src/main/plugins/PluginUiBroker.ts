@@ -37,6 +37,16 @@ import {
   registerPluginAiInstructionEntry,
   unregisterPluginAiInstructionEntry
 } from './pluginAiInstructionsRegistry';
+import {
+  derivePluginWebviewSession,
+  type PluginWebviewSession
+} from '#/pluginBridge/pluginUiSession';
+import {
+  parseContributionForKind,
+  parsePluginUiBridgeInvokeEnvelope,
+  parsePluginUiBridgePayload,
+  type ContributionKind
+} from '#/pluginBridge/pluginUiBridgeSchemas';
 
 /**
  * Serializable payload for `ai.beforeTurn` / host before-turn orchestration.
@@ -346,14 +356,6 @@ export interface BrokerImportFile {
   contents: string;
 }
 
-interface PluginWebviewSession {
-  pluginId: string;
-  role: 'agent' | 'view';
-  contributionId?: string;
-  kind?: string;
-  slot?: string;
-}
-
 /**
  * Routes permission-checked plugin UI bridge calls between isolated webviews,
  * the host renderer, and existing plugin infrastructure.
@@ -411,20 +413,48 @@ export class PluginUiBroker {
    * Registers IPC handlers for plugin webview bridge invocations.
    */
   registerIpcHandlers(): void {
-    ipcMain.handle(
-      'plugins:uiBridge',
-      async (event, message: { op: string; payload?: unknown }) => {
-        return this.handleInvoke(event.sender, message.op, message.payload);
-      }
-    );
+    ipcMain.handle('plugins:uiBridge', async (event, raw) => {
+      const message = parsePluginUiBridgeInvokeEnvelope(raw);
+      return this.handleInvoke(event.sender, message.op, message.payload);
+    });
 
-    ipcMain.on('plugins:uiRegisterSession', (event, session: PluginWebviewSession) => {
-      this.#sessions.set(event.sender.id, session);
+    ipcMain.on('plugins:uiRegisterSession', (event) => {
+      // Identity comes from the guest URL/partition set at will-attach-webview —
+      // never from the registration payload fields (pluginId, role, …).
+      this.#sessions.set(event.sender.id, derivePluginWebviewSession(event.sender));
     });
 
     ipcMain.on('plugins:hostBridgeComplete', (_event, message: HostBridgeCompleteMessage) => {
       this.#completeHostBridgeInvoke(message);
     });
+  }
+
+  /**
+   * Resolves the bound session for a plugin webview, deriving identity from the
+   * guest URL when the preload registration raced ahead or was skipped.
+   *
+   * @param sender - Calling plugin webContents.
+   * @returns Trusted session identity for permission checks and forwarding.
+   */
+  #resolveSession(sender: WebContents): PluginWebviewSession {
+    const derived = derivePluginWebviewSession(sender);
+    const existing = this.#sessions.get(sender.id);
+    if (!existing) {
+      this.#sessions.set(sender.id, derived);
+      return derived;
+    }
+    if (existing.pluginId !== derived.pluginId || existing.role !== derived.role) {
+      throw new Error(`Plugin webview session identity mismatch for webContents ${sender.id}.`);
+    }
+    // Prefer URL-derived contribution metadata when present (view surfaces).
+    const merged: PluginWebviewSession = {
+      ...existing,
+      ...derived,
+      pluginId: derived.pluginId,
+      role: derived.role
+    };
+    this.#sessions.set(sender.id, merged);
+    return merged;
   }
 
   /**
@@ -908,29 +938,26 @@ export class PluginUiBroker {
    * @param payload - Serializable payload.
    */
   async handleInvoke(sender: WebContents, op: string, payload: unknown): Promise<unknown> {
-    const session = this.#sessions.get(sender.id);
-    if (!session) {
-      throw new Error('Unknown plugin webview session.');
-    }
-
+    const session = this.#resolveSession(sender);
     this.#assertOpPermission(session.pluginId, op);
+    const parsedPayload = parsePluginUiBridgePayload(op, payload);
 
     if (HOST_BRIDGE_RETURN_OPS.has(op)) {
-      return this.#invokeHostBridge(session.pluginId, op, payload);
+      return this.#invokeHostBridge(session.pluginId, op, parsedPayload);
     }
 
     switch (op) {
       case 'storage.get': {
-        const { key } = payload as { key: string };
+        const { key } = parsedPayload as { key: string };
         return this.#pluginManager.getStorageValue(session.pluginId, key);
       }
       case 'storage.set': {
-        const { key, value } = payload as { key: string; value: unknown };
+        const { key, value } = parsedPayload as { key: string; value: unknown };
         await this.#pluginManager.setStorageValue(session.pluginId, key, value);
         return undefined;
       }
       case 'database.query': {
-        const { mode, sql, params, txnId } = payload as {
+        const { mode, sql, params, txnId } = parsedPayload as {
           mode: 'get' | 'all' | 'run';
           sql: string;
           params?: unknown[];
@@ -946,52 +973,55 @@ export class PluginUiBroker {
         return db.run(session.pluginId, sql, params, txnId);
       }
       case 'database.exec': {
-        const { sql } = payload as { sql: string };
+        const { sql } = parsedPayload as { sql: string };
         return getPluginDatabaseManager().exec(session.pluginId, sql);
       }
       case 'database.beginTransaction': {
         return getPluginDatabaseManager().beginTransaction(session.pluginId);
       }
       case 'database.endTransaction': {
-        const { txnId, action } = payload as { txnId: string; action: 'commit' | 'rollback' };
+        const { txnId, action } = parsedPayload as {
+          txnId: string;
+          action: 'commit' | 'rollback';
+        };
         return getPluginDatabaseManager().endTransaction(session.pluginId, txnId, action);
       }
       case 'fs.pickFile': {
-        const { options } = payload as { options?: PluginFsPickFileOptions };
+        const { options } = (parsedPayload ?? {}) as { options?: PluginFsPickFileOptions };
         return pickFileForPlugin(this.#pluginManager, session.pluginId, options);
       }
       case 'fs.pickDirectory': {
-        const { defaultPath } = payload as { defaultPath?: string };
+        const { defaultPath } = (parsedPayload ?? {}) as { defaultPath?: string };
         return pickDirectoryForPlugin(this.#pluginManager, session.pluginId, defaultPath ?? '');
       }
       case 'fs.saveFile': {
-        const { content, options } = payload as {
+        const { content, options } = parsedPayload as {
           content: string;
           options?: PluginFsSaveFileOptions;
         };
         return saveFileForPlugin(this.#pluginManager, session.pluginId, content, options);
       }
       case 'fs.readFile': {
-        const { path } = payload as { path: string };
+        const { path } = parsedPayload as { path: string };
         return readFileForPlugin(this.#pluginManager, session.pluginId, path);
       }
       case 'fs.writeFile': {
-        const { path, content } = payload as { path: string; content: string };
+        const { path, content } = parsedPayload as { path: string; content: string };
         writeFileForPlugin(this.#pluginManager, session.pluginId, path, content);
         return undefined;
       }
       case 'fs.writeBytes': {
-        const { path, base64 } = payload as { path: string; base64: string };
+        const { path, base64 } = parsedPayload as { path: string; base64: string };
         const bytes = new Uint8Array(Buffer.from(base64, 'base64'));
         return writeBytesForPlugin(this.#pluginManager, session.pluginId, path, bytes);
       }
       case 'fs.watchFile': {
-        const { path } = payload as { path: string };
+        const { path } = parsedPayload as { path: string };
         watchFileForPlugin(this.#pluginManager, session.pluginId, path);
         return undefined;
       }
       case 'ipc.invoke': {
-        const { channel, args } = payload as { channel: string; args: unknown[] };
+        const { channel, args } = parsedPayload as { channel: string; args?: unknown[] };
         try {
           return await invokePluginIpc(session.pluginId, channel, args ?? []);
         } catch (error) {
@@ -1019,7 +1049,7 @@ export class PluginUiBroker {
           height,
           width,
           slot: reportSlot
-        } = payload as {
+        } = parsedPayload as {
           height?: unknown;
           width?: unknown;
           slot?: unknown;
@@ -1052,17 +1082,37 @@ export class PluginUiBroker {
         }
         return undefined;
       }
-      case 'registerContribution':
-      case 'unregisterContribution': {
+      case 'registerContribution': {
+        const { kind, contribution } = parsedPayload as {
+          kind: ContributionKind;
+          contribution: Record<string, unknown>;
+        };
+        const validated = parseContributionForKind(kind, contribution);
         this.#mainWindow?.()?.webContents.send('plugins:contributions', {
           pluginId: session.pluginId,
           op,
-          ...(payload as Record<string, unknown>)
+          kind,
+          contribution: validated
+        });
+        return undefined;
+      }
+      case 'unregisterContribution': {
+        const { kind, contributionId } = parsedPayload as {
+          kind: ContributionKind;
+          contributionId: string;
+        };
+        this.#mainWindow?.()?.webContents.send('plugins:contributions', {
+          pluginId: session.pluginId,
+          op,
+          kind,
+          contributionId
         });
         return undefined;
       }
       case 'themes.register': {
-        const { theme } = payload as { theme: Record<string, unknown> };
+        const { theme } = parsedPayload as {
+          theme: Record<string, unknown>;
+        };
         this.#mainWindow?.()?.webContents.send('plugins:contributions', {
           pluginId: session.pluginId,
           op: 'registerContribution',
@@ -1072,7 +1122,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'themes.unregister': {
-        const { themeId } = payload as { themeId: string };
+        const { themeId } = parsedPayload as { themeId: string };
         this.#mainWindow?.()?.webContents.send('plugins:contributions', {
           pluginId: session.pluginId,
           op: 'unregisterContribution',
@@ -1086,7 +1136,7 @@ export class PluginUiBroker {
           pluginId: targetPluginId,
           commandId,
           args
-        } = payload as {
+        } = parsedPayload as {
           pluginId: string;
           commandId: string;
           args?: unknown[];
@@ -1095,7 +1145,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'imports.registerHandler': {
-        const { registrationId, extensions } = payload as {
+        const { registrationId, extensions } = parsedPayload as {
           registrationId: string;
           extensions: string[];
         };
@@ -1113,7 +1163,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'imports.unregisterHandler': {
-        const { registrationId } = payload as { registrationId: string };
+        const { registrationId } = parsedPayload as { registrationId: string };
         this.#mainWindow?.()?.webContents.send('plugins:importHandlers', {
           pluginId: session.pluginId,
           op: 'unregister',
@@ -1126,7 +1176,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'imports.invokeComplete': {
-        const complete = payload as AgentImportInvokeCompleteMessage;
+        const complete = parsedPayload as AgentImportInvokeCompleteMessage;
         logImportVerbose('broker imports.invokeComplete', {
           requestId: complete.requestId,
           ok: complete.ok,
@@ -1136,17 +1186,20 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'ai.parseChatPointerComplete': {
-        const complete = payload as AgentParseChatPointerCompleteMessage;
+        const complete = parsedPayload as AgentParseChatPointerCompleteMessage;
         this.#completeAgentParseChatPointerInvoke(complete);
         return undefined;
       }
       case 'ai.beforeTurnComplete': {
-        const complete = payload as AgentBeforeTurnCompleteMessage;
+        const complete = parsedPayload as AgentBeforeTurnCompleteMessage;
         this.#completeAgentBeforeTurnInvoke(complete);
         return undefined;
       }
       case 'ai.registerInstructions': {
-        const { registrationId, text } = payload as { registrationId: string; text?: string };
+        const { registrationId, text } = parsedPayload as {
+          registrationId: string;
+          text?: string;
+        };
         registerPluginAiInstructionEntry(
           session.pluginId,
           String(registrationId),
@@ -1155,12 +1208,12 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'ai.unregisterInstructions': {
-        const { registrationId } = payload as { registrationId: string };
+        const { registrationId } = parsedPayload as { registrationId: string };
         unregisterPluginAiInstructionEntry(session.pluginId, String(registrationId));
         return undefined;
       }
       case 'mcp.registerServer': {
-        const { registrationId, name, serverURL, enabled, headers, icon } = payload as {
+        const { registrationId, name, serverURL, enabled, headers, icon } = parsedPayload as {
           registrationId: string;
           name: string;
           serverURL: string;
@@ -1179,13 +1232,13 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'mcp.unregisterServer': {
-        const { registrationId } = payload as { registrationId: string };
+        const { registrationId } = parsedPayload as { registrationId: string };
         unregisterPluginMcpServer(session.pluginId, registrationId);
         await refreshMcpClientConnections();
         return undefined;
       }
       case 'ai.registerChatPointer': {
-        const { registrationId, pointerId, agentGuidance, match } = payload as {
+        const { registrationId, pointerId, agentGuidance, match } = parsedPayload as {
           registrationId: string;
           pointerId: string;
           agentGuidance?: string;
@@ -1214,7 +1267,7 @@ export class PluginUiBroker {
         return undefined;
       }
       case 'ai.unregisterChatPointer': {
-        const { registrationId } = payload as { registrationId: string };
+        const { registrationId } = parsedPayload as { registrationId: string };
         unregisterPluginChatPointer(session.pluginId, registrationId);
         this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
           pluginId: session.pluginId,
@@ -1242,7 +1295,7 @@ export class PluginUiBroker {
         this.#mainWindow?.()?.webContents.send('plugins:hostBridge', {
           pluginId: session.pluginId,
           op,
-          payload
+          payload: parsedPayload
         });
         return undefined;
       }

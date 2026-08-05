@@ -68,6 +68,15 @@ describe('substituteVariables', () => {
 });
 
 describe('resolveAuthVariables', () => {
+  const emptyOAuth2 = {
+    tokenUrl: '',
+    clientId: '',
+    clientSecret: '',
+    scope: '',
+    audience: '',
+    clientAuth: 'body' as const
+  };
+
   const auth: AuthConfig = {
     type: 'basic',
     basic: {
@@ -76,7 +85,8 @@ describe('resolveAuthVariables', () => {
     },
     bearer: {
       token: '{{token}}'
-    }
+    },
+    oauth2: emptyOAuth2
   };
 
   it('substitutes basic and bearer credential fields', () => {
@@ -91,7 +101,8 @@ describe('resolveAuthVariables', () => {
       },
       bearer: {
         token: 'tok'
-      }
+      },
+      oauth2: emptyOAuth2
     });
   });
 
@@ -102,6 +113,45 @@ describe('resolveAuthVariables', () => {
     expect(resolved.type).toBe('basic');
     expect(resolved.basic).toEqual(auth.basic);
     expect(resolved.bearer).toEqual(auth.bearer);
+    expect(resolved.oauth2).toEqual(auth.oauth2);
+  });
+
+  it('substitutes oauth2 credential fields and preserves clientAuth', () => {
+    const oauthAuth: AuthConfig = {
+      type: 'oauth2',
+      basic: { username: '', password: '' },
+      bearer: { token: '' },
+      oauth2: {
+        tokenUrl: '{{tokenUrl}}',
+        clientId: '{{clientId}}',
+        clientSecret: '{{clientSecret}}',
+        scope: '{{scope}}',
+        audience: '{{audience}}',
+        clientAuth: 'header'
+      }
+    };
+
+    const substitute = (text: string) =>
+      text
+        .replace('{{tokenUrl}}', 'https://auth.example/token')
+        .replace('{{clientId}}', 'cid')
+        .replace('{{clientSecret}}', 'csecret')
+        .replace('{{scope}}', 'read')
+        .replace('{{audience}}', 'api');
+
+    expect(resolveAuthVariables(oauthAuth, substitute)).toEqual({
+      type: 'oauth2',
+      basic: { username: '', password: '' },
+      bearer: { token: '' },
+      oauth2: {
+        tokenUrl: 'https://auth.example/token',
+        clientId: 'cid',
+        clientSecret: 'csecret',
+        scope: 'read',
+        audience: 'api',
+        clientAuth: 'header'
+      }
+    });
   });
 });
 

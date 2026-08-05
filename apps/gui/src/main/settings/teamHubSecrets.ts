@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 const TEAM_HUB_SECRETS_KEY = 'teamHubSecrets';
 
@@ -8,10 +8,11 @@ const TEAM_HUB_SECRETS_KEY = 'teamHubSecrets';
  * Reads all encrypted Team Hub bearer tokens keyed by hub connection id.
  */
 function readAllTeamHubSecrets(): Record<string, EncryptedSecret> {
-  return parseJson<Record<string, EncryptedSecret>>(
-    getLocalDatabase().getSetting(TEAM_HUB_SECRETS_KEY),
-    {}
-  );
+  const parsed = parseJson(getLocalDatabase().getSetting(TEAM_HUB_SECRETS_KEY), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  return parsed as Record<string, EncryptedSecret>;
 }
 
 /**

@@ -17,7 +17,7 @@ const STORE_KEY = 'shortcuts';
  * @returns Normalized shortcut overrides.
  */
 export function getShortcutOverrides(): ShortcutOverrides {
-  const stored = parseJson<unknown>(getLocalDatabase().getSetting(STORE_KEY), {});
+  const stored = parseJson(getLocalDatabase().getSetting(STORE_KEY), {});
   return normalizeShortcutOverrides(stored);
 }
 

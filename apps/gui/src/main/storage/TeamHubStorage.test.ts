@@ -843,4 +843,145 @@ describeSqlite('TeamHubStorage', () => {
     const exported = await db.exportCollectionData(collectionId);
     expect(exported.folders?.[0]?.marker).toBe('#ff5500');
   });
+
+  it('maps snippet updatedAt and preserves list order from hub sortOrder', async () => {
+    const firstId = '770e8400-e29b-41d4-a716-446655440010';
+    const secondId = '770e8400-e29b-41d4-a716-446655440011';
+    const listSnippets = vi.fn().mockResolvedValue([
+      {
+        id: firstId,
+        name: 'First',
+        code: 'a',
+        scope: 'any',
+        sortOrder: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-05T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
+        deletionLocked: false
+      },
+      {
+        id: secondId,
+        name: 'Second',
+        code: 'b',
+        scope: 'any',
+        sortOrder: 1,
+        createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-06T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
+        deletionLocked: false
+      }
+    ]);
+    const db = createStorage({ listSnippets });
+
+    const snippets = await db.listSnippets();
+    expect(snippets).toHaveLength(2);
+    expect(snippets[0]).toMatchObject({
+      name: 'First',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-05T00:00:00.000Z'
+    });
+    expect(snippets[1]).toMatchObject({
+      name: 'Second',
+      created_at: '2026-01-02T00:00:00.000Z',
+      updated_at: '2026-01-06T00:00:00.000Z'
+    });
+    expect(snippets.map((snippet) => snippet.name)).toEqual(['First', 'Second']);
+  });
+
+  it('maps live-server timestamps and sortOrder from hub payloads', async () => {
+    const firstId = '880e8400-e29b-41d4-a716-446655440020';
+    const secondId = '880e8400-e29b-41d4-a716-446655440021';
+    const baseLiveServer = {
+      root: '/tmp/docs',
+      port: 4173,
+      aliases: [],
+      watch: true,
+      cors: {
+        enabled: false,
+        origin: '*',
+        methods: 'GET',
+        allowedHeaders: '',
+        exposedHeaders: '',
+        maxAge: '600',
+        credentials: false
+      },
+      openPath: '/',
+      openPathOnStartup: true,
+      rememberLastUrl: false,
+      lastOpenedPath: null,
+      indexFiles: ['index.html'],
+      host: '127.0.0.1',
+      headers: [],
+      routes: [],
+      errorPages: [],
+      proxies: [],
+      ssl: { enabled: false, certPath: '', keyPath: '' },
+      runCommand: '',
+      runtimeId: '',
+      runCommandEnv: [],
+      runCommandEnabled: false,
+      restartOnCrash: false,
+      urlVariable: '',
+      preRequestScripts: [],
+      postRequestScripts: [],
+      createdByUserId: null,
+      updatedByUserId: null,
+      deletionLocked: false
+    };
+    const listLiveServers = vi.fn().mockResolvedValue([
+      {
+        ...baseLiveServer,
+        id: firstId,
+        name: 'Alpha',
+        sortOrder: 2,
+        createdAt: '2026-02-01T00:00:00.000Z',
+        updatedAt: '2026-02-10T00:00:00.000Z'
+      },
+      {
+        ...baseLiveServer,
+        id: secondId,
+        name: 'Beta',
+        sortOrder: 5,
+        createdAt: '2026-02-02T00:00:00.000Z',
+        updatedAt: '2026-02-11T00:00:00.000Z'
+      }
+    ]);
+    const createLiveServer = vi.fn().mockResolvedValue({
+      ...baseLiveServer,
+      id: '880e8400-e29b-41d4-a716-446655440022',
+      name: 'Gamma',
+      sortOrder: 2,
+      createdAt: '2026-02-03T00:00:00.000Z',
+      updatedAt: '2026-02-03T00:00:00.000Z'
+    });
+    const db = createStorage({ listLiveServers, createLiveServer });
+
+    const listed = await db.listLiveServers();
+    expect(listed.map((server) => ({ name: server.name, sortOrder: server.sortOrder }))).toEqual([
+      { name: 'Alpha', sortOrder: 2 },
+      { name: 'Beta', sortOrder: 5 }
+    ]);
+    expect(listed[0]?.createdAt).toBe(Date.parse('2026-02-01T00:00:00.000Z'));
+    expect(listed[0]?.updatedAt).toBe(Date.parse('2026-02-10T00:00:00.000Z'));
+
+    const created = await db.createLiveServer({
+      name: 'Gamma',
+      root: '/tmp/gamma'
+    });
+    expect(createLiveServer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Gamma',
+        root: '/tmp/gamma',
+        sortOrder: 2
+      })
+    );
+    expect(created).toMatchObject({
+      name: 'Gamma',
+      sortOrder: 2,
+      createdAt: Date.parse('2026-02-03T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-02-03T00:00:00.000Z')
+    });
+  });
 });

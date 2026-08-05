@@ -194,7 +194,12 @@ describe('createLiveServerApp', () => {
   it('adds permissive CORS headers when CORS is enabled', async () => {
     const root = makeTempDir();
     fs.writeFileSync(path.join(root, 'index.html'), '<h1>cors</h1>');
-    const app = createLiveServerApp(root, { corsSettings: defaultLiveServerCorsSettings() });
+    const app = createLiveServerApp(root, {
+      corsSettings: {
+        ...defaultLiveServerCorsSettings(),
+        enabled: true
+      }
+    });
     const response = await requestWithCorsHeaders(app, '/', {
       headers: { Origin: 'http://example.com' }
     });
@@ -206,10 +211,7 @@ describe('createLiveServerApp', () => {
     const root = makeTempDir();
     fs.writeFileSync(path.join(root, 'index.html'), '<h1>no-cors</h1>');
     const app = createLiveServerApp(root, {
-      corsSettings: {
-        ...defaultLiveServerCorsSettings(),
-        enabled: false
-      }
+      corsSettings: defaultLiveServerCorsSettings()
     });
     const response = await requestWithCorsHeaders(app, '/', {
       headers: { Origin: 'http://example.com' }
@@ -439,6 +441,12 @@ describe('pathMatchesLiveServerRoute / isPathInsideDirectory', () => {
     expect(pathMatchesLiveServerRoute('/docs/a', '^/docs/')).toBe(true);
     expect(pathMatchesLiveServerRoute('/other', '^/docs/')).toBe(false);
     expect(pathMatchesLiveServerRoute('/x', '(unclosed')).toBe(false);
+  });
+
+  it('rejects over-long and nested-quantifier patterns without hanging', () => {
+    expect(pathMatchesLiveServerRoute('/x', '(a+)+')).toBe(false);
+    expect(pathMatchesLiveServerRoute('/x', '([a-z]*)*')).toBe(false);
+    expect(pathMatchesLiveServerRoute('/x', `${'a'.repeat(300)}`)).toBe(false);
   });
 
   it('detects paths inside a directory', () => {

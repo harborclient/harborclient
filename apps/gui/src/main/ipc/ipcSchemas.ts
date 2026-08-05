@@ -68,6 +68,8 @@ import type { CollectionRunnerConfig } from '@harborclient/core/collectionRunner
 import { pluginSourcesSchema } from '@harborclient/core/plugin/catalog';
 import { apisIoCollectionSchema } from '@harborclient/core/apisio/catalog';
 import { AI_TOOL_NAMES } from '@harborclient/core/ai/tools';
+import { isAbsoluteRepoPath, isGitDirectoryPath } from '#/main/git/repoRelativePath';
+import { pathHasParentSegment } from '#/main/pathHasParentSegment';
 
 export {
   bodyType,
@@ -88,6 +90,22 @@ export const dbId = z.number().int().nonnegative();
  * UUID or opaque string connection / request id.
  */
 export const connectionId = z.string();
+
+/**
+ * Repository-relative file path for git IPC channels.
+ *
+ * Rejects empty values, absolute paths, parent-directory segments, and `.git`
+ * targets. Full realpath confinement still happens in the handler/manager.
+ */
+export const repoRelativeFilePath = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) =>
+      !isAbsoluteRepoPath(value) && !pathHasParentSegment(value) && !isGitDirectoryPath(value),
+    { message: 'Invalid repository file path' }
+  );
 
 /**
  * Fingerprint id of a trusted recipient public key for share tokens.
@@ -769,7 +787,8 @@ export const requestHistoryEntry = z.object({
   kind: z.enum(['request', 'run']).optional(),
   runCollectionId: z.number().int().positive().optional(),
   runFolderId: z.number().int().positive().nullable().optional(),
-  runRequestId: z.number().int().positive().nullable().optional()
+  runRequestId: z.number().int().positive().nullable().optional(),
+  corrupt: z.boolean().optional()
 }) satisfies z.ZodType<RequestHistoryEntry>;
 
 export const workspaceRequest = z.object({
@@ -1504,20 +1523,20 @@ export const ipcArgSchemas = {
   gitReadConflictFile: z.tuple([
     z.object({
       connectionId,
-      filePath: z.string().trim().min(1)
+      filePath: repoRelativeFilePath
     })
   ]),
   gitWriteConflictFile: z.tuple([
     z.object({
       connectionId,
-      filePath: z.string().trim().min(1),
+      filePath: repoRelativeFilePath,
       content: z.string()
     })
   ]),
   gitOpenExternalMergeEditor: z.tuple([
     z.object({
       connectionId,
-      filePath: z.string().trim().min(1)
+      filePath: repoRelativeFilePath
     })
   ]),
   gitLog: z.tuple([connectionId, z.number().int().positive().optional()]),
@@ -1529,7 +1548,7 @@ export const ipcArgSchemas = {
     z.object({
       connectionId,
       commitOid: z.string().trim().min(1),
-      filePath: z.string().trim().min(1),
+      filePath: repoRelativeFilePath,
       status: z.enum(['added', 'modified', 'deleted']),
       displayName: z.string().optional(),
       resourceKind: z.enum(['request', 'document', 'collection']).optional(),

@@ -9,7 +9,7 @@ import { configureFileLogger } from '#/main/fileLogger';
 import { syncTrayFromSettings } from '#/main/tray/trayHost';
 import { applySpellCheckEnabled } from '#/main/window/spellCheck';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type { GeneralSettings } from '@harborclient/core/types';
 
 export {
@@ -32,7 +32,10 @@ const STORE_KEY = 'general';
  */
 export function getGeneralSettings(): GeneralSettings {
   const raw = getLocalDatabase().getSetting(STORE_KEY);
-  const stored = parseJson<Partial<GeneralSettings>>(raw, DEFAULT_GENERAL_SETTINGS);
+  const parsed = parseJson(raw, DEFAULT_GENERAL_SETTINGS);
+  const stored = isPlainObject(parsed)
+    ? (parsed as Partial<GeneralSettings>)
+    : DEFAULT_GENERAL_SETTINGS;
   const normalized = normalizeGeneralSettings(stored);
   const legacy = stored as Partial<GeneralSettings> & {
     warnWhenCreatingTabGroup?: boolean;

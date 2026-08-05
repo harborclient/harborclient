@@ -882,4 +882,41 @@ describe('GitSyncManager', () => {
     expect(commit.author.name).toBe('HarborClient');
     expect(commit.author.email).toBe('contact@harborclient.com');
   });
+
+  /**
+   * Confirms conflict-file helpers read and write under the repository root.
+   */
+  it('reads and writes repository-relative conflict files', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const relative = '.harborclient/conflict.json';
+
+    await manager.writeRepoFile(relative, '{"resolved":true}');
+    expect(readFileSync(join(repoPath, relative), 'utf-8')).toBe('{"resolved":true}');
+    await expect(manager.readRepoFile(relative)).resolves.toBe('{"resolved":true}');
+  });
+
+  /**
+   * Confirms traversal attempts are rejected without touching files outside the repo.
+   */
+  it('rejects path traversal when reading or writing conflict files', async () => {
+    const { repoPath, manager } = await createTestRepo();
+    const outsideDir = mkdtempSync(join(tmpdir(), 'harborclient-outside-'));
+    cleanups.push(() => rmSync(outsideDir, { recursive: true, force: true }));
+    const outsideFile = join(outsideDir, 'secret.txt');
+    writeFileSync(outsideFile, 'keep-me');
+
+    await expect(manager.readRepoFile('../secret.txt')).rejects.toThrow(
+      /Invalid repository file path/
+    );
+    await expect(manager.writeRepoFile('../secret.txt', 'pwned')).rejects.toThrow(
+      /Invalid repository file path/
+    );
+    await expect(manager.readRepoFile('/etc/passwd')).rejects.toThrow(
+      /Invalid repository file path/
+    );
+    await expect(manager.stageFile('.git/config')).rejects.toThrow(/Invalid repository file path/);
+
+    expect(readFileSync(outsideFile, 'utf-8')).toBe('keep-me');
+    expect(existsSync(join(repoPath, '..', 'secret.txt'))).toBe(false);
+  });
 });

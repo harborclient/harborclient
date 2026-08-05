@@ -60,7 +60,7 @@ export const LIVE_SERVER_ROUTE_SCHEMA = {
     match: {
       type: 'string',
       description:
-        '`*` for every path, or a regex source matched against the URL pathname (e.g. `^/docs/`).'
+        '`*` for every path, or a regex source matched against the URL pathname (e.g. `^/docs/`). Regex sources are limited to 256 characters and must not use nested quantifiers that enable catastrophic backtracking.'
     },
     target: {
       type: 'string',
@@ -159,7 +159,8 @@ export const LIVE_SERVER_CORS_SCHEMA = {
   properties: {
     enabled: {
       type: 'boolean',
-      description: 'When true, CORS middleware is mounted.'
+      description:
+        'When true, CORS middleware is mounted. Defaults to false (opt-in) for new servers.'
     },
     origin: {
       type: 'string',

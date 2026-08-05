@@ -2,7 +2,7 @@ import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import type { StorageConnection } from '@harborclient/core/types';
 import { getActiveStorageId, listStorageConnections } from './storageSettings';
 import { listTeamHubs } from './teamHubSettings';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 const SLOTS_KEY = 'storageSlots';
 
@@ -10,7 +10,17 @@ const SLOTS_KEY = 'storageSlots';
  * Reads the persisted slot map from the local registry.
  */
 function readSlots(): Record<string, number> {
-  return parseJson(getLocalDatabase().getSetting(SLOTS_KEY), {});
+  const parsed = parseJson(getLocalDatabase().getSetting(SLOTS_KEY), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  const slots: Record<string, number> = {};
+  for (const [id, slot] of Object.entries(parsed)) {
+    if (typeof slot === 'number' && Number.isFinite(slot)) {
+      slots[id] = slot;
+    }
+  }
+  return slots;
 }
 
 /**

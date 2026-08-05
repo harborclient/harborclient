@@ -22,6 +22,7 @@ export function substituteVariables(text: string, runtimeVars: Record<string, st
  *
  * @param auth - Auth config with raw editor values.
  * @param substitute - Function that resolves placeholders in a string.
+ * @returns Auth config with substituted credential fields.
  */
 export function resolveAuthVariables(
   auth: AuthConfig,
@@ -35,6 +36,14 @@ export function resolveAuthVariables(
     },
     bearer: {
       token: substitute(auth.bearer.token)
+    },
+    oauth2: {
+      tokenUrl: substitute(auth.oauth2.tokenUrl),
+      clientId: substitute(auth.oauth2.clientId),
+      clientSecret: substitute(auth.oauth2.clientSecret),
+      scope: substitute(auth.oauth2.scope),
+      audience: substitute(auth.oauth2.audience),
+      clientAuth: auth.oauth2.clientAuth
     }
   };
 }

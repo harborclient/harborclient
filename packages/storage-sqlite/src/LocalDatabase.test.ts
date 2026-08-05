@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import Database from 'better-sqlite3';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { DEFAULT_GIT_SIDEBAR_EXPANSION } from '@harborclient/core/gitSidebarExpansion';
 import { defaultSidebarExpansion } from '@harborclient/core/sidebarExpansion';
 import { DEFAULT_REQUEST_EDITOR_SPLIT_HEIGHT } from '@harborclient/core/types';
@@ -639,6 +639,49 @@ describeSqlite('LocalDatabase request history', () => {
     expect(entry?.responseBody).toBe('{"ok":true}');
   });
 
+  it('marks request history rows with corrupt JSON and logs once per column', async () => {
+    const { database } = await createRegistry();
+    database.addRequestHistory({
+      id: 55,
+      method: 'GET',
+      url: 'https://example.com',
+      status: 200,
+      statusText: 'OK',
+      ts: 4_000,
+      name: 'Broken',
+      headers: { accept: 'application/json' },
+      params: [{ key: 'q', value: '1' }],
+      responseHeaders: { 'x-test': '1' }
+    });
+
+    const internalDb = (
+      database as unknown as { getDb(): import('better-sqlite3').Database }
+    ).getDb();
+    internalDb
+      .prepare(
+        `UPDATE request_history SET headers = ?, params = ?, response_headers = ? WHERE id = ?`
+      )
+      .run('{bad-headers', '{bad-params', '{bad-response', 55);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const [historyEntry] = database.listRequestHistory();
+      expect(historyEntry).toMatchObject({
+        id: 55,
+        corrupt: true,
+        headers: {},
+        params: [],
+        responseHeaders: {}
+      });
+      expect(warnSpy).toHaveBeenCalledTimes(3);
+
+      database.listRequestHistory();
+      expect(warnSpy).toHaveBeenCalledTimes(3);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it('deletes one persisted request history entry by id', async () => {
     const { database } = await createRegistry();
 
@@ -1208,7 +1251,7 @@ describeSqlite('LocalDatabase live servers', () => {
       restartOnCrash: false,
       urlVariable: '',
       cors: {
-        enabled: true,
+        enabled: false,
         origin: '*',
         exposedHeaders: '',
         maxAge: '',
@@ -1515,6 +1558,40 @@ describeSqlite('LocalDatabase trash items', () => {
 
     database.clearTrash();
     expect(database.listTrashItems()).toEqual([]);
+  });
+
+  it('marks trash rows with corrupt JSON and logs once per column', async () => {
+    const { database } = await createRegistry();
+    const inserted = database.insertTrashItem({
+      entityType: 'environment',
+      label: 'Broken',
+      originalIds: { environmentId: 1 },
+      payload: { environment: { id: 1, name: 'Broken' } }
+    });
+
+    const internalDb = (
+      database as unknown as { getDb(): import('better-sqlite3').Database }
+    ).getDb();
+    internalDb
+      .prepare(`UPDATE trash_items SET original_ids = ?, payload = ? WHERE id = ?`)
+      .run('{not-json', '{also-bad', inserted.id);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const [first] = database.listTrashItems();
+      expect(first).toMatchObject({
+        id: inserted.id,
+        corrupt: true,
+        originalIds: {},
+        payload: null
+      });
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+
+      database.listTrashItems();
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });
 

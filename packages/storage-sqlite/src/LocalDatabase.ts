@@ -283,35 +283,77 @@ interface TrashItemRow {
 }
 
 /**
+ * Keys for corrupt JSON columns that have already been logged this process.
+ * Prevents list/refresh spam while still surfacing each distinct failure once.
+ */
+const loggedCorruptJsonKeys = new Set<string>();
+
+/**
+ * Logs a corrupt JSON column once per process for a given row key.
+ *
+ * @param key - Stable identity such as `trash:12:payload`.
+ * @param message - Warning text describing the failure.
+ */
+function logCorruptJsonOnce(key: string, message: string): void {
+  if (loggedCorruptJsonKeys.has(key)) {
+    return;
+  }
+  loggedCorruptJsonKeys.add(key);
+  console.warn(message);
+}
+
+/**
+ * Parses a JSON column with a fallback, marking corruption and logging once on failure.
+ *
+ * @param raw - Stored JSON string.
+ * @param fallback - Value used when parsing fails.
+ * @param logKey - Stable key for one-time logging.
+ * @param message - Warning text when the column is corrupt.
+ * @returns Parsed value and whether parsing failed.
+ */
+function parseJsonColumnWithCorruption<T>(
+  raw: string,
+  fallback: T,
+  logKey: string,
+  message: string
+): { value: T; corrupt: boolean } {
+  try {
+    return { value: JSON.parse(raw) as T, corrupt: false };
+  } catch {
+    logCorruptJsonOnce(logKey, message);
+    return { value: fallback, corrupt: true };
+  }
+}
+
+/**
  * Maps a database row to a {@link TrashItem}.
  *
  * @param row - SQLite row from trash_items.
  * @returns Parsed trash item for the sidebar and restore flows.
  */
 function rowToTrashItem(row: TrashItemRow): TrashItem {
-  let originalIds: Record<string, unknown> = {};
-  let payload: unknown = null;
-
-  try {
-    originalIds = JSON.parse(row.original_ids) as Record<string, unknown>;
-  } catch {
-    originalIds = {};
-  }
-
-  try {
-    payload = JSON.parse(row.payload) as unknown;
-  } catch {
-    payload = null;
-  }
+  const originalIdsParsed = parseJsonColumnWithCorruption<Record<string, unknown>>(
+    row.original_ids,
+    {},
+    `trash:${row.id}:original_ids`,
+    `Corrupt trash original_ids JSON for id ${row.id}; using empty object.`
+  );
+  const payloadParsed = parseJsonColumnWithCorruption<unknown>(
+    row.payload,
+    null,
+    `trash:${row.id}:payload`,
+    `Corrupt trash payload JSON for id ${row.id}; using null.`
+  );
 
   return {
     id: row.id,
     entityType: row.entity_type as TrashItem['entityType'],
     label: row.label,
     connectionId: row.connection_id,
-    originalIds,
-    payload,
-    deletedAt: row.deleted_at
+    originalIds: originalIdsParsed.value,
+    payload: payloadParsed.value,
+    deletedAt: row.deleted_at,
+    ...(originalIdsParsed.corrupt || payloadParsed.corrupt ? { corrupt: true } : {})
   };
 }
 
@@ -319,28 +361,40 @@ function rowToTrashItem(row: TrashItemRow): TrashItem {
  * Parses stored request headers JSON, falling back to an empty object.
  *
  * @param raw - JSON-encoded headers column value.
- * @returns Parsed headers or an empty object on failure.
+ * @param logKey - Stable key for one-time corruption logging.
+ * @returns Parsed headers and whether the column was corrupt.
  */
-function parseRequestHistoryHeaders(raw: string): Record<string, string> {
-  try {
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {};
-  }
+function parseRequestHistoryHeaders(
+  raw: string,
+  logKey: string
+): { headers: Record<string, string>; corrupt: boolean } {
+  const parsed = parseJsonColumnWithCorruption<Record<string, string>>(
+    raw,
+    {},
+    logKey,
+    `Corrupt request history headers JSON (${logKey}); using empty object.`
+  );
+  return { headers: parsed.value, corrupt: parsed.corrupt };
 }
 
 /**
  * Parses stored query parameters JSON, falling back to an empty list.
  *
  * @param raw - JSON-encoded params column value.
- * @returns Parsed query parameters or an empty list on failure.
+ * @param logKey - Stable key for one-time corruption logging.
+ * @returns Parsed query parameters and whether the column was corrupt.
  */
-function parseRequestHistoryParams(raw: string): RequestHistoryEntry['params'] {
-  try {
-    return JSON.parse(raw) as RequestHistoryEntry['params'];
-  } catch {
-    return [];
-  }
+function parseRequestHistoryParams(
+  raw: string,
+  logKey: string
+): { params: RequestHistoryEntry['params']; corrupt: boolean } {
+  const parsed = parseJsonColumnWithCorruption<RequestHistoryEntry['params']>(
+    raw,
+    [],
+    logKey,
+    `Corrupt request history params JSON (${logKey}); using empty list.`
+  );
+  return { params: parsed.value, corrupt: parsed.corrupt };
 }
 
 /**
@@ -351,8 +405,14 @@ function parseRequestHistoryParams(raw: string): RequestHistoryEntry['params'] {
  */
 function rowToRequestHistoryEntry(row: RequestHistoryRow): RequestHistoryEntry {
   const kind = row.kind === 'run' ? 'run' : row.kind === 'request' ? 'request' : undefined;
-  const responseHeaders =
-    row.response_headers != null ? parseRequestHistoryHeaders(row.response_headers) : undefined;
+  const headersParsed = parseRequestHistoryHeaders(row.headers, `history:${row.id}:headers`);
+  const paramsParsed = parseRequestHistoryParams(row.params, `history:${row.id}:params`);
+  const responseHeadersParsed =
+    row.response_headers != null
+      ? parseRequestHistoryHeaders(row.response_headers, `history:${row.id}:response_headers`)
+      : null;
+  const corrupt =
+    headersParsed.corrupt || paramsParsed.corrupt || (responseHeadersParsed?.corrupt ?? false);
 
   return {
     id: row.id,
@@ -363,16 +423,17 @@ function rowToRequestHistoryEntry(row: RequestHistoryRow): RequestHistoryEntry {
     ts: row.ts,
     savedRequestId: row.saved_request_id ?? undefined,
     name: row.name ?? undefined,
-    headers: parseRequestHistoryHeaders(row.headers),
-    params: parseRequestHistoryParams(row.params),
+    headers: headersParsed.headers,
+    params: paramsParsed.params,
     body: row.body ?? undefined,
     bodyType: (row.body_type as RequestHistoryEntry['bodyType'] | null) ?? undefined,
-    responseHeaders,
+    responseHeaders: responseHeadersParsed?.headers,
     responseBody: row.response_body ?? undefined,
     kind,
     runCollectionId: row.run_collection_id ?? undefined,
     runFolderId: row.run_folder_id,
-    runRequestId: row.run_request_id
+    runRequestId: row.run_request_id,
+    ...(corrupt ? { corrupt: true } : {})
   };
 }
 

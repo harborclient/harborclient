@@ -6,9 +6,9 @@ Public surface from `@harborclient/live-server`:
 
 | Export | Description |
 | --- | --- |
-| `startLiveServer` | Listen on a free (or configured) port; start watcher and optional `runCommand` |
-| `stopLiveServer` | Stop one instance by runtime id |
-| `stopAllLiveServers` | Stop every running instance |
+| `startLiveServer` | Listen on a free (or configured) port; start watcher and optional `runCommand`. Start/stop for the same runtime id are serialized; a failed start closes its listener. |
+| `stopLiveServer` | Stop one instance by runtime id (serialized with start for that id) |
+| `stopAllLiveServers` | Stop every running instance (and ids with in-flight start/stop work) |
 | `listRunningLiveServers` | Snapshot of running instances |
 | `updateLiveServerScripts` | Hot-apply pre/post request scripts without restart |
 

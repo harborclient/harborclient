@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
+
 ## 0.5.5 - 2026-08-05
 
 - feat: integrate shortcut runner and enhance shortcut management. (`aaee9d78`)

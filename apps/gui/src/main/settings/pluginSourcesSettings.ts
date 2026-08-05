@@ -19,7 +19,7 @@ const STORE_KEY = 'pluginSources';
  * @returns Normalized settings, or HarborClient defaults when nothing is stored.
  */
 export function getPluginSources(): PluginSourcesSettings {
-  const stored = parseJson<unknown>(getLocalDatabase().getSetting(STORE_KEY), null);
+  const stored = parseJson(getLocalDatabase().getSetting(STORE_KEY), null);
   if (stored == null) {
     return getDefaultPluginSources();
   }

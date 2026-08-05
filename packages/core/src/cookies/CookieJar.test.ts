@@ -109,6 +109,40 @@ describe('getCookiesForDomain and setCookiesForDomain', () => {
     ]);
   });
 
+  it('degrades to an empty jar when stored JSON is corrupt', () => {
+    settings.set('cookieJar', '{not-json');
+    expect(jar.getCookiesForDomain('example.com')).toEqual([]);
+    expect(jar.listDomains()).toEqual([]);
+  });
+
+  it('degrades to an empty jar when the root value is not an object', () => {
+    settings.set('cookieJar', '["example.com"]');
+    expect(jar.listDomains()).toEqual([]);
+  });
+
+  it('keeps valid domains and drops malformed cookie rows', () => {
+    settings.set(
+      'cookieJar',
+      JSON.stringify({
+        'example.com': [
+          { key: 'session', value: 'ok', enabled: true },
+          { key: 1, value: 'bad' },
+          'not-an-object',
+          { key: 'theme', value: 'dark' }
+        ],
+        'bad.com': 'not-an-array',
+        '': [{ key: 'x', value: 'y', enabled: true }]
+      })
+    );
+
+    expect(jar.listDomains()).toEqual(['example.com']);
+    expect(jar.getCookiesForDomain('example.com')).toEqual([
+      { key: 'session', value: 'ok', enabled: true },
+      { key: 'theme', value: 'dark', enabled: true }
+    ]);
+    expect(jar.getCookiesForDomain('bad.com')).toEqual([]);
+  });
+
   it('preserves the secure flag when cookies are resaved from the UI', () => {
     jar.captureSetCookies('https://example.com/login', ['session=abc; Secure; Path=/']);
 

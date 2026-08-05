@@ -51,6 +51,12 @@ export interface TrashItem {
    * ISO timestamp when the item was moved to trash.
    */
   deletedAt: string;
+
+  /**
+   * True when stored `originalIds` or `payload` JSON failed to parse.
+   * Restore is unsafe; the row should be permanently deleted instead.
+   */
+  corrupt?: boolean;
 }
 
 /**

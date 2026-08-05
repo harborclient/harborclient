@@ -1,6 +1,11 @@
 import type { WebContents } from 'electron';
 import { ipcMain, webContents } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildPluginAgentUrl,
+  buildPluginSurfaceUrl,
+  type PluginContributionKind
+} from '@harborclient/core/plugin/pluginSurface';
 import type { PluginManager } from './PluginManager';
 import { PluginUiBroker } from './PluginUiBroker';
 import {
@@ -8,6 +13,7 @@ import {
   setPluginMcpRegistryMainWindow,
   setPluginMcpRegistryManager
 } from './pluginMcpRegistry';
+import { pluginSessionPartition } from '#/pluginBridge/pluginUiSession';
 
 const pickFileForPlugin = vi.fn();
 const readFileForPlugin = vi.fn();
@@ -18,6 +24,7 @@ vi.mock('#/main/plugins/pluginFsOperations', () => ({
   saveFileForPlugin: vi.fn(),
   readFileForPlugin: (...args: unknown[]) => readFileForPlugin(...args),
   writeFileForPlugin: vi.fn(),
+  writeBytesForPlugin: vi.fn(),
   watchFileForPlugin: vi.fn()
 }));
 
@@ -34,13 +41,13 @@ vi.mock('#/main/mcp/mcpClientManager', () => ({
 vi.mock('electron', () => {
   const sessionHandlers = new Map<
     string,
-    (event: { sender: WebContents }, payload: unknown) => void
+    (event: { sender: WebContents }, payload?: unknown) => void
   >();
   return {
     ipcMain: {
       handle: vi.fn(),
       on: vi.fn(
-        (channel: string, handler: (event: { sender: WebContents }, payload: unknown) => void) => {
+        (channel: string, handler: (event: { sender: WebContents }, payload?: unknown) => void) => {
           sessionHandlers.set(channel, handler);
         }
       ),
@@ -53,10 +60,10 @@ vi.mock('electron', () => {
 });
 
 /**
- * Registers a mock plugin webview session with the broker IPC handler.
+ * Registers a mock plugin webview session by deriving identity from a harbor-plugin URL.
  *
  * @param sender - Mock webContents used as the bridge caller.
- * @param session - Session metadata stored by the broker.
+ * @param session - Desired session identity (encoded into getURL / partition).
  */
 function registerSession(
   sender: WebContents,
@@ -67,16 +74,37 @@ function registerSession(
     kind?: string;
   }
 ): void {
+  const href =
+    session.role === 'view'
+      ? buildPluginSurfaceUrl(
+          session.pluginId,
+          session.contributionId ?? 'contrib',
+          (session.kind ?? 'mainViews') as PluginContributionKind
+        )
+      : buildPluginAgentUrl(session.pluginId);
+
+  Object.assign(sender, {
+    getURL: () => href,
+    session: { partition: pluginSessionPartition(session.pluginId) }
+  });
+
   const handlers = (
     ipcMain as unknown as {
-      __sessionHandlers: Map<string, (event: { sender: WebContents }, payload: unknown) => void>;
+      __sessionHandlers: Map<string, (event: { sender: WebContents }, payload?: unknown) => void>;
     }
   ).__sessionHandlers;
   const handler = handlers.get('plugins:uiRegisterSession');
   if (!handler) {
     throw new Error('plugins:uiRegisterSession handler is not registered.');
   }
-  handler({ sender }, session);
+  // Registration payload fields are intentionally ignored — identity comes from URL.
+  handler(
+    { sender },
+    {
+      pluginId: 'com.attacker.spoof',
+      role: 'agent'
+    }
+  );
 }
 
 describe('PluginUiBroker view.reportSize', () => {
@@ -1116,5 +1144,58 @@ describe('PluginUiBroker mcp', () => {
 
     expect(refreshMcpClientConnections).toHaveBeenCalledTimes(2);
     expect(send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('PluginUiBroker payload validation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects invalid broker payloads before dispatching', async () => {
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 7 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.example.secure',
+      role: 'agent'
+    });
+
+    await expect(broker.handleInvoke(sender, 'storage.get', { key: '' })).rejects.toThrow(
+      /storage\.get/
+    );
+  });
+
+  it('uses URL-derived plugin id even when registration payload claims another id', async () => {
+    const send = vi.fn();
+    const mockWindow = {
+      isDestroyed: () => false,
+      webContents: { send }
+    };
+    const manager = {
+      assertPermission: vi.fn()
+    } as unknown as PluginManager;
+    const broker = new PluginUiBroker(manager);
+    broker.setMainWindow(() => mockWindow as never);
+    broker.registerIpcHandlers();
+
+    const sender = { id: 8 } as WebContents;
+    registerSession(sender, {
+      pluginId: 'com.example.legit',
+      role: 'agent'
+    });
+
+    await broker.handleInvoke(sender, 'ui.showToast', { message: 'hello' });
+
+    expect(manager.assertPermission).toHaveBeenCalledWith('com.example.legit', 'ui');
+    expect(send).toHaveBeenCalledWith('plugins:hostBridge', {
+      pluginId: 'com.example.legit',
+      op: 'ui.showToast',
+      payload: { message: 'hello' }
+    });
   });
 });

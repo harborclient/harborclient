@@ -72,10 +72,13 @@ export function encodeBasicAuth(username: string, password: string): string {
 /**
  * Builds the Authorization header value from an auth config.
  *
+ * OAuth 2.0 returns null here — token fetch is host-side, not a static header.
+ *
  * @param auth - Auth configuration from the request or collection.
+ * @returns Header value such as `Basic …` or `Bearer …`, or null when auth is inactive.
  */
 export function buildAuthHeaderValue(auth: AuthConfig): string | null {
-  if (auth.type === 'none') {
+  if (auth.type === 'none' || auth.type === 'oauth2') {
     return null;
   }
   if (auth.type === 'basic') {

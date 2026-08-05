@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 const GITHUB_MODELS_AUTH_KEY = 'githubModelsAuth';
 
@@ -37,7 +37,11 @@ function readGithubModelsAuth(): StoredGithubModelsAuth | undefined {
   if (!raw) {
     return undefined;
   }
-  return parseJson<StoredGithubModelsAuth | undefined>(raw, undefined);
+  const parsed = parseJson(raw, undefined);
+  if (!isPlainObject(parsed)) {
+    return undefined;
+  }
+  return parsed as unknown as StoredGithubModelsAuth;
 }
 
 /**

@@ -99,7 +99,8 @@ function migrateTeamHubInlineTokens(database: LocalDatabase): void {
     return;
   }
 
-  const hubs = parseJson<Array<TeamHub & { token?: string }>>(raw, []);
+  const parsed = parseJson(raw, []);
+  const hubs = Array.isArray(parsed) ? (parsed as Array<TeamHub & { token?: string }>) : [];
   if (hubs.length === 0) {
     return;
   }
@@ -136,5 +137,5 @@ export function migrateTeamHubSettings(database: LocalDatabase, userDataPath: st
   migrateTeamHubInlineTokens(database);
 
   // Touch list parse so corrupt legacy JSON fails early during migration rather than later.
-  parseJson<TeamHub[]>(database.getSetting(TEAM_HUBS_KEY), []);
+  parseJson(database.getSetting(TEAM_HUBS_KEY), []);
 }

@@ -1,6 +1,6 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type { AiSettings } from '@harborclient/core/types';
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
@@ -79,7 +79,10 @@ export function getAiSettings(): AiSettings {
   if (isEncryptedSecret(parsed)) {
     try {
       const decrypted = decryptSecret(parsed);
-      const settings = parseJson<Partial<AiSettings>>(decrypted, DEFAULT_AI_SETTINGS);
+      const settingsParsed = parseJson(decrypted, null);
+      const settings = isPlainObject(settingsParsed)
+        ? (settingsParsed as Partial<AiSettings>)
+        : DEFAULT_AI_SETTINGS;
       return normalizeSettings(settings);
     } catch {
       // OS keychain encryption may be unavailable (for example in CI or automated

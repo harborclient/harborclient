@@ -944,7 +944,11 @@ describe('TeamHubClient', () => {
         name: 'Auth helper',
         code: 'console.log("hello");',
         scope: 'pre-request' as const,
+        sortOrder: 0,
         createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
         deletionLocked: false
       };
 
@@ -985,7 +989,11 @@ describe('TeamHubClient', () => {
         name: 'Auth helper',
         code: 'console.log("hello");',
         scope: 'pre-request' as const,
+        sortOrder: 0,
         createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
         deletionLocked: false
       };
 
@@ -1639,7 +1647,11 @@ describe('TeamHubClient', () => {
           name: 'Auth helper',
           code: 'console.log("hello");',
           scope: 'pre-request' as const,
+          sortOrder: 0,
           createdAt: '2026-01-02T00:00:00.000Z',
+          updatedAt: '2026-01-02T00:00:00.000Z',
+          createdByUserId: null,
+          updatedByUserId: null,
           deletionLocked: false
         }
       ];
@@ -1676,7 +1688,11 @@ describe('TeamHubClient', () => {
         name: 'Auth helper',
         code: 'console.log("hello");',
         scope: 'pre-request' as const,
+        sortOrder: 0,
         createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
         deletionLocked: false
       };
 
@@ -1717,7 +1733,11 @@ describe('TeamHubClient', () => {
         name: 'Updated helper',
         code: 'console.log("updated");',
         scope: 'post-request' as const,
+        sortOrder: 0,
         createdAt: '2026-01-02T00:00:00.000Z',
+        updatedAt: '2026-01-03T00:00:00.000Z',
+        createdByUserId: null,
+        updatedByUserId: null,
         deletionLocked: false
       };
 

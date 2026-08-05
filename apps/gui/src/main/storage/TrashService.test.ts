@@ -145,4 +145,21 @@ describeSqlite('TrashService registry entities', () => {
     ]);
     expect(trash.listTrashItems()).toEqual([]);
   });
+
+  it('rejects restore when trash snapshot JSON is corrupt', async () => {
+    const { database } = await createRegistry();
+    const environment = database.createEnvironment('Broken');
+    const trash = new TrashService({} as IStorage, database);
+    await trash.moveEnvironmentToTrash(environment.id);
+
+    const item = trash.listTrashItems()[0]!;
+    const internalDb = (
+      database as unknown as { getDb(): import('better-sqlite3').Database }
+    ).getDb();
+    internalDb.prepare(`UPDATE trash_items SET payload = ? WHERE id = ?`).run('{not-json', item.id);
+
+    await expect(trash.restoreTrashItem(item.id)).rejects.toThrow(/corrupt stored data/i);
+    expect(trash.listTrashItems()).toHaveLength(1);
+    expect(trash.listTrashItems()[0]?.corrupt).toBe(true);
+  });
 });

@@ -47,6 +47,9 @@ import {
   toTeamHubAuth,
   TeamHubClientError,
   type CollectionRecord,
+  type CreateLivePageInput as TeamHubCreateLivePageInput,
+  type CreateLiveServerInput as TeamHubCreateLiveServerInput,
+  type CreateSnippetInput,
   type DocumentRecord,
   type EnvironmentRecord,
   type FolderRecord,
@@ -55,7 +58,8 @@ import {
   type SavedRequestRecord,
   type SnippetRecord,
   type TeamHubAuthConfig,
-  type TeamHubClient
+  type TeamHubClient,
+  type UpdateSnippetInput
 } from '@harborclient/team-hub-api';
 import { defaultAuth, normalizeAuth } from '@harborclient/core/auth';
 import {
@@ -196,6 +200,8 @@ function serverToEnvironment(record: EnvironmentRecord, localId: number): Enviro
 /**
  * Maps a server snippet record to the local {@link Snippet} shape.
  *
+ * Hub snippets do not store script stage; callers may overlay a local stage after create/update.
+ *
  * @param record - Snippet payload from HarborClient Server.
  * @param localId - Numeric id assigned by {@link TeamHubIdMap}.
  */
@@ -206,10 +212,10 @@ function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
     name: record.name,
     code: record.code,
     scope: record.scope,
-    stage: normalizeScriptStage((record as { stage?: string }).stage),
+    stage: DEFAULT_SCRIPT_STAGE,
     source: 'local',
     created_at: record.createdAt,
-    updated_at: record.createdAt
+    updated_at: record.updatedAt
   };
 }
 
@@ -218,13 +224,14 @@ function serverToSnippet(record: SnippetRecord, localId: number): Snippet {
  *
  * @param record - Live-server payload returned by the hub.
  * @param localId - Numeric id assigned by the local id map.
+ * @param sortOrder - Display order; prefer hub `sortOrder`, else list index.
  */
-function serverToLiveServer(record: LiveServerRecord, localId: number): LiveServer {
-  const fields = normalizeLiveServerConfigFields({
-    ...record,
-    preRequestScripts: record.preRequestScripts as LiveServer['preRequestScripts'],
-    postRequestScripts: record.postRequestScripts as LiveServer['postRequestScripts']
-  });
+function serverToLiveServer(
+  record: LiveServerRecord,
+  localId: number,
+  sortOrder: number
+): LiveServer {
+  const fields = normalizeLiveServerConfigFields(record);
   return {
     id: localId,
     uuid: record.id,
@@ -235,7 +242,7 @@ function serverToLiveServer(record: LiveServerRecord, localId: number): LiveServ
     watch: record.watch,
     cors: record.cors,
     ...fields,
-    sortOrder: localId,
+    sortOrder,
     createdAt: Date.parse(record.createdAt) || Date.now(),
     updatedAt: Date.parse(record.updatedAt) || Date.now()
   };
@@ -280,14 +287,17 @@ function faviconForTeamHub(value: string | null | undefined): string | null {
  * Builds the complete replacement body expected by Team Hub live-server routes.
  *
  * @param input - Core live-server create or update input.
+ * @param sortOrder - Optional sidebar order to persist in the hub payload.
  */
 function toTeamHubLiveServerInput(
-  input: CreateLiveServerInput | UpdateLiveServerInput
-): Parameters<TeamHubClient['createLiveServer']>[0] {
+  input: CreateLiveServerInput | UpdateLiveServerInput,
+  sortOrder?: number
+): TeamHubCreateLiveServerInput {
   const payload = parseLiveServerPayload(serializeLiveServerPayload(input));
   return {
     name: trimRequiredName(input.name, 'Live server name'),
-    ...payload
+    ...payload,
+    ...(sortOrder != null ? { sortOrder } : {})
   };
 }
 
@@ -298,7 +308,7 @@ function toTeamHubLiveServerInput(
  */
 function toTeamHubLivePageInput(
   input: CreateWebsiteInput | UpdateWebsiteInput
-): Parameters<TeamHubClient['createLivePage']>[0] {
+): TeamHubCreateLivePageInput {
   const payload = parseLivePagePayload(serializeLivePagePayload(input));
   return {
     name: trimRequiredName(input.name, 'Live page name'),
@@ -886,16 +896,19 @@ export class TeamHubStorage implements IStorage {
     uuid?: string
   ): Promise<Snippet> {
     const trimmedName = trimRequiredName(name, 'Snippet name');
-    const normalizedRole = normalizeScriptStage(stage);
-    const record = await this.client.createSnippet({
+    const normalizedStage = normalizeScriptStage(stage);
+    const body: CreateSnippetInput = {
       name: trimmedName,
       code: code ?? '',
-      scope,
-      stage: normalizedRole
-    } as Parameters<TeamHubClient['createSnippet']>[0]);
+      scope
+    };
+    const record = await this.client.createSnippet(body);
     const localId = this.idMap.toLocalId('snippet', record.id);
     void uuid;
-    return serverToSnippet(record, localId);
+    return {
+      ...serverToSnippet(record, localId),
+      stage: normalizedStage
+    };
   }
 
   /**
@@ -909,14 +922,17 @@ export class TeamHubStorage implements IStorage {
     stage: ScriptStage = DEFAULT_SCRIPT_STAGE
   ): Promise<Snippet> {
     const serverId = this.requireServerId('snippet', id);
-    const normalizedRole = normalizeScriptStage(stage);
-    const record = await this.client.updateSnippet(serverId, {
+    const normalizedStage = normalizeScriptStage(stage);
+    const body: UpdateSnippetInput = {
       name: trimRequiredName(name, 'Snippet name'),
       code: code ?? '',
-      scope,
-      stage: normalizedRole
-    } as Parameters<TeamHubClient['updateSnippet']>[1]);
-    return serverToSnippet(record, id);
+      scope
+    };
+    const record = await this.client.updateSnippet(serverId, body);
+    return {
+      ...serverToSnippet(record, id),
+      stage: normalizedStage
+    };
   }
 
   /**
@@ -934,8 +950,12 @@ export class TeamHubStorage implements IStorage {
   async listLiveServers(): Promise<LiveServer[]> {
     try {
       const records = await this.client.listLiveServers();
-      return records.map((record) =>
-        serverToLiveServer(record, this.idMap.toLocalId('live_server', record.id))
+      return records.map((record, index) =>
+        serverToLiveServer(
+          record,
+          this.idMap.toLocalId('live_server', record.id),
+          typeof record.sortOrder === 'number' ? record.sortOrder : index
+        )
       );
     } catch (error) {
       if (isTeamHubLiveServersUnsupportedError(error)) return [];
@@ -950,8 +970,14 @@ export class TeamHubStorage implements IStorage {
    */
   async createLiveServer(input: CreateLiveServerInput): Promise<LiveServer> {
     try {
-      const record = await this.client.createLiveServer(toTeamHubLiveServerInput(input));
-      return serverToLiveServer(record, this.idMap.toLocalId('live_server', record.id));
+      const existing = await this.listLiveServers().catch(() => []);
+      const sortOrder = existing.length;
+      const record = await this.client.createLiveServer(toTeamHubLiveServerInput(input, sortOrder));
+      return serverToLiveServer(
+        record,
+        this.idMap.toLocalId('live_server', record.id),
+        typeof record.sortOrder === 'number' ? record.sortOrder : sortOrder
+      );
     } catch (error) {
       if (isTeamHubLiveServersUnsupportedError(error)) {
         throw new Error('This Team Hub does not support live server storage.');
@@ -968,8 +994,17 @@ export class TeamHubStorage implements IStorage {
   async updateLiveServer(input: UpdateLiveServerInput): Promise<LiveServer> {
     const serverId = this.requireServerId('live_server', input.id);
     try {
-      const record = await this.client.updateLiveServer(serverId, toTeamHubLiveServerInput(input));
-      return serverToLiveServer(record, input.id);
+      const existing = (await this.listLiveServers()).find((entry) => entry.id === input.id);
+      const sortOrder = existing?.sortOrder ?? 0;
+      const record = await this.client.updateLiveServer(
+        serverId,
+        toTeamHubLiveServerInput(input, sortOrder)
+      );
+      return serverToLiveServer(
+        record,
+        input.id,
+        typeof record.sortOrder === 'number' ? record.sortOrder : sortOrder
+      );
     } catch (error) {
       if (isTeamHubLiveServersUnsupportedError(error)) {
         throw new Error('This Team Hub does not support live server storage.');

@@ -170,7 +170,11 @@ export const snippetRecordSchema = z.object({
   name: z.string(),
   code: z.string(),
   scope: snippetScopeSchema,
+  sortOrder: z.number().int(),
   createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  createdByUserId: z.string().nullable(),
+  updatedByUserId: z.string().nullable(),
   deletionLocked: deletionLockedSchema
 }) satisfies z.ZodType<SnippetRecord>;
 
@@ -265,7 +269,8 @@ export const createLiveServerBodySchema = z.object({
   restartOnCrash: z.boolean(),
   urlVariable: z.string(),
   preRequestScripts: z.array(z.unknown()),
-  postRequestScripts: z.array(z.unknown())
+  postRequestScripts: z.array(z.unknown()),
+  sortOrder: z.number().int().optional()
 });
 
 /**
@@ -273,6 +278,10 @@ export const createLiveServerBodySchema = z.object({
  */
 export const liveServerRecordSchema = createLiveServerBodySchema.extend({
   id: z.string(),
+  /**
+   * Optional because older hubs omit it; prefer list index when absent.
+   */
+  sortOrder: z.number().int().optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   createdByUserId: z.string().nullable(),

@@ -2,7 +2,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { decryptSecret, encryptSecret, type EncryptedSecret } from '#/main/secrets/secretStorage';
 import { AI_TOOL_NAMES, type AiToolName } from '@harborclient/core/ai/tools';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type {
   McpClientHeader,
   McpClientServer,
@@ -129,10 +129,10 @@ export function getMcpServerSettings(): McpServerSettings {
   if (isEncryptedSecret(parsed)) {
     try {
       const decrypted = decryptSecret(parsed);
-      const settings = parseJson<Partial<McpServerSettings>>(
-        decrypted,
-        DEFAULT_MCP_SERVER_SETTINGS
-      );
+      const settingsParsed = parseJson(decrypted, null);
+      const settings = isPlainObject(settingsParsed)
+        ? (settingsParsed as Partial<McpServerSettings>)
+        : DEFAULT_MCP_SERVER_SETTINGS;
       return normalizeMcpServerSettings(settings);
     } catch {
       return DEFAULT_MCP_SERVER_SETTINGS;
@@ -246,11 +246,9 @@ function persistMcpClientServers(servers: McpClientServer[]): void {
  * Lists configured MCP client servers.
  */
 export function listMcpClientServers(): McpClientServer[] {
-  const stored = parseJson<McpClientServer[]>(
-    getLocalDatabase().getSetting(MCP_CLIENT_SERVERS_KEY),
-    []
-  );
-  return stored.map(normalizeMcpClientServer);
+  const parsed = parseJson(getLocalDatabase().getSetting(MCP_CLIENT_SERVERS_KEY), []);
+  const stored = Array.isArray(parsed) ? parsed : [];
+  return stored.map((entry) => normalizeMcpClientServer(entry as McpClientServer));
 }
 
 /**

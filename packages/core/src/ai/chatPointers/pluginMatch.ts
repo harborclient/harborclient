@@ -5,10 +5,14 @@
  * reserved builtin pointer prefixes.
  */
 
+import { assertSafeUserRegexSource, USER_REGEX_MAX_LENGTH } from '../../safeUserRegex.js';
+
 /**
  * Maximum length of a plugin chat-pointer match source string.
+ *
+ * Alias of {@link USER_REGEX_MAX_LENGTH}.
  */
-export const PLUGIN_CHAT_POINTER_MATCH_MAX_LENGTH = 256;
+export const PLUGIN_CHAT_POINTER_MATCH_MAX_LENGTH = USER_REGEX_MAX_LENGTH;
 
 /**
  * Sample UUID used in reserved-prefix probe tokens.
@@ -105,14 +109,17 @@ export function normalizePluginChatPointerMatchSource(match: RegExp | string): s
   if (!source) {
     throw new Error('Chat pointer match must not be empty.');
   }
-  if (source.length > PLUGIN_CHAT_POINTER_MATCH_MAX_LENGTH) {
-    throw new Error(
-      `Chat pointer match must be at most ${PLUGIN_CHAT_POINTER_MATCH_MAX_LENGTH} characters.`
-    );
+
+  try {
+    // Length, nested-quantifier / ReDoS heuristic, and compile checks.
+    assertSafeUserRegexSource(source);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid chat pointer match: ${message}`);
   }
 
   try {
-    // Validate compilability before reserved-prefix checks.
+    // Anchored form used at match time (source alone may be valid when this is not).
     void new RegExp(`^(?:${source})`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

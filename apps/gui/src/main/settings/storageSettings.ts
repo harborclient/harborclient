@@ -314,7 +314,8 @@ function createDefaultConnections(): StorageConnection[] {
  */
 function ensureConnectionsSeeded(): { connections: StorageConnection[]; activeId: string } {
   const database = getLocalDatabase();
-  const stored = parseJson<StorageConnection[]>(database.getSetting(CONNECTIONS_KEY), []);
+  const parsed = parseJson(database.getSetting(CONNECTIONS_KEY), []);
+  const stored = Array.isArray(parsed) ? parsed : [];
 
   if (stored.length > 0) {
     const connections = stored.map((conn) => normalizeConnection(conn));

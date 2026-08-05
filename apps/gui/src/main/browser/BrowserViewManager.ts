@@ -23,6 +23,7 @@ import {
   planFullPageCapture,
   stitchPngBuffers
 } from '#/main/browser/stitchPngBuffers';
+import { grantFilePathAccess } from '#/main/ipc/handlers/filePathAccess';
 import {
   prependRecentDownload,
   removeRecentDownload,
@@ -1224,6 +1225,13 @@ export class BrowserViewManager {
           completedAt: Date.now(),
           status: 'completed'
         };
+        if (completedPath.trim()) {
+          try {
+            grantFilePathAccess(completedPath);
+          } catch {
+            // Download path may be unset until Chromium finalizes the save dialog.
+          }
+        }
         this.#recentDownloads = updateRecentDownload(this.#recentDownloads, completed);
         this.#broadcastRecentDownloads(true);
       });

@@ -4,7 +4,7 @@ import {
   DEFAULT_GENERAL_SETTINGS,
   normalizeGeneralSettings
 } from '@harborclient/core/generalSettings';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type { GeneralSettings } from '@harborclient/core/types';
 import {
   buildHarborClientUserAgent,
@@ -98,8 +98,11 @@ export function resolveHarborClientUserAgentSettings(
  */
 export function ensureHarborClientUserAgentSettings(database: LocalDatabase): void {
   const raw = database.getSetting(STORE_KEY);
-  const stored =
-    raw === undefined || raw.trim() === '' ? null : parseJson<Partial<GeneralSettings>>(raw, {});
+  let stored: Partial<GeneralSettings> | null = null;
+  if (raw !== undefined && raw.trim() !== '') {
+    const parsed = parseJson(raw, null);
+    stored = isPlainObject(parsed) ? (parsed as Partial<GeneralSettings>) : null;
+  }
   const next = resolveHarborClientUserAgentSettings(
     stored,
     buildHarborClientUserAgentFromProcess()

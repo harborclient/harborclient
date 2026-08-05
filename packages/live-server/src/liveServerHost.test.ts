@@ -28,6 +28,7 @@ import {
   resetLiveServerLogSessionsForTests
 } from './liveServerLogSessions';
 import type { LiveServerHostProviders } from './providers';
+import { isPortFree } from './ports';
 
 /**
  * Empty providers for host tests that do not exercise scripts.
@@ -272,8 +273,37 @@ describe('liveServerHost listen / origin', () => {
     expect(running.config.host).toBe('0.0.0.0');
     expect(running.origin).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
 
+    const logs = getLiveServerLogs({ id: running.id });
+    const warning = logs.find(
+      (entry) =>
+        isLiveServerProcessLogEntry(entry) &&
+        entry.stream === 'system' &&
+        entry.message.includes('not loopback')
+    );
+    expect(warning).toBeDefined();
+    expect(warning && isLiveServerProcessLogEntry(warning) ? warning.message : '').toContain(
+      '0.0.0.0'
+    );
+
     const response = await fetch(`${running.origin}/`);
     expect(response.status).toBe(200);
+  });
+
+  it('does not warn when binding loopback', async () => {
+    const root = makeTempRoot();
+    const running = await startTestLiveServer({
+      config: makeConfig(root, { host: '127.0.0.1' })
+    });
+
+    const logs = getLiveServerLogs({ id: running.id });
+    expect(
+      logs.some(
+        (entry) =>
+          isLiveServerProcessLogEntry(entry) &&
+          entry.stream === 'system' &&
+          entry.message.includes('not loopback')
+      )
+    ).toBe(false);
   });
 
   it('serves HTTPS with cert/key files and reports an https origin', async () => {
@@ -445,6 +475,48 @@ describe('liveServerHost run command process logs', () => {
     expect(processLogs.some((entry) => entry.stream === 'system')).toBe(true);
 
     await stopLiveServer(running.id);
+  });
+});
+
+describe('liveServerHost start/stop concurrency', () => {
+  it('serializes parallel starts for the same id and leaves no leaked ports', async () => {
+    const rootA = makeTempRoot();
+    const rootB = makeTempRoot();
+    fs.writeFileSync(path.join(rootB, 'index.html'), '<h1>second</h1>');
+
+    const [first, second] = await Promise.all([
+      startTestLiveServer({ id: 'race', config: makeConfig(rootA) }),
+      startTestLiveServer({ id: 'race', config: makeConfig(rootB) })
+    ]);
+
+    const running = listRunningLiveServers().filter((server) => server.id === 'race');
+    expect(running).toHaveLength(1);
+    expect(first.id).toBe('race');
+    expect(second.id).toBe('race');
+
+    const winner = running[0];
+    expect(winner).toBeDefined();
+    const loserPort = first.port === winner?.port ? second.port : first.port;
+    if (loserPort !== winner?.port) {
+      expect(await isPortFree(loserPort)).toBe(true);
+    }
+
+    const response = await fetch(`${winner?.origin}/`);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('second');
+  });
+
+  it('lets stop wait for an in-flight start so the port is freed', async () => {
+    const root = makeTempRoot();
+    const startPromise = startTestLiveServer({ id: 'stop-race', config: makeConfig(root) });
+    const stopPromise = stopLiveServer('stop-race');
+
+    const [running] = await Promise.all([startPromise, stopPromise]);
+    expect(running.id).toBe('stop-race');
+
+    // Stop may have run before or after start finished; either way nothing should remain.
+    expect(listRunningLiveServers().filter((server) => server.id === 'stop-race')).toHaveLength(0);
+    expect(await isPortFree(running.port)).toBe(true);
   });
 });
 

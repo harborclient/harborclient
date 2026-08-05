@@ -1,5 +1,6 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { JSX, MouseEvent, ReactNode } from 'react';
+import { Badge } from '../Badge/index.js';
 import { FaIcon } from '../FaIcon/index.js';
 import { SidebarItem } from './SidebarItem.js';
 import { SidebarMethodBadge } from './SidebarMethodBadge.js';
@@ -41,6 +42,11 @@ interface Props {
    * When false, renders the method badge in neutral theme text instead of per-method colors.
    */
   methodColors?: boolean;
+
+  /**
+   * When true, shows a danger badge indicating stored JSON for this entry was corrupt.
+   */
+  corrupt?: boolean;
 
   /**
    * Icon shown for run history entries.
@@ -99,6 +105,7 @@ export function SidebarHistoryItem({
   statusText,
   statusDotVisible = true,
   methodColors = true,
+  corrupt = false,
   runIcon,
   selected = false,
   title,
@@ -135,6 +142,11 @@ export function SidebarHistoryItem({
         <SidebarMethodBadge method={method} uppercase methodColors={methodColors} />
         <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
           <span className="min-w-0 flex-1 truncate text-text">{name}</span>
+          {corrupt ? (
+            <Badge variant="danger" title="Stored headers or params JSON for this entry is corrupt">
+              Corrupt
+            </Badge>
+          ) : null}
           {isRun && runIcon != null ? (
             <FaIcon icon={runIcon} className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
           ) : null}

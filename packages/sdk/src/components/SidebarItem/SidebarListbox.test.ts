@@ -212,4 +212,27 @@ describe('SidebarListbox', () => {
     expect(withoutSrOnly.textContent).toContain('Echo (Unsupported Media Type)');
     expect(withoutSrOnly.textContent).not.toMatch(/415\s+Unsupported Media Type/);
   });
+
+  it('shows a corrupt badge when stored history JSON is corrupt', () => {
+    act(() => {
+      root.render(
+        createElement(SidebarListbox, {
+          'aria-label': 'History',
+          multiselectable: true,
+          children: createElement(SidebarHistoryItem, {
+            method: 'GET',
+            name: 'https://api.example.com',
+            status: 200,
+            statusText: 'OK',
+            corrupt: true,
+            ariaLabel: 'GET request, corrupt data'
+          })
+        })
+      );
+    });
+
+    const option = container.querySelector('[role="option"]');
+    expect(option?.textContent).toContain('Corrupt');
+    expect(option?.querySelector('.hc-badge')?.textContent).toBe('Corrupt');
+  });
 });

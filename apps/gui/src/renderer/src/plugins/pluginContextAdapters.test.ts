@@ -100,6 +100,44 @@ describe('toPluginRequestTabContext', () => {
     expect(context.collectionHeaders).toEqual([]);
   });
 
+  it('preserves oauth2 auth on draft and collection without stripping fields', () => {
+    const oauth2 = {
+      tokenUrl: 'https://auth.example/token',
+      clientId: 'cid',
+      clientSecret: 'csecret',
+      scope: 'read write',
+      audience: 'api',
+      clientAuth: 'header' as const
+    };
+    const draft = sampleDraft({
+      auth: {
+        ...defaultAuth(),
+        type: 'oauth2',
+        oauth2
+      }
+    });
+    const collection = sampleCollection({
+      auth: {
+        ...defaultAuth(),
+        type: 'oauth2',
+        oauth2: { ...oauth2, clientId: 'collection-cid' }
+      }
+    });
+
+    const context = toPluginRequestTabContext(draft, collection, null, {});
+
+    expect(context.draft.auth).toEqual({
+      ...defaultAuth(),
+      type: 'oauth2',
+      oauth2
+    });
+    expect(context.collectionAuth).toEqual({
+      ...defaultAuth(),
+      type: 'oauth2',
+      oauth2: { ...oauth2, clientId: 'collection-cid' }
+    });
+  });
+
   it('uses req:<id> for saved requests and METHOD url for unsaved tabs', () => {
     const saved = toPluginRequestTabContext(sampleDraft({ id: 42 }), undefined, null, {});
     expect(saved.requestKey).toBe('req:42');

@@ -9,7 +9,8 @@ import { parseJson } from '@harborclient/core/parseJson';
  * @returns Valid non-empty server UUIDs.
  */
 function readDetachedIds(database: LocalDatabase, key: string): Set<string> {
-  const ids = parseJson<string[]>(database.getSetting(key), []);
+  const parsed = parseJson(database.getSetting(key), []);
+  const ids = Array.isArray(parsed) ? parsed : [];
   return new Set(ids.filter((id) => typeof id === 'string' && id.length > 0));
 }
 
@@ -135,7 +136,8 @@ export function detachedSnippetSettingKey(hubId: string): string {
  */
 export function readDetachedSnippetServerIds(database: LocalDatabase, hubId: string): Set<string> {
   const raw = database.getSetting(detachedSnippetSettingKey(hubId));
-  const ids = parseJson<string[]>(raw, []);
+  const parsed = parseJson(raw, []);
+  const ids = Array.isArray(parsed) ? parsed : [];
   return new Set(ids.filter((id) => typeof id === 'string' && id.length > 0));
 }
 
@@ -183,7 +185,8 @@ export function detachedSettingKey(hubId: string): string {
  */
 export function readDetachedServerIds(database: LocalDatabase, hubId: string): Set<string> {
   const raw = database.getSetting(detachedSettingKey(hubId));
-  const ids = parseJson<string[]>(raw, []);
+  const parsed = parseJson(raw, []);
+  const ids = Array.isArray(parsed) ? parsed : [];
   return new Set(ids.filter((id) => typeof id === 'string' && id.length > 0));
 }
 

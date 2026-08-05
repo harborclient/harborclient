@@ -1,5 +1,6 @@
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+import { assertFilePathAllowed } from '#/main/ipc/handlers/filePathAccess';
 import { getBrowserViewManager } from '#/main/browser/BrowserViewManager';
 
 /**
@@ -96,6 +97,9 @@ export function registerBrowserHandlers(): void {
   );
 
   handle('browser:recordDownload', ipcArgSchemas.openPath, (_event, filePath) => {
+    // Only record paths already allowed (known roots / prior grants). Do not
+    // expand the allowlist from renderer-supplied paths.
+    assertFilePathAllowed(filePath);
     getBrowserViewManager().recordRecentDownload(filePath);
   });
 }

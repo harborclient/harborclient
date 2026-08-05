@@ -25,6 +25,11 @@ describe('plugin chat pointer match validation', () => {
     expect(() => normalizePluginChatPointerMatchSource('')).toThrow(/empty/);
   });
 
+  it('rejects nested-quantifier ReDoS patterns', () => {
+    expect(() => normalizePluginChatPointerMatchSource('(a+)+')).toThrow(/unsafe|nested/i);
+    expect(() => compilePluginChatPointerMatch('([a-z]*)*')).toThrow(/unsafe|nested/i);
+  });
+
   it('rejects reserved builtin collisions', () => {
     expect(() => compilePluginChatPointerMatch(/^logs\./)).toThrow(/reserved/);
     expect(() => compilePluginChatPointerMatch('plugin\\.')).toThrow(/reserved/);

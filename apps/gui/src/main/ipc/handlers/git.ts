@@ -34,6 +34,7 @@ import { ensureBranchUpstream } from '#/main/git/branchUpstream';
 import { collectionDirName } from '#/main/git/slug';
 import { buildFileCommitDiff, readFileCommitHistory } from '#/main/git/gitFileHistory';
 import { readSuggestedGitAuthor } from '#/main/git/gitAuthorSuggestion';
+import { resolveRepoRelativePath } from '#/main/git/repoRelativePath';
 import type {
   GitCommitsResult,
   GitFileDiffResult,
@@ -323,7 +324,10 @@ export function registerGitHandlers(db: IStorage): void {
       }
 
       const gitDb = requireGitStorage(db, args.connectionId);
-      const absolutePath = `${gitDb.syncManager.repoDir}/${args.filePath.replace(/\\/g, '/')}`;
+      const absolutePath = resolveRepoRelativePath(
+        gitDb.syncManager.repoDir,
+        args.filePath
+      ).absolute;
       if (!existsSync(absolutePath)) {
         throw new Error(`Conflict file not found: ${args.filePath}`);
       }

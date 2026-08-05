@@ -1,3 +1,5 @@
+import { isSafeUserRegexSource } from '@harborclient/core/safeUserRegex';
+
 /**
  * Match-mode toggles for log filter inputs.
  */
@@ -103,6 +105,10 @@ export function buildLogFilterRegExp(query: string, options: LogMatchOptions): R
 
   let source: string;
   if (options.useRegex) {
+    // Reject nested-quantifier / over-long sources before native compile (ReDoS).
+    if (!isSafeUserRegexSource(pattern)) {
+      return null;
+    }
     source = pattern;
   } else {
     source = escapeRegExp(pattern);

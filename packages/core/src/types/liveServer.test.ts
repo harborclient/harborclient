@@ -7,9 +7,11 @@ import {
   defaultLiveServerRoutes,
   defaultLiveServerSslSettings,
   isLiveServerLoopbackHost,
+  isSafeLiveServerRouteMatch,
   isValidLiveServerErrorPageCode,
   isValidLiveServerProxyTarget,
   joinLiveServerOriginPath,
+  LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH,
   liveServerOpenedPathFromUrl,
   matchLiveServerErrorPage,
   normalizeLiveServerConfigFields,
@@ -31,9 +33,9 @@ import {
 } from './liveServer';
 
 describe('defaultLiveServerCorsSettings', () => {
-  it('includes empty exposedHeaders and maxAge', () => {
+  it('defaults to CORS disabled with empty exposedHeaders and maxAge', () => {
     expect(defaultLiveServerCorsSettings()).toMatchObject({
-      enabled: true,
+      enabled: false,
       origin: '*',
       exposedHeaders: '',
       maxAge: '',
@@ -63,6 +65,12 @@ describe('normalizeLiveServerCorsSettings', () => {
       maxAge: '',
       credentials: true
     });
+  });
+
+  it('treats omitted enabled as false while preserving explicit true', () => {
+    expect(normalizeLiveServerCorsSettings({ origin: 'https://example.com' }).enabled).toBe(false);
+    expect(normalizeLiveServerCorsSettings({ enabled: true }).enabled).toBe(true);
+    expect(normalizeLiveServerCorsSettings({ enabled: false }).enabled).toBe(false);
   });
 
   it('trims exposedHeaders and maxAge strings', () => {
@@ -235,6 +243,34 @@ describe('normalizeLiveServerRoutes', () => {
       { match: '^/docs/', target: 'docs', enabled: false },
       { match: '^/api/', target: 'mocks', enabled: true }
     ]);
+  });
+
+  it('drops over-long and nested-quantifier match patterns', () => {
+    expect(
+      normalizeLiveServerRoutes([
+        { match: `(a+)+`, target: 'evil.html' },
+        { match: 'a'.repeat(LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH + 1), target: 'long.html' },
+        { match: '^/ok/', target: 'ok.html' }
+      ])
+    ).toEqual([{ match: '^/ok/', target: 'ok.html', enabled: true }]);
+  });
+});
+
+describe('isSafeLiveServerRouteMatch', () => {
+  it('allows catch-all and ordinary path regexes', () => {
+    expect(isSafeLiveServerRouteMatch('*')).toBe(true);
+    expect(isSafeLiveServerRouteMatch('^/docs/')).toBe(true);
+    expect(isSafeLiveServerRouteMatch('')).toBe(false);
+    expect(isSafeLiveServerRouteMatch('(unclosed')).toBe(false);
+  });
+
+  it('rejects nested quantifiers and over-long sources', () => {
+    expect(isSafeLiveServerRouteMatch('(a+)+')).toBe(false);
+    expect(isSafeLiveServerRouteMatch('([a-z]*)*')).toBe(false);
+    expect(isSafeLiveServerRouteMatch('a'.repeat(LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH + 1))).toBe(
+      false
+    );
+    expect(isSafeLiveServerRouteMatch('a'.repeat(LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH))).toBe(true);
   });
 });
 
@@ -509,7 +545,7 @@ describe('toLiveServerConfig', () => {
     expect(config.watch).toBe(true);
     expect(config.host).toBe('127.0.0.1');
     expect(config.openPath).toBe('/');
-    expect(config.cors.enabled).toBe(true);
+    expect(config.cors.enabled).toBe(false);
   });
 
   it('defaults blank name to Live Server', () => {

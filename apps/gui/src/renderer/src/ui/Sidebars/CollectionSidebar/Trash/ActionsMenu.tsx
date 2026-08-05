@@ -89,7 +89,7 @@ export function ActionsMenu({
           ]
         ]
       : [
-          [{ label: 'Restore', onSelect: () => onRestore(item) }],
+          ...(item.corrupt ? [] : [[{ label: 'Restore', onSelect: () => onRestore(item) }]]),
           [
             {
               label: 'Permanently delete',

@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 const TEAM_HUB_CONNECTION_STATE_KEY = 'teamHubConnectionState';
 
@@ -29,10 +29,11 @@ type TeamHubConnectionStateMap = Record<string, TeamHubConnectionStateEntry>;
  * @returns Connection state keyed by hub id.
  */
 function readConnectionState(): TeamHubConnectionStateMap {
-  return parseJson<TeamHubConnectionStateMap>(
-    getLocalDatabase().getSetting(TEAM_HUB_CONNECTION_STATE_KEY),
-    {}
-  );
+  const parsed = parseJson(getLocalDatabase().getSetting(TEAM_HUB_CONNECTION_STATE_KEY), {});
+  if (!isPlainObject(parsed)) {
+    return {};
+  }
+  return parsed as TeamHubConnectionStateMap;
 }
 
 /**

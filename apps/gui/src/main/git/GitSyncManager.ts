@@ -11,6 +11,7 @@ import {
   type GitMatrixRow,
   type GitRequestRowFlags
 } from './gitRequestStatus';
+import { resolveRepoRelativePath } from './repoRelativePath';
 import { countConflictFiles, pullMergeConflictMessage } from './slug';
 import { buildGitGraphLog, readGitCommitDetail } from './gitGraph';
 import { validateRemoteCredentials, type GitRemoteValidationResult } from './gitRemoteValidation';
@@ -400,12 +401,8 @@ export class GitSyncManager {
    * @param filepath - Path relative to the repository root.
    */
   async stageFile(filepath: string): Promise<void> {
-    const trimmed = filepath.trim();
-    if (!trimmed) {
-      throw new Error('File path is required.');
-    }
-
-    await git.add({ fs, dir: this.#repoPath, filepath: trimmed });
+    const { relative } = resolveRepoRelativePath(this.#repoPath, filepath);
+    await git.add({ fs, dir: this.#repoPath, filepath: relative });
   }
 
   /**
@@ -414,12 +411,8 @@ export class GitSyncManager {
    * @param filepath - Path relative to the repository root.
    */
   async unstageFile(filepath: string): Promise<void> {
-    const trimmed = filepath.trim();
-    if (!trimmed) {
-      throw new Error('File path is required.');
-    }
-
-    await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+    const { relative } = resolveRepoRelativePath(this.#repoPath, filepath);
+    await git.resetIndex({ fs, dir: this.#repoPath, filepath: relative });
   }
 
   /**
@@ -430,17 +423,14 @@ export class GitSyncManager {
    * @param filepath - Path relative to the repository root.
    */
   async revertFile(filepath: string): Promise<void> {
-    const trimmed = filepath.trim();
-    if (!trimmed) {
-      throw new Error('File path is required.');
-    }
+    const { relative, absolute } = resolveRepoRelativePath(this.#repoPath, filepath);
 
     const matrix = (await git.statusMatrix({
       fs,
       dir: this.#repoPath,
-      filepaths: [trimmed]
+      filepaths: [relative]
     })) as GitMatrixRow[];
-    const row = matrix.find(([path]) => path === trimmed);
+    const row = matrix.find(([path]) => path === relative);
     if (row == null) {
       throw new Error('File is not changed.');
     }
@@ -452,13 +442,12 @@ export class GitSyncManager {
 
     if (head === 0) {
       if (workdir !== 0) {
-        const fullPath = join(this.#repoPath, trimmed);
-        if (existsSync(fullPath)) {
-          rmSync(fullPath);
+        if (existsSync(absolute)) {
+          rmSync(absolute);
         }
       }
       if (stage !== 0) {
-        await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+        await git.resetIndex({ fs, dir: this.#repoPath, filepath: relative });
       }
       return;
     }
@@ -466,10 +455,10 @@ export class GitSyncManager {
     await git.checkout({
       fs,
       dir: this.#repoPath,
-      filepaths: [trimmed],
+      filepaths: [relative],
       force: true
     });
-    await git.resetIndex({ fs, dir: this.#repoPath, filepath: trimmed });
+    await git.resetIndex({ fs, dir: this.#repoPath, filepath: relative });
   }
 
   /**
@@ -498,34 +487,30 @@ export class GitSyncManager {
   /**
    * Reads raw text from a repository-relative file.
    *
+   * Confines the path to the repository root before reading so IPC callers
+   * cannot traverse outside the working tree.
+   *
    * @param filepath - Path relative to the repository root.
    */
   async readRepoFile(filepath: string): Promise<string> {
-    const trimmed = filepath.trim();
-    if (!trimmed) {
-      throw new Error('File path is required.');
-    }
-
-    const fullPath = join(this.#repoPath, trimmed);
+    const { absolute } = resolveRepoRelativePath(this.#repoPath, filepath);
     const { readFile } = await import('fs/promises');
-    return readFile(fullPath, 'utf-8');
+    return readFile(absolute, 'utf-8');
   }
 
   /**
    * Writes raw text to a repository-relative file.
    *
+   * Confines the path to the repository root before writing so IPC callers
+   * cannot traverse outside the working tree.
+   *
    * @param filepath - Path relative to the repository root.
    * @param content - Full file contents to write.
    */
   async writeRepoFile(filepath: string, content: string): Promise<void> {
-    const trimmed = filepath.trim();
-    if (!trimmed) {
-      throw new Error('File path is required.');
-    }
-
-    const fullPath = join(this.#repoPath, trimmed);
+    const { absolute } = resolveRepoRelativePath(this.#repoPath, filepath);
     const { writeFile } = await import('fs/promises');
-    await writeFile(fullPath, content, 'utf-8');
+    await writeFile(absolute, content, 'utf-8');
   }
 
   /**

@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  assertSafeExecSql,
+  assertSafePluginSql,
   PluginDatabaseManager,
   PLUGIN_DATABASES_DIR
 } from './PluginDatabaseManager';
@@ -117,10 +117,33 @@ describe('PluginDatabaseManager', () => {
     });
   });
 
-  it('rejects ATTACH in exec scripts', () => {
-    expect(() => assertSafeExecSql('ATTACH DATABASE "/tmp/evil.db" AS evil')).toThrow(
+  it('rejects ATTACH, DETACH, and load_extension in SQL', () => {
+    expect(() => assertSafePluginSql('ATTACH DATABASE "/tmp/evil.db" AS evil')).toThrow(
       /ATTACH, DETACH, and load_extension/
     );
+    expect(() => assertSafePluginSql('DETACH DATABASE evil')).toThrow(
+      /ATTACH, DETACH, and load_extension/
+    );
+    expect(() => assertSafePluginSql("SELECT load_extension('evil')")).toThrow(
+      /ATTACH, DETACH, and load_extension/
+    );
+  });
+
+  it('rejects ATTACH via run and get, not only exec', async () => {
+    const manager = new PluginDatabaseManager(createTempUserData());
+    await manager.exec('com.example.test', 'CREATE TABLE t (id INTEGER PRIMARY KEY)');
+
+    await expect(
+      manager.run('com.example.test', 'ATTACH DATABASE ? AS other', ['/tmp/evil.db'])
+    ).rejects.toThrow(/ATTACH, DETACH, and load_extension/);
+
+    await expect(
+      manager.get('com.example.test', 'ATTACH DATABASE ? AS other', ['/tmp/evil.db'])
+    ).rejects.toThrow(/ATTACH, DETACH, and load_extension/);
+
+    await expect(
+      manager.exec('com.example.test', 'ATTACH DATABASE "/tmp/evil.db" AS evil')
+    ).rejects.toThrow(/ATTACH, DETACH, and load_extension/);
   });
 
   it('deletes database files and sidecars', async () => {

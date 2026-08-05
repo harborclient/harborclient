@@ -143,7 +143,6 @@ import {
   registerImportHandlerContribution
 } from './pluginImportHandlers';
 import { getSidebarPanelReplaces } from './sidebarPanelManifest';
-import type { HostCollection } from '@harborclient/sdk';
 
 const commandHandlers = new Map<string, Set<(...args: unknown[]) => void | Promise<void>>>();
 
@@ -897,8 +896,7 @@ export function createPluginContext(pluginId: string, manifest: PluginManifest):
         if (typeof collectionId !== 'number') {
           throw new Error('harborclient.getCollectionMetadata requires a numeric collection id.');
         }
-        // Core Collection.auth includes oauth2; SDK HostCollection AuthType does not yet.
-        return (await getCollectionMetadataForPlugin(collectionId)) as unknown as HostCollection;
+        return await getCollectionMetadataForPlugin(collectionId);
       },
       logRequestToConsole: async (payload) => {
         assertUi();

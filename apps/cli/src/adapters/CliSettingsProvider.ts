@@ -4,7 +4,7 @@ import {
 } from '@harborclient/core/generalSettings';
 import type { SettingsProvider } from '@harborclient/core/interfaces';
 import type { GeneralSettings } from '@harborclient/core/types';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type { LocalDatabase } from '@harborclient/storage-sqlite';
 
 const STORE_KEY = 'general';
@@ -32,10 +32,10 @@ export class CliSettingsProvider implements SettingsProvider {
    * @returns Normalized general settings.
    */
   getGeneralSettings(): GeneralSettings {
-    const stored = parseJson<Partial<GeneralSettings>>(
-      this.database.getSetting(STORE_KEY),
-      DEFAULT_GENERAL_SETTINGS
-    );
+    const parsed = parseJson(this.database.getSetting(STORE_KEY), DEFAULT_GENERAL_SETTINGS);
+    const stored = isPlainObject(parsed)
+      ? (parsed as Partial<GeneralSettings>)
+      : DEFAULT_GENERAL_SETTINGS;
     return normalizeGeneralSettings({ ...stored, ...this.overrides });
   }
 

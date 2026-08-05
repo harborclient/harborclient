@@ -1,5 +1,5 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 import type { GitAuthMethod, GitIdentity } from '@harborclient/core/types';
 import { hasGitAccessToken } from './gitSecrets';
 
@@ -44,9 +44,15 @@ interface StoredGitIdentities {
  * Reads all stored git host identities from the local registry.
  */
 function readStoredIdentities(): StoredGitIdentities {
-  return parseJson<StoredGitIdentities>(getLocalDatabase().getSetting(GIT_IDENTITIES_KEY), {
-    identities: {}
-  });
+  const defaultStored: StoredGitIdentities = { identities: {} };
+  const parsed = parseJson(getLocalDatabase().getSetting(GIT_IDENTITIES_KEY), null);
+  if (!isPlainObject(parsed)) {
+    return defaultStored;
+  }
+  const identities = parsed.identities;
+  return {
+    identities: isPlainObject(identities) ? (identities as StoredGitIdentities['identities']) : {}
+  };
 }
 
 /**

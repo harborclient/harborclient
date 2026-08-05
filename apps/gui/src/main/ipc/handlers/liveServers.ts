@@ -32,8 +32,28 @@ import {
   listLiveServerLogSessions,
   setLiveServerLogSessionsChangedHandler
 } from '#/main/liveServer/liveServerLogSessions';
+import { registerFilePathKnownRootProvider } from '#/main/ipc/handlers/filePathAccess';
 import { openImportFile } from './importDialogs';
 import { importLiveServerData } from './liveServerImport';
+
+/**
+ * Cached document roots from the last live-server list/create/update response.
+ *
+ * Team Hub / routed providers are async, so roots are refreshed whenever the
+ * handler returns a list and exposed to file IPC via a known-root provider.
+ */
+let cachedLiveServerRoots: string[] = [];
+
+/**
+ * Remembers live-server document roots for filesystem IPC allowlisting.
+ *
+ * @param servers - Latest live-server configs from storage.
+ */
+function rememberLiveServerRoots(servers: Array<{ root?: string }>): void {
+  cachedLiveServerRoots = servers
+    .map((server) => (typeof server.root === 'string' ? server.root.trim() : ''))
+    .filter((root) => root.length > 0);
+}
 
 /**
  * Sends a payload to the main window renderer when it is available.
@@ -55,6 +75,8 @@ function sendToMainWindow(channel: string, payload: unknown): void {
  * @param db - Active storage facade used for provider-backed live servers.
  */
 export function registerLiveServerHandlers(db: IStorage): void {
+  registerFilePathKnownRootProvider(() => cachedLiveServerRoots);
+
   setLiveServerFileChangedHandler((event: LiveServerFileChangedEvent) => {
     sendToMainWindow('liveServer:file-changed', event);
   });
@@ -101,16 +123,22 @@ export function registerLiveServerHandlers(db: IStorage): void {
     clearLiveServerLogs(query);
   });
 
-  handle('liveServers:list', ipcArgSchemas.none, () =>
-    db instanceof RoutingStorage ? db.listLiveServers() : getLocalDatabase().listLiveServers()
-  );
+  handle('liveServers:list', ipcArgSchemas.none, async () => {
+    const list =
+      db instanceof RoutingStorage
+        ? await db.listLiveServers()
+        : getLocalDatabase().listLiveServers();
+    rememberLiveServerRoots(list);
+    return list;
+  });
 
   handle('liveServers:create', ipcArgSchemas.liveServersCreate, async (_event, input) => {
-    if (db instanceof RoutingStorage) {
-      await db.createLiveServer(input);
-      return db.listLiveServers();
-    }
-    return getLocalDatabase().createLiveServer(input);
+    const list =
+      db instanceof RoutingStorage
+        ? await db.createLiveServer(input).then(() => db.listLiveServers())
+        : getLocalDatabase().createLiveServer(input);
+    rememberLiveServerRoots(list);
+    return list;
   });
 
   handle('liveServers:update', ipcArgSchemas.liveServersUpdate, async (_event, input) => {
@@ -122,15 +150,17 @@ export function registerLiveServerHandlers(db: IStorage): void {
       preRequestScripts: input.preRequestScripts,
       postRequestScripts: input.postRequestScripts
     });
+    rememberLiveServerRoots(list);
     return list;
   });
 
   handle('liveServers:delete', ipcArgSchemas.liveServersDelete, async (_event, id) => {
-    if (db instanceof RoutingStorage) {
-      await db.deleteLiveServer(id);
-      return db.listLiveServers();
-    }
-    return getLocalDatabase().deleteLiveServer(id);
+    const list =
+      db instanceof RoutingStorage
+        ? await db.deleteLiveServer(id).then(() => db.listLiveServers())
+        : getLocalDatabase().deleteLiveServer(id);
+    rememberLiveServerRoots(list);
+    return list;
   });
 
   handle(
@@ -140,8 +170,9 @@ export function registerLiveServerHandlers(db: IStorage): void {
       if (!(db instanceof RoutingStorage)) {
         throw new Error('Live server move is unavailable.');
       }
-      await db.moveLiveServer(id, targetConnectionId);
-      return db.listLiveServers();
+      const list = await db.moveLiveServer(id, targetConnectionId).then(() => db.listLiveServers());
+      rememberLiveServerRoots(list);
+      return list;
     }
   );
 

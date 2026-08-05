@@ -19,7 +19,8 @@ function persistTrustedKeys(keys: TrustedSharingKey[]): void {
  */
 export function listTrustedKeys(): TrustedSharingKey[] {
   const raw = getLocalDatabase().getSetting(TRUSTED_KEYS_SETTING);
-  const keys = parseJson<TrustedSharingKey[]>(raw, []);
+  const parsed = parseJson(raw, []);
+  const keys = Array.isArray(parsed) ? parsed : [];
   return keys.filter(
     (key) =>
       typeof key.id === 'string' &&

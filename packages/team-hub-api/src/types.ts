@@ -900,9 +900,29 @@ export interface SnippetRecord {
   scope: SnippetScope;
 
   /**
+   * Zero-based sidebar order among hub snippets.
+   */
+  sortOrder: number;
+
+  /**
    * ISO 8601 timestamp when the snippet was created.
    */
   createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the snippet was last updated.
+   */
+  updatedAt: string;
+
+  /**
+   * User that created the snippet, when known.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User that last updated the snippet, when known.
+   */
+  updatedByUserId: string | null;
 
   /**
    * When true, non-admin users cannot delete this snippet on the hub.
@@ -1086,6 +1106,11 @@ export interface CreateLiveServerInput {
    * Script references executed after live server requests.
    */
   postRequestScripts: unknown[];
+
+  /**
+   * Optional zero-based sidebar order persisted in the live-server payload.
+   */
+  sortOrder?: number;
 }
 
 /**
@@ -1101,6 +1126,13 @@ export interface LiveServerRecord extends CreateLiveServerInput {
    * Live server UUID.
    */
   id: string;
+
+  /**
+   * Zero-based display order among hub live servers when the hub stores one.
+   *
+   * Older hubs omit this; clients should fall back to list index.
+   */
+  sortOrder?: number;
 
   /**
    * ISO 8601 timestamp when the live server was created.

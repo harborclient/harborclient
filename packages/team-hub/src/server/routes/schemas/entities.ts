@@ -133,7 +133,11 @@ const liveServerPayloadFields = {
   restartOnCrash: z.boolean().optional(),
   urlVariable: z.string().optional(),
   preRequestScripts: z.unknown().optional(),
-  postRequestScripts: z.unknown().optional()
+  postRequestScripts: z.unknown().optional(),
+  /**
+   * Optional sidebar order stored inside the live-server JSON payload.
+   */
+  sortOrder: z.number().int().optional()
 };
 
 /**

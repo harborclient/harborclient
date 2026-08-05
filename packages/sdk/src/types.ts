@@ -335,10 +335,52 @@ export interface ModalContribution extends UiContributionBase {
 /**
  * Authorization type for the Auth tab; none inherits collection auth at send time.
  */
-export type AuthType = 'none' | 'basic' | 'bearer';
+export type AuthType = 'none' | 'basic' | 'bearer' | 'oauth2';
 
 /**
- * Basic and bearer credential fields stored together so switching type preserves values.
+ * How OAuth client credentials are sent to the token endpoint.
+ */
+export type OAuth2ClientAuth = 'body' | 'header';
+
+/**
+ * OAuth 2.0 Client Credentials configuration stored on requests and collections.
+ */
+export interface OAuth2Config {
+  /**
+   * Token endpoint URL.
+   */
+  tokenUrl: string;
+
+  /**
+   * OAuth client id.
+   */
+  clientId: string;
+
+  /**
+   * OAuth client secret.
+   */
+  clientSecret: string;
+
+  /**
+   * Space-delimited OAuth scopes.
+   */
+  scope: string;
+
+  /**
+   * Optional audience claim for token requests.
+   */
+  audience: string;
+
+  /**
+   * Whether client credentials are sent in the POST body or as HTTP Basic auth.
+   */
+  clientAuth: OAuth2ClientAuth;
+}
+
+/**
+ * Basic, bearer, and OAuth credential fields stored together so switching type preserves values.
+ *
+ * Mirrors `@harborclient/core` AuthConfig used by requests, collections, and live pages.
  */
 export interface AuthConfig {
   /**
@@ -360,6 +402,11 @@ export interface AuthConfig {
   bearer: {
     token: string;
   };
+
+  /**
+   * OAuth 2.0 Client Credentials settings.
+   */
+  oauth2: OAuth2Config;
 }
 
 /**
@@ -1791,6 +1838,8 @@ export interface LiveServerResponseHeader {
 export interface LiveServerRoute {
   /**
    * `*` for all paths, or a regex source matched against the URL pathname.
+   * Regex sources are length-capped and rejected when they contain nested
+   * quantifiers associated with catastrophic backtracking.
    */
   match: string;
 
@@ -2954,43 +3003,12 @@ export interface WebsiteScriptRef {
 }
 
 /**
- * Authorization stored on a saved website (includes OAuth 2.0 fields for parity with core).
+ * Authorization stored on a saved website.
  *
- * Mirrors `@harborclient/core` AuthConfig used by {@link Website}.
+ * Alias of {@link AuthConfig} for parity with `@harborclient/core` Website auth.
+ * OAuth 2.0 fields are stored but not applied to guest navigations today.
  */
-export interface WebsiteAuthConfig {
-  /**
-   * Selected auth mode; none means no chrome-driven auth header.
-   */
-  type: 'none' | 'basic' | 'bearer' | 'oauth2';
-
-  /**
-   * Username and password for Basic Auth.
-   */
-  basic: {
-    username: string;
-    password: string;
-  };
-
-  /**
-   * Token value for Bearer Token auth.
-   */
-  bearer: {
-    token: string;
-  };
-
-  /**
-   * OAuth 2.0 Client Credentials settings (not applied to guest navigations today).
-   */
-  oauth2: {
-    tokenUrl: string;
-    clientId: string;
-    clientSecret: string;
-    scope: string;
-    audience: string;
-    clientAuth: 'body' | 'header';
-  };
-}
+export type WebsiteAuthConfig = AuthConfig;
 
 /**
  * A saved embedded-browser website (live page) in the local registry.

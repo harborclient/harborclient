@@ -20,7 +20,8 @@ function persistRuntimes(runtimes: Runtime[]): void {
  * @returns Normalized runtime list (empty when unset).
  */
 function readRuntimes(): Runtime[] {
-  return normalizeRuntimes(parseJson<unknown>(getLocalDatabase().getSetting(RUNTIMES_KEY), []));
+  const parsed = parseJson(getLocalDatabase().getSetting(RUNTIMES_KEY), []);
+  return normalizeRuntimes(Array.isArray(parsed) ? parsed : []);
 }
 
 /**

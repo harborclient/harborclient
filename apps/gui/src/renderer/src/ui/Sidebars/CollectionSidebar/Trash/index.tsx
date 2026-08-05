@@ -1,4 +1,4 @@
-import { EmptyState, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
+import { Badge, EmptyState, SIDEBAR_ITEM_BUTTON_CLASS } from '@harborclient/sdk/components';
 import { useCallback, useMemo, useState, type JSX } from 'react';
 import type { TrashItem } from '@harborclient/core/types/trash';
 import { useConfirm } from '#/renderer/src/hooks/useConfirm';
@@ -13,6 +13,7 @@ import {
 } from '#/renderer/src/ui/Sidebars/CollectionSidebar/sort/sidebarSort';
 import { sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { type InspectPoint } from '#/renderer/src/ui/Shared/devInspectContextMenu';
+import { showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import { ActionsMenu } from './ActionsMenu';
 import { formatTrashDeletedAt, trashEntityTypeLabel } from './utils';
 
@@ -24,7 +25,8 @@ export { TrashHeaderActions } from './TrashHeaderActions';
  * @param item - Trash sidebar row.
  */
 function trashItemAriaLabel(item: TrashItem): string {
-  return `${item.label}, ${trashEntityTypeLabel(item.entityType)}, deleted ${formatTrashDeletedAt(item.deletedAt)}`;
+  const base = `${item.label}, ${trashEntityTypeLabel(item.entityType)}, deleted ${formatTrashDeletedAt(item.deletedAt)}`;
+  return item.corrupt ? `${base}, corrupt data` : base;
 }
 
 /**
@@ -63,12 +65,28 @@ export function Trash(): JSX.Element {
 
   /**
    * Restores the selected trash rows when multiple rows are selected.
+   * Skips corrupt rows and alerts when any selection cannot be restored.
    */
   const handleRestoreSelected = useCallback(async (): Promise<void> => {
-    for (const id of selectedOrdered) {
-      await dispatch(restoreTrashItem(id));
+    const selectedItems = selectedOrdered
+      .map((id) => allItems.find((item) => item.id === id))
+      .filter((item): item is TrashItem => item != null);
+    const restorable = selectedItems.filter((item) => !item.corrupt);
+    const corruptCount = selectedItems.length - restorable.length;
+
+    if (corruptCount > 0) {
+      showAlert(
+        dispatch,
+        restorable.length === 0
+          ? 'Selected trash items have corrupt stored data and cannot be restored. Permanently delete them instead.'
+          : `${corruptCount} selected trash ${corruptCount === 1 ? 'item has' : 'items have'} corrupt stored data and will be skipped.`
+      );
     }
-  }, [dispatch, selectedOrdered]);
+
+    for (const item of restorable) {
+      await dispatch(restoreTrashItem(item.id));
+    }
+  }, [allItems, dispatch, selectedOrdered]);
 
   /**
    * Permanently deletes the selected trash rows after confirmation.
@@ -93,12 +111,19 @@ export function Trash(): JSX.Element {
   }, [confirm, dispatch, selectedOrdered, selectionCount]);
 
   /**
-   * Restores one trash row.
+   * Restores one trash row, or alerts when stored JSON is corrupt.
    *
    * @param item - Trash snapshot row to restore.
    */
   const handleRestoreItem = useCallback(
     (item: TrashItem): void => {
+      if (item.corrupt) {
+        showAlert(
+          dispatch,
+          'This trash item has corrupt stored data and cannot be restored. Permanently delete it instead.'
+        );
+        return;
+      }
       void dispatch(restoreTrashItem(item.id));
     },
     [dispatch]
@@ -166,7 +191,17 @@ export function Trash(): JSX.Element {
               }}
             >
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-text">{item.label}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-text">{item.label}</span>
+                  {item.corrupt ? (
+                    <Badge
+                      variant="danger"
+                      title="Stored snapshot JSON is corrupt; restore is unavailable"
+                    >
+                      Corrupt
+                    </Badge>
+                  ) : null}
+                </span>
                 <span className="truncate text-[14px] text-muted">
                   {formatTrashDeletedAt(item.deletedAt)}
                 </span>

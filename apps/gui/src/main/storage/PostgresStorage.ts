@@ -1491,10 +1491,12 @@ export class PostgresStorage implements IStorage {
       )
     );
 
-    const variables = parseJson<Partial<Variable>[]>(row.variables as string, []).map(
+    const variablesParsed = parseJson(row.variables as string, []);
+    const variables = (Array.isArray(variablesParsed) ? variablesParsed : []).map(
       normalizeVariable
     );
-    const headers = parseJson<KeyValue[]>(row.headers as string, []);
+    const headersParsed = parseJson(row.headers as string, []);
+    const headers: KeyValue[] = Array.isArray(headersParsed) ? headersParsed : [];
     const userAgent = typeof row.user_agent === 'string' ? row.user_agent : '';
     const auth = normalizeAuth(parseJson(row.auth as string, defaultAuth()));
 

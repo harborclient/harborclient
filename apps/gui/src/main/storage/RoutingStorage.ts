@@ -1925,7 +1925,8 @@ export class RoutingStorage implements IStorage {
    * @param connectionId - Storage or team hub connection id.
    */
   private isTeamHubConnection(connectionId: string): boolean {
-    const hubs = parseJson<TeamHub[]>(this.database.getSetting('teamHubs'), []);
+    const parsed = parseJson(this.database.getSetting('teamHubs'), []);
+    const hubs = Array.isArray(parsed) ? (parsed as TeamHub[]) : [];
     return hubs.some((hub) => hub.id === connectionId);
   }
 

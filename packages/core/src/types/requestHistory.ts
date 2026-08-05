@@ -115,4 +115,10 @@ export interface RequestHistoryEntry {
    * Saved request id for a run entry scoped to one request, or null otherwise.
    */
   runRequestId?: number | null;
+
+  /**
+   * True when stored headers, params, or response-headers JSON failed to parse.
+   * The entry remains listable with empty fallbacks for the bad columns.
+   */
+  corrupt?: boolean;
 }

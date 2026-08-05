@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
+
 ## 0.7.3 - 2026-08-04
 
 - refactor: update ESLint configurations and clean up code. (`fa5f53c9`)

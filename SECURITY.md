@@ -69,10 +69,18 @@ credentials, and storage connection details. Keep these practices in mind:
 ### Scripts and imports
 
 Pre- and post-request scripts, including scripts imported from Postman
-collections, may contain arbitrary JavaScript. Scripts run in a limited
-`node:vm` sandbox with no network or filesystem access, but **that sandbox is
-not a hard security boundary**. Only import collections and run scripts from
-sources you trust.
+collections, may contain arbitrary JavaScript. Scripts run in a SES-hardened
+Electron `utilityProcess` (not `node:vm`). That isolation is a defense in depth
+measure, **not a hard security boundary**.
+
+By default, host bridges for outbound network (`hc.fetch`), filesystem
+(`hc.fs`), embedded browser control (`hc.livePage`), and related capabilities
+are **off**. Enabling them in **Settings → General** lets scripts use those
+APIs through the main process. When filesystem access is enabled and no
+script file root is configured, the confinement root can fall back to the
+user home directory (git-backed collections use their repository directory
+instead). Treat import-script warnings seriously, and only import collections
+and run scripts from sources you trust.
 
 See [Request scripts — Sandbox limits](https://harborclient.com/request-scripts#sandbox-limits).
 

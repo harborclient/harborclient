@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isSafeUserRegexSource, USER_REGEX_MAX_LENGTH } from '../safeUserRegex';
 import { normalizeScriptRefs } from '../scriptRefs';
 import type { KeyValue } from './common';
 import {
@@ -84,6 +85,30 @@ export interface LiveServerAlias {
 }
 
 /**
+ * Maximum length of a live-server route `match` regex source (excluding `*`).
+ *
+ * Alias of {@link USER_REGEX_MAX_LENGTH}; kept for live-server docs and callers.
+ */
+export const LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH = USER_REGEX_MAX_LENGTH;
+
+/**
+ * Returns whether a route `match` string is safe to compile and use.
+ *
+ * `*` (catch-all) is always safe. Other values must pass
+ * {@link isSafeUserRegexSource} (length, nested-quantifier, and compile checks).
+ *
+ * @param match - Raw route match string (may include surrounding whitespace).
+ * @returns True when the pattern may be compiled and tested.
+ */
+export function isSafeLiveServerRouteMatch(match: string): boolean {
+  const trimmed = match.trim();
+  if (trimmed === '*') {
+    return true;
+  }
+  return isSafeUserRegexSource(trimmed);
+}
+
+/**
  * One path-routing rule for a live server (SPA fallback / soft rewrite).
  *
  * Rules run after alias and document-root static miss. First matching enabled
@@ -93,6 +118,9 @@ export interface LiveServerAlias {
 export interface LiveServerRoute {
   /**
    * `*` for all paths, or a regex source matched against the URL pathname.
+   * Regex sources are capped at {@link LIVE_SERVER_ROUTE_MATCH_MAX_LENGTH}
+   * characters and rejected when they contain nested quantifiers associated
+   * with catastrophic backtracking.
    */
   match: string;
 
@@ -326,17 +354,19 @@ export interface LiveServerCorsSettings {
 }
 
 /**
- * Most-permissive CORS defaults matching the Express `cors()` package defaults.
+ * Opt-in CORS defaults for new live servers.
  *
- * Credentials stay false because `credentials: true` cannot be paired with
- * `origin: '*'`. Exposed headers and max-age stay empty so the package
- * defaults apply until the user configures them.
+ * CORS is off until the user enables it. When enabled, remaining fields still
+ * mirror the Express `cors()` package defaults (`origin: '*'`, broad methods /
+ * headers). Credentials stay false because `credentials: true` cannot be
+ * paired with `origin: '*'`. Exposed headers and max-age stay empty so the
+ * package defaults apply until the user configures them.
  *
  * @returns A fresh default CORS settings object.
  */
 export function defaultLiveServerCorsSettings(): LiveServerCorsSettings {
   return {
-    enabled: true,
+    enabled: false,
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: '*',
@@ -351,6 +381,8 @@ export function defaultLiveServerCorsSettings(): LiveServerCorsSettings {
  *
  * Missing or invalid fields fall back to {@link defaultLiveServerCorsSettings}.
  * Legacy payloads without `exposedHeaders` / `maxAge` receive empty strings.
+ * When `enabled` is omitted, the default (`false`) applies; explicit
+ * `true`/`false` are preserved so stored servers keep their choice.
  *
  * @param value - Partial CORS settings from storage or IPC, or undefined.
  * @returns Normalized CORS settings.
@@ -363,7 +395,7 @@ export function normalizeLiveServerCorsSettings(
     return defaults;
   }
   return {
-    enabled: value.enabled !== false,
+    enabled: typeof value.enabled === 'boolean' ? value.enabled : defaults.enabled,
     origin:
       typeof value.origin === 'string' && value.origin.trim() !== ''
         ? value.origin.trim()
@@ -649,7 +681,7 @@ export function normalizeLiveServerRoutes(value: unknown): LiveServerRoute[] {
     const row = entry as Partial<LiveServerRoute>;
     const match = typeof row.match === 'string' ? row.match.trim() : '';
     const target = typeof row.target === 'string' ? row.target.trim() : '';
-    if (match === '' || target === '') {
+    if (match === '' || target === '' || !isSafeLiveServerRouteMatch(match)) {
       continue;
     }
     routes.push({

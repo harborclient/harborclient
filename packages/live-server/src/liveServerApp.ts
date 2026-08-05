@@ -16,6 +16,7 @@ import type {
 import {
   defaultLiveServerCorsSettings,
   defaultLiveServerIndexFiles,
+  isSafeLiveServerRouteMatch,
   matchLiveServerErrorPage,
   normalizeLiveServerErrorPages,
   normalizeLiveServerIndexFiles,
@@ -699,8 +700,9 @@ export function isPathInsideDirectory(candidate: string, rootDir: string): boole
 /**
  * Tests whether a request pathname matches a routing rule's `match` pattern.
  *
- * `*` matches every path. Other values are compiled as `RegExp`; invalid
- * patterns never match (caller should skip the rule).
+ * `*` matches every path. Other values are compiled as `RegExp` only when
+ * {@link isSafeLiveServerRouteMatch} accepts them (length and nested-quantifier
+ * caps). Unsafe or invalid patterns never match (caller should skip the rule).
  *
  * @param pathname - Express `req.path` (pathname only).
  * @param match - Route match string (`*` or regex source).
@@ -708,7 +710,7 @@ export function isPathInsideDirectory(candidate: string, rootDir: string): boole
  */
 export function pathMatchesLiveServerRoute(pathname: string, match: string): boolean {
   const trimmed = match.trim();
-  if (trimmed === '') {
+  if (!isSafeLiveServerRouteMatch(trimmed)) {
     return false;
   }
   if (trimmed === '*') {

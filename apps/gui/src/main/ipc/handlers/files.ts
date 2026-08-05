@@ -5,6 +5,12 @@ import { getDefaultLogFilePath } from '#/main/fileLogger';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
+  assertFilePathOpenable,
+  assertFilePathAllowed,
+  assertFilePathWritableDirectory,
+  grantFilePathAccess
+} from '#/main/ipc/handlers/filePathAccess';
+import {
   imageSaveFilters,
   parseDataUrl,
   resolveImageMime
@@ -13,6 +19,8 @@ import { resolveAvailableWritePathInDirectory } from '#/main/ipc/handlers/writeT
 
 /**
  * Opens a save dialog and returns the chosen path, or null when canceled.
+ *
+ * Grants the destination so later file IPC can reference it.
  *
  * @param defaultPath - Suggested destination path or filename.
  * @param filters - Dialog file-type filters.
@@ -34,7 +42,7 @@ async function promptSavePath(
   if (canceled || !filePath) {
     return null;
   }
-  return filePath;
+  return grantFilePathAccess(filePath);
 }
 
 /**
@@ -72,7 +80,7 @@ export function registerFileHandlers(): void {
       return null;
     }
 
-    return filePaths[0];
+    return grantFilePathAccess(filePaths[0]!);
   });
 
   // Opens a single-file picker filtered for TLS certificate / private-key files.
@@ -94,7 +102,7 @@ export function registerFileHandlers(): void {
       return null;
     }
 
-    return filePaths[0];
+    return grantFilePathAccess(filePaths[0]!);
   });
 
   // Opens a single-file picker filtered for HTML error-page files.
@@ -116,12 +124,13 @@ export function registerFileHandlers(): void {
       return null;
     }
 
-    return filePaths[0];
+    return grantFilePathAccess(filePaths[0]!);
   });
 
   // Opens a file or directory in the OS default application (e.g. the file browser).
   handle('files:openPath', ipcArgSchemas.openPath, async (_event, path) => {
-    const error = await shell.openPath(path);
+    const allowedPath = assertFilePathOpenable(path);
+    const error = await shell.openPath(allowedPath);
     if (error) {
       throw new Error(error);
     }
@@ -129,7 +138,7 @@ export function registerFileHandlers(): void {
 
   // Reveals a file in its containing folder in the OS file manager.
   handle('files:showItemInFolder', ipcArgSchemas.openPath, (_event, path) => {
-    shell.showItemInFolder(path);
+    shell.showItemInFolder(assertFilePathAllowed(path));
   });
 
   // Opens a native save dialog and returns the chosen absolute file path.
@@ -150,7 +159,7 @@ export function registerFileHandlers(): void {
       return null;
     }
 
-    return filePath;
+    return grantFilePathAccess(filePath);
   });
 
   // Writes arbitrary text to a file chosen via a native save dialog.
@@ -171,8 +180,9 @@ export function registerFileHandlers(): void {
       return { canceled: true };
     }
 
-    await writeFile(filePath, content, 'utf-8');
-    return { canceled: false, path: filePath };
+    const grantedPath = grantFilePathAccess(filePath);
+    await writeFile(grantedPath, content, 'utf-8');
+    return { canceled: false, path: grantedPath };
   });
 
   // Writes UTF-8 text into a directory using a basename, with collision suffixes.
@@ -180,7 +190,8 @@ export function registerFileHandlers(): void {
     'files:writeTextInDirectory',
     ipcArgSchemas.writeTextInDirectory,
     async (_event, directory, fileName, content) => {
-      const filePath = await resolveAvailableWritePathInDirectory(directory, fileName);
+      const allowedDirectory = assertFilePathWritableDirectory(directory);
+      const filePath = await resolveAvailableWritePathInDirectory(allowedDirectory, fileName);
       await writeFile(filePath, content, 'utf-8');
       return { path: filePath };
     }
@@ -188,11 +199,12 @@ export function registerFileHandlers(): void {
 
   // Reads a local image file and returns a data URL for the renderer viewer.
   handle('files:readImageDataUrl', ipcArgSchemas.readImageDataUrl, async (_event, filePath) => {
-    const buffer = await readFile(filePath);
-    const mime = resolveImageMime(buffer, filePath);
+    const allowedPath = assertFilePathAllowed(filePath);
+    const buffer = await readFile(allowedPath);
+    const mime = resolveImageMime(buffer, allowedPath);
     return {
       dataUrl: `data:${mime};base64,${buffer.toString('base64')}`,
-      fileName: basename(filePath)
+      fileName: basename(allowedPath)
     };
   });
 
@@ -201,14 +213,15 @@ export function registerFileHandlers(): void {
     'files:copyFileToSaveDialog',
     ipcArgSchemas.copyFileToSaveDialog,
     async (_event, sourcePath, defaultFileName) => {
+      const allowedSource = assertFilePathAllowed(sourcePath);
       const destination = await promptSavePath(
-        defaultFileName.trim() || basename(sourcePath),
-        imageSaveFilters(defaultFileName || sourcePath)
+        defaultFileName.trim() || basename(allowedSource),
+        imageSaveFilters(defaultFileName || allowedSource)
       );
       if (!destination) {
         return { canceled: true };
       }
-      await copyFile(sourcePath, destination);
+      await copyFile(allowedSource, destination);
       return { canceled: false, path: destination };
     }
   );

@@ -133,6 +133,11 @@ describe('matchesLogText', () => {
   it('matches nothing when a negated regex is invalid (does not invert)', () => {
     expect(matchesLogText('GET /index.html', '-[', options({ useRegex: true }))).toBe(false);
   });
+
+  it('matches nothing when the regex looks like a ReDoS pattern', () => {
+    expect(matchesLogText('aaaaaaaa!', '(a+)+', options({ useRegex: true }))).toBe(false);
+    expect(matchesLogText('aaaaaaaa!', '-((a+)+)', options({ useRegex: true }))).toBe(false);
+  });
 });
 
 describe('isLogFilterQueryValid', () => {
@@ -147,5 +152,10 @@ describe('isLogFilterQueryValid', () => {
     expect(isLogFilterQueryValid('-[', options({ useRegex: true }))).toBe(false);
     expect(isLogFilterQueryValid('GET', options({ useRegex: true }))).toBe(true);
     expect(isLogFilterQueryValid('-GET', options({ useRegex: true }))).toBe(true);
+  });
+
+  it('reports nested-quantifier ReDoS patterns as invalid', () => {
+    expect(isLogFilterQueryValid('(a+)+', options({ useRegex: true }))).toBe(false);
+    expect(isLogFilterQueryValid('([a-z]*)*', options({ useRegex: true }))).toBe(false);
   });
 });

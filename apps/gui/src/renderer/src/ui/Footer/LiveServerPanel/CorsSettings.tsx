@@ -22,6 +22,7 @@ interface Props {
 /**
  * Form fields for enabling CORS and editing the base Express `cors` options.
  *
+ * CORS is off by default for new servers; users must check Enable CORS.
  * Detail fields stay visible but disabled when CORS is off so users can see
  * the defaults before enabling. Rendered under the Headers tab CORS section.
  *

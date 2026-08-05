@@ -1,7 +1,7 @@
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { listConnectedTeamHubs } from './teamHubSettings';
 import { TeamHubClient } from '@harborclient/team-hub-api';
-import { parseJson } from '@harborclient/core/parseJson';
+import { isPlainObject, parseJson } from '@harborclient/core/parseJson';
 
 import type { TeamHubPluginSource, TeamHubPluginSourcesView } from '@harborclient/core/types';
 
@@ -31,9 +31,15 @@ interface TeamHubPluginSourcesCache {
  * @returns Cached hub plugin sources, or an empty cache when unset.
  */
 function readCache(): TeamHubPluginSourcesCache {
-  return parseJson<TeamHubPluginSourcesCache>(getLocalDatabase().getSetting(STORE_KEY), {
-    hubs: {}
-  });
+  const parsed = parseJson(getLocalDatabase().getSetting(STORE_KEY), null);
+  const defaultCache: TeamHubPluginSourcesCache = { hubs: {} };
+  if (!isPlainObject(parsed)) {
+    return defaultCache;
+  }
+  const hubs = parsed.hubs;
+  return {
+    hubs: isPlainObject(hubs) ? (hubs as TeamHubPluginSourcesCache['hubs']) : {}
+  };
 }
 
 /**

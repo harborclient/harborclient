@@ -17,6 +17,7 @@ import type {
   StartLiveServerInput
 } from '@harborclient/core/types';
 import {
+  isLiveServerLoopbackHost,
   mergeRuntimeEnv,
   normalizeLiveServerConfigFields,
   normalizeLiveServerCorsSettings,
@@ -38,6 +39,7 @@ import type { LiveServerHostProviders } from './providers';
 import { startLiveServerRunCommand, type LiveServerRunCommandHandle } from './liveServerRunCommand';
 import type { LiveServerScriptsHolder } from './liveServerScripts';
 import { startLiveServerWatcher, type LiveServerWatcherHandle } from './liveServerWatcher';
+import { getPendingLiveServerLockIds, withLiveServerLock } from './liveServerLock';
 
 /** HTTP or HTTPS server returned after listen. */
 type LiveServerListenServer = http.Server | https.Server;
@@ -453,6 +455,11 @@ function setRunCommandStatus(id: string, status: LiveServerRunCommandStatus, err
  * `127.0.0.1` when the bind host is a wildcard (`0.0.0.0` / `::`) so Live Page
  * can navigate to a usable URL.
  *
+ * Start and stop for the same runtime id are serialized via a per-id lock so
+ * concurrent starts cannot leave duplicate listeners or leaked ports. A failed
+ * start after listen closes the bound server (and any watcher) before
+ * rethrowing.
+ *
  * @param input - Runtime id (optional), saved id, and server config.
  * @param providers - Snippets, variables, and script runner from the host app.
  * @returns The running instance including the assigned port and origin.
@@ -468,7 +475,30 @@ export async function startLiveServer(
 
   const id = input.id?.trim() || randomUUID();
   const savedId = input.savedId ?? null;
-  await stopLiveServer(id);
+
+  return withLiveServerLock(id, () => startLiveServerLocked(id, savedId, config, providers));
+}
+
+/**
+ * Starts a live server while the per-id lock is already held.
+ *
+ * Stops any existing entry for `id`, listens, registers the map entry, and
+ * optionally starts the companion process. On failure after listen, closes the
+ * bound server and watcher so no port is leaked.
+ *
+ * @param id - Runtime instance id.
+ * @param savedId - Saved `live_servers.id`, or null for ad-hoc starts.
+ * @param config - Normalized server config.
+ * @param providers - Snippets, variables, and script runner from the host app.
+ * @returns The running instance including the assigned port and origin.
+ */
+async function startLiveServerLocked(
+  id: string,
+  savedId: number | null,
+  config: LiveServerConfig,
+  providers: LiveServerHostProviders
+): Promise<RunningLiveServer> {
+  await stopLiveServerEntry(id);
 
   const logs: LiveServerLogEntry[] = [];
   const scriptsHolder: LiveServerScriptsHolder = {
@@ -558,28 +588,45 @@ export async function startLiveServer(
   };
 
   let watcher: LiveServerWatcherHandle | null = null;
-  if (config.watch) {
-    watcher = startLiveServerWatcher(config.root, config.aliases, () => {
-      fileChangedHandler?.({ id, origin });
-    });
-    if (!watcher.watching) {
-      running.watchUnavailable = true;
+  try {
+    if (config.watch) {
+      watcher = startLiveServerWatcher(config.root, config.aliases, () => {
+        fileChangedHandler?.({ id, origin });
+      });
+      if (!watcher.watching) {
+        running.watchUnavailable = true;
+      }
     }
-  }
 
-  // Register session + map entry before the companion so spawn failures and
-  // early stdout/stderr can land in the same buffer the UI hydrates from.
-  createLiveServerLogSession(
-    {
-      id,
-      savedId,
-      serverName: config.name,
-      origin,
-      startedAt
-    },
-    logs
-  );
-  servers.set(id, { server, running, watcher, runCommand: null, logs, scriptsHolder });
+    // Register session + map entry before the companion so spawn failures and
+    // early stdout/stderr can land in the same buffer the UI hydrates from.
+    createLiveServerLogSession(
+      {
+        id,
+        savedId,
+        serverName: config.name,
+        origin,
+        startedAt
+      },
+      logs
+    );
+    servers.set(id, { server, running, watcher, runCommand: null, logs, scriptsHolder });
+
+    if (!isLiveServerLoopbackHost(config.host)) {
+      appendProcessLog(
+        'system',
+        `Warning: bound to ${config.host} (not loopback). This folder may be reachable on the local network. Prefer 127.0.0.1 unless you need LAN access on a trusted network.`
+      );
+    }
+  } catch (error) {
+    watcher?.stop();
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        resolve();
+      });
+    });
+    throw error;
+  }
 
   const wantsRunCommand =
     config.runCommandEnabled && (config.runtimeId !== '' || config.runCommand !== '');
@@ -693,7 +740,10 @@ export async function startLiveServer(
 }
 
 /**
- * Stops one running live server.
+ * Stops one running live server without acquiring the per-id lock.
+ *
+ * Used by {@link stopLiveServer} (which holds the lock) and by
+ * {@link startLiveServerLocked} (which already holds it) to avoid deadlock.
  *
  * Stops the companion run command (if any) before closing the HTTP server so
  * intentional Stop never triggers restart-on-crash. Retains the log session for
@@ -701,7 +751,7 @@ export async function startLiveServer(
  *
  * @param id - Runtime instance id.
  */
-export async function stopLiveServer(id: string): Promise<void> {
+async function stopLiveServerEntry(id: string): Promise<void> {
   const entry = servers.get(id);
   if (!entry) {
     return;
@@ -725,6 +775,23 @@ export async function stopLiveServer(id: string): Promise<void> {
 }
 
 /**
+ * Stops one running live server.
+ *
+ * Serialized with start/stop for the same runtime id via a per-id lock so a
+ * stop issued while a start is in flight waits for registration (or failure)
+ * and then tears the instance down.
+ *
+ * Stops the companion run command (if any) before closing the HTTP server so
+ * intentional Stop never triggers restart-on-crash. Retains the log session for
+ * the Server Logs sidebar until the user clears sessions.
+ *
+ * @param id - Runtime instance id.
+ */
+export async function stopLiveServer(id: string): Promise<void> {
+  await withLiveServerLock(id, () => stopLiveServerEntry(id));
+}
+
+/**
  * Returns a snapshot of currently running live servers.
  *
  * @returns Running instances in start-order (Map insertion order).
@@ -735,9 +802,12 @@ export function listRunningLiveServers(): RunningLiveServer[] {
 
 /**
  * Stops every live server during app shutdown.
+ *
+ * Also stops ids that still have in-flight start/stop lock work so a start
+ * racing shutdown is torn down once it lands (or fails).
  */
 export async function stopAllLiveServers(): Promise<void> {
-  const ids = [...servers.keys()];
+  const ids = new Set([...servers.keys(), ...getPendingLiveServerLockIds()]);
   for (const id of ids) {
     // Sequential close avoids racing Node's HTTP shutdown with process exit.
     await stopLiveServer(id);

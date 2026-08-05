@@ -19,7 +19,7 @@ import type {
   RegisteredStatusBarItem,
   RegisteredWorkflowActionBlock,
   RegisteredWorkflowToolbarAction,
-  ThemeContribution
+  RegisteredPluginTheme
 } from '@harborclient/core/plugin/types';
 import {
   registerActionContribution,
@@ -170,58 +170,18 @@ import { logImportVerbose } from '#/renderer/src/import/importVerboseLog';
 import type { ScriptLivePageRequest } from '@harborclient/core/scripting/scriptApi';
 import { executeScriptLivePageRequest } from '#/renderer/src/scripting/scriptLivePageBridge';
 import { isWebpageSessionError } from '#/renderer/src/store/browser/webpageSession';
+import {
+  parseContributionMessage,
+  parseHostBridgeInvokeMessage,
+  parseHostBridgeMessage,
+  parseImportHandlerMessage,
+  type ContributionMessage,
+  type HostBridgeInvokeMessage,
+  type HostBridgeMessage,
+  type ImportHandlerMessage
+} from '#/pluginBridge/pluginUiBridgeSchemas';
 
-type ContributionKind =
-  | 'settingsSections'
-  | 'themes'
-  | 'sidebarPanels'
-  | 'sidebarRailItems'
-  | 'sidebarSections'
-  | 'mainViews'
-  | 'modals'
-  | 'requestTabs'
-  | 'responseTabs'
-  | 'collectionSettingsTabs'
-  | 'footerPanels'
-  | 'statusBarItems'
-  | 'menuItems'
-  | 'requestToolbarActions'
-  | 'livePageChromeActions'
-  | 'scriptEditorActions'
-  | 'workflowToolbarActions'
-  | 'workflowActionBlocks'
-  | 'contextMenuItems'
-  | 'actions';
-
-interface ContributionMessage {
-  pluginId: string;
-  op: 'registerContribution' | 'unregisterContribution';
-  kind?: ContributionKind;
-  contribution?: Record<string, unknown>;
-  contributionId?: string;
-}
-
-interface HostBridgeMessage {
-  pluginId: string;
-  op: string;
-  payload?: unknown;
-}
-
-/** Import handler metadata synced from a plugin agent webview. */
-interface ImportHandlerMessage {
-  pluginId: string;
-  op: 'register' | 'unregister';
-  registrationId: string;
-  extensions?: string[];
-}
-
-/** Correlated host bridge invoke that must return a result to the plugin webview. */
-export interface HostBridgeInvokeMessage {
-  requestId: number;
-  pluginId: string;
-  op: string;
-  payload?: unknown;
-}
+export type { HostBridgeInvokeMessage };
 
 /**
  * Applies one contribution register/unregister message from a plugin agent webview.
@@ -230,17 +190,11 @@ export interface HostBridgeInvokeMessage {
  */
 export function applyContributionMessage(message: ContributionMessage): void {
   if (message.op === 'unregisterContribution') {
-    if (message.kind && message.contributionId) {
-      unregisterContribution(message.pluginId, message.kind, message.contributionId);
-    }
+    unregisterContribution(message.pluginId, message.kind, message.contributionId);
     return;
   }
 
-  const kind = message.kind;
-  const contribution = message.contribution;
-  if (!kind || !contribution) {
-    return;
-  }
+  const { kind, contribution } = message;
 
   switch (kind) {
     case 'settingsSections':
@@ -250,7 +204,10 @@ export function applyContributionMessage(message: ContributionMessage): void {
       );
       break;
     case 'themes':
-      registerThemeContribution(message.pluginId, contribution as unknown as ThemeContribution);
+      registerThemeContribution(
+        message.pluginId,
+        contribution as Omit<RegisteredPluginTheme, 'pluginId'>
+      );
       break;
     case 'sidebarPanels':
       registerSidebarPanelContribution(
@@ -396,7 +353,7 @@ export function applyImportHandlerMessage(message: ImportHandlerMessage): void {
  * Maps a plugin host-bridge livePage op + payload to a {@link ScriptLivePageRequest}.
  *
  * @param op - Bridge operation name (`livePage.open`, …).
- * @param payload - Serializable fields for the op.
+ * @param payload - Already Zod-validated fields for the op.
  * @returns Request for {@link executeScriptLivePageRequest}.
  */
 function toScriptLivePageRequest(op: string, payload: unknown): ScriptLivePageRequest {
@@ -860,15 +817,16 @@ export async function handlePluginHostBridgeInvoke(
  */
 export function startPluginBridgeHost(): () => void {
   const unsubContributions = window.api.onPluginsContributions((message) => {
-    applyContributionMessage(message as ContributionMessage);
+    applyContributionMessage(parseContributionMessage(message));
   });
   const unsubImportHandlers = window.api.onPluginsImportHandlers((message) => {
-    applyImportHandlerMessage(message as ImportHandlerMessage);
+    applyImportHandlerMessage(parseImportHandlerMessage(message));
   });
   const unsubHostBridge = window.api.onPluginsHostBridge((message) => {
     void (async () => {
       try {
-        await handlePluginHostBridge(message as HostBridgeMessage);
+        const parsed = parseHostBridgeMessage(message);
+        await handlePluginHostBridge(parsed);
       } catch (error) {
         const hostMessage = message as HostBridgeMessage;
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -888,15 +846,20 @@ export function startPluginBridgeHost(): () => void {
   const unsubHostBridgeInvoke = window.api.onPluginsHostBridgeInvoke((message) => {
     void (async () => {
       try {
-        const result = await handlePluginHostBridgeInvoke(message as HostBridgeInvokeMessage);
+        const parsed = parseHostBridgeInvokeMessage(message);
+        const result = await handlePluginHostBridgeInvoke(parsed);
         window.api.completePluginHostBridge({
-          requestId: message.requestId,
+          requestId: parsed.requestId,
           ok: true,
           result
         });
       } catch (error) {
+        const requestId =
+          typeof (message as { requestId?: unknown }).requestId === 'number'
+            ? (message as { requestId: number }).requestId
+            : 0;
         window.api.completePluginHostBridge({
-          requestId: message.requestId,
+          requestId,
           ok: false,
           error: error instanceof Error ? error.message : String(error)
         });
