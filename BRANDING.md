@@ -21,6 +21,12 @@ It must not look like marine hardware.
 
 # Primary Visual Rule
 
+ALWAYS use the real logo in images/logo.png. NEVER invent a logo.
+
+When showing HarborClient UI in images, use the screenshots in images/screenshots for inspiration. You don't always have to use photo realistic versions of the UI, but use the screenshots to understand what the UI looks like.
+
+Use the images in images/featured for examples of the default visual style.
+
 ## Show software first. Use instrumentation only as influence.
 
 The central subject of a HarborClient image should usually be one or more of:
