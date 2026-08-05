@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.1 - 2026-08-05
+
 - Enhance useTeamHubs hook to support dynamic updates. (`4be533b9`)
 - Update Team Hub documentation and Dockerignore. (`694f5a0e`)
 
