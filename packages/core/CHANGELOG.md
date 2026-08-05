@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.6 - 2026-08-05
+
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
 - Enhance CLI and UI theme support with new tab color tokens. (`7864533e`)
 - chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
