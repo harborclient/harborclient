@@ -9,4 +9,3 @@ docs/.vitepress/cache
 docs/.vitepress/dist
 server.yaml
 *.md
-!docs/deploy.md

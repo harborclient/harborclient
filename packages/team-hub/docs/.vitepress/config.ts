@@ -93,7 +93,7 @@ export default withMermaid(
       siteTitle: false,
       nav: [
         { text: 'Get started', link: '/setup' },
-        { text: 'Deploy with Docker', link: '/deploy' },
+        { text: 'Deploy with Docker', link: '/deploy/' },
         { text: 'Team Hub API', link: 'https://harborclient.com/team-hub-api/' },
         { text: 'NPM', link: 'https://www.npmjs.com/package/@harborclient/team-hub' },
         { text: 'What is HarborClient?', link: 'https://harborclient.com' },

@@ -67,7 +67,7 @@ team-hub -c server.yaml start
 
 The server listens on the address configured in `server.yaml` (see [Setup](./setup.md)).
 
-While running, reload config from disk with `kill -HUP` on the start process or `POST /admin/config/reload` (admin token required). See [Deploy — Reload config without restarting](./deploy.md#reload-config-without-restarting) for section-by-section behavior.
+While running, reload config from disk with `kill -HUP` on the start process or `POST /admin/config/reload` (admin token required). See [Docker Compose — Using the CLI in the container](/deploy/docker#using-the-cli-in-the-container) for section-by-section behavior.
 
 ## migrate
 

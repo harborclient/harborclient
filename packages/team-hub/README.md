@@ -23,12 +23,15 @@ Canonical docs live in [`docs/`](./docs/). Edit those pages directly, then run `
 
 ## Deployment
 
-Team Hub production deployments use a **prebuilt Docker image** published to GitHub Container Registry (GHCR). The npm package includes an **optional** CLI that wraps Docker Compose for friendly install/update commands — Docker remains the runtime.
+Team Hub production deployments use a **prebuilt Docker image** published to GitHub Container Registry (GHCR). The npm package includes an **optional** CLI that wraps Docker Compose — Docker remains the runtime.
 
-| Topic                             | Link                                               |
-| --------------------------------- | -------------------------------------------------- |
-| Production deploy (Docker / GHCR) | [Deploy](https://harborclient.com/team-hub/deploy) |
-| CLI reference                     | [CLI](https://harborclient.com/team-hub/cli)       |
+| Topic            | Link                                                              |
+| ---------------- | ----------------------------------------------------------------- |
+| Deploy overview  | [Deploy](https://harborclient.com/team-hub/deploy/)               |
+| Docker Compose   | [Docker Compose](https://harborclient.com/team-hub/deploy/docker) |
+| npm CLI          | [npm CLI](https://harborclient.com/team-hub/deploy/npm)           |
+| VPS              | [VPS](https://harborclient.com/team-hub/deploy/vps)               |
+| Google Cloud Run | [Google Cloud Run](https://harborclient.com/team-hub/deploy/gcp)  |
 
 ### Standard Docker deployment
 
@@ -42,11 +45,9 @@ docker compose pull
 docker compose up -d --remove-orphans
 ```
 
-Image: `ghcr.io/harborclient/team-hub:<version>` (for example `0.7.6` or `latest`).
+Image: `ghcr.io/harborclient/team-hub:<version>` (for example `0.8.0` or `latest`).
 
 ### Optional CLI deployment
-
-Requires a Team Hub npm release **after 0.7.6** (verify with `team-hub --help` — `deploy` must appear under Commands). Until then, use the Docker Compose steps above.
 
 ```bash
 npm install --global @harborclient/team-hub

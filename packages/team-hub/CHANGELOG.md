@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Update Team Hub documentation and Dockerignore. (`694f5a0e`)
+
 ## 0.8.0 - 2026-08-05
 
 - Update Team Hub documentation to clarify deployment CLI requirements. (`de7631f9`)

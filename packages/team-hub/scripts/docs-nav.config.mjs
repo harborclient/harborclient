@@ -24,7 +24,33 @@ export const docsNav = [
   { kind: 'page', slug: 'prerequisites', title: 'Prerequisites', maxDepth: 0 },
   { kind: 'page', slug: 'setup', title: 'Setup', maxDepth: 0 },
   { kind: 'page', slug: 'configuration', title: 'Configuration', maxDepth: 2 },
-  { kind: 'page', slug: 'deploy', title: 'Deploy', maxDepth: 3 },
+  {
+    kind: 'group',
+    slug: 'deploy',
+    title: 'Deploy',
+    pages: [
+      {
+        name: 'docker',
+        source: 'docs/deploy/docker.md',
+        title: 'Docker Compose'
+      },
+      {
+        name: 'npm',
+        source: 'docs/deploy/npm.md',
+        title: 'npm CLI'
+      },
+      {
+        name: 'vps',
+        source: 'docs/deploy/vps.md',
+        title: 'VPS'
+      },
+      {
+        name: 'gcp',
+        source: 'docs/deploy/gcp.md',
+        title: 'Google Cloud Run'
+      }
+    ]
+  },
   { kind: 'page', slug: 'auth', title: 'Authentication', maxDepth: 0 },
   { kind: 'page', slug: 'llm', title: 'LLM', maxDepth: 2 },
   { kind: 'page', slug: 'cli', title: 'CLI', maxDepth: 2 },

@@ -9,7 +9,7 @@ Self-hosted HarborClient hub for shared collections, curated plugins and themes,
 - [Prerequisites](/prerequisites) — Node, databases, and Redis requirements
 - [Setup](/setup) — install and run the CLI locally
 - [Configuration](/configuration) — `server.yaml` sections and keys
-- [Deploy](/deploy) — Docker and VPS deployment
+- [Deploy](/deploy/) — Docker Compose, npm CLI, VPS, and Google Cloud Run
 - [Authentication](/auth) — bearer tokens, invitations, and join flow
 - [LLM](/llm) — team AI and MCP tooling
 - [CLI](/cli) — command reference

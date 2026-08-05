@@ -28,7 +28,7 @@ Reload triggers while `team-hub start` is running:
 - `SIGHUP` to the start process
 - `POST /admin/config/reload` (admin bearer token required)
 
-See [Deploy — Reload config without restarting](./deploy.md#reload-config-without-restarting) for details and response shape.
+See [Docker Compose — Using the CLI in the container](/deploy/docker#using-the-cli-in-the-container) for details and response shape.
 
 ## server
 
@@ -237,7 +237,7 @@ Optional documentation vector search settings for hub-native `search_docs`. Omit
 | ----------------- | ------ | -------- | -------------------------------------------------------- |
 | `searchIndexPath` | string | No       | Path to serialized `docsSearchIndex.json` (Orama export) |
 
-Rebuild the index in the harborclient repository with `pnpm index-docs`. The Docker image fetches the latest published index at build time; see [Deploy — Documentation index](./deploy.md#documentation-index).
+Rebuild the index in the harborclient repository with `pnpm index-docs`. The Docker image fetches the latest published index at build time; see [Docker Compose — Documentation index](/deploy/docker#documentation-index).
 
 ```yaml
 docs:
@@ -286,11 +286,11 @@ The all-in-one Docker image renders `/etc/team-hub/server.yaml` from environment
 | `TEAM_HUB_LOGGING_CONSOLE` | `true`                           | `logging.console` |
 | `TEAM_HUB_MULTITENANCY_ENABLED` | `false`                     | `multitenancy.enabled` |
 
-`llm` and `plugins` are not generated from environment variables in the default template. Mount a custom `server.yaml` or extend deployment tooling for those sections. Logging applies at process startup — restart the container after changing logging env vars. See [Deploy](./deploy.md).
+`llm` and `plugins` are not generated from environment variables in the default template. Mount a custom `server.yaml` or extend deployment tooling for those sections. Logging applies at process startup — restart the container after changing logging env vars. See [Deploy](/deploy/).
 
 ## Related docs
 
 - [Setup](./setup.md) — install, migrate, and start the server
-- [Deploy](./deploy.md) — Docker image, hosting guides, config reload, and env var reference
+- [Deploy](/deploy/) — Docker image, hosting guides, config reload, and env var reference
 - [Authentication](./auth.md) — bearer tokens and Redis throttling
 - [LLM](./llm.md) — user access and usage limits

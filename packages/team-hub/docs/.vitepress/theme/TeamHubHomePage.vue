@@ -34,7 +34,7 @@ const sections: Section[] = [
     showLogo: true,
     actions: [
       { text: 'Get started', link: '/setup', theme: 'brand' },
-      { text: 'Deploy with Docker', link: '/deploy', theme: 'guide' },
+      { text: 'Deploy with Docker', link: '/deploy/', theme: 'guide' },
       {
         text: 'Team Hub API',
         link: 'https://harborclient.com/team-hub-api/',
@@ -131,7 +131,7 @@ const sections: Section[] = [
     actions: [
       { text: 'Prerequisites', link: '/prerequisites', theme: 'alt' },
       { text: 'Setup', link: '/setup', theme: 'brand' },
-      { text: 'Deploy', link: '/deploy', theme: 'guide' }
+      { text: 'Deploy', link: '/deploy/', theme: 'guide' }
     ],
     variant: 'accent'
   }

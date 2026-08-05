@@ -66,7 +66,7 @@ When HarborClient's AI assistant calls `search_docs`, the request normally runs 
 Team Hub can execute `search_docs` **server-side** when both of the following are true:
 
 1. `llm.providers.openai.apiKey` is configured in `server.yaml`.
-2. A serialized documentation index (`docsSearchIndex.json`) is available on disk (see [Configuration — docs](./configuration.md#docs) and [Deploy — Documentation index](./deploy.md#documentation-index)).
+2. A serialized documentation index (`docsSearchIndex.json`) is available on disk (see [Configuration — docs](./configuration.md#docs) and [Docker Compose — Documentation index](/deploy/docker#documentation-index)).
 
 The hub embeds the query with `text-embedding-3-small` (1536 dimensions) using its OpenAI key, runs vector search over the index, and feeds results back into the agent loop without returning a passthrough tool call to HarborClient.
 

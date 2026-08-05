@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update Team Hub documentation and Dockerignore. (`694f5a0e`)
 - Update Team Hub workflows to improve release and publish logic. (`af16e3c8`)
 - Refactor TeamHubClient tests to simplify header definitions. (`5d86b07c`)
 - Update Team Hub documentation to clarify deployment CLI requirements. (`de7631f9`)

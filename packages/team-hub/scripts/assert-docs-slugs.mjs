@@ -96,6 +96,22 @@ const loadCanonicalPages = async () => {
     pages.set(`/${slug}`, pages.get(`/${slug}/`));
   }
 
+  for (const entry of docsNav) {
+    if (entry.kind !== 'group') {
+      continue;
+    }
+
+    for (const page of entry.pages) {
+      const pagePath = path.join(docsDir, entry.slug, `${page.name}.md`);
+      const markdown = await readFile(pagePath, 'utf8');
+      pages.set(`/${entry.slug}/${page.name}`, {
+        label: `docs/${entry.slug}/${page.name}.md`,
+        markdown,
+        headings: getHeadings(markdown),
+      });
+    }
+  }
+
   return pages;
 };
 
@@ -194,6 +210,19 @@ const verifyManifestParity = async () => {
   for (const slug of groupOverviewSlugs) {
     if (!(await pathExists(path.join(docsDir, slug, 'index.md')))) {
       errors.push(`Missing canonical docs/${slug}/index.md for manifest group`);
+    }
+  }
+
+  for (const entry of docsNav) {
+    if (entry.kind !== 'group') {
+      continue;
+    }
+
+    for (const page of entry.pages) {
+      const relativePath = `docs/${entry.slug}/${page.name}.md`;
+      if (!(await pathExists(path.join(docsDir, entry.slug, `${page.name}.md`)))) {
+        errors.push(`Missing group page ${relativePath} for manifest entry`);
+      }
     }
   }
 
