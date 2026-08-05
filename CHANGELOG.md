@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update Team Hub publish workflow to enhance tag resolution and conditional logic. (`46507c17`)
 - Enhance Team Hub deployment workflow and documentation. (`34eddbd7`)
 - Refactor Team Hub access control and capabilities. (`a41e59c2`)
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
