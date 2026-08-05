@@ -21,6 +21,41 @@
 
 Canonical docs live in [`docs/`](./docs/). Edit those pages directly, then run `pnpm docs:build:nav` to refresh the VitePress sidebar.
 
+## Deployment
+
+Team Hub production deployments use a **prebuilt Docker image** published to GitHub Container Registry (GHCR). The npm package includes an **optional** CLI that wraps Docker Compose for friendly install/update commands — Docker remains the runtime.
+
+| Topic                             | Link                                               |
+| --------------------------------- | -------------------------------------------------- |
+| Production deploy (Docker / GHCR) | [Deploy](https://harborclient.com/team-hub/deploy) |
+| CLI reference                     | [CLI](https://harborclient.com/team-hub/cli)       |
+
+### Standard Docker deployment
+
+```bash
+# Copy compose.yaml from the npm package or repository (packages/team-hub/deploy/compose.yaml)
+curl -fsSLO https://raw.githubusercontent.com/harborclient/harborclient/main/packages/team-hub/deploy/compose.yaml
+curl -fsSLO https://raw.githubusercontent.com/harborclient/harborclient/main/packages/team-hub/deploy/.env.example
+cp .env.example .env   # edit APP_VERSION and TEAM_HUB_DB_PASSWORD
+
+docker compose pull
+docker compose up -d --remove-orphans
+```
+
+Image: `ghcr.io/harborclient/team-hub:<version>` (for example `0.7.6` or `latest`).
+
+### Optional CLI deployment
+
+```bash
+npm install --global @harborclient/team-hub
+team-hub deploy install
+team-hub deploy status
+team-hub deploy logs --tail 200
+team-hub deploy update
+```
+
+The CLI pulls the GHCR image and manages `~/.config/team-hub` by default. It does **not** build the application image locally. Advanced operators can use Docker Compose directly without installing the CLI.
+
 ## Development
 
 From the monorepo root:

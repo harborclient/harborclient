@@ -25,6 +25,7 @@
   },
   "files": [
     "dist",
+    "deploy",
     "README.md",
     "CHANGELOG.md"
   ],

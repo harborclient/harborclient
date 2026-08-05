@@ -1,0 +1,14 @@
+services:
+  team-hub:
+    image: ghcr.io/harborclient/team-hub:${APP_VERSION:-latest}
+    container_name: team-hub
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '${HOST_PORT:-8080}:8080'
+    volumes:
+      - team-hub-pgdata:/var/lib/postgresql/data
+
+volumes:
+  team-hub-pgdata:

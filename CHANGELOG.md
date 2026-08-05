@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance Team Hub deployment workflow and documentation. (`34eddbd7`)
 - Refactor Team Hub access control and capabilities. (`a41e59c2`)
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)
 - Enhance inline notice styling with gentle pulse animation. (`5dc608b1`)

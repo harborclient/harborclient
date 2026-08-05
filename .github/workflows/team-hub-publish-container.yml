@@ -1,0 +1,116 @@
+name: Team Hub publish container
+
+# Builds and publishes the production Team Hub Docker image to GitHub Container Registry.
+#
+# Triggered automatically when a team-hub-v* release tag is pushed (for example by
+# team-hub-release.yml). Also supports manual runs for a specific ref.
+#
+# Published tags (for team-hub-v1.2.3):
+#   ghcr.io/harborclient/team-hub:1.2.3
+#   ghcr.io/harborclient/team-hub:1.2
+#   ghcr.io/harborclient/team-hub:1
+#   ghcr.io/harborclient/team-hub:latest
+#
+# After the first publish, make the package public under GitHub Packages if needed:
+#   Repository → Packages → team-hub → Package settings → Change visibility
+
+on:
+  push:
+    tags:
+      - 'team-hub-v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to build (branch, tag, or SHA)'
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: team-hub-publish-container-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/harborclient/team-hub
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},prefix=team-hub-v
+            type=semver,pattern={{major}}.{{minor}},prefix=team-hub-v
+            type=semver,pattern={{major}},prefix=team-hub-v
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/team-hub-v') }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/team-hub/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke-test:
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/team-hub-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run container health smoke test
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#team-hub-v}"
+          IMAGE="${{ env.IMAGE_NAME }}:${TAG}"
+          CID=""
+          cleanup() {
+            if [ -n "${CID}" ]; then
+              docker rm -f "${CID}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+          CID="$(docker run -d -p 8080:8080 -e TEAM_HUB_DB_PASSWORD=smoke-test "${IMAGE}")"
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              echo "Health check passed for ${IMAGE}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Health check failed for ${IMAGE}"
+          docker logs "${CID}" || true
+          exit 1

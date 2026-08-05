@@ -17,6 +17,8 @@ run-name: >-
 # Release commits use `[skip ci]` and do not re-trigger.
 #
 # Tags use the `team-hub-v*` prefix so they do not collide with desktop app `v*` tags.
+# Pushing the tag also triggers team-hub-publish-container.yml, which publishes
+# ghcr.io/harborclient/team-hub:<version> to GitHub Container Registry.
 #
 # Required setup BEFORE the first run:
 #

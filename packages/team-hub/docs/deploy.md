@@ -8,10 +8,82 @@ For local development without the full image, you can still run Postgres and Red
 
 Pick a hosting guide for your environment:
 
+- [Production deployment (GHCR)](#production-deployment-ghcr) — pull a prebuilt image from GitHub Container Registry
 - [Google Cloud Run](#google-cloud-run) — serverless deploy with managed Postgres and Redis for production
 - [VPS](#vps) — self-hosted Linux server with persistent Docker volumes (OVH and other providers)
 
 More hosting guides may be added over time.
+
+## Production deployment (GHCR)
+
+Team Hub publishes production Docker images to **GitHub Container Registry** when a `team-hub-v*` release tag is pushed (for example `team-hub-v0.7.6` via the release workflow).
+
+Image: `ghcr.io/harborclient/team-hub:<version>`
+
+Tags include the semver (`0.7.6`), major.minor (`0.7`), major (`0`), and `latest` for release builds. `latest` is **not** published for arbitrary branches or pull requests.
+
+### Standard Docker / DevOps deployment
+
+No Node.js or Git checkout is required on the production server.
+
+1. Install [Docker Engine](https://docs.docker.com/engine/install/) and the [Compose plugin](https://docs.docker.com/compose/install/).
+2. Copy the production Compose template and environment example from this repository (`packages/team-hub/deploy/`) or from an installed npm package (`deploy/` directory inside `@harborclient/team-hub`).
+3. Create `.env` from `.env.example` and set at least `APP_VERSION` and `TEAM_HUB_DB_PASSWORD`.
+4. Pull and start:
+
+```bash
+docker compose pull
+docker compose up -d --remove-orphans
+```
+
+Select the image version with `APP_VERSION` in `.env` (for example `0.7.6` or `latest`). To update, change `APP_VERSION` if needed, then run `docker compose pull` and `docker compose up -d --remove-orphans` again. To roll back, set `APP_VERSION` to an older release and repeat.
+
+Inspect logs with `docker compose logs --follow` (add `--tail 200` for recent history). Stop the service with `docker compose stop`. Remove containers with `docker compose down` (add `--volumes` only when you intend to delete Postgres data).
+
+**Private packages:** If the GHCR package is private, authenticate before pulling:
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
+```
+
+After the first publish, you may need to set the package visibility to **Public** under GitHub → Packages → `team-hub` → Package settings, depending on organization defaults.
+
+Example direct `docker run` equivalent:
+
+```bash
+docker pull ghcr.io/harborclient/team-hub:0.7.6
+
+docker run --rm \
+  --env-file .env \
+  -p 8080:8080 \
+  -v team-hub-pgdata:/var/lib/postgresql/data \
+  ghcr.io/harborclient/team-hub:0.7.6
+```
+
+### Optional CLI deployment
+
+The `@harborclient/team-hub` npm package includes an optional deployment CLI under `team-hub deploy`. It wraps Docker Compose around the GHCR image and does **not** build the application locally. The npm tarball is **not** the production application artifact — the container image is.
+
+```bash
+npm install --global @harborclient/team-hub
+
+team-hub deploy install
+team-hub deploy status
+team-hub deploy logs --tail 200
+team-hub deploy update
+team-hub deploy stop
+team-hub deploy restart
+team-hub deploy version
+team-hub deploy uninstall
+```
+
+By default, files are managed under `~/.config/team-hub`. Override with `--dir <path>` or the `TEAM_HUB_DEPLOY_DIR` environment variable.
+
+- `deploy install` verifies Docker, writes `compose.yaml`, creates `.env` from the example **only when missing**, pulls the configured GHCR image, and starts the stack.
+- `deploy update` runs `docker compose pull` and `docker compose up -d --remove-orphans`, preserving `.env` and volumes.
+- `deploy uninstall` stops containers and keeps deployment files and volumes unless you pass `--purge` (requires confirmation unless `--yes` is supplied).
+
+Advanced operators can ignore the CLI and use Docker Compose directly.
 
 ## What is in the container
 
@@ -105,18 +177,11 @@ gcloud artifacts repositories create team-hub \
 From the repository root:
 
 ```bash
-export PROJECT_ID=your-gcp-project
-export REGION=us-central1
-export IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/team-hub/team-hub:latest"
+export IMAGE=ghcr.io/harborclient/team-hub:latest
 
-docker build -t "${IMAGE}" .
-docker push "${IMAGE}"
-```
-
-Configure Docker to authenticate with Artifact Registry if needed:
-
-```bash
-gcloud auth configure-docker "${REGION}-docker.pkg.dev"
+docker pull "${IMAGE}"
+# Or build locally for development:
+# docker build -f packages/team-hub/Dockerfile -t team-hub:local .
 ```
 
 ### Quick start (evaluation)
@@ -240,7 +305,7 @@ The steps below use a generic Debian or Ubuntu VPS. [OVHcloud](https://www.ovhcl
 On a VPS you typically:
 
 1. Install Docker on the host.
-2. Build the Team Hub image on the server (or copy a pre-built image).
+2. Pull the prebuilt GHCR image (or use `team-hub deploy install`).
 3. Run the container with a named volume, restart policy, and a strong database password.
 4. Open the HTTP port in the host firewall.
 5. Create an admin user via `docker exec`.
@@ -308,30 +373,33 @@ docker compose version
 sudo docker run hello-world
 ```
 
-### Build the image
+### Deploy with Docker Compose (recommended)
 
-There is no published container registry image yet — build from source on the VPS (or build locally and transfer the image with `docker save` / `docker load`).
-
-On the VPS:
+Copy `packages/team-hub/deploy/compose.yaml` and `deploy/.env.example` to your VPS, create `.env`, set `APP_VERSION` to a released version (or `latest`), set a strong `TEAM_HUB_DB_PASSWORD`, then:
 
 ```bash
-git clone https://github.com/harborclient/harborclient.git
-cd harborclient
-docker build -f packages/team-hub/Dockerfile -t team-hub:latest .
+docker compose pull
+docker compose up -d --remove-orphans
 ```
 
-### Run Team Hub
+See [Production deployment (GHCR)](#production-deployment-ghcr) for version selection, updates, rollbacks, and authentication.
 
-Start the container in the background with a persistent volume and restart policy:
+Alternatively, after `npm install --global @harborclient/team-hub`, run `team-hub deploy install`.
+
+### Deploy with docker run
+
+Pull a released image and start the container in the background with a persistent volume and restart policy:
 
 ```bash
+docker pull ghcr.io/harborclient/team-hub:latest
+
 docker run -d \
   --name team-hub \
   --restart unless-stopped \
   -p 80:8080 \
   -v team-hub-pgdata:/var/lib/postgresql/data \
-  -e TEAM_HUB_DB_PASSWORD='6l9gN8CUeRySg5fssEra9E' \
-  team-hub:latest
+  --env-file .env \
+  ghcr.io/harborclient/team-hub:latest
 ```
 
 - `--restart unless-stopped` brings the container back after a host reboot.
@@ -420,22 +488,14 @@ If your provider has a network firewall in their control panel (OVH included), o
 
 ### Updates
 
-To deploy a new version while keeping data:
+To deploy a new version while keeping data, set `APP_VERSION` in `.env` if needed, then:
 
 ```bash
-cd harborclient
-git pull
-docker build -f packages/team-hub/Dockerfile -t team-hub:latest .
-docker stop team-hub
-docker rm team-hub
-docker run -d \
-  --name team-hub \
-  --restart unless-stopped \
-  -p 80:8080 \
-  -v team-hub-pgdata:/var/lib/postgresql/data \
-  -e TEAM_HUB_DB_PASSWORD='choose-a-strong-password' \
-  team-hub:latest
+docker compose pull
+docker compose up -d --remove-orphans
 ```
+
+Or use the CLI: `team-hub deploy update`.
 
 The entrypoint runs migrations on each start, so schema updates apply automatically.
 

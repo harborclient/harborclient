@@ -231,6 +231,7 @@ describe('createProgram', () => {
     expect(output).toContain('collection');
     expect(output).toContain('llm');
     expect(output).toContain('user');
+    expect(output).toContain('deploy');
     expect(output).toContain('--verbose');
     expect(output).toContain('--config');
 

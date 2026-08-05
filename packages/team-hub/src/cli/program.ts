@@ -21,6 +21,7 @@ import {
   type UserTokenRevokeCommandOptions,
   type UserUpdateCommandOptions
 } from '#/cli/userCommand.js';
+import { registerDeployCommand } from '#/deploy/deployCommand.js';
 import { registerStartCommand, type StartCommandOptions } from '#/server.js';
 
 export interface ProgramDependencies {
@@ -101,6 +102,7 @@ export function createProgram(version: string, deps: ProgramDependencies = {}): 
   registerLlmCommand(program, deps.llmCommand);
   registerTenantCommand(program, deps.tenantCommand);
   registerUserCommand(program, deps.userCommand);
+  registerDeployCommand(program);
 
   return program;
 }

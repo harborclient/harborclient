@@ -1,10 +1,8 @@
 name: Team Hub deploy
 
-# Builds the Team Hub Docker image when packages/team-hub changes on main.
-# Deploy remains a placeholder until VPS steps are configured.
-#
-# Also triggered by repository_dispatch type docs-index-updated (from
-# notify-team-hub-docs-index.yml when resources/docsSearchIndex.json changes).
+# Validates the Team Hub production Docker image on main and after docs index updates.
+# Container images are published to GHCR by team-hub-publish-container.yml when a
+# team-hub-v* release tag is pushed.
 
 on:
   push:
@@ -13,6 +11,7 @@ on:
     paths:
       - packages/team-hub/**
       - .github/workflows/team-hub-deploy.yml
+      - .github/workflows/team-hub-publish-container.yml
   workflow_dispatch:
   repository_dispatch:
     types:
@@ -23,21 +22,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Build Docker image
         run: |
           set -euo pipefail
-          docker build --no-cache -f packages/team-hub/Dockerfile -t team-hub:ci .
+          docker build -f packages/team-hub/Dockerfile -t team-hub:ci .
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Deploy placeholder
+      - name: Run local health smoke test
         run: |
-          echo "Team Hub deploy workflow verified image build."
-          echo "Configure your VPS deploy step here (SSH pull/restart) when ready."
+          set -euo pipefail
+          CID=""
+          cleanup() {
+            if [ -n "${CID}" ]; then
+              docker rm -f "${CID}" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+          CID="$(docker run -d -p 8080:8080 -e TEAM_HUB_DB_PASSWORD=ci-smoke team-hub:ci)"
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              echo "Health check passed for team-hub:ci"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::Health check failed for team-hub:ci"
+          docker logs "${CID}" || true
+          exit 1
