@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update Team Hub documentation to clarify deployment CLI requirements. (`de7631f9`)
 - Enhance Team Hub deployment workflow and documentation. (`34eddbd7`)
 - Refactor Team Hub access control and capabilities. (`a41e59c2`)
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)

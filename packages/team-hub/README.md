@@ -46,6 +46,8 @@ Image: `ghcr.io/harborclient/team-hub:<version>` (for example `0.7.6` or `latest
 
 ### Optional CLI deployment
 
+Requires a Team Hub npm release **after 0.7.6** (verify with `team-hub --help` — `deploy` must appear under Commands). Until then, use the Docker Compose steps above.
+
 ```bash
 npm install --global @harborclient/team-hub
 team-hub deploy install

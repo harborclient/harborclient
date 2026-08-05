@@ -64,6 +64,18 @@ docker run --rm \
 
 The `@harborclient/team-hub` npm package includes an optional deployment CLI under `team-hub deploy`. It wraps Docker Compose around the GHCR image and does **not** build the application locally. The npm tarball is **not** the production application artifact — the container image is.
 
+::: warning Version requirement
+`team-hub deploy` is **not** in the npm release **0.7.6**. It ships in the next Team Hub npm release after that work lands on `main`. Until you upgrade, use [Standard Docker / DevOps deployment](#standard-docker--devops-deployment) above.
+
+Check your install:
+
+```bash
+team-hub --help
+```
+
+If `deploy` appears under **Commands**, the CLI is available. If you see `error: unknown command 'deploy'`, your global package is too old — use Docker Compose directly or upgrade after the next `@harborclient/team-hub` release (`pnpm release:team-hub` from the monorepo).
+:::
+
 ```bash
 npm install --global @harborclient/team-hub
 
