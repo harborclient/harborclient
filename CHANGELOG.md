@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refine branding guidelines and update plugin documentation. (`420cf616`)
 - Update branding guidelines to clarify logo usage and UI representation. (`a986967d`)
 - Update branding guidelines and enhance plugin catalog. (`227421b6`)
 - chore: enhance security documentation and improve JSON parsing across modules. (`0040e7a4`)
