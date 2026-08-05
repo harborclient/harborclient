@@ -69,26 +69,7 @@ export const sidebar: DefaultTheme.SidebarItem[] =
   },
   {
     "text": "Deploy",
-    "link": "/deploy/",
-    "collapsed": false,
-    "items": [
-      {
-        "text": "Docker Compose",
-        "link": "/deploy/docker"
-      },
-      {
-        "text": "npm CLI",
-        "link": "/deploy/npm"
-      },
-      {
-        "text": "VPS",
-        "link": "/deploy/vps"
-      },
-      {
-        "text": "Google Cloud Run",
-        "link": "/deploy/gcp"
-      }
-    ]
+    "link": "/deploy/"
   },
   {
     "text": "Authentication",

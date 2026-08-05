@@ -138,6 +138,14 @@ const buildVitePressSidebar = async (nav) => {
     }
 
     if (entry.kind === 'group') {
+      if (entry.hideChildren) {
+        target.push({
+          text: entry.title,
+          link: `/${entry.slug}/`,
+        });
+        continue;
+      }
+
       target.push({
         text: entry.title,
         link: `/${entry.slug}/`,

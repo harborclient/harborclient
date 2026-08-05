@@ -16,8 +16,12 @@ export const syncedPages = [];
  * @type {Array<
  *   | { kind: 'overview'; title: string }
  *   | { kind: 'page'; slug: string; title: string; maxDepth?: number; pinnedBottom?: true }
- *   | { kind: 'group'; slug: string; title: string; pages: SyncedDocPage[] }
+ *   | { kind: 'group'; slug: string; title: string; pages: SyncedDocPage[]; hideChildren?: boolean }
  * >}
+ *
+ * A `group` with `hideChildren: true` renders as a single sidebar link to its
+ * `/<slug>/` overview page; its child pages stay routable (and link-checked)
+ * but are surfaced from the overview page rather than the sidebar.
  */
 export const docsNav = [
   { kind: 'overview', title: 'Team Hub' },
@@ -28,6 +32,7 @@ export const docsNav = [
     kind: 'group',
     slug: 'deploy',
     title: 'Deploy',
+    hideChildren: true,
     pages: [
       {
         name: 'docker',

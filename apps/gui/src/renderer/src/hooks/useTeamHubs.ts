@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { TeamHub } from '@harborclient/core/types';
+import { subscribeStorageConnectionsChanged } from './subscribeStorageConnectionsChanged';
 
 /**
  * Loaded team hub list and bootstrap state from IPC.
@@ -78,6 +79,20 @@ export function useTeamHubs(): TeamHubsState {
       cancelled = true;
     };
   }, [reloadToken]);
+
+  /**
+   * Reloads when a hub is added, deleted, or toggled anywhere in the app.
+   *
+   * Each caller of this hook owns an independent copy of the list, so a hub
+   * mutation triggered from one screen (for example onboarding or Team Hub
+   * settings) would otherwise leave other consumers — the sidebar rail avatars
+   * in particular — stale until the app restarts.
+   */
+  useEffect(() => {
+    return subscribeStorageConnectionsChanged(() => {
+      reload();
+    });
+  }, [reload]);
 
   return { teamHubs, loading, error, reload, reloadToken };
 }
