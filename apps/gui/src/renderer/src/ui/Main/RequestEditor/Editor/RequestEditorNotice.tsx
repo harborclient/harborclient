@@ -45,10 +45,15 @@ export function RequestEditorNotice({ tab }: Props): JSX.Element | null {
   return (
     <div
       role="note"
-      className="mb-4 flex shrink-0 items-start gap-2 rounded-md border border-separator bg-sidebar/40 py-2 pl-3 pr-2"
+      className="mb-4 flex shrink-0 items-start gap-3 rounded-lg border border-accent/35 bg-accent/10 py-2.5 pl-3 pr-2 shadow-sm"
     >
-      <FaIcon icon={faCircleInfo} className="h-4 w-4 shrink-0 self-center text-yellow-500" />
-      <p className="m-0 flex-1 self-center">{description}</p>
+      <span
+        className="hc-notice-icon-pulse flex size-7 shrink-0 items-center justify-center self-center rounded-full bg-accent/20 text-accent"
+        aria-hidden
+      >
+        <FaIcon icon={faCircleInfo} className="h-4 w-4" />
+      </span>
+      <p className="m-0 flex-1 self-center text-text">{description}</p>
       <Button
         variant="icon"
         className="size-[24px]"

@@ -1297,6 +1297,27 @@
   }
 }
 
+/**
+ * Gentle attention pulse for dismissible inline notice icons. Deliberately
+ * small and slow so the hint stays friendly instead of reading as an alert.
+ */
+.hc-notice-icon-pulse {
+  animation: hc-notice-icon-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes hc-notice-icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .busy-progress-bar {
     animation: none;
@@ -1306,6 +1327,12 @@
 
   .animate-spin {
     animation: none;
+  }
+
+  .hc-notice-icon-pulse {
+    animation: none;
+    transform: none;
+    opacity: 1;
   }
 }
 

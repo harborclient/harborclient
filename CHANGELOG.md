@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Enhance inline notice styling with gentle pulse animation. (`5dc608b1`)
 - Refactor UI components to remove `app-no-drag` class. (`c9cbe40e`)
 - Enhance CLI and UI theme support with new tab color tokens. (`7864533e`)
 - Refine branding guidelines and update plugin documentation. (`420cf616`)
