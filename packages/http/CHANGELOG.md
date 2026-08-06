@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance SSE session management and event detail navigation. (`9188f31a`)
+
 ## 1.3.3 - 2026-08-04
 
 - refactor: update ESLint configurations and clean up code. (`fa5f53c9`)

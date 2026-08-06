@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+- Enhance SSE session management and event detail navigation. (`9188f31a`)
+
 ## 1.6.7 - 2026-08-05
 
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)

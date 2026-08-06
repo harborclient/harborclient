@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enhance SSE session management and event detail navigation. (`9188f31a`)
+
 ## 2.11.6 - 2026-08-05
 
 - Enhance useTeamHubs hook to support dynamic updates. (`4be533b9`)

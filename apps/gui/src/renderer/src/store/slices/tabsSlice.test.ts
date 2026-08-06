@@ -1279,6 +1279,51 @@ describe('tabsSlice SSE session reducers', () => {
     expect(session?.droppedCount).toBe(1);
   });
 
+  it('preserves retained SSE events when status is updated', () => {
+    let state = tabsReducer(undefined, { type: 'unknown' });
+    const tabId = state.activeTabId;
+
+    state = tabsReducer(
+      state,
+      setSseSessionState({
+        tabId,
+        sseSession: {
+          status: 'open',
+          events: [],
+          droppedCount: 0,
+          openedAt: 1
+        }
+      })
+    );
+    state = tabsReducer(
+      state,
+      appendSseEvents({
+        tabId,
+        events: [{ seq: 1, receivedAt: 1, type: 'message', data: 'a', raw: 'data: a' }]
+      })
+    );
+    state = tabsReducer(
+      state,
+      setSseSessionState({
+        tabId,
+        sseSession: {
+          status: 'closed',
+          events: [],
+          droppedCount: 0,
+          openedAt: 1,
+          closedAt: 2
+        }
+      })
+    );
+
+    const session = asRequestTab(state.tabs.find((entry) => entry.tabId === tabId)).sseSession;
+    expect(session?.status).toBe('closed');
+    expect(session?.events).toEqual([
+      { seq: 1, receivedAt: 1, type: 'message', data: 'a', raw: 'data: a' }
+    ]);
+    expect(session?.closedAt).toBe(2);
+  });
+
   it('clears retained SSE events without dropping session status', () => {
     let state = tabsReducer(undefined, { type: 'unknown' });
     const tabId = state.activeTabId;

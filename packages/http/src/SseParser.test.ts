@@ -69,6 +69,14 @@ describe('SseParser', () => {
     expect(events.map((e) => e.seq)).toEqual([1, 2]);
   });
 
+  it('continues sequence numbers when seeded from a prior connection', () => {
+    const parser = new SseParser('', 2);
+    const events = parser.push('data: c\n\ndata: d\n\n');
+    expect(events.map((e) => e.seq)).toEqual([3, 4]);
+    expect(parser.seq).toBe(4);
+    expect(parser.nextSeq).toBe(5);
+  });
+
   it('ignores id fields containing a null character', () => {
     const parser = new SseParser('seed');
     parser.push('id: bad\0id\ndata: x\n\n');

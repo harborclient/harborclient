@@ -1,5 +1,4 @@
 import type { JSX } from 'react';
-import type { SseEvent } from '@harborclient/core/types';
 import { LogSearchInput } from '#/renderer/src/ui/Shared/LogSearch/LogSearchInput';
 import {
   isLogFilterQueryValid,
@@ -36,11 +35,6 @@ interface Props {
    * Toggles the pause state.
    */
   onPausedChange: (paused: boolean) => void;
-
-  /**
-   * Currently selected event, when any (reserved for future filter hints).
-   */
-  selectedEvent?: SseEvent | null;
 }
 
 /**

@@ -120,20 +120,23 @@ export function SseSummary({
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className={`inline-flex min-w-0 max-w-[min(40vw,28rem)] items-center gap-1.5 ${focusableReadonlyClass}`}
+          className={`inline-flex min-w-0 max-w-[min(40vw,28rem)] items-center ${focusableReadonlyClass}`}
           tabIndex={0}
           title={sseSession.error}
           aria-label={statusAriaLabel}
         >
-          <StatusDot variant={sseStatusDotVariant(sseSession)} aria-hidden />
+          <span className="mr-3 shrink-0">{statusText}</span>
+          <StatusDot
+            variant={sseStatusDotVariant(sseSession)}
+            size="sm"
+            aria-hidden
+            title={statusText}
+          />
           {sseSession.error ? (
-            <>
-              <span className="shrink-0">{statusText}</span>
-              <span className="min-w-0 truncate font-normal text-danger">: {sseSession.error}</span>
-            </>
-          ) : (
-            <span className="inline-block min-w-[7.5rem]">{statusText}</span>
-          )}
+            <span className="ml-2 min-w-0 truncate font-normal text-danger">
+              : {sseSession.error}
+            </span>
+          ) : null}
         </span>
         <span
           className={`min-w-[5.5rem] ${focusableReadonlyClass}${openInfo == null ? ' text-muted' : ''}`}

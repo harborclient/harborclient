@@ -146,6 +146,10 @@ export class SseClient {
     let retryMs = DEFAULT_SSE_RETRY_MS;
     let attempt = 0;
     let closed = false;
+    /**
+     * Session-scoped event sequence so reconnects do not restart at 1.
+     */
+    let eventSeq = 0;
 
     /**
      * Emits onClose at most once for this session.
@@ -169,8 +173,10 @@ export class SseClient {
         settings,
         cookieHeader,
         signal,
-        lastEventId
+        lastEventId,
+        eventSeq
       );
+      eventSeq = result.eventSeq ?? eventSeq;
 
       if (result.lastEventId) {
         lastEventId = result.lastEventId;
@@ -218,6 +224,7 @@ export class SseClient {
    * @param cookieHeader - Optional cookie jar header.
    * @param signal - Session abort signal.
    * @param lastEventId - Last-Event-ID for this attempt.
+   * @param startSeq - Highest sequence already emitted in this session.
    * @returns Connect outcome used by the reconnect loop.
    */
   async #connectOnce(
@@ -226,7 +233,8 @@ export class SseClient {
     settings: RequestSettings,
     cookieHeader: string | undefined,
     signal: AbortSignal,
-    lastEventId: string
+    lastEventId: string,
+    startSeq: number
   ): Promise<ConnectOnceResult> {
     const url = this.#queryString.buildUrl(input.url, input.params);
     if (!url.trim()) {
@@ -356,7 +364,13 @@ export class SseClient {
     const streamAbort = new AbortController();
     const unlinkStream = linkAbort(signal, streamAbort);
     try {
-      return await this.#readStream(response.body, handlers, lastEventId, streamAbort.signal);
+      return await this.#readStream(
+        response.body,
+        handlers,
+        lastEventId,
+        startSeq,
+        streamAbort.signal
+      );
     } finally {
       unlinkStream();
     }
@@ -368,6 +382,7 @@ export class SseClient {
    * @param body - Fetch response body stream.
    * @param handlers - Session callbacks.
    * @param lastEventId - Seed Last-Event-ID for the parser.
+   * @param startSeq - Highest sequence already emitted in this session.
    * @param signal - Abort signal for the open stream.
    * @returns Non-fatal server close, or fatal client abort.
    */
@@ -375,9 +390,10 @@ export class SseClient {
     body: ReadableStream<Uint8Array>,
     handlers: SessionHandlers,
     lastEventId: string,
+    startSeq: number,
     signal: AbortSignal
   ): Promise<ConnectOnceResult> {
-    const parser = new SseParser(lastEventId);
+    const parser = new SseParser(lastEventId, startSeq);
     const reader = body.getReader();
     const decoder = new TextDecoder();
 
@@ -410,7 +426,8 @@ export class SseClient {
           fatal: true,
           closeReason: 'client',
           lastEventId: parser.lastEventId,
-          retryMs: parser.retryMs
+          retryMs: parser.retryMs,
+          eventSeq: parser.seq
         };
       }
 
@@ -418,7 +435,8 @@ export class SseClient {
         fatal: false,
         closeReason: 'server',
         lastEventId: parser.lastEventId,
-        retryMs: parser.retryMs
+        retryMs: parser.retryMs,
+        eventSeq: parser.seq
       };
     } catch (err) {
       if (signal.aborted) {
@@ -426,7 +444,8 @@ export class SseClient {
           fatal: true,
           closeReason: 'client',
           lastEventId: parser.lastEventId,
-          retryMs: parser.retryMs
+          retryMs: parser.retryMs,
+          eventSeq: parser.seq
         };
       }
       return {
@@ -434,7 +453,8 @@ export class SseClient {
         closeReason: 'error',
         error: err instanceof Error ? err.message : String(err),
         lastEventId: parser.lastEventId,
-        retryMs: parser.retryMs
+        retryMs: parser.retryMs,
+        eventSeq: parser.seq
       };
     } finally {
       signal.removeEventListener('abort', onAbort);
@@ -470,6 +490,11 @@ interface ConnectOnceResult {
    * Retry interval from the most recent `retry:` field.
    */
   retryMs?: number;
+
+  /**
+   * Highest event sequence emitted after this attempt (session-scoped).
+   */
+  eventSeq?: number;
 }
 
 /**

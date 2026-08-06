@@ -123,10 +123,10 @@ export function Modal({
 
   const panelClass = title
     ? cn(
-        className,
-        'flex max-h-[85vh] flex-col overflow-hidden rounded-lg border border-separator bg-surface shadow-xl'
+        'flex max-h-[85vh] flex-col overflow-hidden rounded-lg border border-separator bg-surface shadow-xl',
+        className
       )
-    : cn(className, 'rounded-lg border border-separator bg-surface p-4 shadow-xl');
+    : cn('rounded-lg border border-separator bg-surface p-4 shadow-xl', className);
 
   const descriptionId = description && labelledBy ? `${labelledBy}-description` : undefined;
 
@@ -153,7 +153,9 @@ export function Modal({
               closeDisabled={closeDisabled}
               onClose={onClose}
             />
-            <div className="hc-modal-body flex-1 overflow-y-auto p-4">{children}</div>
+            <div className="hc-modal-body flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+              {children}
+            </div>
           </>
         ) : (
           children

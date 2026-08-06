@@ -1073,7 +1073,11 @@ const tabsSlice = createSlice({
       }
     },
     /**
-     * Replaces the SSE session state on a request tab (connect / status changes).
+     * Updates SSE session lifecycle fields on a request tab.
+     *
+     * Retained events and dropped counts from {@link appendSseEvents} are preserved
+     * when a session already exists, so status pushes cannot clobber a fresher
+     * event list with a stale snapshot.
      */
     setSseSessionState(
       state,
@@ -1081,9 +1085,24 @@ const tabsSlice = createSlice({
     ) {
       const { tabId, sseSession } = action.payload;
       const requestTab = state.tabs.find((t) => t.tabId === tabId);
-      if (requestTab && isRequestTab(requestTab)) {
-        requestTab.sseSession = sseSession;
+      if (!requestTab || !isRequestTab(requestTab)) {
+        return;
       }
+      if (sseSession == null) {
+        requestTab.sseSession = null;
+        return;
+      }
+      const previous = requestTab.sseSession;
+      if (previous == null) {
+        requestTab.sseSession = sseSession;
+        return;
+      }
+      requestTab.sseSession = {
+        ...sseSession,
+        events: previous.events,
+        droppedCount: previous.droppedCount,
+        openedAt: previous.openedAt ?? sseSession.openedAt
+      };
     },
     /**
      * Appends SSE events to a tab's session, trimming to the ring-buffer cap.

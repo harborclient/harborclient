@@ -17,7 +17,8 @@ export type RequestProtocol = 'http' | 'sse';
  */
 export interface SseEvent {
   /**
-   * Monotonic sequence number within the session, used as a stable React key.
+   * Monotonic sequence number within the session (survives reconnects), used as a
+   * stable React key and selection identity.
    */
   seq: number;
 

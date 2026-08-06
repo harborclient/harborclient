@@ -70,7 +70,9 @@ export function SseEventRow({ event, selected, onSelect }: Props): JSX.Element {
       onClick={() => onSelect(event)}
       onKeyDown={handleKeyDown}
     >
-      <TableCell className="w-14 font-mono text-[14px] text-muted">{event.seq}</TableCell>
+      <TableCell className="w-14 font-mono text-[14px] text-muted text-center">
+        {event.seq}
+      </TableCell>
       <TableCell className="w-28 whitespace-nowrap text-[14px] text-muted">
         {formatEventTime(event.receivedAt)}
       </TableCell>

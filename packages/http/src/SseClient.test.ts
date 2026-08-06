@@ -76,4 +76,49 @@ describe('SseClient', () => {
       expect(closedReason === 'client' || closedReason === 'server').toBe(true);
     });
   });
+
+  it('keeps monotonic sequence numbers across reconnects', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(mockEventStreamResponse('id: 1\ndata: first\n\n'))
+      .mockResolvedValueOnce(mockEventStreamResponse('id: 1\ndata: second\n\n'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const client = new SseClient({
+      createSessionId: () => 'test-session',
+      sleep: async () => undefined
+    });
+
+    const events: Array<{ seq: number; data: string }> = [];
+    let reconnects = 0;
+
+    const session = await client.open(
+      {
+        protocol: 'sse',
+        url: 'https://example.com/events',
+        headers: [],
+        params: [],
+        reconnect: true
+      },
+      {
+        onEvent(event) {
+          events.push({ seq: event.seq, data: event.data });
+          if (events.length >= 2) {
+            void session.close();
+          }
+        },
+        onReconnecting() {
+          reconnects += 1;
+        }
+      }
+    );
+
+    await vi.waitFor(() => {
+      expect(events.length).toBeGreaterThanOrEqual(2);
+    });
+
+    expect(reconnects).toBeGreaterThanOrEqual(1);
+    expect(events.map((event) => event.seq)).toEqual([1, 2]);
+    expect(events.map((event) => event.data)).toEqual(['first', 'second']);
+  });
 });

@@ -35,12 +35,15 @@ export class SseParser {
   #retryMs = DEFAULT_SSE_RETRY_MS;
 
   /**
-   * Creates a parser, optionally seeding Last-Event-ID from a prior session.
+   * Creates a parser, optionally seeding Last-Event-ID and sequence from a prior
+   * connection so reconnects keep monotonic {@link SseEvent.seq} values.
    *
    * @param lastEventId - Initial Last-Event-ID for reconnect.
+   * @param startSeq - Highest sequence already emitted in this session (0 when new).
    */
-  constructor(lastEventId = '') {
+  constructor(lastEventId = '', startSeq = 0) {
     this.#lastEventId = lastEventId;
+    this.#seq = Math.max(0, Math.floor(startSeq));
   }
 
   /**
@@ -55,6 +58,13 @@ export class SseParser {
    */
   get retryMs(): number {
     return this.#retryMs;
+  }
+
+  /**
+   * Highest sequence number assigned so far (0 before the first event).
+   */
+  get seq(): number {
+    return this.#seq;
   }
 
   /**

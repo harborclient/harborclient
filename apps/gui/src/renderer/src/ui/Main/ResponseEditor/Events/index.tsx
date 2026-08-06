@@ -50,7 +50,7 @@ function matchesSseEvent(event: SseEvent, query: string, options: LogMatchOption
 }
 
 /**
- * SSE Events tab: filterable, auto-scrolling event table with detail pane.
+ * SSE Events tab: filterable, auto-scrolling event table with a detail modal.
  *
  * @param props - Session events to display.
  * @returns Events viewer with pause and filter controls.
@@ -61,6 +61,11 @@ export function Events({ events }: Props): JSX.Element {
   const [matchOptions, setMatchOptions] = useState<LogMatchOptions>(DEFAULT_LOG_MATCH_OPTIONS);
   const [paused, setPaused] = useState(false);
   const [selectedSeq, setSelectedSeq] = useState<number | null>(null);
+  /**
+   * Increments only on table-row selection so the detail modal can exit Diff
+   * mode for direct picks without clearing Diff when stepping Previous/Next.
+   */
+  const [selectionRevision, setSelectionRevision] = useState(0);
   const [stickToBottom, setStickToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -85,10 +90,32 @@ export function Events({ events }: Props): JSX.Element {
   );
 
   /**
+   * Latest filtered list for navigation handlers so prev/next never read a stale
+   * closure after the modal stays open across renders.
+   */
+  const filteredEventsRef = useRef(filteredEvents);
+
+  /**
+   * Keeps the navigation ref aligned with the latest filtered event list.
+   */
+  useEffect(() => {
+    filteredEventsRef.current = filteredEvents;
+  }, [filteredEvents]);
+
+  /**
    * Currently selected event from the filtered list, when any.
    */
   const selectedEvent = useMemo(
     () => filteredEvents.find((event) => event.seq === selectedSeq) ?? null,
+    [filteredEvents, selectedSeq]
+  );
+
+  /**
+   * Position of the selected event in the filtered list so modal navigation
+   * follows the same order the table is showing.
+   */
+  const selectedIndex = useMemo(
+    () => filteredEvents.findIndex((event) => event.seq === selectedSeq),
     [filteredEvents, selectedSeq]
   );
 
@@ -115,12 +142,55 @@ export function Events({ events }: Props): JSX.Element {
   };
 
   /**
-   * Selects an event row for the detail pane.
+   * Opens the event detail modal for the activated row and bumps the selection
+   * revision so Diff mode resets on direct picks.
    *
    * @param event - Event the user activated.
    */
   const handleSelect = (event: SseEvent): void => {
+    setSelectionRevision((revision) => revision + 1);
     setSelectedSeq(event.seq);
+  };
+
+  /**
+   * Closes the event detail modal.
+   */
+  const handleCloseDetail = (): void => {
+    setSelectedSeq(null);
+  };
+
+  /**
+   * Selects the previous filtered event when modal navigation is available.
+   */
+  const handlePreviousDetail = (): void => {
+    setSelectedSeq((current) => {
+      if (current == null) {
+        return current;
+      }
+      const list = filteredEventsRef.current;
+      const index = list.findIndex((event) => event.seq === current);
+      if (index <= 0) {
+        return current;
+      }
+      return list[index - 1]?.seq ?? current;
+    });
+  };
+
+  /**
+   * Selects the next filtered event when modal navigation is available.
+   */
+  const handleNextDetail = (): void => {
+    setSelectedSeq((current) => {
+      if (current == null) {
+        return current;
+      }
+      const list = filteredEventsRef.current;
+      const index = list.findIndex((event) => event.seq === current);
+      if (index < 0 || index >= list.length - 1) {
+        return current;
+      }
+      return list[index + 1]?.seq ?? current;
+    });
   };
 
   return (
@@ -132,7 +202,6 @@ export function Events({ events }: Props): JSX.Element {
         onMatchOptionsChange={setMatchOptions}
         paused={paused}
         onPausedChange={setPaused}
-        selectedEvent={selectedEvent}
       />
       <div
         ref={scrollRef}
@@ -148,7 +217,7 @@ export function Events({ events }: Props): JSX.Element {
           <Table>
             <TableHeader>
               <tr>
-                <TableHead className="w-14">#</TableHead>
+                <TableHead className="w-14 text-center">#</TableHead>
                 <TableHead className="w-28">Time</TableHead>
                 <TableHead className="w-28">Type</TableHead>
                 <TableHead className="w-28">Id</TableHead>
@@ -168,7 +237,23 @@ export function Events({ events }: Props): JSX.Element {
           </Table>
         )}
       </div>
-      {selectedEvent != null ? <SseEventDetail event={selectedEvent} /> : null}
+      {selectedEvent != null ? (
+        <SseEventDetail
+          event={selectedEvent}
+          previousEvent={selectedIndex > 0 ? (filteredEvents[selectedIndex - 1] ?? null) : null}
+          nextEvent={
+            selectedIndex >= 0 && selectedIndex < filteredEvents.length - 1
+              ? (filteredEvents[selectedIndex + 1] ?? null)
+              : null
+          }
+          selectionRevision={selectionRevision}
+          canGoPrevious={selectedIndex > 0}
+          canGoNext={selectedIndex >= 0 && selectedIndex < filteredEvents.length - 1}
+          onPrevious={handlePreviousDetail}
+          onNext={handleNextDetail}
+          onClose={handleCloseDetail}
+        />
+      ) : null}
     </div>
   );
 }
