@@ -65,8 +65,9 @@ interface Props {
 
   /**
    * Collection-scoped variables for highlighting and tooltips.
+   * Defaults to an empty list when the host has no variable scope (e.g. discussions).
    */
-  variables: Variable[];
+  variables?: Variable[];
 
   /**
    * Opens collection settings to edit variables.
@@ -79,7 +80,7 @@ interface Props {
   label?: string;
 
   /**
-   * Helper text shown below the label.
+   * Helper text shown below the label. Pass an empty string to hide it.
    */
   description?: string;
 
@@ -93,6 +94,43 @@ interface Props {
    * context menu offers Format Document and listens for that menu action.
    */
   enableFormatDocument?: boolean;
+
+  /**
+   * Layout density. `panel` fills the request notes area; `inline` fits discussion
+   * composers and reply/edit forms without the full panel chrome.
+   */
+  variant?: 'panel' | 'inline';
+
+  /**
+   * When true, the markdown surface is non-editable.
+   */
+  disabled?: boolean;
+
+  /**
+   * Placeholder shown when the markdown document is empty.
+   */
+  placeholder?: string;
+
+  /**
+   * When false, hides the FormGroup header so a parent can supply its own label.
+   */
+  showHeader?: boolean;
+
+  /**
+   * Optional id for the editor group, used by parent labels via `aria-labelledby`
+   * or as a stable hook for tests.
+   */
+  id?: string;
+
+  /**
+   * Marks the editor invalid for assistive tech when validation fails.
+   */
+  ariaInvalid?: boolean;
+
+  /**
+   * Links the editor to validation or help text.
+   */
+  ariaDescribedBy?: string;
 
   /**
    * Stable uuid and label for copy-to-chat `@markdown` references.
@@ -139,12 +177,19 @@ function isBelowEditorContent(editable: HTMLElement, clientY: number): boolean {
 export function CommentEditor({
   value,
   onChange,
-  variables,
+  variables = [],
   onEditVariables,
   label = 'Comment',
   description = 'Leave a comment to describe the request. Markdown is supported.',
   actions,
   enableFormatDocument = false,
+  variant = 'panel',
+  disabled = false,
+  placeholder,
+  showHeader = true,
+  id,
+  ariaInvalid,
+  ariaDescribedBy,
   markdownReference
 }: Props): JSX.Element {
   const dispatch = useAppDispatch();
@@ -512,22 +557,35 @@ export function CommentEditor({
     selectionToolbarCoords != null &&
     aiAvailable &&
     markdownReference != null;
+  const isInline = variant === 'inline';
+  const editorClassName = isInline
+    ? 'request-comment-editor request-comment-editor--inline bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent'
+    : 'request-comment-editor min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent';
 
   return (
     <div
-      className="flex h-full min-h-0 flex-1 flex-col border border-separator p-4"
+      id={id}
+      className={
+        isInline
+          ? 'flex min-w-0 flex-col'
+          : 'flex h-full min-h-0 flex-1 flex-col border border-separator p-4'
+      }
       role="group"
       aria-label={label}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
     >
-      <div className="mb-2 flex items-start justify-between gap-4">
-        <FormGroup label={label} className="border-none! min-w-0 flex-1 p-0!">
-          <p className="text-sm text-muted">{description}</p>
-        </FormGroup>
-        {actions ? <div className="shrink-0 pt-1">{actions}</div> : null}
-      </div>
+      {showHeader ? (
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <FormGroup label={label} className="border-none! min-w-0 flex-1 p-0!">
+            {description !== '' ? <p className="text-sm text-muted">{description}</p> : null}
+          </FormGroup>
+          {actions ? <div className="shrink-0 pt-1">{actions}</div> : null}
+        </div>
+      ) : null}
       <div
         ref={shellRef}
-        className="flex min-h-0 flex-1 flex-col"
+        className={isInline ? 'flex min-w-0 flex-col' : 'flex min-h-0 flex-1 flex-col'}
         {...(enableFormatDocument ? { 'data-markdown-document-editor': '' } : {})}
       >
         <MDXEditor
@@ -535,7 +593,9 @@ export function CommentEditor({
           markdown={value}
           onChange={handleChange}
           plugins={plugins}
-          className="request-comment-editor min-h-0 flex-1 h-full bg-field rounded-lg! border border-separator focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+          readOnly={disabled}
+          placeholder={placeholder}
+          className={editorClassName}
           contentEditableClassName="request-comment-editor-content bg-field outline-none"
         />
       </div>

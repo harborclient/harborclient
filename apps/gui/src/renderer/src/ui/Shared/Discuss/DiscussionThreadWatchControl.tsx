@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type JSX } from 'react';
+import { Button } from '@harborclient/sdk/components';
 import { isTeamHubNoticesGracefulError } from '#/renderer/src/ui/Sidebars/CollectionSidebar/shell/TeamHubRailAvatars/isTeamHubNoticesGracefulError';
 
 interface Props {
@@ -15,8 +16,10 @@ interface Props {
 
 /**
  * Subscribe/unsubscribe control for a Team Hub discussion thread.
+ *
+ * @returns Toolbar watch button, or null when the hub does not support watch.
  */
-export function DiscussionThreadWatchControl({ hubId, rootCommentId }: Props): JSX.Element {
+export function DiscussionThreadWatchControl({ hubId, rootCommentId }: Props): JSX.Element | null {
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -86,25 +89,14 @@ export function DiscussionThreadWatchControl({ hubId, rootCommentId }: Props): J
   }, [hubId, rootCommentId, subscribed]);
 
   if (unsupported) {
-    return (
-      <p className="m-0 text-muted" role="status">
-        Thread watch controls are unavailable on this Team Hub.
-      </p>
-    );
+    return null;
   }
 
-  const label =
-    subscribed === true
-      ? 'Watching this discussion'
-      : subscribed === false
-        ? 'Not watching this discussion'
-        : 'Discussion watch status unknown';
-
   return (
-    <div className="flex flex-wrap items-center gap-3" aria-busy={loading || saving}>
-      <button
+    <span className="inline-flex flex-wrap items-center gap-2" aria-busy={loading || saving}>
+      <Button
         type="button"
-        className="cursor-pointer rounded border border-separator bg-surface px-3 py-1.5 text-[14px] text-text hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
+        variant="toolbar"
         aria-pressed={subscribed === true}
         aria-label={subscribed ? 'Stop watching this discussion' : 'Watch this discussion'}
         disabled={loading || saving || subscribed == null}
@@ -113,15 +105,12 @@ export function DiscussionThreadWatchControl({ hubId, rootCommentId }: Props): J
         }}
       >
         {loading ? 'Loading…' : subscribed ? 'Watching' : 'Watch thread'}
-      </button>
-      <span className="text-muted" role="status" aria-live="polite">
-        {label}
-      </span>
+      </Button>
       {error != null ? (
         <span className="text-danger" role="alert">
           {error}
         </span>
       ) : null}
-    </div>
+    </span>
   );
 }

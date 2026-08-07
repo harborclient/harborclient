@@ -1422,6 +1422,48 @@
   min-height: 100%;
 }
 
+/**
+ * Compact discussion / reply composer: fixed min height instead of filling the tab.
+ */
+.request-comment-editor.request-comment-editor--inline {
+  flex: none;
+  height: auto;
+  min-height: 7.5rem;
+}
+
+/**
+ * MDXEditor portals a popup host to `document.body` and copies the editor
+ * `className` onto it. Without this reset, `.request-comment-editor` /
+ * `--inline` height rules give that host a real box below the viewport and the
+ * whole app grows a document scrollbar.
+ */
+body > .mdxeditor-popup-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: none;
+  flex: none;
+  display: block;
+  overflow: visible;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.request-comment-editor--inline .mdxeditor-root-contenteditable {
+  flex: none;
+  min-height: 6rem;
+  max-height: 16rem;
+}
+
+.request-comment-editor--inline .mdxeditor-root-contenteditable > div:first-child {
+  min-height: 6rem;
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .request-comment-editor {
     --accentSolidHover: color-mix(in srgb, var(--mac-accent) 85%, black);

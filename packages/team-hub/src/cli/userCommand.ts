@@ -1,6 +1,11 @@
 import { Command, InvalidArgumentError } from 'commander';
 import { randomUUID } from 'node:crypto';
 import { mergeGlobalOptions } from '#/cli/globalOptions.js';
+import {
+  buildInviteJoinUrl,
+  parseInviteBaseUrl,
+  resolveInviteBaseUrl
+} from '#/cli/invitationJoinUrl.js';
 import { loadServerConfig } from '#/config/serverConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
 import { createDatabase } from '#/db/index.js';
@@ -344,6 +349,25 @@ function parsePositiveInt(value: string): number {
 }
 
 /**
+ * Parses `--base-url` for invitation join links into a normalized HTTP(S) URL.
+ *
+ * @param value - Candidate base URL from a Commander option.
+ * @returns Normalized base URL without a trailing slash.
+ * @throws {InvalidArgumentError} When the value is not a valid http: or https: URL.
+ */
+function parseBaseUrlOption(value: string): string {
+  try {
+    return parseInviteBaseUrl(value);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new InvalidArgumentError(error.message);
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Optional monthly LLM usage fields for CLI user listings.
  */
 interface UserDisplayUsage {
@@ -563,6 +587,12 @@ export interface UserInviteCreateCommandOptions extends UserCreateCommandOptions
    * Optional invitation lifetime in hours; defaults to 24 when omitted.
    */
   expiresInHours?: number;
+
+  /**
+   * Optional public Team Hub base URL for the printed invite link.
+   * Defaults to `http://<server.host>:<server.port>` from config.
+   */
+  baseUrl?: string;
 }
 
 export interface UserInviteRevokeCommandOptions extends UserCommandOptions {
@@ -573,23 +603,36 @@ export interface UserInviteRevokeCommandOptions extends UserCommandOptions {
 }
 
 /**
- * Prints a newly created invitation and its one-time secret for CLI output.
+ * Prints a newly created invitation, its one-time secret, and the HTTPS join URL.
  *
  * @param user - Invited user account.
  * @param invitation - Persisted invitation metadata.
  * @param secret - Plaintext invitation secret shown once at creation.
+ * @param baseUrl - Client-reachable Team Hub base URL used in the join link.
  */
 function printCreatedInvitation(
-  user: { name: string; id: string },
+  user: { name: string; id: string; role: UserRole },
   invitation: { id: string; codePrefix: string; expiresAt: Date },
-  secret: string
+  secret: string,
+  baseUrl: string
 ): void {
+  const joinUrl = buildInviteJoinUrl({
+    baseUrl,
+    code: secret,
+    name: user.name,
+    role: user.role,
+    expiresAt: invitation.expiresAt.toISOString()
+  });
+
   console.log(`Created invitation (${invitation.id}) for user "${user.name}" (${user.id}).`);
   console.log(`Invitation prefix: ${invitation.codePrefix}`);
   console.log(`Expires: ${invitation.expiresAt.toISOString()}`);
   console.log('');
   console.log('Store this invitation secret now; it will not be shown again:');
   console.log(secret);
+  console.log('');
+  console.log('Invitation link (paste into File → Accept Team Hub Invite):');
+  console.log(joinUrl);
 }
 
 /**
@@ -658,12 +701,14 @@ export async function userInviteCreateCommand(
   );
   await rootDb.disconnect();
 
+  const inviteBaseUrl = resolveInviteBaseUrl(config.host, config.port, options.baseUrl);
+
   console.log(
     `Created invited user "${created.user.name}" (${created.user.id}) with role ${created.user.role}.`
   );
   printUser(created.user);
   console.log('');
-  printCreatedInvitation(created.user, created.invitation, secret);
+  printCreatedInvitation(created.user, created.invitation, secret, inviteBaseUrl);
 }
 
 /**
@@ -1078,6 +1123,11 @@ export function registerUserCommand(
     .option('--llm-model <id>', 'LLM model id or * (repeatable)', parseAccessFlag, [] as string[])
     .option('--llm-monthly-tokens <count>', 'Monthly LLM token limit', parseMonthlyTokenLimit)
     .option('--expires-in-hours <hours>', 'Invitation lifetime in hours', parsePositiveInt)
+    .option(
+      '--base-url <url>',
+      'Public Team Hub base URL for the invitation link (defaults to server.host/port)',
+      parseBaseUrlOption
+    )
     .option('--tenant <id>', 'Tenant namespace (default: __default__)', parseOptionalTenantId)
     .action(
       /**

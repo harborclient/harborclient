@@ -3,6 +3,7 @@ import type { SettingsSection } from '@harborclient/core/types';
 
 import { AiInfoExtra } from '../extras/AiInfoExtra';
 import { GeneralInfoExtra } from '../extras/GeneralInfoExtra';
+import { GeneralTeamHubNotificationsExtra } from '../extras/GeneralTeamHubNotificationsExtra';
 import { ProxyInfoExtra } from '../extras/ProxyInfoExtra';
 import { SyntaxSectionLeading } from '../extras/SyntaxSectionLeading';
 import { AiSettingsExtras } from '../extras/AiSettingsExtras';
@@ -193,6 +194,7 @@ export const FORM_SECTION_LEADING_EXTRAS: Partial<Record<FormSettingsSection, Co
  * Optional trailing content rendered after field components in a form section.
  */
 export const FORM_SECTION_EXTRAS: Partial<Record<FormSettingsSection, ComponentType>> = {
+  general: GeneralTeamHubNotificationsExtra,
   ai: AiSettingsExtras
 };
 

@@ -2,6 +2,26 @@ import { useCallback, useEffect, useState } from 'react';
 import type { TeamHub, TeamHubAvatar, TeamHubServiceFlags } from '@harborclient/core/types';
 
 /**
+ * Discussion-related session fields derived from a Team Hub session scan.
+ */
+export interface TeamHubDiscussionScanInfo {
+  /**
+   * When true, the authenticated token may call discussion routes on this hub.
+   */
+  communicationAccess: boolean;
+
+  /**
+   * When true, the hub requires encrypted discussion comment bodies.
+   */
+  discussionE2ee: boolean;
+
+  /**
+   * When true, this device has active local keys and a matching server enrollment.
+   */
+  deviceEnrolled: boolean;
+}
+
+/**
  * Team hub service scan state for the hub list UI.
  */
 export interface TeamHubServiceScanState {
@@ -20,6 +40,11 @@ export interface TeamHubServiceScanState {
    * Server-provided hub avatar metadata keyed by hub connection id.
    */
   hubAvatarByHubId: Map<string, TeamHubAvatar>;
+
+  /**
+   * Discussion access and E2EE enrollment flags keyed by hub connection id.
+   */
+  discussionInfoByHubId: Map<string, TeamHubDiscussionScanInfo>;
 
   /**
    * Hub ids whose tokens report management API capabilities.
@@ -70,10 +95,14 @@ export function useTeamHubServiceScan(
   );
   const [userNameByHubId, setUserNameByHubId] = useState(() => new Map<string, string>());
   const [hubAvatarByHubId, setHubAvatarByHubId] = useState(() => new Map<string, TeamHubAvatar>());
+  const [discussionInfoByHubId, setDiscussionInfoByHubId] = useState(
+    () => new Map<string, TeamHubDiscussionScanInfo>()
+  );
   const [adminHubIds, setAdminHubIds] = useState<Set<string>>(() => new Set());
   const [scanning, setScanning] = useState(false);
   const [scanToken, setScanToken] = useState(0);
   const shouldScan = enabled && teamHubs.length > 0;
+  const scanPending = shouldScan && teamHubs.some((hub) => !serviceFlagsByHubId.has(hub.id));
 
   /**
    * Triggers another service scan without reloading the hub list from IPC.
@@ -96,6 +125,7 @@ export function useTeamHubServiceScan(
         setServiceFlagsByHubId(new Map());
         setUserNameByHubId(new Map());
         setHubAvatarByHubId(new Map());
+        setDiscussionInfoByHubId(new Map());
         setAdminHubIds(new Set());
         return window.api.scanTeamHubSessions();
       })
@@ -105,10 +135,16 @@ export function useTeamHubServiceScan(
         const nextServiceFlags = new Map<string, TeamHubServiceFlags>();
         const nextUserNames = new Map<string, string>();
         const nextHubAvatars = new Map<string, TeamHubAvatar>();
+        const nextDiscussionInfo = new Map<string, TeamHubDiscussionScanInfo>();
         const nextAdminHubIds = new Set<string>();
 
         for (const result of results) {
           nextServiceFlags.set(result.hubId, result.services);
+          nextDiscussionInfo.set(result.hubId, {
+            communicationAccess: result.communicationAccess === true,
+            discussionE2ee: result.discussionE2ee === true,
+            deviceEnrolled: result.deviceEnrolled === true
+          });
           if (result.user?.name) {
             nextUserNames.set(result.hubId, result.user.name);
           }
@@ -129,6 +165,7 @@ export function useTeamHubServiceScan(
         setServiceFlagsByHubId(nextServiceFlags);
         setUserNameByHubId(nextUserNames);
         setHubAvatarByHubId(nextHubAvatars);
+        setDiscussionInfoByHubId(nextDiscussionInfo);
         setAdminHubIds(nextAdminHubIds);
         setScanning(false);
       })
@@ -137,6 +174,7 @@ export function useTeamHubServiceScan(
         setServiceFlagsByHubId(new Map(teamHubs.map((hub) => [hub.id, emptyServices()])));
         setUserNameByHubId(new Map());
         setHubAvatarByHubId(new Map());
+        setDiscussionInfoByHubId(new Map());
         setAdminHubIds(new Set());
         setScanning(false);
       });
@@ -151,6 +189,7 @@ export function useTeamHubServiceScan(
       serviceFlagsByHubId: new Map(),
       userNameByHubId: new Map(),
       hubAvatarByHubId: new Map(),
+      discussionInfoByHubId: new Map(),
       adminHubIds: new Set(),
       scanning: false,
       rescanServices
@@ -161,8 +200,9 @@ export function useTeamHubServiceScan(
     serviceFlagsByHubId,
     userNameByHubId,
     hubAvatarByHubId,
+    discussionInfoByHubId,
     adminHubIds,
-    scanning,
+    scanning: scanning || scanPending,
     rescanServices
   };
 }

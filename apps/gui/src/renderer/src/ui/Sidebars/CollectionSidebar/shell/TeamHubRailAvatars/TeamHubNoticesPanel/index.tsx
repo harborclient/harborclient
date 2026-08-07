@@ -2,6 +2,7 @@ import {
   clampMenuPosition,
   getTriggerAnchoredMenuPosition,
   MENU_MIN_WIDTH_PX,
+  MENU_VIEWPORT_MARGIN_PX,
   portalToBody,
   type MenuPosition
 } from '@harborclient/sdk/components';
@@ -15,9 +16,21 @@ import {
   type RefObject
 } from 'react';
 import type { TeamHubNotice } from '@harborclient/core/types';
+import { useAppDispatch } from '#/renderer/src/store/hooks';
+import { openPageTab } from '#/renderer/src/store/slices/tabsSlice';
+import { TEAM_HUB_NOTIFICATIONS_SETTING_ID } from '#/renderer/src/ui/Tabs/Settings/extras/GeneralTeamHubNotificationsExtra';
 import type { TeamHubNoticeBucket } from '../useTeamHubNotices';
 import { TeamHubNoticeRow } from '../TeamHubNoticeRow';
-import { TeamHubNotificationSettings } from '../TeamHubNotificationSettings';
+
+/**
+ * Fallback panel height used before the portaled dialog is measured.
+ */
+const PANEL_ESTIMATED_HEIGHT_PX = 360;
+
+/**
+ * Preferred panel width used for anchoring before measurement.
+ */
+const PANEL_MIN_WIDTH_PX = Math.max(MENU_MIN_WIDTH_PX, 320);
 
 interface Props {
   /**
@@ -46,9 +59,11 @@ interface Props {
   onDismiss: () => void;
 
   /**
-   * Loads notices when the panel opens.
+   * Loads notices when the panel opens for a hub.
+   *
+   * @param hubId - Team hub connection id.
    */
-  onLoadNotices: () => Promise<void>;
+  onLoadNotices: (hubId: string) => Promise<void>;
 
   /**
    * Marks one notice as read.
@@ -71,6 +86,27 @@ interface Props {
 }
 
 /**
+ * Chooses whether the notices panel should open above or below the avatar.
+ *
+ * Prefers the side with enough room for the measured (or estimated) height, and
+ * falls back to whichever side has more space when neither fits.
+ *
+ * @param triggerRect - Avatar button bounds in viewport coordinates.
+ * @param panelHeight - Measured or estimated panel height.
+ */
+function resolvePanelPlacement(triggerRect: DOMRect, panelHeight: number): 'down' | 'up' {
+  const spaceBelow = window.innerHeight - triggerRect.bottom - MENU_VIEWPORT_MARGIN_PX;
+  const spaceAbove = triggerRect.top - MENU_VIEWPORT_MARGIN_PX;
+  if (spaceBelow >= panelHeight) {
+    return 'down';
+  }
+  if (spaceAbove >= panelHeight) {
+    return 'up';
+  }
+  return spaceAbove > spaceBelow ? 'up' : 'down';
+}
+
+/**
  * Portaled notifications dropdown anchored to a Team Hub rail avatar.
  */
 export function TeamHubNoticesPanel({
@@ -84,44 +120,48 @@ export function TeamHubNoticesPanel({
   onMarkAllRead,
   onNavigate
 }: Props): JSX.Element | null {
+  const dispatch = useAppDispatch();
   const panelRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<MenuPosition>({ x: 0, y: 0 });
-  const [showSettings, setShowSettings] = useState(false);
+  const showInitialLoading = bucket.loading && bucket.notices.length === 0;
 
   /**
-   * Loads notices the first time the panel opens.
+   * Loads notices once whenever the open hub changes.
    */
   useEffect(() => {
-    void onLoadNotices();
-  }, [onLoadNotices]);
+    void onLoadNotices(hubId);
+  }, [hubId, onLoadNotices]);
 
   /**
-   * Clamps the portaled panel inside the viewport using measured dimensions.
+   * Clamps the portaled panel inside the viewport, flipping above the avatar
+   * when there is not enough room below.
    */
   const updateMenuPosition = useCallback((): void => {
     const rect = anchorRef.current?.getBoundingClientRect();
     if (!rect) {
       return;
     }
-    const anchor = getTriggerAnchoredMenuPosition(rect, {
-      width: Math.max(MENU_MIN_WIDTH_PX, 320),
-      height: 0
-    });
     const panelRect = panelRef.current?.getBoundingClientRect();
-    setMenuPosition(
-      clampMenuPosition(anchor, {
-        width: panelRect?.width ?? Math.max(MENU_MIN_WIDTH_PX, 320),
-        height: panelRect?.height ?? 360
-      })
+    const menuSize = {
+      width: panelRect?.width ?? PANEL_MIN_WIDTH_PX,
+      height: panelRect?.height ?? PANEL_ESTIMATED_HEIGHT_PX
+    };
+    const placement = resolvePanelPlacement(rect, menuSize.height);
+    const nextPosition = clampMenuPosition(
+      getTriggerAnchoredMenuPosition(rect, menuSize, placement),
+      menuSize
+    );
+    setMenuPosition((current) =>
+      current.x === nextPosition.x && current.y === nextPosition.y ? current : nextPosition
     );
   }, [anchorRef]);
 
   /**
-   * Re-clamps after mount once panel dimensions are known.
+   * Re-clamps after mount and whenever panel content size is likely to change.
    */
   useLayoutEffect(() => {
     updateMenuPosition();
-  }, [bucket.notices.length, showSettings, updateMenuPosition]);
+  }, [bucket.loading, bucket.notices.length, updateMenuPosition]);
 
   /**
    * Dismisses on outside click and Escape while the panel is open.
@@ -171,6 +211,20 @@ export function TeamHubNoticesPanel({
     [onDismiss, onMarkRead, onNavigate]
   );
 
+  /**
+   * Opens Settings → General focused on Team Hub notification preferences.
+   */
+  const handleOpenSettings = useCallback((): void => {
+    dispatch(
+      openPageTab({
+        type: 'settings',
+        section: 'general',
+        focusSettingId: TEAM_HUB_NOTIFICATIONS_SETTING_ID
+      })
+    );
+    onDismiss();
+  }, [dispatch, onDismiss]);
+
   const panel = (
     <div
       ref={panelRef}
@@ -186,11 +240,8 @@ export function TeamHubNoticesPanel({
           <button
             type="button"
             className="cursor-pointer rounded border-none bg-transparent px-2 py-1 text-[14px] text-accent hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            aria-pressed={showSettings}
             aria-label="Notification settings"
-            onClick={() => {
-              setShowSettings((value) => !value);
-            }}
+            onClick={handleOpenSettings}
           >
             Settings
           </button>
@@ -207,32 +258,26 @@ export function TeamHubNoticesPanel({
         </div>
       </div>
 
-      {showSettings ? (
-        <div className="border-b border-separator px-3 py-3">
-          <TeamHubNotificationSettings hubId={hubId} />
-        </div>
-      ) : null}
-
       <div className="min-h-0 flex-1 overflow-y-auto" role="list" aria-busy={bucket.loading}>
-        {bucket.loading ? (
+        {showInitialLoading ? (
           <p className="m-0 px-3 py-4 text-muted" role="status" aria-live="polite">
             Loading notices…
           </p>
         ) : null}
 
-        {!bucket.loading && bucket.unsupported ? (
+        {!showInitialLoading && bucket.unsupported ? (
           <p className="m-0 px-3 py-4 text-muted" role="status">
             Notices are not available on this Team Hub yet.
           </p>
         ) : null}
 
-        {!bucket.loading && bucket.unreachable && !bucket.unsupported ? (
+        {!showInitialLoading && bucket.unreachable && !bucket.unsupported ? (
           <p className="m-0 px-3 py-4 text-muted" role="status">
             Team Hub is unreachable. Try again after reconnecting.
           </p>
         ) : null}
 
-        {!bucket.loading &&
+        {!showInitialLoading &&
         !bucket.unsupported &&
         !bucket.unreachable &&
         bucket.notices.length === 0 ? (
@@ -241,7 +286,7 @@ export function TeamHubNoticesPanel({
           </p>
         ) : null}
 
-        {!bucket.loading
+        {!showInitialLoading
           ? bucket.notices.map((notice) => (
               <div key={notice.id} role="listitem">
                 <TeamHubNoticeRow

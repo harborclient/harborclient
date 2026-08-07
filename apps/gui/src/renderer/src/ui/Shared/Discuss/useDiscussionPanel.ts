@@ -3,6 +3,17 @@ import type { TeamHubDiscussionComment, TeamHubDiscussionTarget } from '@harborc
 import { buildDiscussionTree, type DiscussionTreeNode } from './buildDiscussionTree';
 
 /**
+ * Options for {@link DiscussionPanelState.refresh}.
+ */
+export interface DiscussionRefreshOptions {
+  /**
+   * When true, reloads comments without toggling the initial-load spinner so
+   * the thread list stays mounted during mutation reconciliation.
+   */
+  silent?: boolean;
+}
+
+/**
  * Mutable discussion panel state and actions.
  */
 export interface DiscussionPanelState {
@@ -17,7 +28,7 @@ export interface DiscussionPanelState {
   comments: TeamHubDiscussionComment[];
 
   /**
-   * True while the initial or refreshed comment list is loading.
+   * True while the initial comment list is loading.
    */
   loading: boolean;
 
@@ -33,8 +44,10 @@ export interface DiscussionPanelState {
 
   /**
    * Reloads the discussion thread from the Team Hub.
+   *
+   * @param options - Optional silent flag to avoid unmounting the thread list.
    */
-  refresh: () => Promise<void>;
+  refresh: (options?: DiscussionRefreshOptions) => Promise<void>;
 
   /**
    * Creates a root-level comment on the target entity.
@@ -70,6 +83,9 @@ export interface DiscussionPanelState {
 /**
  * Loads and mutates a Team Hub discussion thread for one entity target.
  *
+ * Mutations keep the thread list mounted (silent refresh) and append newly
+ * created comments immediately so replies do not flash a full-panel reload.
+ *
  * @param hubId - Team Hub connection id backing the entity.
  * @param target - Entity type and server UUID for discussion routes.
  * @returns Discussion panel state and mutation helpers.
@@ -85,25 +101,35 @@ export function useDiscussionPanel(
 
   /**
    * Reloads discussion comments from the Team Hub when the target changes.
+   *
+   * @param options - Pass `{ silent: true }` during mutations to avoid the
+   *   initial-load spinner unmounting the thread list.
    */
-  const refresh = useCallback(async (): Promise<void> => {
-    if (!hubId || !target) {
-      setComments([]);
-      return;
-    }
+  const refresh = useCallback(
+    async ({ silent = false }: DiscussionRefreshOptions = {}): Promise<void> => {
+      if (!hubId || !target) {
+        setComments([]);
+        return;
+      }
 
-    setLoading(true);
-    setError(null);
+      if (!silent) {
+        setLoading(true);
+      }
+      setError(null);
 
-    try {
-      const response = await window.api.listTeamHubDiscussions(hubId, target, { limit: 100 });
-      setComments(response.comments);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [hubId, target]);
+      try {
+        const response = await window.api.listTeamHubDiscussions(hubId, target, { limit: 100 });
+        setComments(response.comments);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [hubId, target]
+  );
 
   /**
    * Fetches the discussion thread whenever the hub target becomes available.
@@ -121,12 +147,14 @@ export function useDiscussionPanel(
   }, [refresh]);
 
   /**
-   * Runs a mutation helper and refreshes the thread afterward.
+   * Runs a mutation helper, optionally applying a local comment update, then
+   * silently refreshes the thread from the server.
    *
    * @param action - Team Hub mutation to execute.
+   * @param applyLocal - Optional local state updater run after a successful mutation.
    */
   const runMutation = useCallback(
-    async (action: () => Promise<void>): Promise<void> => {
+    async (action: () => Promise<void>, applyLocal?: () => void): Promise<void> => {
       if (!hubId || !target) {
         return;
       }
@@ -136,7 +164,8 @@ export function useDiscussionPanel(
 
       try {
         await action();
-        await refresh();
+        applyLocal?.();
+        await refresh({ silent: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -145,6 +174,20 @@ export function useDiscussionPanel(
     },
     [hubId, target, refresh]
   );
+
+  /**
+   * Appends a created comment to the local list when it is not already present.
+   *
+   * @param created - Comment returned by the create IPC call.
+   */
+  const appendComment = useCallback((created: TeamHubDiscussionComment): void => {
+    setComments((prev) => {
+      if (prev.some((comment) => comment.id === created.id)) {
+        return prev;
+      }
+      return [...prev, created];
+    });
+  }, []);
 
   /**
    * Creates a root-level comment on the target entity.
@@ -156,11 +199,19 @@ export function useDiscussionPanel(
       if (!hubId || !target) {
         return;
       }
-      await runMutation(async () => {
-        await window.api.createTeamHubDiscussion(hubId, target, { body });
-      });
+      let created: TeamHubDiscussionComment | undefined;
+      await runMutation(
+        async () => {
+          created = await window.api.createTeamHubDiscussion(hubId, target, { body });
+        },
+        () => {
+          if (created) {
+            appendComment(created);
+          }
+        }
+      );
     },
-    [hubId, target, runMutation]
+    [hubId, target, runMutation, appendComment]
   );
 
   /**
@@ -174,11 +225,22 @@ export function useDiscussionPanel(
       if (!hubId || !target) {
         return;
       }
-      await runMutation(async () => {
-        await window.api.createTeamHubDiscussion(hubId, target, { body, parentCommentId });
-      });
+      let created: TeamHubDiscussionComment | undefined;
+      await runMutation(
+        async () => {
+          created = await window.api.createTeamHubDiscussion(hubId, target, {
+            body,
+            parentCommentId
+          });
+        },
+        () => {
+          if (created) {
+            appendComment(created);
+          }
+        }
+      );
     },
-    [hubId, target, runMutation]
+    [hubId, target, runMutation, appendComment]
   );
 
   /**

@@ -217,7 +217,11 @@ export function TabContent({
           scriptErrors={scriptErrors}
         />
       </SegmentedTabPanel>
-      <SegmentedTabPanel value="comment" className="mb-4 flex min-h-0 flex-1 flex-col gap-2">
+      <SegmentedTabPanel
+        value="comment"
+        keepMounted
+        className="mb-4 flex min-h-0 flex-1 flex-col gap-2"
+      >
         <RequestEditorNotice tab="comment" />
         <RequestDiscussPanel
           draft={draft}

@@ -22,7 +22,10 @@ export interface TeamHubNoticeBucket {
   notices: TeamHubNotice[];
 
   /**
-   * True while unread count or notice list is loading.
+   * True while the notice list page is loading for the open panel.
+   *
+   * Unread-count polling updates the badge without flipping this flag so the
+   * panel does not flicker back to a loading state.
    */
   loading: boolean;
 
@@ -138,12 +141,10 @@ export function useTeamHubNotices(
 
     await Promise.all(
       targets.map(async (hub) => {
-        patchBucket(hub.id, { loading: true, error: null });
         try {
           const response = await window.api.getTeamHubNoticesUnreadCount(hub.id);
           patchBucket(hub.id, {
             unreadCount: response.count,
-            loading: false,
             unsupported: false,
             unreachable: false,
             error: null
@@ -151,7 +152,6 @@ export function useTeamHubNotices(
         } catch (err) {
           const graceful = isTeamHubNoticesGracefulError(err);
           patchBucket(hub.id, {
-            loading: false,
             unsupported: graceful,
             unreachable: graceful,
             error: graceful ? null : err instanceof Error ? err.message : String(err)

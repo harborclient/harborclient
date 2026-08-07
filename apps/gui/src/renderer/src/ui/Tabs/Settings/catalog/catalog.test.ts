@@ -144,4 +144,11 @@ describe('SETTINGS_CATALOG', () => {
     expect(entry.section).toBe('backup-restore');
     expect(entry.label).toBe('Show confirmations');
   });
+
+  it('registers the general Team Hub notifications group', () => {
+    const entry = entryById('general.teamHubNotifications');
+    expect(entry.kind).toBe('group');
+    expect(entry.section).toBe('general');
+    expect(entry.label).toBe('Team Hub notifications');
+  });
 });

@@ -1185,7 +1185,9 @@ export class FirestoreDatabase implements IDatabase {
       return null;
     }
 
-    const data = snapshot.data() as FirestoreDiscussionMlsGroupStateDocument & { tenantId?: string };
+    const data = snapshot.data() as FirestoreDiscussionMlsGroupStateDocument & {
+      tenantId?: string;
+    };
     if (data.tenantId != null && data.tenantId !== this.tenantId) {
       return null;
     }
@@ -1297,7 +1299,10 @@ export class FirestoreDatabase implements IDatabase {
       query = query.where('epoch', '>', cursorEpoch);
     }
 
-    const snapshot = await query.orderBy('epoch', 'asc').limit(limit + 1).get();
+    const snapshot = await query
+      .orderBy('epoch', 'asc')
+      .limit(limit + 1)
+      .get();
     const commits = snapshot.docs.map((doc) =>
       mapFirestoreDiscussionMlsCommit(doc.id, doc.data() as FirestoreDiscussionMlsCommitDocument)
     );
@@ -1374,7 +1379,10 @@ export class FirestoreDatabase implements IDatabase {
     const snapshot = await query.orderBy('createdAt', 'asc').get();
     return {
       welcomes: snapshot.docs.map((doc) =>
-        mapFirestoreDiscussionMlsWelcome(doc.id, doc.data() as FirestoreDiscussionMlsWelcomeDocument)
+        mapFirestoreDiscussionMlsWelcome(
+          doc.id,
+          doc.data() as FirestoreDiscussionMlsWelcomeDocument
+        )
       )
     };
   }

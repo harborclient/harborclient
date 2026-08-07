@@ -1,9 +1,10 @@
 import { useId, useState, type JSX, type FormEvent } from 'react';
-import { Button, Textarea } from '@harborclient/sdk/components';
+import { Button } from '@harborclient/sdk/components';
+import { CommentEditor } from '#/renderer/src/ui/Main/RequestEditor/Editor/CommentEditor';
 
 interface Props {
   /**
-   * Accessible label for the composer textarea.
+   * Accessible label for the composer editor.
    */
   label: string;
 
@@ -23,7 +24,7 @@ interface Props {
   disabled?: boolean;
 
   /**
-   * Called with trimmed comment text when the user submits the form.
+   * Called with trimmed comment markdown when the user submits the form.
    *
    * @param body - Non-empty comment body.
    */
@@ -31,7 +32,7 @@ interface Props {
 }
 
 /**
- * Accessible single-comment editor used for new comments and inline replies.
+ * Accessible markdown comment editor used for new comments and inline replies.
  */
 export function DiscussionComposer({
   label,
@@ -40,8 +41,8 @@ export function DiscussionComposer({
   disabled = false,
   onSubmit
 }: Props): JSX.Element {
-  const textareaId = useId();
-  const errorId = `${textareaId}-error`;
+  const editorId = useId();
+  const errorId = `${editorId}-error`;
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -76,18 +77,18 @@ export function DiscussionComposer({
 
   return (
     <form className="flex min-w-0 flex-col gap-2" onSubmit={handleSubmit}>
-      <label htmlFor={textareaId} className="font-medium">
-        {label}
-      </label>
-      <Textarea
-        id={textareaId}
+      <span className="font-medium">{label}</span>
+      <CommentEditor
+        id={editorId}
         value={body}
-        onChange={(event) => setBody(event.target.value)}
-        placeholder={placeholder}
+        onChange={setBody}
+        label={label}
+        showHeader={false}
+        variant="inline"
         disabled={isDisabled}
-        rows={3}
-        aria-invalid={error != null}
-        aria-describedby={error != null ? errorId : undefined}
+        placeholder={placeholder}
+        ariaInvalid={error != null}
+        ariaDescribedBy={error != null ? errorId : undefined}
       />
       {error != null ? (
         <p id={errorId} className="m-0 text-danger" role="alert">

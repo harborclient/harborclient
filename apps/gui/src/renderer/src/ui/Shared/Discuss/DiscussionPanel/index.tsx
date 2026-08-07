@@ -50,7 +50,7 @@ export function DiscussionPanel({
 
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col gap-4"
+      className="flex min-h-0 flex-1 flex-col gap-4 pb-4!"
       aria-label={ariaLabel}
       aria-busy={panel.loading || panel.saving || enrollment.enrolling}
     >

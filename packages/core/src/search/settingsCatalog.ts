@@ -74,12 +74,17 @@ export type SettingId =
   | 'backup-restore'
   | 'backup-restore.confirmations'
   | 'git.autoTrack'
-  | 'git.commitAuthor';
+  | 'git.commitAuthor'
+  | 'general.teamHubNotifications';
 
 /**
  * Catalog ids for management settings groups within a section panel.
  */
-export type GroupSettingId = 'backup-restore.confirmations' | 'git.autoTrack' | 'git.commitAuthor';
+export type GroupSettingId =
+  | 'backup-restore.confirmations'
+  | 'git.autoTrack'
+  | 'git.commitAuthor'
+  | 'general.teamHubNotifications';
 
 /**
  * Catalog ids for individual settings fields (excludes management section and group ids).
@@ -353,6 +358,23 @@ export const SETTINGS_CATALOG: SettingEntry[] = [
     description:
       'Domains that may open in the system browser without confirmation. Disable a row to prompt again, or remove it entirely.',
     keywords: ['trusted', 'domain', 'external link', 'mdn', 'mozilla', 'browser', 'confirmation']
+  },
+  {
+    id: 'general.teamHubNotifications',
+    section: 'general',
+    kind: 'group',
+    label: 'Team Hub notifications',
+    description:
+      'Choose which collaboration notices each Team Hub delivers: all activity, mentions only, or none. Changes save immediately to that hub.',
+    keywords: [
+      'team hub',
+      'notifications',
+      'notices',
+      'mentions',
+      'activity',
+      'collaboration',
+      'alerts'
+    ]
   },
   {
     id: 'proxy.enabled',

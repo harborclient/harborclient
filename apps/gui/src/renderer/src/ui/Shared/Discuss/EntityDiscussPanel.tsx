@@ -1,4 +1,4 @@
-import type { JSX } from 'react';
+import { useMemo, type JSX } from 'react';
 import type { TeamHubDiscussionEntityType } from '@harborclient/core/types';
 import { DiscussionPanel } from './DiscussionPanel';
 import { useDiscussionAvailability } from './useDiscussionAvailability';
@@ -40,14 +40,21 @@ export function EntityDiscussPanel({
   ariaLabel,
   fallback
 }: Props): JSX.Element {
-  const target = entityUuid ? ({ entityType, entityId: entityUuid } as const) : undefined;
+  /**
+   * Keeps the target identity stable between equivalent renders so background
+   * refreshes do not reset the discussion thread.
+   */
+  const target = useMemo(
+    () => (entityUuid ? ({ entityType, entityId: entityUuid } as const) : undefined),
+    [entityType, entityUuid]
+  );
   const availability = useDiscussionAvailability(connectionId, target);
 
   if (availability.loading) {
     return (
-      <p className="m-0 text-muted" role="status" aria-live="polite">
-        Loading discussion…
-      </p>
+      <div className="flex min-h-0 flex-1 flex-col" role="status" aria-live="polite">
+        <p className="m-0 text-muted">Loading discussion…</p>
+      </div>
     );
   }
 

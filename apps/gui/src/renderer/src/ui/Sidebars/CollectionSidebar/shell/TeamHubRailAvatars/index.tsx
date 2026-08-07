@@ -94,6 +94,14 @@ export function TeamHubRailAvatars({ expanded }: Props): JSX.Element | null {
   }, []);
 
   /**
+   * Keeps the portaled notices panel anchored to the same ref object while open.
+   */
+  const openNoticesAnchorRef = useMemo(
+    () => (openNoticesHubId == null ? { current: null } : anchorRefForHub(openNoticesHubId)),
+    [anchorRefForHub, openNoticesHubId]
+  );
+
+  /**
    * Soft-connects or soft-disconnects a hub, then refreshes dependent UI.
    *
    * @param hub - Team hub whose connection state should toggle.
@@ -169,6 +177,65 @@ export function TeamHubRailAvatars({ expanded }: Props): JSX.Element | null {
     [collections, dispatch, foldersByCollection, requestsByCollection]
   );
 
+  /**
+   * Loads the open hub's notice list for the portaled dropdown.
+   *
+   * @param hubId - Team hub connection id.
+   */
+  const handleLoadNotices = useCallback(
+    async (hubId: string): Promise<void> => {
+      await notices.loadNotices(hubId);
+    },
+    [notices.loadNotices]
+  );
+
+  /**
+   * Marks one notice read for the open hub.
+   *
+   * @param noticeId - Notice record identifier.
+   */
+  const handleMarkRead = useCallback(
+    async (noticeId: string): Promise<void> => {
+      if (openNoticesHubId == null) {
+        return;
+      }
+      await notices.markNoticeRead(openNoticesHubId, noticeId);
+    },
+    [notices.markNoticeRead, openNoticesHubId]
+  );
+
+  /**
+   * Marks every notice read for the open hub.
+   */
+  const handleMarkAllRead = useCallback(async (): Promise<void> => {
+    if (openNoticesHubId == null) {
+      return;
+    }
+    await notices.markAllRead(openNoticesHubId);
+  }, [notices.markAllRead, openNoticesHubId]);
+
+  /**
+   * Navigates from a notice row in the open hub's dropdown.
+   *
+   * @param notice - Selected notice row.
+   */
+  const handleOpenNoticeNavigate = useCallback(
+    async (notice: import('@harborclient/core/types').TeamHubNotice): Promise<void> => {
+      if (openNoticesHubId == null) {
+        return;
+      }
+      await handleNavigateNotice(openNoticesHubId, notice);
+    },
+    [handleNavigateNotice, openNoticesHubId]
+  );
+
+  /**
+   * Closes the notices dropdown.
+   */
+  const handleDismissNotices = useCallback((): void => {
+    setOpenNoticesHubId(null);
+  }, []);
+
   if (loading || error != null || teamHubs.length === 0) {
     return null;
   }
@@ -229,23 +296,13 @@ export function TeamHubRailAvatars({ expanded }: Props): JSX.Element | null {
         <TeamHubNoticesPanel
           hubId={openHub.id}
           hubName={openHub.name || 'Team Hub'}
-          anchorRef={anchorRefForHub(openHub.id)}
+          anchorRef={openNoticesAnchorRef}
           bucket={openBucket}
-          onDismiss={() => {
-            setOpenNoticesHubId(null);
-          }}
-          onLoadNotices={async () => {
-            await notices.loadNotices(openHub.id);
-          }}
-          onMarkRead={async (noticeId) => {
-            await notices.markNoticeRead(openHub.id, noticeId);
-          }}
-          onMarkAllRead={async () => {
-            await notices.markAllRead(openHub.id);
-          }}
-          onNavigate={async (notice) => {
-            await handleNavigateNotice(openHub.id, notice);
-          }}
+          onDismiss={handleDismissNotices}
+          onLoadNotices={handleLoadNotices}
+          onMarkRead={handleMarkRead}
+          onMarkAllRead={handleMarkAllRead}
+          onNavigate={handleOpenNoticeNavigate}
         />
       ) : null}
     </>

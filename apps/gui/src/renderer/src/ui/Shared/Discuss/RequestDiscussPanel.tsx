@@ -52,9 +52,15 @@ export function RequestDiscussPanel({
     return (requestsByCollection[draft.collection_id] ?? []).find((entry) => entry.id === draft.id);
   }, [draft.collection_id, draft.id, requestsByCollection]);
 
-  const target = savedRequest
-    ? ({ entityType: 'request', entityId: savedRequest.uuid } as const)
-    : undefined;
+  /**
+   * Builds a stable discussion target so equivalent request-editor rerenders do
+   * not restart the discussion loader or remount the thread UI.
+   */
+  const target = useMemo(
+    () =>
+      savedRequest ? ({ entityType: 'request', entityId: savedRequest.uuid } as const) : undefined,
+    [savedRequest]
+  );
 
   const availability = useDiscussionAvailability(collection?.connectionId, target);
 
@@ -70,9 +76,9 @@ export function RequestDiscussPanel({
 
   if (availability.loading) {
     return (
-      <p className="m-0 text-muted" role="status" aria-live="polite">
-        Loading discussion…
-      </p>
+      <div className="flex min-h-0 flex-1 flex-col" role="status" aria-live="polite">
+        <p className="m-0 text-muted">Loading discussion…</p>
+      </div>
     );
   }
 

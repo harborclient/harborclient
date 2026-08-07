@@ -16,6 +16,12 @@ interface Props {
    * Accessible label prefix for the settings region.
    */
   ariaLabel?: string;
+
+  /**
+   * When false, omits the visible "Notifications" heading (e.g. when a parent
+   * already labels the hub). Defaults to true.
+   */
+  showHeading?: boolean;
 }
 
 const LEVEL_OPTIONS: Array<{ value: TeamHubNotificationLevel; label: string }> = [
@@ -29,7 +35,8 @@ const LEVEL_OPTIONS: Array<{ value: TeamHubNotificationLevel; label: string }> =
  */
 export function TeamHubNotificationSettings({
   hubId,
-  ariaLabel = 'Notification settings'
+  ariaLabel = 'Notification settings',
+  showHeading = true
 }: Props): JSX.Element {
   const [settings, setSettings] = useState<TeamHubNotificationSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +120,7 @@ export function TeamHubNotificationSettings({
 
   return (
     <section aria-label={ariaLabel} aria-busy={saving}>
-      <p className="m-0 mb-2 font-medium text-text">Notifications</p>
+      {showHeading ? <p className="m-0 mb-2 font-medium text-text">Notifications</p> : null}
       <SegmentedTabsGroup
         value={settings?.level ?? 'all'}
         onChange={(value) => {

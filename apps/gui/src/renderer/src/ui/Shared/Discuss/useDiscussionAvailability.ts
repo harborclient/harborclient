@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { TeamHubDiscussionTarget } from '@harborclient/core/types';
 import { useTeamHubServiceScan } from '#/renderer/src/hooks/useTeamHubServiceScan';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
@@ -42,6 +42,10 @@ export interface DiscussionAvailability {
 /**
  * Detects whether an entity should use legacy notes or threaded Team Hub discussion.
  *
+ * Mode resolution waits for the shared session scan so communication access and
+ * E2EE flags are known before choosing between legacy notes and threaded UI —
+ * avoiding a legacy→threaded flash when switching to the Discuss tab.
+ *
  * @param connectionId - Collection provider connection id, when known.
  * @param target - Entity type and server UUID for discussion routes.
  * @returns Availability flags for the Discuss UI.
@@ -51,41 +55,16 @@ export function useDiscussionAvailability(
   target: TeamHubDiscussionTarget | undefined
 ): DiscussionAvailability {
   const { teamHubs, loading: hubsLoading, reloadToken } = useTeamHubs();
-  const { serviceFlagsByHubId, scanning } = useTeamHubServiceScan(
+  const { serviceFlagsByHubId, discussionInfoByHubId, scanning } = useTeamHubServiceScan(
     teamHubs,
     reloadToken,
     !hubsLoading
   );
-  const [scanResults, setScanResults] = useState<
-    Awaited<ReturnType<typeof window.api.scanTeamHubSessions>>
-  >([]);
-
-  /**
-   * Loads session scan results so communication access can be evaluated per hub.
-   */
-  useEffect(() => {
-    if (hubsLoading) {
-      return;
-    }
-
-    let cancelled = false;
-    void window.api.scanTeamHubSessions().then((results) => {
-      if (!cancelled) {
-        setScanResults(results);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [hubsLoading, reloadToken]);
 
   return useMemo(() => {
     const loading = hubsLoading || scanning;
     const hub = connectionId ? teamHubs.find((entry) => entry.id === connectionId) : undefined;
-    const scan = connectionId
-      ? scanResults.find((entry) => entry.hubId === connectionId)
-      : undefined;
+    const discussionInfo = connectionId ? discussionInfoByHubId.get(connectionId) : undefined;
     const services = connectionId ? serviceFlagsByHubId.get(connectionId) : undefined;
 
     const mode = resolveDiscussionMode({
@@ -94,16 +73,24 @@ export function useDiscussionAvailability(
       isTeamHubConnection: hub != null,
       hubConnected: hub?.connected !== false,
       communicationServiceEnabled: services?.communication === true,
-      communicationAccess: scan?.communicationAccess === true
+      communicationAccess: discussionInfo?.communicationAccess === true
     });
 
     return {
       mode,
-      discussionE2ee: scan?.discussionE2ee === true,
-      deviceEnrolled: scan?.deviceEnrolled === true,
+      discussionE2ee: discussionInfo?.discussionE2ee === true,
+      deviceEnrolled: discussionInfo?.deviceEnrolled === true,
       hubId: mode === 'threaded' ? connectionId : undefined,
       target: mode === 'threaded' && target ? target : undefined,
       loading
     };
-  }, [connectionId, target, teamHubs, hubsLoading, scanning, serviceFlagsByHubId, scanResults]);
+  }, [
+    connectionId,
+    target,
+    teamHubs,
+    hubsLoading,
+    scanning,
+    serviceFlagsByHubId,
+    discussionInfoByHubId
+  ]);
 }

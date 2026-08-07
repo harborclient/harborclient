@@ -231,6 +231,8 @@ Non-secret display fields live in the query string. The one-time invitation secr
 
 The public `GET /join` page renders invitation details and launches HarborClient with a `harborclient://team-hub/join?...` deep link. Redemption happens only when the invitee accepts the invitation inside HarborClient.
 
+The CLI `user invite create` command prints this HTTPS invite link alongside the one-time secret. By default the link uses `http://<server.host>:<server.port>` from `server.yaml` (wildcard binds map to `127.0.0.1`). Pass `--base-url <url>` when the public hub URL differs from the process bind address (for example behind Docker or Nginx).
+
 ### Invitation secrets
 
 Invitation secrets use the `hbi_` prefix. They are single-use, expire after a configurable number of hours (default 24), and can be revoked by an administrator before redemption. The server stores only a sha256 hash of each invitation secret.

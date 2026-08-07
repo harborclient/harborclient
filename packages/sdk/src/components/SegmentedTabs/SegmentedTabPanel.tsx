@@ -13,6 +13,12 @@ interface Props<T extends string> extends Omit<ComponentPropsWithoutRef<'div'>, 
    * Panel content shown when this tab is selected.
    */
   children: ReactNode;
+
+  /**
+   * When true, keeps the panel mounted while inactive so expensive tab content
+   * can preserve local state and preload data before it becomes visible.
+   */
+  keepMounted?: boolean;
 }
 
 /**
@@ -21,6 +27,7 @@ interface Props<T extends string> extends Omit<ComponentPropsWithoutRef<'div'>, 
 export function SegmentedTabPanel<T extends string>({
   value,
   children,
+  keepMounted = false,
   className,
   ...props
 }: Props<T>): JSX.Element | null {
@@ -52,7 +59,8 @@ export function SegmentedTabPanel<T extends string>({
     [context, value]
   );
 
-  if (context.value !== value) return null;
+  const selected = context.value === value;
+  if (!selected && !keepMounted) return null;
 
   return (
     <div
@@ -60,6 +68,7 @@ export function SegmentedTabPanel<T extends string>({
       role="tabpanel"
       id={context.getPanelId(value)}
       aria-labelledby={context.getTabId(value)}
+      hidden={!selected}
       className={cn('hc-segmented-tab-panel', className)}
       onKeyDown={handleKeyDown}
     >

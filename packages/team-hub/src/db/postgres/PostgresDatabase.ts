@@ -1355,10 +1355,7 @@ export class PostgresDatabase implements IDatabase {
       [this.tenantId, options.mlsGroupId, cursorEpoch, limit + 1]
     );
 
-    return buildDiscussionMlsCommitListResult(
-      result.rows.map(mapDiscussionMlsCommitSqlRow),
-      limit
-    );
+    return buildDiscussionMlsCommitListResult(result.rows.map(mapDiscussionMlsCommitSqlRow), limit);
   }
 
   /**
