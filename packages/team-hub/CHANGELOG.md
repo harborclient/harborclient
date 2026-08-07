@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refactor IDatabase.ts to remove unused CreateDeviceKeyInput type. (`a8bad870`)
 - Enhance discussion features and UI components. (`43dd0414`)
 - Implement Team Hub device and discussion management features. (`f03c2465`)
 

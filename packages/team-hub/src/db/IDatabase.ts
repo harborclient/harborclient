@@ -52,7 +52,7 @@ import type {
   ListDiscussionMlsWelcomesOptions,
   ListDiscussionMlsWelcomesResult
 } from '#/db/types.js';
-import type { ApiTokenRecord, CreateDeviceKeyInput, DeviceKeyRecord } from '#/db/types.js';
+import type { ApiTokenRecord, DeviceKeyRecord } from '#/db/types.js';
 
 /**
  * Common contract for Team Hub database backends.
