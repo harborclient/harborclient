@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 1.7.0 - 2026-08-07
+
 - Enhance discussion features and UI components. (`43dd0414`)
 - Enhance SSE session management and event detail navigation. (`9188f31a`)
 
