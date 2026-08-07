@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.4.0 - 2026-08-07
+
 - Enhance SSE session management and event detail navigation. (`9188f31a`)
 
 ## 1.3.3 - 2026-08-04
