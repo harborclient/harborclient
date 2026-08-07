@@ -2,12 +2,12 @@
 
 **Full documentation:** [https://harborclient.com/team-hub/](https://harborclient.com/team-hub/)
 
-**Linux CLI server for shared HarborClient storage and team workflows.**
+**Linux CLI server for shared HarborClient storage, discussions, and team workflows.**
 
 `team-hub` is the central server companion to [HarborClient](https://github.com/harborclient/harborclient):
 
 - **CLI-first:** Run and manage the server from the `team-hub` command.
-- **Fastify HTTP API:** HTTP server scaffold ready for HarborClient desktop clients.
+- **Fastify HTTP API:** Shared collections, environments, and threaded discussions for HarborClient desktop clients.
 - **Configurable storage:** YAML-based server config with MySQL database support.
 
 ## Documentation

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_COLLABORATION_CONFIG } from '#/config/collaborationConfig.js';
 import { DEFAULT_LOGGING_CONFIG } from '#/config/loggingConfig.js';
 import { createStubDatabase } from '#/db/stubDatabase.js';
 import { createServer } from '#/server/createServer.js';
@@ -34,7 +35,8 @@ describe('GET /health', () => {
         plugins: null,
         docs: null,
         logging: DEFAULT_LOGGING_CONFIG,
-        multitenancy: { enabled: false }
+        multitenancy: { enabled: false },
+        collaboration: DEFAULT_COLLABORATION_CONFIG
       },
       { version: '0.1.0', db: createHealthStubDatabase(), throttleStore: createStubThrottleStore() }
     );

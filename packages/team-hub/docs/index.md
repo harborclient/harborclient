@@ -1,8 +1,8 @@
 # Team Hub
 
-Self-hosted HarborClient hub for shared collections, curated plugins and themes, and team AI.
+Self-hosted HarborClient hub for shared collections, team discussions, curated plugins and themes, and team AI.
 
-`@harborclient/team-hub` is the Linux CLI/server companion to [HarborClient](https://harborclient.com). Desktop clients connect here for shared storage, authentication, plugin sources, and optional team LLM.
+`@harborclient/team-hub` is the Linux CLI/server companion to [HarborClient](https://harborclient.com). Desktop clients connect here for shared storage, threaded discussions on requests and related entities, authentication, plugin sources, and optional team LLM.
 
 ## Guide
 

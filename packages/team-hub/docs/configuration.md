@@ -268,7 +268,7 @@ Restart `team-hub start` after changing `multitenancy.enabled`. Tenant records a
 
 ## collaboration
 
-Optional discussion encryption mode for Team Hub. Omit this section (or leave `e2ee: false`) for normal plaintext discussion bodies.
+Optional discussion encryption mode for Team Hub. Plaintext discussions work without this section — see [API Endpoints — Discussions](./endpoints.md#discussions) for list/create/reply/delete and thread-watch routes. Omit this section (or leave `e2ee: false`) for normal plaintext discussion bodies.
 
 | Key    | Type    | Required | Default | Description                                                                 |
 | ------ | ------- | -------- | ------- | --------------------------------------------------------------------------- |

@@ -21,6 +21,7 @@ import {
   createDiscussionCommentBodySchema,
   createDiscussionReplyBodySchema,
   discussionCommentSchema,
+  type DiscussionWriteBodyInput,
   listDiscussionCommentsQuerySchema,
   listDiscussionCommentsResponseSchema,
   serializeDiscussionComment,
@@ -428,7 +429,7 @@ function registerEntityDiscussionRoutes(
           getCollaboration(),
           db,
           user,
-          request.body
+          request.body as DiscussionWriteBodyInput
         );
         if (!parsed) {
           return;

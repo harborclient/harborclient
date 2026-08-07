@@ -8,7 +8,7 @@ export type DiscussionEncryptedKeyFormat = 'identity-v1' | 'mls-v1';
 /**
  * Metadata persisted alongside ciphertext for encrypted discussion comments.
  */
-export interface DiscussionEncryptedBodyMetadata {
+export type DiscussionEncryptedBodyMetadata = {
   /**
    * Schema version for forward-compatible parsing.
    */
@@ -43,7 +43,7 @@ export interface DiscussionEncryptedBodyMetadata {
    * Optional MLS welcome reference for device enrollment (Task 4.5).
    */
   welcomeRef?: string;
-}
+} & Record<string, unknown>;
 
 /**
  * Encrypted payload supplied by clients when creating or updating E2EE comments.

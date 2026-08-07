@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createStubDatabase } from '#/db/stubDatabase.js';
 import { buildDiscussionMlsGroupId } from '#/db/discussionEncryptedPayload.js';
+import type { SavedRequestRecord } from '#/db/types.js';
 import {
   authHeader,
   createProtectedTestApp,
@@ -10,16 +11,28 @@ import {
 const sampleDeviceId = '550e8400-e29b-41d4-a716-446655440000';
 const mlsGroupId = buildDiscussionMlsGroupId('request', 'request-1');
 
-const sampleRequest = {
+const sampleRequest: SavedRequestRecord = {
   id: 'request-1',
   collectionId: 'collection-1',
   name: 'Get users',
-  protocol: 'http' as const,
-  method: 'GET' as const,
+  protocol: 'http',
+  method: 'GET',
   url: 'https://example.test/users',
   headers: [],
   params: [],
-  comment: 'Legacy note stays separate'
+  auth: { type: 'none', basic: { username: '', password: '' }, bearer: { token: '' } },
+  body: '',
+  bodyType: 'none',
+  preRequestScript: '',
+  postRequestScript: '',
+  comment: 'Legacy note stays separate',
+  folderId: null,
+  sortOrder: 0,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  createdByUserId: 'user-1',
+  updatedByUserId: 'user-1',
+  marker: null
 };
 
 describe('discussion MLS routes in E2EE mode', () => {
@@ -64,7 +77,7 @@ describe('discussion MLS routes in E2EE mode', () => {
       createdByUserId: sampleUserRecord.id,
       updatedByUserId: sampleUserRecord.id
     });
-    db.createDiscussionMlsCommit.mockImplementation(async (record) => record);
+    db.createDiscussionMlsCommit.mockResolvedValue(undefined);
 
     const app = await createProtectedTestApp({
       db,
@@ -106,7 +119,7 @@ describe('discussion MLS routes in E2EE mode', () => {
   it('stores and lists MLS welcomes for accessible discussion threads', async () => {
     const db = createStubDatabase();
     db.findRequestById.mockResolvedValue(sampleRequest);
-    db.createDiscussionMlsWelcome.mockImplementation(async (record) => record);
+    db.createDiscussionMlsWelcome.mockResolvedValue(undefined);
     db.listDiscussionMlsWelcomes.mockResolvedValue({
       welcomes: [
         {

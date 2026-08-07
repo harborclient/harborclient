@@ -1090,7 +1090,7 @@ export class MysqlDatabase implements IDatabase {
    * @param id - Device key record identifier.
    */
   async findDeviceKeyById(id: string): Promise<DeviceKeyRecord | null> {
-    const rows = await this.query<DeviceKeySqlRow>(
+    const rows = await this.queryRows<DeviceKeySqlRow & RowDataPacket>(
       `${DEVICE_KEY_SELECT} WHERE tenant_id = ? AND id = ? LIMIT 1`,
       [this.tenantId, id]
     );
@@ -1109,7 +1109,7 @@ export class MysqlDatabase implements IDatabase {
     userId: string,
     deviceId: string
   ): Promise<DeviceKeyRecord | null> {
-    const rows = await this.query<DeviceKeySqlRow>(
+    const rows = await this.queryRows<DeviceKeySqlRow & RowDataPacket>(
       `${DEVICE_KEY_SELECT}
       WHERE tenant_id = ?
         AND user_id = ?
@@ -1129,7 +1129,7 @@ export class MysqlDatabase implements IDatabase {
    * @param userId - Owning user identifier.
    */
   async listDeviceKeysByUserId(userId: string): Promise<DeviceKeyRecord[]> {
-    const rows = await this.query<DeviceKeySqlRow>(
+    const rows = await this.queryRows<DeviceKeySqlRow & RowDataPacket>(
       `${DEVICE_KEY_SELECT}
       WHERE tenant_id = ?
         AND user_id = ?
@@ -1144,7 +1144,7 @@ export class MysqlDatabase implements IDatabase {
    * Lists all device key enrollments ordered by creation time descending.
    */
   async listDeviceKeys(): Promise<DeviceKeyRecord[]> {
-    const rows = await this.query<DeviceKeySqlRow>(
+    const rows = await this.queryRows<DeviceKeySqlRow & RowDataPacket>(
       `${DEVICE_KEY_SELECT}
       WHERE tenant_id = ?
       ORDER BY created_at DESC`,

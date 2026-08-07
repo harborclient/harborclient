@@ -1,6 +1,6 @@
 # API Endpoints
 
-Team Hub exposes a JSON HTTP API for shared collections, environments, snippets, folders, saved requests, and collection documents. Public routes include `GET /health`, `GET /join`, and the invitation preview/redeem endpoints documented below. All other routes require a valid bearer token — see [Authentication](./auth.md).
+Team Hub exposes a JSON HTTP API for shared collections, environments, snippets, folders, saved requests, collection documents, and threaded discussions on requests, collections, folders, and run results. Public routes include `GET /health`, `GET /join`, and the invitation preview/redeem endpoints documented below. All other routes require a valid bearer token — see [Authentication](./auth.md).
 
 ## Overview
 
@@ -128,16 +128,22 @@ Use this route to discover whether a token belongs to a `user` or `admin` accoun
   "capabilities": {
     "dataApi": true,
     "managementApi": false,
-    "llm": true
+    "llm": true,
+    "communication": true,
+    "discussionE2ee": false
   }
 }
 ```
 
-| Capability      | `user` role                        | `admin` role                       |
-| --------------- | ---------------------------------- | ---------------------------------- |
-| `dataApi`       | `true`                             | `true` (implicit full entity access) |
-| `managementApi` | `false`                            | `true`                             |
-| `llm`           | `true` when `llmAccess` is enabled | `true` when `llmAccess` is enabled |
+| Capability       | `user` role                        | `admin` role                         |
+| ---------------- | ---------------------------------- | ------------------------------------ |
+| `dataApi`        | `true`                             | `true` (implicit full entity access) |
+| `managementApi`  | `false`                            | `true`                               |
+| `llm`            | `true` when `llmAccess` is enabled | `true` when `llmAccess` is enabled   |
+| `communication`  | `true` when `dataApi` is `true`    | `true` when `dataApi` is `true`      |
+| `discussionE2ee` | `true` when `collaboration.e2ee` is enabled hub-wide | same |
+
+Discussion routes require `capabilities.communication`. When `discussionE2ee` is `true`, create and update routes reject plaintext bodies — see [Configuration — collaboration](./configuration.md#collaboration).
 
 **Response `401`:** Missing, malformed, unknown, or revoked bearer token.
 
@@ -1386,6 +1392,201 @@ Set `folderId` to `null` to move the document to the collection root at `index`.
 **Response `204`:** No content.
 
 **Response `404`:** Document or folder not found.
+
+## Discussions
+
+Threaded comments attached to shared Team Hub entities: saved requests, collections, folders, and run results. Clients should gate on `capabilities.communication` from [`GET /auth/session`](#get-authsession). Access follows the same collection and entity rules as the backing resource.
+
+**Behavior**
+
+- Nesting depth is limited to **3**. Replies deeper than that are flattened to depth 3 rather than rejected.
+- Delete is a **soft delete** (tombstone): the comment remains in the tree with `tombstoned: true` and `body: null` so replies stay attached.
+- List routes use cursor pagination via optional `cursor` and `limit` (1–100) query parameters.
+- New comments, replies, and `@mentions` emit notice kinds `discussion.comment`, `discussion.reply`, and `discussion.mention` for eligible recipients.
+- Optional hub-wide E2EE stores ciphertext instead of plaintext bodies — see [Configuration — collaboration](./configuration.md#collaboration).
+
+**Discussion comment** record:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440010",
+  "entityType": "request",
+  "entityId": "550e8400-e29b-41d4-a716-446655440004",
+  "parentCommentId": null,
+  "rootCommentId": "550e8400-e29b-41d4-a716-446655440010",
+  "depth": 1,
+  "body": "Does this still match the staging contract?",
+  "bodyFormat": "plaintext",
+  "encryptedPayload": null,
+  "author": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "alice",
+    "avatar": { "initials": "AL", "color": "#3B82F6" }
+  },
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "tombstoned": false
+}
+```
+
+`entityType` is one of `request`, `collection`, `folder`, or `runResult`. `bodyFormat` is `plaintext` or `encrypted`. When `bodyFormat` is `encrypted`, `body` is `null` and `encryptedPayload` carries ciphertext metadata for local decryption.
+
+### GET /requests/:id/discussions
+
+Lists discussion comments for a saved request. The same list shape applies to collections, folders, and run results (paths below).
+
+**Auth:** Bearer token required. Caller must be allowed to access the target entity.
+
+**Query:** optional `cursor` (opaque string from a prior response) and `limit` (integer 1–100).
+
+**Response `200`:**
+
+```json
+{
+  "comments": [
+    /* discussion comment records */
+  ],
+  "nextCursor": "opaque-cursor"
+}
+```
+
+`nextCursor` is omitted when there are no further pages.
+
+```bash
+curl -s 'http://127.0.0.1:8788/requests/550e8400-e29b-41d4-a716-446655440004/discussions?limit=50' \
+  -H "Authorization: Bearer hbk_your_token_here"
+```
+
+**Response `404`:** Target entity not found.
+
+### POST /requests/:id/discussions
+
+Creates a top-level discussion comment on a saved request.
+
+**Auth:** Bearer token required.
+
+**Request body (plaintext hubs):**
+
+```json
+{
+  "body": "Does this still match the staging contract?"
+}
+```
+
+On E2EE hubs, send `encryptedPayload` instead of `body` (see [Configuration — collaboration](./configuration.md#collaboration)).
+
+**Response `200`:** Created discussion comment record.
+
+**Response `400`:** Validation error or plaintext body rejected on an E2EE hub.
+
+**Response `403`:** Caller cannot access the target entity.
+
+**Response `404`:** Target entity not found.
+
+```bash
+curl -s -X POST http://127.0.0.1:8788/requests/550e8400-e29b-41d4-a716-446655440004/discussions \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"body":"Does this still match the staging contract?"}'
+```
+
+### Other entity discussion routes
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/collections/:id/discussions` | List comments on a collection |
+| `POST` | `/collections/:id/discussions` | Create a top-level comment on a collection |
+| `GET` | `/folders/:id/discussions` | List comments on a folder |
+| `POST` | `/folders/:id/discussions` | Create a top-level comment on a folder |
+| `GET` | `/run-results/:id/discussions` | List comments on a saved run result |
+| `POST` | `/run-results/:id/discussions` | Create a top-level comment on a run result |
+
+Request and response bodies match the request discussion routes above.
+
+### POST /discussion-comments/:id/replies
+
+Creates a reply to an existing discussion comment. Nesting deeper than depth 3 is flattened server-side.
+
+**Auth:** Bearer token required.
+
+**Request body:**
+
+```json
+{
+  "body": "Yes — staging was updated last week."
+}
+```
+
+**Response `200`:** Created reply comment record.
+
+**Response `404`:** Parent comment not found.
+
+### PUT /discussion-comments/:id
+
+Updates the body of a discussion comment authored by the authenticated user.
+
+**Auth:** Bearer token required. Only the author may update the body.
+
+**Request body:**
+
+```json
+{
+  "body": "Updated note after re-checking staging."
+}
+```
+
+**Response `200`:** Updated discussion comment record.
+
+**Response `403`:** Caller is not the author (or cannot access the target).
+
+**Response `404`:** Comment not found.
+
+### DELETE /discussion-comments/:id
+
+Tombstones a discussion comment. Replies remain in the tree.
+
+**Auth:** Bearer token required. Authors may delete their own comments; admins may delete any comment they can access.
+
+**Response `200`:** Tombstoned discussion comment record (`tombstoned: true`, `body: null`).
+
+**Response `403`:** Caller cannot delete the comment.
+
+**Response `404`:** Comment not found.
+
+### Thread watches
+
+Users can subscribe to a root discussion thread (the root comment id) to receive notices for later replies.
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/discussion-threads/:id/subscription` | Return `{ subscribed, rootCommentId }` |
+| `POST` | `/discussion-threads/:id/subscribe` | Subscribe the authenticated user |
+| `POST` | `/discussion-threads/:id/unsubscribe` | Unsubscribe the authenticated user |
+
+**Auth:** Bearer token required.
+
+**Subscribe response `200`:**
+
+```json
+{
+  "subscribed": true,
+  "rootCommentId": "550e8400-e29b-41d4-a716-446655440010"
+}
+```
+
+**Response `404`:** Thread not found (subscribe only; `:id` must be a root comment).
+
+### MLS relay (E2EE hubs)
+
+When `collaboration.e2ee` is enabled, clients relay MLS membership material through these routes. Full payload shapes and device enrollment notes live under [Configuration — collaboration](./configuration.md#collaboration).
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST` | `/discussion-mls/commits` | Persist an MLS commit for existing members |
+| `GET` | `/discussion-mls/commits?mlsGroupId=` | List commits for offline catch-up |
+| `POST` | `/discussion-mls/welcomes` | Persist a welcome for a newly added device |
+| `GET` | `/discussion-mls/welcomes?mlsGroupId=` | List welcomes for this device/thread |
+| `GET` | `/discussion-mls/group-state/:mlsGroupId` | Return the latest observed MLS epoch |
 
 ## LLM routes
 

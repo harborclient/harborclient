@@ -4,11 +4,11 @@
 
 **TypeScript client for the HarborClient Team Hub API**
 
-`@harborclient/team-hub-api` is a library for typed HTTP access to HarborClient Team Hub collections, environments, folders, and saved requests:
+`@harborclient/team-hub-api` is a library for typed HTTP access to HarborClient Team Hub collections, environments, folders, saved requests, and discussions:
 
 - **Typed HTTP client:** Zod-validated request and response shapes for Team Hub endpoints.
-- **Full API coverage:** Collections, environments, folders, saved requests, admin, and session APIs.
-- **Capability-aware usage:** Session capabilities guide when to call management vs. user-scoped methods.
+- **Full API coverage:** Collections, environments, folders, saved requests, discussions, admin, and session APIs.
+- **Capability-aware usage:** Session capabilities guide when to call management, discussions, and user-scoped methods.
 
 ## Documentation
 

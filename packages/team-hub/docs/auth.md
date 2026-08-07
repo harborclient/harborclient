@@ -96,6 +96,8 @@ Clients such as HarborClient can call **`GET /auth/session`** with a bearer toke
 | `capabilities.dataApi` | Entity routes (collections, environments, folders, requests) |
 | `capabilities.managementApi` | Management routes (for example `GET /admin/users`) |
 | `capabilities.llm` | Hub-proxied LLM routes when enabled for the account |
+| `capabilities.communication` | Discussion routes (threaded comments on requests, collections, folders, and run results) |
+| `capabilities.discussionE2ee` | When `true`, discussion create/update routes require encrypted bodies (`collaboration.e2ee`) |
 
 Example for a `user`-role token:
 
@@ -103,11 +105,17 @@ Example for a `user`-role token:
 {
   "user": { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "alice", "role": "user" },
   "token": { "id": "660e8400-e29b-41d4-a716-446655440001", "prefix": "hbk_AbCd1234" },
-  "capabilities": { "dataApi": true, "managementApi": false, "llm": true }
+  "capabilities": {
+    "dataApi": true,
+    "managementApi": false,
+    "llm": true,
+    "communication": true,
+    "discussionE2ee": false
+  }
 }
 ```
 
-For an `admin`-role token, `dataApi` and `managementApi` are both `true`; `llm` follows the account's `llmAccess` flag. HarborClient uses this endpoint when saving a team hub connection to mount shared data and decide whether to show operator administration UI.
+For an `admin`-role token, `dataApi` and `managementApi` are both `true`; `llm` follows the account's `llmAccess` flag. `communication` tracks `dataApi`. `discussionE2ee` is hub-wide from [Configuration — collaboration](./configuration.md#collaboration). HarborClient uses this endpoint when saving a team hub connection to mount shared data, gate discussions, and decide whether to show operator administration UI.
 
 See [API Endpoints — GET /auth/session](./endpoints.md#get-authsession) for the full route reference.
 
