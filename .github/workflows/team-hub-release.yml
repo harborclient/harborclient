@@ -161,11 +161,17 @@ jobs:
           git add packages/team-hub/package.json packages/team-hub/CHANGELOG.md
           git commit -m "chore(changelog): release @harborclient/team-hub v${VERSION} [skip ci]"
 
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree is dirty after the release commit; cannot rebase. Commit or restore leftover files (often pnpm-lock.yaml)."
+            git status --porcelain
+            exit 1
+          fi
+
           git fetch origin "${RELEASE_REF}"
           max_attempts=5
           for attempt in $(seq 1 "${max_attempts}"); do
             if ! git rebase "origin/${RELEASE_REF}"; then
-              git rebase --abort
+              git rebase --abort 2>/dev/null || true
               echo "::error::Rebase onto origin/${RELEASE_REF} failed."
               exit 1
             fi

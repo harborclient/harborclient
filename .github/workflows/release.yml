@@ -207,11 +207,17 @@ jobs:
           git add apps/harborclient/package.json CHANGELOG.md
           git commit -m "chore(changelog): release v${VERSION} [skip ci]"
 
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree is dirty after the release commit; cannot rebase. Commit or restore leftover files (often pnpm-lock.yaml)."
+            git status --porcelain
+            exit 1
+          fi
+
           git fetch origin main
           max_attempts=5
           for attempt in $(seq 1 "${max_attempts}"); do
             if ! git rebase origin/main; then
-              git rebase --abort
+              git rebase --abort 2>/dev/null || true
               echo "::error::Rebase onto origin/main failed."
               exit 1
             fi

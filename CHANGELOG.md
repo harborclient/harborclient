@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update workflows to check for dirty working tree after release commits. (`7e1d4481`)
 - Enhance Team Hub documentation and API capabilities for discussions. (`c3428d53`)
 - Refactor IDatabase.ts to remove unused CreateDeviceKeyInput type. (`a8bad870`)
 - Enhance discussion features and UI components. (`43dd0414`)
