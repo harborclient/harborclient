@@ -396,13 +396,50 @@ export const healthResponseSchema = z.object({
 }) satisfies z.ZodType<HealthResponse>;
 
 /**
+ * Supported hub avatar background color keys.
+ */
+export const hubAvatarColorKeySchema = z.enum([
+  'sky-600',
+  'violet-600',
+  'emerald-600',
+  'amber-600',
+  'rose-600',
+  'cyan-600',
+  'indigo-600',
+  'teal-600'
+]);
+
+/**
+ * Hub avatar metadata returned by session and admin routes.
+ */
+export const hubAvatarSchema = z.object({
+  name: z.string(),
+  initials: z.string(),
+  color: hubAvatarColorKeySchema
+});
+
+/**
+ * Request body schema for `PUT /admin/hub/avatar`.
+ */
+export const updateHubAvatarBodySchema = z
+  .object({
+    initials: z.string().optional(),
+    color: hubAvatarColorKeySchema.optional()
+  })
+  .refine((body) => body.initials != null || body.color != null, {
+    message: 'At least one of initials or color is required.'
+  });
+
+/**
  * Response body schema for `GET /auth/session`.
  */
 export const sessionResponseSchema = z.object({
   user: z.object({
     id: z.string(),
     name: z.string(),
-    role: z.enum(['admin', 'user'])
+    role: z.enum(['admin', 'user']),
+    avatarInitials: z.string().optional(),
+    avatarColor: hubAvatarColorKeySchema.optional()
   }),
   token: z.object({
     id: z.string(),
@@ -411,10 +448,33 @@ export const sessionResponseSchema = z.object({
   capabilities: z.object({
     dataApi: z.boolean(),
     managementApi: z.boolean(),
-    llm: z.boolean()
+    llm: z.boolean(),
+    communication: z.boolean().optional(),
+    discussionE2ee: z.boolean().optional()
   }),
-  tenantId: z.string().optional()
+  tenantId: z.string().optional(),
+  hub: hubAvatarSchema.optional()
 }) satisfies z.ZodType<SessionResponse>;
+
+/**
+ * Request body schema for `PUT /auth/profile/avatar`.
+ */
+export const updateMyAvatarBodySchema = z
+  .object({
+    initials: z.string().trim().min(1).max(2).optional(),
+    color: hubAvatarColorKeySchema.optional()
+  })
+  .refine((body) => body.initials != null || body.color != null, {
+    message: 'At least one of initials or color is required.'
+  });
+
+/**
+ * Response body schema for `PUT /auth/profile/avatar`.
+ */
+export const updateMyAvatarResponseSchema = z.object({
+  avatarInitials: z.string(),
+  avatarColor: hubAvatarColorKeySchema
+});
 
 /**
  * JSON shape for a Team Hub user account returned by management routes.
@@ -423,6 +483,8 @@ export const hubUserRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
   role: z.enum(['admin', 'user']),
+  avatarInitials: z.string(),
+  avatarColor: hubAvatarColorKeySchema,
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
@@ -501,6 +563,8 @@ export const listAdminSnippetsResponseSchema = z.object({
 export const updateAdminUserBodySchema = z.object({
   name: z.string().trim().min(1).optional(),
   role: z.enum(['admin', 'user']).optional(),
+  avatarInitials: z.string().trim().min(1).max(2).optional(),
+  avatarColor: hubAvatarColorKeySchema.optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
@@ -517,6 +581,8 @@ export const updateAdminUserBodySchema = z.object({
 export const createAdminUserBodySchema = z.object({
   name: z.string().trim().min(1),
   role: z.enum(['admin', 'user']),
+  avatarInitials: z.string().trim().min(1).max(2).optional(),
+  avatarColor: hubAvatarColorKeySchema.optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
@@ -569,6 +635,46 @@ export const createdApiTokenResponseSchema = z.object({
  */
 export const listAdminTokensResponseSchema = z.object({
   tokens: z.array(hubApiTokenRecordSchema)
+});
+
+/**
+ * Device key metadata returned by enrollment and admin device routes.
+ */
+export const hubDeviceKeyRecordSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  deviceId: z.string(),
+  label: z.string(),
+  keyFormat: z.enum(['identity-v1', 'mls-key-package']),
+  fingerprint: z.string(),
+  fingerprintPrefix: z.string(),
+  createdAt: timestampSchema,
+  lastSeenAt: timestampSchema.nullable(),
+  revokedAt: timestampSchema.nullable()
+});
+
+/**
+ * Request body schema for `POST /devices`.
+ */
+export const enrollDeviceBodySchema = z.object({
+  deviceId: z.string().uuid(),
+  label: z.string().trim().min(1),
+  publicKeyMaterial: z.string().trim().min(1),
+  keyFormat: z.enum(['identity-v1', 'mls-key-package']).optional()
+});
+
+/**
+ * Response body schema for `POST /devices`.
+ */
+export const enrolledDeviceResponseSchema = z.object({
+  device: hubDeviceKeyRecordSchema
+});
+
+/**
+ * Response body schema for device listings.
+ */
+export const listDeviceKeysResponseSchema = z.object({
+  devices: z.array(hubDeviceKeyRecordSchema)
 });
 
 /**
@@ -848,4 +954,270 @@ export const hubInvitationPreviewUserSchema = z.object({
 export const previewInvitationResponseSchema = z.object({
   user: hubInvitationPreviewUserSchema,
   expiresAt: timestampSchema
+});
+
+/**
+ * Discussion entity type discriminator.
+ */
+export const discussionEntityTypeSchema = z.enum(['request', 'collection', 'folder', 'runResult']);
+
+/**
+ * Avatar metadata attached to discussion authors.
+ */
+export const discussionAuthorAvatarSchema = z.object({
+  initials: z.string(),
+  color: z.string()
+});
+
+/**
+ * Author metadata attached to discussion comments.
+ */
+export const discussionAuthorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  avatar: discussionAuthorAvatarSchema.optional()
+});
+
+/**
+ * Encrypted discussion payload metadata returned to clients for local decryption.
+ */
+export const encryptedDiscussionPayloadSchema = z.object({
+  ciphertext: z.string(),
+  mlsGroupId: z.string(),
+  epoch: z.number().int().nonnegative(),
+  senderDeviceId: z.string(),
+  keyFormat: z.enum(['identity-v1', 'mls-v1']),
+  commitRef: z.string().optional(),
+  welcomeRef: z.string().optional()
+});
+
+/**
+ * One discussion comment returned by Team Hub discussion routes.
+ */
+export const discussionCommentSchema = z.object({
+  id: z.string(),
+  entityType: discussionEntityTypeSchema,
+  entityId: z.string(),
+  parentCommentId: z.string().nullable(),
+  rootCommentId: z.string(),
+  depth: z.number().int().min(1).max(3),
+  body: z.string().nullable(),
+  bodyFormat: z.enum(['plaintext', 'encrypted']),
+  encryptedPayload: encryptedDiscussionPayloadSchema.nullable().optional(),
+  author: discussionAuthorSchema,
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema,
+  tombstoned: z.boolean()
+});
+
+/**
+ * Paginated list response from discussion list routes.
+ */
+export const listDiscussionsResponseSchema = z.object({
+  comments: z.array(discussionCommentSchema),
+  nextCursor: z.string().optional()
+});
+
+/**
+ * Request body for creating or replying to a discussion comment.
+ */
+export const createDiscussionCommentBodySchema = z.object({
+  body: z.string().min(1).optional(),
+  parentCommentId: z.string().optional(),
+  encryptedPayload: encryptedDiscussionPayloadSchema.optional()
+});
+
+/**
+ * Request body for updating a discussion comment.
+ */
+export const updateDiscussionCommentBodySchema = z.object({
+  body: z.string().min(1).optional(),
+  encryptedPayload: encryptedDiscussionPayloadSchema.optional()
+});
+
+/**
+ * JSON shape for a persisted MLS commit relay record.
+ */
+export const discussionMlsCommitSchema = z.object({
+  id: z.string(),
+  mlsGroupId: z.string(),
+  epoch: z.number().int().nonnegative(),
+  ciphertext: z.string(),
+  senderDeviceId: z.string(),
+  createdAt: timestampSchema
+});
+
+/**
+ * JSON shape for a persisted MLS welcome relay record.
+ */
+export const discussionMlsWelcomeSchema = z.object({
+  id: z.string(),
+  mlsGroupId: z.string(),
+  recipientDeviceId: z.string(),
+  ciphertext: z.string(),
+  ratchetTree: z.string(),
+  createdAt: timestampSchema
+});
+
+/**
+ * JSON shape for discussion MLS group state.
+ */
+export const discussionMlsGroupStateSchema = z.object({
+  mlsGroupId: z.string(),
+  currentEpoch: z.number().int().nonnegative(),
+  createdAt: timestampSchema,
+  updatedAt: timestampSchema
+});
+
+/**
+ * Request body for posting an MLS commit relay record.
+ */
+export const createDiscussionMlsCommitBodySchema = z.object({
+  mlsGroupId: z.string().min(1),
+  epoch: z.number().int().nonnegative(),
+  ciphertext: z.string().min(1),
+  senderDeviceId: z.string().min(1)
+});
+
+/**
+ * Request body for posting an MLS welcome relay record.
+ */
+export const createDiscussionMlsWelcomeBodySchema = z.object({
+  mlsGroupId: z.string().min(1),
+  recipientDeviceId: z.string().min(1),
+  ciphertext: z.string().min(1),
+  ratchetTree: z.string().min(1)
+});
+
+/**
+ * Query parameters for listing MLS commits on a discussion thread.
+ */
+export const listDiscussionMlsCommitsQuerySchema = z.object({
+  mlsGroupId: z.string().min(1),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional()
+});
+
+/**
+ * Query parameters for listing MLS welcomes on a discussion thread.
+ */
+export const listDiscussionMlsWelcomesQuerySchema = z.object({
+  mlsGroupId: z.string().min(1),
+  recipientDeviceId: z.string().optional()
+});
+
+/**
+ * Response body for listing MLS commits.
+ */
+export const listDiscussionMlsCommitsResponseSchema = z.object({
+  commits: z.array(discussionMlsCommitSchema),
+  nextCursor: z.string().optional()
+});
+
+/**
+ * Response body for listing MLS welcomes.
+ */
+export const listDiscussionMlsWelcomesResponseSchema = z.object({
+  welcomes: z.array(discussionMlsWelcomeSchema)
+});
+
+/**
+ * Supported collaboration notice event kinds.
+ */
+export const noticeEventTypeSchema = z.enum([
+  'request.updated',
+  'discussion.comment',
+  'discussion.reply',
+  'discussion.mention',
+  'runResult.created',
+  'runResult.failed'
+]);
+
+/**
+ * Per-user notification delivery preference.
+ */
+export const notificationLevelSchema = z.enum(['all', 'mentions', 'none']);
+
+/**
+ * Actor metadata attached to notice rows.
+ */
+export const noticeActorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  avatar: z
+    .object({
+      initials: z.string(),
+      color: z.string()
+    })
+    .optional()
+});
+
+/**
+ * Display metadata attached to notice list rows.
+ */
+export const noticeDisplayMetadataSchema = z.object({
+  actorName: z.string(),
+  targetLabel: z.string(),
+  method: z.string().optional(),
+  requestName: z.string().optional(),
+  runLabel: z.string().optional(),
+  previewText: z.string().optional()
+});
+
+/**
+ * One collaboration notice returned by Team Hub notice routes.
+ */
+export const teamHubNoticeSchema = z.object({
+  id: z.string(),
+  eventType: noticeEventTypeSchema,
+  entityType: discussionEntityTypeSchema,
+  entityId: z.string(),
+  requestId: z.string().nullable(),
+  collectionId: z.string().nullable(),
+  folderId: z.string().nullable(),
+  runResultId: z.string().nullable(),
+  discussionThreadId: z.string().nullable(),
+  discussionCommentId: z.string().nullable(),
+  actor: noticeActorSchema,
+  createdAt: timestampSchema,
+  readAt: timestampSchema.nullable(),
+  displayMetadata: noticeDisplayMetadataSchema
+});
+
+/**
+ * Paginated list response from `GET /notices`.
+ */
+export const listNoticesResponseSchema = z.object({
+  notices: z.array(teamHubNoticeSchema),
+  nextCursor: z.string().optional()
+});
+
+/**
+ * Response payload from `GET /notices/unread-count`.
+ */
+export const noticesUnreadCountResponseSchema = z.object({
+  count: z.number().int().nonnegative()
+});
+
+/**
+ * Current notification settings for the authenticated user.
+ */
+export const notificationSettingsSchema = z.object({
+  level: notificationLevelSchema,
+  updatedAt: timestampSchema
+});
+
+/**
+ * Request body for updating notification settings.
+ */
+export const updateNotificationSettingsBodySchema = z.object({
+  level: notificationLevelSchema
+});
+
+/**
+ * Thread subscription state for the authenticated user.
+ */
+export const discussionThreadSubscriptionSchema = z.object({
+  subscribed: z.boolean(),
+  rootCommentId: z.string()
 });

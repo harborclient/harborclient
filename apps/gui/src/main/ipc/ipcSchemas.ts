@@ -619,6 +619,56 @@ export const teamHubInvitationRedeem = z.tuple([
 export const teamHubSessionVerify = z.tuple([z.string().trim().min(1), z.string().trim().min(1)]);
 
 /**
+ * Zod schema for Team Hub discussion entity targets sent over IPC.
+ */
+export const teamHubDiscussionTarget = z.object({
+  entityType: z.enum(['request', 'collection', 'folder', 'runResult']),
+  entityId: z.string().min(1)
+});
+
+/**
+ * Zod schema for optional discussion list pagination sent over IPC.
+ */
+export const teamHubDiscussionListQuery = z
+  .object({
+    cursor: z.string().optional(),
+    limit: z.number().int().positive().optional()
+  })
+  .optional();
+
+/**
+ * Zod schema for creating or replying to a Team Hub discussion comment.
+ */
+export const teamHubDiscussionCreateInput = z.object({
+  body: z.string(),
+  parentCommentId: z.string().optional()
+});
+
+/**
+ * Zod schema for updating a Team Hub discussion comment body.
+ */
+export const teamHubDiscussionUpdateInput = z.object({
+  body: z.string()
+});
+
+/**
+ * Zod schema for optional notice list pagination sent over IPC.
+ */
+export const teamHubNoticeListQuery = z
+  .object({
+    cursor: z.string().optional(),
+    limit: z.number().int().positive().optional()
+  })
+  .optional();
+
+/**
+ * Zod schema for updating Team Hub notification settings over IPC.
+ */
+export const teamHubNotificationSettingsUpdateInput = z.object({
+  level: z.enum(['all', 'mentions', 'none'])
+});
+
+/**
  * Zod schema for creating a Team Hub API token sent over IPC.
  */
 export const createHubTokenInput = z.object({
@@ -1258,6 +1308,10 @@ export const ipcArgSchemas = {
   teamHubTokenList: z.tuple([connectionId]),
   teamHubTokenCreate: z.tuple([connectionId, connectionId, createHubTokenInput]),
   teamHubTokenDelete: z.tuple([connectionId, connectionId]),
+  teamHubDeviceEnroll: z.tuple([connectionId, z.string().optional()]),
+  teamHubDeviceReset: z.tuple([connectionId]),
+  teamHubDeviceList: z.tuple([connectionId]),
+  teamHubDeviceRevoke: z.tuple([connectionId, z.string().min(1)]),
   teamHubCollectionDelete: z.tuple([connectionId, z.string().min(1)]),
   teamHubCollectionContents: z.tuple([connectionId, z.string().min(1)]),
   teamHubRequestDelete: z.tuple([connectionId, z.string().min(1)]),
@@ -1270,6 +1324,37 @@ export const ipcArgSchemas = {
   teamHubSnippetDelete: z.tuple([connectionId, z.string().min(1)]),
   teamHubRunResultList: z.tuple([connectionId]),
   teamHubRunResultDelete: z.tuple([connectionId, z.string().min(1)]),
+  teamHubDiscussionList: z.tuple([
+    connectionId,
+    teamHubDiscussionTarget,
+    teamHubDiscussionListQuery
+  ]),
+  teamHubDiscussionCreate: z.tuple([
+    connectionId,
+    teamHubDiscussionTarget,
+    teamHubDiscussionCreateInput
+  ]),
+  teamHubDiscussionReply: z.tuple([
+    connectionId,
+    teamHubDiscussionTarget,
+    z.string().min(1),
+    teamHubDiscussionCreateInput
+  ]),
+  teamHubDiscussionUpdate: z.tuple([
+    connectionId,
+    teamHubDiscussionTarget,
+    z.string().min(1),
+    teamHubDiscussionUpdateInput
+  ]),
+  teamHubDiscussionDelete: z.tuple([connectionId, z.string().min(1)]),
+  teamHubNoticeList: z.tuple([connectionId, teamHubNoticeListQuery]),
+  teamHubNoticeRead: z.tuple([connectionId, z.string().min(1)]),
+  teamHubNoticeStreamSync: z.tuple([z.array(connectionId)]),
+  teamHubNotificationSettingsUpdate: z.tuple([
+    connectionId,
+    teamHubNotificationSettingsUpdateInput
+  ]),
+  teamHubDiscussionThreadId: z.tuple([connectionId, z.string().min(1)]),
   providerSync: z.tuple([connectionId]),
   providerListUnregisteredCollections: z.tuple([connectionId]),
   providerRegisterDiscoveredCollections: z.tuple([

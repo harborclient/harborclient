@@ -1,5 +1,6 @@
 import { TeamHubClientError, type TeamHubClient } from '@harborclient/team-hub-api';
 import { createTeamHubClient } from './teamHubClient';
+import { getTeamHubDeviceEnrollmentStatus } from './teamHubDeviceEnrollment';
 import { setHubOpenAiCapability } from '#/main/ai/hubCapabilities';
 import type {
   TeamHub,
@@ -19,6 +20,7 @@ function emptyServices(): TeamHubServiceFlags {
     snippets: false,
     liveServers: false,
     livePages: false,
+    communication: false,
     admin: false
   };
 }
@@ -101,6 +103,30 @@ async function probeLiveEntityServices(
 }
 
 /**
+ * Probes whether the Team Hub server exposes discussion routes.
+ *
+ * @param client - Authenticated Team Hub client.
+ * @param sessionFlag - Communication capability reported by session introspection.
+ */
+async function probeCommunicationEnabled(
+  client: TeamHubClient,
+  sessionFlag: boolean | undefined
+): Promise<boolean> {
+  if (sessionFlag === true) {
+    return true;
+  }
+  if (sessionFlag === false) {
+    return false;
+  }
+
+  try {
+    return await client.probeCommunicationServiceEnabled();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Probes one team hub connection for server services and token capabilities.
  *
  * @param hub - Team hub connection to scan.
@@ -112,16 +138,28 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
   try {
     await client.checkHealth();
     const session = await client.getSession();
-    const [llmCapabilities, pluginCatalog, snippets, liveEntities] = await Promise.all([
-      session.capabilities.llm || session.capabilities.managementApi
-        ? probeHubLlmCapabilities(client, session.capabilities.managementApi)
-        : Promise.resolve({ llm: false, openai: false }),
-      probePluginCatalogEnabled(client),
-      probeSnippetsEnabled(client),
-      probeLiveEntityServices(client)
-    ]);
+    const [llmCapabilities, pluginCatalog, snippets, liveEntities, communication] =
+      await Promise.all([
+        session.capabilities.llm || session.capabilities.managementApi
+          ? probeHubLlmCapabilities(client, session.capabilities.managementApi)
+          : Promise.resolve({ llm: false, openai: false }),
+        probePluginCatalogEnabled(client),
+        probeSnippetsEnabled(client),
+        probeLiveEntityServices(client),
+        probeCommunicationEnabled(client, session.capabilities.communication)
+      ]);
 
     setHubOpenAiCapability(hub.id, llmCapabilities.openai);
+
+    let deviceEnrolled: boolean | undefined;
+    if (session.capabilities.discussionE2ee === true) {
+      try {
+        const enrollment = await getTeamHubDeviceEnrollmentStatus(hub);
+        deviceEnrolled = enrollment.isActiveEnrollment;
+      } catch {
+        deviceEnrolled = false;
+      }
+    }
 
     return {
       hubId: hub.id,
@@ -132,14 +170,27 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
         openai: llmCapabilities.openai,
         pluginCatalog,
         snippets,
+        communication,
         ...liveEntities
       },
       managementApi: session.capabilities.managementApi,
+      communicationAccess: session.capabilities.communication === true,
+      discussionE2ee: session.capabilities.discussionE2ee === true,
+      ...(deviceEnrolled != null ? { deviceEnrolled } : {}),
       user: {
         id: session.user.id,
         name: session.user.name,
         role: session.user.role
-      }
+      },
+      ...(session.hub
+        ? {
+            hubAvatar: {
+              name: session.hub.name,
+              initials: session.hub.initials,
+              color: session.hub.color
+            }
+          }
+        : {})
     };
   } catch (err) {
     const message =

@@ -12,6 +12,7 @@ import { createStorageInstance } from '#/main/storage/createStorageInstance';
 import { seedMissingBuiltinThemes } from '#/main/storage/customThemes';
 import { registerIpcHandlers } from './ipc';
 import { closeAllSseSessions } from '#/main/ipc/handlers/network';
+import { shutdownTeamHubNoticeStreams } from '#/main/ipc/handlers/teamHubNotices';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import {
   getActiveStorageId,
@@ -447,6 +448,7 @@ async function applyPersistedTheme(): Promise<ThemeSource> {
 function beginQuitWithoutPrompt(window: BrowserWindow | null = mainWindow): void {
   isQuitting = true;
   closeAllSseSessions();
+  shutdownTeamHubNoticeStreams();
   markPluginRunnerAppQuitting();
   if (window && !window.isDestroyed()) {
     saveWindowState(window);
@@ -906,6 +908,7 @@ ipcMain.on('app:close-decision', (_event, ...raw) => {
 
   isQuitting = true;
   closeAllSseSessions();
+  shutdownTeamHubNoticeStreams();
   markPluginRunnerAppQuitting();
   const reason = closeReason;
   closeReason = null;

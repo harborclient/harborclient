@@ -72,6 +72,8 @@ function createMockDatabase(): IDatabase {
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
+    avatarInitials: null,
+    avatarColor: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdByUserId: 'system-user-id',
@@ -89,6 +91,8 @@ function createMockDatabase(): IDatabase {
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
+    avatarInitials: null,
+    avatarColor: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdByUserId: 'system-user-id',
@@ -112,6 +116,8 @@ function createMockDatabase(): IDatabase {
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
+    avatarInitials: null,
+    avatarColor: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     createdByUserId: 'system-user-id',
@@ -310,7 +316,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
     expect(createServerMock).toHaveBeenCalledWith(
       expect.objectContaining({

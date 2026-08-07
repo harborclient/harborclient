@@ -51,6 +51,16 @@ export interface FirestoreTenantDocument {
    * User who last updated the tenant, when known.
    */
   updatedByUserId: string | null;
+
+  /**
+   * Persisted hub avatar initials tile text, when assigned.
+   */
+  avatarInitials?: string | null;
+
+  /**
+   * Persisted hub avatar background color key (for example `sky-600`).
+   */
+  avatarColor?: string | null;
 }
 
 /**
@@ -131,6 +141,16 @@ export interface FirestoreUserDocument {
    * Maximum total tokens per UTC calendar month, or null for unlimited.
    */
   llmMonthlyTokenLimit?: number | null;
+
+  /**
+   * Persisted avatar initials tile text, when assigned.
+   */
+  avatarInitials?: string | null;
+
+  /**
+   * Persisted avatar background color key (for example `sky-600`).
+   */
+  avatarColor?: string | null;
 }
 
 /**
@@ -241,6 +261,201 @@ export interface FirestoreApiTokenDocument {
    * User who last updated the token record.
    */
   updatedByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for persisted device key enrollments.
+ */
+export interface FirestoreDeviceKeyDocument {
+  /**
+   * Tenant namespace identifier scoping this enrollment.
+   */
+  tenantId?: string;
+
+  /**
+   * Owning user identifier.
+   */
+  userId: string;
+
+  /**
+   * Client-generated stable device identifier.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable device label.
+   */
+  label: string;
+
+  /**
+   * Format of {@link publicKeyMaterial}.
+   */
+  keyFormat: string;
+
+  /**
+   * Base64-encoded public key material or MLS KeyPackage bytes.
+   */
+  publicKeyMaterial: string;
+
+  /**
+   * sha256 hex digest of {@link publicKeyMaterial}.
+   */
+  fingerprint: string;
+
+  /**
+   * When the device was enrolled.
+   */
+  createdAt: Date;
+
+  /**
+   * When the device last confirmed enrollment, if tracked.
+   */
+  lastSeenAt: Date | null;
+
+  /**
+   * When the device was revoked; null means the enrollment is still active.
+   */
+  revokedAt: Date | null;
+
+  /**
+   * User who created the enrollment record.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the enrollment record.
+   */
+  updatedByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for persisted discussion MLS group state.
+ */
+export interface FirestoreDiscussionMlsGroupStateDocument {
+  /**
+   * Tenant namespace identifier scoping this group state row.
+   */
+  tenantId?: string;
+
+  /**
+   * Canonical MLS group id for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Entity type hosting the discussion thread.
+   */
+  targetEntityType: string;
+
+  /**
+   * Entity id hosting the discussion thread.
+   */
+  targetEntityId: string;
+
+  /**
+   * Latest MLS epoch observed for the thread.
+   */
+  currentEpoch: number;
+
+  /**
+   * When the group state row was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the group state row was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * User who created the group state row.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the group state row.
+   */
+  updatedByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for persisted discussion MLS commits.
+ */
+export interface FirestoreDiscussionMlsCommitDocument {
+  /**
+   * Tenant namespace identifier scoping this commit row.
+   */
+  tenantId?: string;
+
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * MLS epoch after applying the commit.
+   */
+  epoch: number;
+
+  /**
+   * Base64-encoded MLS commit bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Client device id that produced the commit.
+   */
+  senderDeviceId: string;
+
+  /**
+   * When the commit was relayed through Team Hub.
+   */
+  createdAt: Date;
+
+  /**
+   * User who posted the commit relay record.
+   */
+  createdByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for persisted discussion MLS welcomes.
+ */
+export interface FirestoreDiscussionMlsWelcomeDocument {
+  /**
+   * Tenant namespace identifier scoping this welcome row.
+   */
+  tenantId?: string;
+
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Recipient device id for the welcome message.
+   */
+  recipientDeviceId: string;
+
+  /**
+   * Base64-encoded MLS welcome bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Base64-encoded ratchet tree bytes for group join.
+   */
+  ratchetTree: string;
+
+  /**
+   * When the welcome was relayed through Team Hub.
+   */
+  createdAt: Date;
+
+  /**
+   * User who posted the welcome relay record.
+   */
+  createdByUserId: string | null;
 }
 
 /**
@@ -865,4 +1080,209 @@ export interface FirestoreRunResultDocument {
    * User who saved the run result.
    */
   createdByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for persisted discussion comments.
+ */
+export interface FirestoreDiscussionCommentDocument {
+  /**
+   * Tenant namespace identifier scoping this comment.
+   */
+  tenantId?: string;
+
+  /**
+   * Kind of entity this comment is attached to.
+   */
+  targetEntityType: 'request' | 'collection' | 'folder' | 'runResult';
+
+  /**
+   * Identifier of the target entity.
+   */
+  targetEntityId: string;
+
+  /**
+   * Parent comment id, or null for depth-1 comments.
+   */
+  parentCommentId: string | null;
+
+  /**
+   * Root thread id used for grouping and pagination.
+   */
+  rootCommentId: string;
+
+  /**
+   * Stored depth after server-side flattening (1 through 3).
+   */
+  depth: 1 | 2 | 3;
+
+  /**
+   * Comment body text.
+   */
+  body: string;
+
+  /**
+   * Body encoding format.
+   */
+  bodyFormat: 'plaintext' | 'encrypted';
+
+  /**
+   * Optional metadata for encrypted or enriched bodies.
+   */
+  bodyMetadata: Record<string, unknown> | null;
+
+  /**
+   * User who authored the comment.
+   */
+  authorUserId: string | null;
+
+  /**
+   * When the comment was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the comment was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * When the comment was tombstoned, or null when active.
+   */
+  tombstonedAt: Date | null;
+
+  /**
+   * User who tombstoned the comment, when applicable.
+   */
+  tombstonedByUserId: string | null;
+}
+
+/**
+ * Firestore document shape for collaboration notices.
+ */
+export interface FirestoreNoticeDocument {
+  /**
+   * Tenant namespace identifier scoping this notice.
+   */
+  tenantId?: string;
+
+  /**
+   * User who should receive the notice.
+   */
+  recipientUserId: string;
+
+  /**
+   * Event kind that created the notice.
+   */
+  eventType: string;
+
+  /**
+   * Primary entity type the notice deep-links to.
+   */
+  entityType: 'request' | 'collection' | 'folder' | 'runResult';
+
+  /**
+   * Primary entity identifier the notice deep-links to.
+   */
+  entityId: string;
+
+  /**
+   * Related request id, when applicable.
+   */
+  requestId: string | null;
+
+  /**
+   * Related collection id for access filtering, when applicable.
+   */
+  collectionId: string | null;
+
+  /**
+   * Related folder id, when applicable.
+   */
+  folderId: string | null;
+
+  /**
+   * Related run result id, when applicable.
+   */
+  runResultId: string | null;
+
+  /**
+   * Root discussion thread id, when applicable.
+   */
+  discussionThreadId: string | null;
+
+  /**
+   * Discussion comment id that triggered the notice, when applicable.
+   */
+  discussionCommentId: string | null;
+
+  /**
+   * User who triggered the notice event.
+   */
+  actorUserId: string | null;
+
+  /**
+   * When the notice was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the recipient marked the notice read, or null while unread.
+   */
+  readAt: Date | null;
+
+  /**
+   * Denormalized labels for feed rendering.
+   */
+  displayMetadata: Record<string, unknown>;
+}
+
+/**
+ * Firestore document shape for per-user notification settings.
+ */
+export interface FirestoreUserNotificationSettingsDocument {
+  /**
+   * Tenant namespace identifier scoping these settings.
+   */
+  tenantId?: string;
+
+  /**
+   * User account id the settings belong to.
+   */
+  userId: string;
+
+  /**
+   * Selected notification level controlling notice volume.
+   */
+  level: 'all' | 'mentions' | 'none';
+
+  /**
+   * When the settings were last updated.
+   */
+  updatedAt: Date;
+}
+
+/**
+ * Firestore document shape for discussion thread subscriptions.
+ */
+export interface FirestoreDiscussionThreadSubscriptionDocument {
+  /**
+   * Tenant namespace identifier scoping this subscription.
+   */
+  tenantId?: string;
+
+  /**
+   * Subscribed user account id.
+   */
+  userId: string;
+
+  /**
+   * Root comment id identifying the watched thread.
+   */
+  rootCommentId: string;
+
+  /**
+   * When the subscription was created.
+   */
+  createdAt: Date;
 }

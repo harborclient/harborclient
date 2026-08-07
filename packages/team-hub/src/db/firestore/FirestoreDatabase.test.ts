@@ -7,6 +7,10 @@ const { FirestoreMock } = vi.hoisted(() => {
   class MockFirestore {
     listCollections = vi.fn().mockResolvedValue([]);
     terminate = vi.fn().mockResolvedValue(undefined);
+    batch = vi.fn().mockReturnValue({
+      set: vi.fn(),
+      commit: vi.fn().mockResolvedValue(undefined)
+    });
     collection = vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({
         set: vi.fn().mockResolvedValue(undefined),
@@ -201,6 +205,10 @@ describe('FirestoreDatabase collections', () => {
       class EntityFirestoreMock {
         listCollections = vi.fn().mockResolvedValue([]);
         terminate = vi.fn().mockResolvedValue(undefined);
+        batch = vi.fn().mockReturnValue({
+          update: vi.fn(),
+          commit: vi.fn().mockResolvedValue(undefined)
+        });
         collection = vi.fn().mockReturnValue({
           doc: vi.fn().mockReturnValue({
             set: setMock,

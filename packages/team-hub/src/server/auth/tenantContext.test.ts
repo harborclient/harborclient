@@ -104,7 +104,9 @@ describe('createTenantResolutionHook', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       createdByUserId: null,
-      updatedByUserId: null
+      updatedByUserId: null,
+      avatarInitials: null,
+      avatarColor: null
     });
     db.forTenant.mockReturnValue(scoped);
     const hook = createTenantResolutionHook(db, () => ({ enabled: true }));

@@ -7,6 +7,10 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { type Mocked } from 'vitest';
 import type { MultitenancyConfig } from '#/config/multitenancyConfig.js';
 import { DEFAULT_MULTITENANCY_CONFIG } from '#/config/multitenancyConfig.js';
+import {
+  DEFAULT_COLLABORATION_CONFIG,
+  type CollaborationConfig
+} from '#/config/collaborationConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { ApiTokenRecord, UserRecord } from '#/db/types.js';
 import { hashToken } from '#/server/auth/apiTokens.js';
@@ -33,6 +37,8 @@ export const sampleUserRecord: UserRecord = {
   llmAccess: false,
   llmModels: [],
   llmMonthlyTokenLimit: null,
+  avatarInitials: 'TU',
+  avatarColor: 'sky-600',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   ...sampleAttribution
@@ -98,9 +104,19 @@ export interface CreateProtectedTestAppOptions {
   multitenancy?: MultitenancyConfig;
 
   /**
+   * Collaboration configuration; defaults to plaintext discussions.
+   */
+  collaboration?: CollaborationConfig;
+
+  /**
    * Config reload handler for admin reload route tests.
    */
   reloadConfig?: () => Promise<ReloadResult>;
+
+  /**
+   * Notice event bus used by notice SSE routes.
+   */
+  noticeEventBus?: import('#/server/notices/INoticeEventBus.js').INoticeEventBus;
 }
 
 /**
@@ -118,9 +134,9 @@ export async function createProtectedTestApp(
   const plugins = options.plugins ?? null;
   const docs = options.docs ?? null;
   const multitenancy = options.multitenancy ?? DEFAULT_MULTITENANCY_CONFIG;
+  const collaboration = options.collaboration ?? DEFAULT_COLLABORATION_CONFIG;
 
   options.db.forTenant.mockImplementation(() => options.db);
-  options.db.findTenantById.mockResolvedValue(null);
   options.db.getTenantId.mockReturnValue('__default__');
 
   if (options.withValidAuth) {
@@ -142,7 +158,9 @@ export async function createProtectedTestApp(
       getPlugins: () => plugins,
       getDocs: () => docs,
       getMultitenancy: () => multitenancy,
-      reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] }))
+      getCollaboration: () => collaboration,
+      reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] })),
+      noticeEventBus: options.noticeEventBus
     });
   });
 

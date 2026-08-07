@@ -22,6 +22,7 @@ The canonical example at the repository root is [`server.yaml.example`](https://
 | `plugins`       | No       | Yes         | Omit to return empty plugin source lists              |
 | `docs`          | No       | Yes         | Optional path to the documentation search index       |
 | `multitenancy`  | No       | No          | Applied at process startup; restart after changes     |
+| `collaboration` | No       | Yes         | Discussion E2EE mode; reload via SIGHUP or admin reload |
 
 Reload triggers while `team-hub start` is running:
 
@@ -264,6 +265,55 @@ multitenancy:
 ```
 
 Restart `team-hub start` after changing `multitenancy.enabled`. Tenant records are managed with the CLI — see [CLI](./cli.md).
+
+## collaboration
+
+Optional discussion encryption mode for Team Hub. Omit this section (or leave `e2ee: false`) for normal plaintext discussion bodies.
+
+| Key    | Type    | Required | Default | Description                                                                 |
+| ------ | ------- | -------- | ------- | --------------------------------------------------------------------------- |
+| `e2ee` | boolean | No       | `false` | When true, discussion create/update routes reject plaintext bodies hub-wide |
+
+When `e2ee` is `true`:
+
+- `GET /auth/session` reports `capabilities.discussionE2ee: true`
+- Discussion create/update routes accept `encryptedPayload` objects instead of plaintext `body`
+- Discussion list responses expose `bodyFormat: "encrypted"`, `encryptedPayload` metadata, and `body: null`
+- Collaboration notices omit comment preview snippets
+- HarborClient encrypts comment bodies locally before upload and decrypts list responses when this device is enrolled
+
+Encrypted discussion write bodies use this shape:
+
+```json
+{
+  "encryptedPayload": {
+    "ciphertext": "base64-bytes",
+    "mlsGroupId": "thread:request:<request-id>",
+    "epoch": 0,
+    "senderDeviceId": "<device-uuid>",
+    "keyFormat": "identity-v1"
+  }
+}
+```
+
+The server stores ciphertext in the comment `body` column plus metadata (`mlsGroupId`, `epoch`, `senderDeviceId`, optional commit references) and never decrypts it. HarborClient uses the `mls-v1` membership protocol with persisted MLS commits and welcomes for offline catch-up. The older `identity-v1` format remains readable for legacy encrypted comments created before Task 4.5.
+
+MLS relay routes (E2EE hubs only):
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `POST` | `/discussion-mls/commits` | Persist an MLS commit for existing members |
+| `GET` | `/discussion-mls/commits?mlsGroupId=` | List commits for offline catch-up |
+| `POST` | `/discussion-mls/welcomes` | Persist a welcome for a newly added device |
+| `GET` | `/discussion-mls/welcomes?mlsGroupId=` | List welcomes for this device/thread |
+| `GET` | `/discussion-mls/group-state/:mlsGroupId` | Return the latest observed MLS epoch |
+
+When `e2ee` is enabled, users enroll devices through `POST /devices` with public key material only. HarborClient stores private keys locally in encrypted settings and never uploads them. Admins revoke compromised devices with `DELETE /admin/device-keys/:id`. Revocation and lost private keys can make older encrypted content unrecoverable unless another authorized device can re-add the user in a later MLS release.
+
+```yaml
+collaboration:
+  e2ee: false
+```
 
 ## Docker environment variables
 

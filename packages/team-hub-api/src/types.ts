@@ -64,6 +64,54 @@ export interface TeamHubClientConfig {
 }
 
 /**
+ * Supported avatar background color keys persisted on hub records.
+ */
+export type HubAvatarColorKey =
+  | 'sky-600'
+  | 'violet-600'
+  | 'emerald-600'
+  | 'amber-600'
+  | 'rose-600'
+  | 'cyan-600'
+  | 'indigo-600'
+  | 'teal-600';
+
+/**
+ * Hub avatar metadata returned by session and admin routes.
+ */
+export interface HubAvatarMetadata {
+  /**
+   * Human-readable hub/tenant display name.
+   */
+  name: string;
+
+  /**
+   * One or two uppercase initials shown in the avatar tile.
+   */
+  initials: string;
+
+  /**
+   * Persisted palette key for the avatar background color.
+   */
+  color: HubAvatarColorKey;
+}
+
+/**
+ * Fields accepted when an admin updates hub avatar presentation.
+ */
+export interface UpdateHubAvatarInput {
+  /**
+   * Replacement initials tile text.
+   */
+  initials?: string;
+
+  /**
+   * Replacement palette color key.
+   */
+  color?: HubAvatarColorKey;
+}
+
+/**
  * Response body from `GET /health`.
  */
 export interface HealthResponse {
@@ -101,6 +149,20 @@ export interface SessionCapabilities {
    * When true, the token may call hub-proxied LLM routes.
    */
   llm: boolean;
+
+  /**
+   * When true, the token may call Team Hub discussion routes.
+   *
+   * Omitted on older servers that do not expose communication capabilities.
+   */
+  communication?: boolean;
+
+  /**
+   * When true, this Team Hub requires encrypted discussion comment bodies.
+   *
+   * Omitted on older servers that predate collaboration E2EE capability reporting.
+   */
+  discussionE2ee?: boolean;
 }
 
 /**
@@ -125,6 +187,20 @@ export interface SessionResponse {
      * Account role determining API capabilities.
      */
     role: HubUserRole;
+
+    /**
+     * Persisted avatar initials tile text.
+     *
+     * Omitted on older Team Hub servers that predate user avatar support.
+     */
+    avatarInitials?: string;
+
+    /**
+     * Persisted avatar background color key.
+     *
+     * Omitted on older Team Hub servers that predate user avatar support.
+     */
+    avatarColor?: HubAvatarColorKey;
   };
 
   /**
@@ -154,6 +230,43 @@ export interface SessionResponse {
    * to the default tenant.
    */
   tenantId?: string;
+
+  /**
+   * Hub avatar presentation for the active tenant namespace.
+   *
+   * Omitted on older Team Hub servers that predate hub avatar support.
+   */
+  hub?: HubAvatarMetadata;
+}
+
+/**
+ * Request body for `PUT /auth/profile/avatar`.
+ */
+export interface UpdateMyAvatarInput {
+  /**
+   * Replacement initials tile text.
+   */
+  initials?: string;
+
+  /**
+   * Replacement palette color key.
+   */
+  color?: HubAvatarColorKey;
+}
+
+/**
+ * Response body from `PUT /auth/profile/avatar`.
+ */
+export interface UpdateMyAvatarResponse {
+  /**
+   * Persisted avatar initials tile text.
+   */
+  avatarInitials: string;
+
+  /**
+   * Persisted avatar background color key.
+   */
+  avatarColor: HubAvatarColorKey;
 }
 
 /**
@@ -174,6 +287,16 @@ export interface HubUserRecord {
    * Account role determining API capabilities.
    */
   role: HubUserRole;
+
+  /**
+   * Persisted avatar initials tile text.
+   */
+  avatarInitials: string;
+
+  /**
+   * Persisted avatar background color key.
+   */
+  avatarColor: HubAvatarColorKey;
 
   /**
    * Collection ids the user may access, or `['*']` for all collections.
@@ -384,6 +507,16 @@ export interface UpdateHubUserInput {
    * Replacement monthly token limit, or null for unlimited.
    */
   llmMonthlyTokenLimit?: number | null;
+
+  /**
+   * Replacement avatar initials tile text.
+   */
+  avatarInitials?: string;
+
+  /**
+   * Replacement avatar background color key.
+   */
+  avatarColor?: HubAvatarColorKey;
 }
 
 /**
@@ -479,6 +612,86 @@ export interface HubApiTokenRecord {
    * ISO 8601 timestamp when the token was revoked; null when active.
    */
   revokedAt: string | null;
+}
+
+/**
+ * Device key metadata returned by enrollment and admin device routes.
+ */
+export interface HubDeviceKeyRecord {
+  /**
+   * Stable device key record identifier.
+   */
+  id: string;
+
+  /**
+   * Owning user account identifier.
+   */
+  userId: string;
+
+  /**
+   * Client-generated stable device identifier scoped per user and hub.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label chosen during enrollment.
+   */
+  label: string;
+
+  /**
+   * Format of the uploaded public key material.
+   */
+  keyFormat: 'identity-v1' | 'mls-key-package';
+
+  /**
+   * sha256 hex digest of the uploaded public key material.
+   */
+  fingerprint: string;
+
+  /**
+   * Short fingerprint prefix for operator listings.
+   */
+  fingerprintPrefix: string;
+
+  /**
+   * ISO 8601 timestamp when the device was enrolled.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the device last confirmed enrollment, if tracked.
+   */
+  lastSeenAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the device was revoked; null when active.
+   */
+  revokedAt: string | null;
+}
+
+/**
+ * Input for enrolling the current device on an E2EE-enabled Team Hub.
+ */
+export interface EnrollHubDeviceInput {
+  /**
+   * Client-generated stable device identifier.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label for admin listings.
+   */
+  label: string;
+
+  /**
+   * Base64-encoded public key material uploaded to the hub.
+   */
+  publicKeyMaterial: string;
+
+  /**
+   * Format of {@link publicKeyMaterial}; defaults to identity-v1 on the server.
+   */
+  keyFormat?: 'identity-v1' | 'mls-key-package';
 }
 
 /**

@@ -13,6 +13,8 @@ db:
 redis:
   host: ${TEAM_HUB_REDIS_HOST}
   port: ${TEAM_HUB_REDIS_PORT}
+  # Optional: set to true when multiple Team Hub app instances share Redis for notice SSE fan-out.
+  # noticeEventsPubSub: false
 
 logging:
   level: ${TEAM_HUB_LOGGING_LEVEL}
@@ -21,3 +23,7 @@ logging:
 
 multitenancy:
   enabled: ${TEAM_HUB_MULTITENANCY_ENABLED}
+
+# Optional: enable hub-wide encrypted discussion bodies (requires client device enrollment).
+# collaboration:
+#   e2ee: false

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { teamHubAvatarColorClass, teamHubInitials } from './teamHubInitials';
+import {
+  teamHubAvatarColorClass,
+  teamHubAvatarColorClassFromKey,
+  teamHubInitials
+} from './teamHubInitials';
 
 describe('teamHubInitials', () => {
   it('uses the first letter of the first two words', () => {
@@ -31,5 +35,17 @@ describe('teamHubAvatarColorClass', () => {
 
   it('returns a known palette class', () => {
     expect(teamHubAvatarColorClass('hub-a')).toMatch(/^bg-/);
+  });
+});
+
+describe('teamHubAvatarColorClassFromKey', () => {
+  it('maps known server color keys to Tailwind classes', () => {
+    expect(teamHubAvatarColorClassFromKey('rose-600', 'hub-a')).toBe('bg-rose-600');
+  });
+
+  it('falls back to hub id hashing for unknown keys', () => {
+    expect(teamHubAvatarColorClassFromKey(undefined, 'hub-a')).toBe(
+      teamHubAvatarColorClass('hub-a')
+    );
   });
 });

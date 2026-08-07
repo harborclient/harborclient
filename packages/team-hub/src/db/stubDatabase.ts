@@ -19,6 +19,7 @@ export function createStubDatabase(): Mocked<IDatabase> {
     listTenants: vi.fn().mockResolvedValue([]),
     createTenant: vi.fn(),
     findTenantById: vi.fn(),
+    updateTenantAvatar: vi.fn(),
     deleteTenant: vi.fn(),
     ensureSystemUser: vi.fn(),
     getSystemUserId: vi.fn().mockReturnValue('system-user-id'),
@@ -26,7 +27,7 @@ export function createStubDatabase(): Mocked<IDatabase> {
     createUser: vi.fn(),
     findUserById: vi.fn(),
     findUserByName: vi.fn(),
-    listUsers: vi.fn(),
+    listUsers: vi.fn().mockResolvedValue([]),
     updateUser: vi.fn(),
     deleteUser: vi.fn(),
     migrateOrphanTokensToBootstrapUser: vi.fn(),
@@ -38,6 +39,21 @@ export function createStubDatabase(): Mocked<IDatabase> {
     deleteApiToken: vi.fn(),
     revokeApiToken: vi.fn(),
     touchApiTokenLastUsed: vi.fn(),
+    createDeviceKey: vi.fn(),
+    findDeviceKeyById: vi.fn(),
+    findActiveDeviceKeyByUserAndDeviceId: vi.fn(),
+    listDeviceKeysByUserId: vi.fn().mockResolvedValue([]),
+    listDeviceKeys: vi.fn().mockResolvedValue([]),
+    revokeDeviceKey: vi.fn(),
+    touchDeviceKeyLastSeen: vi.fn(),
+    getDiscussionMlsGroupState: vi.fn().mockResolvedValue(null),
+    upsertDiscussionMlsGroupState: vi.fn(),
+    createDiscussionMlsCommit: vi.fn(),
+    listDiscussionMlsCommits: vi.fn().mockResolvedValue({ commits: [] }),
+    findDiscussionMlsCommitById: vi.fn().mockResolvedValue(null),
+    createDiscussionMlsWelcome: vi.fn(),
+    listDiscussionMlsWelcomes: vi.fn().mockResolvedValue({ welcomes: [] }),
+    findDiscussionMlsWelcomeById: vi.fn().mockResolvedValue(null),
     createInvitedUser: vi.fn(),
     createInvitation: vi.fn(),
     findInvitationById: vi.fn(),
@@ -102,7 +118,33 @@ export function createStubDatabase(): Mocked<IDatabase> {
     listAllRunResults: vi.fn().mockResolvedValue([]),
     createRunResult: vi.fn(),
     findRunResultById: vi.fn(),
-    deleteRunResult: vi.fn()
+    deleteRunResult: vi.fn(),
+    createDiscussionComment: vi.fn(),
+    listDiscussionComments: vi.fn().mockResolvedValue({ comments: [], nextCursor: null }),
+    findDiscussionCommentById: vi.fn(),
+    updateDiscussionComment: vi.fn(),
+    tombstoneDiscussionComment: vi.fn(),
+    createNotices: vi.fn().mockResolvedValue([]),
+    listNotices: vi.fn().mockResolvedValue({ notices: [], nextCursor: null }),
+    countUnreadNotices: vi.fn().mockResolvedValue(0),
+    markNoticeRead: vi.fn(),
+    markAllNoticesRead: vi.fn().mockResolvedValue(0),
+    getUserNotificationSettings: vi.fn().mockResolvedValue({
+      userId: 'user-1',
+      level: 'all',
+      updatedAt: new Date('2026-01-01T00:00:00.000Z')
+    }),
+    updateUserNotificationSettings: vi.fn(),
+    subscribeDiscussionThread: vi
+      .fn()
+      .mockImplementation(async (userId: string, rootCommentId: string) => ({
+        userId,
+        rootCommentId,
+        createdAt: new Date('2026-01-01T00:00:00.000Z')
+      })),
+    unsubscribeDiscussionThread: vi.fn(),
+    isSubscribedToDiscussionThread: vi.fn().mockResolvedValue(false),
+    listDiscussionThreadSubscribers: vi.fn().mockResolvedValue([])
   } as Mocked<IDatabase>;
 
   db.forTenant.mockImplementation(() => db);

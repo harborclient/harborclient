@@ -51,9 +51,9 @@ export const REQUEST_EDITOR_NOTICES: Record<EditorTab, RequestEditorNoticeCopy> 
       'Run scripts after the response arrives to test results, extract values, or chain follow-up requests.'
   },
   comment: {
-    label: 'Notes',
+    label: 'Discuss',
     description:
-      'Document this request with tags and Markdown notes so teammates understand what it does and how to use it.'
+      'Document this request with tags and notes, or start a Team Hub discussion when communication is enabled for the collection.'
   }
 };
 

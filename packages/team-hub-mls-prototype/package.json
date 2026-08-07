@@ -1,0 +1,11 @@
+{
+  "name": "@harborclient/team-hub-mls-prototype",
+  "private": true,
+  "version": "0.0.0",
+  "description": "OpenMLS proof-of-concept for Team Hub encrypted discussion bodies (Task 4.1)",
+  "license": "MIT",
+  "scripts": {
+    "test": "cargo test",
+    "test:discussion-flow": "cargo test discussion_flow -- --nocapture"
+  }
+}

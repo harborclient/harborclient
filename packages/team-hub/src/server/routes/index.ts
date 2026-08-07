@@ -5,9 +5,16 @@ import {
   DEFAULT_MULTITENANCY_CONFIG,
   type MultitenancyConfig
 } from '#/config/multitenancyConfig.js';
+import {
+  DEFAULT_COLLABORATION_CONFIG,
+  type CollaborationConfig
+} from '#/config/collaborationConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
+import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
+import { InMemoryNoticeEventBus } from '#/server/notices/InMemoryNoticeEventBus.js';
+import { setNoticeEventBus } from '#/server/notices/noticeService.js';
 import {
   createBearerAuthHook,
   registerBearerAuthDecorator
@@ -31,6 +38,12 @@ import { registerHealthRoute } from '#/server/routes/health.js';
 import { registerJoinRoute } from '#/server/routes/join.js';
 import { registerRequestRoutes } from '#/server/routes/requests.js';
 import { registerRunResultRoutes } from '#/server/routes/runResults.js';
+import { registerDiscussionRoutes } from '#/server/routes/discussions.js';
+import { registerDeviceKeyRoutes } from '#/server/routes/deviceKeys.js';
+import { registerDiscussionMlsRoutes } from '#/server/routes/discussionMls.js';
+import { setCollaborationConfigGetter } from '#/server/notices/noticeService.js';
+import { registerNoticeRoutes } from '#/server/routes/notices.js';
+import { registerNoticeStreamRoutes } from '#/server/routes/noticesStream.js';
 import { registerLlmRoutes } from '#/server/routes/llm.js';
 import { registerPluginsRoutes } from '#/server/routes/plugins.js';
 import type { ReloadResult } from '#/server/runtimeContext.js';
@@ -72,9 +85,19 @@ export interface RegisterRoutesOptions {
   getMultitenancy: () => MultitenancyConfig;
 
   /**
+   * Returns the current normalized collaboration configuration from server.yaml.
+   */
+  getCollaboration: () => CollaborationConfig;
+
+  /**
    * Reloads server.yaml and returns a per-section report.
    */
   reloadConfig: () => Promise<ReloadResult>;
+
+  /**
+   * Fan-out bus for notice SSE events; defaults to in-memory for tests.
+   */
+  noticeEventBus?: INoticeEventBus;
 }
 
 /**
@@ -123,7 +146,15 @@ export async function registerProtectedRoutes(
   const tenantAwareDb = createTenantAwareDatabase(options.db);
   app.addHook('onRequest', createBearerAuthHook(tenantAwareDb, options.throttleStore));
 
-  await registerAuthRoutes(app);
+  const noticeEventBus = options.noticeEventBus ?? new InMemoryNoticeEventBus();
+  setNoticeEventBus(noticeEventBus);
+  setCollaborationConfigGetter(options.getCollaboration);
+
+  await registerAuthRoutes(app, {
+    db: tenantAwareDb,
+    rootDb: options.db,
+    getCollaboration: options.getCollaboration
+  });
   await registerAdminRoutes(app, {
     db: tenantAwareDb,
     getLlm: options.getLlm,
@@ -138,6 +169,11 @@ export async function registerProtectedRoutes(
   await registerRequestRoutes(app, tenantAwareDb);
   await registerDocumentRoutes(app, tenantAwareDb);
   await registerRunResultRoutes(app, tenantAwareDb);
+  await registerDiscussionRoutes(app, tenantAwareDb, options.getCollaboration);
+  await registerDeviceKeyRoutes(app, tenantAwareDb, options.getCollaboration);
+  await registerDiscussionMlsRoutes(app, tenantAwareDb, options.getCollaboration);
+  await registerNoticeRoutes(app, tenantAwareDb);
+  await registerNoticeStreamRoutes(app, tenantAwareDb, noticeEventBus);
   await registerLlmRoutes(app, {
     db: tenantAwareDb,
     getLlm: options.getLlm,
@@ -166,6 +202,10 @@ export async function registerRoutes(
   await app.register(async (protectedApp) => {
     await registerProtectedRoutes(protectedApp, options);
   });
+}
+
+export function defaultGetCollaboration(): CollaborationConfig {
+  return DEFAULT_COLLABORATION_CONFIG;
 }
 
 /**

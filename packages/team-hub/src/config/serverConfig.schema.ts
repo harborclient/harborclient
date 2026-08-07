@@ -72,7 +72,8 @@ export const redisSectionSchema = z
         z.number().int().min(1),
         z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1))
       ])
-      .optional()
+      .optional(),
+    noticeEventsPubSub: z.boolean().optional()
   })
   .loose();
 
@@ -158,6 +159,13 @@ export const multitenancySectionSchema = z.object({
 });
 
 /**
+ * Zod schema for the optional `collaboration` section of the config file.
+ */
+export const collaborationSectionSchema = z.object({
+  e2ee: z.boolean().optional()
+});
+
+/**
  * Zod schema for the full server config document (`server.yaml` root mapping).
  */
 export const serverConfigDocumentSchema = z.object({
@@ -168,7 +176,8 @@ export const serverConfigDocumentSchema = z.object({
   plugins: pluginsSectionSchema.optional(),
   docs: docsSectionSchema.optional(),
   logging: loggingSectionSchema.optional(),
-  multitenancy: multitenancySectionSchema.optional()
+  multitenancy: multitenancySectionSchema.optional(),
+  collaboration: collaborationSectionSchema.optional()
 });
 
 /**

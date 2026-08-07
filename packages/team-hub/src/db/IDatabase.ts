@@ -30,9 +30,29 @@ import type {
   LivePageRecord,
   LiveServerRecord,
   UpdateLivePageRecordInput,
-  UpdateLiveServerRecordInput
+  UpdateLiveServerRecordInput,
+  DiscussionCommentRecord,
+  CreateDiscussionCommentInput,
+  UpdateDiscussionCommentInput,
+  ListDiscussionCommentsOptions,
+  ListDiscussionCommentsResult,
+  NoticeRecord,
+  CreateNoticeInput,
+  ListNoticesOptions,
+  ListNoticesResult,
+  NotificationLevel,
+  UserNotificationSettingsRecord,
+  DiscussionThreadSubscriptionRecord,
+  DiscussionMlsGroupStateRecord,
+  DiscussionMlsCommitRecord,
+  DiscussionMlsWelcomeRecord,
+  UpsertDiscussionMlsGroupStateInput,
+  ListDiscussionMlsCommitsOptions,
+  ListDiscussionMlsCommitsResult,
+  ListDiscussionMlsWelcomesOptions,
+  ListDiscussionMlsWelcomesResult
 } from '#/db/types.js';
-import type { ApiTokenRecord } from '#/db/types.js';
+import type { ApiTokenRecord, CreateDeviceKeyInput, DeviceKeyRecord } from '#/db/types.js';
 
 /**
  * Common contract for Team Hub database backends.
@@ -98,6 +118,22 @@ export interface IDatabase {
    * @param id - Tenant identifier to look up.
    */
   findTenantById(id: string): Promise<TenantRecord | null>;
+
+  /**
+   * Updates persisted hub avatar presentation for a tenant namespace.
+   *
+   * @param id - Tenant identifier to update.
+   * @param avatarInitials - Initials tile text to persist.
+   * @param avatarColor - Palette color key to persist.
+   * @param actingUserId - User performing the update, or null for system assignment.
+   * @returns Updated tenant record.
+   */
+  updateTenantAvatar(
+    id: string,
+    avatarInitials: string,
+    avatarColor: string,
+    actingUserId: string | null
+  ): Promise<TenantRecord>;
 
   /**
    * Deletes a non-default tenant and all of its tenant-scoped data.
@@ -243,6 +279,131 @@ export interface IDatabase {
    * @param when - Timestamp of the authenticated request.
    */
   touchApiTokenLastUsed(id: string, when: Date): Promise<void>;
+
+  /**
+   * Persists a newly enrolled device key record with public material only.
+   *
+   * @param record - Device enrollment metadata to persist.
+   * @param actingUserId - User performing the enrollment action.
+   */
+  createDeviceKey(record: DeviceKeyRecord, actingUserId: string): Promise<void>;
+
+  /**
+   * Finds a device key enrollment by stable identifier.
+   *
+   * @param id - Device key record identifier.
+   */
+  findDeviceKeyById(id: string): Promise<DeviceKeyRecord | null>;
+
+  /**
+   * Finds an active enrollment for a user/device pair.
+   *
+   * @param userId - Owning user identifier.
+   * @param deviceId - Client-generated device identifier.
+   */
+  findActiveDeviceKeyByUserAndDeviceId(
+    userId: string,
+    deviceId: string
+  ): Promise<DeviceKeyRecord | null>;
+
+  /**
+   * Returns device key enrollments owned by a user ordered newest-first.
+   *
+   * @param userId - Owning user identifier.
+   */
+  listDeviceKeysByUserId(userId: string): Promise<DeviceKeyRecord[]>;
+
+  /**
+   * Returns all device key enrollments ordered newest-first for operator listing.
+   */
+  listDeviceKeys(): Promise<DeviceKeyRecord[]>;
+
+  /**
+   * Soft-revokes a device key enrollment by id.
+   *
+   * @param id - Device key identifier to revoke.
+   * @param actingUserId - User performing the revoke action.
+   * @returns True when an active enrollment was updated; false when already revoked or missing.
+   */
+  revokeDeviceKey(id: string, actingUserId: string): Promise<boolean>;
+
+  /**
+   * Updates the last-seen timestamp for an enrolled device.
+   *
+   * @param id - Device key identifier.
+   * @param when - Timestamp of the latest successful enrollment confirmation.
+   */
+  touchDeviceKeyLastSeen(id: string, when: Date): Promise<void>;
+
+  /**
+   * Returns persisted MLS group state for a discussion thread.
+   *
+   * @param mlsGroupId - Canonical MLS group id for the thread.
+   */
+  getDiscussionMlsGroupState(mlsGroupId: string): Promise<DiscussionMlsGroupStateRecord | null>;
+
+  /**
+   * Inserts or advances MLS group state when the supplied epoch is not stale.
+   *
+   * @param input - Latest observed MLS epoch for the thread.
+   * @param actingUserId - User posting the commit that advanced group state.
+   * @returns Persisted group state after the upsert.
+   */
+  upsertDiscussionMlsGroupState(
+    input: UpsertDiscussionMlsGroupStateInput,
+    actingUserId: string
+  ): Promise<DiscussionMlsGroupStateRecord>;
+
+  /**
+   * Persists a relayed MLS commit record built by the route layer.
+   *
+   * @param record - Validated commit metadata and ciphertext.
+   * @param actingUserId - User relaying the commit through Team Hub.
+   */
+  createDiscussionMlsCommit(record: DiscussionMlsCommitRecord, actingUserId: string): Promise<void>;
+
+  /**
+   * Lists MLS commits for offline catch-up with epoch-based cursor pagination.
+   *
+   * @param options - Group id, optional cursor, and page size.
+   */
+  listDiscussionMlsCommits(
+    options: ListDiscussionMlsCommitsOptions
+  ): Promise<ListDiscussionMlsCommitsResult>;
+
+  /**
+   * Finds a relayed MLS commit by stable identifier.
+   *
+   * @param id - Commit record identifier.
+   */
+  findDiscussionMlsCommitById(id: string): Promise<DiscussionMlsCommitRecord | null>;
+
+  /**
+   * Persists a relayed MLS welcome record built by the route layer.
+   *
+   * @param record - Validated welcome metadata and ciphertext.
+   * @param actingUserId - User relaying the welcome through Team Hub.
+   */
+  createDiscussionMlsWelcome(
+    record: DiscussionMlsWelcomeRecord,
+    actingUserId: string
+  ): Promise<void>;
+
+  /**
+   * Lists MLS welcomes for a discussion thread, optionally filtered by recipient device.
+   *
+   * @param options - Group id and optional recipient device filter.
+   */
+  listDiscussionMlsWelcomes(
+    options: ListDiscussionMlsWelcomesOptions
+  ): Promise<ListDiscussionMlsWelcomesResult>;
+
+  /**
+   * Finds a relayed MLS welcome by stable identifier.
+   *
+   * @param id - Welcome record identifier.
+   */
+  findDiscussionMlsWelcomeById(id: string): Promise<DiscussionMlsWelcomeRecord | null>;
 
   /**
    * Creates a user account and its initial onboarding invitation in one transaction.
@@ -872,4 +1033,159 @@ export interface IDatabase {
    * @param actingUserId - User performing the delete action.
    */
   deleteRunResult(id: string, actingUserId: string): Promise<void>;
+
+  /**
+   * Creates a discussion comment on a target entity, enforcing tree placement rules.
+   *
+   * @param input - Target entity, body, and optional parent comment id.
+   * @param actingUserId - User creating the comment.
+   * @returns The persisted discussion comment record.
+   */
+  createDiscussionComment(
+    input: CreateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord>;
+
+  /**
+   * Lists discussion comments for a target entity with cursor pagination.
+   *
+   * @param options - Target entity and pagination options.
+   * @returns Ordered comments and an optional next-page cursor.
+   */
+  listDiscussionComments(
+    options: ListDiscussionCommentsOptions
+  ): Promise<ListDiscussionCommentsResult>;
+
+  /**
+   * Finds a discussion comment by id within the current tenant.
+   *
+   * @param id - Comment identifier to look up.
+   * @returns Matching comment record, or null when not found.
+   */
+  findDiscussionCommentById(id: string): Promise<DiscussionCommentRecord | null>;
+
+  /**
+   * Updates the body of an active discussion comment authored by the acting user.
+   *
+   * @param id - Comment identifier to update.
+   * @param input - Replacement body fields.
+   * @param actingUserId - User performing the update.
+   * @returns Updated discussion comment record.
+   */
+  updateDiscussionComment(
+    id: string,
+    input: UpdateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord>;
+
+  /**
+   * Tombstones a discussion comment while preserving child replies.
+   *
+   * @param id - Comment identifier to tombstone.
+   * @param actingUserId - User performing the delete action.
+   * @returns Tombstoned discussion comment record.
+   */
+  tombstoneDiscussionComment(id: string, actingUserId: string): Promise<DiscussionCommentRecord>;
+
+  /**
+   * Creates one or more collaboration notices for eligible recipients.
+   *
+   * No-op when the input array is empty.
+   *
+   * @param inputs - Notice rows to persist.
+   * @returns Created notice records in input order.
+   */
+  createNotices(inputs: CreateNoticeInput[]): Promise<NoticeRecord[]>;
+
+  /**
+   * Lists notices for a recipient with cursor pagination (newest first).
+   *
+   * @param options - Recipient user id and pagination options.
+   * @returns Ordered notices and an optional next-page cursor.
+   */
+  listNotices(options: ListNoticesOptions): Promise<ListNoticesResult>;
+
+  /**
+   * Counts unread notices for a recipient without loading the full feed.
+   *
+   * @param recipientUserId - User whose unread count is requested.
+   * @returns Number of notices with null read timestamps.
+   */
+  countUnreadNotices(recipientUserId: string): Promise<number>;
+
+  /**
+   * Marks one notice read for the authenticated recipient.
+   *
+   * @param noticeId - Notice identifier to mark read.
+   * @param recipientUserId - Recipient user id (must match notice ownership).
+   * @returns Updated notice record, or null when not found for the recipient.
+   */
+  markNoticeRead(noticeId: string, recipientUserId: string): Promise<NoticeRecord | null>;
+
+  /**
+   * Marks all unread notices read for a recipient.
+   *
+   * @param recipientUserId - User whose unread notices should be cleared.
+   * @returns Number of notices updated.
+   */
+  markAllNoticesRead(recipientUserId: string): Promise<number>;
+
+  /**
+   * Returns notification settings for a user, defaulting to `all` when unset.
+   *
+   * @param userId - User account id.
+   * @returns Effective notification settings for the user.
+   */
+  getUserNotificationSettings(userId: string): Promise<UserNotificationSettingsRecord>;
+
+  /**
+   * Updates notification settings for a user account.
+   *
+   * @param userId - User account id.
+   * @param level - Replacement notification level.
+   * @returns Updated notification settings record.
+   */
+  updateUserNotificationSettings(
+    userId: string,
+    level: NotificationLevel
+  ): Promise<UserNotificationSettingsRecord>;
+
+  /**
+   * Subscribes a user to a discussion thread identified by its root comment id.
+   *
+   * Idempotent when the subscription already exists.
+   *
+   * @param userId - User account id.
+   * @param rootCommentId - Root comment id for the thread.
+   * @returns Persisted subscription record.
+   */
+  subscribeDiscussionThread(
+    userId: string,
+    rootCommentId: string
+  ): Promise<DiscussionThreadSubscriptionRecord>;
+
+  /**
+   * Removes a user's subscription to a discussion thread.
+   *
+   * @param userId - User account id.
+   * @param rootCommentId - Root comment id for the thread.
+   */
+  unsubscribeDiscussionThread(userId: string, rootCommentId: string): Promise<void>;
+
+  /**
+   * Returns true when the user is subscribed to a discussion thread.
+   *
+   * @param userId - User account id.
+   * @param rootCommentId - Root comment id for the thread.
+   * @returns True when an active subscription exists.
+   */
+  isSubscribedToDiscussionThread(userId: string, rootCommentId: string): Promise<boolean>;
+
+  /**
+   * Lists user ids subscribed to a discussion thread.
+   *
+   * @param rootCommentId - Root comment id for the thread.
+   * @returns Subscribed user ids for the thread.
+   */
+  listDiscussionThreadSubscribers(rootCommentId: string): Promise<string[]>;
 }

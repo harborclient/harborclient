@@ -15,6 +15,7 @@ import type {
   EnvironmentRecord,
   FolderRecord,
   HealthResponse,
+  HubAvatarMetadata,
   HubUserRecord,
   LivePageRecord,
   LiveServerRecord,
@@ -36,6 +37,9 @@ import type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateHubAvatarInput,
+  UpdateMyAvatarInput,
+  UpdateMyAvatarResponse,
   UpdateLivePageInput,
   UpdateLiveServerInput,
   CreateHubUserInput,
@@ -43,6 +47,8 @@ import type {
   CreateUserInvitationInput,
   CreatedInvitedHubUser,
   HubApiTokenRecord,
+  HubDeviceKeyRecord,
+  EnrollHubDeviceInput,
   CreatedHubUser,
   CreateHubTokenInput,
   CreatedHubToken,
@@ -56,6 +62,23 @@ import type {
 } from './types.js';
 import type { ChatStepResult, ListHubLlmModelsResponse } from './appTypes.js';
 import type { HubChatStepRequest } from './TeamHubClient.js';
+import type {
+  CreateDiscussionCommentInput,
+  DiscussionComment,
+  ListDiscussionsQuery,
+  ListDiscussionsResponse,
+  UpdateDiscussionCommentInput
+} from './discussionTypes.js';
+import type {
+  DiscussionThreadSubscription,
+  ListNoticesQuery,
+  ListNoticesResponse,
+  NotificationSettings,
+  NoticesUnreadCountResponse,
+  TeamHubNotice,
+  UpdateNotificationSettingsInput
+} from './noticeTypes.js';
+import type { NoticeStreamHandlers } from './noticeStreamTypes.js';
 
 /**
  * Typed HTTP client for HarborClient Server entity and health routes.
@@ -73,6 +96,22 @@ export interface ITeamHubClient {
    * a token belongs to a `user` or `admin` account before gating management UI.
    */
   getSession(): Promise<SessionResponse>;
+
+  /**
+   * Updates avatar initials and/or color for the authenticated user account.
+   *
+   * @param input - Replacement initials and/or color key.
+   */
+  updateMyAvatar(input: UpdateMyAvatarInput): Promise<UpdateMyAvatarResponse>;
+
+  /**
+   * Updates hub avatar initials and/or color for the active tenant namespace.
+   *
+   * Requires an admin-role bearer token.
+   *
+   * @param input - Replacement initials and/or color key.
+   */
+  updateAdminHubAvatar(input: UpdateHubAvatarInput): Promise<HubAvatarMetadata>;
 
   /**
    * Lists all Team Hub user accounts visible to an admin-role token.
@@ -164,6 +203,44 @@ export interface ITeamHubClient {
    * @param id - Token record identifier.
    */
   deleteAdminToken(id: string): Promise<void>;
+
+  /**
+   * Enrolls the authenticated user's current device on an E2EE-enabled hub.
+   *
+   * @param input - Public key material and device metadata to upload.
+   */
+  enrollDevice(input: EnrollHubDeviceInput): Promise<HubDeviceKeyRecord>;
+
+  /**
+   * Lists device key enrollments for the authenticated user.
+   */
+  listMyDevices(): Promise<HubDeviceKeyRecord[]>;
+
+  /**
+   * Revokes one of the authenticated user's enrolled devices.
+   *
+   * @param id - Device key record identifier.
+   */
+  revokeMyDevice(id: string): Promise<void>;
+
+  /**
+   * Lists all device key enrollments visible to an admin-role token.
+   */
+  listAdminDeviceKeys(): Promise<HubDeviceKeyRecord[]>;
+
+  /**
+   * Lists device key enrollments owned by a specific user account.
+   *
+   * @param userId - Owning user account identifier.
+   */
+  listAdminUserDevices(userId: string): Promise<HubDeviceKeyRecord[]>;
+
+  /**
+   * Revokes a device key enrollment via the management API.
+   *
+   * @param id - Device key record identifier.
+   */
+  revokeAdminDeviceKey(id: string): Promise<void>;
 
   /**
    * Lists all collections as id/name metadata for admin user management.
@@ -297,6 +374,11 @@ export interface ITeamHubClient {
    * Returns whether the Team Hub server exposes snippet storage routes.
    */
   probeSnippetsServiceEnabled(): Promise<boolean>;
+
+  /**
+   * Returns whether the Team Hub server exposes discussion routes.
+   */
+  probeCommunicationServiceEnabled(): Promise<boolean>;
 
   /**
    * Returns plugin catalog and trusted-publisher URLs configured on this Team Hub.
@@ -623,4 +705,186 @@ export interface ITeamHubClient {
    * @param input - Destination folder and target index.
    */
   moveDocument(id: string, input: MoveDocumentInput): Promise<void>;
+
+  /**
+   * Lists discussion comments for a saved request.
+   *
+   * @param requestId - Saved request UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listRequestDiscussions(
+    requestId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse>;
+
+  /**
+   * Creates a discussion comment on a saved request.
+   *
+   * @param requestId - Saved request UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  createRequestDiscussion(
+    requestId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Lists discussion comments for a collection.
+   *
+   * @param collectionId - Collection UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listCollectionDiscussions(
+    collectionId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse>;
+
+  /**
+   * Creates a discussion comment on a collection.
+   *
+   * @param collectionId - Collection UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  createCollectionDiscussion(
+    collectionId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Lists discussion comments for a folder.
+   *
+   * @param folderId - Folder UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listFolderDiscussions(
+    folderId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse>;
+
+  /**
+   * Creates a discussion comment on a folder.
+   *
+   * @param folderId - Folder UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  createFolderDiscussion(
+    folderId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Lists discussion comments for a saved run result.
+   *
+   * @param runResultId - Run result UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listRunResultDiscussions(
+    runResultId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse>;
+
+  /**
+   * Creates a discussion comment on a saved run result.
+   *
+   * @param runResultId - Run result UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  createRunResultDiscussion(
+    runResultId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Creates a reply to an existing discussion comment.
+   *
+   * @param commentId - Parent comment UUID.
+   * @param input - Reply body text.
+   */
+  createDiscussionReply(
+    commentId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Updates an existing discussion comment body.
+   *
+   * @param commentId - Comment UUID.
+   * @param input - Replacement body text.
+   */
+  updateDiscussionComment(
+    commentId: string,
+    input: UpdateDiscussionCommentInput
+  ): Promise<DiscussionComment>;
+
+  /**
+   * Tombstones a discussion comment by id.
+   *
+   * @param commentId - Comment UUID.
+   */
+  deleteDiscussionComment(commentId: string): Promise<DiscussionComment>;
+
+  /**
+   * Lists collaboration notices for the authenticated user.
+   *
+   * @param query - Optional pagination cursor and limit.
+   */
+  listNotices(query?: ListNoticesQuery): Promise<ListNoticesResponse>;
+
+  /**
+   * Returns the unread notice count for the authenticated user.
+   */
+  getNoticesUnreadCount(): Promise<NoticesUnreadCountResponse>;
+
+  /**
+   * Marks one notice as read for the authenticated user.
+   *
+   * @param noticeId - Notice record identifier.
+   */
+  markNoticeRead(noticeId: string): Promise<TeamHubNotice>;
+
+  /**
+   * Marks every notice as read for the authenticated user.
+   */
+  markAllNoticesRead(): Promise<void>;
+
+  /**
+   * Opens the authenticated notice SSE stream until aborted or the connection closes.
+   *
+   * @param handlers - Stream lifecycle callbacks.
+   * @param signal - Optional abort signal used to stop reading.
+   */
+  subscribeNoticeStream(handlers: NoticeStreamHandlers, signal?: AbortSignal): Promise<void>;
+
+  /**
+   * Returns notification settings for the authenticated user.
+   */
+  getNotificationSettings(): Promise<NotificationSettings>;
+
+  /**
+   * Updates notification settings for the authenticated user.
+   *
+   * @param input - Replacement notification delivery preference.
+   */
+  updateNotificationSettings(input: UpdateNotificationSettingsInput): Promise<NotificationSettings>;
+
+  /**
+   * Returns whether the authenticated user is subscribed to a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  getDiscussionThreadSubscription(threadId: string): Promise<DiscussionThreadSubscription>;
+
+  /**
+   * Subscribes the authenticated user to a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  subscribeDiscussionThread(threadId: string): Promise<DiscussionThreadSubscription>;
+
+  /**
+   * Unsubscribes the authenticated user from a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  unsubscribeDiscussionThread(threadId: string): Promise<DiscussionThreadSubscription>;
 }

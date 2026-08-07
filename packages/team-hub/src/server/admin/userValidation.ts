@@ -1,4 +1,5 @@
 import type { CreateUserInput, UpdateUserInput, UserRole } from '#/db/types.js';
+import { normalizeAvatarColor, normalizeAvatarInitials } from '#/avatar/avatarPresentation.js';
 
 /**
  * Error thrown when admin user update input fails validation.
@@ -406,6 +407,8 @@ export function buildAdminUserUpdateInput(
   body: {
     name?: string;
     role?: UserRole;
+    avatarInitials?: string;
+    avatarColor?: string;
     collectionAccess?: string[];
     environmentAccess?: string[];
     snippetAccess?: string[];
@@ -438,7 +441,7 @@ export function buildAdminUserUpdateInput(
   const llmModels = body.llmModels ?? existing.llmModels;
   const llm = normalizeLlmForRole(role, llmAccess, llmModels);
 
-  return {
+  const update: UpdateUserInput = {
     name: body.name,
     role: body.role,
     collectionAccess: access.collectionAccess,
@@ -450,6 +453,16 @@ export function buildAdminUserUpdateInput(
     llmModels: llm.llmModels,
     llmMonthlyTokenLimit: body.llmMonthlyTokenLimit
   };
+
+  if (body.avatarInitials !== undefined) {
+    update.avatarInitials = normalizeAvatarInitials(body.avatarInitials);
+  }
+
+  if (body.avatarColor !== undefined) {
+    update.avatarColor = normalizeAvatarColor(body.avatarColor);
+  }
+
+  return update;
 }
 
 /**
@@ -462,6 +475,8 @@ export function buildAdminUserUpdateInput(
 export function buildAdminUserCreateInput(body: {
   name: string;
   role: UserRole;
+  avatarInitials?: string;
+  avatarColor?: string;
   collectionAccess?: string[];
   environmentAccess?: string[];
   snippetAccess?: string[];
@@ -498,6 +513,9 @@ export function buildAdminUserCreateInput(body: {
     livePageAccess: access.livePageAccess ?? [],
     llmAccess: llm.llmAccess ?? false,
     llmModels: llm.llmModels ?? [],
-    llmMonthlyTokenLimit: body.llmMonthlyTokenLimit ?? null
+    llmMonthlyTokenLimit: body.llmMonthlyTokenLimit ?? null,
+    avatarInitials:
+      body.avatarInitials !== undefined ? normalizeAvatarInitials(body.avatarInitials) : undefined,
+    avatarColor: body.avatarColor !== undefined ? normalizeAvatarColor(body.avatarColor) : undefined
   };
 }

@@ -1,6 +1,8 @@
 import { z } from 'zod/v4';
 import type { ApiTokenRecord, UserRecord } from '#/db/types.js';
-import { userRoleSchema } from '#/server/routes/schemas/auth.js';
+import { AVATAR_COLOR_KEYS } from '#/avatar/avatarPresentation.js';
+import { resolveUserAvatarFromRecord } from '#/avatar/userAvatarService.js';
+import { hubAvatarSchema, userRoleSchema } from '#/server/routes/schemas/auth.js';
 import { timestampSchema } from '#/server/routes/schemas/common.js';
 import { listLlmModelsResponseSchema } from '#/server/routes/schemas/llm.js';
 import {
@@ -133,6 +135,11 @@ export const listAdminRunResultsResponseSchema = z.object({
 export const adminSnippetRecordSchema = snippetRecordSchema;
 
 /**
+ * Persisted avatar color key accepted by admin user routes.
+ */
+export const avatarColorKeySchema = z.enum(AVATAR_COLOR_KEYS);
+
+/**
  * Response body schema for `GET /admin/llm/models`.
  */
 export const listAdminLlmModelsResponseSchema = listLlmModelsResponseSchema;
@@ -140,6 +147,8 @@ export const hubUserRecordSchema = z.object({
   id: z.string(),
   name: z.string(),
   role: userRoleSchema,
+  avatarInitials: z.string(),
+  avatarColor: avatarColorKeySchema,
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
@@ -172,6 +181,8 @@ export const listAdminUsersResponseSchema = z.object({
 export const updateAdminUserBodySchema = z.object({
   name: z.string().trim().min(1).optional(),
   role: userRoleSchema.optional(),
+  avatarInitials: z.string().trim().min(1).max(2).optional(),
+  avatarColor: avatarColorKeySchema.optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
@@ -188,6 +199,8 @@ export const updateAdminUserBodySchema = z.object({
 export const createAdminUserBodySchema = z.object({
   name: z.string().trim().min(1),
   role: userRoleSchema,
+  avatarInitials: z.string().trim().min(1).max(2).optional(),
+  avatarColor: avatarColorKeySchema.optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
@@ -260,16 +273,36 @@ export const reloadConfigResponseSchema = z.object({
 });
 
 /**
+ * Request body schema for `PUT /admin/hub/avatar`.
+ */
+export const updateAdminHubAvatarBodySchema = z
+  .object({
+    initials: z.string().optional(),
+    color: z.enum(AVATAR_COLOR_KEYS).optional()
+  })
+  .refine((body) => body.initials != null || body.color != null, {
+    message: 'At least one of initials or color is required.'
+  });
+
+/**
+ * Response body schema for `PUT /admin/hub/avatar`.
+ */
+export const adminHubAvatarResponseSchema = hubAvatarSchema;
+
+/**
  * Serializes a user record for JSON management API responses.
  *
  * @param user - User record from the database layer.
  * @returns User with ISO timestamp strings.
  */
 export function serializeHubUser(user: UserRecord) {
+  const avatar = resolveUserAvatarFromRecord(user);
   return {
     id: user.id,
     name: user.name,
     role: user.role,
+    avatarInitials: avatar.initials,
+    avatarColor: avatar.color,
     collectionAccess: user.collectionAccess,
     environmentAccess: user.environmentAccess,
     snippetAccess: user.snippetAccess,

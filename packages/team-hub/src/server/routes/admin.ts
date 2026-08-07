@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { updateHubAvatar } from '#/avatar/hubAvatarService.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { UserRole } from '#/db/types.js';
 import { isSystemUser } from '#/db/systemUsers.js';
@@ -38,6 +39,8 @@ import {
   reloadConfigResponseSchema,
   serializeApiToken,
   serializeHubUser,
+  updateAdminHubAvatarBodySchema,
+  adminHubAvatarResponseSchema,
   updateAdminCollectionBodySchema,
   updateAdminEnvironmentBodySchema,
   updateAdminLiveEntityBodySchema,
@@ -1538,6 +1541,43 @@ export async function registerAdminRoutes(
 
         return reply.code(204).send(null);
       } catch (error) {
+        if (handleDbError(reply, error)) {
+          return;
+        }
+
+        throw error;
+      }
+    }
+  });
+
+  routes.route({
+    method: 'PUT',
+    url: '/admin/hub/avatar',
+    schema: {
+      body: updateAdminHubAvatarBodySchema,
+      response: {
+        200: adminHubAvatarResponseSchema,
+        400: errorResponseSchema,
+        403: errorResponseSchema
+      }
+    },
+    /**
+     * Updates hub avatar initials and/or color for the active tenant namespace.
+     */
+    handler: async (request, reply) => {
+      const user = requireAuthenticatedUser(request);
+      if (denyUnlessAllowed(reply, canUseManagementApi(user))) {
+        return;
+      }
+
+      try {
+        const hub = await updateHubAvatar(db, request.tenantId, request.body, user.id);
+        return reply.send(hub);
+      } catch (error) {
+        if (handleValidationError(reply, error)) {
+          return;
+        }
+
         if (handleDbError(reply, error)) {
           return;
         }

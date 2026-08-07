@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Implement Team Hub device and discussion management features. (`f03c2465`)
+
 ## 0.8.1 - 2026-08-05
 
 - Enhance useTeamHubs hook to support dynamic updates. (`4be533b9`)

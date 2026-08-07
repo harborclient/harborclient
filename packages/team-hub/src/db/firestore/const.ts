@@ -14,6 +14,26 @@ export const USERS_COLLECTION = 'users';
 export const API_TOKENS_COLLECTION = 'apiTokens';
 
 /**
+ * Firestore collection name for E2EE device key enrollment documents.
+ */
+export const DEVICE_KEYS_COLLECTION = 'deviceKeys';
+
+/**
+ * Firestore collection name for discussion MLS group state documents.
+ */
+export const DISCUSSION_MLS_GROUP_STATE_COLLECTION = 'discussionMlsGroupState';
+
+/**
+ * Firestore collection name for discussion MLS commit relay documents.
+ */
+export const DISCUSSION_MLS_COMMITS_COLLECTION = 'discussionMlsCommits';
+
+/**
+ * Firestore collection name for discussion MLS welcome relay documents.
+ */
+export const DISCUSSION_MLS_WELCOMES_COLLECTION = 'discussionMlsWelcomes';
+
+/**
  * Firestore collection name for user onboarding invitation documents.
  */
 export const INVITATIONS_COLLECTION = 'invitations';
@@ -77,6 +97,26 @@ export const LLM_USAGE_LOG_COLLECTION = 'llmUsageLog';
  * Firestore collection name for run result documents.
  */
 export const RUN_RESULTS_COLLECTION = 'runResults';
+
+/**
+ * Firestore collection name for discussion comment documents.
+ */
+export const DISCUSSION_COMMENTS_COLLECTION = 'discussionComments';
+
+/**
+ * Firestore collection name for collaboration notice documents.
+ */
+export const NOTICES_COLLECTION = 'notices';
+
+/**
+ * Firestore collection name for per-user notification settings documents.
+ */
+export const USER_NOTIFICATION_SETTINGS_COLLECTION = 'userNotificationSettings';
+
+/**
+ * Firestore collection name for discussion thread subscription documents.
+ */
+export const DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION = 'discussionThreadSubscriptions';
 
 /**
  * Maximum writes per Firestore batch commit.

@@ -17,6 +17,8 @@ import {
   serializeRunResult,
   serializeRunResultDetail
 } from '#/server/routes/schemas/entities.js';
+import { extractRunResultCollectionId } from '#/db/noticeLogic.js';
+import { createNoticeService } from '#/server/notices/noticeService.js';
 
 /**
  * Registers bearer-protected run result routes.
@@ -80,6 +82,11 @@ export async function registerRunResultRoutes(app: FastifyInstance, db: IDatabas
         }
 
         const record = await db.createRunResult(request.body, user.id);
+        await createNoticeService(db).createNoticesForRunResult(
+          record,
+          user,
+          extractRunResultCollectionId(request.body.payload)
+        );
         return reply.send(serializeRunResultDetail(record));
       } catch (error) {
         if (handleDbError(reply, error)) {

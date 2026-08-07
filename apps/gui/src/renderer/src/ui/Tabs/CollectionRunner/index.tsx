@@ -31,6 +31,7 @@ import { Checkbox, Input, Radio, Select } from '@harborclient/sdk/components';
 import { resolveRunnerTargetNames, runnerPageTitle } from './resolveRunnerTargetName';
 import { ResultModal } from './ResultModal';
 import { SaveModal } from './SaveModal';
+import { EntityDiscussPanel } from '#/renderer/src/ui/Shared/Discuss/EntityDiscussPanel';
 import { ResponseSummary } from '#/renderer/src/ui/Main/ResponseEditor/ResponseSummary';
 import { METHOD_CLASSES } from '#/renderer/src/ui/Shared/classes';
 import { faLink } from '#/renderer/src/fontawesome';
@@ -588,6 +589,18 @@ export function CollectionRunner({ page }: Props): JSX.Element {
                   );
                 })}
               </ul>
+
+              {runner.savedRunUuid && runner.savedConnectionId ? (
+                <div className="space-y-3 border-t border-separator pt-4">
+                  <h3 className="m-0 text-[18px] font-semibold">Discuss</h3>
+                  <EntityDiscussPanel
+                    connectionId={runner.savedConnectionId}
+                    entityType="runResult"
+                    entityUuid={runner.savedRunUuid}
+                    ariaLabel="Run result discussion"
+                  />
+                </div>
+              ) : null}
             </div>
           )}
         </div>

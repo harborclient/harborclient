@@ -13,10 +13,12 @@ import {
   faDatabase,
   faFingerprint,
   faCode,
+  faLock,
   faUsers
 } from '#/renderer/src/fontawesome';
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { TeamCollectionsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamCollectionsView';
+import { TeamDevicesView } from '#/renderer/src/ui/Tabs/TeamHub/TeamDevicesView';
 import { TeamManageView } from '#/renderer/src/ui/Tabs/TeamHub/TeamManageView';
 import { TeamRunResultsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamRunResultsView';
 import { TeamSnippetsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamSnippetsView';
@@ -24,7 +26,13 @@ import { TeamTokensView } from '#/renderer/src/ui/Tabs/TeamHub/TeamTokensView';
 import { getReloadConfigAlertMessage } from '#/renderer/src/ui/Tabs/TeamHub/teamHubReloadHelpers';
 import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
-type TeamHubAdminSection = 'users' | 'tokens' | 'collections' | 'snippets' | 'run-results';
+type TeamHubAdminSection =
+  | 'users'
+  | 'tokens'
+  | 'devices'
+  | 'collections'
+  | 'snippets'
+  | 'run-results';
 type TeamHubAdminSidebarItem = TeamHubAdminSection | 'reload';
 
 interface Props {
@@ -71,6 +79,7 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
     return [
       { value: 'users', label: 'Users', icon: faUsers },
       { value: 'tokens', label: 'Tokens', icon: faFingerprint },
+      { value: 'devices', label: 'Devices', icon: faLock },
       { value: 'collections', label: 'Collections', icon: faDatabase },
       { value: 'snippets', label: 'Snippets', icon: faCode },
       { value: 'run-results', label: 'Run results', icon: faClockRotateLeft },
@@ -159,6 +168,8 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
         <TeamManageView hub={hub} />
       ) : section === 'tokens' ? (
         <TeamTokensView hub={hub} />
+      ) : section === 'devices' ? (
+        <TeamDevicesView hub={hub} />
       ) : section === 'collections' ? (
         <TeamCollectionsView hub={hub} />
       ) : section === 'snippets' ? (

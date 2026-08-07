@@ -510,6 +510,165 @@ CREATE TABLE IF NOT EXISTS run_results (
 `.trim();
 
 /**
+ * DDL for creating the discussion_comments table when absent.
+ */
+export const DISCUSSION_COMMENTS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS discussion_comments (
+  id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  target_entity_type VARCHAR(32) NOT NULL,
+  target_entity_id VARCHAR(36) NOT NULL,
+  parent_comment_id VARCHAR(36),
+  root_comment_id VARCHAR(36) NOT NULL,
+  depth INT NOT NULL,
+  body LONGTEXT NOT NULL,
+  body_format VARCHAR(32) NOT NULL DEFAULT 'plaintext',
+  body_metadata LONGTEXT,
+  author_user_id VARCHAR(36),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  tombstoned_at DATETIME,
+  tombstoned_by_user_id VARCHAR(36),
+  INDEX discussion_comments_target_idx (tenant_id, target_entity_type, target_entity_id, created_at),
+  INDEX discussion_comments_root_idx (tenant_id, root_comment_id, created_at),
+  CONSTRAINT discussion_comments_parent_fk FOREIGN KEY (parent_comment_id) REFERENCES discussion_comments(id) ON DELETE SET NULL,
+  CONSTRAINT discussion_comments_author_fk FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT discussion_comments_tombstoned_by_fk FOREIGN KEY (tombstoned_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
+ * DDL for collaboration notices, notification settings, and thread subscriptions.
+ */
+export const NOTICES_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS notices (
+  id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  recipient_user_id VARCHAR(36) NOT NULL,
+  event_type VARCHAR(64) NOT NULL,
+  entity_type VARCHAR(32) NOT NULL,
+  entity_id VARCHAR(36) NOT NULL,
+  request_id VARCHAR(36),
+  collection_id VARCHAR(36),
+  folder_id VARCHAR(36),
+  run_result_id VARCHAR(36),
+  discussion_thread_id VARCHAR(36),
+  discussion_comment_id VARCHAR(36),
+  actor_user_id VARCHAR(36),
+  created_at DATETIME NOT NULL,
+  read_at DATETIME,
+  display_metadata LONGTEXT NOT NULL,
+  INDEX notices_recipient_idx (tenant_id, recipient_user_id, created_at),
+  INDEX notices_recipient_unread_idx (tenant_id, recipient_user_id, read_at),
+  CONSTRAINT notices_recipient_fk FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT notices_actor_fk FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
+ * DDL for per-user notification settings.
+ */
+export const USER_NOTIFICATION_SETTINGS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS user_notification_settings (
+  user_id VARCHAR(36) NOT NULL,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  level VARCHAR(16) NOT NULL DEFAULT 'all',
+  updated_at DATETIME NOT NULL,
+  PRIMARY KEY (tenant_id, user_id),
+  CONSTRAINT user_notification_settings_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+`.trim();
+
+/**
+ * DDL for discussion thread subscription records.
+ */
+export const DISCUSSION_THREAD_SUBSCRIPTIONS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS discussion_thread_subscriptions (
+  user_id VARCHAR(36) NOT NULL,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  root_comment_id VARCHAR(36) NOT NULL,
+  created_at DATETIME NOT NULL,
+  PRIMARY KEY (tenant_id, user_id, root_comment_id),
+  INDEX discussion_thread_subscriptions_thread_idx (tenant_id, root_comment_id),
+  CONSTRAINT discussion_thread_subscriptions_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+`.trim();
+
+/**
+ * DDL for E2EE device key enrollment records.
+ */
+export const DEVICE_KEYS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS device_keys (
+  id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  user_id VARCHAR(36) NOT NULL,
+  device_id VARCHAR(36) NOT NULL,
+  label VARCHAR(128) NOT NULL DEFAULT '',
+  key_format VARCHAR(32) NOT NULL DEFAULT 'identity-v1',
+  public_key_material TEXT NOT NULL,
+  fingerprint CHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL,
+  last_seen_at DATETIME,
+  revoked_at DATETIME,
+  created_by_user_id VARCHAR(36),
+  updated_by_user_id VARCHAR(36),
+  UNIQUE KEY device_keys_tenant_user_device (tenant_id, user_id, device_id),
+  INDEX device_keys_user_idx (tenant_id, user_id),
+  INDEX device_keys_fingerprint_idx (tenant_id, fingerprint),
+  CONSTRAINT device_keys_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT device_keys_created_by_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT device_keys_updated_by_fk FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
+ * DDL for discussion MLS group state, commits, and welcome relay records.
+ */
+export const DISCUSSION_MLS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS discussion_mls_group_state (
+  mls_group_id VARCHAR(255) NOT NULL,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  target_entity_type VARCHAR(32) NOT NULL,
+  target_entity_id VARCHAR(36) NOT NULL,
+  current_epoch INT NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36),
+  updated_by_user_id VARCHAR(36),
+  PRIMARY KEY (tenant_id, mls_group_id),
+  CONSTRAINT discussion_mls_group_state_created_by_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT discussion_mls_group_state_updated_by_fk FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS discussion_mls_commits (
+  id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  mls_group_id VARCHAR(255) NOT NULL,
+  epoch INT NOT NULL,
+  ciphertext TEXT NOT NULL,
+  sender_device_id VARCHAR(36) NOT NULL,
+  created_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36),
+  UNIQUE KEY discussion_mls_commits_tenant_group_epoch (tenant_id, mls_group_id, epoch),
+  INDEX discussion_mls_commits_group_epoch_idx (tenant_id, mls_group_id, epoch),
+  CONSTRAINT discussion_mls_commits_created_by_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS discussion_mls_welcomes (
+  id VARCHAR(36) PRIMARY KEY,
+  tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__',
+  mls_group_id VARCHAR(255) NOT NULL,
+  recipient_device_id VARCHAR(36) NOT NULL,
+  ciphertext TEXT NOT NULL,
+  ratchet_tree TEXT NOT NULL,
+  created_at DATETIME NOT NULL,
+  created_by_user_id VARCHAR(36),
+  INDEX discussion_mls_welcomes_group_idx (tenant_id, mls_group_id, created_at),
+  CONSTRAINT discussion_mls_welcomes_created_by_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+`.trim();
+
+/**
  * DDL for creating the user_invitations table when absent.
  */
 export const USER_INVITATIONS_MIGRATION_SQL = `
@@ -595,6 +754,7 @@ export const TENANT_ID_COLUMNS_MIGRATION_SQL = [
   `ALTER TABLE llm_usage ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
   `ALTER TABLE llm_usage_log ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
   `ALTER TABLE run_results ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
+  `ALTER TABLE discussion_comments ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(255) NOT NULL DEFAULT '__default__'`,
   `DROP INDEX IF EXISTS name ON users`,
   `CREATE UNIQUE INDEX IF NOT EXISTS users_tenant_id_name ON users (tenant_id, name)`,
   `DROP INDEX IF EXISTS token_hash ON api_tokens`,
@@ -602,7 +762,11 @@ export const TENANT_ID_COLUMNS_MIGRATION_SQL = [
   `DROP INDEX IF EXISTS code_hash ON user_invitations`,
   `CREATE UNIQUE INDEX IF NOT EXISTS user_invitations_tenant_id_code_hash ON user_invitations (tenant_id, code_hash)`,
   `DROP INDEX IF EXISTS llm_usage_user_period ON llm_usage`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS llm_usage_tenant_user_period ON llm_usage (tenant_id, user_id, period)`
+  `CREATE UNIQUE INDEX IF NOT EXISTS llm_usage_tenant_user_period ON llm_usage (tenant_id, user_id, period)`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_initials VARCHAR(8) NULL`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(32) NULL`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_initials VARCHAR(8) NULL`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(32) NULL`
 ];
 
 /**
@@ -643,9 +807,15 @@ export const MYSQL_MIGRATIONS = [
   USERS_LIVE_PAGE_ACCESS_MIGRATION_SQL,
   USERS_LIVE_ENTITY_ACCESS_BACKFILL_SQL,
   RUN_RESULTS_MIGRATION_SQL,
+  DISCUSSION_COMMENTS_MIGRATION_SQL,
   USER_INVITATIONS_MIGRATION_SQL,
   ...MARKER_MIGRATIONS_SQL,
   ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL,
   REQUESTS_PROTOCOL_MIGRATION_SQL,
-  ...TENANT_ID_COLUMNS_MIGRATION_SQL
+  ...TENANT_ID_COLUMNS_MIGRATION_SQL,
+  NOTICES_MIGRATION_SQL,
+  USER_NOTIFICATION_SETTINGS_MIGRATION_SQL,
+  DISCUSSION_THREAD_SUBSCRIPTIONS_MIGRATION_SQL,
+  DEVICE_KEYS_MIGRATION_SQL,
+  DISCUSSION_MLS_MIGRATION_SQL
 ];

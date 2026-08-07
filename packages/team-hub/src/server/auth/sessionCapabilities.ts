@@ -1,4 +1,8 @@
+import type { AvatarColorKey } from '#/avatar/avatarPresentation.js';
+import type { CollaborationConfig } from '#/config/collaborationConfig.js';
 import type { ApiTokenRecord, UserRecord } from '#/db/types.js';
+import type { HubAvatarMetadata } from '#/avatar/hubAvatarService.js';
+import { resolveUserAvatarFromRecord } from '#/avatar/userAvatarService.js';
 import { canUseDataApi, canUseLlm, isAdmin } from '#/server/auth/accessControl.js';
 
 /**
@@ -19,6 +23,16 @@ export interface SessionCapabilities {
    * When true, the token may call hub-proxied LLM routes.
    */
   llm: boolean;
+
+  /**
+   * When true, the token may call discussion and collaboration routes.
+   */
+  communication: boolean;
+
+  /**
+   * When true, this Team Hub requires encrypted discussion comment bodies.
+   */
+  discussionE2ee: boolean;
 }
 
 /**
@@ -43,6 +57,16 @@ export interface SessionPayload {
      * Account role determining API capabilities.
      */
     role: UserRecord['role'];
+
+    /**
+     * Persisted avatar initials tile text.
+     */
+    avatarInitials: string;
+
+    /**
+     * Persisted avatar background color key.
+     */
+    avatarColor: AvatarColorKey;
   };
 
   /**
@@ -69,6 +93,11 @@ export interface SessionPayload {
    * Effective tenant id for this authenticated session.
    */
   tenantId: string;
+
+  /**
+   * Hub avatar presentation for the active tenant namespace.
+   */
+  hub: HubAvatarMetadata;
 }
 
 /**
@@ -77,18 +106,25 @@ export interface SessionPayload {
  * @param user - User account resolved from the bearer token.
  * @param apiToken - Active API token record used for authentication.
  * @param tenantId - Effective tenant id for the authenticated request.
+ * @param hub - Hub avatar metadata for the active tenant namespace.
+ * @param collaboration - Active collaboration settings for the hub.
  * @returns Session payload suitable for JSON serialization.
  */
 export function buildSessionPayload(
   user: UserRecord,
   apiToken: ApiTokenRecord,
-  tenantId: string
+  tenantId: string,
+  hub: HubAvatarMetadata,
+  collaboration: CollaborationConfig
 ): SessionPayload {
+  const avatar = resolveUserAvatarFromRecord(user);
   return {
     user: {
       id: user.id,
       name: user.name,
-      role: user.role
+      role: user.role,
+      avatarInitials: avatar.initials,
+      avatarColor: avatar.color
     },
     token: {
       id: apiToken.id,
@@ -97,8 +133,11 @@ export function buildSessionPayload(
     capabilities: {
       dataApi: canUseDataApi(user),
       managementApi: isAdmin(user),
-      llm: canUseLlm(user)
+      llm: canUseLlm(user),
+      communication: canUseDataApi(user),
+      discussionE2ee: collaboration.e2ee
     },
-    tenantId
+    tenantId,
+    hub
   };
 }

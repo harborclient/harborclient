@@ -161,7 +161,7 @@ export function EditorTabs({
       { value: 'cookies', label: 'Cookies', indicator: tabIndicators.cookies },
       { value: 'pre', label: 'PreRequest', indicator: tabIndicators.pre },
       { value: 'post', label: 'PostRequest', indicator: tabIndicators.post },
-      { value: 'comment', label: 'Notes', indicator: tabIndicators.comment },
+      { value: 'comment', label: 'Discuss', indicator: tabIndicators.comment },
       ...pluginTabs.map((entry) => ({ value: entry.id, label: entry.title }))
     ],
     [pluginTabs, showBody, tabIndicators]

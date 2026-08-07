@@ -67,7 +67,9 @@ describe('tenantCommand', () => {
           createdAt: new Date('2026-01-01T00:00:00.000Z'),
           updatedAt: new Date('2026-01-01T00:00:00.000Z'),
           createdByUserId: null,
-          updatedByUserId: null
+          updatedByUserId: null,
+          avatarInitials: null,
+          avatarColor: null
         },
         {
           id: 'org-acme',
@@ -75,7 +77,9 @@ describe('tenantCommand', () => {
           createdAt: new Date('2026-01-15T10:00:00.000Z'),
           updatedAt: new Date('2026-01-15T10:00:00.000Z'),
           createdByUserId: 'system-user-id',
-          updatedByUserId: 'system-user-id'
+          updatedByUserId: 'system-user-id',
+          avatarInitials: null,
+          avatarColor: null
         }
       ];
       db.listTenants.mockResolvedValue(tenants);
@@ -113,7 +117,9 @@ describe('tenantCommand', () => {
         createdAt: new Date('2026-01-15T10:00:00.000Z'),
         updatedAt: new Date('2026-01-15T10:00:00.000Z'),
         createdByUserId: 'system-user-id',
-        updatedByUserId: 'system-user-id'
+        updatedByUserId: 'system-user-id',
+        avatarInitials: null,
+        avatarColor: null
       };
 
       db.findTenantById.mockResolvedValue(null);
@@ -165,7 +171,9 @@ describe('tenantCommand', () => {
         createdAt: new Date('2026-01-15T10:00:00.000Z'),
         updatedAt: new Date('2026-01-15T10:00:00.000Z'),
         createdByUserId: 'system-user-id',
-        updatedByUserId: 'system-user-id'
+        updatedByUserId: 'system-user-id',
+        avatarInitials: null,
+        avatarColor: null
       };
 
       db.findTenantById.mockResolvedValue(existingTenant);
@@ -192,7 +200,9 @@ describe('tenantCommand', () => {
         createdAt: new Date('2026-01-15T10:00:00.000Z'),
         updatedAt: new Date('2026-01-15T10:00:00.000Z'),
         createdByUserId: 'system-user-id',
-        updatedByUserId: 'system-user-id'
+        updatedByUserId: 'system-user-id',
+        avatarInitials: null,
+        avatarColor: null
       };
 
       db.findTenantById.mockResolvedValue(existingTenant);

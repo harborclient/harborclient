@@ -87,6 +87,7 @@ import type {
   WriteTextInDirectoryResult,
   TeamHub,
   TeamHubSessionScanResult,
+  TeamHubDeviceEnrollmentStatus,
   TeamHubInvitationRedeemResult,
   TeamHubVerifiedSession,
   ReloadConfigResponse,
@@ -105,6 +106,7 @@ import type {
   HubInvitationPreview,
   HubInvitationRecord,
   HubApiTokenRecord,
+  HubDeviceKeyRecord,
   CreateHubTokenInput,
   CreatedHubToken,
   ShortcutBinding,
@@ -2780,6 +2782,59 @@ function deleteTeamHubToken(hubId: string, tokenId: string): Promise<void> {
 }
 
 /**
+ * Returns local and server enrollment status for the current device on an E2EE hub.
+ *
+ * @param hubId - Team hub connection id to inspect.
+ */
+function getTeamHubDeviceEnrollmentStatus(hubId: string): Promise<TeamHubDeviceEnrollmentStatus> {
+  return ipcRenderer.invoke('teamHubs:getDeviceEnrollmentStatus', hubId);
+}
+
+/**
+ * Generates local device keys and uploads public material to an E2EE-enabled hub.
+ *
+ * @param hubId - Team hub connection id to enroll against.
+ * @param label - Optional device label.
+ */
+function enrollTeamHubDevice(
+  hubId: string,
+  label?: string
+): Promise<{
+  localIdentity: TeamHubDeviceEnrollmentStatus['localIdentity'];
+  serverDevice: HubDeviceKeyRecord;
+}> {
+  return ipcRenderer.invoke('teamHubs:enrollDevice', hubId, label);
+}
+
+/**
+ * Clears local device keys and revokes the server enrollment when present.
+ *
+ * @param hubId - Team hub connection id whose device keys should be reset.
+ */
+function resetTeamHubDeviceKeys(hubId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:resetDeviceKeys', hubId);
+}
+
+/**
+ * Lists device key enrollments via IPC using an admin token on the given hub.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ */
+function listTeamHubDeviceKeys(hubId: string): Promise<HubDeviceKeyRecord[]> {
+  return ipcRenderer.invoke('teamHubs:listDeviceKeys', hubId);
+}
+
+/**
+ * Revokes a device key enrollment via IPC using an admin token on the given hub.
+ *
+ * @param hubId - Team hub connection id with an admin token.
+ * @param deviceKeyId - Server-side device key record identifier.
+ */
+function revokeTeamHubDeviceKey(hubId: string, deviceKeyId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:revokeDeviceKey', hubId, deviceKeyId);
+}
+
+/**
  * Loads admin resource options for user management forms via IPC.
  *
  * @param hubId - Team hub connection id with an admin token.
@@ -2875,6 +2930,222 @@ function listTeamHubAdminRunResults(hubId: string): Promise<TeamHubAdminRunResul
  */
 function deleteTeamHubRunResult(hubId: string, runResultId: string): Promise<void> {
   return ipcRenderer.invoke('teamHubs:deleteRunResult', hubId, runResultId);
+}
+
+/**
+ * Lists discussion comments for a Team Hub entity via IPC.
+ *
+ * @param hubId - Team hub connection id backing the entity.
+ * @param target - Entity type and server UUID.
+ * @param query - Optional pagination cursor and limit.
+ */
+function listTeamHubDiscussions(
+  hubId: string,
+  target: import('@harborclient/core/types').TeamHubDiscussionTarget,
+  query?: import('@harborclient/core/types').TeamHubListDiscussionsQuery
+): Promise<import('@harborclient/core/types').TeamHubListDiscussionsResponse> {
+  return ipcRenderer.invoke('teamHubs:listDiscussions', hubId, target, query);
+}
+
+/**
+ * Creates a discussion comment on a Team Hub entity via IPC.
+ *
+ * @param hubId - Team hub connection id backing the entity.
+ * @param target - Entity type and server UUID.
+ * @param input - Comment body and optional parent id for replies.
+ */
+function createTeamHubDiscussion(
+  hubId: string,
+  target: import('@harborclient/core/types').TeamHubDiscussionTarget,
+  input: import('@harborclient/core/types').TeamHubCreateDiscussionInput
+): Promise<import('@harborclient/core/types').TeamHubDiscussionComment> {
+  return ipcRenderer.invoke('teamHubs:createDiscussion', hubId, target, input);
+}
+
+/**
+ * Creates a reply to an existing discussion comment via IPC.
+ *
+ * @param hubId - Team hub connection id backing the entity.
+ * @param target - Entity type and server UUID for discussion routes.
+ * @param commentId - Parent comment UUID.
+ * @param input - Reply body text.
+ */
+function replyTeamHubDiscussion(
+  hubId: string,
+  target: import('@harborclient/core/types').TeamHubDiscussionTarget,
+  commentId: string,
+  input: import('@harborclient/core/types').TeamHubCreateDiscussionInput
+): Promise<import('@harborclient/core/types').TeamHubDiscussionComment> {
+  return ipcRenderer.invoke('teamHubs:replyDiscussion', hubId, target, commentId, input);
+}
+
+/**
+ * Updates an existing discussion comment body via IPC.
+ *
+ * @param hubId - Team hub connection id backing the entity.
+ * @param target - Entity type and server UUID for discussion routes.
+ * @param commentId - Comment UUID.
+ * @param input - Replacement body text.
+ */
+function updateTeamHubDiscussionComment(
+  hubId: string,
+  target: import('@harborclient/core/types').TeamHubDiscussionTarget,
+  commentId: string,
+  input: import('@harborclient/core/types').TeamHubUpdateDiscussionInput
+): Promise<import('@harborclient/core/types').TeamHubDiscussionComment> {
+  return ipcRenderer.invoke('teamHubs:updateDiscussionComment', hubId, target, commentId, input);
+}
+
+/**
+ * Tombstones a discussion comment by id via IPC.
+ *
+ * @param hubId - Team hub connection id backing the entity.
+ * @param commentId - Comment UUID.
+ */
+function deleteTeamHubDiscussionComment(
+  hubId: string,
+  commentId: string
+): Promise<import('@harborclient/core/types').TeamHubDiscussionComment> {
+  return ipcRenderer.invoke('teamHubs:deleteDiscussionComment', hubId, commentId);
+}
+
+/**
+ * Lists collaboration notices for a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param query - Optional pagination cursor and limit.
+ */
+function listTeamHubNotices(
+  hubId: string,
+  query?: import('@harborclient/core/types').TeamHubListNoticesQuery
+): Promise<import('@harborclient/core/types').TeamHubListNoticesResponse> {
+  return ipcRenderer.invoke('teamHubs:listNotices', hubId, query);
+}
+
+/**
+ * Returns the unread notice count for a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ */
+function getTeamHubNoticesUnreadCount(
+  hubId: string
+): Promise<import('@harborclient/core/types').TeamHubNoticesUnreadCountResponse> {
+  return ipcRenderer.invoke('teamHubs:getNoticesUnreadCount', hubId);
+}
+
+/**
+ * Marks one notice as read for the authenticated user via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param noticeId - Notice record identifier.
+ */
+function markTeamHubNoticeRead(
+  hubId: string,
+  noticeId: string
+): Promise<import('@harborclient/core/types').TeamHubNotice> {
+  return ipcRenderer.invoke('teamHubs:markNoticeRead', hubId, noticeId);
+}
+
+/**
+ * Marks every notice as read for the authenticated user via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ */
+function markAllTeamHubNoticesRead(hubId: string): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:markAllNoticesRead', hubId);
+}
+
+/**
+ * Returns notification settings for the authenticated user via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ */
+function getTeamHubNotificationSettings(
+  hubId: string
+): Promise<import('@harborclient/core/types').TeamHubNotificationSettings> {
+  return ipcRenderer.invoke('teamHubs:getNotificationSettings', hubId);
+}
+
+/**
+ * Updates notification settings for the authenticated user via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param input - Replacement notification delivery preference.
+ */
+function updateTeamHubNotificationSettings(
+  hubId: string,
+  input: import('@harborclient/core/types').TeamHubUpdateNotificationSettingsInput
+): Promise<import('@harborclient/core/types').TeamHubNotificationSettings> {
+  return ipcRenderer.invoke('teamHubs:updateNotificationSettings', hubId, input);
+}
+
+/**
+ * Returns whether the authenticated user is subscribed to a discussion thread via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param threadId - Discussion thread identifier.
+ */
+function getTeamHubDiscussionThreadSubscription(
+  hubId: string,
+  threadId: string
+): Promise<import('@harborclient/core/types').TeamHubDiscussionThreadSubscription> {
+  return ipcRenderer.invoke('teamHubs:getDiscussionThreadSubscription', hubId, threadId);
+}
+
+/**
+ * Subscribes the authenticated user to a discussion thread via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param threadId - Discussion thread identifier.
+ */
+function subscribeTeamHubDiscussionThread(
+  hubId: string,
+  threadId: string
+): Promise<import('@harborclient/core/types').TeamHubDiscussionThreadSubscription> {
+  return ipcRenderer.invoke('teamHubs:subscribeDiscussionThread', hubId, threadId);
+}
+
+/**
+ * Unsubscribes the authenticated user from a discussion thread via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param threadId - Discussion thread identifier.
+ */
+function unsubscribeTeamHubDiscussionThread(
+  hubId: string,
+  threadId: string
+): Promise<import('@harborclient/core/types').TeamHubDiscussionThreadSubscription> {
+  return ipcRenderer.invoke('teamHubs:unsubscribeDiscussionThread', hubId, threadId);
+}
+
+/**
+ * Synchronizes main-process notice SSE subscriptions for connected hubs.
+ *
+ * @param hubIds - Hub ids that should maintain notice streams.
+ */
+function syncTeamHubNoticeStreams(hubIds: string[]): Promise<void> {
+  return ipcRenderer.invoke('teamHubs:syncNoticeStreams', hubIds);
+}
+
+/**
+ * Subscribes to notice SSE events pushed from the main process.
+ *
+ * @param callback - Handler invoked for stream events and reconnect reconciliation.
+ * @returns Unsubscribe function.
+ */
+function onTeamHubNoticeStream(
+  callback: (message: import('@harborclient/core/types').TeamHubNoticeStreamMessage) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    message: import('@harborclient/core/types').TeamHubNoticeStreamMessage
+  ): void => {
+    callback(message);
+  };
+  ipcRenderer.on('teamHub:noticeStream', listener);
+  return () => {
+    ipcRenderer.removeListener('teamHub:noticeStream', listener);
+  };
 }
 
 /**
@@ -5449,6 +5720,11 @@ const api: Api = {
   listTeamHubTokens,
   createTeamHubUserToken,
   deleteTeamHubToken,
+  getTeamHubDeviceEnrollmentStatus,
+  enrollTeamHubDevice,
+  resetTeamHubDeviceKeys,
+  listTeamHubDeviceKeys,
+  revokeTeamHubDeviceKey,
   listTeamHubAdminResourceOptions,
   listTeamHubAdminCollectionContents,
   deleteTeamHubCollection,
@@ -5458,6 +5734,22 @@ const api: Api = {
   deleteTeamHubAdminSnippet,
   listTeamHubAdminRunResults,
   deleteTeamHubRunResult,
+  listTeamHubDiscussions,
+  createTeamHubDiscussion,
+  replyTeamHubDiscussion,
+  updateTeamHubDiscussionComment,
+  deleteTeamHubDiscussionComment,
+  listTeamHubNotices,
+  getTeamHubNoticesUnreadCount,
+  markTeamHubNoticeRead,
+  markAllTeamHubNoticesRead,
+  getTeamHubNotificationSettings,
+  updateTeamHubNotificationSettings,
+  getTeamHubDiscussionThreadSubscription,
+  subscribeTeamHubDiscussionThread,
+  unsubscribeTeamHubDiscussionThread,
+  syncTeamHubNoticeStreams,
+  onTeamHubNoticeStream,
   deleteTeamHubRequest,
   deleteTeamHubEnvironment,
   updateTeamHubCollectionDeletionLocked,

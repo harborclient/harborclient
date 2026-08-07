@@ -2,9 +2,9 @@
 # Copy to server.yaml and adjust for your environment.
 #
 # Required sections: server, db, redis
-# Optional sections: logging, llm, plugins, docs, multitenancy
+# Optional sections: logging, llm, plugins, docs, multitenancy, collaboration
 #
-# While team-hub start is running, db/redis/llm/plugins/docs reload live via SIGHUP or
+# While team-hub start is running, db/redis/llm/plugins/docs/collaboration reload live via SIGHUP or
 # POST /admin/config/reload. Changes to server.host, server.port, or multitenancy.enabled
 # require a restart.
 
@@ -127,3 +127,9 @@ redis:
 #
 # multitenancy:
 #   enabled: false
+
+# Optional collaboration settings. When e2ee is true, discussion routes reject plaintext
+# bodies and clients must use encrypted payloads once device enrollment is available.
+#
+# collaboration:
+#   e2ee: false

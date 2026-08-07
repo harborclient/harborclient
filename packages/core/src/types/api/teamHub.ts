@@ -8,6 +8,7 @@ import type {
   CreatedHubUser,
   CreatedInvitedHubUser,
   HubApiTokenRecord,
+  HubDeviceKeyRecord,
   HubInvitationPreview,
   HubInvitationRecord,
   HubUserRecord,
@@ -20,7 +21,22 @@ import type {
   TeamHubAdminRunResult,
   TeamHubInvitationRedeemResult,
   TeamHubSessionScanResult,
+  TeamHubDeviceEnrollmentStatus,
   TeamHubVerifiedSession,
+  TeamHubCreateDiscussionInput,
+  TeamHubDiscussionComment,
+  TeamHubDiscussionTarget,
+  TeamHubDiscussionThreadSubscription,
+  TeamHubListDiscussionsQuery,
+  TeamHubListDiscussionsResponse,
+  TeamHubListNoticesQuery,
+  TeamHubListNoticesResponse,
+  TeamHubNotice,
+  TeamHubNoticeStreamMessage,
+  TeamHubNoticesUnreadCountResponse,
+  TeamHubNotificationSettings,
+  TeamHubUpdateDiscussionInput,
+  TeamHubUpdateNotificationSettingsInput,
   UpdateHubUserInput
 } from '../teamHub';
 
@@ -180,6 +196,44 @@ export interface ApiTeamHub {
    */
   deleteTeamHubToken: (hubId: string, tokenId: string) => Promise<void>;
   /**
+   * Returns local and server enrollment status for the current device on an E2EE hub.
+   *
+   * @param hubId - Team hub connection id to inspect.
+   */
+  getTeamHubDeviceEnrollmentStatus: (hubId: string) => Promise<TeamHubDeviceEnrollmentStatus>;
+  /**
+   * Generates local device keys and uploads public material to an E2EE-enabled hub.
+   *
+   * @param hubId - Team hub connection id to enroll against.
+   * @param label - Optional device label.
+   */
+  enrollTeamHubDevice: (
+    hubId: string,
+    label?: string
+  ) => Promise<{
+    localIdentity: TeamHubDeviceEnrollmentStatus['localIdentity'];
+    serverDevice: HubDeviceKeyRecord;
+  }>;
+  /**
+   * Clears local device keys and revokes the server enrollment when present.
+   *
+   * @param hubId - Team hub connection id whose device keys should be reset.
+   */
+  resetTeamHubDeviceKeys: (hubId: string) => Promise<void>;
+  /**
+   * Lists device key enrollments using an admin token on the given hub connection.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   */
+  listTeamHubDeviceKeys: (hubId: string) => Promise<HubDeviceKeyRecord[]>;
+  /**
+   * Revokes a device key enrollment using an admin token on the given hub connection.
+   *
+   * @param hubId - Team hub connection id with an admin token.
+   * @param deviceKeyId - Server-side device key record identifier.
+   */
+  revokeTeamHubDeviceKey: (hubId: string, deviceKeyId: string) => Promise<void>;
+  /**
    * Loads collection, environment, and LLM model options for admin user management.
    *
    * @param hubId - Team hub connection id with an admin token.
@@ -294,4 +348,169 @@ export interface ApiTeamHub {
    * @param hubId - Team hub connection id with an admin token.
    */
   reloadTeamHubConfig: (hubId: string) => Promise<ReloadConfigResponse>;
+
+  /**
+   * Lists discussion comments for a Team Hub entity.
+   *
+   * @param hubId - Team hub connection id backing the entity.
+   * @param target - Entity type and server UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listTeamHubDiscussions: (
+    hubId: string,
+    target: TeamHubDiscussionTarget,
+    query?: TeamHubListDiscussionsQuery
+  ) => Promise<TeamHubListDiscussionsResponse>;
+
+  /**
+   * Creates a discussion comment on a Team Hub entity.
+   *
+   * @param hubId - Team hub connection id backing the entity.
+   * @param target - Entity type and server UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  createTeamHubDiscussion: (
+    hubId: string,
+    target: TeamHubDiscussionTarget,
+    input: TeamHubCreateDiscussionInput
+  ) => Promise<TeamHubDiscussionComment>;
+
+  /**
+   * Creates a reply to an existing discussion comment.
+   *
+   * @param hubId - Team hub connection id backing the entity.
+   * @param target - Entity type and server UUID for discussion routes.
+   * @param commentId - Parent comment UUID.
+   * @param input - Reply body text.
+   */
+  replyTeamHubDiscussion: (
+    hubId: string,
+    target: TeamHubDiscussionTarget,
+    commentId: string,
+    input: TeamHubCreateDiscussionInput
+  ) => Promise<TeamHubDiscussionComment>;
+
+  /**
+   * Updates an existing discussion comment body.
+   *
+   * @param hubId - Team hub connection id backing the entity.
+   * @param target - Entity type and server UUID for discussion routes.
+   * @param commentId - Comment UUID.
+   * @param input - Replacement body text.
+   */
+  updateTeamHubDiscussionComment: (
+    hubId: string,
+    target: TeamHubDiscussionTarget,
+    commentId: string,
+    input: TeamHubUpdateDiscussionInput
+  ) => Promise<TeamHubDiscussionComment>;
+
+  /**
+   * Tombstones a discussion comment by id.
+   *
+   * @param hubId - Team hub connection id backing the entity.
+   * @param commentId - Comment UUID.
+   */
+  deleteTeamHubDiscussionComment: (
+    hubId: string,
+    commentId: string
+  ) => Promise<TeamHubDiscussionComment>;
+
+  /**
+   * Lists collaboration notices for a Team Hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param query - Optional pagination cursor and limit.
+   */
+  listTeamHubNotices: (
+    hubId: string,
+    query?: TeamHubListNoticesQuery
+  ) => Promise<TeamHubListNoticesResponse>;
+
+  /**
+   * Returns the unread notice count for a Team Hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   */
+  getTeamHubNoticesUnreadCount: (hubId: string) => Promise<TeamHubNoticesUnreadCountResponse>;
+
+  /**
+   * Marks one notice as read for the authenticated user on a hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param noticeId - Notice record identifier.
+   */
+  markTeamHubNoticeRead: (hubId: string, noticeId: string) => Promise<TeamHubNotice>;
+
+  /**
+   * Marks every notice as read for the authenticated user on a hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   */
+  markAllTeamHubNoticesRead: (hubId: string) => Promise<void>;
+
+  /**
+   * Returns notification settings for the authenticated user on a hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   */
+  getTeamHubNotificationSettings: (hubId: string) => Promise<TeamHubNotificationSettings>;
+
+  /**
+   * Updates notification settings for the authenticated user on a hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param input - Replacement notification delivery preference.
+   */
+  updateTeamHubNotificationSettings: (
+    hubId: string,
+    input: TeamHubUpdateNotificationSettingsInput
+  ) => Promise<TeamHubNotificationSettings>;
+
+  /**
+   * Returns whether the authenticated user is subscribed to a discussion thread.
+   *
+   * @param hubId - Team hub connection id.
+   * @param threadId - Discussion thread identifier.
+   */
+  getTeamHubDiscussionThreadSubscription: (
+    hubId: string,
+    threadId: string
+  ) => Promise<TeamHubDiscussionThreadSubscription>;
+
+  /**
+   * Subscribes the authenticated user to a discussion thread.
+   *
+   * @param hubId - Team hub connection id.
+   * @param threadId - Discussion thread identifier.
+   */
+  subscribeTeamHubDiscussionThread: (
+    hubId: string,
+    threadId: string
+  ) => Promise<TeamHubDiscussionThreadSubscription>;
+
+  /**
+   * Unsubscribes the authenticated user from a discussion thread.
+   *
+   * @param hubId - Team hub connection id.
+   * @param threadId - Discussion thread identifier.
+   */
+  unsubscribeTeamHubDiscussionThread: (
+    hubId: string,
+    threadId: string
+  ) => Promise<TeamHubDiscussionThreadSubscription>;
+
+  /**
+   * Starts or stops main-process notice SSE subscriptions for the given hub ids.
+   *
+   * @param hubIds - Connected hub ids that should maintain notice streams.
+   */
+  syncTeamHubNoticeStreams: (hubIds: string[]) => Promise<void>;
+
+  /**
+   * Subscribes to notice SSE events pushed from the main process.
+   *
+   * @param callback - Handler invoked for stream events and reconnect reconciliation.
+   */
+  onTeamHubNoticeStream: (callback: (message: TeamHubNoticeStreamMessage) => void) => () => void;
 }

@@ -6,6 +6,7 @@ import {
 } from 'fastify-type-provider-zod';
 import { DEFAULT_LOGGING_CONFIG } from '#/config/loggingConfig.js';
 import { DEFAULT_MULTITENANCY_CONFIG } from '#/config/multitenancyConfig.js';
+import { DEFAULT_COLLABORATION_CONFIG } from '#/config/collaborationConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
 import { registerHttpLogging } from '#/server/logging/httpLogging.js';
@@ -92,12 +93,16 @@ export async function createServer(
     version: options.version ?? readPackageVersion(),
     db,
     throttleStore,
+    noticeEventBus: ctx?.noticeEventBus,
     getLlm: ctx ? () => ctx.getLlm() : () => legacyConfig?.llm ?? null,
     getPlugins: ctx ? () => ctx.getPlugins() : () => legacyConfig?.plugins ?? null,
     getDocs: ctx ? () => ctx.getDocs() : () => legacyConfig?.docs ?? null,
     getMultitenancy: ctx
       ? () => ctx.getMultitenancy()
       : () => legacyConfig?.multitenancy ?? DEFAULT_MULTITENANCY_CONFIG,
+    getCollaboration: ctx
+      ? () => ctx.getCollaboration()
+      : () => legacyConfig?.collaboration ?? DEFAULT_COLLABORATION_CONFIG,
     reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] }))
   });
 

@@ -2,11 +2,14 @@ import { isDeepStrictEqual } from 'node:util';
 import type { DocsConfig } from '#/config/docsConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
 import type { MultitenancyConfig } from '#/config/multitenancyConfig.js';
+import type { CollaborationConfig } from '#/config/collaborationConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
 import { ConfigError, loadServerConfig, type ServerConfig } from '#/config/serverConfig.js';
 import { createDatabase, type IDatabase } from '#/db/index.js';
 import { createThrottleStore } from '#/server/auth/throttle/createThrottleStore.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
+import { createNoticeEventBus } from '#/server/notices/createNoticeEventBus.js';
+import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
 import { createLogger, type Logger } from '#/server/logging/logger.js';
 
 /**
@@ -17,7 +20,14 @@ export type ReloadSectionStatus = 'reloaded' | 'unchanged' | 'failed' | 'restart
 /**
  * Config section name reported in reload results.
  */
-export type ReloadSectionName = 'db' | 'redis' | 'llm' | 'plugins' | 'docs' | 'server';
+export type ReloadSectionName =
+  | 'db'
+  | 'redis'
+  | 'llm'
+  | 'plugins'
+  | 'docs'
+  | 'server'
+  | 'collaboration';
 
 /**
  * Per-section reload outcome.
@@ -84,6 +94,11 @@ export interface RuntimeContext {
   readonly throttleStore: IThrottleStore;
 
   /**
+   * Stable notice event bus handle; underlying implementation swaps on reload.
+   */
+  readonly noticeEventBus: INoticeEventBus;
+
+  /**
    * Returns the current normalized LLM configuration.
    */
   getLlm(): LlmConfig | null;
@@ -104,6 +119,11 @@ export interface RuntimeContext {
    * Changes to multitenancy.enabled require a process restart.
    */
   getMultitenancy(): MultitenancyConfig;
+
+  /**
+   * Returns the current normalized collaboration configuration.
+   */
+  getCollaboration(): CollaborationConfig;
 
   /**
    * Winston logger configured at process startup from server.yaml.
@@ -129,10 +149,12 @@ interface RuntimeContextState {
   activeRedisConfig: Record<string, unknown>;
   dbHolder: SwappableHolder<IDatabase>;
   throttleHolder: SwappableHolder<IThrottleStore>;
+  noticeEventsHolder: SwappableHolder<INoticeEventBus>;
   llm: LlmConfig | null;
   plugins: PluginsConfig | null;
   docs: DocsConfig | null;
   multitenancy: MultitenancyConfig;
+  collaboration: CollaborationConfig;
 }
 
 const runtimeContextStates = new WeakMap<RuntimeContext, RuntimeContextState>();
@@ -205,10 +227,12 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     activeRedisConfig: config.redis,
     dbHolder: { underlying: createDatabase(config.db) },
     throttleHolder: { underlying: createThrottleStore(config.redis) },
+    noticeEventsHolder: { underlying: createNoticeEventBus(config.redis) },
     llm: config.llm,
     plugins: config.plugins,
     docs: config.docs,
-    multitenancy: config.multitenancy
+    multitenancy: config.multitenancy,
+    collaboration: config.collaboration
   };
 
   const ctx: RuntimeContext = {
@@ -221,10 +245,12 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     },
     db: createSwappableProxy(state.dbHolder),
     throttleStore: createSwappableProxy(state.throttleHolder),
+    noticeEventBus: createSwappableProxy(state.noticeEventsHolder),
     getLlm: () => state.llm,
     getPlugins: () => state.plugins,
     getDocs: () => state.docs,
     getMultitenancy: () => state.multitenancy,
+    getCollaboration: () => state.collaboration,
     logger: createLogger(config.logging)
   };
 
@@ -243,6 +269,7 @@ export async function connectRuntimeContext(ctx: RuntimeContext): Promise<void> 
   await state.dbHolder.underlying.ensureDefaultTenant();
   await state.dbHolder.underlying.ensureSystemUser();
   await state.throttleHolder.underlying.connect();
+  await state.noticeEventsHolder.underlying.connect();
 }
 
 /**
@@ -254,6 +281,7 @@ export async function disconnectAll(ctx: RuntimeContext): Promise<void> {
   const state = getState(ctx);
   await state.dbHolder.underlying.disconnect();
   await state.throttleHolder.underlying.disconnect();
+  await state.noticeEventsHolder.underlying.disconnect();
 }
 
 /**
@@ -307,6 +335,13 @@ async function reloadRedisSection(
     state.throttleHolder.underlying = nextStore;
     state.activeRedisConfig = nextRedisConfig;
     await previousStore.disconnect();
+
+    const nextNoticeBus = createNoticeEventBus(nextRedisConfig);
+    await nextNoticeBus.connect();
+    const previousNoticeBus = state.noticeEventsHolder.underlying;
+    state.noticeEventsHolder.underlying = nextNoticeBus;
+    await previousNoticeBus.disconnect();
+
     return { section: 'redis', status: 'reloaded' };
   } catch (error) {
     return { section: 'redis', status: 'failed', error: formatReloadError(error) };
@@ -367,6 +402,9 @@ export async function reloadRuntimeConfig(ctx: RuntimeContext): Promise<ReloadRe
 
   state.docs = nextConfig.docs;
   sections.push({ section: 'docs', status: 'reloaded' });
+
+  state.collaboration = nextConfig.collaboration;
+  sections.push({ section: 'collaboration', status: 'reloaded' });
 
   sections.push(reloadServerSection(state, nextConfig));
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Implement Team Hub device and discussion management features. (`f03c2465`)
+
 ## 0.5.6 - 2026-08-05
 
 - Refactor Team Hub integration to support tenantId. (`1baf9475`)

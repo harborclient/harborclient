@@ -1,6 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { buildUserAvatarFieldsForCreate } from '#/avatar/userAvatarService.js';
+import { defaultAvatarPresentation } from '#/avatar/avatarPresentation.js';
 import { mapApiTokenSqlRow, type ApiTokenSqlRow } from '#/db/apiTokenRows.js';
+import {
+  DEVICE_KEY_SELECT_COLUMNS,
+  mapDeviceKeySqlRow,
+  type DeviceKeySqlRow
+} from '#/db/deviceKeyRows.js';
+import {
+  buildDiscussionMlsCommitListResult,
+  buildDiscussionMlsGroupStateRecord,
+  normalizeDiscussionMlsCommitListLimit,
+  parseDiscussionMlsCommitListCursor
+} from '#/db/discussionMlsLogic.js';
+import {
+  DISCUSSION_MLS_COMMIT_SELECT_COLUMNS,
+  DISCUSSION_MLS_GROUP_STATE_SELECT_COLUMNS,
+  DISCUSSION_MLS_WELCOME_SELECT_COLUMNS,
+  mapDiscussionMlsCommitSqlRow,
+  mapDiscussionMlsGroupStateSqlRow,
+  mapDiscussionMlsWelcomeSqlRow,
+  type DiscussionMlsCommitSqlRow,
+  type DiscussionMlsGroupStateSqlRow,
+  type DiscussionMlsWelcomeSqlRow
+} from '#/db/discussionMlsRows.js';
 import { InvitationUnavailableError } from '#/db/invitationErrors.js';
 import { mapInvitationSqlRow, type InvitationSqlRow } from '#/db/invitationRows.js';
 import { INVITATION_SELECT, INVITATION_SELECT_COLUMNS } from '#/db/postgres/invitationSql.js';
@@ -33,6 +57,32 @@ import {
   type SnippetSqlRow
 } from '#/db/entityRows.js';
 import { buildDefaultRunResultLabel, parseRunResultPayload } from '#/db/runResultPayload.js';
+import {
+  buildDiscussionListResult,
+  normalizeDiscussionListLimit,
+  normalizeDiscussionUpdateInput,
+  parseDiscussionListCursor,
+  prepareSqlDiscussionCommentInsert,
+  assertDiscussionCommentEditable
+} from '#/db/discussionCommentSql.js';
+import {
+  buildNoticeListResult,
+  normalizeNoticeListLimit,
+  parseNoticeListCursor
+} from '#/db/noticeSql.js';
+import {
+  mapNoticeSqlRow,
+  NOTICE_SELECT_COLUMNS,
+  serializeNoticeDisplayMetadata,
+  type NoticeSqlRow
+} from '#/db/noticeRows.js';
+import {
+  DISCUSSION_COMMENT_SELECT_COLUMNS,
+  mapDiscussionCommentSqlRow,
+  serializeDiscussionBodyMetadata,
+  type DiscussionCommentSqlRow
+} from '#/db/discussionCommentRows.js';
+import { DiscussionCommentNotFoundError } from '#/db/discussionCommentErrors.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import { POSTGRES_MIGRATIONS } from '#/db/postgres/migrations.js';
 import { postgresConfigSchema } from '#/db/postgres/schemas.js';
@@ -67,6 +117,7 @@ import {
 } from '#/db/llmUsageRows.js';
 import type {
   ApiTokenRecord,
+  DeviceKeyRecord,
   AuditAction,
   AuditEntityType,
   AuditLogRecord,
@@ -100,7 +151,27 @@ import type {
   UpdateLivePageRecordInput,
   UpdateLiveServerRecordInput,
   UserRecord,
-  Variable
+  Variable,
+  CreateDiscussionCommentInput,
+  DiscussionCommentRecord,
+  ListDiscussionCommentsOptions,
+  ListDiscussionCommentsResult,
+  UpdateDiscussionCommentInput,
+  CreateNoticeInput,
+  ListNoticesOptions,
+  ListNoticesResult,
+  NoticeRecord,
+  NotificationLevel,
+  UserNotificationSettingsRecord,
+  DiscussionThreadSubscriptionRecord,
+  DiscussionMlsGroupStateRecord,
+  DiscussionMlsCommitRecord,
+  DiscussionMlsWelcomeRecord,
+  UpsertDiscussionMlsGroupStateInput,
+  ListDiscussionMlsCommitsOptions,
+  ListDiscussionMlsCommitsResult,
+  ListDiscussionMlsWelcomesOptions,
+  ListDiscussionMlsWelcomesResult
 } from '#/db/types.js';
 import { DEFAULT_AUTH_JSON } from '#/db/types.js';
 import { formatZodError } from '#/db/validation.js';
@@ -115,8 +186,14 @@ const PAYLOAD_ENTITY_SELECT_COLUMNS =
 const RUN_RESULT_SELECT_COLUMNS =
   'id, kind, label, collection_name, request_name, summary_passed, summary_failed, summary_skipped, payload, created_at, created_by_user_id';
 const RUN_RESULT_SELECT = `SELECT ${RUN_RESULT_SELECT_COLUMNS} FROM run_results`;
+const DISCUSSION_COMMENT_SELECT = `SELECT ${DISCUSSION_COMMENT_SELECT_COLUMNS} FROM discussion_comments`;
+const NOTICE_SELECT = `SELECT ${NOTICE_SELECT_COLUMNS} FROM notices`;
 const USER_SELECT = `SELECT ${USER_SELECT_COLUMNS} FROM users`;
 const API_TOKEN_SELECT = `SELECT ${API_TOKEN_SELECT_COLUMNS} FROM api_tokens`;
+const DEVICE_KEY_SELECT = `SELECT ${DEVICE_KEY_SELECT_COLUMNS} FROM device_keys`;
+const DISCUSSION_MLS_GROUP_STATE_SELECT = `SELECT ${DISCUSSION_MLS_GROUP_STATE_SELECT_COLUMNS} FROM discussion_mls_group_state`;
+const DISCUSSION_MLS_COMMIT_SELECT = `SELECT ${DISCUSSION_MLS_COMMIT_SELECT_COLUMNS} FROM discussion_mls_commits`;
+const DISCUSSION_MLS_WELCOME_SELECT = `SELECT ${DISCUSSION_MLS_WELCOME_SELECT_COLUMNS} FROM discussion_mls_welcomes`;
 const FOLDER_SELECT = `SELECT ${FOLDER_SELECT_COLUMNS} FROM folders`;
 const REQUEST_SELECT = `SELECT ${REQUEST_SELECT_COLUMNS} FROM requests`;
 const DOCUMENT_SELECT = `SELECT ${DOCUMENT_SELECT_COLUMNS} FROM documents`;
@@ -222,6 +299,27 @@ export class PostgresDatabase implements IDatabase {
     await this.ensureDefaultTenant();
     await this.ensureSystemUser();
     await this.migrateOrphanTokensToBootstrapUser();
+    await this.backfillUserAvatars();
+  }
+
+  /**
+   * Assigns default avatar initials and colors to users missing persisted values.
+   */
+  private async backfillUserAvatars(): Promise<void> {
+    const result = await this.query<{ id: string; name: string; tenant_id: string }>(
+      `SELECT id, name, tenant_id FROM users WHERE avatar_initials IS NULL OR avatar_color IS NULL`
+    );
+
+    for (const row of result.rows) {
+      const defaults = defaultAvatarPresentation(row.name, row.id);
+      await this.query(
+        `UPDATE users
+         SET avatar_initials = $1,
+             avatar_color = $2
+         WHERE id = $3 AND tenant_id = $4`,
+        [defaults.initials, defaults.color, row.id, row.tenant_id]
+      );
+    }
   }
 
   /**
@@ -286,8 +384,10 @@ export class PostgresDatabase implements IDatabase {
       updated_at: Date;
       created_by_user_id: string | null;
       updated_by_user_id: string | null;
+      avatar_initials: string | null;
+      avatar_color: string | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants ORDER BY name ASC'
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants ORDER BY name ASC'
     );
 
     return result.rows.map((row) => ({
@@ -296,7 +396,9 @@ export class PostgresDatabase implements IDatabase {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       createdByUserId: row.created_by_user_id,
-      updatedByUserId: row.updated_by_user_id
+      updatedByUserId: row.updated_by_user_id,
+      avatarInitials: row.avatar_initials,
+      avatarColor: row.avatar_color
     }));
   }
 
@@ -322,10 +424,12 @@ export class PostgresDatabase implements IDatabase {
       updated_at: Date;
       created_by_user_id: string | null;
       updated_by_user_id: string | null;
+      avatar_initials: string | null;
+      avatar_color: string | null;
     }>(
       `INSERT INTO tenants (id, name, created_at, updated_at, created_by_user_id, updated_by_user_id)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id`,
+       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color`,
       [id, trimmedName, now, now, actingUserId, actingUserId]
     );
 
@@ -340,7 +444,9 @@ export class PostgresDatabase implements IDatabase {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       createdByUserId: row.created_by_user_id,
-      updatedByUserId: row.updated_by_user_id
+      updatedByUserId: row.updated_by_user_id,
+      avatarInitials: row.avatar_initials,
+      avatarColor: row.avatar_color
     };
   }
 
@@ -357,8 +463,10 @@ export class PostgresDatabase implements IDatabase {
       updated_at: Date;
       created_by_user_id: string | null;
       updated_by_user_id: string | null;
+      avatar_initials: string | null;
+      avatar_color: string | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id FROM tenants WHERE id = $1 LIMIT 1',
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants WHERE id = $1 LIMIT 1',
       [id]
     );
 
@@ -373,7 +481,61 @@ export class PostgresDatabase implements IDatabase {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       createdByUserId: row.created_by_user_id,
-      updatedByUserId: row.updated_by_user_id
+      updatedByUserId: row.updated_by_user_id,
+      avatarInitials: row.avatar_initials,
+      avatarColor: row.avatar_color
+    };
+  }
+
+  /**
+   * Updates persisted hub avatar presentation for a tenant namespace.
+   *
+   * @param id - Tenant identifier to update.
+   * @param avatarInitials - Initials tile text to persist.
+   * @param avatarColor - Palette color key to persist.
+   * @param actingUserId - User performing the update, or null for system assignment.
+   */
+  async updateTenantAvatar(
+    id: string,
+    avatarInitials: string,
+    avatarColor: string,
+    actingUserId: string | null
+  ): Promise<TenantRecord> {
+    const now = new Date();
+    const result = await this.query<{
+      id: string;
+      name: string;
+      created_at: Date;
+      updated_at: Date;
+      created_by_user_id: string | null;
+      updated_by_user_id: string | null;
+      avatar_initials: string | null;
+      avatar_color: string | null;
+    }>(
+      `UPDATE tenants
+       SET avatar_initials = $2,
+           avatar_color = $3,
+           updated_at = $4,
+           updated_by_user_id = COALESCE($5, updated_by_user_id)
+       WHERE id = $1
+       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color`,
+      [id, avatarInitials, avatarColor, now, actingUserId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Tenant not found.');
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      createdByUserId: row.created_by_user_id,
+      updatedByUserId: row.updated_by_user_id,
+      avatarInitials: row.avatar_initials,
+      avatarColor: row.avatar_color
     };
   }
 
@@ -398,6 +560,7 @@ export class PostgresDatabase implements IDatabase {
       await client.query('DELETE FROM requests WHERE tenant_id = $1', [id]);
       await client.query('DELETE FROM folders WHERE tenant_id = $1', [id]);
       await client.query('DELETE FROM run_results WHERE tenant_id = $1', [id]);
+      await client.query('DELETE FROM discussion_comments WHERE tenant_id = $1', [id]);
       await client.query('DELETE FROM llm_usage_log WHERE tenant_id = $1', [id]);
       await client.query('DELETE FROM llm_usage WHERE tenant_id = $1', [id]);
       await client.query('DELETE FROM audit_log WHERE tenant_id = $1', [id]);
@@ -470,6 +633,7 @@ export class PostgresDatabase implements IDatabase {
     assertUserNameNotReserved(trimmedName);
     const id = randomUUID();
     const now = new Date();
+    const avatar = buildUserAvatarFieldsForCreate(trimmedName, id, input);
 
     const result = await this.query<UserSqlRow>(
       `INSERT INTO users (
@@ -485,11 +649,13 @@ export class PostgresDatabase implements IDatabase {
         llm_access,
         llm_models,
         llm_monthly_token_limit,
+        avatar_initials,
+        avatar_color,
         created_at,
         updated_at,
         created_by_user_id,
         updated_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING ${USER_SELECT_COLUMNS}`,
       [
         id,
@@ -504,6 +670,8 @@ export class PostgresDatabase implements IDatabase {
         input.llmAccess ?? false,
         serializeAccessList(input.llmModels ?? []),
         input.llmMonthlyTokenLimit ?? null,
+        avatar.avatarInitials,
+        avatar.avatarColor,
         now,
         now,
         actingUserId,
@@ -594,6 +762,9 @@ export class PostgresDatabase implements IDatabase {
       input.llmMonthlyTokenLimit !== undefined
         ? input.llmMonthlyTokenLimit
         : existing.llmMonthlyTokenLimit;
+    const avatarInitials =
+      input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
+    const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
     const updatedAt = new Date();
 
     const result = await this.query(
@@ -608,9 +779,11 @@ export class PostgresDatabase implements IDatabase {
         llm_access = $8,
         llm_models = $9,
         llm_monthly_token_limit = $10,
-        updated_at = $11,
-        updated_by_user_id = $12
-      WHERE id = $13 AND tenant_id = $14`,
+        avatar_initials = $11,
+        avatar_color = $12,
+        updated_at = $13,
+        updated_by_user_id = $14
+      WHERE id = $15 AND tenant_id = $16`,
       [
         name,
         role,
@@ -622,6 +795,8 @@ export class PostgresDatabase implements IDatabase {
         llmAccess,
         serializeAccessList(llmModels),
         llmMonthlyTokenLimit,
+        avatarInitials,
+        avatarColor,
         updatedAt,
         actingUserId,
         id,
@@ -870,6 +1045,408 @@ export class PostgresDatabase implements IDatabase {
       when,
       this.tenantId
     ]);
+  }
+
+  /**
+   * Inserts a new device key enrollment record.
+   *
+   * @param record - Device enrollment metadata to persist.
+   * @param actingUserId - User performing the enrollment action.
+   */
+  async createDeviceKey(record: DeviceKeyRecord, actingUserId: string): Promise<void> {
+    await this.query(
+      `INSERT INTO device_keys (
+        id,
+        tenant_id,
+        user_id,
+        device_id,
+        label,
+        key_format,
+        public_key_material,
+        fingerprint,
+        created_at,
+        last_seen_at,
+        revoked_at,
+        created_by_user_id,
+        updated_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [
+        record.id,
+        this.tenantId,
+        record.userId,
+        record.deviceId,
+        record.label,
+        record.keyFormat,
+        record.publicKeyMaterial,
+        record.fingerprint,
+        record.createdAt,
+        record.lastSeenAt,
+        record.revokedAt,
+        actingUserId,
+        actingUserId
+      ]
+    );
+
+    await this.recordAuditEntry(actingUserId, 'create', 'device_key', record.id);
+  }
+
+  /**
+   * Finds a device key enrollment by stable identifier.
+   *
+   * @param id - Device key record identifier.
+   */
+  async findDeviceKeyById(id: string): Promise<DeviceKeyRecord | null> {
+    const result = await this.query<DeviceKeySqlRow>(
+      `${DEVICE_KEY_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapDeviceKeySqlRow(row) : null;
+  }
+
+  /**
+   * Finds an active enrollment for a user/device pair.
+   *
+   * @param userId - Owning user identifier.
+   * @param deviceId - Client-generated device identifier.
+   */
+  async findActiveDeviceKeyByUserAndDeviceId(
+    userId: string,
+    deviceId: string
+  ): Promise<DeviceKeyRecord | null> {
+    const result = await this.query<DeviceKeySqlRow>(
+      `${DEVICE_KEY_SELECT}
+      WHERE user_id = $1
+        AND device_id = $2
+        AND tenant_id = $3
+        AND revoked_at IS NULL
+      LIMIT 1`,
+      [userId, deviceId, this.tenantId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapDeviceKeySqlRow(row) : null;
+  }
+
+  /**
+   * Returns device key enrollments owned by a user ordered newest-first.
+   *
+   * @param userId - Owning user identifier.
+   */
+  async listDeviceKeysByUserId(userId: string): Promise<DeviceKeyRecord[]> {
+    const result = await this.query<DeviceKeySqlRow>(
+      `${DEVICE_KEY_SELECT}
+      WHERE user_id = $1
+        AND tenant_id = $2
+      ORDER BY created_at DESC`,
+      [userId, this.tenantId]
+    );
+
+    return result.rows.map(mapDeviceKeySqlRow);
+  }
+
+  /**
+   * Lists all device key enrollments ordered by creation time descending.
+   */
+  async listDeviceKeys(): Promise<DeviceKeyRecord[]> {
+    const result = await this.query<DeviceKeySqlRow>(
+      `${DEVICE_KEY_SELECT}
+      WHERE tenant_id = $1
+      ORDER BY created_at DESC`,
+      [this.tenantId]
+    );
+
+    return result.rows.map(mapDeviceKeySqlRow);
+  }
+
+  /**
+   * Soft-revokes an active device key enrollment by id.
+   *
+   * @param id - Device key identifier to revoke.
+   * @param actingUserId - User performing the revoke action.
+   */
+  async revokeDeviceKey(id: string, actingUserId: string): Promise<boolean> {
+    const result = await this.query(
+      `UPDATE device_keys
+      SET revoked_at = $2,
+        updated_by_user_id = $3
+      WHERE id = $1
+        AND tenant_id = $4
+        AND revoked_at IS NULL`,
+      [id, new Date(), actingUserId, this.tenantId]
+    );
+
+    const revoked = (result.rowCount ?? 0) > 0;
+    if (revoked) {
+      await this.recordAuditEntry(actingUserId, 'update', 'device_key', id);
+    }
+
+    return revoked;
+  }
+
+  /**
+   * Updates the last-seen timestamp for an enrolled device.
+   *
+   * @param id - Device key identifier.
+   * @param when - Timestamp of the latest successful enrollment confirmation.
+   */
+  async touchDeviceKeyLastSeen(id: string, when: Date): Promise<void> {
+    await this.query(`UPDATE device_keys SET last_seen_at = $2 WHERE id = $1 AND tenant_id = $3`, [
+      id,
+      when,
+      this.tenantId
+    ]);
+  }
+
+  /**
+   * Returns persisted MLS group state for a discussion thread.
+   *
+   * @param mlsGroupId - Canonical MLS group id for the thread.
+   */
+  async getDiscussionMlsGroupState(
+    mlsGroupId: string
+  ): Promise<DiscussionMlsGroupStateRecord | null> {
+    const result = await this.query<DiscussionMlsGroupStateSqlRow>(
+      `${DISCUSSION_MLS_GROUP_STATE_SELECT}
+      WHERE tenant_id = $1 AND mls_group_id = $2
+      LIMIT 1`,
+      [this.tenantId, mlsGroupId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapDiscussionMlsGroupStateSqlRow(row) : null;
+  }
+
+  /**
+   * Inserts or advances MLS group state when the supplied epoch is not stale.
+   *
+   * @param input - Latest observed MLS epoch for the thread.
+   * @param actingUserId - User posting the commit that advanced group state.
+   */
+  async upsertDiscussionMlsGroupState(
+    input: UpsertDiscussionMlsGroupStateInput,
+    actingUserId: string
+  ): Promise<DiscussionMlsGroupStateRecord> {
+    const prepared = buildDiscussionMlsGroupStateRecord(input, actingUserId);
+    const existing = await this.getDiscussionMlsGroupState(prepared.mlsGroupId);
+
+    const result = await this.query<DiscussionMlsGroupStateSqlRow>(
+      `INSERT INTO discussion_mls_group_state (
+        mls_group_id,
+        tenant_id,
+        target_entity_type,
+        target_entity_id,
+        current_epoch,
+        created_at,
+        updated_at,
+        created_by_user_id,
+        updated_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (tenant_id, mls_group_id) DO UPDATE SET
+        current_epoch = CASE
+          WHEN EXCLUDED.current_epoch >= discussion_mls_group_state.current_epoch
+          THEN EXCLUDED.current_epoch
+          ELSE discussion_mls_group_state.current_epoch
+        END,
+        updated_at = CASE
+          WHEN EXCLUDED.current_epoch >= discussion_mls_group_state.current_epoch
+          THEN EXCLUDED.updated_at
+          ELSE discussion_mls_group_state.updated_at
+        END,
+        updated_by_user_id = CASE
+          WHEN EXCLUDED.current_epoch >= discussion_mls_group_state.current_epoch
+          THEN EXCLUDED.updated_by_user_id
+          ELSE discussion_mls_group_state.updated_by_user_id
+        END
+      RETURNING ${DISCUSSION_MLS_GROUP_STATE_SELECT_COLUMNS}`,
+      [
+        prepared.mlsGroupId,
+        this.tenantId,
+        prepared.targetEntityType,
+        prepared.targetEntityId,
+        prepared.currentEpoch,
+        prepared.createdAt,
+        prepared.updatedAt,
+        prepared.createdByUserId,
+        prepared.updatedByUserId
+      ]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Discussion MLS group state not found after upsert');
+    }
+
+    const record = mapDiscussionMlsGroupStateSqlRow(row);
+    if (!existing) {
+      await this.recordAuditEntry(
+        actingUserId,
+        'create',
+        'discussion_mls_group_state',
+        prepared.mlsGroupId
+      );
+    } else if (record.currentEpoch > existing.currentEpoch) {
+      await this.recordAuditEntry(
+        actingUserId,
+        'update',
+        'discussion_mls_group_state',
+        prepared.mlsGroupId
+      );
+    }
+
+    return record;
+  }
+
+  /**
+   * Persists a relayed MLS commit record built by the route layer.
+   *
+   * @param record - Validated commit metadata and ciphertext.
+   * @param actingUserId - User relaying the commit through Team Hub.
+   */
+  async createDiscussionMlsCommit(
+    record: DiscussionMlsCommitRecord,
+    actingUserId: string
+  ): Promise<void> {
+    await this.query(
+      `INSERT INTO discussion_mls_commits (
+        id,
+        tenant_id,
+        mls_group_id,
+        epoch,
+        ciphertext,
+        sender_device_id,
+        created_at,
+        created_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        record.id,
+        this.tenantId,
+        record.mlsGroupId,
+        record.epoch,
+        record.ciphertext,
+        record.senderDeviceId,
+        record.createdAt,
+        actingUserId
+      ]
+    );
+
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_mls_commit', record.id);
+  }
+
+  /**
+   * Lists MLS commits for offline catch-up with epoch-based cursor pagination.
+   *
+   * @param options - Group id, optional cursor, and page size.
+   */
+  async listDiscussionMlsCommits(
+    options: ListDiscussionMlsCommitsOptions
+  ): Promise<ListDiscussionMlsCommitsResult> {
+    const limit = normalizeDiscussionMlsCommitListLimit(options.limit);
+    const cursorEpoch = parseDiscussionMlsCommitListCursor(options.cursor);
+
+    const result = await this.query<DiscussionMlsCommitSqlRow>(
+      `${DISCUSSION_MLS_COMMIT_SELECT}
+      WHERE tenant_id = $1
+        AND mls_group_id = $2
+        AND ($3::int IS NULL OR epoch > $3)
+      ORDER BY epoch ASC
+      LIMIT $4`,
+      [this.tenantId, options.mlsGroupId, cursorEpoch, limit + 1]
+    );
+
+    return buildDiscussionMlsCommitListResult(
+      result.rows.map(mapDiscussionMlsCommitSqlRow),
+      limit
+    );
+  }
+
+  /**
+   * Finds a relayed MLS commit by stable identifier.
+   *
+   * @param id - Commit record identifier.
+   */
+  async findDiscussionMlsCommitById(id: string): Promise<DiscussionMlsCommitRecord | null> {
+    const result = await this.query<DiscussionMlsCommitSqlRow>(
+      `${DISCUSSION_MLS_COMMIT_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapDiscussionMlsCommitSqlRow(row) : null;
+  }
+
+  /**
+   * Persists a relayed MLS welcome record built by the route layer.
+   *
+   * @param record - Validated welcome metadata and ciphertext.
+   * @param actingUserId - User relaying the welcome through Team Hub.
+   */
+  async createDiscussionMlsWelcome(
+    record: DiscussionMlsWelcomeRecord,
+    actingUserId: string
+  ): Promise<void> {
+    await this.query(
+      `INSERT INTO discussion_mls_welcomes (
+        id,
+        tenant_id,
+        mls_group_id,
+        recipient_device_id,
+        ciphertext,
+        ratchet_tree,
+        created_at,
+        created_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        record.id,
+        this.tenantId,
+        record.mlsGroupId,
+        record.recipientDeviceId,
+        record.ciphertext,
+        record.ratchetTree,
+        record.createdAt,
+        actingUserId
+      ]
+    );
+
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_mls_welcome', record.id);
+  }
+
+  /**
+   * Lists MLS welcomes for a discussion thread, optionally filtered by recipient device.
+   *
+   * @param options - Group id and optional recipient device filter.
+   */
+  async listDiscussionMlsWelcomes(
+    options: ListDiscussionMlsWelcomesOptions
+  ): Promise<ListDiscussionMlsWelcomesResult> {
+    const result = await this.query<DiscussionMlsWelcomeSqlRow>(
+      `${DISCUSSION_MLS_WELCOME_SELECT}
+      WHERE tenant_id = $1
+        AND mls_group_id = $2
+        AND ($3::text IS NULL OR recipient_device_id = $3)
+      ORDER BY created_at ASC`,
+      [this.tenantId, options.mlsGroupId, options.recipientDeviceId ?? null]
+    );
+
+    return {
+      welcomes: result.rows.map(mapDiscussionMlsWelcomeSqlRow)
+    };
+  }
+
+  /**
+   * Finds a relayed MLS welcome by stable identifier.
+   *
+   * @param id - Welcome record identifier.
+   */
+  async findDiscussionMlsWelcomeById(id: string): Promise<DiscussionMlsWelcomeRecord | null> {
+    const result = await this.query<DiscussionMlsWelcomeSqlRow>(
+      `${DISCUSSION_MLS_WELCOME_SELECT} WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, this.tenantId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapDiscussionMlsWelcomeSqlRow(row) : null;
   }
 
   /**
@@ -3218,6 +3795,406 @@ export class PostgresDatabase implements IDatabase {
     }
 
     await this.recordAuditEntry(actingUserId, 'delete', 'run_result', id);
+  }
+
+  /**
+   * Creates a discussion comment on a target entity, enforcing tree placement rules.
+   */
+  async createDiscussionComment(
+    input: CreateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const prepared = await prepareSqlDiscussionCommentInsert(input, actingUserId, (parentId) =>
+      this.findDiscussionCommentById(parentId)
+    );
+
+    const result = await this.query<DiscussionCommentSqlRow>(
+      `INSERT INTO discussion_comments (
+        id,
+        tenant_id,
+        target_entity_type,
+        target_entity_id,
+        parent_comment_id,
+        root_comment_id,
+        depth,
+        body,
+        body_format,
+        body_metadata,
+        author_user_id,
+        created_at,
+        updated_at,
+        tombstoned_at,
+        tombstoned_by_user_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, NULL)
+      RETURNING ${DISCUSSION_COMMENT_SELECT_COLUMNS}`,
+      [
+        prepared.id,
+        this.tenantId,
+        prepared.targetEntityType,
+        prepared.targetEntityId,
+        prepared.parentCommentId,
+        prepared.rootCommentId,
+        prepared.depth,
+        prepared.body,
+        prepared.bodyFormat,
+        serializeDiscussionBodyMetadata(prepared.bodyMetadata),
+        prepared.authorUserId,
+        prepared.createdAt,
+        prepared.updatedAt
+      ]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Discussion comment not found after insert');
+    }
+
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_comment', prepared.id);
+    return mapDiscussionCommentSqlRow(row);
+  }
+
+  /**
+   * Lists discussion comments for a target entity with cursor pagination.
+   */
+  async listDiscussionComments(
+    options: ListDiscussionCommentsOptions
+  ): Promise<ListDiscussionCommentsResult> {
+    const limit = normalizeDiscussionListLimit(options.limit);
+    const cursor = parseDiscussionListCursor(options.cursor);
+
+    const result = await this.query<DiscussionCommentSqlRow>(
+      `${DISCUSSION_COMMENT_SELECT}
+      WHERE tenant_id = $1
+        AND target_entity_type = $2
+        AND target_entity_id = $3
+        AND ($4::timestamptz IS NULL OR created_at > $4)
+      ORDER BY created_at ASC
+      LIMIT $5`,
+      [this.tenantId, options.targetEntityType, options.targetEntityId, cursor, limit + 1]
+    );
+
+    return buildDiscussionListResult(result.rows, limit);
+  }
+
+  /**
+   * Finds a discussion comment by id within the current tenant.
+   */
+  async findDiscussionCommentById(id: string): Promise<DiscussionCommentRecord | null> {
+    const result = await this.query<DiscussionCommentSqlRow>(
+      `${DISCUSSION_COMMENT_SELECT} WHERE id = $1 AND tenant_id = $2`,
+      [id, this.tenantId]
+    );
+    const row = result.rows[0];
+    return row ? mapDiscussionCommentSqlRow(row) : null;
+  }
+
+  /**
+   * Updates the body of an active discussion comment authored by the acting user.
+   */
+  async updateDiscussionComment(
+    id: string,
+    input: UpdateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const existing = await this.findDiscussionCommentById(id);
+    if (!existing) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    assertDiscussionCommentEditable(existing, actingUserId);
+    const normalized = normalizeDiscussionUpdateInput(input);
+    const now = new Date();
+
+    const result = await this.query<DiscussionCommentSqlRow>(
+      `UPDATE discussion_comments
+      SET body = $1,
+        body_format = $2,
+        body_metadata = $3,
+        updated_at = $4
+      WHERE id = $5 AND tenant_id = $6
+      RETURNING ${DISCUSSION_COMMENT_SELECT_COLUMNS}`,
+      [
+        normalized.body,
+        normalized.bodyFormat,
+        serializeDiscussionBodyMetadata(normalized.bodyMetadata),
+        now,
+        id,
+        this.tenantId
+      ]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    await this.recordAuditEntry(actingUserId, 'update', 'discussion_comment', id);
+    return mapDiscussionCommentSqlRow(row);
+  }
+
+  /**
+   * Tombstones a discussion comment while preserving child replies.
+   */
+  async tombstoneDiscussionComment(
+    id: string,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const existing = await this.findDiscussionCommentById(id);
+    if (!existing) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    if (existing.tombstonedAt) {
+      return existing;
+    }
+
+    const now = new Date();
+
+    const result = await this.query<DiscussionCommentSqlRow>(
+      `UPDATE discussion_comments
+      SET body = '', updated_at = $1, tombstoned_at = $2, tombstoned_by_user_id = $3
+      WHERE id = $4 AND tenant_id = $5
+      RETURNING ${DISCUSSION_COMMENT_SELECT_COLUMNS}`,
+      [now, now, actingUserId, id, this.tenantId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    await this.recordAuditEntry(actingUserId, 'delete', 'discussion_comment', id);
+    return mapDiscussionCommentSqlRow(row);
+  }
+
+  /**
+   * Creates one or more collaboration notices for eligible recipients.
+   */
+  async createNotices(inputs: CreateNoticeInput[]): Promise<NoticeRecord[]> {
+    if (inputs.length === 0) {
+      return [];
+    }
+
+    const now = new Date();
+    const records: NoticeRecord[] = [];
+
+    for (const input of inputs) {
+      const id = randomUUID();
+      const result = await this.query<NoticeSqlRow>(
+        `INSERT INTO notices (
+          id,
+          tenant_id,
+          recipient_user_id,
+          event_type,
+          entity_type,
+          entity_id,
+          request_id,
+          collection_id,
+          folder_id,
+          run_result_id,
+          discussion_thread_id,
+          discussion_comment_id,
+          actor_user_id,
+          created_at,
+          read_at,
+          display_metadata
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NULL, $15)
+        RETURNING ${NOTICE_SELECT_COLUMNS}`,
+        [
+          id,
+          this.tenantId,
+          input.recipientUserId,
+          input.eventType,
+          input.entityType,
+          input.entityId,
+          input.requestId ?? null,
+          input.collectionId ?? null,
+          input.folderId ?? null,
+          input.runResultId ?? null,
+          input.discussionThreadId ?? null,
+          input.discussionCommentId ?? null,
+          input.actorUserId,
+          now,
+          serializeNoticeDisplayMetadata(input.displayMetadata)
+        ]
+      );
+
+      const row = result.rows[0];
+      if (row) {
+        records.push(mapNoticeSqlRow(row));
+      }
+    }
+
+    return records;
+  }
+
+  /**
+   * Lists notices for a recipient with cursor pagination (newest first).
+   */
+  async listNotices(options: ListNoticesOptions): Promise<ListNoticesResult> {
+    const limit = normalizeNoticeListLimit(options.limit);
+    const cursor = parseNoticeListCursor(options.cursor);
+
+    const result = await this.query<NoticeSqlRow>(
+      `${NOTICE_SELECT}
+      WHERE tenant_id = $1
+        AND recipient_user_id = $2
+        AND ($3::timestamptz IS NULL OR created_at < $3)
+      ORDER BY created_at DESC
+      LIMIT $4`,
+      [this.tenantId, options.recipientUserId, cursor, limit + 1]
+    );
+
+    return buildNoticeListResult(result.rows, limit);
+  }
+
+  /**
+   * Counts unread notices for a recipient without loading the full feed.
+   */
+  async countUnreadNotices(recipientUserId: string): Promise<number> {
+    const result = await this.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count
+       FROM notices
+       WHERE tenant_id = $1 AND recipient_user_id = $2 AND read_at IS NULL`,
+      [this.tenantId, recipientUserId]
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  /**
+   * Marks one notice read for the authenticated recipient.
+   */
+  async markNoticeRead(noticeId: string, recipientUserId: string): Promise<NoticeRecord | null> {
+    const now = new Date();
+    const result = await this.query<NoticeSqlRow>(
+      `UPDATE notices
+       SET read_at = $1
+       WHERE id = $2 AND tenant_id = $3 AND recipient_user_id = $4
+       RETURNING ${NOTICE_SELECT_COLUMNS}`,
+      [now, noticeId, this.tenantId, recipientUserId]
+    );
+
+    const row = result.rows[0];
+    return row ? mapNoticeSqlRow(row) : null;
+  }
+
+  /**
+   * Marks all unread notices read for a recipient.
+   */
+  async markAllNoticesRead(recipientUserId: string): Promise<number> {
+    const now = new Date();
+    const result = await this.query<{ count: string }>(
+      `WITH updated AS (
+         UPDATE notices
+         SET read_at = $1
+         WHERE tenant_id = $2 AND recipient_user_id = $3 AND read_at IS NULL
+         RETURNING id
+       )
+       SELECT COUNT(*)::text AS count FROM updated`,
+      [now, this.tenantId, recipientUserId]
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  /**
+   * Returns notification settings for a user, defaulting to `all` when unset.
+   */
+  async getUserNotificationSettings(userId: string): Promise<UserNotificationSettingsRecord> {
+    const result = await this.query<{ level: NotificationLevel; updated_at: Date }>(
+      `SELECT level, updated_at
+       FROM user_notification_settings
+       WHERE tenant_id = $1 AND user_id = $2`,
+      [this.tenantId, userId]
+    );
+
+    const row = result.rows[0];
+    if (row) {
+      return {
+        userId,
+        level: row.level,
+        updatedAt: row.updated_at
+      };
+    }
+
+    return {
+      userId,
+      level: 'all',
+      updatedAt: new Date(0)
+    };
+  }
+
+  /**
+   * Updates notification settings for a user account.
+   */
+  async updateUserNotificationSettings(
+    userId: string,
+    level: NotificationLevel
+  ): Promise<UserNotificationSettingsRecord> {
+    const now = new Date();
+    await this.query(
+      `INSERT INTO user_notification_settings (user_id, tenant_id, level, updated_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (tenant_id, user_id)
+       DO UPDATE SET level = EXCLUDED.level, updated_at = EXCLUDED.updated_at`,
+      [userId, this.tenantId, level, now]
+    );
+
+    return { userId, level, updatedAt: now };
+  }
+
+  /**
+   * Subscribes a user to a discussion thread identified by its root comment id.
+   */
+  async subscribeDiscussionThread(
+    userId: string,
+    rootCommentId: string
+  ): Promise<DiscussionThreadSubscriptionRecord> {
+    const now = new Date();
+    await this.query(
+      `INSERT INTO discussion_thread_subscriptions (user_id, tenant_id, root_comment_id, created_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (tenant_id, user_id, root_comment_id) DO NOTHING`,
+      [userId, this.tenantId, rootCommentId, now]
+    );
+
+    return { userId, rootCommentId, createdAt: now };
+  }
+
+  /**
+   * Removes a user's subscription to a discussion thread.
+   */
+  async unsubscribeDiscussionThread(userId: string, rootCommentId: string): Promise<void> {
+    await this.query(
+      `DELETE FROM discussion_thread_subscriptions
+       WHERE tenant_id = $1 AND user_id = $2 AND root_comment_id = $3`,
+      [this.tenantId, userId, rootCommentId]
+    );
+  }
+
+  /**
+   * Returns true when the user is subscribed to a discussion thread.
+   */
+  async isSubscribedToDiscussionThread(userId: string, rootCommentId: string): Promise<boolean> {
+    const result = await this.query<{ exists: boolean }>(
+      `SELECT EXISTS(
+         SELECT 1 FROM discussion_thread_subscriptions
+         WHERE tenant_id = $1 AND user_id = $2 AND root_comment_id = $3
+       ) AS exists`,
+      [this.tenantId, userId, rootCommentId]
+    );
+    return result.rows[0]?.exists === true;
+  }
+
+  /**
+   * Lists user ids subscribed to a discussion thread.
+   */
+  async listDiscussionThreadSubscribers(rootCommentId: string): Promise<string[]> {
+    const result = await this.query<{ user_id: string }>(
+      `SELECT user_id FROM discussion_thread_subscriptions
+       WHERE tenant_id = $1 AND root_comment_id = $2`,
+      [this.tenantId, rootCommentId]
+    );
+    return result.rows.map((row) => row.user_id);
   }
 
   /**

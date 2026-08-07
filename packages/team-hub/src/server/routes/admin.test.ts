@@ -264,6 +264,8 @@ describe('GET /admin/users', () => {
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
+          avatarInitials: 'TU',
+          avatarColor: 'sky-600',
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
           warnings: []
@@ -280,6 +282,8 @@ describe('GET /admin/users', () => {
           llmAccess: false,
           llmModels: [],
           llmMonthlyTokenLimit: null,
+          avatarInitials: 'TU',
+          avatarColor: 'sky-600',
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
           warnings: []
@@ -430,6 +434,75 @@ describe('PUT /admin/users/:id', () => {
     expect(db.updateUser).toHaveBeenCalledWith(
       'user-2',
       expect.objectContaining({ name: 'Alice Updated' }),
+      'admin-1'
+    );
+
+    await app.close();
+  });
+
+  it('updates avatar fields for a managed user', async () => {
+    const db = createStubDatabase();
+    const adminUser = {
+      ...sampleUserRecord,
+      id: 'admin-1',
+      role: 'admin' as const,
+      collectionAccess: [],
+      environmentAccess: [],
+      snippetAccess: []
+    };
+    const targetUser = {
+      ...sampleUserRecord,
+      id: 'user-2',
+      name: 'Alice'
+    };
+    const updatedUser = {
+      ...targetUser,
+      avatarInitials: 'AX',
+      avatarColor: 'teal-600'
+    };
+
+    db.findUserById.mockResolvedValue(targetUser);
+    db.updateUser.mockResolvedValue(updatedUser);
+    mockAccessCatalogs(db);
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: adminUser
+    });
+    db.findUserById.mockImplementation(async (id: string) => {
+      if (id === sampleApiTokenRecord.userId || id === adminUser.id) {
+        return adminUser;
+      }
+
+      if (id === targetUser.id) {
+        return targetUser;
+      }
+
+      return null;
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/admin/users/user-2',
+      headers: authHeader(),
+      payload: {
+        avatarInitials: 'AX',
+        avatarColor: 'teal-600'
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      avatarInitials: 'AX',
+      avatarColor: 'teal-600'
+    });
+    expect(db.updateUser).toHaveBeenCalledWith(
+      'user-2',
+      expect.objectContaining({
+        avatarInitials: 'AX',
+        avatarColor: 'teal-600'
+      }),
       'admin-1'
     );
 

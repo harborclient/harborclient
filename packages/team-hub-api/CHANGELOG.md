@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Implement Team Hub device and discussion management features. (`f03c2465`)
+
 ## 0.7.7 - 2026-08-05
 
 - Refactor TeamHubClient tests to simplify header definitions. (`5d86b07c`)

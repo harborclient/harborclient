@@ -21,6 +21,8 @@ import {
   listRequestsResponseSchema,
   hubChatStepResponseSchema,
   savedRequestRecordSchema,
+  hubAvatarSchema,
+  updateMyAvatarResponseSchema,
   sessionResponseSchema,
   snippetRecordSchema,
   listAdminUsersResponseSchema,
@@ -34,13 +36,27 @@ import {
   createAdminUserResponseSchema,
   createdApiTokenResponseSchema,
   listAdminTokensResponseSchema,
+  enrolledDeviceResponseSchema,
+  listDeviceKeysResponseSchema,
   hubUserRecordSchema,
   livePageRecordSchema,
   liveServerRecordSchema,
   reloadConfigResponseSchema,
   createAdminInvitationResponseSchema,
   listAdminInvitationsResponseSchema,
-  previewInvitationResponseSchema
+  previewInvitationResponseSchema,
+  listDiscussionsResponseSchema,
+  discussionCommentSchema,
+  discussionMlsCommitSchema,
+  discussionMlsGroupStateSchema,
+  discussionMlsWelcomeSchema,
+  listDiscussionMlsCommitsResponseSchema,
+  listDiscussionMlsWelcomesResponseSchema,
+  listNoticesResponseSchema,
+  noticesUnreadCountResponseSchema,
+  teamHubNoticeSchema,
+  notificationSettingsSchema,
+  discussionThreadSubscriptionSchema
 } from './schemas.js';
 import type {
   AdminResourceOption,
@@ -66,7 +82,10 @@ import type {
   EnvironmentRecord,
   FolderRecord,
   HealthResponse,
+  HubAvatarMetadata,
   HubApiTokenRecord,
+  HubDeviceKeyRecord,
+  EnrollHubDeviceInput,
   HubInvitationPreview,
   HubInvitationRecord,
   HubUserRecord,
@@ -93,12 +112,34 @@ import type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateHubAvatarInput,
+  UpdateMyAvatarInput,
+  UpdateMyAvatarResponse,
   UpdateLivePageInput,
   UpdateLiveServerInput,
   UpdateRequestInput,
   UpdateSnippetInput,
   ReloadConfigResponse
 } from './types.js';
+import type {
+  CreateDiscussionCommentInput,
+  DiscussionComment,
+  DiscussionEntityType,
+  ListDiscussionsQuery,
+  ListDiscussionsResponse,
+  UpdateDiscussionCommentInput
+} from './discussionTypes.js';
+import type {
+  DiscussionThreadSubscription,
+  ListNoticesQuery,
+  ListNoticesResponse,
+  NotificationSettings,
+  NoticesUnreadCountResponse,
+  TeamHubNotice,
+  UpdateNotificationSettingsInput
+} from './noticeTypes.js';
+import { readNoticeStreamBody } from './readNoticeStream.js';
+import type { NoticeStreamHandlers } from './noticeStreamTypes.js';
 import type { ChatStepMessage, ChatStepResult, ListHubLlmModelsResponse } from './appTypes.js';
 
 /**
@@ -335,6 +376,34 @@ export class TeamHubClient implements ITeamHubClient {
   }
 
   /**
+   * Updates avatar initials and/or color for the authenticated user account.
+   *
+   * @param input - Replacement initials and/or color key.
+   */
+  async updateMyAvatar(input: UpdateMyAvatarInput): Promise<UpdateMyAvatarResponse> {
+    const result = await this.request('PUT', '/auth/profile/avatar', {
+      body: input,
+      schema: updateMyAvatarResponseSchema
+    });
+    return result as UpdateMyAvatarResponse;
+  }
+
+  /**
+   * Updates hub avatar initials and/or color for the active tenant namespace.
+   *
+   * Requires an admin-role bearer token.
+   *
+   * @param input - Replacement initials and/or color key.
+   */
+  async updateAdminHubAvatar(input: UpdateHubAvatarInput): Promise<HubAvatarMetadata> {
+    const result = await this.request('PUT', '/admin/hub/avatar', {
+      body: input,
+      schema: hubAvatarSchema
+    });
+    return result as HubAvatarMetadata;
+  }
+
+  /**
    * Lists all Team Hub user accounts visible to an admin-role token.
    */
   async listAdminUsers(): Promise<HubUserRecord[]> {
@@ -488,6 +557,69 @@ export class TeamHubClient implements ITeamHubClient {
    */
   async deleteAdminToken(id: string): Promise<void> {
     await this.request('DELETE', `/admin/tokens/${id}`);
+  }
+
+  /**
+   * Enrolls the authenticated user's current device on an E2EE-enabled hub.
+   *
+   * @param input - Public key material and device metadata to upload.
+   */
+  async enrollDevice(input: EnrollHubDeviceInput): Promise<HubDeviceKeyRecord> {
+    const result = await this.request('POST', '/devices', {
+      body: input,
+      schema: enrolledDeviceResponseSchema
+    });
+    return (result as { device: HubDeviceKeyRecord }).device;
+  }
+
+  /**
+   * Lists device key enrollments for the authenticated user.
+   */
+  async listMyDevices(): Promise<HubDeviceKeyRecord[]> {
+    const result = await this.request('GET', '/devices', {
+      schema: listDeviceKeysResponseSchema
+    });
+    return (result as { devices: HubDeviceKeyRecord[] }).devices;
+  }
+
+  /**
+   * Revokes one of the authenticated user's enrolled devices.
+   *
+   * @param id - Device key record identifier.
+   */
+  async revokeMyDevice(id: string): Promise<void> {
+    await this.request('DELETE', `/devices/${id}`);
+  }
+
+  /**
+   * Lists all device key enrollments visible to an admin-role token.
+   */
+  async listAdminDeviceKeys(): Promise<HubDeviceKeyRecord[]> {
+    const result = await this.request('GET', '/admin/device-keys', {
+      schema: listDeviceKeysResponseSchema
+    });
+    return (result as { devices: HubDeviceKeyRecord[] }).devices;
+  }
+
+  /**
+   * Lists device key enrollments owned by a specific user account.
+   *
+   * @param userId - Owning user account identifier.
+   */
+  async listAdminUserDevices(userId: string): Promise<HubDeviceKeyRecord[]> {
+    const result = await this.request('GET', `/admin/users/${userId}/devices`, {
+      schema: listDeviceKeysResponseSchema
+    });
+    return (result as { devices: HubDeviceKeyRecord[] }).devices;
+  }
+
+  /**
+   * Revokes a device key enrollment via the management API.
+   *
+   * @param id - Device key record identifier.
+   */
+  async revokeAdminDeviceKey(id: string): Promise<void> {
+    await this.request('DELETE', `/admin/device-keys/${id}`);
   }
 
   /**
@@ -723,6 +855,18 @@ export class TeamHubClient implements ITeamHubClient {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Returns whether the Team Hub server exposes discussion routes.
+   */
+  async probeCommunicationServiceEnabled(): Promise<boolean> {
+    try {
+      const session = await this.getSession();
+      return session.capabilities.communication === true;
+    } catch {
+      return false;
     }
   }
 
@@ -1335,6 +1479,531 @@ export class TeamHubClient implements ITeamHubClient {
   }
 
   /**
+   * Builds the list/create path for an entity-scoped discussion route.
+   *
+   * @param entityType - Target entity kind.
+   * @param entityId - Target entity UUID.
+   */
+  private discussionEntityPath(entityType: DiscussionEntityType, entityId: string): string {
+    switch (entityType) {
+      case 'request':
+        return `/requests/${entityId}/discussions`;
+      case 'collection':
+        return `/collections/${entityId}/discussions`;
+      case 'folder':
+        return `/folders/${entityId}/discussions`;
+      case 'runResult':
+        return `/run-results/${entityId}/discussions`;
+    }
+  }
+
+  /**
+   * Serializes optional pagination query parameters for discussion list routes.
+   *
+   * @param query - Optional cursor and limit.
+   */
+  private discussionQueryString(query?: ListDiscussionsQuery): string {
+    if (query == null) {
+      return '';
+    }
+
+    const params = new URLSearchParams();
+    if (query.cursor) {
+      params.set('cursor', query.cursor);
+    }
+    if (query.limit != null) {
+      params.set('limit', String(query.limit));
+    }
+
+    const serialized = params.toString();
+    return serialized.length > 0 ? `?${serialized}` : '';
+  }
+
+  /**
+   * Lists discussion comments for a target entity.
+   *
+   * @param entityType - Target entity kind.
+   * @param entityId - Target entity UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  private async listEntityDiscussions(
+    entityType: DiscussionEntityType,
+    entityId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse> {
+    const path = `${this.discussionEntityPath(entityType, entityId)}${this.discussionQueryString(query)}`;
+    const result = await this.request('GET', path, {
+      schema: listDiscussionsResponseSchema
+    });
+    return result as ListDiscussionsResponse;
+  }
+
+  /**
+   * Creates a discussion comment on a target entity.
+   *
+   * @param entityType - Target entity kind.
+   * @param entityId - Target entity UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  private async createEntityDiscussion(
+    entityType: DiscussionEntityType,
+    entityId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    const result = await this.request('POST', this.discussionEntityPath(entityType, entityId), {
+      body: input,
+      schema: discussionCommentSchema
+    });
+    return result as DiscussionComment;
+  }
+
+  /**
+   * Lists discussion comments for a saved request.
+   *
+   * @param requestId - Saved request UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  async listRequestDiscussions(
+    requestId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse> {
+    return this.listEntityDiscussions('request', requestId, query);
+  }
+
+  /**
+   * Creates a discussion comment on a saved request.
+   *
+   * @param requestId - Saved request UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  async createRequestDiscussion(
+    requestId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    return this.createEntityDiscussion('request', requestId, input);
+  }
+
+  /**
+   * Lists discussion comments for a collection.
+   *
+   * @param collectionId - Collection UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  async listCollectionDiscussions(
+    collectionId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse> {
+    return this.listEntityDiscussions('collection', collectionId, query);
+  }
+
+  /**
+   * Creates a discussion comment on a collection.
+   *
+   * @param collectionId - Collection UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  async createCollectionDiscussion(
+    collectionId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    return this.createEntityDiscussion('collection', collectionId, input);
+  }
+
+  /**
+   * Lists discussion comments for a folder.
+   *
+   * @param folderId - Folder UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  async listFolderDiscussions(
+    folderId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse> {
+    return this.listEntityDiscussions('folder', folderId, query);
+  }
+
+  /**
+   * Creates a discussion comment on a folder.
+   *
+   * @param folderId - Folder UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  async createFolderDiscussion(
+    folderId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    return this.createEntityDiscussion('folder', folderId, input);
+  }
+
+  /**
+   * Lists discussion comments for a saved run result.
+   *
+   * @param runResultId - Run result UUID.
+   * @param query - Optional pagination cursor and limit.
+   */
+  async listRunResultDiscussions(
+    runResultId: string,
+    query?: ListDiscussionsQuery
+  ): Promise<ListDiscussionsResponse> {
+    return this.listEntityDiscussions('runResult', runResultId, query);
+  }
+
+  /**
+   * Creates a discussion comment on a saved run result.
+   *
+   * @param runResultId - Run result UUID.
+   * @param input - Comment body and optional parent id for replies.
+   */
+  async createRunResultDiscussion(
+    runResultId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    return this.createEntityDiscussion('runResult', runResultId, input);
+  }
+
+  /**
+   * Creates a reply to an existing discussion comment.
+   *
+   * @param commentId - Parent comment UUID.
+   * @param input - Reply body text.
+   */
+  async createDiscussionReply(
+    commentId: string,
+    input: CreateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    const result = await this.request('POST', `/discussion-comments/${commentId}/replies`, {
+      body: input,
+      schema: discussionCommentSchema
+    });
+    return result as DiscussionComment;
+  }
+
+  /**
+   * Updates an existing discussion comment body.
+   *
+   * @param commentId - Comment UUID.
+   * @param input - Replacement body text.
+   */
+  async updateDiscussionComment(
+    commentId: string,
+    input: UpdateDiscussionCommentInput
+  ): Promise<DiscussionComment> {
+    const result = await this.request('PUT', `/discussion-comments/${commentId}`, {
+      body: input,
+      schema: discussionCommentSchema
+    });
+    return result as DiscussionComment;
+  }
+
+  /**
+   * Tombstones a discussion comment by id.
+   *
+   * @param commentId - Comment UUID.
+   */
+  async deleteDiscussionComment(commentId: string): Promise<DiscussionComment> {
+    const result = await this.request('DELETE', `/discussion-comments/${commentId}`, {
+      schema: discussionCommentSchema
+    });
+    return result as DiscussionComment;
+  }
+
+  /**
+   * Posts an MLS commit relay record for offline catch-up.
+   *
+   * @param input - Commit payload to persist on the Team Hub server.
+   */
+  async createDiscussionMlsCommit(
+    input: import('./discussionMlsTypes.js').CreateDiscussionMlsCommitInput
+  ): Promise<import('./discussionMlsTypes.js').DiscussionMlsCommit> {
+    const result = await this.request('POST', '/discussion-mls/commits', {
+      body: input,
+      schema: discussionMlsCommitSchema
+    });
+    return result as import('./discussionMlsTypes.js').DiscussionMlsCommit;
+  }
+
+  /**
+   * Lists MLS commits for a discussion thread in ascending epoch order.
+   *
+   * @param query - MLS group id and optional pagination options.
+   */
+  async listDiscussionMlsCommits(
+    query: import('./discussionMlsTypes.js').ListDiscussionMlsCommitsQuery
+  ): Promise<import('./discussionMlsTypes.js').ListDiscussionMlsCommitsResponse> {
+    const params = new URLSearchParams({ mlsGroupId: query.mlsGroupId });
+    if (query.cursor) {
+      params.set('cursor', query.cursor);
+    }
+    if (query.limit != null) {
+      params.set('limit', String(query.limit));
+    }
+
+    const result = await this.request('GET', `/discussion-mls/commits?${params.toString()}`, {
+      schema: listDiscussionMlsCommitsResponseSchema
+    });
+    return result as import('./discussionMlsTypes.js').ListDiscussionMlsCommitsResponse;
+  }
+
+  /**
+   * Posts an MLS welcome relay record for a newly added device.
+   *
+   * @param input - Welcome payload to persist on the Team Hub server.
+   */
+  async createDiscussionMlsWelcome(
+    input: import('./discussionMlsTypes.js').CreateDiscussionMlsWelcomeInput
+  ): Promise<import('./discussionMlsTypes.js').DiscussionMlsWelcome> {
+    const result = await this.request('POST', '/discussion-mls/welcomes', {
+      body: input,
+      schema: discussionMlsWelcomeSchema
+    });
+    return result as import('./discussionMlsTypes.js').DiscussionMlsWelcome;
+  }
+
+  /**
+   * Lists MLS welcomes for a discussion thread.
+   *
+   * @param query - MLS group id and optional recipient device filter.
+   */
+  async listDiscussionMlsWelcomes(
+    query: import('./discussionMlsTypes.js').ListDiscussionMlsWelcomesQuery
+  ): Promise<import('./discussionMlsTypes.js').ListDiscussionMlsWelcomesResponse> {
+    const params = new URLSearchParams({ mlsGroupId: query.mlsGroupId });
+    if (query.recipientDeviceId) {
+      params.set('recipientDeviceId', query.recipientDeviceId);
+    }
+
+    const result = await this.request('GET', `/discussion-mls/welcomes?${params.toString()}`, {
+      schema: listDiscussionMlsWelcomesResponseSchema
+    });
+    return result as import('./discussionMlsTypes.js').ListDiscussionMlsWelcomesResponse;
+  }
+
+  /**
+   * Returns the latest MLS epoch observed for a discussion thread.
+   *
+   * @param mlsGroupId - Canonical MLS group id for the discussion thread.
+   */
+  async getDiscussionMlsGroupState(
+    mlsGroupId: string
+  ): Promise<import('./discussionMlsTypes.js').DiscussionMlsGroupState> {
+    const result = await this.request(
+      'GET',
+      `/discussion-mls/group-state/${encodeURIComponent(mlsGroupId)}`,
+      {
+        schema: discussionMlsGroupStateSchema
+      }
+    );
+    return result as import('./discussionMlsTypes.js').DiscussionMlsGroupState;
+  }
+
+  /**
+   * Serializes optional pagination query parameters for notice list routes.
+   *
+   * @param query - Optional cursor and limit.
+   */
+  private noticeQueryString(query?: ListNoticesQuery): string {
+    if (query == null) {
+      return '';
+    }
+
+    const params = new URLSearchParams();
+    if (query.cursor) {
+      params.set('cursor', query.cursor);
+    }
+    if (query.limit != null) {
+      params.set('limit', String(query.limit));
+    }
+
+    const serialized = params.toString();
+    return serialized.length > 0 ? `?${serialized}` : '';
+  }
+
+  /**
+   * Lists collaboration notices for the authenticated user.
+   *
+   * @param query - Optional pagination cursor and limit.
+   */
+  async listNotices(query?: ListNoticesQuery): Promise<ListNoticesResponse> {
+    const path = `/notices${this.noticeQueryString(query)}`;
+    const result = await this.request('GET', path, {
+      schema: listNoticesResponseSchema
+    });
+    return result as ListNoticesResponse;
+  }
+
+  /**
+   * Returns the unread notice count for the authenticated user.
+   */
+  async getNoticesUnreadCount(): Promise<NoticesUnreadCountResponse> {
+    const result = await this.request('GET', '/notices/unread-count', {
+      schema: noticesUnreadCountResponseSchema
+    });
+    return result as NoticesUnreadCountResponse;
+  }
+
+  /**
+   * Marks one notice as read for the authenticated user.
+   *
+   * @param noticeId - Notice record identifier.
+   */
+  async markNoticeRead(noticeId: string): Promise<TeamHubNotice> {
+    const result = await this.request('POST', `/notices/${noticeId}/read`, {
+      schema: teamHubNoticeSchema
+    });
+    return result as TeamHubNotice;
+  }
+
+  /**
+   * Marks every notice as read for the authenticated user.
+   */
+  async markAllNoticesRead(): Promise<void> {
+    await this.request('POST', '/notices/read-all');
+  }
+
+  /**
+   * Opens the authenticated notice SSE stream until aborted or the connection closes.
+   *
+   * @param handlers - Stream lifecycle callbacks.
+   * @param signal - Optional abort signal used to stop reading.
+   */
+  async subscribeNoticeStream(handlers: NoticeStreamHandlers, signal?: AbortSignal): Promise<void> {
+    if (!this.token) {
+      throw new TeamHubClientError('Bearer token is required for authenticated requests', {
+        status: 0,
+        method: 'GET',
+        path: '/notices/stream'
+      });
+    }
+
+    const headers: Record<string, string> = {
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${this.token}`
+    };
+
+    if (this.tenantId) {
+      headers['X-Harbor-Tenant'] = this.tenantId;
+    }
+
+    const controller = new AbortController();
+    const unlinkAbort = linkAbortSignal(signal, controller);
+
+    try {
+      const response = await fetch(this.buildUrl('/notices/stream'), {
+        method: 'GET',
+        headers,
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new TeamHubClientError(await this.parseErrorMessage(response), {
+          status: response.status,
+          method: 'GET',
+          path: '/notices/stream'
+        });
+      }
+
+      const contentType = response.headers.get('content-type') ?? '';
+      if (!contentType.includes('text/event-stream')) {
+        throw new TeamHubClientError('Response Content-Type is not text/event-stream', {
+          status: response.status,
+          method: 'GET',
+          path: '/notices/stream'
+        });
+      }
+
+      if (!response.body) {
+        throw new TeamHubClientError('Notice stream response has no body', {
+          status: response.status,
+          method: 'GET',
+          path: '/notices/stream'
+        });
+      }
+
+      handlers.onOpen?.();
+      await readNoticeStreamBody(response.body, { onEvent: handlers.onEvent }, controller.signal);
+      handlers.onClose?.();
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      handlers.onClose?.(
+        error instanceof Error
+          ? error
+          : new TeamHubClientError(String(error), {
+              status: 0,
+              method: 'GET',
+              path: '/notices/stream'
+            })
+      );
+      throw error;
+    } finally {
+      unlinkAbort();
+    }
+  }
+
+  /**
+   * Returns notification settings for the authenticated user.
+   */
+  async getNotificationSettings(): Promise<NotificationSettings> {
+    const result = await this.request('GET', '/me/notification-settings', {
+      schema: notificationSettingsSchema
+    });
+    return result as NotificationSettings;
+  }
+
+  /**
+   * Updates notification settings for the authenticated user.
+   *
+   * @param input - Replacement notification delivery preference.
+   */
+  async updateNotificationSettings(
+    input: UpdateNotificationSettingsInput
+  ): Promise<NotificationSettings> {
+    const result = await this.request('PUT', '/me/notification-settings', {
+      body: input,
+      schema: notificationSettingsSchema
+    });
+    return result as NotificationSettings;
+  }
+
+  /**
+   * Returns whether the authenticated user is subscribed to a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  async getDiscussionThreadSubscription(threadId: string): Promise<DiscussionThreadSubscription> {
+    const result = await this.request('GET', `/discussion-threads/${threadId}/subscription`, {
+      schema: discussionThreadSubscriptionSchema
+    });
+    return result as DiscussionThreadSubscription;
+  }
+
+  /**
+   * Subscribes the authenticated user to a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  async subscribeDiscussionThread(threadId: string): Promise<DiscussionThreadSubscription> {
+    const result = await this.request('POST', `/discussion-threads/${threadId}/subscribe`, {
+      schema: discussionThreadSubscriptionSchema
+    });
+    return result as DiscussionThreadSubscription;
+  }
+
+  /**
+   * Unsubscribes the authenticated user from a discussion thread.
+   *
+   * @param threadId - Discussion thread identifier (typically root comment id).
+   */
+  async unsubscribeDiscussionThread(threadId: string): Promise<DiscussionThreadSubscription> {
+    const result = await this.request('POST', `/discussion-threads/${threadId}/unsubscribe`, {
+      schema: discussionThreadSubscriptionSchema
+    });
+    return result as DiscussionThreadSubscription;
+  }
+
+  /**
    * Runs one hub-proxied LLM completion step.
    *
    * @param input - Model, messages, tools, and system prompt for the step.
@@ -1346,4 +2015,34 @@ export class TeamHubClient implements ITeamHubClient {
     });
     return result as ChatStepResult;
   }
+}
+
+/**
+ * Links an optional parent abort signal to a child controller.
+ *
+ * @param parent - External abort signal, when provided.
+ * @param controller - Child controller aborted with the parent.
+ * @returns Cleanup function that removes the listener.
+ */
+function linkAbortSignal(parent: AbortSignal | undefined, controller: AbortController): () => void {
+  if (!parent) {
+    return () => {};
+  }
+
+  if (parent.aborted) {
+    controller.abort();
+    return () => {};
+  }
+
+  /**
+   * Aborts the child controller when the parent signal fires.
+   */
+  const onAbort = (): void => {
+    controller.abort();
+  };
+
+  parent.addEventListener('abort', onAbort);
+  return () => {
+    parent.removeEventListener('abort', onAbort);
+  };
 }

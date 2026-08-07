@@ -403,6 +403,7 @@ export function registerSettingsHandlers(db: IStorage): void {
           openai: false,
           pluginCatalog: false,
           snippets: false,
+          communication: false,
           admin: false
         },
         managementApi: false,

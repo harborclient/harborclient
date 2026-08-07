@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Firestore, type DocumentReference, type Query } from '@google-cloud/firestore';
+import { buildUserAvatarFieldsForCreate } from '#/avatar/userAvatarService.js';
+import { defaultAvatarPresentation } from '#/avatar/avatarPresentation.js';
 import { resolveActingUserName } from '#/db/attribution.js';
 import { BOOTSTRAP_USER_NAME } from '#/db/bootstrapUsers.js';
 import { InvitationUnavailableError } from '#/db/invitationErrors.js';
@@ -7,6 +9,10 @@ import {
   API_TOKENS_COLLECTION,
   AUDIT_LOG_COLLECTION,
   COLLECTIONS_COLLECTION,
+  DEVICE_KEYS_COLLECTION,
+  DISCUSSION_MLS_COMMITS_COLLECTION,
+  DISCUSSION_MLS_GROUP_STATE_COLLECTION,
+  DISCUSSION_MLS_WELCOMES_COLLECTION,
   DOCUMENTS_COLLECTION,
   ENVIRONMENTS_COLLECTION,
   FOLDERS_COLLECTION,
@@ -17,6 +23,10 @@ import {
   LIVE_SERVERS_COLLECTION,
   REQUESTS_COLLECTION,
   RUN_RESULTS_COLLECTION,
+  DISCUSSION_COMMENTS_COLLECTION,
+  NOTICES_COLLECTION,
+  USER_NOTIFICATION_SETTINGS_COLLECTION,
+  DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION,
   SNIPPETS_COLLECTION,
   TENANTS_COLLECTION,
   USERS_COLLECTION,
@@ -27,6 +37,10 @@ import { firestoreConfigSchema } from '#/db/firestore/schemas.js';
 import { DEFAULT_TENANT_ID } from '#/config/multitenancyConfig.js';
 import type {
   FirestoreApiTokenDocument,
+  FirestoreDeviceKeyDocument,
+  FirestoreDiscussionMlsCommitDocument,
+  FirestoreDiscussionMlsGroupStateDocument,
+  FirestoreDiscussionMlsWelcomeDocument,
   FirestoreAuditLogDocument,
   FirestoreCollectionDocument,
   FirestoreDatabaseConfig,
@@ -39,12 +53,20 @@ import type {
   FirestoreRequestDocument,
   FirestoreDocumentDocument,
   FirestoreRunResultDocument,
+  FirestoreDiscussionCommentDocument,
+  FirestoreNoticeDocument,
+  FirestoreUserNotificationSettingsDocument,
+  FirestoreDiscussionThreadSubscriptionDocument,
   FirestoreSnippetDocument,
   FirestoreTenantDocument,
   FirestoreUserDocument
 } from '#/db/firestore/types.js';
 import {
   mapFirestoreApiToken,
+  mapFirestoreDeviceKey,
+  mapFirestoreDiscussionMlsCommit,
+  mapFirestoreDiscussionMlsGroupState,
+  mapFirestoreDiscussionMlsWelcome,
   mapFirestoreAuditLog,
   mapFirestoreCollection,
   mapFirestoreEnvironment,
@@ -57,17 +79,43 @@ import {
   mapFirestoreRequest,
   mapFirestoreDocument,
   mapFirestoreRunResult,
+  mapFirestoreDiscussionComment,
+  mapFirestoreNotice,
+  mapFirestoreUserNotificationSettings,
+  mapFirestoreDiscussionThreadSubscription,
   mapFirestoreSnippet,
   mapFirestoreUser
 } from '#/db/firestore/utils.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import { buildDefaultRunResultLabel, parseRunResultPayload } from '#/db/runResultPayload.js';
+import {
+  buildDiscussionMlsCommitListResult,
+  buildDiscussionMlsGroupStateRecord,
+  normalizeDiscussionMlsCommitListLimit,
+  parseDiscussionMlsCommitListCursor
+} from '#/db/discussionMlsLogic.js';
+import {
+  normalizeDiscussionListLimit,
+  normalizeDiscussionUpdateInput,
+  parseDiscussionListCursor,
+  prepareSqlDiscussionCommentInsert,
+  assertDiscussionCommentEditable,
+  buildDiscussionListResult
+} from '#/db/discussionCommentSql.js';
+import {
+  buildNoticeListResult,
+  normalizeNoticeListLimit,
+  parseNoticeListCursor
+} from '#/db/noticeSql.js';
+import { type NoticeSqlRow } from '#/db/noticeRows.js';
+import { DiscussionCommentNotFoundError } from '#/db/discussionCommentErrors.js';
 import { generateApiToken } from '#/server/auth/apiTokens.js';
 import { trimRequiredName } from '#/db/trimRequiredName.js';
 import { serializeSidebarMarker } from '#/db/sidebarMarker.js';
 import { assertUserNameAvailable, assertUserNameNotReserved } from '#/db/userNameValidation.js';
 import type {
   ApiTokenRecord,
+  DeviceKeyRecord,
   AuditAction,
   AuditEntityType,
   AuditLogRecord,
@@ -101,7 +149,27 @@ import type {
   UpdateLivePageRecordInput,
   UpdateLiveServerRecordInput,
   UserRecord,
-  Variable
+  Variable,
+  CreateDiscussionCommentInput,
+  DiscussionCommentRecord,
+  ListDiscussionCommentsOptions,
+  ListDiscussionCommentsResult,
+  UpdateDiscussionCommentInput,
+  CreateNoticeInput,
+  ListNoticesOptions,
+  ListNoticesResult,
+  NoticeRecord,
+  NotificationLevel,
+  UserNotificationSettingsRecord,
+  DiscussionThreadSubscriptionRecord,
+  DiscussionMlsGroupStateRecord,
+  DiscussionMlsCommitRecord,
+  DiscussionMlsWelcomeRecord,
+  UpsertDiscussionMlsGroupStateInput,
+  ListDiscussionMlsCommitsOptions,
+  ListDiscussionMlsCommitsResult,
+  ListDiscussionMlsWelcomesOptions,
+  ListDiscussionMlsWelcomesResult
 } from '#/db/types.js';
 import { defaultAuth } from '#/db/types.js';
 import { formatZodError } from '#/db/validation.js';
@@ -206,6 +274,49 @@ export class FirestoreDatabase implements IDatabase {
     await this.ensureSystemUser();
     await this.migrateOrphanTokensToBootstrapUser();
     await this.migrateSnippetAccessBackfill();
+    await this.migrateUserAvatarBackfill();
+  }
+
+  /**
+   * Assigns default avatar initials and colors to users missing persisted values.
+   */
+  private async migrateUserAvatarBackfill(): Promise<void> {
+    const client = this.requireClient();
+    const snapshot = await client
+      .collection(USERS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .get();
+
+    if (snapshot.docs.length === 0) {
+      return;
+    }
+
+    let batch = client.batch();
+    let batchSize = 0;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data() as FirestoreUserDocument;
+      if (data.avatarInitials?.trim() && data.avatarColor?.trim()) {
+        continue;
+      }
+
+      const defaults = defaultAvatarPresentation(data.name, doc.id);
+      batch.update(doc.ref, {
+        avatarInitials: defaults.initials,
+        avatarColor: defaults.color
+      });
+      batchSize += 1;
+
+      if (batchSize >= WRITE_BATCH_LIMIT) {
+        await batch.commit();
+        batch = client.batch();
+        batchSize = 0;
+      }
+    }
+
+    if (batchSize > 0) {
+      await batch.commit();
+    }
   }
 
   /**
@@ -279,7 +390,9 @@ export class FirestoreDatabase implements IDatabase {
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
         createdByUserId: data.createdByUserId,
-        updatedByUserId: data.updatedByUserId
+        updatedByUserId: data.updatedByUserId,
+        avatarInitials: data.avatarInitials ?? null,
+        avatarColor: data.avatarColor ?? null
       };
     });
   }
@@ -323,7 +436,9 @@ export class FirestoreDatabase implements IDatabase {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       createdByUserId: data.createdByUserId,
-      updatedByUserId: data.updatedByUserId
+      updatedByUserId: data.updatedByUserId,
+      avatarInitials: null,
+      avatarColor: null
     };
   }
 
@@ -346,8 +461,48 @@ export class FirestoreDatabase implements IDatabase {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
       createdByUserId: data.createdByUserId,
-      updatedByUserId: data.updatedByUserId
+      updatedByUserId: data.updatedByUserId,
+      avatarInitials: data.avatarInitials ?? null,
+      avatarColor: data.avatarColor ?? null
     };
+  }
+
+  /**
+   * Updates persisted hub avatar presentation for a tenant namespace.
+   *
+   * @param id - Tenant identifier to update.
+   * @param avatarInitials - Initials tile text to persist.
+   * @param avatarColor - Palette color key to persist.
+   * @param actingUserId - User performing the update, or null for system assignment.
+   */
+  async updateTenantAvatar(
+    id: string,
+    avatarInitials: string,
+    avatarColor: string,
+    actingUserId: string | null
+  ): Promise<TenantRecord> {
+    const docRef = this.requireClient().collection(TENANTS_COLLECTION).doc(id);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      throw new Error('Tenant not found.');
+    }
+
+    const now = new Date();
+    const existing = snapshot.data() as FirestoreTenantDocument;
+    await docRef.set({
+      ...existing,
+      avatarInitials,
+      avatarColor,
+      updatedAt: now,
+      updatedByUserId: actingUserId ?? existing.updatedByUserId
+    });
+
+    const updated = await this.findTenantById(id);
+    if (!updated) {
+      throw new Error('Tenant not found.');
+    }
+
+    return updated;
   }
 
   /**
@@ -368,6 +523,7 @@ export class FirestoreDatabase implements IDatabase {
     const collections = [
       USERS_COLLECTION,
       API_TOKENS_COLLECTION,
+      DEVICE_KEYS_COLLECTION,
       INVITATIONS_COLLECTION,
       COLLECTIONS_COLLECTION,
       ENVIRONMENTS_COLLECTION,
@@ -380,7 +536,8 @@ export class FirestoreDatabase implements IDatabase {
       AUDIT_LOG_COLLECTION,
       LLM_USAGE_COLLECTION,
       LLM_USAGE_LOG_COLLECTION,
-      RUN_RESULTS_COLLECTION
+      RUN_RESULTS_COLLECTION,
+      DISCUSSION_COMMENTS_COLLECTION
     ];
 
     const refs: DocumentReference[] = [];
@@ -439,6 +596,7 @@ export class FirestoreDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const attributionUserId = trimmedName === SYSTEM_USER_NAME ? id : actingUserId;
+    const avatar = buildUserAvatarFieldsForCreate(trimmedName, id, input);
     const data: FirestoreUserDocument & { tenantId: string } = {
       tenantId: this.tenantId,
       name: trimmedName,
@@ -451,6 +609,8 @@ export class FirestoreDatabase implements IDatabase {
       llmAccess: input.llmAccess ?? false,
       llmModels: input.llmModels ?? [],
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
+      avatarInitials: avatar.avatarInitials,
+      avatarColor: avatar.avatarColor,
       createdAt: now,
       updatedAt: now,
       createdByUserId: attributionUserId,
@@ -556,6 +716,9 @@ export class FirestoreDatabase implements IDatabase {
       input.llmMonthlyTokenLimit !== undefined
         ? input.llmMonthlyTokenLimit
         : existing.llmMonthlyTokenLimit;
+    const avatarInitials =
+      input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
+    const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
     const updatedAt = new Date();
 
     await this.requireClient().collection(USERS_COLLECTION).doc(id).update({
@@ -569,6 +732,8 @@ export class FirestoreDatabase implements IDatabase {
       llmAccess,
       llmModels,
       llmMonthlyTokenLimit,
+      avatarInitials,
+      avatarColor,
       updatedAt,
       updatedByUserId: actingUserId
     });
@@ -859,6 +1024,385 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
+   * Inserts a new device key enrollment document.
+   *
+   * @param record - Device enrollment metadata to persist.
+   * @param actingUserId - User performing the enrollment action.
+   */
+  async createDeviceKey(record: DeviceKeyRecord, actingUserId: string): Promise<void> {
+    await this.requireClient().collection(DEVICE_KEYS_COLLECTION).doc(record.id).set({
+      tenantId: this.tenantId,
+      userId: record.userId,
+      deviceId: record.deviceId,
+      label: record.label,
+      keyFormat: record.keyFormat,
+      publicKeyMaterial: record.publicKeyMaterial,
+      fingerprint: record.fingerprint,
+      createdAt: record.createdAt,
+      lastSeenAt: record.lastSeenAt,
+      revokedAt: record.revokedAt,
+      createdByUserId: actingUserId,
+      updatedByUserId: actingUserId
+    });
+
+    await this.recordAuditEntry(actingUserId, 'create', 'device_key', record.id);
+  }
+
+  /**
+   * Finds a device key enrollment by stable identifier.
+   *
+   * @param id - Device key record identifier.
+   */
+  async findDeviceKeyById(id: string): Promise<DeviceKeyRecord | null> {
+    const docRef = this.requireClient().collection(DEVICE_KEYS_COLLECTION).doc(id);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreDeviceKeyDocument & { tenantId?: string };
+    if (data.tenantId != null && data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDeviceKey(snapshot.id, data as FirestoreDeviceKeyDocument);
+  }
+
+  /**
+   * Finds an active enrollment for a user/device pair.
+   *
+   * @param userId - Owning user identifier.
+   * @param deviceId - Client-generated device identifier.
+   */
+  async findActiveDeviceKeyByUserAndDeviceId(
+    userId: string,
+    deviceId: string
+  ): Promise<DeviceKeyRecord | null> {
+    const snapshot = await this.requireClient()
+      .collection(DEVICE_KEYS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('userId', '==', userId)
+      .where('deviceId', '==', deviceId)
+      .limit(1)
+      .get();
+
+    const doc = snapshot.docs[0];
+    if (!doc) {
+      return null;
+    }
+
+    const data = doc.data() as FirestoreDeviceKeyDocument;
+    if (data.revokedAt !== null) {
+      return null;
+    }
+
+    return mapFirestoreDeviceKey(doc.id, data);
+  }
+
+  /**
+   * Returns device key enrollments owned by a user ordered newest-first.
+   *
+   * @param userId - Owning user identifier.
+   */
+  async listDeviceKeysByUserId(userId: string): Promise<DeviceKeyRecord[]> {
+    const snapshot = await this.requireClient()
+      .collection(DEVICE_KEYS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    return snapshot.docs.map((doc) =>
+      mapFirestoreDeviceKey(doc.id, doc.data() as FirestoreDeviceKeyDocument)
+    );
+  }
+
+  /**
+   * Lists all device key enrollments ordered by creation time descending.
+   */
+  async listDeviceKeys(): Promise<DeviceKeyRecord[]> {
+    const snapshot = await this.requireClient()
+      .collection(DEVICE_KEYS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    return snapshot.docs.map((doc) =>
+      mapFirestoreDeviceKey(doc.id, doc.data() as FirestoreDeviceKeyDocument)
+    );
+  }
+
+  /**
+   * Soft-revokes an active device key enrollment by id.
+   *
+   * @param id - Device key identifier to revoke.
+   * @param actingUserId - User performing the revoke action.
+   */
+  async revokeDeviceKey(id: string, actingUserId: string): Promise<boolean> {
+    const docRef = this.requireClient().collection(DEVICE_KEYS_COLLECTION).doc(id);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      return false;
+    }
+
+    const data = snapshot.data() as FirestoreDeviceKeyDocument;
+    if (data.revokedAt !== null) {
+      return false;
+    }
+
+    await docRef.update({ revokedAt: new Date(), updatedByUserId: actingUserId });
+    await this.recordAuditEntry(actingUserId, 'update', 'device_key', id);
+    return true;
+  }
+
+  /**
+   * Updates the last-seen timestamp for an enrolled device.
+   *
+   * @param id - Device key identifier.
+   * @param when - Timestamp of the latest successful enrollment confirmation.
+   */
+  async touchDeviceKeyLastSeen(id: string, when: Date): Promise<void> {
+    await this.requireClient()
+      .collection(DEVICE_KEYS_COLLECTION)
+      .doc(id)
+      .update({ lastSeenAt: when });
+  }
+
+  /**
+   * Returns persisted MLS group state for a discussion thread.
+   *
+   * @param mlsGroupId - Canonical MLS group id for the thread.
+   */
+  async getDiscussionMlsGroupState(
+    mlsGroupId: string
+  ): Promise<DiscussionMlsGroupStateRecord | null> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_MLS_GROUP_STATE_COLLECTION)
+      .doc(mlsGroupId)
+      .get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreDiscussionMlsGroupStateDocument & { tenantId?: string };
+    if (data.tenantId != null && data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDiscussionMlsGroupState(mlsGroupId, data);
+  }
+
+  /**
+   * Inserts or advances MLS group state when the supplied epoch is not stale.
+   *
+   * @param input - Latest observed MLS epoch for the thread.
+   * @param actingUserId - User posting the commit that advanced group state.
+   */
+  async upsertDiscussionMlsGroupState(
+    input: UpsertDiscussionMlsGroupStateInput,
+    actingUserId: string
+  ): Promise<DiscussionMlsGroupStateRecord> {
+    const prepared = buildDiscussionMlsGroupStateRecord(input, actingUserId);
+    const existing = await this.getDiscussionMlsGroupState(prepared.mlsGroupId);
+    const docRef = this.requireClient()
+      .collection(DISCUSSION_MLS_GROUP_STATE_COLLECTION)
+      .doc(prepared.mlsGroupId);
+
+    if (!existing) {
+      await docRef.set({
+        tenantId: this.tenantId,
+        mlsGroupId: prepared.mlsGroupId,
+        targetEntityType: prepared.targetEntityType,
+        targetEntityId: prepared.targetEntityId,
+        currentEpoch: prepared.currentEpoch,
+        createdAt: prepared.createdAt,
+        updatedAt: prepared.updatedAt,
+        createdByUserId: actingUserId,
+        updatedByUserId: actingUserId
+      } satisfies FirestoreDiscussionMlsGroupStateDocument & { tenantId: string });
+      await this.recordAuditEntry(
+        actingUserId,
+        'create',
+        'discussion_mls_group_state',
+        prepared.mlsGroupId
+      );
+    } else if (prepared.currentEpoch >= existing.currentEpoch) {
+      await docRef.update({
+        currentEpoch: prepared.currentEpoch,
+        updatedAt: prepared.updatedAt,
+        updatedByUserId: actingUserId
+      });
+      if (prepared.currentEpoch > existing.currentEpoch) {
+        await this.recordAuditEntry(
+          actingUserId,
+          'update',
+          'discussion_mls_group_state',
+          prepared.mlsGroupId
+        );
+      }
+    }
+
+    const record = await this.getDiscussionMlsGroupState(prepared.mlsGroupId);
+    if (!record) {
+      throw new Error('Discussion MLS group state not found after upsert');
+    }
+
+    return record;
+  }
+
+  /**
+   * Persists a relayed MLS commit record built by the route layer.
+   *
+   * @param record - Validated commit metadata and ciphertext.
+   * @param actingUserId - User relaying the commit through Team Hub.
+   */
+  async createDiscussionMlsCommit(
+    record: DiscussionMlsCommitRecord,
+    actingUserId: string
+  ): Promise<void> {
+    await this.requireClient()
+      .collection(DISCUSSION_MLS_COMMITS_COLLECTION)
+      .doc(record.id)
+      .set({
+        tenantId: this.tenantId,
+        mlsGroupId: record.mlsGroupId,
+        epoch: record.epoch,
+        ciphertext: record.ciphertext,
+        senderDeviceId: record.senderDeviceId,
+        createdAt: record.createdAt,
+        createdByUserId: actingUserId
+      } satisfies FirestoreDiscussionMlsCommitDocument & { tenantId: string });
+
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_mls_commit', record.id);
+  }
+
+  /**
+   * Lists MLS commits for offline catch-up with epoch-based cursor pagination.
+   *
+   * @param options - Group id, optional cursor, and page size.
+   */
+  async listDiscussionMlsCommits(
+    options: ListDiscussionMlsCommitsOptions
+  ): Promise<ListDiscussionMlsCommitsResult> {
+    const limit = normalizeDiscussionMlsCommitListLimit(options.limit);
+    const cursorEpoch = parseDiscussionMlsCommitListCursor(options.cursor);
+
+    let query: Query = this.requireClient()
+      .collection(DISCUSSION_MLS_COMMITS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('mlsGroupId', '==', options.mlsGroupId);
+
+    if (cursorEpoch != null) {
+      query = query.where('epoch', '>', cursorEpoch);
+    }
+
+    const snapshot = await query.orderBy('epoch', 'asc').limit(limit + 1).get();
+    const commits = snapshot.docs.map((doc) =>
+      mapFirestoreDiscussionMlsCommit(doc.id, doc.data() as FirestoreDiscussionMlsCommitDocument)
+    );
+
+    return buildDiscussionMlsCommitListResult(commits, limit);
+  }
+
+  /**
+   * Finds a relayed MLS commit by stable identifier.
+   *
+   * @param id - Commit record identifier.
+   */
+  async findDiscussionMlsCommitById(id: string): Promise<DiscussionMlsCommitRecord | null> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_MLS_COMMITS_COLLECTION)
+      .doc(id)
+      .get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreDiscussionMlsCommitDocument & { tenantId?: string };
+    if (data.tenantId != null && data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDiscussionMlsCommit(snapshot.id, data);
+  }
+
+  /**
+   * Persists a relayed MLS welcome record built by the route layer.
+   *
+   * @param record - Validated welcome metadata and ciphertext.
+   * @param actingUserId - User relaying the welcome through Team Hub.
+   */
+  async createDiscussionMlsWelcome(
+    record: DiscussionMlsWelcomeRecord,
+    actingUserId: string
+  ): Promise<void> {
+    await this.requireClient()
+      .collection(DISCUSSION_MLS_WELCOMES_COLLECTION)
+      .doc(record.id)
+      .set({
+        tenantId: this.tenantId,
+        mlsGroupId: record.mlsGroupId,
+        recipientDeviceId: record.recipientDeviceId,
+        ciphertext: record.ciphertext,
+        ratchetTree: record.ratchetTree,
+        createdAt: record.createdAt,
+        createdByUserId: actingUserId
+      } satisfies FirestoreDiscussionMlsWelcomeDocument & { tenantId: string });
+
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_mls_welcome', record.id);
+  }
+
+  /**
+   * Lists MLS welcomes for a discussion thread, optionally filtered by recipient device.
+   *
+   * @param options - Group id and optional recipient device filter.
+   */
+  async listDiscussionMlsWelcomes(
+    options: ListDiscussionMlsWelcomesOptions
+  ): Promise<ListDiscussionMlsWelcomesResult> {
+    let query: Query = this.requireClient()
+      .collection(DISCUSSION_MLS_WELCOMES_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('mlsGroupId', '==', options.mlsGroupId);
+
+    if (options.recipientDeviceId) {
+      query = query.where('recipientDeviceId', '==', options.recipientDeviceId);
+    }
+
+    const snapshot = await query.orderBy('createdAt', 'asc').get();
+    return {
+      welcomes: snapshot.docs.map((doc) =>
+        mapFirestoreDiscussionMlsWelcome(doc.id, doc.data() as FirestoreDiscussionMlsWelcomeDocument)
+      )
+    };
+  }
+
+  /**
+   * Finds a relayed MLS welcome by stable identifier.
+   *
+   * @param id - Welcome record identifier.
+   */
+  async findDiscussionMlsWelcomeById(id: string): Promise<DiscussionMlsWelcomeRecord | null> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_MLS_WELCOMES_COLLECTION)
+      .doc(id)
+      .get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreDiscussionMlsWelcomeDocument & { tenantId?: string };
+    if (data.tenantId != null && data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDiscussionMlsWelcome(snapshot.id, data);
+  }
+
+  /**
    * Creates a user account and its initial onboarding invitation in one transaction.
    *
    * @param userId - Pre-generated stable identifier for the new user.
@@ -878,6 +1422,7 @@ export class FirestoreDatabase implements IDatabase {
     const client = this.requireClient();
     const userRef = client.collection(USERS_COLLECTION).doc(userId);
     const invitationRef = client.collection(INVITATIONS_COLLECTION).doc(invitation.id);
+    const avatar = buildUserAvatarFieldsForCreate(trimmedName, userId, input);
     const userData: FirestoreUserDocument = {
       name: trimmedName,
       role: input.role,
@@ -889,6 +1434,8 @@ export class FirestoreDatabase implements IDatabase {
       llmAccess: input.llmAccess ?? false,
       llmModels: input.llmModels ?? [],
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
+      avatarInitials: avatar.avatarInitials,
+      avatarColor: avatar.avatarColor,
       createdAt: now,
       updatedAt: now,
       createdByUserId: actingUserId,
@@ -2968,6 +3515,421 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
+   * Creates a discussion comment on a target entity, enforcing tree placement rules.
+   */
+  async createDiscussionComment(
+    input: CreateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const prepared = await prepareSqlDiscussionCommentInsert(input, actingUserId, (parentId) =>
+      this.findDiscussionCommentById(parentId)
+    );
+
+    const data: FirestoreDiscussionCommentDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
+      targetEntityType: prepared.targetEntityType,
+      targetEntityId: prepared.targetEntityId,
+      parentCommentId: prepared.parentCommentId,
+      rootCommentId: prepared.rootCommentId,
+      depth: prepared.depth,
+      body: prepared.body,
+      bodyFormat: prepared.bodyFormat,
+      bodyMetadata: prepared.bodyMetadata,
+      authorUserId: prepared.authorUserId,
+      createdAt: prepared.createdAt,
+      updatedAt: prepared.updatedAt,
+      tombstonedAt: null,
+      tombstonedByUserId: null
+    };
+
+    await this.requireClient()
+      .collection(DISCUSSION_COMMENTS_COLLECTION)
+      .doc(prepared.id)
+      .set(data);
+    await this.recordAuditEntry(actingUserId, 'create', 'discussion_comment', prepared.id);
+    return mapFirestoreDiscussionComment(prepared.id, data);
+  }
+
+  /**
+   * Lists discussion comments for a target entity with cursor pagination.
+   */
+  async listDiscussionComments(
+    options: ListDiscussionCommentsOptions
+  ): Promise<ListDiscussionCommentsResult> {
+    const limit = normalizeDiscussionListLimit(options.limit);
+    const cursor = parseDiscussionListCursor(options.cursor);
+
+    let query: Query = this.requireClient()
+      .collection(DISCUSSION_COMMENTS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('targetEntityType', '==', options.targetEntityType)
+      .where('targetEntityId', '==', options.targetEntityId)
+      .orderBy('createdAt', 'asc');
+
+    if (cursor) {
+      query = query.where('createdAt', '>', cursor);
+    }
+
+    const snapshot = await query.limit(limit + 1).get();
+    const rows = snapshot.docs.map((doc) => {
+      const record = mapFirestoreDiscussionComment(
+        doc.id,
+        doc.data() as FirestoreDiscussionCommentDocument
+      );
+      return {
+        id: record.id,
+        target_entity_type: record.targetEntityType,
+        target_entity_id: record.targetEntityId,
+        parent_comment_id: record.parentCommentId,
+        root_comment_id: record.rootCommentId,
+        depth: record.depth,
+        body: record.body,
+        body_format: record.bodyFormat,
+        body_metadata: record.bodyMetadata ? JSON.stringify(record.bodyMetadata) : null,
+        author_user_id: record.authorUserId,
+        created_at: record.createdAt,
+        updated_at: record.updatedAt,
+        tombstoned_at: record.tombstonedAt,
+        tombstoned_by_user_id: record.tombstonedByUserId
+      };
+    });
+
+    return buildDiscussionListResult(rows, limit);
+  }
+
+  /**
+   * Finds a discussion comment by id within the current tenant.
+   */
+  async findDiscussionCommentById(id: string): Promise<DiscussionCommentRecord | null> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_COMMENTS_COLLECTION)
+      .doc(id)
+      .get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreDiscussionCommentDocument & { tenantId?: string };
+    if (data.tenantId && data.tenantId !== this.tenantId) {
+      return null;
+    }
+
+    return mapFirestoreDiscussionComment(id, data as FirestoreDiscussionCommentDocument);
+  }
+
+  /**
+   * Updates the body of an active discussion comment authored by the acting user.
+   */
+  async updateDiscussionComment(
+    id: string,
+    input: UpdateDiscussionCommentInput,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const existing = await this.findDiscussionCommentById(id);
+    if (!existing) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    assertDiscussionCommentEditable(existing, actingUserId);
+    const normalized = normalizeDiscussionUpdateInput(input);
+    const now = new Date();
+    const docRef = this.requireClient().collection(DISCUSSION_COMMENTS_COLLECTION).doc(id);
+
+    await docRef.update({
+      body: normalized.body,
+      bodyFormat: normalized.bodyFormat,
+      bodyMetadata: normalized.bodyMetadata ?? undefined,
+      updatedAt: now
+    });
+
+    await this.recordAuditEntry(actingUserId, 'update', 'discussion_comment', id);
+    return mapFirestoreDiscussionComment(id, {
+      ...existing,
+      body: normalized.body,
+      bodyFormat: normalized.bodyFormat,
+      bodyMetadata: normalized.bodyMetadata,
+      updatedAt: now
+    });
+  }
+
+  /**
+   * Tombstones a discussion comment while preserving child replies.
+   */
+  async tombstoneDiscussionComment(
+    id: string,
+    actingUserId: string
+  ): Promise<DiscussionCommentRecord> {
+    const existing = await this.findDiscussionCommentById(id);
+    if (!existing) {
+      throw new DiscussionCommentNotFoundError();
+    }
+
+    if (existing.tombstonedAt) {
+      return existing;
+    }
+
+    const now = new Date();
+    const docRef = this.requireClient().collection(DISCUSSION_COMMENTS_COLLECTION).doc(id);
+
+    await docRef.update({
+      body: '',
+      updatedAt: now,
+      tombstonedAt: now,
+      tombstonedByUserId: actingUserId
+    });
+
+    await this.recordAuditEntry(actingUserId, 'delete', 'discussion_comment', id);
+    return mapFirestoreDiscussionComment(id, {
+      ...existing,
+      body: '',
+      updatedAt: now,
+      tombstonedAt: now,
+      tombstonedByUserId: actingUserId
+    });
+  }
+
+  /**
+   * Creates one or more collaboration notices for eligible recipients.
+   */
+  async createNotices(inputs: CreateNoticeInput[]): Promise<NoticeRecord[]> {
+    const client = this.requireClient();
+    const records: NoticeRecord[] = [];
+
+    for (const input of inputs) {
+      const id = randomUUID();
+      const now = new Date();
+      const data: FirestoreNoticeDocument & { tenantId: string } = {
+        tenantId: this.tenantId,
+        recipientUserId: input.recipientUserId,
+        eventType: input.eventType,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        requestId: input.requestId ?? null,
+        collectionId: input.collectionId ?? null,
+        folderId: input.folderId ?? null,
+        runResultId: input.runResultId ?? null,
+        discussionThreadId: input.discussionThreadId ?? null,
+        discussionCommentId: input.discussionCommentId ?? null,
+        actorUserId: input.actorUserId,
+        createdAt: now,
+        readAt: null,
+        displayMetadata: input.displayMetadata as unknown as Record<string, unknown>
+      };
+
+      await client.collection(NOTICES_COLLECTION).doc(id).set(data);
+      records.push(mapFirestoreNotice(id, data));
+    }
+
+    return records;
+  }
+
+  /**
+   * Lists notices for a recipient with cursor pagination (newest first).
+   */
+  async listNotices(options: ListNoticesOptions): Promise<ListNoticesResult> {
+    const limit = normalizeNoticeListLimit(options.limit);
+    const cursor = parseNoticeListCursor(options.cursor);
+
+    let query: Query = this.requireClient()
+      .collection(NOTICES_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('recipientUserId', '==', options.recipientUserId)
+      .orderBy('createdAt', 'desc');
+
+    if (cursor) {
+      query = query.where('createdAt', '<', cursor);
+    }
+
+    const snapshot = await query.limit(limit + 1).get();
+    const rows: NoticeSqlRow[] = snapshot.docs.map((doc) => {
+      const record = mapFirestoreNotice(doc.id, doc.data() as FirestoreNoticeDocument);
+      return {
+        id: record.id,
+        recipient_user_id: record.recipientUserId,
+        event_type: record.eventType,
+        entity_type: record.entityType,
+        entity_id: record.entityId,
+        request_id: record.requestId,
+        collection_id: record.collectionId,
+        folder_id: record.folderId,
+        run_result_id: record.runResultId,
+        discussion_thread_id: record.discussionThreadId,
+        discussion_comment_id: record.discussionCommentId,
+        actor_user_id: record.actorUserId,
+        created_at: record.createdAt,
+        read_at: record.readAt,
+        display_metadata: JSON.stringify(record.displayMetadata)
+      };
+    });
+
+    return buildNoticeListResult(rows, limit);
+  }
+
+  /**
+   * Counts unread notices for a recipient without loading the full feed.
+   */
+  async countUnreadNotices(recipientUserId: string): Promise<number> {
+    const snapshot = await this.requireClient()
+      .collection(NOTICES_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('recipientUserId', '==', recipientUserId)
+      .where('readAt', '==', null)
+      .count()
+      .get();
+
+    return snapshot.data().count;
+  }
+
+  /**
+   * Marks one notice read for the authenticated recipient.
+   */
+  async markNoticeRead(noticeId: string, recipientUserId: string): Promise<NoticeRecord | null> {
+    const docRef = this.requireClient().collection(NOTICES_COLLECTION).doc(noticeId);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as FirestoreNoticeDocument & { tenantId?: string };
+    if (data.tenantId !== this.tenantId || data.recipientUserId !== recipientUserId) {
+      return null;
+    }
+
+    const now = new Date();
+    await docRef.update({ readAt: now });
+    return mapFirestoreNotice(noticeId, { ...data, readAt: now });
+  }
+
+  /**
+   * Marks all unread notices read for a recipient.
+   */
+  async markAllNoticesRead(recipientUserId: string): Promise<number> {
+    const snapshot = await this.requireClient()
+      .collection(NOTICES_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('recipientUserId', '==', recipientUserId)
+      .where('readAt', '==', null)
+      .get();
+
+    if (snapshot.empty) {
+      return 0;
+    }
+
+    const now = new Date();
+    const batch = this.requireClient().batch();
+    for (const doc of snapshot.docs) {
+      batch.update(doc.ref, { readAt: now });
+    }
+    await batch.commit();
+    return snapshot.size;
+  }
+
+  /**
+   * Returns notification settings for a user, defaulting to `all` when unset.
+   */
+  async getUserNotificationSettings(userId: string): Promise<UserNotificationSettingsRecord> {
+    const docRef = this.requireClient()
+      .collection(USER_NOTIFICATION_SETTINGS_COLLECTION)
+      .doc(`${this.tenantId}:${userId}`);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+      return { userId, level: 'all', updatedAt: new Date(0) };
+    }
+
+    const data = snapshot.data() as FirestoreUserNotificationSettingsDocument & {
+      tenantId?: string;
+    };
+    if (data.tenantId !== this.tenantId) {
+      return { userId, level: 'all', updatedAt: new Date(0) };
+    }
+
+    return mapFirestoreUserNotificationSettings(data);
+  }
+
+  /**
+   * Updates notification settings for a user account.
+   */
+  async updateUserNotificationSettings(
+    userId: string,
+    level: NotificationLevel
+  ): Promise<UserNotificationSettingsRecord> {
+    const now = new Date();
+    const data: FirestoreUserNotificationSettingsDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
+      userId,
+      level,
+      updatedAt: now
+    };
+
+    await this.requireClient()
+      .collection(USER_NOTIFICATION_SETTINGS_COLLECTION)
+      .doc(`${this.tenantId}:${userId}`)
+      .set(data);
+
+    return { userId, level, updatedAt: now };
+  }
+
+  /**
+   * Subscribes a user to a discussion thread identified by its root comment id.
+   */
+  async subscribeDiscussionThread(
+    userId: string,
+    rootCommentId: string
+  ): Promise<DiscussionThreadSubscriptionRecord> {
+    const now = new Date();
+    const data: FirestoreDiscussionThreadSubscriptionDocument & { tenantId: string } = {
+      tenantId: this.tenantId,
+      userId,
+      rootCommentId,
+      createdAt: now
+    };
+
+    await this.requireClient()
+      .collection(DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION)
+      .doc(`${this.tenantId}:${userId}:${rootCommentId}`)
+      .set(data);
+
+    return mapFirestoreDiscussionThreadSubscription(data);
+  }
+
+  /**
+   * Removes a user's subscription to a discussion thread.
+   */
+  async unsubscribeDiscussionThread(userId: string, rootCommentId: string): Promise<void> {
+    await this.requireClient()
+      .collection(DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION)
+      .doc(`${this.tenantId}:${userId}:${rootCommentId}`)
+      .delete();
+  }
+
+  /**
+   * Returns true when the user is subscribed to a discussion thread.
+   */
+  async isSubscribedToDiscussionThread(userId: string, rootCommentId: string): Promise<boolean> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION)
+      .doc(`${this.tenantId}:${userId}:${rootCommentId}`)
+      .get();
+    return snapshot.exists;
+  }
+
+  /**
+   * Lists user ids subscribed to a discussion thread.
+   */
+  async listDiscussionThreadSubscribers(rootCommentId: string): Promise<string[]> {
+    const snapshot = await this.requireClient()
+      .collection(DISCUSSION_THREAD_SUBSCRIPTIONS_COLLECTION)
+      .where('tenantId', '==', this.tenantId)
+      .where('rootCommentId', '==', rootCommentId)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() as FirestoreDiscussionThreadSubscriptionDocument;
+      return data.userId;
+    });
+  }
+
+  /**
    * Inserts a per-request LLM usage log entry within the instance's tenant namespace.
    *
    * @param input - Usage details for one successful completion step.
@@ -3045,6 +4007,7 @@ export class FirestoreDatabase implements IDatabase {
     const id = randomUUID();
     const now = new Date();
     const trimmedName = trimRequiredName(input.name, 'User name');
+    const avatar = buildUserAvatarFieldsForCreate(trimmedName, id, input);
     const data: FirestoreUserDocument & { tenantId: string } = {
       tenantId: this.tenantId,
       name: trimmedName,
@@ -3057,6 +4020,8 @@ export class FirestoreDatabase implements IDatabase {
       llmAccess: false,
       llmModels: [],
       llmMonthlyTokenLimit: null,
+      avatarInitials: avatar.avatarInitials,
+      avatarColor: avatar.avatarColor,
       createdAt: now,
       updatedAt: now,
       createdByUserId: id,

@@ -84,7 +84,12 @@ function parseAuditEntityType(value: string): AuditEntityType {
     value === 'folder' ||
     value === 'request' ||
     value === 'document' ||
-    value === 'run_result'
+    value === 'run_result' ||
+    value === 'discussion_comment' ||
+    value === 'device_key' ||
+    value === 'discussion_mls_group_state' ||
+    value === 'discussion_mls_commit' ||
+    value === 'discussion_mls_welcome'
   ) {
     return value;
   }

@@ -442,6 +442,79 @@ CREATE INDEX IF NOT EXISTS run_results_created_idx ON run_results (created_at DE
 `.trim();
 
 /**
+ * DDL for creating the discussion_comments table when absent.
+ */
+export const DISCUSSION_COMMENTS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS discussion_comments (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  target_entity_type TEXT NOT NULL CHECK (target_entity_type IN ('request', 'collection', 'folder', 'runResult')),
+  target_entity_id TEXT NOT NULL,
+  parent_comment_id TEXT REFERENCES discussion_comments(id) ON DELETE SET NULL,
+  root_comment_id TEXT NOT NULL,
+  depth INT NOT NULL CHECK (depth >= 1 AND depth <= 3),
+  body TEXT NOT NULL DEFAULT '',
+  body_format TEXT NOT NULL DEFAULT 'plaintext' CHECK (body_format IN ('plaintext', 'encrypted')),
+  body_metadata TEXT,
+  author_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  tombstoned_at TIMESTAMPTZ,
+  tombstoned_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS discussion_comments_target_idx
+  ON discussion_comments (tenant_id, target_entity_type, target_entity_id, created_at);
+CREATE INDEX IF NOT EXISTS discussion_comments_root_idx
+  ON discussion_comments (tenant_id, root_comment_id, created_at);
+`.trim();
+
+/**
+ * DDL for collaboration notices, notification settings, and thread subscriptions.
+ */
+export const NOTICES_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS notices (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  recipient_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  entity_type TEXT NOT NULL CHECK (entity_type IN ('request', 'collection', 'folder', 'runResult')),
+  entity_id TEXT NOT NULL,
+  request_id TEXT,
+  collection_id TEXT,
+  folder_id TEXT,
+  run_result_id TEXT,
+  discussion_thread_id TEXT,
+  discussion_comment_id TEXT,
+  actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  read_at TIMESTAMPTZ,
+  display_metadata TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS notices_recipient_idx
+  ON notices (tenant_id, recipient_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS notices_recipient_unread_idx
+  ON notices (tenant_id, recipient_user_id, read_at);
+
+CREATE TABLE IF NOT EXISTS user_notification_settings (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  level TEXT NOT NULL DEFAULT 'all' CHECK (level IN ('all', 'mentions', 'none')),
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (tenant_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS discussion_thread_subscriptions (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  root_comment_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (tenant_id, user_id, root_comment_id)
+);
+CREATE INDEX IF NOT EXISTS discussion_thread_subscriptions_thread_idx
+  ON discussion_thread_subscriptions (tenant_id, root_comment_id);
+`.trim();
+
+/**
  * SQL migration creating the user_invitations table for onboarding links.
  */
 export const USER_INVITATIONS_MIGRATION_SQL = `
@@ -561,6 +634,7 @@ ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '
 ALTER TABLE llm_usage ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '__default__';
 ALTER TABLE llm_usage_log ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '__default__';
 ALTER TABLE run_results ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '__default__';
+ALTER TABLE discussion_comments ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT '__default__';
 
 DO $$
 BEGIN
@@ -611,6 +685,91 @@ END $$;
 `.trim();
 
 /**
+ * Adds persisted hub avatar fields to tenant records.
+ */
+export const TENANT_AVATAR_MIGRATION_SQL = `
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_initials TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_color TEXT;
+`.trim();
+
+/**
+ * Adds persisted user avatar fields to user records.
+ */
+export const USERS_AVATAR_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_initials TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color TEXT;
+`.trim();
+
+/**
+ * DDL for creating the device_keys table when absent.
+ */
+export const DEVICE_KEYS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS device_keys (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  device_id TEXT NOT NULL,
+  label TEXT NOT NULL DEFAULT '',
+  key_format TEXT NOT NULL DEFAULT 'identity-v1',
+  public_key_material TEXT NOT NULL,
+  fingerprint CHAR(64) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  last_seen_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE (tenant_id, user_id, device_id)
+);
+CREATE INDEX IF NOT EXISTS device_keys_user_idx ON device_keys (tenant_id, user_id);
+CREATE INDEX IF NOT EXISTS device_keys_fingerprint_idx ON device_keys (tenant_id, fingerprint);
+`.trim();
+
+/**
+ * DDL for discussion MLS group state, commits, and welcome relay records.
+ */
+export const DISCUSSION_MLS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS discussion_mls_group_state (
+  mls_group_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  target_entity_type TEXT NOT NULL CHECK (target_entity_type IN ('request', 'collection', 'folder', 'runResult')),
+  target_entity_id TEXT NOT NULL,
+  current_epoch INT NOT NULL CHECK (current_epoch >= 0),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  updated_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  PRIMARY KEY (tenant_id, mls_group_id)
+);
+
+CREATE TABLE IF NOT EXISTS discussion_mls_commits (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  mls_group_id TEXT NOT NULL,
+  epoch INT NOT NULL CHECK (epoch >= 0),
+  ciphertext TEXT NOT NULL,
+  sender_device_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE (tenant_id, mls_group_id, epoch)
+);
+CREATE INDEX IF NOT EXISTS discussion_mls_commits_group_epoch_idx
+  ON discussion_mls_commits (tenant_id, mls_group_id, epoch);
+
+CREATE TABLE IF NOT EXISTS discussion_mls_welcomes (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL DEFAULT '__default__',
+  mls_group_id TEXT NOT NULL,
+  recipient_device_id TEXT NOT NULL,
+  ciphertext TEXT NOT NULL,
+  ratchet_tree TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  created_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS discussion_mls_welcomes_group_idx
+  ON discussion_mls_welcomes (tenant_id, mls_group_id, created_at);
+`.trim();
+
+/**
  * Ordered Postgres migrations applied by {@link PostgresDatabase.migrate}.
  */
 export const POSTGRES_MIGRATIONS = [
@@ -645,6 +804,7 @@ export const POSTGRES_MIGRATIONS = [
   USERS_SNIPPET_ACCESS_BACKFILL_SQL,
   USERS_LIVE_ENTITY_ACCESS_MIGRATION_SQL,
   RUN_RESULTS_MIGRATION_SQL,
+  DISCUSSION_COMMENTS_MIGRATION_SQL,
   USER_INVITATIONS_MIGRATION_SQL,
   COLLECTIONS_MARKER_MIGRATION_SQL,
   FOLDERS_MARKER_MIGRATION_SQL,
@@ -653,5 +813,10 @@ export const POSTGRES_MIGRATIONS = [
   ENVIRONMENTS_MARKER_MIGRATION_SQL,
   ENVIRONMENTS_PARENT_UUID_MIGRATION_SQL,
   REQUESTS_PROTOCOL_MIGRATION_SQL,
-  TENANT_ID_COLUMNS_MIGRATION_SQL
+  TENANT_ID_COLUMNS_MIGRATION_SQL,
+  TENANT_AVATAR_MIGRATION_SQL,
+  USERS_AVATAR_MIGRATION_SQL,
+  NOTICES_MIGRATION_SQL,
+  DEVICE_KEYS_MIGRATION_SQL,
+  DISCUSSION_MLS_MIGRATION_SQL
 ];

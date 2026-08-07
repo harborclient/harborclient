@@ -57,6 +57,7 @@ export function createTenantAwareDatabase(rootDb: IDatabase): IDatabase {
     'listTenants',
     'createTenant',
     'findTenantById',
+    'updateTenantAvatar',
     'deleteTenant'
   ]);
 

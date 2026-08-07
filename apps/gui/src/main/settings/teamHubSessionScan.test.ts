@@ -27,6 +27,7 @@ describe('scanTeamHubSessions', () => {
     snippets: false,
     liveServers: false,
     livePages: false,
+    communication: false,
     admin: false
   };
 
@@ -38,6 +39,7 @@ describe('scanTeamHubSessions', () => {
     snippets: true,
     liveServers: false,
     livePages: false,
+    communication: false,
     admin: false
   };
 
@@ -49,6 +51,7 @@ describe('scanTeamHubSessions', () => {
     snippets: true,
     liveServers: false,
     livePages: false,
+    communication: false,
     admin: true
   };
 
@@ -151,12 +154,16 @@ describe('scanTeamHubSessions', () => {
         hubId: 'hub-user',
         services: userServices,
         managementApi: false,
+        communicationAccess: false,
+        discussionE2ee: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
       },
       {
         hubId: 'hub-admin',
         services: adminServices,
         managementApi: true,
+        communicationAccess: false,
+        discussionE2ee: false,
         user: { id: 'user-admin', name: 'ops', role: 'admin' }
       }
     ]);
@@ -214,9 +221,12 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: true,
           snippets: true,
           liveServers: false,
-          livePages: false
+          livePages: false,
+          communication: false
         },
         managementApi: false,
+        communicationAccess: false,
+        discussionE2ee: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);
@@ -269,9 +279,12 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: false,
           snippets: true,
           liveServers: false,
-          livePages: false
+          livePages: false,
+          communication: false
         },
         managementApi: false,
+        communicationAccess: false,
+        discussionE2ee: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);
@@ -324,9 +337,12 @@ describe('scanTeamHubSessions', () => {
           pluginCatalog: false,
           snippets: false,
           liveServers: false,
-          livePages: false
+          livePages: false,
+          communication: false
         },
         managementApi: false,
+        communicationAccess: false,
+        discussionE2ee: false,
         user: { id: 'user-alice', name: 'alice', role: 'user' }
       }
     ]);

@@ -1,6 +1,5 @@
 import { KeyValueEditor, SegmentedTabPanel } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
-import { useMemo } from 'react';
 import type {
   KeyValue,
   ScriptRunError,
@@ -17,14 +16,13 @@ import {
 } from '#/renderer/src/ui/Shared/Script/scriptPlaceholders';
 import { UserAgentField } from '#/renderer/src/ui/Shared/UserAgentField';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectRequestsByCollection, selectSnippets } from '#/renderer/src/store/selectors';
+import { selectSnippets } from '#/renderer/src/store/selectors';
 
 import type { RequestDraft } from '#/renderer/src/store/tabs';
 
 import { AuthEditor } from './AuthEditor';
 import { BodyEditor } from './BodyEditor';
-import { CommentEditor } from './CommentEditor';
-import { RequestTagsInput } from './RequestTagsInput';
+import { RequestDiscussPanel } from '#/renderer/src/ui/Shared/Discuss/RequestDiscussPanel';
 import { CookiesEditor } from './CookiesEditor';
 import { RequestEditorNotice } from './RequestEditorNotice';
 import {
@@ -110,28 +108,6 @@ export function TabContent({
   scriptErrors
 }: Props): JSX.Element {
   const snippets = useAppSelector(selectSnippets);
-  const requestsByCollection = useAppSelector(selectRequestsByCollection);
-
-  /**
-   * Resolves the saved request uuid used by copy-to-chat `@markdown` references.
-   */
-  const markdownReference = useMemo(() => {
-    if (draft.id == null || draft.collection_id == null) {
-      return undefined;
-    }
-
-    const request = (requestsByCollection[draft.collection_id] ?? []).find(
-      (entry) => entry.id === draft.id
-    );
-    if (request == null) {
-      return undefined;
-    }
-
-    return {
-      uuid: request.uuid,
-      label: `Comment: ${draft.name}`
-    };
-  }, [draft.collection_id, draft.id, draft.name, requestsByCollection]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col pt-4">
@@ -243,13 +219,11 @@ export function TabContent({
       </SegmentedTabPanel>
       <SegmentedTabPanel value="comment" className="mb-4 flex min-h-0 flex-1 flex-col gap-2">
         <RequestEditorNotice tab="comment" />
-        <RequestTagsInput value={draft.tags} onChange={(tags) => update({ tags })} />
-        <CommentEditor
-          value={draft.comment}
-          onChange={(comment) => update({ comment })}
+        <RequestDiscussPanel
+          draft={draft}
+          update={update}
           variables={variables}
           onEditVariables={onEditVariables}
-          markdownReference={markdownReference}
         />
       </SegmentedTabPanel>
       {pluginTabs.map((entry) => (

@@ -23,6 +23,7 @@ import {
   serializeSavedRequest,
   updateSaveRequestBodySchema
 } from '#/server/routes/schemas/entities.js';
+import { createNoticeService } from '#/server/notices/noticeService.js';
 
 /**
  * Registers bearer-protected saved request CRUD, reorder, and move routes.
@@ -177,6 +178,9 @@ export async function registerRequestRoutes(app: FastifyInstance, db: IDatabase)
           },
           user.id
         );
+
+        await createNoticeService(db).createNoticesForRequestUpdate(savedRequest, user);
+
         return reply.send(serializeSavedRequest(savedRequest));
       } catch (error) {
         if (handleDbError(reply, error)) {

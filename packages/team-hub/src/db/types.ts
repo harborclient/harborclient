@@ -24,7 +24,12 @@ export type AuditEntityType =
   | 'folder'
   | 'request'
   | 'document'
-  | 'run_result';
+  | 'run_result'
+  | 'discussion_comment'
+  | 'device_key'
+  | 'discussion_mls_group_state'
+  | 'discussion_mls_commit'
+  | 'discussion_mls_welcome';
 
 /**
  * Persisted audit log entry describing a single mutating action.
@@ -129,6 +134,16 @@ export interface TenantRecord {
    * User who last updated the tenant, when known.
    */
   updatedByUserId: string | null;
+
+  /**
+   * Persisted hub avatar initials tile text, when assigned.
+   */
+  avatarInitials: string | null;
+
+  /**
+   * Persisted hub avatar background color key (for example `sky-600`).
+   */
+  avatarColor: string | null;
 }
 
 /**
@@ -210,6 +225,16 @@ export interface UserRecord {
    * User who last updated the account.
    */
   updatedByUserId: string | null;
+
+  /**
+   * Persisted avatar initials tile text, when assigned.
+   */
+  avatarInitials: string | null;
+
+  /**
+   * Persisted avatar background color key (for example `sky-600`).
+   */
+  avatarColor: string | null;
 }
 
 /**
@@ -265,6 +290,16 @@ export interface CreateUserInput {
    * Monthly token limit, or null for unlimited.
    */
   llmMonthlyTokenLimit?: number | null;
+
+  /**
+   * Optional avatar initials override; defaults are derived from the display name.
+   */
+  avatarInitials?: string;
+
+  /**
+   * Optional avatar color override; defaults are derived from the user id.
+   */
+  avatarColor?: string;
 }
 
 /**
@@ -320,6 +355,16 @@ export interface UpdateUserInput {
    * Replacement monthly token limit, or null for unlimited.
    */
   llmMonthlyTokenLimit?: number | null;
+
+  /**
+   * Replacement avatar initials tile text.
+   */
+  avatarInitials?: string;
+
+  /**
+   * Replacement avatar background color key.
+   */
+  avatarColor?: string;
 }
 
 /**
@@ -377,6 +422,358 @@ export interface ApiTokenRecord {
    * User who last updated the token record.
    */
   updatedByUserId: string | null;
+}
+
+/**
+ * Public key material format stored for an enrolled Team Hub device.
+ */
+export type DeviceKeyFormat = 'identity-v1' | 'mls-key-package';
+
+/**
+ * Stored metadata for a client device enrolled for E2EE discussion access.
+ *
+ * Private key material never enters the server; only public payloads are persisted.
+ */
+export interface DeviceKeyRecord {
+  /**
+   * Stable identifier used for revoke and audit operations.
+   */
+  id: string;
+
+  /**
+   * Owning user account for this device enrollment.
+   */
+  userId: string;
+
+  /**
+   * Client-generated stable device identifier scoped per user and hub.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label chosen during enrollment.
+   */
+  label: string;
+
+  /**
+   * Format of {@link publicKeyMaterial} for future MLS KeyPackage support.
+   */
+  keyFormat: DeviceKeyFormat;
+
+  /**
+   * Base64-encoded public key material or MLS KeyPackage bytes.
+   */
+  publicKeyMaterial: string;
+
+  /**
+   * sha256 hex digest of {@link publicKeyMaterial} for lookup and display.
+   */
+  fingerprint: string;
+
+  /**
+   * When the device was enrolled.
+   */
+  createdAt: Date;
+
+  /**
+   * When the device last confirmed enrollment, if tracked.
+   */
+  lastSeenAt: Date | null;
+
+  /**
+   * When the device was revoked; null means the enrollment is still active.
+   */
+  revokedAt: Date | null;
+
+  /**
+   * User who created the enrollment record.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the enrollment record.
+   */
+  updatedByUserId: string | null;
+}
+
+/**
+ * Stored MLS group state for a discussion thread on an E2EE hub.
+ */
+export interface DiscussionMlsGroupStateRecord {
+  /**
+   * Canonical MLS group id for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Entity type hosting the discussion thread.
+   */
+  targetEntityType: DiscussionTargetEntityType;
+
+  /**
+   * Entity id hosting the discussion thread.
+   */
+  targetEntityId: string;
+
+  /**
+   * Latest MLS epoch observed for the thread.
+   */
+  currentEpoch: number;
+
+  /**
+   * When the group state row was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the group state row was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * User who created the group state row.
+   */
+  createdByUserId: string | null;
+
+  /**
+   * User who last updated the group state row.
+   */
+  updatedByUserId: string | null;
+}
+
+/**
+ * Persisted MLS commit relayed to existing group members.
+ */
+export interface DiscussionMlsCommitRecord {
+  /**
+   * Stable commit record identifier referenced by discussion comment metadata.
+   */
+  id: string;
+
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * MLS epoch after applying the commit.
+   */
+  epoch: number;
+
+  /**
+   * Base64-encoded MLS commit bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Client device id that produced the commit.
+   */
+  senderDeviceId: string;
+
+  /**
+   * When the commit was relayed through Team Hub.
+   */
+  createdAt: Date;
+
+  /**
+   * User who posted the commit relay record.
+   */
+  createdByUserId: string | null;
+}
+
+/**
+ * Persisted MLS welcome delivered to a newly added device.
+ */
+export interface DiscussionMlsWelcomeRecord {
+  /**
+   * Stable welcome record identifier referenced by discussion comment metadata.
+   */
+  id: string;
+
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Recipient device id for the welcome message.
+   */
+  recipientDeviceId: string;
+
+  /**
+   * Base64-encoded MLS welcome bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Base64-encoded ratchet tree bytes for group join.
+   */
+  ratchetTree: string;
+
+  /**
+   * When the welcome was relayed through Team Hub.
+   */
+  createdAt: Date;
+
+  /**
+   * User who posted the welcome relay record.
+   */
+  createdByUserId: string | null;
+}
+
+/**
+ * Input for posting an MLS commit relay record.
+ */
+export interface CreateDiscussionMlsCommitInput {
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * MLS epoch after applying the commit.
+   */
+  epoch: number;
+
+  /**
+   * Base64-encoded MLS commit bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Client device id that produced the commit.
+   */
+  senderDeviceId: string;
+}
+
+/**
+ * Input for posting an MLS welcome relay record.
+ */
+export interface CreateDiscussionMlsWelcomeInput {
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Recipient device id for the welcome message.
+   */
+  recipientDeviceId: string;
+
+  /**
+   * Base64-encoded MLS welcome bytes.
+   */
+  ciphertext: string;
+
+  /**
+   * Base64-encoded ratchet tree bytes for group join.
+   */
+  ratchetTree: string;
+}
+
+/**
+ * Input for upserting discussion MLS group state after a commit.
+ */
+export interface UpsertDiscussionMlsGroupStateInput {
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Latest MLS epoch observed for the thread.
+   */
+  currentEpoch: number;
+}
+
+/**
+ * Query options for listing MLS commits on a discussion thread.
+ */
+export interface ListDiscussionMlsCommitsOptions {
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Opaque pagination cursor from a prior list response.
+   */
+  cursor?: string;
+
+  /**
+   * Maximum number of commits to return.
+   */
+  limit?: number;
+}
+
+/**
+ * Paginated MLS commit list response.
+ */
+export interface ListDiscussionMlsCommitsResult {
+  /**
+   * Commits in ascending epoch order for the requested page.
+   */
+  commits: DiscussionMlsCommitRecord[];
+
+  /**
+   * Opaque cursor for the next page, when more commits exist.
+   */
+  nextCursor?: string;
+}
+
+/**
+ * Query options for listing MLS welcomes on a discussion thread.
+ */
+export interface ListDiscussionMlsWelcomesOptions {
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * Optional recipient device id filter.
+   */
+  recipientDeviceId?: string;
+}
+
+/**
+ * Paginated MLS welcome list response.
+ */
+export interface ListDiscussionMlsWelcomesResult {
+  /**
+   * Welcome records in creation order for the requested page.
+   */
+  welcomes: DiscussionMlsWelcomeRecord[];
+}
+
+/**
+ * Input for enrolling a new device key on an E2EE-enabled Team Hub.
+ */
+export interface CreateDeviceKeyInput {
+  /**
+   * Owning user account receiving the enrollment.
+   */
+  userId: string;
+
+  /**
+   * Client-generated stable device identifier.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label for operator listings.
+   */
+  label: string;
+
+  /**
+   * Format of {@link publicKeyMaterial}.
+   */
+  keyFormat?: DeviceKeyFormat;
+
+  /**
+   * Base64-encoded public key material uploaded by the client.
+   */
+  publicKeyMaterial: string;
 }
 
 /**
@@ -1435,6 +1832,462 @@ export interface SaveDocumentInput {
    * Optional sidebar marker (CSS color string) for visual grouping.
    */
   marker?: string | null;
+}
+
+/**
+ * Entity kinds that can host Team Hub discussion threads.
+ */
+export type DiscussionTargetEntityType = 'request' | 'collection' | 'folder' | 'runResult';
+
+/**
+ * Stored format for a discussion comment body.
+ */
+export type DiscussionBodyFormat = 'plaintext' | 'encrypted';
+
+/**
+ * Persisted Team Hub discussion comment with tree metadata.
+ */
+export interface DiscussionCommentRecord {
+  /**
+   * Stable comment identifier.
+   */
+  id: string;
+
+  /**
+   * Kind of entity this comment is attached to.
+   */
+  targetEntityType: DiscussionTargetEntityType;
+
+  /**
+   * Identifier of the target entity.
+   */
+  targetEntityId: string;
+
+  /**
+   * Parent comment id, or null for depth-1 comments.
+   */
+  parentCommentId: string | null;
+
+  /**
+   * Root thread id used for grouping and pagination.
+   */
+  rootCommentId: string;
+
+  /**
+   * Stored depth after server-side flattening (1 through 3).
+   */
+  depth: 1 | 2 | 3;
+
+  /**
+   * Comment body text; empty when tombstoned for normal clients.
+   */
+  body: string;
+
+  /**
+   * Body encoding format to support future encrypted payloads.
+   */
+  bodyFormat: DiscussionBodyFormat;
+
+  /**
+   * Optional metadata for encrypted or enriched bodies.
+   */
+  bodyMetadata: Record<string, unknown> | null;
+
+  /**
+   * User who authored the comment.
+   */
+  authorUserId: string | null;
+
+  /**
+   * When the comment was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the comment was last updated.
+   */
+  updatedAt: Date;
+
+  /**
+   * When the comment was tombstoned, or null when active.
+   */
+  tombstonedAt: Date | null;
+
+  /**
+   * User who tombstoned the comment, when applicable.
+   */
+  tombstonedByUserId: string | null;
+}
+
+/**
+ * Input for creating a discussion comment on a target entity.
+ */
+export interface CreateDiscussionCommentInput {
+  /**
+   * Entity type hosting the discussion thread.
+   */
+  targetEntityType: DiscussionTargetEntityType;
+
+  /**
+   * Entity identifier hosting the discussion thread.
+   */
+  targetEntityId: string;
+
+  /**
+   * Plaintext comment body.
+   */
+  body: string;
+
+  /**
+   * Parent comment id when creating a reply; omit for top-level comments.
+   */
+  parentCommentId?: string | null;
+
+  /**
+   * Body format; defaults to plaintext.
+   */
+  bodyFormat?: DiscussionBodyFormat;
+
+  /**
+   * Optional metadata for encrypted or enriched bodies.
+   */
+  bodyMetadata?: Record<string, unknown> | null;
+}
+
+/**
+ * Input for updating a discussion comment body.
+ */
+export interface UpdateDiscussionCommentInput {
+  /**
+   * Replacement body text or ciphertext.
+   */
+  body: string;
+
+  /**
+   * Body format; defaults to plaintext.
+   */
+  bodyFormat?: DiscussionBodyFormat;
+
+  /**
+   * Optional metadata for encrypted or enriched bodies.
+   */
+  bodyMetadata?: Record<string, unknown> | null;
+}
+
+/**
+ * Options when listing discussion comments for a target entity.
+ */
+export interface ListDiscussionCommentsOptions {
+  /**
+   * Entity type whose comments should be listed.
+   */
+  targetEntityType: DiscussionTargetEntityType;
+
+  /**
+   * Entity id whose comments should be listed.
+   */
+  targetEntityId: string;
+
+  /**
+   * ISO timestamp cursor; returns comments created strictly after this instant.
+   */
+  cursor?: string;
+
+  /**
+   * Maximum number of comments to return (default 50, max 100).
+   */
+  limit?: number;
+}
+
+/**
+ * Paginated list result for discussion comments on one target entity.
+ */
+export interface ListDiscussionCommentsResult {
+  /**
+   * Comments ordered oldest-first within the requested page.
+   */
+  comments: DiscussionCommentRecord[];
+
+  /**
+   * Cursor for the next page, or null when no further comments exist.
+   */
+  nextCursor: string | null;
+}
+
+/**
+ * Collaboration notice event kinds materialized for the notices feed.
+ */
+export type NoticeEventType =
+  | 'request.updated'
+  | 'discussion.comment'
+  | 'discussion.reply'
+  | 'discussion.mention'
+  | 'runResult.created'
+  | 'runResult.failed';
+
+/**
+ * Entity kinds referenced by collaboration notices.
+ */
+export type NoticeEntityType = 'request' | 'collection' | 'folder' | 'runResult';
+
+/**
+ * Short display metadata denormalized onto notice rows for list rendering.
+ */
+export interface NoticeDisplayMetadata {
+  /**
+   * Display name of the user who triggered the notice event.
+   */
+  actorName: string;
+
+  /**
+   * Human-readable label for the target entity (request name, folder name, etc.).
+   */
+  targetLabel: string;
+
+  /**
+   * HTTP method for request-scoped notices, when applicable.
+   */
+  method?: string;
+
+  /**
+   * Request display name when distinct from {@link targetLabel}.
+   */
+  requestName?: string;
+
+  /**
+   * Run result label when the notice references a saved run snapshot.
+   */
+  runLabel?: string;
+
+  /**
+   * Optional preview snippet such as the start of a discussion comment body.
+   */
+  previewText?: string;
+}
+
+/**
+ * Persisted collaboration notice scoped to one recipient user.
+ */
+export interface NoticeRecord {
+  /**
+   * Stable notice identifier.
+   */
+  id: string;
+
+  /**
+   * User who should receive the notice.
+   */
+  recipientUserId: string;
+
+  /**
+   * Event kind that created the notice.
+   */
+  eventType: NoticeEventType;
+
+  /**
+   * Primary entity type the notice deep-links to.
+   */
+  entityType: NoticeEntityType;
+
+  /**
+   * Primary entity identifier the notice deep-links to.
+   */
+  entityId: string;
+
+  /**
+   * Related request id, when the notice targets or references a request.
+   */
+  requestId: string | null;
+
+  /**
+   * Related collection id used for access filtering and navigation.
+   */
+  collectionId: string | null;
+
+  /**
+   * Related folder id, when applicable.
+   */
+  folderId: string | null;
+
+  /**
+   * Related run result id, when applicable.
+   */
+  runResultId: string | null;
+
+  /**
+   * Root discussion thread id (`rootCommentId`), when applicable.
+   */
+  discussionThreadId: string | null;
+
+  /**
+   * Discussion comment id that triggered the notice, when applicable.
+   */
+  discussionCommentId: string | null;
+
+  /**
+   * User who triggered the notice event.
+   */
+  actorUserId: string | null;
+
+  /**
+   * When the notice was created.
+   */
+  createdAt: Date;
+
+  /**
+   * When the recipient marked the notice read, or null while unread.
+   */
+  readAt: Date | null;
+
+  /**
+   * Denormalized labels for feed rendering without extra entity lookups.
+   */
+  displayMetadata: NoticeDisplayMetadata;
+}
+
+/**
+ * Input for creating a collaboration notice row.
+ */
+export interface CreateNoticeInput {
+  /**
+   * User who should receive the notice.
+   */
+  recipientUserId: string;
+
+  /**
+   * Event kind that created the notice.
+   */
+  eventType: NoticeEventType;
+
+  /**
+   * Primary entity type the notice deep-links to.
+   */
+  entityType: NoticeEntityType;
+
+  /**
+   * Primary entity identifier the notice deep-links to.
+   */
+  entityId: string;
+
+  /**
+   * Related request id, when applicable.
+   */
+  requestId?: string | null;
+
+  /**
+   * Related collection id for access filtering, when applicable.
+   */
+  collectionId?: string | null;
+
+  /**
+   * Related folder id, when applicable.
+   */
+  folderId?: string | null;
+
+  /**
+   * Related run result id, when applicable.
+   */
+  runResultId?: string | null;
+
+  /**
+   * Root discussion thread id, when applicable.
+   */
+  discussionThreadId?: string | null;
+
+  /**
+   * Discussion comment id that triggered the notice, when applicable.
+   */
+  discussionCommentId?: string | null;
+
+  /**
+   * User who triggered the notice event.
+   */
+  actorUserId: string;
+
+  /**
+   * Denormalized labels for feed rendering.
+   */
+  displayMetadata: NoticeDisplayMetadata;
+}
+
+/**
+ * Options when listing notices for the authenticated recipient.
+ */
+export interface ListNoticesOptions {
+  /**
+   * Recipient user id (always the authenticated user for API routes).
+   */
+  recipientUserId: string;
+
+  /**
+   * ISO timestamp cursor from a prior list response.
+   */
+  cursor?: string;
+
+  /**
+   * Maximum number of notices to return (default 50, max 100).
+   */
+  limit?: number;
+}
+
+/**
+ * Paginated list result for a recipient's notices feed.
+ */
+export interface ListNoticesResult {
+  /**
+   * Notices ordered newest-first within the requested page.
+   */
+  notices: NoticeRecord[];
+
+  /**
+   * Cursor for the next page, or null when no further notices exist.
+   */
+  nextCursor: string | null;
+}
+
+/**
+ * Per-user collaboration notification preference level.
+ */
+export type NotificationLevel = 'all' | 'mentions' | 'none';
+
+/**
+ * Persisted notification settings for one user account.
+ */
+export interface UserNotificationSettingsRecord {
+  /**
+   * User account id the settings belong to.
+   */
+  userId: string;
+
+  /**
+   * Selected notification level controlling notice volume.
+   */
+  level: NotificationLevel;
+
+  /**
+   * When the settings were last updated.
+   */
+  updatedAt: Date;
+}
+
+/**
+ * Persisted thread watch state for discussion notifications.
+ */
+export interface DiscussionThreadSubscriptionRecord {
+  /**
+   * Subscribed user account id.
+   */
+  userId: string;
+
+  /**
+   * Root comment id identifying the watched thread.
+   */
+  rootCommentId: string;
+
+  /**
+   * When the subscription was created.
+   */
+  createdAt: Date;
 }
 
 /**

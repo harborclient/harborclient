@@ -1,6 +1,11 @@
 import type { FastifyReply } from 'fastify';
 import { DuplicateUserNameError, ReservedUserNameError } from '#/db/userNameValidation.js';
 import { DeletionLockedError } from '#/db/deletionLockedError.js';
+import {
+  DiscussionCommentForbiddenError,
+  DiscussionCommentNotFoundError,
+  DiscussionCommentParentError
+} from '#/db/discussionCommentErrors.js';
 import { ValidationError } from '#/server/admin/userValidation.js';
 import { errorResponseSchema } from '#/server/routes/schemas/common.js';
 
@@ -71,6 +76,21 @@ export function handleDbError(reply: FastifyReply, error: unknown): boolean {
 
   if (error instanceof DeletionLockedError) {
     void reply.code(403).send(errorResponseSchema.parse({ error: error.message }));
+    return true;
+  }
+
+  if (error instanceof DiscussionCommentParentError) {
+    void reply.code(400).send(errorResponseSchema.parse({ error: error.message }));
+    return true;
+  }
+
+  if (error instanceof DiscussionCommentForbiddenError) {
+    void reply.code(403).send(errorResponseSchema.parse({ error: error.message }));
+    return true;
+  }
+
+  if (error instanceof DiscussionCommentNotFoundError) {
+    void reply.code(404).send(errorResponseSchema.parse({ error: error.message }));
     return true;
   }
 

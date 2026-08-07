@@ -1,5 +1,11 @@
 import { type JSX } from 'react';
-import { teamHubAvatarColorClass, teamHubInitials } from './teamHubInitials';
+import type { TeamHubAvatar } from '@harborclient/core/types';
+import {
+  teamHubAvatarColorClass,
+  teamHubAvatarColorClassFromKey,
+  teamHubInitials
+} from './teamHubInitials';
+import { formatNoticeBadgeCount } from './formatNoticeBadgeCount';
 
 interface Props {
   /**
@@ -13,9 +19,14 @@ interface Props {
   hubName: string;
 
   /**
-   * Display name used for initials (session user, persisted user, or hub name).
+   * Optional server-provided hub avatar metadata from session introspection.
    */
-  displayName: string;
+  hubAvatar?: TeamHubAvatar;
+
+  /**
+   * Fallback display name used for initials when server avatar metadata is absent.
+   */
+  fallbackDisplayName: string;
 
   /**
    * Whether the hub is soft-connected (backend mounted).
@@ -33,9 +44,29 @@ interface Props {
   expanded: boolean;
 
   /**
+   * Unread notice count for badge display.
+   */
+  unreadNoticeCount?: number;
+
+  /**
+   * When true, clicking the avatar opens the notices dropdown instead of toggling connection.
+   */
+  noticesEnabled?: boolean;
+
+  /**
+   * Registers the avatar button element for anchoring the notices dropdown.
+   */
+  registerAnchor?: (element: HTMLButtonElement | null) => void;
+
+  /**
    * Called when the user activates the avatar to toggle connection.
    */
   onToggle: () => void;
+
+  /**
+   * Called when the user opens the notices dropdown from the avatar or badge.
+   */
+  onOpenNotices?: () => void;
 }
 
 /**
@@ -48,29 +79,56 @@ const avatarFocusVisible =
  * Square initials avatar for one Team Hub in the sidebar rail footer.
  *
  * Connected hubs use a solid color tile; disconnected hubs are muted. A green
- * or grey status dot indicates whether the hub is currently reachable.
+ * or grey status dot indicates whether the hub is currently reachable. When
+ * notices are enabled, an unread badge appears on the avatar tile.
+ *
+ * Prefers server-provided hub avatar initials and color when available.
  *
  * @param props - Hub identity, connection/online state, and toggle handler.
  */
 export function TeamHubRailAvatar({
   hubId,
   hubName,
-  displayName,
+  hubAvatar,
+  fallbackDisplayName,
   connected,
   online,
   expanded,
-  onToggle
+  unreadNoticeCount = 0,
+  noticesEnabled = false,
+  registerAnchor,
+  onToggle,
+  onOpenNotices
 }: Props): JSX.Element {
-  const initials = teamHubInitials(displayName);
+  const initials = hubAvatar?.initials ?? teamHubInitials(fallbackDisplayName);
   const statusLabel = connected ? 'connected' : 'disconnected';
-  const ariaLabel = `${hubName}, ${statusLabel}`;
+  const badgeLabel = formatNoticeBadgeCount(unreadNoticeCount);
+  const noticesLabel =
+    badgeLabel != null
+      ? `${hubName}, ${statusLabel}, ${badgeLabel} unread notices`
+      : `${hubName}, ${statusLabel}, open notifications`;
+  const ariaLabel = noticesEnabled ? noticesLabel : `${hubName}, ${statusLabel}`;
   const showOnlineDot = connected && online;
   const tileColorClass = connected
-    ? teamHubAvatarColorClass(hubId)
+    ? hubAvatar?.color
+      ? teamHubAvatarColorClassFromKey(hubAvatar.color, hubId)
+      : teamHubAvatarColorClass(hubId)
     : 'bg-muted text-muted opacity-50 grayscale';
+
+  /**
+   * Opens notices when enabled; otherwise toggles hub connection state.
+   */
+  const handleClick = (): void => {
+    if (noticesEnabled && onOpenNotices) {
+      onOpenNotices();
+      return;
+    }
+    onToggle();
+  };
 
   return (
     <button
+      ref={registerAnchor}
       type="button"
       className={`hc-team-hub-rail-avatar inline-flex w-full cursor-pointer items-center rounded-none border-none bg-transparent text-sidebar-rail-text hover:bg-sidebar-rail-active ${
         expanded ? 'gap-2 px-3 py-1' : 'justify-center'
@@ -78,7 +136,7 @@ export function TeamHubRailAvatar({
       aria-label={ariaLabel}
       aria-pressed={connected}
       title={hubName}
-      onClick={onToggle}
+      onClick={handleClick}
     >
       <span
         className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center ${
@@ -91,6 +149,14 @@ export function TeamHubRailAvatar({
         >
           {initials}
         </span>
+        {badgeLabel != null ? (
+          <span
+            className="absolute -top-1 -right-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[14px] font-semibold text-white ring-2 ring-sidebar-rail"
+            aria-hidden
+          >
+            {badgeLabel}
+          </span>
+        ) : null}
         <span
           className={`absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-sidebar-rail ${
             showOnlineDot ? 'bg-success' : 'bg-muted'

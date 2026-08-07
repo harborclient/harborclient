@@ -23,6 +23,7 @@ import {
 import type { ScopedSettingsCoreFields } from '#/renderer/src/ui/Shared/ScopedSettings/scopedSettingsCore';
 import { GeneralSection } from './GeneralSection';
 import { GitSection } from './GitSection';
+import { EntityDiscussPanel } from '#/renderer/src/ui/Shared/Discuss/EntityDiscussPanel';
 import { collectionFormCoreFields } from './serialize';
 
 export interface Props {
@@ -254,8 +255,30 @@ export function Form({
       });
     }
 
+    entries.push({
+      value: 'discuss',
+      label: 'Discuss',
+      position: 'afterScripts',
+      panelClassName: 'flex min-h-0 flex-1 flex-col',
+      panel: () => (
+        <EntityDiscussPanel
+          connectionId={collection.connectionId}
+          entityType="collection"
+          entityUuid={collection.uuid}
+          ariaLabel="Collection discussion"
+        />
+      )
+    });
+
     return entries;
-  }, [isGitBacked, gitConnection, pluginTabs, collection.connectionId, collection.id]);
+  }, [
+    isGitBacked,
+    gitConnection,
+    pluginTabs,
+    collection.connectionId,
+    collection.id,
+    collection.uuid
+  ]);
 
   /**
    * Tab values shown in the strip, derived from the current tab list minus any
@@ -270,6 +293,7 @@ export function Form({
       'auth',
       'pre',
       'post',
+      'discuss',
       ...pluginTabs.map((entry) => entry.id)
     ];
     return values;

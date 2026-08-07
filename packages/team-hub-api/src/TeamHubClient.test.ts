@@ -14,6 +14,11 @@ describe('TeamHubClient', () => {
     return new TeamHubClient({ baseUrl, token });
   }
 
+  const sampleHubUserAvatar = {
+    avatarInitials: 'AL',
+    avatarColor: 'sky-600' as const
+  };
+
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
@@ -148,12 +153,46 @@ describe('TeamHubClient', () => {
     });
   });
 
+  describe('updateMyAvatar', () => {
+    it('sends bearer auth and parses the updated avatar payload', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            avatarInitials: 'ME',
+            avatarColor: 'rose-600'
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        )
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      const result = await client.updateMyAvatar({ initials: 'ME', color: 'rose-600' });
+
+      expect(result).toEqual({
+        avatarInitials: 'ME',
+        avatarColor: 'rose-600'
+      });
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/profile/avatar',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ initials: 'ME', color: 'rose-600' })
+        })
+      );
+    });
+  });
+
   describe('listAdminUsers', () => {
     it('sends bearer auth and parses the admin users list', async () => {
       const user = {
         id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'alice',
         role: 'user' as const,
+        ...sampleHubUserAvatar,
         collectionAccess: ['*'],
         environmentAccess: ['*'],
         snippetAccess: ['*'],
@@ -197,6 +236,7 @@ describe('TeamHubClient', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'alice-renamed',
         role: 'user' as const,
+        ...sampleHubUserAvatar,
         collectionAccess: ['*'],
         environmentAccess: ['*'],
         snippetAccess: ['*'],
@@ -264,6 +304,7 @@ describe('TeamHubClient', () => {
           id: '550e8400-e29b-41d4-a716-446655440000',
           name: 'alice',
           role: 'user' as const,
+          ...sampleHubUserAvatar,
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
@@ -421,6 +462,7 @@ describe('TeamHubClient', () => {
           id: '550e8400-e29b-41d4-a716-446655440000',
           name: 'alice',
           role: 'user' as const,
+          ...sampleHubUserAvatar,
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],
@@ -492,6 +534,7 @@ describe('TeamHubClient', () => {
           id: '550e8400-e29b-41d4-a716-446655440000',
           name: 'alice',
           role: 'user' as const,
+          ...sampleHubUserAvatar,
           collectionAccess: ['*'],
           environmentAccess: ['*'],
           snippetAccess: ['*'],

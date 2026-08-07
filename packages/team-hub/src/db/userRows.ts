@@ -78,6 +78,16 @@ export interface UserSqlRow {
    * Monthly token limit column, or null for unlimited.
    */
   llm_monthly_token_limit: number | null;
+
+  /**
+   * Avatar initials tile text column.
+   */
+  avatar_initials: string | null;
+
+  /**
+   * Avatar background color key column.
+   */
+  avatar_color: string | null;
 }
 
 /**
@@ -136,7 +146,9 @@ export function mapUserSqlRow(row: UserSqlRow): UserRecord {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     createdByUserId: row.created_by_user_id ?? null,
-    updatedByUserId: row.updated_by_user_id ?? null
+    updatedByUserId: row.updated_by_user_id ?? null,
+    avatarInitials: row.avatar_initials ?? null,
+    avatarColor: row.avatar_color ?? null
   };
 }
 
@@ -153,7 +165,7 @@ export function serializeAccessList(access: string[]): string {
 /**
  * Column list for SELECT queries against the users table.
  */
-export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, live_server_access, live_page_access, llm_access, llm_models, llm_monthly_token_limit, created_at, updated_at, created_by_user_id, updated_by_user_id`;
+export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, live_server_access, live_page_access, llm_access, llm_models, llm_monthly_token_limit, avatar_initials, avatar_color, created_at, updated_at, created_by_user_id, updated_by_user_id`;
 
 /**
  * Column list for SELECT queries against the collections table.

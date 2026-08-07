@@ -10,6 +10,48 @@ export { toTeamHubAuth, type TeamHubAuthConfig, type TeamHubAuthType } from './a
 export { isTeamHubCollectionDeleteForbiddenError } from './isTeamHubCollectionDeleteForbiddenError.js';
 export { isTeamHubSnippetsUnsupportedError } from './isTeamHubSnippetsUnsupportedError.js';
 export { isTeamHubSnippetsForbiddenError } from './isTeamHubSnippetsForbiddenError.js';
+export { isTeamHubCommunicationUnsupportedError } from './isTeamHubCommunicationUnsupportedError.js';
+export { isTeamHubNoticesUnsupportedError } from './isTeamHubNoticesUnsupportedError.js';
+export { isTeamHubNoticeStreamUnsupportedError } from './isTeamHubNoticeStreamUnsupportedError.js';
+export type {
+  CreateDiscussionCommentInput,
+  DiscussionAuthor,
+  DiscussionAuthorAvatar,
+  DiscussionComment,
+  DiscussionEncryptedPayloadInput,
+  DiscussionEntityType,
+  ListDiscussionsQuery,
+  ListDiscussionsResponse,
+  UpdateDiscussionCommentInput
+} from './discussionTypes.js';
+export type {
+  CreateDiscussionMlsCommitInput,
+  CreateDiscussionMlsWelcomeInput,
+  DiscussionMlsCommit,
+  DiscussionMlsGroupState,
+  DiscussionMlsWelcome,
+  ListDiscussionMlsCommitsQuery,
+  ListDiscussionMlsCommitsResponse,
+  ListDiscussionMlsWelcomesQuery,
+  ListDiscussionMlsWelcomesResponse
+} from './discussionMlsTypes.js';
+export type {
+  DiscussionThreadSubscription,
+  ListNoticesQuery,
+  ListNoticesResponse,
+  NoticeActor,
+  NoticeActorAvatar,
+  NoticeDisplayMetadata,
+  NoticeEntityType,
+  NoticeEventType,
+  NotificationLevel,
+  NotificationSettings,
+  NoticesUnreadCountResponse,
+  TeamHubNotice,
+  UpdateNotificationSettingsInput
+} from './noticeTypes.js';
+export type { NoticeStreamEvent, NoticeStreamHandlers } from './noticeStreamTypes.js';
+export { isNoticeStreamEvent, parseNoticeStreamEvent } from './readNoticeStream.js';
 export {
   HARBOR_PROTOCOL,
   INVITATION_CODE_PREFIX,
@@ -87,6 +129,8 @@ export type {
   UpdateDocumentInput,
   UpdateEnvironmentInput,
   UpdateHubUserInput,
+  UpdateMyAvatarInput,
+  UpdateMyAvatarResponse,
   UpdateLivePageInput,
   UpdateLiveServerInput,
   UpdateRequestInput,

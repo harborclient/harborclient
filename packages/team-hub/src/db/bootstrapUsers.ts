@@ -25,6 +25,8 @@ export function createBootstrapUserRecord(now: Date): UserRecord {
     llmAccess: false,
     llmModels: [],
     llmMonthlyTokenLimit: null,
+    avatarInitials: null,
+    avatarColor: null,
     createdAt: now,
     updatedAt: now,
     createdByUserId: null,

@@ -4,6 +4,26 @@ import type { HttpMethod, RequestProtocol } from './common';
 import type { SnippetScope } from '../snippetScope';
 
 /**
+ * Hub avatar presentation returned by Team Hub session introspection.
+ */
+export interface TeamHubAvatar {
+  /**
+   * Human-readable hub/tenant display name from the server.
+   */
+  name: string;
+
+  /**
+   * One or two uppercase initials shown in the avatar tile.
+   */
+  initials: string;
+
+  /**
+   * Persisted palette color key (for example `sky-600`).
+   */
+  color: string;
+}
+
+/**
  * A configured HarborClient Team Hub connection.
  */
 export interface TeamHub {
@@ -128,6 +148,11 @@ export interface TeamHubServiceFlags {
    * When true, this connection uses an admin token with management API access.
    */
   admin: boolean;
+
+  /**
+   * When true, the hub server exposes discussion/communication routes.
+   */
+  communication?: boolean;
 }
 
 /**
@@ -173,6 +198,33 @@ export interface TeamHubSessionScanResult {
    * Human-readable error when the scan failed; omitted on success.
    */
   error?: string;
+
+  /**
+   * When true, the authenticated token may call discussion routes on this hub.
+   *
+   * Derived from session capabilities during {@link scanTeamHubSessions}.
+   */
+  communicationAccess?: boolean;
+
+  /**
+   * When true, the hub requires encrypted discussion comment bodies.
+   *
+   * Derived from session capabilities during {@link scanTeamHubSessions}.
+   */
+  discussionE2ee?: boolean;
+
+  /**
+   * When true, this device has active local keys and a matching server enrollment.
+   *
+   * Derived during {@link scanTeamHubSessions} on E2EE hubs.
+   */
+  deviceEnrolled?: boolean;
+
+  /**
+   * Server-provided hub avatar metadata when the probe succeeded on a hub that
+   * exposes avatar fields in session responses.
+   */
+  hubAvatar?: TeamHubAvatar;
 }
 
 /**
@@ -631,6 +683,124 @@ export interface HubApiTokenRecord {
 }
 
 /**
+ * Device key metadata returned by enrollment and admin device routes.
+ */
+export interface HubDeviceKeyRecord {
+  /**
+   * Stable device key record identifier.
+   */
+  id: string;
+
+  /**
+   * Owning user account identifier.
+   */
+  userId: string;
+
+  /**
+   * Client-generated stable device identifier scoped per user and hub.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label chosen during enrollment.
+   */
+  label: string;
+
+  /**
+   * Format of the uploaded public key material.
+   */
+  keyFormat: 'identity-v1' | 'mls-key-package';
+
+  /**
+   * sha256 hex digest of the uploaded public key material.
+   */
+  fingerprint: string;
+
+  /**
+   * Short fingerprint prefix for operator listings.
+   */
+  fingerprintPrefix: string;
+
+  /**
+   * ISO 8601 timestamp when the device was enrolled.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the device last confirmed enrollment, if tracked.
+   */
+  lastSeenAt: string | null;
+
+  /**
+   * ISO 8601 timestamp when the device was revoked; null when active.
+   */
+  revokedAt: string | null;
+}
+
+/**
+ * Local and server enrollment status for the current device on one Team Hub.
+ */
+export interface TeamHubDeviceEnrollmentStatus {
+  /**
+   * True when local encrypted keys exist for this hub.
+   */
+  hasLocalIdentity: boolean;
+
+  /**
+   * True when the server reports an enrollment for the local device id.
+   */
+  isEnrolledOnServer: boolean;
+
+  /**
+   * True when the local device id matches an active, non-revoked server record.
+   */
+  isActiveEnrollment: boolean;
+
+  /**
+   * Locally stored identity metadata, if present.
+   */
+  localIdentity?: {
+    hubId: string;
+    userId: string;
+    deviceId: string;
+    serverDeviceKeyId: string;
+    label: string;
+    fingerprint: string;
+    enrolledAt: string;
+  };
+
+  /**
+   * Matching server enrollment record, if present.
+   */
+  serverDevice?: HubDeviceKeyRecord;
+}
+
+/**
+ * Input for enrolling the current device on an E2EE-enabled Team Hub.
+ */
+export interface EnrollHubDeviceInput {
+  /**
+   * Client-generated stable device identifier.
+   */
+  deviceId: string;
+
+  /**
+   * Human-readable label for admin listings.
+   */
+  label: string;
+
+  /**
+   * Base64-encoded public key material uploaded to the hub.
+   */
+  publicKeyMaterial: string;
+
+  /**
+   * Format of {@link publicKeyMaterial}; defaults to identity-v1 on the server.
+   */
+  keyFormat?: 'identity-v1' | 'mls-key-package';
+}
+
+/**
  * Response from creating a user account and initial API token.
  */
 export interface CreatedHubUser {
@@ -878,4 +1048,527 @@ export interface TeamHubInvitationRedeemResult {
    * Verified session for the redeemed bearer token.
    */
   session: TeamHubVerifiedSession;
+}
+
+/**
+ * Entity kinds that can host a Team Hub discussion thread.
+ */
+export type TeamHubDiscussionEntityType = 'request' | 'collection' | 'folder' | 'runResult';
+
+/**
+ * Target entity for Team Hub discussion IPC calls.
+ */
+export interface TeamHubDiscussionTarget {
+  /**
+   * Entity kind hosting the discussion.
+   */
+  entityType: TeamHubDiscussionEntityType;
+
+  /**
+   * Server-side entity UUID.
+   */
+  entityId: string;
+}
+
+/**
+ * Avatar presentation metadata returned with discussion authors.
+ */
+export interface TeamHubDiscussionAuthorAvatar {
+  /**
+   * One or two uppercase initials shown in the avatar badge.
+   */
+  initials: string;
+
+  /**
+   * CSS color string for the avatar background.
+   */
+  color: string;
+}
+
+/**
+ * Author metadata attached to a discussion comment.
+ */
+export interface TeamHubDiscussionAuthor {
+  /**
+   * Stable Team Hub user account identifier.
+   */
+  id: string;
+
+  /**
+   * Display name for the author.
+   */
+  name: string;
+
+  /**
+   * Avatar presentation when the hub exposes avatar metadata.
+   */
+  avatar?: TeamHubDiscussionAuthorAvatar;
+}
+
+/**
+ * Encrypted discussion payload metadata returned by E2EE Team Hub routes.
+ */
+export interface TeamHubDiscussionEncryptedPayload {
+  /**
+   * Base64-encoded ciphertext bytes stored on the server.
+   */
+  ciphertext: string;
+
+  /**
+   * MLS group identifier for the discussion thread.
+   */
+  mlsGroupId: string;
+
+  /**
+   * MLS epoch at encryption time.
+   */
+  epoch: number;
+
+  /**
+   * Client device id that produced the ciphertext.
+   */
+  senderDeviceId: string;
+
+  /**
+   * Encryption format used for the ciphertext.
+   */
+  keyFormat: 'identity-v1' | 'mls-v1';
+
+  /**
+   * Optional MLS commit reference for offline catch-up.
+   */
+  commitRef?: string;
+
+  /**
+   * Optional MLS welcome reference for device enrollment.
+   */
+  welcomeRef?: string;
+}
+
+/**
+ * One discussion comment returned by Team Hub discussion routes.
+ */
+export interface TeamHubDiscussionComment {
+  /**
+   * Stable comment identifier.
+   */
+  id: string;
+
+  /**
+   * Target entity kind for this comment tree.
+   */
+  entityType: TeamHubDiscussionEntityType;
+
+  /**
+   * Target entity UUID on the Team Hub server.
+   */
+  entityId: string;
+
+  /**
+   * Parent comment id, or null for a top-level comment.
+   */
+  parentCommentId: string | null;
+
+  /**
+   * Root comment id for the thread branch.
+   */
+  rootCommentId: string;
+
+  /**
+   * Nesting depth from 1 through 3.
+   */
+  depth: number;
+
+  /**
+   * Markdown/plain body text, or null when tombstoned or encrypted on the wire.
+   */
+  body: string | null;
+
+  /**
+   * Body encoding format persisted by the server.
+   */
+  bodyFormat: 'plaintext' | 'encrypted';
+
+  /**
+   * Encrypted payload metadata for local decryption on E2EE hubs.
+   */
+  encryptedPayload?: TeamHubDiscussionEncryptedPayload | null;
+
+  /**
+   * Author metadata for display and permissions.
+   */
+  author: TeamHubDiscussionAuthor;
+
+  /**
+   * ISO 8601 timestamp when the comment was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the comment was last updated.
+   */
+  updatedAt: string;
+
+  /**
+   * When true, the body was tombstoned and must not be shown.
+   */
+  tombstoned: boolean;
+}
+
+/**
+ * Paginated list response from discussion list routes.
+ */
+export interface TeamHubListDiscussionsResponse {
+  /**
+   * Comments in server sort order for the requested page.
+   */
+  comments: TeamHubDiscussionComment[];
+
+  /**
+   * Opaque cursor for the next page, when more comments exist.
+   */
+  nextCursor?: string;
+}
+
+/**
+ * Query parameters accepted by discussion list routes.
+ */
+export interface TeamHubListDiscussionsQuery {
+  /**
+   * Pagination cursor from a prior list response.
+   */
+  cursor?: string;
+
+  /**
+   * Maximum number of comments to return.
+   */
+  limit?: number;
+}
+
+/**
+ * Request body for creating a top-level discussion comment.
+ */
+export interface TeamHubCreateDiscussionInput {
+  /**
+   * Plaintext comment body for non-E2EE hubs.
+   */
+  body: string;
+
+  /**
+   * Parent comment id when creating a reply instead of a root comment.
+   */
+  parentCommentId?: string;
+}
+
+/**
+ * Request body for updating an existing discussion comment.
+ */
+export interface TeamHubUpdateDiscussionInput {
+  /**
+   * Replacement comment body text.
+   */
+  body: string;
+}
+
+/**
+ * Collaboration notice event kinds emitted by Team Hub.
+ */
+export type TeamHubNoticeEventType =
+  | 'request.updated'
+  | 'discussion.comment'
+  | 'discussion.reply'
+  | 'discussion.mention'
+  | 'runResult.created'
+  | 'runResult.failed';
+
+/**
+ * Per-user notification delivery preference.
+ */
+export type TeamHubNotificationLevel = 'all' | 'mentions' | 'none';
+
+/**
+ * Avatar presentation metadata returned with notice actors.
+ */
+export interface TeamHubNoticeActorAvatar {
+  /**
+   * One or two uppercase initials shown in the avatar badge.
+   */
+  initials: string;
+
+  /**
+   * Persisted avatar background color key (for example `sky-600`).
+   */
+  color: string;
+}
+
+/**
+ * Actor metadata attached to a notice row.
+ */
+export interface TeamHubNoticeActor {
+  /**
+   * Stable Team Hub user account identifier.
+   */
+  id: string;
+
+  /**
+   * Display name for the actor.
+   */
+  name: string;
+
+  /**
+   * Avatar presentation when the hub exposes avatar metadata.
+   */
+  avatar?: TeamHubNoticeActorAvatar;
+}
+
+/**
+ * Display metadata denormalized onto notice rows for feed rendering.
+ */
+export interface TeamHubNoticeDisplayMetadata {
+  /**
+   * Display name of the user who triggered the notice event.
+   */
+  actorName: string;
+
+  /**
+   * Human-readable label for the target entity.
+   */
+  targetLabel: string;
+
+  /**
+   * HTTP method for request-scoped notices, when applicable.
+   */
+  method?: string;
+
+  /**
+   * Request display name when distinct from the target label.
+   */
+  requestName?: string;
+
+  /**
+   * Run result label when the notice references a saved run snapshot.
+   */
+  runLabel?: string;
+
+  /**
+   * Optional preview snippet such as the start of a discussion comment body.
+   */
+  previewText?: string;
+}
+
+/**
+ * One collaboration notice returned by Team Hub notice routes.
+ */
+export interface TeamHubNotice {
+  /**
+   * Stable notice identifier.
+   */
+  id: string;
+
+  /**
+   * Notice event kind for copy and filtering.
+   */
+  eventType: TeamHubNoticeEventType;
+
+  /**
+   * Primary entity type the notice deep-links to.
+   */
+  entityType: TeamHubDiscussionEntityType;
+
+  /**
+   * Primary entity identifier the notice deep-links to.
+   */
+  entityId: string;
+
+  /**
+   * Related request id, when applicable.
+   */
+  requestId: string | null;
+
+  /**
+   * Related collection id for navigation and access filtering.
+   */
+  collectionId: string | null;
+
+  /**
+   * Related folder id, when applicable.
+   */
+  folderId: string | null;
+
+  /**
+   * Related run result id, when applicable.
+   */
+  runResultId: string | null;
+
+  /**
+   * Root discussion thread id, when applicable.
+   */
+  discussionThreadId: string | null;
+
+  /**
+   * Discussion comment id that triggered the notice, when applicable.
+   */
+  discussionCommentId: string | null;
+
+  /**
+   * Actor who triggered the notice.
+   */
+  actor: TeamHubNoticeActor;
+
+  /**
+   * ISO 8601 timestamp when the notice was created.
+   */
+  createdAt: string;
+
+  /**
+   * ISO 8601 timestamp when the notice was read, or null when unread.
+   */
+  readAt: string | null;
+
+  /**
+   * Denormalized labels for feed rendering without extra entity lookups.
+   */
+  displayMetadata: TeamHubNoticeDisplayMetadata;
+}
+
+/**
+ * Paginated list response from `GET /notices`.
+ */
+export interface TeamHubListNoticesResponse {
+  /**
+   * Notices in reverse-chronological order for the requested page.
+   */
+  notices: TeamHubNotice[];
+
+  /**
+   * Opaque cursor for the next page, when more notices exist.
+   */
+  nextCursor?: string;
+}
+
+/**
+ * Query parameters accepted by notice list routes.
+ */
+export interface TeamHubListNoticesQuery {
+  /**
+   * Pagination cursor from a prior list response.
+   */
+  cursor?: string;
+
+  /**
+   * Maximum number of notices to return.
+   */
+  limit?: number;
+}
+
+/**
+ * Response payload from `GET /notices/unread-count`.
+ */
+export interface TeamHubNoticesUnreadCountResponse {
+  /**
+   * Number of unread notices for the authenticated user.
+   */
+  count: number;
+}
+
+/**
+ * Compact notice event payload pushed from the main-process SSE subscription.
+ */
+export interface TeamHubNoticeStreamEvent {
+  /**
+   * Payload schema version.
+   */
+  v: 1;
+
+  /**
+   * Notice event kind.
+   */
+  type: 'notice.created';
+
+  /**
+   * Stable notice identifier.
+   */
+  noticeId: string;
+
+  /**
+   * Unread notice count after the event.
+   */
+  unreadCount: number;
+}
+
+/**
+ * IPC payload emitted when a Team Hub notice SSE stream delivers data or reconnects.
+ */
+export type TeamHubNoticeStreamMessage =
+  | {
+      /**
+       * Team hub connection id that produced the message.
+       */
+      hubId: string;
+
+      /**
+       * Message kind discriminator.
+       */
+      kind: 'event';
+
+      /**
+       * Parsed notice stream event.
+       */
+      event: TeamHubNoticeStreamEvent;
+    }
+  | {
+      /**
+       * Team hub connection id that reconnected.
+       */
+      hubId: string;
+
+      /**
+       * Message kind discriminator.
+       */
+      kind: 'reconnected';
+
+      /**
+       * REST-reconciled unread notice count after reconnect.
+       */
+      unreadCount: number;
+    };
+
+/**
+ * Current notification settings for the authenticated user.
+ */
+export interface TeamHubNotificationSettings {
+  /**
+   * Delivery preference for collaboration notices.
+   */
+  level: TeamHubNotificationLevel;
+
+  /**
+   * ISO 8601 timestamp when the settings were last updated.
+   */
+  updatedAt: string;
+}
+
+/**
+ * Request body for updating notification settings.
+ */
+export interface TeamHubUpdateNotificationSettingsInput {
+  /**
+   * Replacement notification delivery preference.
+   */
+  level: TeamHubNotificationLevel;
+}
+
+/**
+ * Thread subscription state for the authenticated user.
+ */
+export interface TeamHubDiscussionThreadSubscription {
+  /**
+   * When true, the user receives notices for this discussion thread.
+   */
+  subscribed: boolean;
+
+  /**
+   * Root comment id identifying the thread.
+   */
+  rootCommentId: string;
 }

@@ -12,12 +12,27 @@ import type {
   LlmUsageRecord,
   LlmUsageLogRecord,
   RunResultRecord,
+  DiscussionCommentRecord,
+  DeviceKeyRecord,
+  DiscussionMlsCommitRecord,
+  DiscussionMlsGroupStateRecord,
+  DiscussionMlsWelcomeRecord,
+  NoticeDisplayMetadata,
+  NoticeEntityType,
+  NoticeEventType,
+  NoticeRecord,
+  UserNotificationSettingsRecord,
+  DiscussionThreadSubscriptionRecord,
   SavedRequestRecord,
   DocumentRecord,
   UserRecord
 } from '#/db/types.js';
 import type {
   FirestoreApiTokenDocument,
+  FirestoreDeviceKeyDocument,
+  FirestoreDiscussionMlsCommitDocument,
+  FirestoreDiscussionMlsGroupStateDocument,
+  FirestoreDiscussionMlsWelcomeDocument,
   FirestoreAuditLogDocument,
   FirestoreCollectionDocument,
   FirestoreEnvironmentDocument,
@@ -30,6 +45,10 @@ import type {
   FirestoreRequestDocument,
   FirestoreDocumentDocument,
   FirestoreRunResultDocument,
+  FirestoreDiscussionCommentDocument,
+  FirestoreNoticeDocument,
+  FirestoreUserNotificationSettingsDocument,
+  FirestoreDiscussionThreadSubscriptionDocument,
   FirestoreUserDocument
 } from '#/db/firestore/types.js';
 import { readSidebarMarker } from '#/db/sidebarMarker.js';
@@ -54,7 +73,12 @@ function parseAuditEntityType(value: string): AuditEntityType {
     value === 'folder' ||
     value === 'request' ||
     value === 'document' ||
-    value === 'run_result'
+    value === 'run_result' ||
+    value === 'discussion_comment' ||
+    value === 'device_key' ||
+    value === 'discussion_mls_group_state' ||
+    value === 'discussion_mls_commit' ||
+    value === 'discussion_mls_welcome'
   ) {
     return value;
   }
@@ -114,6 +138,97 @@ export function mapFirestoreApiToken(id: string, data: FirestoreApiTokenDocument
 }
 
 /**
+ * Maps a Firestore document to the shared {@link DeviceKeyRecord} shape.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored device key fields.
+ * @returns Normalized device key record for application code.
+ */
+export function mapFirestoreDeviceKey(
+  id: string,
+  data: FirestoreDeviceKeyDocument
+): DeviceKeyRecord {
+  return {
+    id,
+    userId: data.userId,
+    deviceId: data.deviceId,
+    label: data.label,
+    keyFormat: data.keyFormat as DeviceKeyRecord['keyFormat'],
+    publicKeyMaterial: data.publicKeyMaterial,
+    fingerprint: data.fingerprint,
+    createdAt: data.createdAt,
+    lastSeenAt: data.lastSeenAt,
+    revokedAt: data.revokedAt,
+    createdByUserId: data.createdByUserId ?? null,
+    updatedByUserId: data.updatedByUserId ?? null
+  };
+}
+
+/**
+ * Maps a Firestore document to the shared {@link DiscussionMlsGroupStateRecord} shape.
+ *
+ * @param mlsGroupId - Document identifier matching the canonical MLS group id.
+ * @param data - Stored MLS group state fields.
+ */
+export function mapFirestoreDiscussionMlsGroupState(
+  mlsGroupId: string,
+  data: FirestoreDiscussionMlsGroupStateDocument
+): DiscussionMlsGroupStateRecord {
+  return {
+    mlsGroupId,
+    targetEntityType: data.targetEntityType as DiscussionMlsGroupStateRecord['targetEntityType'],
+    targetEntityId: data.targetEntityId,
+    currentEpoch: data.currentEpoch,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    createdByUserId: data.createdByUserId ?? null,
+    updatedByUserId: data.updatedByUserId ?? null
+  };
+}
+
+/**
+ * Maps a Firestore document to the shared {@link DiscussionMlsCommitRecord} shape.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored MLS commit fields.
+ */
+export function mapFirestoreDiscussionMlsCommit(
+  id: string,
+  data: FirestoreDiscussionMlsCommitDocument
+): DiscussionMlsCommitRecord {
+  return {
+    id,
+    mlsGroupId: data.mlsGroupId,
+    epoch: data.epoch,
+    ciphertext: data.ciphertext,
+    senderDeviceId: data.senderDeviceId,
+    createdAt: data.createdAt,
+    createdByUserId: data.createdByUserId ?? null
+  };
+}
+
+/**
+ * Maps a Firestore document to the shared {@link DiscussionMlsWelcomeRecord} shape.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored MLS welcome fields.
+ */
+export function mapFirestoreDiscussionMlsWelcome(
+  id: string,
+  data: FirestoreDiscussionMlsWelcomeDocument
+): DiscussionMlsWelcomeRecord {
+  return {
+    id,
+    mlsGroupId: data.mlsGroupId,
+    recipientDeviceId: data.recipientDeviceId,
+    ciphertext: data.ciphertext,
+    ratchetTree: data.ratchetTree,
+    createdAt: data.createdAt,
+    createdByUserId: data.createdByUserId ?? null
+  };
+}
+
+/**
  * Maps a Firestore document to the shared {@link UserRecord} shape.
  *
  * @param id - Document identifier.
@@ -136,7 +251,9 @@ export function mapFirestoreUser(id: string, data: FirestoreUserDocument): UserR
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
     createdByUserId: data.createdByUserId ?? null,
-    updatedByUserId: data.updatedByUserId ?? null
+    updatedByUserId: data.updatedByUserId ?? null,
+    avatarInitials: data.avatarInitials ?? null,
+    avatarColor: data.avatarColor ?? null
   };
 }
 
@@ -415,6 +532,104 @@ export function mapFirestoreRunResult(
     payload: data.payload,
     createdAt: data.createdAt,
     createdByUserId: data.createdByUserId ?? null
+  };
+}
+
+/**
+ * Maps a Firestore document to the shared {@link DiscussionCommentRecord} shape.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored discussion comment fields.
+ * @returns Normalized discussion comment record for application code.
+ */
+export function mapFirestoreDiscussionComment(
+  id: string,
+  data: FirestoreDiscussionCommentDocument
+): DiscussionCommentRecord {
+  return {
+    id,
+    targetEntityType: data.targetEntityType,
+    targetEntityId: data.targetEntityId,
+    parentCommentId: data.parentCommentId,
+    rootCommentId: data.rootCommentId,
+    depth: data.depth,
+    body: data.body,
+    bodyFormat: data.bodyFormat === 'encrypted' ? 'encrypted' : 'plaintext',
+    bodyMetadata: data.bodyMetadata,
+    authorUserId: data.authorUserId ?? null,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    tombstonedAt: data.tombstonedAt ?? null,
+    tombstonedByUserId: data.tombstonedByUserId ?? null
+  };
+}
+
+/**
+ * Maps a Firestore notice document to the shared {@link NoticeRecord} shape.
+ *
+ * @param id - Document identifier.
+ * @param data - Stored notice fields.
+ * @returns Normalized notice record for application code.
+ */
+export function mapFirestoreNotice(id: string, data: FirestoreNoticeDocument): NoticeRecord {
+  const metadata = data.displayMetadata ?? {};
+  const displayMetadata: NoticeDisplayMetadata = {
+    actorName: typeof metadata.actorName === 'string' ? metadata.actorName : 'Someone',
+    targetLabel: typeof metadata.targetLabel === 'string' ? metadata.targetLabel : '',
+    method: typeof metadata.method === 'string' ? metadata.method : undefined,
+    requestName: typeof metadata.requestName === 'string' ? metadata.requestName : undefined,
+    runLabel: typeof metadata.runLabel === 'string' ? metadata.runLabel : undefined,
+    previewText: typeof metadata.previewText === 'string' ? metadata.previewText : undefined
+  };
+
+  return {
+    id,
+    recipientUserId: data.recipientUserId,
+    eventType: data.eventType as NoticeEventType,
+    entityType: data.entityType as NoticeEntityType,
+    entityId: data.entityId,
+    requestId: data.requestId,
+    collectionId: data.collectionId,
+    folderId: data.folderId,
+    runResultId: data.runResultId,
+    discussionThreadId: data.discussionThreadId,
+    discussionCommentId: data.discussionCommentId,
+    actorUserId: data.actorUserId,
+    createdAt: data.createdAt,
+    readAt: data.readAt,
+    displayMetadata
+  };
+}
+
+/**
+ * Maps Firestore notification settings to the shared settings record shape.
+ *
+ * @param data - Stored notification settings fields.
+ * @returns Normalized notification settings record.
+ */
+export function mapFirestoreUserNotificationSettings(
+  data: FirestoreUserNotificationSettingsDocument
+): UserNotificationSettingsRecord {
+  return {
+    userId: data.userId,
+    level: data.level,
+    updatedAt: data.updatedAt
+  };
+}
+
+/**
+ * Maps Firestore thread subscription data to the shared subscription record shape.
+ *
+ * @param data - Stored subscription fields.
+ * @returns Normalized thread subscription record.
+ */
+export function mapFirestoreDiscussionThreadSubscription(
+  data: FirestoreDiscussionThreadSubscriptionDocument
+): DiscussionThreadSubscriptionRecord {
+  return {
+    userId: data.userId,
+    rootCommentId: data.rootCommentId,
+    createdAt: data.createdAt
   };
 }
 

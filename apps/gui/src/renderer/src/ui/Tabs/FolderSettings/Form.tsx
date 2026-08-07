@@ -8,6 +8,9 @@ import { ScopedHeadersSection } from '#/renderer/src/ui/Shared/ScopedSettings/Sc
 import { ScopedSettingsForm } from '#/renderer/src/ui/Shared/ScopedSettings/ScopedSettingsForm';
 import type { ScopedSettingsCoreFields } from '#/renderer/src/ui/Shared/ScopedSettings/scopedSettingsCore';
 import { folderFormCoreFields } from './serialize';
+import { EntityDiscussPanel } from '#/renderer/src/ui/Shared/Discuss/EntityDiscussPanel';
+import { useAppSelector } from '#/renderer/src/store/hooks';
+import { selectCollections } from '#/renderer/src/store/selectors';
 
 export interface Props {
   /**
@@ -86,6 +89,9 @@ export function Form({
   seed,
   onDraftChange
 }: Props): JSX.Element {
+  const collections = useAppSelector(selectCollections);
+  const collection = collections.find((entry) => entry.id === folder.collection_id);
+
   /**
    * Normalized persisted snapshot used to seed and compare scoped form fields.
    */
@@ -114,6 +120,22 @@ export function Form({
       focusSection={focusSection}
       preScriptDescription="Runs in the folder pre-request stage before every request in this folder, after collection scripts and before each request's pre-request stage. Supports {{variable}} syntax."
       postScriptDescription="Runs in the folder post-request stage after every request in this folder, after collection scripts and before each request's post-request stage. Supports {{variable}} syntax."
+      extraTabs={[
+        {
+          value: 'discuss',
+          label: 'Discuss',
+          position: 'afterScripts',
+          panelClassName: 'flex min-h-0 flex-1 flex-col',
+          panel: () => (
+            <EntityDiscussPanel
+              connectionId={collection?.connectionId}
+              entityType="folder"
+              entityUuid={folder.uuid}
+              ariaLabel="Folder discussion"
+            />
+          )
+        }
+      ]}
       onClose={onClose}
       onDirtyChange={onDirtyChange}
       onDraftChange={onDraftChange}

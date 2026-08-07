@@ -58,7 +58,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
   });
 
@@ -87,7 +88,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
   });
 
@@ -139,7 +141,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
   });
 
@@ -179,7 +182,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
   });
 
@@ -220,7 +224,8 @@ ${sampleDbSection}${sampleRedisSection}plugins:
       },
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
-      multitenancy: { enabled: false }
+      multitenancy: { enabled: false },
+      collaboration: { e2ee: false }
     });
   });
 

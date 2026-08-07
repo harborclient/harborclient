@@ -208,6 +208,14 @@ Check `docker compose logs` or `docker logs team-hub`. Bundled Postgres + Redis 
 
 Redis is required for auth throttling. Verify Redis is running (bundled) or reachable (external Redis). See [Authentication](/auth).
 
+When `redis.noticeEventsPubSub: true` is set for multi-instance notice SSE fan-out, the notice stream route (`GET /notices/stream`) also requires a healthy Redis connection and returns **503** if pub/sub is unavailable.
+
+### Notice SSE (`GET /notices/stream`) disconnects behind a reverse proxy
+
+Long-lived Server-Sent Events need proxy buffering disabled and extended read timeouts. The bundled Docker image configures Nginx for `/notices/stream` automatically (`proxy_buffering off`, `proxy_read_timeout 1h`, HTTP/1.1).
+
+Self-hosted reverse proxies must apply equivalent settings on the SSE path only — normal REST routes can keep default buffering. HarborClient desktop clients fall back to REST polling when the stream is unavailable.
+
 ### Config file not found
 
 The CLI defaults to `server.yaml` in the current directory. In the container pass `/etc/team-hub/server.yaml` with `-c` before the subcommand:

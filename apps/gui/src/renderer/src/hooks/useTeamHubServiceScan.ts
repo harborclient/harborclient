@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TeamHub, TeamHubServiceFlags } from '@harborclient/core/types';
+import type { TeamHub, TeamHubAvatar, TeamHubServiceFlags } from '@harborclient/core/types';
 
 /**
  * Team hub service scan state for the hub list UI.
@@ -15,6 +15,11 @@ export interface TeamHubServiceScanState {
    * succeeded.
    */
   userNameByHubId: Map<string, string>;
+
+  /**
+   * Server-provided hub avatar metadata keyed by hub connection id.
+   */
+  hubAvatarByHubId: Map<string, TeamHubAvatar>;
 
   /**
    * Hub ids whose tokens report management API capabilities.
@@ -42,6 +47,7 @@ function emptyServices(): TeamHubServiceFlags {
     openai: false,
     pluginCatalog: false,
     snippets: false,
+    communication: false,
     admin: false
   };
 }
@@ -63,6 +69,7 @@ export function useTeamHubServiceScan(
     () => new Map<string, TeamHubServiceFlags>()
   );
   const [userNameByHubId, setUserNameByHubId] = useState(() => new Map<string, string>());
+  const [hubAvatarByHubId, setHubAvatarByHubId] = useState(() => new Map<string, TeamHubAvatar>());
   const [adminHubIds, setAdminHubIds] = useState<Set<string>>(() => new Set());
   const [scanning, setScanning] = useState(false);
   const [scanToken, setScanToken] = useState(0);
@@ -88,6 +95,7 @@ export function useTeamHubServiceScan(
         setScanning(true);
         setServiceFlagsByHubId(new Map());
         setUserNameByHubId(new Map());
+        setHubAvatarByHubId(new Map());
         setAdminHubIds(new Set());
         return window.api.scanTeamHubSessions();
       })
@@ -96,12 +104,16 @@ export function useTeamHubServiceScan(
 
         const nextServiceFlags = new Map<string, TeamHubServiceFlags>();
         const nextUserNames = new Map<string, string>();
+        const nextHubAvatars = new Map<string, TeamHubAvatar>();
         const nextAdminHubIds = new Set<string>();
 
         for (const result of results) {
           nextServiceFlags.set(result.hubId, result.services);
           if (result.user?.name) {
             nextUserNames.set(result.hubId, result.user.name);
+          }
+          if (result.hubAvatar) {
+            nextHubAvatars.set(result.hubId, result.hubAvatar);
           }
           if (result.managementApi) {
             nextAdminHubIds.add(result.hubId);
@@ -116,6 +128,7 @@ export function useTeamHubServiceScan(
 
         setServiceFlagsByHubId(nextServiceFlags);
         setUserNameByHubId(nextUserNames);
+        setHubAvatarByHubId(nextHubAvatars);
         setAdminHubIds(nextAdminHubIds);
         setScanning(false);
       })
@@ -123,6 +136,7 @@ export function useTeamHubServiceScan(
         if (cancelled) return;
         setServiceFlagsByHubId(new Map(teamHubs.map((hub) => [hub.id, emptyServices()])));
         setUserNameByHubId(new Map());
+        setHubAvatarByHubId(new Map());
         setAdminHubIds(new Set());
         setScanning(false);
       });
@@ -136,11 +150,19 @@ export function useTeamHubServiceScan(
     return {
       serviceFlagsByHubId: new Map(),
       userNameByHubId: new Map(),
+      hubAvatarByHubId: new Map(),
       adminHubIds: new Set(),
       scanning: false,
       rescanServices
     };
   }
 
-  return { serviceFlagsByHubId, userNameByHubId, adminHubIds, scanning, rescanServices };
+  return {
+    serviceFlagsByHubId,
+    userNameByHubId,
+    hubAvatarByHubId,
+    adminHubIds,
+    scanning,
+    rescanServices
+  };
 }

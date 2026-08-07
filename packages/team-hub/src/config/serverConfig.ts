@@ -14,8 +14,14 @@ import {
   normalizeMultitenancyConfig,
   type MultitenancyConfig
 } from '#/config/multitenancyConfig.js';
+import {
+  DEFAULT_COLLABORATION_CONFIG,
+  normalizeCollaborationConfig,
+  type CollaborationConfig
+} from '#/config/collaborationConfig.js';
 import { normalizePluginsConfig, type PluginsConfig } from '#/config/pluginsConfig.js';
 import {
+  collaborationSectionSchema,
   dbSectionSchema,
   docsSectionSchema,
   llmSectionSchema,
@@ -77,6 +83,11 @@ export interface ServerConfig {
    * Normalized multitenancy settings (defaults apply when the section is omitted).
    */
   multitenancy: MultitenancyConfig;
+
+  /**
+   * Normalized collaboration settings (defaults apply when the section is omitted).
+   */
+  collaboration: CollaborationConfig;
 }
 
 /**
@@ -267,6 +278,15 @@ function parseServerConfig(document: unknown): ServerConfig {
     multitenancy = normalizeMultitenancyConfig(parsedMultitenancySection.data);
   }
 
+  let collaboration = DEFAULT_COLLABORATION_CONFIG;
+  if (root.collaboration !== undefined) {
+    const parsedCollaborationSection = collaborationSectionSchema.safeParse(root.collaboration);
+    if (!parsedCollaborationSection.success) {
+      throw new ConfigError(formatZodError(parsedCollaborationSection.error));
+    }
+    collaboration = normalizeCollaborationConfig(parsedCollaborationSection.data);
+  }
+
   return {
     port: parsedDocument.data.server.port,
     host: parsedDocument.data.server.host,
@@ -276,7 +296,8 @@ function parseServerConfig(document: unknown): ServerConfig {
     plugins,
     docs,
     logging,
-    multitenancy
+    multitenancy,
+    collaboration
   };
 }
 

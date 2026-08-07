@@ -8,6 +8,8 @@ ghcr.io/harborclient/team-hub:<version>
 
 The image includes **Nginx** (public entrypoint on `$PORT`, default `8080`), the **Team Hub API**, **Postgres** (default database), and **Redis** (authentication throttling). Production servers pull a prebuilt image — they do not need a Git checkout or a TypeScript build.
 
+Notice SSE (`GET /notices/stream`) is proxied through Nginx with buffering disabled. HarborClient desktop clients use the stream when available and fall back to REST polling on older servers or transient disconnects.
+
 For local development without the full image, run Postgres and Redis via [`docker compose up -d`](../../docker-compose.yml) and start Team Hub on the host — see [Setup](/setup).
 
 ## Choose a guide
