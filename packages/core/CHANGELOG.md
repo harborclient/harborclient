@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-08-07
+
 - Enhance discussion features and UI components. (`43dd0414`)
 - Implement Team Hub device and discussion management features. (`f03c2465`)
 
