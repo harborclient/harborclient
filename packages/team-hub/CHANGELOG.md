@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.9.0 - 2026-08-07
+
 - Enhance Team Hub documentation and API capabilities for discussions. (`c3428d53`)
 - Refactor IDatabase.ts to remove unused CreateDeviceKeyInput type. (`a8bad870`)
 - Enhance discussion features and UI components. (`43dd0414`)
