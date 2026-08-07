@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.0 - 2026-08-07
+
 - Enhance Team Hub documentation and API capabilities for discussions. (`c3428d53`)
 - Implement Team Hub device and discussion management features. (`f03c2465`)
 
