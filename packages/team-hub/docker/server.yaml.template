@@ -9,17 +9,43 @@ db:
   user: ${TEAM_HUB_DB_USER}
   password: ${TEAM_HUB_DB_PASSWORD}
   database: ${TEAM_HUB_DB_DATABASE}
+  max: ${TEAM_HUB_DB_MAX:-}
+  idleTimeoutMillis: ${TEAM_HUB_DB_IDLE_TIMEOUT_MILLIS:-}
+  connectionTimeoutMillis: ${TEAM_HUB_DB_CONNECTION_TIMEOUT_MILLIS:-}
+  ssl: ${TEAM_HUB_DB_SSL:-}
 
 redis:
   host: ${TEAM_HUB_REDIS_HOST}
   port: ${TEAM_HUB_REDIS_PORT}
-  # Optional: set to true when multiple Team Hub app instances share Redis for notice SSE fan-out.
-  # noticeEventsPubSub: false
+  # password: ${TEAM_HUB_REDIS_PASSWORD:-}
+  # Set to true when multiple Team Hub app instances share Redis for notice SSE fan-out.
+  noticeEventsPubSub: ${TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB}
 
 logging:
   level: ${TEAM_HUB_LOGGING_LEVEL}
-  file: ${TEAM_HUB_LOGGING_FILE}
+  file: ${TEAM_HUB_LOGGING_FILE:-}
   console: ${TEAM_HUB_LOGGING_CONSOLE}
+  format: ${TEAM_HUB_LOGGING_FORMAT}
+
+metrics:
+  enabled: ${TEAM_HUB_METRICS_ENABLED}
+  path: ${TEAM_HUB_METRICS_PATH}
+  authToken: ${TEAM_HUB_METRICS_AUTH_TOKEN:-}
+
+# Optional avatar object storage. Default driver db keeps images in the database.
+# For S3/GCS, mount a custom server.yaml (or uncomment and set env vars):
+# storage:
+#   driver: s3
+#   bucket: ${TEAM_HUB_STORAGE_BUCKET}
+#   region: ${TEAM_HUB_STORAGE_REGION:-}
+#   accessKeyId: ${TEAM_HUB_STORAGE_ACCESS_KEY_ID:-}
+#   secretAccessKey: ${TEAM_HUB_STORAGE_SECRET_ACCESS_KEY:-}
+
+# Optional hub-proxied LLM. Mount a custom server.yaml or uncomment:
+# llm:
+#   providers:
+#     openai:
+#       apiKey: ${TEAM_HUB_LLM_OPENAI_API_KEY}
 
 multitenancy:
   enabled: ${TEAM_HUB_MULTITENANCY_ENABLED}

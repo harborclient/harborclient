@@ -52,6 +52,7 @@ ENV PORT=8080 \
   TEAM_HUB_CONFIG=/etc/team-hub/server.yaml \
   TEAM_HUB_START_POSTGRES=true \
   TEAM_HUB_START_REDIS=true \
+  TEAM_HUB_SKIP_MIGRATE=false \
   TEAM_HUB_DB_DRIVER=postgres \
   TEAM_HUB_DB_HOST=127.0.0.1 \
   TEAM_HUB_DB_PORT=5432 \
@@ -63,6 +64,9 @@ ENV PORT=8080 \
   TEAM_HUB_LOGGING_LEVEL=info \
   TEAM_HUB_LOGGING_FILE=/var/log/team-hub/team-hub.log \
   TEAM_HUB_LOGGING_CONSOLE=true \
+  TEAM_HUB_LOGGING_FORMAT=json \
+  TEAM_HUB_METRICS_ENABLED=true \
+  TEAM_HUB_METRICS_PATH=/metrics \
   PGDATA=/var/lib/postgresql/data
 
 COPY --from=builder /deploy/ ./

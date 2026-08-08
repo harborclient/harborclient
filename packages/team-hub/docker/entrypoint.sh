@@ -8,17 +8,31 @@ export TEAM_HUB_HOST="${TEAM_HUB_HOST:-127.0.0.1}"
 export TEAM_HUB_CONFIG="${TEAM_HUB_CONFIG:-/etc/team-hub/server.yaml}"
 export TEAM_HUB_START_POSTGRES="${TEAM_HUB_START_POSTGRES:-true}"
 export TEAM_HUB_START_REDIS="${TEAM_HUB_START_REDIS:-true}"
+# When true, start-team-hub.sh skips migrate (use a one-off Job for multi-replica deploys).
+export TEAM_HUB_SKIP_MIGRATE="${TEAM_HUB_SKIP_MIGRATE:-false}"
 export TEAM_HUB_DB_DRIVER="${TEAM_HUB_DB_DRIVER:-postgres}"
 export TEAM_HUB_DB_HOST="${TEAM_HUB_DB_HOST:-127.0.0.1}"
 export TEAM_HUB_DB_PORT="${TEAM_HUB_DB_PORT:-5432}"
 export TEAM_HUB_DB_USER="${TEAM_HUB_DB_USER:-harbor}"
 export TEAM_HUB_DB_PASSWORD="${TEAM_HUB_DB_PASSWORD:-harbor}"
 export TEAM_HUB_DB_DATABASE="${TEAM_HUB_DB_DATABASE:-harbor}"
+# Optional pool tuning. Empty defaults omit the setting (driver defaults apply).
+export TEAM_HUB_DB_MAX="${TEAM_HUB_DB_MAX:-}"
+export TEAM_HUB_DB_IDLE_TIMEOUT_MILLIS="${TEAM_HUB_DB_IDLE_TIMEOUT_MILLIS:-}"
+export TEAM_HUB_DB_CONNECTION_TIMEOUT_MILLIS="${TEAM_HUB_DB_CONNECTION_TIMEOUT_MILLIS:-}"
+# Optional TLS toggle for rendered config (`true` / `false`). Object SSL needs a mounted server.yaml.
+export TEAM_HUB_DB_SSL="${TEAM_HUB_DB_SSL:-}"
 export TEAM_HUB_REDIS_HOST="${TEAM_HUB_REDIS_HOST:-127.0.0.1}"
 export TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT:-6379}"
+# Enable Redis pub/sub for cross-instance notice SSE fan-out (default false).
+export TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB="${TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB:-false}"
 export TEAM_HUB_LOGGING_LEVEL="${TEAM_HUB_LOGGING_LEVEL:-info}"
 export TEAM_HUB_LOGGING_FILE="${TEAM_HUB_LOGGING_FILE:-/var/log/team-hub/team-hub.log}"
 export TEAM_HUB_LOGGING_CONSOLE="${TEAM_HUB_LOGGING_CONSOLE:-true}"
+export TEAM_HUB_LOGGING_FORMAT="${TEAM_HUB_LOGGING_FORMAT:-json}"
+export TEAM_HUB_METRICS_ENABLED="${TEAM_HUB_METRICS_ENABLED:-true}"
+export TEAM_HUB_METRICS_PATH="${TEAM_HUB_METRICS_PATH:-/metrics}"
+export TEAM_HUB_METRICS_AUTH_TOKEN="${TEAM_HUB_METRICS_AUTH_TOKEN:-}"
 export TEAM_HUB_MULTITENANCY_ENABLED="${TEAM_HUB_MULTITENANCY_ENABLED:-false}"
 
 PGDATA="${PGDATA:-/var/lib/postgresql/data}"
@@ -72,11 +86,12 @@ fi
 mkdir -p /etc/team-hub /var/log/team-hub /var/run/team-hub
 chmod 755 /var/log/team-hub /var/run/team-hub
 
-# Renders server.yaml from env vars on first boot only. Preserves manual edits and
-# mounted configs across restarts unless TEAM_HUB_FORCE_CONFIG_GENERATE=true.
+# Copies server.yaml template on first boot only. Placeholders like
+# ${TEAM_HUB_DB_PASSWORD} stay in the file; Node resolves them from the process
+# environment at load and on config reload. Preserves manual edits and mounted
+# configs across restarts unless TEAM_HUB_FORCE_CONFIG_GENERATE=true.
 if [ "${TEAM_HUB_FORCE_CONFIG_GENERATE:-false}" = "true" ] || [ ! -s "${TEAM_HUB_CONFIG}" ]; then
-  envsubst '${TEAM_HUB_PORT} ${TEAM_HUB_HOST} ${TEAM_HUB_DB_DRIVER} ${TEAM_HUB_DB_HOST} ${TEAM_HUB_DB_PORT} ${TEAM_HUB_DB_USER} ${TEAM_HUB_DB_PASSWORD} ${TEAM_HUB_DB_DATABASE} ${TEAM_HUB_REDIS_HOST} ${TEAM_HUB_REDIS_PORT} ${TEAM_HUB_LOGGING_LEVEL} ${TEAM_HUB_LOGGING_FILE} ${TEAM_HUB_LOGGING_CONSOLE} ${TEAM_HUB_MULTITENANCY_ENABLED}' \
-    < /docker/server.yaml.template > "${TEAM_HUB_CONFIG}"
+  cp /docker/server.yaml.template "${TEAM_HUB_CONFIG}"
 else
   echo "entrypoint: keeping existing config at ${TEAM_HUB_CONFIG}"
 fi
@@ -100,7 +115,7 @@ autorestart=true
 priority=30
 stdout_logfile=/var/log/team-hub/team-hub.log
 stderr_logfile=/var/log/team-hub/team-hub.err.log
-environment=TEAM_HUB_CONFIG="${TEAM_HUB_CONFIG}",TEAM_HUB_START_POSTGRES="${TEAM_HUB_START_POSTGRES}",TEAM_HUB_START_REDIS="${TEAM_HUB_START_REDIS}",TEAM_HUB_DB_DRIVER="${TEAM_HUB_DB_DRIVER}",TEAM_HUB_DB_HOST="${TEAM_HUB_DB_HOST}",TEAM_HUB_DB_PORT="${TEAM_HUB_DB_PORT}",TEAM_HUB_REDIS_HOST="${TEAM_HUB_REDIS_HOST}",TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT}"
+environment=TEAM_HUB_CONFIG="${TEAM_HUB_CONFIG}",TEAM_HUB_START_POSTGRES="${TEAM_HUB_START_POSTGRES}",TEAM_HUB_START_REDIS="${TEAM_HUB_START_REDIS}",TEAM_HUB_SKIP_MIGRATE="${TEAM_HUB_SKIP_MIGRATE}",TEAM_HUB_DB_DRIVER="${TEAM_HUB_DB_DRIVER}",TEAM_HUB_DB_HOST="${TEAM_HUB_DB_HOST}",TEAM_HUB_DB_PORT="${TEAM_HUB_DB_PORT}",TEAM_HUB_REDIS_HOST="${TEAM_HUB_REDIS_HOST}",TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT}",TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB="${TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB}"
 
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"

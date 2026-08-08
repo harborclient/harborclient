@@ -1,0 +1,27 @@
+# Notice SSE path with buffering disabled and long timeouts.
+# Mirrors packages/team-hub/docker/nginx.conf.template (/notices/stream).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: team-hub-notices
+  namespace: team-hub
+  labels:
+    app: team-hub
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-buffering: 'off'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: team-hub.example.com
+      http:
+        paths:
+          - path: /notices/stream
+            pathType: Prefix
+            backend:
+              service:
+                name: team-hub
+                port:
+                  number: 80

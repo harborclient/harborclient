@@ -108,6 +108,7 @@ describe('createTenantResolutionHook', () => {
       avatarInitials: null,
       avatarColor: null,
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null
     });

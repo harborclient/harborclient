@@ -1,5 +1,6 @@
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { NoticeRecord } from '#/db/types.js';
+import { recordNoticeEventPublished } from '#/server/metrics/teamHubMetrics.js';
 import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
 import {
   NOTICE_STREAM_EVENT_VERSION,
@@ -49,6 +50,7 @@ export class NoticeEventPublisher {
       };
 
       await this.eventBus.publish(event);
+      recordNoticeEventPublished(event.type);
     }
   }
 }

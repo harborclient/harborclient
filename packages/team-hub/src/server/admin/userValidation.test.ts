@@ -121,6 +121,7 @@ describe('userValidation', () => {
     const input = buildAdminUserUpdateInput(existing, { imageDataUrl: null });
     expect(input).toMatchObject({
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null
     });

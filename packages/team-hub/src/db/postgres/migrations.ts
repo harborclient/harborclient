@@ -719,6 +719,14 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image_updated_at TIMESTAMPTZ;
 `.trim();
 
 /**
+ * Adds object-store key columns for externally stored avatar images.
+ */
+export const AVATAR_IMAGE_KEY_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image_key TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_key TEXT;
+`.trim();
+
+/**
  * DDL for creating the device_keys table when absent.
  */
 export const DEVICE_KEYS_MIGRATION_SQL = `
@@ -838,5 +846,6 @@ export const POSTGRES_MIGRATIONS = [
   DEVICE_KEYS_MIGRATION_SQL,
   DISCUSSION_MLS_MIGRATION_SQL,
   USERS_AVATAR_IMAGE_MIGRATION_SQL,
-  TENANT_AVATAR_IMAGE_MIGRATION_SQL
+  TENANT_AVATAR_IMAGE_MIGRATION_SQL,
+  AVATAR_IMAGE_KEY_MIGRATION_SQL
 ];

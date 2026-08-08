@@ -1,0 +1,37 @@
+# Non-secret Team Hub settings for multi-replica deploys against external
+# Postgres + Redis. Replace placeholder hosts before applying.
+#
+# Pool sizing: replicas × TEAM_HUB_DB_MAX ≤ max_connections × 0.75
+# See packages/team-hub/docs/configuration.md (Pool sizing).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: team-hub
+  namespace: team-hub
+data:
+  TEAM_HUB_START_POSTGRES: 'false'
+  TEAM_HUB_START_REDIS: 'false'
+  TEAM_HUB_SKIP_MIGRATE: 'true'
+  TEAM_HUB_REDIS_NOTICE_EVENTS_PUBSUB: 'true'
+  TEAM_HUB_DB_DRIVER: postgres
+  TEAM_HUB_DB_HOST: postgres.example.com
+  TEAM_HUB_DB_PORT: '5432'
+  TEAM_HUB_DB_USER: harbor
+  TEAM_HUB_DB_DATABASE: harbor
+  # Set for multi-replica connection budgeting (omit for driver default).
+  TEAM_HUB_DB_MAX: '10'
+  # Managed Postgres often requires TLS; set to false for plain local Postgres.
+  TEAM_HUB_DB_SSL: 'true'
+  TEAM_HUB_REDIS_HOST: redis.example.com
+  TEAM_HUB_REDIS_PORT: '6379'
+  TEAM_HUB_LOGGING_LEVEL: info
+  # Console for kubectl logs / cluster agents. Omit TEAM_HUB_LOGGING_FILE so the
+  # image entrypoint default applies (or set empty via a custom override).
+  TEAM_HUB_LOGGING_CONSOLE: 'true'
+  TEAM_HUB_LOGGING_FORMAT: json
+  TEAM_HUB_METRICS_ENABLED: 'true'
+  TEAM_HUB_METRICS_PATH: /metrics
+  TEAM_HUB_MULTITENANCY_ENABLED: 'false'
+  TEAM_HUB_SHUTDOWN_TIMEOUT_MS: '25000'
+  TEAM_HUB_PORT: '8787'
+  TEAM_HUB_HOST: '127.0.0.1'

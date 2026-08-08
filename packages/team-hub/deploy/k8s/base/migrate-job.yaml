@@ -1,0 +1,97 @@
+# One-shot schema migration. Run before the Deployment (and before each
+# schema-changing upgrade). Serving pods set TEAM_HUB_SKIP_MIGRATE=true.
+#
+# The image ENTRYPOINT always starts supervisord, so this Job overrides
+# command/args and copies server.yaml (with ${ENV} placeholders) into an
+# emptyDir. The migrate container resolves placeholders from env at runtime.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: team-hub-migrate
+  namespace: team-hub
+  labels:
+    app: team-hub
+    component: migrate
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: team-hub
+        component: migrate
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: config
+          emptyDir: {}
+      initContainers:
+        - name: copy-config
+          image: ghcr.io/harborclient/team-hub:latest
+          imagePullPolicy: IfNotPresent
+          command: ['/bin/bash', '-ec']
+          args:
+            - |
+              set -euo pipefail
+              cp /docker/server.yaml.template /config/server.yaml
+              echo "migrate-job: copied /config/server.yaml (env placeholders resolved by Node)"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+        - name: wait-deps
+          image: ghcr.io/harborclient/team-hub:latest
+          imagePullPolicy: IfNotPresent
+          command: ['/bin/bash', '-ec']
+          args:
+            - |
+              set -euo pipefail
+              wait_for_tcp() {
+                local host="$1"
+                local port="$2"
+                local label="$3"
+                local attempts="${4:-60}"
+                local attempt=1
+                while [ "$attempt" -le "$attempts" ]; do
+                  if bash -c "exec 3<>/dev/tcp/${host}/${port}" 2>/dev/null; then
+                    exec 3>&-
+                    exec 3<&-
+                    echo "migrate-job: ${label} is ready at ${host}:${port}"
+                    return 0
+                  fi
+                  echo "migrate-job: waiting for ${label} at ${host}:${port} (${attempt}/${attempts})"
+                  sleep 1
+                  attempt=$((attempt + 1))
+                done
+                echo "migrate-job: timed out waiting for ${label} at ${host}:${port}" >&2
+                return 1
+              }
+              TEAM_HUB_DB_DRIVER="${TEAM_HUB_DB_DRIVER:-postgres}"
+              TEAM_HUB_DB_HOST="${TEAM_HUB_DB_HOST:?TEAM_HUB_DB_HOST required}"
+              TEAM_HUB_DB_PORT="${TEAM_HUB_DB_PORT:-5432}"
+              TEAM_HUB_REDIS_HOST="${TEAM_HUB_REDIS_HOST:?TEAM_HUB_REDIS_HOST required}"
+              TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT:-6379}"
+              if [ "$TEAM_HUB_DB_DRIVER" = "postgres" ] || [ "$TEAM_HUB_DB_DRIVER" = "mysql" ]; then
+                wait_for_tcp "$TEAM_HUB_DB_HOST" "$TEAM_HUB_DB_PORT" "database"
+              fi
+              wait_for_tcp "$TEAM_HUB_REDIS_HOST" "$TEAM_HUB_REDIS_PORT" "Redis"
+          envFrom:
+            - configMapRef:
+                name: team-hub
+            - secretRef:
+                name: team-hub
+      containers:
+        - name: migrate
+          image: ghcr.io/harborclient/team-hub:latest
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          command: ['node', '/app/dist/cli.js']
+          args: ['-c', '/config/server.yaml', 'migrate']
+          envFrom:
+            - configMapRef:
+                name: team-hub
+            - secretRef:
+                name: team-hub
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true

@@ -3,11 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import { mergeGlobalOptions } from '#/cli/globalOptions.js';
 import { loadServerConfig, resolveConfigPath } from '#/config/serverConfig.js';
 import { createServer } from '#/index.js';
-import { disposeHubMcpConnections } from '#/server/llm/mcpClient.js';
+import { registerGracefulShutdown } from '#/server/gracefulShutdown.js';
 import {
   connectRuntimeContext,
   createRuntimeContext,
-  disconnectAll,
   logConfigReloadResult,
   reloadRuntimeConfig,
   type ReloadResult,
@@ -54,41 +53,6 @@ function formatListenAddress(address: string | null, port: number): string {
 
   const host = address.includes(':') && !address.startsWith('[') ? `[${address}]` : address;
   return `http://${host}:${port}`;
-}
-
-/**
- * Registers SIGINT and SIGTERM handlers that close the Fastify instance cleanly.
- *
- * @param app - Running Fastify server to shut down on signal.
- * @param ctx - Runtime context whose connections are closed during shutdown.
- */
-function registerGracefulShutdown(app: FastifyInstance, ctx: RuntimeContext): void {
-  /**
-   * Closes the server and exits the process after a termination signal.
-   *
-   * @param signal - Signal that triggered shutdown.
-   */
-  const shutdown = async (signal: NodeJS.Signals) => {
-    app.log.info(`Received ${signal}, shutting down.`);
-    await app.close();
-    await disposeHubMcpConnections();
-    await disconnectAll(ctx);
-    process.exit(0);
-  };
-
-  /**
-   * Forwards SIGINT to the shared shutdown handler.
-   */
-  process.once('SIGINT', () => {
-    void shutdown('SIGINT');
-  });
-
-  /**
-   * Forwards SIGTERM to the shared shutdown handler.
-   */
-  process.once('SIGTERM', () => {
-    void shutdown('SIGTERM');
-  });
 }
 
 /**

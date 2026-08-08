@@ -68,6 +68,11 @@ export interface FirestoreTenantDocument {
   avatarImage?: string | null;
 
   /**
+   * Object-store key for the hub avatar when external storage is used.
+   */
+  avatarImageKey?: string | null;
+
+  /**
    * MIME type for {@link avatarImage} (for example `image/jpeg`).
    */
   avatarImageMime?: string | null;
@@ -171,6 +176,11 @@ export interface FirestoreUserDocument {
    * Base64-encoded uploaded avatar image bytes, when present.
    */
   avatarImage?: string | null;
+
+  /**
+   * Object-store key for the user avatar when external storage is used.
+   */
+  avatarImageKey?: string | null;
 
   /**
    * MIME type for {@link avatarImage} (for example `image/jpeg`).

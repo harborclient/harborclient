@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import mysql, { type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
+import mysql, {
+  type Pool,
+  type PoolOptions,
+  type ResultSetHeader,
+  type RowDataPacket
+} from 'mysql2/promise';
 import { buildUserAvatarFieldsForCreate } from '#/avatar/userAvatarService.js';
 import { defaultAvatarPresentation } from '#/avatar/avatarPresentation.js';
 import { mapApiTokenSqlRow, type ApiTokenSqlRow } from '#/db/apiTokenRows.js';
@@ -83,6 +88,7 @@ import {
 } from '#/db/discussionCommentRows.js';
 import { DiscussionCommentNotFoundError } from '#/db/discussionCommentErrors.js';
 import type { IDatabase } from '#/db/IDatabase.js';
+import type { DbPoolStats } from '#/db/poolStats.js';
 import { MYSQL_DEFAULT_AUTH_JSON, MYSQL_MIGRATIONS } from '#/db/mysql/migrations.js';
 import { mysqlConfigSchema } from '#/db/mysql/schemas.js';
 import type { MysqlDatabaseConfig } from '#/db/mysql/types.js';
@@ -176,6 +182,44 @@ import type {
 import { formatZodError } from '#/db/validation.js';
 import { DEFAULT_TENANT_ID, isDefaultTenantId } from '#/config/multitenancyConfig.js';
 
+/**
+ * Builds mysql2 pool options from validated MySQL config.
+ *
+ * Maps the shared `max` / timeout field names to mysql2's `connectionLimit`,
+ * `idleTimeout`, and `connectTimeout`. Optional fields are omitted when unset
+ * so driver defaults remain unchanged for existing server.yaml files.
+ *
+ * @param config - Validated MySQL connection settings.
+ * @returns Options for `mysql.createPool(...)`.
+ */
+function buildMysqlPoolOptions(config: MysqlDatabaseConfig): PoolOptions {
+  const options: PoolOptions = {
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database
+  };
+
+  if (config.max !== undefined) {
+    options.connectionLimit = config.max;
+  }
+  if (config.idleTimeoutMillis !== undefined) {
+    options.idleTimeout = config.idleTimeoutMillis;
+  }
+  if (config.connectionTimeoutMillis !== undefined) {
+    options.connectTimeout = config.connectionTimeoutMillis;
+  }
+  if (config.ssl === true) {
+    // mysql2 enables TLS with an empty SslOptions object (boolean is not supported).
+    options.ssl = {};
+  } else if (config.ssl && typeof config.ssl === 'object') {
+    options.ssl = config.ssl;
+  }
+
+  return options;
+}
+
 const COLLECTION_SELECT = `SELECT ${COLLECTION_SELECT_COLUMNS} FROM collections`;
 const ENVIRONMENT_SELECT = `SELECT ${ENVIRONMENT_SELECT_COLUMNS} FROM environments`;
 const SNIPPET_SELECT = `SELECT ${SNIPPET_SELECT_COLUMNS} FROM snippets`;
@@ -263,7 +307,11 @@ export class MysqlDatabase implements IDatabase {
       port: parsed.data.port,
       user: parsed.data.user,
       password: parsed.data.password,
-      database: parsed.data.database
+      database: parsed.data.database,
+      max: parsed.data.max,
+      idleTimeoutMillis: parsed.data.idleTimeoutMillis,
+      connectionTimeoutMillis: parsed.data.connectionTimeoutMillis,
+      ssl: parsed.data.ssl
     });
   }
 
@@ -275,13 +323,7 @@ export class MysqlDatabase implements IDatabase {
       return;
     }
 
-    const pool = mysql.createPool({
-      host: this.config.host,
-      port: this.config.port,
-      user: this.config.user,
-      password: this.config.password,
-      database: this.config.database
-    });
+    const pool = mysql.createPool(buildMysqlPoolOptions(this.config));
 
     const connection = await pool.getConnection();
     await connection.ping();
@@ -303,6 +345,52 @@ export class MysqlDatabase implements IDatabase {
 
     await this.pool.end();
     this.pool = null;
+  }
+
+  /**
+   * Verifies MySQL connectivity with a connection ping for readiness probes.
+   *
+   * @throws {Error} When the pool is not connected or the ping fails.
+   */
+  async ping(): Promise<void> {
+    const connection = await this.requirePool().getConnection();
+    try {
+      await connection.ping();
+    } finally {
+      connection.release();
+    }
+  }
+
+  /**
+   * Returns live mysql2 pool utilization for Prometheus scrapes.
+   *
+   * mysql2 does not publish a public stats API, so counts are read from the
+   * internal pool queues when available.
+   *
+   * @returns Pool stats, or null when the pool has not been connected.
+   */
+  getPoolStats(): DbPoolStats | null {
+    if (!this.pool) {
+      return null;
+    }
+
+    const pool = this.pool as Pool & {
+      pool?: {
+        _allConnections?: { length: number };
+        _freeConnections?: { length: number };
+        _connectionQueue?: { length: number };
+      };
+      config: { connectionLimit?: number };
+    };
+    const inner = pool.pool;
+
+    return {
+      backend: 'mysql',
+      total: inner?._allConnections?.length ?? 0,
+      idle: inner?._freeConnections?.length ?? 0,
+      waiting: inner?._connectionQueue?.length ?? 0,
+      max: this.config.max ?? pool.config.connectionLimit ?? 10
+    };
   }
 
   /**
@@ -414,11 +502,12 @@ export class MysqlDatabase implements IDatabase {
           avatar_initials: string | null;
           avatar_color: string | null;
           avatar_image: string | null;
+          avatar_image_key: string | null;
           avatar_image_mime: string | null;
           avatar_image_updated_at: Date | null;
         }
     >(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
     );
     return rows.map((row) => ({
       id: row.id,
@@ -430,6 +519,7 @@ export class MysqlDatabase implements IDatabase {
       avatarInitials: row.avatar_initials,
       avatarColor: row.avatar_color,
       avatarImage: row.avatar_image,
+      avatarImageKey: row.avatar_image_key,
       avatarImageMime: row.avatar_image_mime,
       avatarImageUpdatedAt: row.avatar_image_updated_at
     }));
@@ -491,11 +581,12 @@ export class MysqlDatabase implements IDatabase {
           avatar_initials: string | null;
           avatar_color: string | null;
           avatar_image: string | null;
+          avatar_image_key: string | null;
           avatar_image_mime: string | null;
           avatar_image_updated_at: Date | null;
         }
     >(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = ? LIMIT 1',
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = ? LIMIT 1',
       [id]
     );
     const row = rows[0];
@@ -510,6 +601,7 @@ export class MysqlDatabase implements IDatabase {
           avatarInitials: row.avatar_initials,
           avatarColor: row.avatar_color,
           avatarImage: row.avatar_image,
+          avatarImageKey: row.avatar_image_key,
           avatarImageMime: row.avatar_image_mime,
           avatarImageUpdatedAt: row.avatar_image_updated_at
         }
@@ -549,6 +641,7 @@ export class MysqlDatabase implements IDatabase {
          SET avatar_initials = ?,
              avatar_color = ?,
              avatar_image = ?,
+             avatar_image_key = ?,
              avatar_image_mime = ?,
              avatar_image_updated_at = ?,
              updated_at = ?,
@@ -558,6 +651,7 @@ export class MysqlDatabase implements IDatabase {
           avatarInitials,
           avatarColor,
           image.imageBase64,
+          image.imageKey,
           image.mime,
           image.updatedAt,
           now,
@@ -805,6 +899,8 @@ export class MysqlDatabase implements IDatabase {
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
     const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageKey =
+      input.avatarImageKey !== undefined ? input.avatarImageKey : existing.avatarImageKey;
     const avatarImageMime =
       input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
     const avatarImageUpdatedAt =
@@ -828,6 +924,7 @@ export class MysqlDatabase implements IDatabase {
         avatar_initials = ?,
         avatar_color = ?,
         avatar_image = ?,
+        avatar_image_key = ?,
         avatar_image_mime = ?,
         avatar_image_updated_at = ?,
         updated_at = ?,
@@ -847,6 +944,7 @@ export class MysqlDatabase implements IDatabase {
         avatarInitials,
         avatarColor,
         avatarImage,
+        avatarImageKey,
         avatarImageMime,
         avatarImageUpdatedAt,
         updatedAt,

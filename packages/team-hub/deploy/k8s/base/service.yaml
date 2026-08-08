@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: team-hub
+  namespace: team-hub
+  labels:
+    app: team-hub
+spec:
+  type: ClusterIP
+  selector:
+    app: team-hub
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

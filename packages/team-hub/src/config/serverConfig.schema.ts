@@ -1,5 +1,35 @@
 import { z } from 'zod/v4';
 
+/**
+ * Coerces env-interpolated boolean YAML values (`true`/`false` strings or null/empty).
+ *
+ * @returns Zod schema yielding `boolean | undefined`.
+ */
+const optionalEnvBooleanSchema = z.preprocess((value) => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  return value;
+}, z.boolean().optional());
+
+/**
+ * Coerces optional string fields so null/empty env-interpolated values mean unset.
+ *
+ * @returns Zod schema yielding `string | undefined`.
+ */
+const optionalEnvStringSchema = z.preprocess((value) => {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  return value;
+}, z.string().optional());
+
 const portSchema = z.union([
   z
     .number()
@@ -73,7 +103,7 @@ export const redisSectionSchema = z
         z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1))
       ])
       .optional(),
-    noticeEventsPubSub: z.boolean().optional()
+    noticeEventsPubSub: optionalEnvBooleanSchema
   })
   .loose();
 
@@ -143,19 +173,69 @@ export const docsSectionSchema = z.object({
 export const logLevelSchema = z.enum(['debug', 'info', 'warn', 'error']);
 
 /**
+ * Zod schema for supported Winston formats in the optional `logging` section.
+ */
+export const logFormatSchema = z.enum(['json', 'simple']);
+
+/**
  * Zod schema for the optional `logging` section of the config file.
  */
 export const loggingSectionSchema = z.object({
   level: logLevelSchema.optional(),
-  file: z.string().trim().min(1).optional(),
-  console: z.boolean().optional()
+  file: z.preprocess((value) => {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+    return value;
+  }, z.string().trim().min(1).optional()),
+  console: optionalEnvBooleanSchema,
+  format: logFormatSchema.optional()
 });
+
+/**
+ * Zod schema for the optional `metrics` section of the config file.
+ */
+export const metricsSectionSchema = z.object({
+  enabled: optionalEnvBooleanSchema,
+  path: z.preprocess((value) => {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+    return value;
+  }, z.string().trim().min(1).optional()),
+  authToken: optionalEnvStringSchema
+});
+
+/**
+ * Zod schema for the optional `storage` section of the config file.
+ *
+ * Driver-specific required fields are enforced by {@link normalizeStorageConfig}.
+ */
+export const storageSectionSchema = z
+  .object({
+    driver: z.string().trim().min(1).optional(),
+    prefix: z.string().optional(),
+    signedUrlTtlSeconds: z
+      .union([
+        z.number().int().min(1),
+        z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1))
+      ])
+      .optional(),
+    bucket: z.string().optional(),
+    region: z.string().optional(),
+    endpoint: z.string().optional(),
+    accessKeyId: z.string().optional(),
+    secretAccessKey: z.string().optional(),
+    projectId: z.string().optional(),
+    keyFilename: z.string().optional()
+  })
+  .loose();
 
 /**
  * Zod schema for the optional `multitenancy` section of the config file.
  */
 export const multitenancySectionSchema = z.object({
-  enabled: z.boolean().optional()
+  enabled: optionalEnvBooleanSchema
 });
 
 /**
@@ -176,6 +256,8 @@ export const serverConfigDocumentSchema = z.object({
   plugins: pluginsSectionSchema.optional(),
   docs: docsSectionSchema.optional(),
   logging: loggingSectionSchema.optional(),
+  metrics: metricsSectionSchema.optional(),
+  storage: storageSectionSchema.optional(),
   multitenancy: multitenancySectionSchema.optional(),
   collaboration: collaborationSectionSchema.optional()
 });
@@ -204,6 +286,16 @@ export type DocsSection = z.infer<typeof docsSectionSchema>;
  * Validated shape of the optional logging section.
  */
 export type LoggingSection = z.infer<typeof loggingSectionSchema>;
+
+/**
+ * Validated shape of the optional metrics section.
+ */
+export type MetricsSection = z.infer<typeof metricsSectionSchema>;
+
+/**
+ * Validated shape of the optional storage section.
+ */
+export type StorageSection = z.infer<typeof storageSectionSchema>;
 
 /**
  * Validated shape of the optional multitenancy section.

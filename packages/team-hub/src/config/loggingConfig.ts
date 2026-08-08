@@ -6,6 +6,11 @@ import type { LoggingSection } from '#/config/serverConfig.schema.js';
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /**
+ * Supported Winston output formats for Team Hub.
+ */
+export type LogFormat = 'json' | 'simple';
+
+/**
  * Normalized logging configuration loaded from server.yaml.
  */
 export interface LoggingConfig {
@@ -23,6 +28,11 @@ export interface LoggingConfig {
    * When true, log messages are also written to the terminal.
    */
   console: boolean;
+
+  /**
+   * Wire format for log lines (`json` for Loki/Cloud Logging, `simple` for local terminals).
+   */
+  format: LogFormat;
 }
 
 /**
@@ -31,7 +41,8 @@ export interface LoggingConfig {
 export const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
   level: 'info',
   file: null,
-  console: true
+  console: true,
+  format: 'json'
 };
 
 /**
@@ -44,6 +55,7 @@ export function normalizeLoggingConfig(section?: LoggingSection): LoggingConfig 
   return {
     level: section?.level ?? DEFAULT_LOGGING_CONFIG.level,
     file: section?.file ?? DEFAULT_LOGGING_CONFIG.file,
-    console: section?.console ?? DEFAULT_LOGGING_CONFIG.console
+    console: section?.console ?? DEFAULT_LOGGING_CONFIG.console,
+    format: section?.format ?? DEFAULT_LOGGING_CONFIG.format
   };
 }

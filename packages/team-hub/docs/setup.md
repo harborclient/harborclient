@@ -53,7 +53,7 @@ team-hub -c /etc/team-hub/server.yaml start
 
 Most subcommands read `server.yaml` from the current working directory. Override the path with `-c` / `--config`. See [CLI — Global options](./cli.md#global-options).
 
-The server listens on the host and port configured under `server` in `server.yaml`. It handles graceful shutdown on `SIGINT` and `SIGTERM`, but it does **not** restart itself after a crash or reboot. Use a process supervisor for that (see below).
+The server listens on the host and port configured under `server` in `server.yaml`. On `SIGINT` and `SIGTERM` it drains notice SSE streams, fails `GET /readyz` immediately, disposes hub MCP connections, and disconnects DB/Redis. A force-exit timer (`TEAM_HUB_SHUTDOWN_TIMEOUT_MS`, default 25s) prevents hangs past the supervisor stop timeout. The server does **not** restart itself after a crash or reboot — use a process supervisor for that (see below).
 
 ### Development only
 

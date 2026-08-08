@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { CollaborationConfig } from '#/config/collaborationConfig.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
+import { DEFAULT_STORAGE_CONFIG, isExternalBlobStorage } from '#/config/storageConfig.js';
 import { updateUserAvatar } from '#/avatar/userAvatarService.js';
 import { ensureHubAvatar } from '#/avatar/hubAvatarService.js';
 import type { IDatabase } from '#/db/IDatabase.js';
@@ -13,6 +15,8 @@ import {
   updateMyAvatarResponseSchema
 } from '#/server/routes/schemas/auth.js';
 import { errorResponseSchema } from '#/server/routes/schemas/common.js';
+import { DbBlobStorage } from '#/storage/dbBlobStorage.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
 import { z } from 'zod/v4';
 
 /**
@@ -33,6 +37,16 @@ export interface RegisterAuthRoutesOptions {
    * Returns the active collaboration configuration for capability serialization.
    */
   getCollaboration: () => CollaborationConfig;
+
+  /**
+   * Returns the active avatar storage configuration.
+   */
+  getStorage?: () => StorageConfig;
+
+  /**
+   * Blob storage client used when external avatar storage is enabled.
+   */
+  blobStorage?: IBlobStorage;
 }
 
 /**
@@ -46,6 +60,16 @@ export async function registerAuthRoutes(
   options: RegisterAuthRoutesOptions
 ): Promise<void> {
   const routes = app.withTypeProvider<ZodTypeProvider>();
+  const getStorage = options.getStorage ?? (() => DEFAULT_STORAGE_CONFIG);
+  const blobStorage = options.blobStorage ?? new DbBlobStorage();
+
+  /**
+   * Builds optional blob-storage deps for avatar write paths.
+   */
+  function avatarBlobOptions() {
+    const storage = getStorage();
+    return { storage, blobStorage };
+  }
 
   routes.route({
     method: 'GET',
@@ -98,7 +122,8 @@ export async function registerAuthRoutes(
             color: request.body.color,
             imageDataUrl: request.body.imageDataUrl
           },
-          user.id
+          user.id,
+          avatarBlobOptions()
         );
 
         return reply.send({
@@ -128,18 +153,30 @@ export async function registerAuthRoutes(
       }
     },
     /**
-     * Returns the uploaded avatar image bytes for a Team Hub user account.
+     * Serves a user avatar via signed-URL redirect or in-database bytes.
      */
     handler: async (request, reply) => {
       requireAuthenticatedUser(request);
 
       const target = await options.db.findUserById(request.params.id);
+      if (target == null || target.avatarImageMime == null) {
+        return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
+      }
+
+      const storage = getStorage();
       if (
-        target == null ||
-        target.avatarImage == null ||
-        target.avatarImage.length === 0 ||
-        target.avatarImageMime == null
+        target.avatarImageKey != null &&
+        target.avatarImageKey.length > 0 &&
+        isExternalBlobStorage(storage)
       ) {
+        const signedUrl = await blobStorage.getSignedReadUrl(
+          target.avatarImageKey,
+          storage.signedUrlTtlSeconds
+        );
+        return reply.header('Cache-Control', 'private, no-cache').redirect(signedUrl);
+      }
+
+      if (target.avatarImage == null || target.avatarImage.length === 0) {
         return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
       }
 
@@ -171,18 +208,30 @@ export async function registerAuthRoutes(
       }
     },
     /**
-     * Returns the uploaded hub avatar image bytes for the active tenant namespace.
+     * Serves the hub avatar via signed-URL redirect or in-database bytes.
      */
     handler: async (request, reply) => {
       requireAuthenticatedUser(request);
 
       const tenant = await options.rootDb.findTenantById(request.tenantId);
+      if (tenant == null || tenant.avatarImageMime == null) {
+        return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
+      }
+
+      const storage = getStorage();
       if (
-        tenant == null ||
-        tenant.avatarImage == null ||
-        tenant.avatarImage.length === 0 ||
-        tenant.avatarImageMime == null
+        tenant.avatarImageKey != null &&
+        tenant.avatarImageKey.length > 0 &&
+        isExternalBlobStorage(storage)
       ) {
+        const signedUrl = await blobStorage.getSignedReadUrl(
+          tenant.avatarImageKey,
+          storage.signedUrlTtlSeconds
+        );
+        return reply.header('Cache-Control', 'private, no-cache').redirect(signedUrl);
+      }
+
+      if (tenant.avatarImage == null || tenant.avatarImage.length === 0) {
         return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
       }
 

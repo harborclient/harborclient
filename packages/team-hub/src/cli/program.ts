@@ -7,6 +7,10 @@ import {
 import { registerLlmCommand, type LlmCommandOptions } from '#/cli/llmCommand.js';
 import { registerMigrateCommand, type MigrateCommandOptions } from '#/cli/migrateCommand.js';
 import {
+  registerMigrateAvatarsCommand,
+  type MigrateAvatarsCommandOptions
+} from '#/cli/migrateAvatarsCommand.js';
+import {
   registerTenantCommand,
   type TenantCommandOptions,
   type TenantCreateCommandOptions,
@@ -34,6 +38,11 @@ export interface ProgramDependencies {
    * Optional override for the migrate subcommand handler (used in tests).
    */
   migrateCommand?: (options: MigrateCommandOptions) => Promise<void>;
+
+  /**
+   * Optional override for the migrate-avatars subcommand handler (used in tests).
+   */
+  migrateAvatarsCommand?: (options: MigrateAvatarsCommandOptions) => Promise<void>;
 
   /**
    * Optional overrides for collection subcommand handlers (used in tests).
@@ -98,6 +107,7 @@ export function createProgram(version: string, deps: ProgramDependencies = {}): 
 
   registerStartCommand(program, deps.startCommand);
   registerMigrateCommand(program, deps.migrateCommand);
+  registerMigrateAvatarsCommand(program, deps.migrateAvatarsCommand);
   registerCollectionCommand(program, deps.collectionCommand);
   registerLlmCommand(program, deps.llmCommand);
   registerTenantCommand(program, deps.tenantCommand);

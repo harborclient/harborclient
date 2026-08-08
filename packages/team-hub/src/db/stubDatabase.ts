@@ -12,6 +12,7 @@ export function createStubDatabase(): Mocked<IDatabase> {
   const db = {
     connect: vi.fn(),
     disconnect: vi.fn(),
+    ping: vi.fn(),
     migrate: vi.fn(),
     getTenantId: vi.fn().mockReturnValue('__default__'),
     forTenant: vi.fn(),

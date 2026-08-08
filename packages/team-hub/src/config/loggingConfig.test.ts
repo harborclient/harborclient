@@ -11,12 +11,14 @@ describe('normalizeLoggingConfig', () => {
       normalizeLoggingConfig({
         level: 'debug',
         file: '/tmp/team-hub.log',
-        console: false
+        console: false,
+        format: 'simple'
       })
     ).toEqual({
       level: 'debug',
       file: '/tmp/team-hub.log',
-      console: false
+      console: false,
+      format: 'simple'
     });
   });
 
@@ -24,7 +26,8 @@ describe('normalizeLoggingConfig', () => {
     expect(normalizeLoggingConfig({ level: 'warn' })).toEqual({
       level: 'warn',
       file: null,
-      console: true
+      console: true,
+      format: 'json'
     });
   });
 });

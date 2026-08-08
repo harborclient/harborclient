@@ -18,6 +18,7 @@ const defaultTenant: TenantRecord = {
   avatarInitials: 'DE',
   avatarColor: 'sky-600',
   avatarImage: null,
+  avatarImageKey: null,
   avatarImageMime: null,
   avatarImageUpdatedAt: null
 };

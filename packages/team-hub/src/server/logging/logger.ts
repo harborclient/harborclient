@@ -7,6 +7,20 @@ import type { LoggingConfig } from '#/config/loggingConfig.js';
 export type Logger = winston.Logger;
 
 /**
+ * Builds the Winston format pipeline for the configured output style.
+ *
+ * @param format - `json` for machine parsing or `simple` for local terminals.
+ * @returns Combined Winston format including timestamps.
+ */
+function buildLoggerFormat(format: LoggingConfig['format']): winston.Logform.Format {
+  if (format === 'simple') {
+    return winston.format.combine(winston.format.timestamp(), winston.format.simple());
+  }
+
+  return winston.format.combine(winston.format.timestamp(), winston.format.json());
+}
+
+/**
  * Builds a Winston logger from normalized logging configuration.
  *
  * Uses standard npm log levels. When both file and console output are disabled,
@@ -32,7 +46,7 @@ export function createLogger(config: LoggingConfig): Logger {
 
   return winston.createLogger({
     level: config.level,
-    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+    format: buildLoggerFormat(config.format),
     transports
   });
 }

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { CommanderError } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LOGGING_CONFIG } from '#/config/loggingConfig.js';
+import { DEFAULT_METRICS_CONFIG } from '#/config/metricsConfig.js';
+import { DEFAULT_STORAGE_CONFIG } from '#/config/storageConfig.js';
 
 const { createServerMock, createDatabaseMock, createThrottleStoreMock } = vi.hoisted(() => ({
   createServerMock: vi.fn(),
@@ -75,6 +77,7 @@ function createMockDatabase(): IDatabase {
     avatarInitials: null,
     avatarColor: null,
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -97,6 +100,7 @@ function createMockDatabase(): IDatabase {
     avatarInitials: null,
     avatarColor: null,
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -125,6 +129,7 @@ function createMockDatabase(): IDatabase {
     avatarInitials: null,
     avatarColor: null,
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -325,6 +330,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });

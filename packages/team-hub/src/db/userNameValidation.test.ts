@@ -37,6 +37,7 @@ describe('assertUserNameAvailable', () => {
     avatarInitials: null,
     avatarColor: null,
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),

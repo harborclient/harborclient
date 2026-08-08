@@ -150,6 +150,8 @@ redis:
 
 If Redis is unreachable while handling a protected request, authentication fails closed with **503** rather than allowing requests through without throttling.
 
+Readiness probes reflect the same dependency: `GET /readyz` pings Redis (and the database) and returns **503** when either is down, so orchestrators can stop routing traffic before protected routes start failing. During graceful shutdown (`SIGINT`/`SIGTERM`), `/readyz` also returns **503** immediately so traffic drains before SSE streams and DB/Redis connections close. Liveness (`GET /healthz`) does not check Redis — a Redis outage should mark the instance unready, not restart a healthy process. See [API Endpoints — Health](./endpoints.md#health).
+
 ```mermaid
 flowchart TD
   UserAccount["user account"]

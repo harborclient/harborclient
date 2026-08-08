@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createStubDatabase } from '#/db/stubDatabase.js';
 import type { UserRecord } from '#/db/types.js';
 import {
@@ -26,6 +26,7 @@ const sampleUser: UserRecord = {
   avatarInitials: null,
   avatarColor: null,
   avatarImage: null,
+  avatarImageKey: null,
   avatarImageMime: null,
   avatarImageUpdatedAt: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -196,5 +197,62 @@ describe('updateUserAvatar', () => {
       }),
       sampleUser.id
     );
+  });
+
+  it('stores an object key and clears base64 when external storage is configured', async () => {
+    const db = createStubDatabase();
+    db.getTenantId.mockReturnValue('__default__');
+    const base64 = Buffer.from('tiny-jpeg').toString('base64');
+    const updatedAt = new Date('2026-08-08T12:00:00.000Z');
+    const putObject = vi.fn().mockResolvedValue(undefined);
+    const blobStorage = {
+      putObject,
+      deleteObject: vi.fn(),
+      getSignedReadUrl: vi.fn()
+    };
+    const updated = {
+      ...sampleUser,
+      avatarImage: null,
+      avatarImageKey: `avatars/tenants/__default__/users/${sampleUser.id}/avatar.jpg`,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: updatedAt
+    };
+    db.findUserById.mockResolvedValueOnce(sampleUser);
+    db.updateUser.mockResolvedValue(updated);
+
+    const avatar = await updateUserAvatar(
+      db,
+      sampleUser.id,
+      { imageDataUrl: `data:image/jpeg;base64,${base64}` },
+      sampleUser.id,
+      {
+        storage: {
+          driver: 's3',
+          bucket: 'avatars',
+          region: 'us-east-1',
+          accessKeyId: 'ak',
+          secretAccessKey: 'sk',
+          prefix: 'avatars',
+          signedUrlTtlSeconds: 900
+        },
+        blobStorage
+      }
+    );
+
+    expect(putObject).toHaveBeenCalledWith(
+      `avatars/tenants/__default__/users/${sampleUser.id}/avatar.jpg`,
+      Buffer.from(base64, 'base64'),
+      'image/jpeg'
+    );
+    expect(db.updateUser).toHaveBeenCalledWith(
+      sampleUser.id,
+      expect.objectContaining({
+        avatarImage: null,
+        avatarImageKey: `avatars/tenants/__default__/users/${sampleUser.id}/avatar.jpg`,
+        avatarImageMime: 'image/jpeg'
+      }),
+      sampleUser.id
+    );
+    expect(avatar.imageUrl).toBe(`/auth/users/${sampleUser.id}/avatar?v=${updatedAt.getTime()}`);
   });
 });

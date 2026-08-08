@@ -1,3 +1,7 @@
+# Dev-only Postgres + Redis for host-run Team Hub (see Setup docs).
+# For app-only external reference stacks, see deploy/compose.external.yaml
+# and deploy/compose.external.reference.yaml.
+
 services:
   postgres:
     image: postgres:17

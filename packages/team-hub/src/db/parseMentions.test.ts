@@ -29,6 +29,7 @@ function sampleUser(id: string, name: string): UserRecord {
     avatarInitials: 'TU',
     avatarColor: 'sky-600',
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null
   };

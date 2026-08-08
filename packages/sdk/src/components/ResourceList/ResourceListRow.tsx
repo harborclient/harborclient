@@ -44,7 +44,7 @@ export function ResourceListRow({
     <li
       {...props}
       className={cn(
-        'hc-resource-list-row flex items-center justify-between gap-3 text-[16px] rounded-[10px] border border-separator/80 px-4 py-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[background-color,box-shadow] duration-[120ms] ease-out hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.28)]',
+        'hc-resource-list-row flex items-center justify-between gap-3 rounded-[10px] border border-separator/80 px-4 py-[14px] text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[background-color,box-shadow] duration-[120ms] ease-out hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.28)]',
         wrap && 'flex-wrap',
         className
       )}
@@ -52,9 +52,7 @@ export function ResourceListRow({
       <div className="hc-resource-list-row-content min-w-0">
         <div className="hc-resource-list-row-primary min-w-0">{primary}</div>
         {secondary != null ? (
-          <div className="hc-resource-list-row-secondary truncate text-muted">
-            {secondary}
-          </div>
+          <div className="hc-resource-list-row-secondary truncate text-muted">{secondary}</div>
         ) : null}
         {meta}
       </div>

@@ -74,6 +74,13 @@ class FakeRedisClient implements RedisThrottleClient {
   }
 
   /**
+   * Verifies fake Redis connectivity.
+   */
+  async ping(): Promise<string> {
+    return 'PONG';
+  }
+
+  /**
    * Returns the expiry seconds recorded for a key.
    */
   getExpiry(key: string): number | undefined {

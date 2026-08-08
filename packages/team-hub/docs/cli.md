@@ -37,6 +37,7 @@ team-hub -v start
 | ------- | ----------- |
 | `start` | Start the HTTP server |
 | `migrate` | Apply database schema migrations |
+| `migrate-avatars` | Upload legacy base64 avatars to S3/GCS and store object keys |
 | `collection list` | List stored collections |
 | `llm list` | List all per-request LLM usage log entries |
 | `tenant list` | List all tenant records |
@@ -84,11 +85,36 @@ team-hub -c /path/to/server.yaml migrate
 
 Run this before `start` or any command that reads from the database. See [Authentication — Prerequisites](./auth.md#prerequisites) for what migrations create.
 
+Migrations are idempotent for already-applied versions and safe to re-run. The Docker image runs `migrate` on each container start by default; for multi-replica deploys, set `TEAM_HUB_SKIP_MIGRATE=true` on serving instances and run this command once as a Job or one-off container before traffic (see [Docker Compose — Multi-instance migrations and notice fan-out](/deploy/docker#multi-instance-migrations-and-notice-fan-out), [Google Cloud Run](/deploy/gcp), and [Kubernetes](/deploy/k8s)).
+
+In the Docker image:
+
+```bash
+node /app/dist/cli.js -c /etc/team-hub/server.yaml migrate
+```
+
 On success, prints:
 
 ```text
 Database migration completed successfully.
 ```
+
+## migrate-avatars
+
+Uploads legacy base64 avatar blobs from the database into the configured S3/GCS bucket and stores object keys on user/tenant rows. Requires `storage.driver` to be `s3` or `gcs`.
+
+```bash
+team-hub migrate-avatars
+team-hub migrate-avatars --dry-run
+team-hub migrate-avatars --tenant-id acme
+```
+
+| Option | Required | Description |
+| ------ | -------- | ----------- |
+| `--dry-run` | No | Report planned uploads without writing |
+| `--tenant-id <id>` | No | Limit migration to one tenant namespace |
+
+See [Configuration — storage](./configuration.md#storage) for driver setup and the `?v=` / signed-URL serving contract.
 
 ## collection list
 

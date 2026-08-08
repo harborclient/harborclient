@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { DocsConfig } from '#/config/docsConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
+import { DEFAULT_METRICS_CONFIG, type MetricsConfig } from '#/config/metricsConfig.js';
 import {
   DEFAULT_MULTITENANCY_CONFIG,
   type MultitenancyConfig
@@ -10,11 +11,15 @@ import {
   type CollaborationConfig
 } from '#/config/collaborationConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
+import { DEFAULT_STORAGE_CONFIG } from '#/config/storageConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
 import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
 import { InMemoryNoticeEventBus } from '#/server/notices/InMemoryNoticeEventBus.js';
 import { setNoticeEventBus } from '#/server/notices/noticeService.js';
+import { DbBlobStorage } from '#/storage/dbBlobStorage.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
 import {
   createBearerAuthHook,
   registerBearerAuthDecorator
@@ -24,6 +29,7 @@ import {
   createTenantResolutionHook,
   registerTenantDecorator
 } from '#/server/auth/tenantContext.js';
+import { registerMetricsRoute } from '#/server/metrics/registerMetricsRoute.js';
 import { registerAdminRoutes } from '#/server/routes/admin.js';
 import { registerAuthRoutes } from '#/server/routes/auth.js';
 import { registerInvitationRoutes } from '#/server/routes/invitations.js';
@@ -98,6 +104,21 @@ export interface RegisterRoutesOptions {
    * Fan-out bus for notice SSE events; defaults to in-memory for tests.
    */
   noticeEventBus?: INoticeEventBus;
+
+  /**
+   * Prometheus metrics settings; defaults enable `/metrics` when omitted.
+   */
+  metrics?: MetricsConfig;
+
+  /**
+   * Returns the active avatar storage configuration.
+   */
+  getStorage?: () => StorageConfig;
+
+  /**
+   * Blob storage client used when external avatar storage is enabled.
+   */
+  blobStorage?: IBlobStorage;
 }
 
 /**
@@ -111,9 +132,21 @@ export interface RegisterRoutesOptions {
  */
 export async function registerPublicRoutes(
   app: FastifyInstance,
-  options: Pick<RegisterRoutesOptions, 'version' | 'db' | 'throttleStore' | 'getMultitenancy'>
+  options: Pick<
+    RegisterRoutesOptions,
+    'version' | 'db' | 'throttleStore' | 'getMultitenancy' | 'noticeEventBus' | 'metrics'
+  >
 ): Promise<void> {
-  await registerHealthRoute(app, options.version);
+  await registerHealthRoute(app, {
+    version: options.version,
+    db: options.db,
+    throttleStore: options.throttleStore,
+    noticeEventBus: options.noticeEventBus
+  });
+  await registerMetricsRoute(app, {
+    metrics: options.metrics ?? DEFAULT_METRICS_CONFIG,
+    db: options.db
+  });
   await registerJoinRoute(app);
 
   await app.register(async (invitationApp) => {
@@ -150,15 +183,22 @@ export async function registerProtectedRoutes(
   setNoticeEventBus(noticeEventBus);
   setCollaborationConfigGetter(options.getCollaboration);
 
+  const getStorage = options.getStorage ?? (() => DEFAULT_STORAGE_CONFIG);
+  const blobStorage = options.blobStorage ?? new DbBlobStorage();
+
   await registerAuthRoutes(app, {
     db: tenantAwareDb,
     rootDb: options.db,
-    getCollaboration: options.getCollaboration
+    getCollaboration: options.getCollaboration,
+    getStorage,
+    blobStorage
   });
   await registerAdminRoutes(app, {
     db: tenantAwareDb,
     getLlm: options.getLlm,
-    reloadConfig: options.reloadConfig
+    reloadConfig: options.reloadConfig,
+    getStorage,
+    blobStorage
   });
   await registerCollectionRoutes(app, tenantAwareDb);
   await registerEnvironmentRoutes(app, tenantAwareDb);

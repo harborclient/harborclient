@@ -1,16 +1,21 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { DocsConfig } from '#/config/docsConfig.js';
+import type { LoggingConfig } from '#/config/loggingConfig.js';
 import type { LlmConfig } from '#/config/llmConfig.js';
+import type { MetricsConfig } from '#/config/metricsConfig.js';
 import type { MultitenancyConfig } from '#/config/multitenancyConfig.js';
 import type { CollaborationConfig } from '#/config/collaborationConfig.js';
 import type { PluginsConfig } from '#/config/pluginsConfig.js';
 import { ConfigError, loadServerConfig, type ServerConfig } from '#/config/serverConfig.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
 import { createDatabase, type IDatabase } from '#/db/index.js';
 import { createThrottleStore } from '#/server/auth/throttle/createThrottleStore.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
 import { createNoticeEventBus } from '#/server/notices/createNoticeEventBus.js';
 import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
 import { createLogger, type Logger } from '#/server/logging/logger.js';
+import { createBlobStorage } from '#/storage/createBlobStorage.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
 
 /**
  * Outcome for a single config section during reload.
@@ -27,7 +32,8 @@ export type ReloadSectionName =
   | 'plugins'
   | 'docs'
   | 'server'
-  | 'collaboration';
+  | 'collaboration'
+  | 'storage';
 
 /**
  * Per-section reload outcome.
@@ -99,6 +105,16 @@ export interface RuntimeContext {
   readonly noticeEventBus: INoticeEventBus;
 
   /**
+   * Stable avatar blob storage handle; underlying implementation swaps on reload.
+   */
+  readonly blobStorage: IBlobStorage;
+
+  /**
+   * Returns the current normalized avatar storage configuration.
+   */
+  getStorage(): StorageConfig;
+
+  /**
    * Returns the current normalized LLM configuration.
    */
   getLlm(): LlmConfig | null;
@@ -129,6 +145,16 @@ export interface RuntimeContext {
    * Winston logger configured at process startup from server.yaml.
    */
   readonly logger: Logger;
+
+  /**
+   * Logging settings applied at process startup (restart required after changes).
+   */
+  readonly logging: LoggingConfig;
+
+  /**
+   * Metrics settings applied at process startup (restart required after changes).
+   */
+  readonly metrics: MetricsConfig;
 }
 
 /**
@@ -150,6 +176,8 @@ interface RuntimeContextState {
   dbHolder: SwappableHolder<IDatabase>;
   throttleHolder: SwappableHolder<IThrottleStore>;
   noticeEventsHolder: SwappableHolder<INoticeEventBus>;
+  blobStorageHolder: SwappableHolder<IBlobStorage>;
+  storage: StorageConfig;
   llm: LlmConfig | null;
   plugins: PluginsConfig | null;
   docs: DocsConfig | null;
@@ -228,6 +256,8 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     dbHolder: { underlying: createDatabase(config.db) },
     throttleHolder: { underlying: createThrottleStore(config.redis) },
     noticeEventsHolder: { underlying: createNoticeEventBus(config.redis) },
+    blobStorageHolder: { underlying: createBlobStorage(config.storage) },
+    storage: config.storage,
     llm: config.llm,
     plugins: config.plugins,
     docs: config.docs,
@@ -246,12 +276,16 @@ export function createRuntimeContext(config: ServerConfig, configPath: string): 
     db: createSwappableProxy(state.dbHolder),
     throttleStore: createSwappableProxy(state.throttleHolder),
     noticeEventBus: createSwappableProxy(state.noticeEventsHolder),
+    blobStorage: createSwappableProxy(state.blobStorageHolder),
+    getStorage: () => state.storage,
     getLlm: () => state.llm,
     getPlugins: () => state.plugins,
     getDocs: () => state.docs,
     getMultitenancy: () => state.multitenancy,
     getCollaboration: () => state.collaboration,
-    logger: createLogger(config.logging)
+    logger: createLogger(config.logging),
+    logging: config.logging,
+    metrics: config.metrics
   };
 
   runtimeContextStates.set(ctx, state);
@@ -405,6 +439,14 @@ export async function reloadRuntimeConfig(ctx: RuntimeContext): Promise<ReloadRe
 
   state.collaboration = nextConfig.collaboration;
   sections.push({ section: 'collaboration', status: 'reloaded' });
+
+  if (isDeepStrictEqual(state.storage, nextConfig.storage)) {
+    sections.push({ section: 'storage', status: 'unchanged' });
+  } else {
+    state.storage = nextConfig.storage;
+    state.blobStorageHolder.underlying = createBlobStorage(nextConfig.storage);
+    sections.push({ section: 'storage', status: 'reloaded' });
+  }
 
   sections.push(reloadServerSection(state, nextConfig));
 

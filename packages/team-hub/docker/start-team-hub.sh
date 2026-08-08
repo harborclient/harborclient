@@ -9,6 +9,8 @@ TEAM_HUB_REDIS_PORT="${TEAM_HUB_REDIS_PORT:-6379}"
 TEAM_HUB_START_POSTGRES="${TEAM_HUB_START_POSTGRES:-true}"
 TEAM_HUB_START_REDIS="${TEAM_HUB_START_REDIS:-true}"
 TEAM_HUB_DB_DRIVER="${TEAM_HUB_DB_DRIVER:-postgres}"
+# When true, skip migrate so operators can run it once (Job/init) before scaling replicas.
+TEAM_HUB_SKIP_MIGRATE="${TEAM_HUB_SKIP_MIGRATE:-false}"
 
 # Waits until a TCP port accepts connections or the retry budget is exhausted.
 wait_for_tcp() {
@@ -42,5 +44,9 @@ fi
 wait_for_tcp "$TEAM_HUB_REDIS_HOST" "$TEAM_HUB_REDIS_PORT" "Redis"
 
 cd /app
-node dist/cli.js -c "$CONFIG_PATH" migrate
+if [ "$TEAM_HUB_SKIP_MIGRATE" != "true" ]; then
+  node dist/cli.js -c "$CONFIG_PATH" migrate
+else
+  echo "start-team-hub: TEAM_HUB_SKIP_MIGRATE=true; skipping migrate"
+fi
 exec node dist/cli.js -c "$CONFIG_PATH" start

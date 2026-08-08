@@ -21,6 +21,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
     "link": "/configuration",
     "items": [
       {
+        "text": "Environment variable interpolation",
+        "link": "/configuration#environment-variable-interpolation"
+      },
+      {
         "text": "Sections overview",
         "link": "/configuration#sections-overview"
       },
@@ -41,6 +45,14 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/configuration#logging"
       },
       {
+        "text": "metrics",
+        "link": "/configuration#metrics"
+      },
+      {
+        "text": "storage",
+        "link": "/configuration#storage"
+      },
+      {
         "text": "llm",
         "link": "/configuration#llm"
       },
@@ -55,6 +67,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       {
         "text": "multitenancy",
         "link": "/configuration#multitenancy"
+      },
+      {
+        "text": "collaboration",
+        "link": "/configuration#collaboration"
       },
       {
         "text": "Docker environment variables",
@@ -127,6 +143,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/cli#migrate"
       },
       {
+        "text": "migrate-avatars",
+        "link": "/cli#migrate-avatars"
+      },
+      {
         "text": "collection list",
         "link": "/cli#collection-list"
       },
@@ -193,6 +213,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
             "link": "/endpoints#get-health"
           },
           {
+            "text": "GET /healthz",
+            "link": "/endpoints#get-healthz"
+          },
+          {
+            "text": "GET /readyz",
+            "link": "/endpoints#get-readyz"
+          },
+          {
+            "text": "GET /metrics",
+            "link": "/endpoints#get-metrics"
+          },
+          {
             "text": "GET /join",
             "link": "/endpoints#get-join"
           }
@@ -206,6 +238,18 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "GET /auth/session",
             "link": "/endpoints#get-authsession"
+          },
+          {
+            "text": "PUT /auth/profile/avatar",
+            "link": "/endpoints#put-authprofileavatar"
+          },
+          {
+            "text": "GET /auth/users/:id/avatar",
+            "link": "/endpoints#get-authusersidavatar"
+          },
+          {
+            "text": "GET /auth/hub/avatar",
+            "link": "/endpoints#get-authhubavatar"
           }
         ],
         "collapsed": false
@@ -225,6 +269,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "DELETE /admin/users/:id",
             "link": "/endpoints#delete-adminusersid"
+          },
+          {
+            "text": "PUT /admin/hub/avatar",
+            "link": "/endpoints#put-adminhubavatar"
           },
           {
             "text": "POST /admin/users",
@@ -467,6 +515,45 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "PUT /documents/:id/move",
             "link": "/endpoints#put-documentsidmove"
+          }
+        ],
+        "collapsed": false
+      },
+      {
+        "text": "Discussions",
+        "link": "/endpoints#discussions",
+        "items": [
+          {
+            "text": "GET /requests/:id/discussions",
+            "link": "/endpoints#get-requestsiddiscussions"
+          },
+          {
+            "text": "POST /requests/:id/discussions",
+            "link": "/endpoints#post-requestsiddiscussions"
+          },
+          {
+            "text": "Other entity discussion routes",
+            "link": "/endpoints#other-entity-discussion-routes"
+          },
+          {
+            "text": "POST /discussion-comments/:id/replies",
+            "link": "/endpoints#post-discussion-commentsidreplies"
+          },
+          {
+            "text": "PUT /discussion-comments/:id",
+            "link": "/endpoints#put-discussion-commentsid"
+          },
+          {
+            "text": "DELETE /discussion-comments/:id",
+            "link": "/endpoints#delete-discussion-commentsid"
+          },
+          {
+            "text": "Thread watches",
+            "link": "/endpoints#thread-watches"
+          },
+          {
+            "text": "MLS relay (E2EE hubs)",
+            "link": "/endpoints#mls-relay-e2ee-hubs"
           }
         ],
         "collapsed": false

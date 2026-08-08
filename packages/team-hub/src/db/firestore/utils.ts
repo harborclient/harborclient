@@ -255,6 +255,7 @@ export function mapFirestoreUser(id: string, data: FirestoreUserDocument): UserR
     avatarInitials: data.avatarInitials ?? null,
     avatarColor: data.avatarColor ?? null,
     avatarImage: data.avatarImage ?? null,
+    avatarImageKey: data.avatarImageKey ?? null,
     avatarImageMime: data.avatarImageMime ?? null,
     avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
   };

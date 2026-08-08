@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { IDatabase } from '#/db/IDatabase.js';
 import { canUseDataApi } from '#/server/auth/accessControl.js';
 import type { INoticeEventBus } from '#/server/notices/INoticeEventBus.js';
+import { registerNoticeStream } from '#/server/notices/noticeStreamRegistry.js';
 import { serializeNoticeStreamClientPayload } from '#/server/notices/noticeStreamTypes.js';
 import { denyUnlessAllowed, requireAuthenticatedUser } from '#/server/routes/authorize.js';
 import { errorResponseSchema } from '#/server/routes/schemas/common.js';
@@ -55,7 +56,7 @@ export async function registerNoticeStreamRoute(
 }
 
 /**
- * Writes SSE headers and forwards notice events until the client disconnects.
+ * Writes SSE headers and forwards notice events until the client disconnects or the server shuts down.
  *
  * @param request - Authenticated request with tenant context attached.
  * @param reply - Fastify reply hijacked for manual streaming.
@@ -75,27 +76,72 @@ function startNoticeStream(
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no'
   });
+  // Flush headers immediately so clients (and tests) observe the open stream.
+  reply.raw.write(': connected\n\n');
 
   const tenantId = request.tenantId;
   const subscription = eventBus.subscribe(tenantId, userId, (event) => {
+    if (reply.raw.writableEnded) {
+      return;
+    }
     const payload = serializeNoticeStreamClientPayload(event);
     reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
   });
 
   const heartbeat = setInterval(() => {
+    if (reply.raw.writableEnded) {
+      return;
+    }
     reply.raw.write(': heartbeat\n\n');
   }, NOTICE_STREAM_HEARTBEAT_MS);
 
-  /**
-   * Cleans up heartbeat timers and bus subscriptions when the client disconnects.
-   */
-  const cleanup = (): void => {
-    clearInterval(heartbeat);
-    subscription.unsubscribe();
+  let cleaned = false;
+  const registryEntry = {
+    unregister: (): void => undefined
   };
 
-  request.raw.on('close', cleanup);
-  request.raw.on('error', cleanup);
+  /**
+   * Cleans up heartbeat timers, bus subscriptions, and the socket when the client
+   * disconnects or the server initiates graceful shutdown.
+   *
+   * @param options - Whether this cleanup is a server-initiated shutdown.
+   */
+  const cleanup = (options: { serverShutdown?: boolean } = {}): void => {
+    if (cleaned) {
+      return;
+    }
+    cleaned = true;
+    clearInterval(heartbeat);
+    subscription.unsubscribe();
+    registryEntry.unregister();
+
+    if (!reply.raw.writableEnded) {
+      if (options.serverShutdown) {
+        try {
+          reply.raw.write(': shutdown\n\n');
+        } catch {
+          // Ignore write errors while ending the stream.
+        }
+      }
+      reply.raw.end();
+    }
+  };
+
+  /**
+   * Registry entry invoked from Fastify `preClose` during process shutdown.
+   */
+  const shutdownCleanup = (): void => {
+    cleanup({ serverShutdown: true });
+  };
+
+  registryEntry.unregister = registerNoticeStream(shutdownCleanup);
+
+  request.raw.on('close', () => {
+    cleanup();
+  });
+  request.raw.on('error', () => {
+    cleanup();
+  });
 }
 
 /**

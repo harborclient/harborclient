@@ -6,9 +6,29 @@ import {
   normalizeAvatarColor,
   normalizeAvatarInitials
 } from '#/avatar/avatarPresentation.js';
+import { hasPersistedAvatarImage } from '#/avatar/avatarImageState.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
+import { isExternalBlobStorage } from '#/config/storageConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { UserRecord } from '#/db/types.js';
 import { ValidationError } from '#/server/admin/userValidation.js';
+import { buildUserAvatarObjectKey } from '#/storage/avatarObjectKeys.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
+
+/**
+ * Optional object-storage dependencies for avatar image persistence.
+ */
+export interface AvatarBlobStorageOptions {
+  /**
+   * Normalized storage configuration from server.yaml.
+   */
+  storage: StorageConfig;
+
+  /**
+   * Blob storage client for the active driver.
+   */
+  blobStorage: IBlobStorage;
+}
 
 /**
  * Maximum accepted uploaded avatar image size in bytes (~200 KB).
@@ -105,12 +125,7 @@ export function buildUserAvatarImageUrl(userId: string, updatedAt: Date): string
  * @returns Relative image URL, or undefined when no image is stored.
  */
 export function resolveUserAvatarImageUrl(user: UserRecord): string | undefined {
-  if (
-    user.avatarImage == null ||
-    user.avatarImage.length === 0 ||
-    user.avatarImageMime == null ||
-    user.avatarImageUpdatedAt == null
-  ) {
+  if (!hasPersistedAvatarImage(user) || user.avatarImageUpdatedAt == null) {
     return undefined;
   }
 
@@ -258,6 +273,7 @@ export async function ensureUserAvatar(db: IDatabase, userId: string): Promise<U
  * @param userId - User account to update.
  * @param input - Replacement initials, color, and/or image data URL.
  * @param actingUserId - User performing the update.
+ * @param blobOptions - Optional external blob storage wiring.
  * @returns Updated avatar metadata.
  * @throws {ValidationError} When input is invalid.
  * @throws {Error} When the user is missing.
@@ -266,7 +282,8 @@ export async function updateUserAvatar(
   db: IDatabase,
   userId: string,
   input: UpdateUserAvatarInput,
-  actingUserId: string
+  actingUserId: string,
+  blobOptions?: AvatarBlobStorageOptions
 ): Promise<UserAvatarMetadata> {
   if (input.initials == null && input.color == null && input.imageDataUrl === undefined) {
     throw new ValidationError('At least one of initials, color, or imageDataUrl is required.');
@@ -296,6 +313,7 @@ export async function updateUserAvatar(
     avatarInitials: string;
     avatarColor: AvatarColorKey;
     avatarImage?: string | null;
+    avatarImageKey?: string | null;
     avatarImageMime?: string | null;
     avatarImageUpdatedAt?: Date | null;
   } = {
@@ -303,15 +321,42 @@ export async function updateUserAvatar(
     avatarColor: color
   };
 
+  const useExternal = blobOptions != null && isExternalBlobStorage(blobOptions.storage);
+
   if (input.imageDataUrl === null) {
+    if (useExternal && user.avatarImageKey) {
+      await blobOptions!.blobStorage.deleteObject(user.avatarImageKey);
+    }
     patch.avatarImage = null;
+    patch.avatarImageKey = null;
     patch.avatarImageMime = null;
     patch.avatarImageUpdatedAt = null;
   } else if (input.imageDataUrl !== undefined) {
     const decoded = parseAvatarImageDataUrl(input.imageDataUrl);
-    patch.avatarImage = decoded.base64;
-    patch.avatarImageMime = decoded.mime;
-    patch.avatarImageUpdatedAt = new Date();
+    const updatedAt = new Date();
+
+    if (useExternal) {
+      const key = buildUserAvatarObjectKey(
+        blobOptions!.storage.prefix,
+        db.getTenantId(),
+        userId,
+        decoded.mime
+      );
+      const bytes = Buffer.from(decoded.base64, 'base64');
+      await blobOptions!.blobStorage.putObject(key, bytes, decoded.mime);
+      if (user.avatarImageKey && user.avatarImageKey !== key) {
+        await blobOptions!.blobStorage.deleteObject(user.avatarImageKey);
+      }
+      patch.avatarImage = null;
+      patch.avatarImageKey = key;
+      patch.avatarImageMime = decoded.mime;
+      patch.avatarImageUpdatedAt = updatedAt;
+    } else {
+      patch.avatarImage = decoded.base64;
+      patch.avatarImageKey = null;
+      patch.avatarImageMime = decoded.mime;
+      patch.avatarImageUpdatedAt = updatedAt;
+    }
   }
 
   const updated = await db.updateUser(userId, patch, actingUserId);

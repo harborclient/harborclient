@@ -1,9 +1,11 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_LOGGING_CONFIG } from '#/config/loggingConfig.js';
+import { DEFAULT_METRICS_CONFIG } from '#/config/metricsConfig.js';
 import { ConfigError, loadServerConfig } from '#/config/serverConfig.js';
+import { DEFAULT_STORAGE_CONFIG } from '#/config/storageConfig.js';
 
 /**
  * Writes a temporary server.yaml file for config loader tests.
@@ -58,6 +60,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });
@@ -88,6 +92,8 @@ ${sampleDbSection}${sampleRedisSection}`);
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });
@@ -141,6 +147,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });
@@ -182,6 +190,8 @@ ${sampleDbSection}${sampleRedisSection}llm:
       plugins: null,
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });
@@ -224,6 +234,8 @@ ${sampleDbSection}${sampleRedisSection}plugins:
       },
       docs: null,
       logging: DEFAULT_LOGGING_CONFIG,
+      metrics: DEFAULT_METRICS_CONFIG,
+      storage: DEFAULT_STORAGE_CONFIG,
       multitenancy: { enabled: false },
       collaboration: { e2ee: false }
     });
@@ -356,7 +368,66 @@ ${sampleDbSection}${sampleRedisSection}logging:
     expect(loadServerConfig(configPath).logging).toEqual({
       level: 'debug',
       file: '/var/log/team-hub.log',
-      console: false
+      console: false,
+      format: 'json'
+    });
+  });
+
+  it('loads an optional metrics section', () => {
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}metrics:
+  enabled: false
+  path: /prometheus
+  authToken: scrape-secret
+`);
+
+    expect(loadServerConfig(configPath).metrics).toEqual({
+      enabled: false,
+      path: '/prometheus',
+      authToken: 'scrape-secret'
+    });
+  });
+
+  it('loads an optional storage section for S3', () => {
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}storage:
+  driver: s3
+  bucket: team-hub-avatars
+  region: us-east-1
+  accessKeyId: ak
+  secretAccessKey: sk
+  signedUrlTtlSeconds: 60
+`);
+
+    expect(loadServerConfig(configPath).storage).toEqual({
+      driver: 's3',
+      bucket: 'team-hub-avatars',
+      region: 'us-east-1',
+      accessKeyId: 'ak',
+      secretAccessKey: 'sk',
+      prefix: 'avatars',
+      signedUrlTtlSeconds: 60
+    });
+  });
+
+  it('treats empty metrics.authToken from env-rendered YAML as unset', () => {
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}metrics:
+  enabled: true
+  path: /metrics
+  authToken:
+`);
+
+    expect(loadServerConfig(configPath).metrics).toEqual({
+      enabled: true,
+      path: '/metrics',
+      authToken: null
     });
   });
 
@@ -398,5 +469,107 @@ ${sampleDbSection}${sampleRedisSection}`);
 ${sampleDbSection}${sampleRedisSection}`);
 
     expect(() => loadServerConfig(configPath)).toThrow('Host must not be empty.');
+  });
+
+  describe('environment interpolation', () => {
+    afterEach(() => {
+      delete process.env.TEAM_HUB_DB_PASSWORD;
+      delete process.env.TEAM_HUB_DB_MAX;
+    });
+
+    it('resolves ${TEAM_HUB_DB_PASSWORD} from process.env', () => {
+      process.env.TEAM_HUB_DB_PASSWORD = 'from-env';
+      const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: \${TEAM_HUB_DB_PASSWORD}
+  database: harbor
+${sampleRedisSection}`);
+
+      expect(loadServerConfig(configPath).db.password).toBe('from-env');
+    });
+
+    it('leaves configs without placeholders unchanged', () => {
+      const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+${sampleDbSection}${sampleRedisSection}`);
+
+      expect(loadServerConfig(configPath).db.password).toBe('harbor');
+    });
+
+    it('omits optional pool max when ${TEAM_HUB_DB_MAX:-} resolves empty', () => {
+      delete process.env.TEAM_HUB_DB_MAX;
+      const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: harbor
+  database: harbor
+  max: \${TEAM_HUB_DB_MAX:-}
+${sampleRedisSection}`);
+
+      const config = loadServerConfig(configPath);
+      expect(config.db.max).toBe('');
+    });
+
+    it('throws ConfigError when a required env var is missing', () => {
+      delete process.env.TEAM_HUB_DB_PASSWORD;
+      const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: \${TEAM_HUB_DB_PASSWORD}
+  database: harbor
+${sampleRedisSection}`);
+
+      expect(() => loadServerConfig(configPath)).toThrow(ConfigError);
+      expect(() => loadServerConfig(configPath)).toThrow(
+        'Missing environment variable TEAM_HUB_DB_PASSWORD for config key db.password'
+      );
+    });
+
+    it('coerces env-interpolated boolean strings for redis and logging', () => {
+      process.env.TEAM_HUB_DB_PASSWORD = 'harbor';
+      const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: harbor
+  database: harbor
+redis:
+  host: 127.0.0.1
+  port: 6380
+  noticeEventsPubSub: "true"
+logging:
+  level: info
+  console: "false"
+  format: json
+multitenancy:
+  enabled: "true"
+`);
+
+      const config = loadServerConfig(configPath);
+      expect(config.redis.noticeEventsPubSub).toBe(true);
+      expect(config.logging.console).toBe(false);
+      expect(config.multitenancy.enabled).toBe(true);
+    });
   });
 });

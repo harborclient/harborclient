@@ -2,26 +2,44 @@
 # Copy to server.yaml and adjust for your environment.
 #
 # Required sections: server, db, redis
-# Optional sections: logging, llm, plugins, docs, multitenancy, collaboration
+# Optional sections: logging, metrics, storage, llm, plugins, docs, multitenancy, collaboration
 #
-# While team-hub start is running, db/redis/llm/plugins/docs/collaboration reload live via SIGHUP or
-# POST /admin/config/reload. Changes to server.host, server.port, or multitenancy.enabled
-# require a restart.
+# While team-hub start is running, db/redis/llm/plugins/docs/collaboration/storage reload live via
+# SIGHUP or POST /admin/config/reload. Changes to server.host, server.port, logging, metrics, or
+# multitenancy.enabled require a restart.
+#
+# Environment interpolation: string values may use ${NAME} or ${NAME:-default}. The process
+# resolves placeholders from the environment at load and on each reload. Use $${NAME} for a
+# literal ${NAME}. Prefer placeholders for secrets so they are not stored in the YAML file:
+#   password: ${TEAM_HUB_DB_PASSWORD}
+#   apiKey: ${TEAM_HUB_LLM_OPENAI_API_KEY:-}
 
 # HTTP listen address for the Team Hub API.
 server:
   port: 8787
   host: 127.0.0.1
 
-# Optional logging. Defaults: level info, console true, no file.
+# Optional logging. Defaults: level info, console true, format json, no file.
 # Applied at process startup; restart team-hub start after changes.
+# Use format: json for Loki / Cloud Logging; format: simple for local terminals.
 #
 # logging:
 #   level: debug
 #   file: /var/log/team-hub.log
 #   console: true
+#   format: json
+
+# Optional Prometheus metrics. Defaults: enabled true, path /metrics, no auth.
+# Keep /metrics off public Ingress; use NetworkPolicy or metrics.authToken.
+#
+# metrics:
+#   enabled: true
+#   path: /metrics
+#   authToken: ""
 
 # Database backend. Set driver to postgres, mysql, or firestore.
+# host is a single endpoint (primary or pooler). No app-level read replicas —
+# see docs/configuration.md (Read replicas and connection pooling).
 #
 # Postgres (default for local development with docker compose):
 db:
@@ -29,8 +47,20 @@ db:
   host: 127.0.0.1
   port: 5432
   user: harbor
+  # Local default; production: password: ${TEAM_HUB_DB_PASSWORD}
   password: harbor
   database: harbor
+  # Optional pool tuning. Set max per replica so:
+  #   replicas × max ≤ database max_connections × ~0.75
+  # max: 10
+  # idleTimeoutMillis: 10000
+  # connectionTimeoutMillis: 2000
+  # ssl: true
+  # ssl:
+  #   rejectUnauthorized: true
+  #   ca: |
+  #     -----BEGIN CERTIFICATE-----
+  #     ...
 
 # MySQL alternative:
 # db:
@@ -40,6 +70,12 @@ db:
 #   user: harbor
 #   password: harbor
 #   database: harbor
+#   # Optional pool tuning (max maps to mysql2 connectionLimit):
+#   # max: 10
+#   # idleTimeoutMillis: 10000
+#   # connectionTimeoutMillis: 2000
+#   # ssl: true
+
 
 # Firestore alternative:
 # db:
@@ -49,6 +85,7 @@ db:
 
 # Redis is required for authentication throttling.
 # Optional throttle policy fields default to 10 failures / 900s window / 900s block.
+# Set noticeEventsPubSub: true when multiple app instances share Redis for notice SSE fan-out.
 redis:
   host: 127.0.0.1
   port: 6380
@@ -58,6 +95,36 @@ redis:
   # maxFailures: 10
   # windowSeconds: 900
   # blockSeconds: 900
+  # noticeEventsPubSub: false
+
+# Optional avatar blob storage. Default (omit or driver: db) keeps base64 images in the database.
+# With s3/gcs, GET /auth/.../avatar redirects (302) to a short-lived signed URL; JSON imageUrl
+# paths stay relative with ?v= cache-busting. Migrate existing blobs with: team-hub migrate-avatars
+#
+# storage:
+#   driver: db
+#   # prefix: avatars
+#   # signedUrlTtlSeconds: 900
+#
+# S3 / MinIO:
+# storage:
+#   driver: s3
+#   bucket: team-hub-avatars
+#   region: us-east-1
+#   # endpoint: http://minio:9000
+#   accessKeyId: ...
+#   secretAccessKey: ...
+#   prefix: avatars
+#   signedUrlTtlSeconds: 900
+#
+# GCS (ADC / workload identity, or keyFilename):
+# storage:
+#   driver: gcs
+#   bucket: team-hub-avatars
+#   # projectId: my-gcp-project
+#   # keyFilename: /path/to/service-account.json
+#   prefix: avatars
+#   signedUrlTtlSeconds: 900
 
 # Optional hub-proxied LLM access. Omit this section to disable LLM routes.
 # At least one provider apiKey is required when llm is present.
@@ -77,11 +144,11 @@ redis:
 # llm:
 #   providers:
 #     openai:
-#       apiKey: sk-...
+#       apiKey: ${TEAM_HUB_LLM_OPENAI_API_KEY:-}
 #     claude:
-#       apiKey: sk-ant-...
+#       apiKey: ${TEAM_HUB_LLM_CLAUDE_API_KEY:-}
 #     gemini:
-#       apiKey: ...
+#       apiKey: ${TEAM_HUB_LLM_GEMINI_API_KEY:-}
 #   models:
 #     - gpt-4o
 #     - gpt-4o-mini

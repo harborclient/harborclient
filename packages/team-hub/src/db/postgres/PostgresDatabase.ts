@@ -84,6 +84,7 @@ import {
 } from '#/db/discussionCommentRows.js';
 import { DiscussionCommentNotFoundError } from '#/db/discussionCommentErrors.js';
 import type { IDatabase } from '#/db/IDatabase.js';
+import type { DbPoolStats } from '#/db/poolStats.js';
 import { POSTGRES_MIGRATIONS } from '#/db/postgres/migrations.js';
 import { postgresConfigSchema } from '#/db/postgres/schemas.js';
 import type { PostgresDatabaseConfig } from '#/db/postgres/types.js';
@@ -179,6 +180,40 @@ import { formatZodError } from '#/db/validation.js';
 
 const { Pool } = pg;
 
+/**
+ * Builds `pg.Pool` constructor options from validated Postgres config.
+ *
+ * Optional pool and TLS fields are included only when set so driver defaults
+ * remain unchanged for existing server.yaml files.
+ *
+ * @param config - Validated Postgres connection settings.
+ * @returns Options for `new Pool(...)`.
+ */
+function buildPostgresPoolOptions(config: PostgresDatabaseConfig): pg.PoolConfig {
+  const options: pg.PoolConfig = {
+    host: config.host,
+    port: config.port,
+    user: config.user,
+    password: config.password,
+    database: config.database
+  };
+
+  if (config.max !== undefined) {
+    options.max = config.max;
+  }
+  if (config.idleTimeoutMillis !== undefined) {
+    options.idleTimeoutMillis = config.idleTimeoutMillis;
+  }
+  if (config.connectionTimeoutMillis !== undefined) {
+    options.connectionTimeoutMillis = config.connectionTimeoutMillis;
+  }
+  if (config.ssl !== undefined) {
+    options.ssl = config.ssl;
+  }
+
+  return options;
+}
+
 const COLLECTION_SELECT = `SELECT ${COLLECTION_SELECT_COLUMNS} FROM collections`;
 const ENVIRONMENT_SELECT = `SELECT ${ENVIRONMENT_SELECT_COLUMNS} FROM environments`;
 const SNIPPET_SELECT = `SELECT ${SNIPPET_SELECT_COLUMNS} FROM snippets`;
@@ -250,7 +285,11 @@ export class PostgresDatabase implements IDatabase {
       port: parsed.data.port,
       user: parsed.data.user,
       password: parsed.data.password,
-      database: parsed.data.database
+      database: parsed.data.database,
+      max: parsed.data.max,
+      idleTimeoutMillis: parsed.data.idleTimeoutMillis,
+      connectionTimeoutMillis: parsed.data.connectionTimeoutMillis,
+      ssl: parsed.data.ssl
     });
   }
 
@@ -262,13 +301,7 @@ export class PostgresDatabase implements IDatabase {
       return;
     }
 
-    const pool = new Pool({
-      host: this.config.host,
-      port: this.config.port,
-      user: this.config.user,
-      password: this.config.password,
-      database: this.config.database
-    });
+    const pool = new Pool(buildPostgresPoolOptions(this.config));
 
     const client = await pool.connect();
     await client.query('SELECT 1');
@@ -287,6 +320,39 @@ export class PostgresDatabase implements IDatabase {
 
     await this.pool.end();
     this.pool = null;
+  }
+
+  /**
+   * Verifies Postgres connectivity with `SELECT 1` for readiness probes.
+   *
+   * @throws {Error} When the pool is not connected or the query fails.
+   */
+  async ping(): Promise<void> {
+    const client = await this.requirePool().connect();
+    try {
+      await client.query('SELECT 1');
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Returns live `pg.Pool` utilization for Prometheus scrapes.
+   *
+   * @returns Pool stats, or null when the pool has not been connected.
+   */
+  getPoolStats(): DbPoolStats | null {
+    if (!this.pool) {
+      return null;
+    }
+
+    return {
+      backend: 'postgres',
+      total: this.pool.totalCount,
+      idle: this.pool.idleCount,
+      waiting: this.pool.waitingCount,
+      max: this.config.max ?? this.pool.options.max ?? 10
+    };
   }
 
   /**
@@ -388,10 +454,11 @@ export class PostgresDatabase implements IDatabase {
       avatar_initials: string | null;
       avatar_color: string | null;
       avatar_image: string | null;
+      avatar_image_key: string | null;
       avatar_image_mime: string | null;
       avatar_image_updated_at: Date | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
     );
 
     return result.rows.map((row) => ({
@@ -404,6 +471,7 @@ export class PostgresDatabase implements IDatabase {
       avatarInitials: row.avatar_initials,
       avatarColor: row.avatar_color,
       avatarImage: row.avatar_image,
+      avatarImageKey: row.avatar_image_key,
       avatarImageMime: row.avatar_image_mime,
       avatarImageUpdatedAt: row.avatar_image_updated_at
     }));
@@ -434,12 +502,13 @@ export class PostgresDatabase implements IDatabase {
       avatar_initials: string | null;
       avatar_color: string | null;
       avatar_image: string | null;
+      avatar_image_key: string | null;
       avatar_image_mime: string | null;
       avatar_image_updated_at: Date | null;
     }>(
       `INSERT INTO tenants (id, name, created_at, updated_at, created_by_user_id, updated_by_user_id)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
+       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at`,
       [id, trimmedName, now, now, actingUserId, actingUserId]
     );
 
@@ -458,6 +527,7 @@ export class PostgresDatabase implements IDatabase {
       avatarInitials: row.avatar_initials,
       avatarColor: row.avatar_color,
       avatarImage: row.avatar_image,
+      avatarImageKey: row.avatar_image_key,
       avatarImageMime: row.avatar_image_mime,
       avatarImageUpdatedAt: row.avatar_image_updated_at
     };
@@ -479,10 +549,11 @@ export class PostgresDatabase implements IDatabase {
       avatar_initials: string | null;
       avatar_color: string | null;
       avatar_image: string | null;
+      avatar_image_key: string | null;
       avatar_image_mime: string | null;
       avatar_image_updated_at: Date | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = $1 LIMIT 1',
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = $1 LIMIT 1',
       [id]
     );
 
@@ -501,6 +572,7 @@ export class PostgresDatabase implements IDatabase {
       avatarInitials: row.avatar_initials,
       avatarColor: row.avatar_color,
       avatarImage: row.avatar_image,
+      avatarImageKey: row.avatar_image_key,
       avatarImageMime: row.avatar_image_mime,
       avatarImageUpdatedAt: row.avatar_image_updated_at
     };
@@ -535,6 +607,7 @@ export class PostgresDatabase implements IDatabase {
             avatar_initials: string | null;
             avatar_color: string | null;
             avatar_image: string | null;
+            avatar_image_key: string | null;
             avatar_image_mime: string | null;
             avatar_image_updated_at: Date | null;
           }>(
@@ -544,7 +617,7 @@ export class PostgresDatabase implements IDatabase {
                  updated_at = $4,
                  updated_by_user_id = COALESCE($5, updated_by_user_id)
              WHERE id = $1
-             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
+             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at`,
             [id, avatarInitials, avatarColor, now, actingUserId]
           )
         : await this.query<{
@@ -557,6 +630,7 @@ export class PostgresDatabase implements IDatabase {
             avatar_initials: string | null;
             avatar_color: string | null;
             avatar_image: string | null;
+            avatar_image_key: string | null;
             avatar_image_mime: string | null;
             avatar_image_updated_at: Date | null;
           }>(
@@ -564,17 +638,19 @@ export class PostgresDatabase implements IDatabase {
              SET avatar_initials = $2,
                  avatar_color = $3,
                  avatar_image = $4,
-                 avatar_image_mime = $5,
-                 avatar_image_updated_at = $6,
-                 updated_at = $7,
-                 updated_by_user_id = COALESCE($8, updated_by_user_id)
+                 avatar_image_key = $5,
+                 avatar_image_mime = $6,
+                 avatar_image_updated_at = $7,
+                 updated_at = $8,
+                 updated_by_user_id = COALESCE($9, updated_by_user_id)
              WHERE id = $1
-             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
+             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_key, avatar_image_mime, avatar_image_updated_at`,
             [
               id,
               avatarInitials,
               avatarColor,
               image.imageBase64,
+              image.imageKey,
               image.mime,
               image.updatedAt,
               now,
@@ -597,6 +673,7 @@ export class PostgresDatabase implements IDatabase {
       avatarInitials: row.avatar_initials,
       avatarColor: row.avatar_color,
       avatarImage: row.avatar_image,
+      avatarImageKey: row.avatar_image_key,
       avatarImageMime: row.avatar_image_mime,
       avatarImageUpdatedAt: row.avatar_image_updated_at
     };
@@ -829,6 +906,8 @@ export class PostgresDatabase implements IDatabase {
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
     const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageKey =
+      input.avatarImageKey !== undefined ? input.avatarImageKey : existing.avatarImageKey;
     const avatarImageMime =
       input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
     const avatarImageUpdatedAt =
@@ -852,11 +931,12 @@ export class PostgresDatabase implements IDatabase {
         avatar_initials = $11,
         avatar_color = $12,
         avatar_image = $13,
-        avatar_image_mime = $14,
-        avatar_image_updated_at = $15,
-        updated_at = $16,
-        updated_by_user_id = $17
-      WHERE id = $18 AND tenant_id = $19`,
+        avatar_image_key = $14,
+        avatar_image_mime = $15,
+        avatar_image_updated_at = $16,
+        updated_at = $17,
+        updated_by_user_id = $18
+      WHERE id = $19 AND tenant_id = $20`,
       [
         name,
         role,
@@ -871,6 +951,7 @@ export class PostgresDatabase implements IDatabase {
         avatarInitials,
         avatarColor,
         avatarImage,
+        avatarImageKey,
         avatarImageMime,
         avatarImageUpdatedAt,
         updatedAt,

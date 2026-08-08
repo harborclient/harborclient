@@ -42,6 +42,16 @@ export interface IThrottleStore {
   disconnect(): Promise<void>;
 
   /**
+   * Verifies Redis connectivity with a minimal round-trip.
+   *
+   * Used by readiness probes because protected routes fail closed when the
+   * throttle store is unreachable.
+   *
+   * @throws {Error} When Redis is unavailable.
+   */
+  ping(): Promise<void>;
+
+  /**
    * Returns the configured throttle policy for this store.
    */
   getPolicy(): ThrottlePolicy;

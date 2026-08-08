@@ -1,6 +1,6 @@
 # API Endpoints
 
-Team Hub exposes a JSON HTTP API for shared collections, environments, snippets, folders, saved requests, collection documents, and threaded discussions on requests, collections, folders, and run results. Public routes include `GET /health`, `GET /join`, and the invitation preview/redeem endpoints documented below. All other routes require a valid bearer token — see [Authentication](./auth.md).
+Team Hub exposes a JSON HTTP API for shared collections, environments, snippets, folders, saved requests, collection documents, and threaded discussions on requests, collections, folders, and run results. Public routes include `GET /health`, `GET /healthz`, `GET /readyz`, `GET /metrics`, `GET /join`, and the invitation preview/redeem endpoints documented below. All other routes require a valid bearer token — see [Authentication](./auth.md).
 
 ## Overview
 
@@ -82,9 +82,20 @@ These shapes appear in multiple request and response payloads.
 
 ## Health
 
+Team Hub exposes three public probe endpoints. No authentication is required.
+
+| Route | Purpose | Downstream checks |
+| ----- | ------- | ----------------- |
+| `GET /health` | Legacy shallow check (HarborClient connectivity, older load balancers) | None |
+| `GET /healthz` | Liveness — process is up | None |
+| `GET /readyz` | Readiness — safe to receive traffic | DB, Redis, and Redis notice pub/sub when enabled |
+| `GET /metrics` | Prometheus scrape text | None (refreshes pool/SSE gauges on scrape) |
+
+Orchestrators should use `/healthz` for liveness and `/readyz` for readiness. Keep `/health` for backward compatibility with existing clients and Compose healthchecks. Keep `/metrics` on the pod network (or protect it with `metrics.authToken`); see [Configuration — metrics](./configuration.md#metrics).
+
 ### GET /health
 
-Public health check for load balancers and HarborClient connectivity probes. No authentication required.
+Public shallow health check for load balancers and HarborClient connectivity probes. Same payload as `/healthz`; does not verify DB or Redis.
 
 **Response `200`:**
 
@@ -94,6 +105,64 @@ Public health check for load balancers and HarborClient connectivity probes. No 
 
 ```bash
 curl -s http://127.0.0.1:8788/health
+```
+
+### GET /healthz
+
+Kubernetes-style liveness probe. Returns when the Node process can serve HTTP. Never fails because of database or Redis outages (those belong on `/readyz`).
+
+**Response `200`:**
+
+```json
+{ "status": "ok", "version": "0.1.0" }
+```
+
+```bash
+curl -s http://127.0.0.1:8788/healthz
+```
+
+### GET /readyz
+
+Kubernetes-style readiness probe. Returns **200** only when the database and Redis throttle store are reachable. When `redis.noticeEventsPubSub: true`, also verifies notice pub/sub connectivity (required for `GET /notices/stream`). During graceful shutdown, returns **503** immediately so orchestrators stop routing traffic before SSE drain and connection teardown finish.
+
+**Response `200`:**
+
+```json
+{
+  "status": "ok",
+  "version": "0.1.0",
+  "checks": {
+    "db": { "status": "ok" },
+    "redis": { "status": "ok" },
+    "noticeEvents": { "status": "ok" }
+  }
+}
+```
+
+**Response `503`** when any checked dependency fails (per-dependency detail included):
+
+```json
+{
+  "status": "error",
+  "version": "0.1.0",
+  "checks": {
+    "db": { "status": "ok" },
+    "redis": { "status": "error", "error": "Connection is closed." },
+    "noticeEvents": { "status": "ok" }
+  }
+}
+```
+
+```bash
+curl -s http://127.0.0.1:8788/readyz
+```
+
+### GET /metrics
+
+Prometheus scrape endpoint (text exposition format). Public by default; when `metrics.authToken` is set, require `Authorization: Bearer <token>`. Disabled entirely when `metrics.enabled` is `false`.
+
+```bash
+curl -s http://127.0.0.1:8788/metrics | head
 ```
 
 ### GET /join
@@ -201,28 +270,26 @@ curl -s -X PUT http://127.0.0.1:8788/auth/profile/avatar \
 
 ### GET /auth/users/:id/avatar
 
-Returns the uploaded avatar image bytes for a user account. Requires a valid bearer token.
+Serves the uploaded avatar image for a user account. Requires a valid bearer token. The optional `?v=` query is client cache-busting only and is not validated by the server.
 
-**Response `200`:** Raw image bytes with `Content-Type` set to the stored MIME type, plus `Cache-Control: private, max-age=3600` and an `ETag` derived from the image update timestamp.
+**Response `200`:** When the image is stored in the database (`storage.driver: db` or a legacy base64 row), raw image bytes with `Content-Type` set to the stored MIME type, plus `Cache-Control: private, max-age=3600` and an `ETag` derived from the image update timestamp.
+
+**Response `302`:** When the image is stored in external object storage (`storage.driver: s3` or `gcs`), redirects to a short-lived signed URL with `Cache-Control: private, no-cache`. Clients should follow the redirect (HarborClient's `TeamHubClient` does).
 
 **Response `404`:** User not found or no uploaded image.
 
 ```bash
-curl -s http://127.0.0.1:8788/auth/users/550e8400-e29b-41d4-a716-446655440000/avatar \
+curl -sL http://127.0.0.1:8788/auth/users/550e8400-e29b-41d4-a716-446655440000/avatar \
   -H "Authorization: Bearer hbk_your_token_here" \
   -o avatar.jpg
 ```
 
 ### GET /auth/hub/avatar
 
-Returns the uploaded hub avatar image bytes for the active tenant namespace. Requires a valid bearer token.
-
-**Response `200`:** Raw image bytes with `Content-Type` set to the stored MIME type, plus `Cache-Control: private, max-age=3600` and an `ETag` derived from the image update timestamp.
-
-**Response `404`:** Tenant not found or no uploaded hub image.
+Serves the uploaded hub avatar image for the active tenant namespace. Requires a valid bearer token. Same `200` / `302` / `404` semantics as [`GET /auth/users/:id/avatar`](#get-authusersidavatar).
 
 ```bash
-curl -s http://127.0.0.1:8788/auth/hub/avatar \
+curl -sL http://127.0.0.1:8788/auth/hub/avatar \
   -H "Authorization: Bearer hbk_your_token_here" \
   -o hub-avatar.jpg
 ```

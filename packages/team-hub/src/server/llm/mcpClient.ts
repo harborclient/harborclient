@@ -232,9 +232,25 @@ export async function callHubMcpTool(prefixedName: string, args: unknown): Promi
 }
 
 /**
- * Closes all hub MCP client connections.
+ * Options for {@link disposeHubMcpConnections}.
  */
-export async function disposeHubMcpConnections(): Promise<void> {
+export interface DisposeHubMcpConnectionsOptions {
+  /**
+   * Maximum time to wait for remote MCP clients to close before giving up.
+   *
+   * When omitted, waits until every `client.close()` settles.
+   */
+  timeoutMs?: number;
+}
+
+/**
+ * Closes all hub MCP client connections.
+ *
+ * @param options - Optional timeout so graceful shutdown cannot hang on a stuck MCP server.
+ */
+export async function disposeHubMcpConnections(
+  options: DisposeHubMcpConnectionsOptions = {}
+): Promise<void> {
   const closePromises = [...connectedClients.values()].map(async (entry) => {
     try {
       await entry.client.close();
@@ -245,5 +261,35 @@ export async function disposeHubMcpConnections(): Promise<void> {
 
   connectedClients.clear();
   activeConfigSignature = '';
-  await Promise.allSettled(closePromises);
+
+  if (closePromises.length === 0) {
+    return;
+  }
+
+  const settled = Promise.allSettled(closePromises);
+  const timeoutMs = options.timeoutMs;
+
+  if (typeof timeoutMs !== 'number' || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    await settled;
+    return;
+  }
+
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      settled,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(
+            `Hub MCP dispose timed out after ${timeoutMs}ms; continuing shutdown without waiting.`
+          );
+          resolve();
+        }, timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

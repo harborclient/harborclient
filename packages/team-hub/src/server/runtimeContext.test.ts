@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { beforeEach, describe, expect, it, vi, type Mocked } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mocked } from 'vitest';
 import { loadServerConfig } from '#/config/serverConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import { createStubDatabase } from '#/db/stubDatabase.js';
@@ -101,6 +101,10 @@ function readLabel(instance: object): string {
 beforeEach(() => {
   createDatabaseMock.mockReset();
   createThrottleStoreMock.mockReset();
+});
+
+afterEach(() => {
+  delete process.env.TEAM_HUB_DB_PASSWORD;
 });
 
 describe('reloadRuntimeConfig', () => {
@@ -211,6 +215,41 @@ redis:
     await ctx.db.listUsers();
     expect(createDatabaseMock).toHaveBeenLastCalledWith(
       expect.objectContaining({ database: 'harbor-next' })
+    );
+  });
+
+  it('re-resolves environment placeholders on reload', async () => {
+    process.env.TEAM_HUB_DB_PASSWORD = 'password-v1';
+    const configPath = writeConfig(`server:
+  port: 8787
+  host: 127.0.0.1
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  user: harbor
+  password: \${TEAM_HUB_DB_PASSWORD}
+  database: harbor
+${sampleRedisSection}`);
+    const initialDb = createTrackedDatabase('db-initial');
+    const nextDb = createTrackedDatabase('db-next');
+    const store = createTrackedThrottleStore('redis-initial');
+    createDatabaseMock.mockReturnValueOnce(initialDb).mockReturnValueOnce(nextDb);
+    createThrottleStoreMock.mockReturnValue(store);
+
+    const ctx = createRuntimeContext(loadServerConfig(configPath), configPath);
+    expect(createDatabaseMock).toHaveBeenCalledWith(
+      expect.objectContaining({ password: 'password-v1' })
+    );
+
+    process.env.TEAM_HUB_DB_PASSWORD = 'password-v2';
+    const result = await reloadRuntimeConfig(ctx);
+
+    expect(result.sections).toEqual(
+      expect.arrayContaining([{ section: 'db', status: 'reloaded' }])
+    );
+    expect(createDatabaseMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ password: 'password-v2' })
     );
   });
 

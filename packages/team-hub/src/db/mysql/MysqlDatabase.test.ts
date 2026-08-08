@@ -106,6 +106,72 @@ describe('MysqlDatabase lifecycle', () => {
     expect(pool.end).toHaveBeenCalledOnce();
   });
 
+  it('omits optional tuning options when not provided', async () => {
+    const pool = createMockPool();
+    createPoolMock.mockReturnValue(pool);
+    const db = MysqlDatabase.fromConfig(validConfig);
+
+    await db.connect();
+
+    expect(createPoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 3306,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor'
+    });
+    expect(createPoolMock.mock.calls[0]?.[0]).not.toHaveProperty('connectionLimit');
+    expect(createPoolMock.mock.calls[0]?.[0]).not.toHaveProperty('idleTimeout');
+    expect(createPoolMock.mock.calls[0]?.[0]).not.toHaveProperty('connectTimeout');
+    expect(createPoolMock.mock.calls[0]?.[0]).not.toHaveProperty('ssl');
+  });
+
+  it('creates pool with tuning options when provided', async () => {
+    const pool = createMockPool();
+    createPoolMock.mockReturnValue(pool);
+    const db = MysqlDatabase.fromConfig({
+      ...validConfig,
+      max: 25,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 2000,
+      ssl: true
+    });
+
+    await db.connect();
+
+    expect(createPoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 3306,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor',
+      connectionLimit: 25,
+      idleTimeout: 10000,
+      connectTimeout: 2000,
+      ssl: {}
+    });
+  });
+
+  it('passes object ssl settings to the pool', async () => {
+    const pool = createMockPool();
+    createPoolMock.mockReturnValue(pool);
+    const db = MysqlDatabase.fromConfig({
+      ...validConfig,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    await db.connect();
+
+    expect(createPoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 3306,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor',
+      ssl: { rejectUnauthorized: false }
+    });
+  });
+
   it('is idempotent when connect is called more than once', async () => {
     const pool = createMockPool();
     createPoolMock.mockReturnValue(pool);

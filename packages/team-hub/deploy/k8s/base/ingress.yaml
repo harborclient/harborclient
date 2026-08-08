@@ -1,0 +1,25 @@
+# REST and non-SSE traffic. Pair with ingress-notices.yaml for /notices/stream.
+# Replace team-hub.example.com with your hostname and TLS secret as needed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: team-hub
+  namespace: team-hub
+  labels:
+    app: team-hub
+  annotations:
+    # nginx Ingress Controller — adjust for Traefik / ALB / Gateway API.
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: team-hub.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: team-hub
+                port:
+                  number: 80

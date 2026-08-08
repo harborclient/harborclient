@@ -53,6 +53,11 @@ export const docsNav = [
         name: 'gcp',
         source: 'docs/deploy/gcp.md',
         title: 'Google Cloud Run'
+      },
+      {
+        name: 'k8s',
+        source: 'docs/deploy/k8s.md',
+        title: 'Kubernetes'
       }
     ]
   },

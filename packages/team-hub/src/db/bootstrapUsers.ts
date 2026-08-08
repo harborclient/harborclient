@@ -28,6 +28,7 @@ export function createBootstrapUserRecord(now: Date): UserRecord {
     avatarInitials: null,
     avatarColor: null,
     avatarImage: null,
+    avatarImageKey: null,
     avatarImageMime: null,
     avatarImageUpdatedAt: null,
     createdAt: now,

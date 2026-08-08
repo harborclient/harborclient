@@ -19,6 +19,7 @@ export function createStubThrottleStore(
   return {
     connect: vi.fn(),
     disconnect: vi.fn(),
+    ping: vi.fn(),
     getPolicy: vi.fn().mockReturnValue(policy),
     isBlocked: vi.fn(),
     recordFailure: vi.fn(),

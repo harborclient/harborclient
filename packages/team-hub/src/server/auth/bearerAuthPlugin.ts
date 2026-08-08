@@ -4,6 +4,7 @@ import type { ApiTokenRecord } from '#/db/types.js';
 import type { UserRecord } from '#/db/types.js';
 import { extractBearer, hashToken } from '#/server/auth/apiTokens.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
+import { recordAuthThrottled } from '#/server/metrics/teamHubMetrics.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -68,6 +69,7 @@ export function createBearerAuthHook(db: IDatabase, throttleStore: IThrottleStor
 
     try {
       if (await throttleStore.isBlocked(throttleKey)) {
+        recordAuthThrottled('bearer');
         return reply
           .header('Retry-After', String(policy.blockSeconds))
           .code(429)

@@ -788,6 +788,14 @@ export const TENANT_AVATAR_IMAGE_MIGRATION_SQL = [
 ];
 
 /**
+ * Adds object-store key columns for externally stored avatar images.
+ */
+export const AVATAR_IMAGE_KEY_MIGRATION_SQL = [
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image_key TEXT NULL`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_key TEXT NULL`
+];
+
+/**
  * Ordered MySQL migrations applied by {@link MysqlDatabase.migrate}.
  */
 export const MYSQL_MIGRATIONS = [
@@ -837,5 +845,6 @@ export const MYSQL_MIGRATIONS = [
   DEVICE_KEYS_MIGRATION_SQL,
   DISCUSSION_MLS_MIGRATION_SQL,
   ...USERS_AVATAR_IMAGE_MIGRATION_SQL,
-  ...TENANT_AVATAR_IMAGE_MIGRATION_SQL
+  ...TENANT_AVATAR_IMAGE_MIGRATION_SQL,
+  ...AVATAR_IMAGE_KEY_MIGRATION_SQL
 ];

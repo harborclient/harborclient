@@ -469,11 +469,13 @@ export function buildAdminUserUpdateInput(
 
   if (body.imageDataUrl === null) {
     update.avatarImage = null;
+    update.avatarImageKey = null;
     update.avatarImageMime = null;
     update.avatarImageUpdatedAt = null;
   } else if (body.imageDataUrl !== undefined) {
     const decoded = parseAvatarImageDataUrl(body.imageDataUrl);
     update.avatarImage = decoded.base64;
+    update.avatarImageKey = null;
     update.avatarImageMime = decoded.mime;
     update.avatarImageUpdatedAt = new Date();
   }

@@ -5,6 +5,7 @@ import { InvitationUnavailableError } from '#/db/invitationErrors.js';
 import { assertInvitationPending } from '#/db/invitationValidation.js';
 import { hashInvitationSecret, isInvitationSecretFormat } from '#/server/auth/invitations.js';
 import type { IThrottleStore } from '#/server/auth/throttle/IThrottleStore.js';
+import { recordAuthThrottled } from '#/server/metrics/teamHubMetrics.js';
 import { handleDbError } from '#/server/routes/errors.js';
 import { handleInvitationError } from '#/server/routes/invitationErrors.js';
 import {
@@ -61,6 +62,7 @@ export function createInvitationThrottleHook(throttleStore: IThrottleStore) {
 
     try {
       if (await throttleStore.isBlocked(throttleKey)) {
+        recordAuthThrottled('invitation');
         return reply
           .header('Retry-After', String(policy.blockSeconds))
           .code(429)

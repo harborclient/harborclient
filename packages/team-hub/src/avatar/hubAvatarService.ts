@@ -6,10 +6,16 @@ import {
   normalizeAvatarColor,
   normalizeAvatarInitials
 } from '#/avatar/avatarPresentation.js';
-import { parseAvatarImageDataUrl } from '#/avatar/userAvatarService.js';
+import { hasPersistedAvatarImage } from '#/avatar/avatarImageState.js';
+import { isExternalBlobStorage } from '#/config/storageConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { TenantAvatarImageUpdate, TenantRecord } from '#/db/types.js';
 import { ValidationError } from '#/server/admin/userValidation.js';
+import { buildHubAvatarObjectKey } from '#/storage/avatarObjectKeys.js';
+import {
+  parseAvatarImageDataUrl,
+  type AvatarBlobStorageOptions
+} from '#/avatar/userAvatarService.js';
 
 /**
  * Hub avatar metadata exposed on session and admin routes.
@@ -65,12 +71,7 @@ export function buildHubAvatarImageUrl(updatedAt: Date): string {
  * @returns Relative image URL, or undefined when no image is stored.
  */
 export function resolveHubAvatarImageUrl(tenant: TenantRecord): string | undefined {
-  if (
-    tenant.avatarImage == null ||
-    tenant.avatarImage.length === 0 ||
-    tenant.avatarImageMime == null ||
-    tenant.avatarImageUpdatedAt == null
-  ) {
+  if (!hasPersistedAvatarImage(tenant) || tenant.avatarImageUpdatedAt == null) {
     return undefined;
   }
 
@@ -136,6 +137,7 @@ export async function ensureHubAvatar(db: IDatabase, tenantId: string): Promise<
  * @param tenantId - Tenant namespace to update.
  * @param input - Replacement initials, color, and/or image data URL.
  * @param actingUserId - Admin performing the update.
+ * @param blobOptions - Optional external blob storage wiring.
  * @returns Updated hub avatar metadata.
  * @throws {Error} When the tenant is missing or input is invalid.
  */
@@ -143,7 +145,8 @@ export async function updateHubAvatar(
   db: IDatabase,
   tenantId: string,
   input: UpdateHubAvatarInput,
-  actingUserId: string
+  actingUserId: string,
+  blobOptions?: AvatarBlobStorageOptions
 ): Promise<HubAvatarMetadata> {
   if (input.initials == null && input.color == null && input.imageDataUrl === undefined) {
     throw new ValidationError('At least one of initials, color, or imageDataUrl is required.');
@@ -170,15 +173,38 @@ export async function updateHubAvatar(
   }
 
   let image: TenantAvatarImageUpdate | undefined;
+  const useExternal = blobOptions != null && isExternalBlobStorage(blobOptions.storage);
+
   if (input.imageDataUrl === null) {
-    image = { imageBase64: null, mime: null, updatedAt: null };
+    if (useExternal && tenant.avatarImageKey) {
+      await blobOptions!.blobStorage.deleteObject(tenant.avatarImageKey);
+    }
+    image = { imageBase64: null, imageKey: null, mime: null, updatedAt: null };
   } else if (input.imageDataUrl !== undefined) {
     const decoded = parseAvatarImageDataUrl(input.imageDataUrl);
-    image = {
-      imageBase64: decoded.base64,
-      mime: decoded.mime,
-      updatedAt: new Date()
-    };
+    const updatedAt = new Date();
+
+    if (useExternal) {
+      const key = buildHubAvatarObjectKey(blobOptions!.storage.prefix, tenantId, decoded.mime);
+      const bytes = Buffer.from(decoded.base64, 'base64');
+      await blobOptions!.blobStorage.putObject(key, bytes, decoded.mime);
+      if (tenant.avatarImageKey && tenant.avatarImageKey !== key) {
+        await blobOptions!.blobStorage.deleteObject(tenant.avatarImageKey);
+      }
+      image = {
+        imageBase64: null,
+        imageKey: key,
+        mime: decoded.mime,
+        updatedAt
+      };
+    } else {
+      image = {
+        imageBase64: decoded.base64,
+        imageKey: null,
+        mime: decoded.mime,
+        updatedAt
+      };
+    }
   }
 
   const updated = await db.updateTenantAvatar(tenantId, initials, color, actingUserId, image);

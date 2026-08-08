@@ -2,6 +2,9 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { updateHubAvatar } from '#/avatar/hubAvatarService.js';
+import { updateUserAvatar } from '#/avatar/userAvatarService.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
+import { DEFAULT_STORAGE_CONFIG, isExternalBlobStorage } from '#/config/storageConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { UserRole } from '#/db/types.js';
 import { isSystemUser } from '#/db/systemUsers.js';
@@ -18,6 +21,8 @@ import { generateInvitation, resolveInvitationExpiresAt } from '#/server/auth/in
 import { getHubLlmCapabilities, listHubOfferedModels } from '#/server/llm/models.js';
 import { handleDbError, handleValidationError } from '#/server/routes/errors.js';
 import { denyUnlessAllowed, requireAuthenticatedUser } from '#/server/routes/authorize.js';
+import { DbBlobStorage } from '#/storage/dbBlobStorage.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
 import {
   createAdminTokenBodySchema,
   createAdminUserBodySchema,
@@ -90,6 +95,16 @@ export interface RegisterAdminRoutesOptions {
    * Reloads server.yaml and returns a per-section report.
    */
   reloadConfig: () => Promise<ReloadResult>;
+
+  /**
+   * Returns the active avatar storage configuration.
+   */
+  getStorage?: () => StorageConfig;
+
+  /**
+   * Blob storage client used when external avatar storage is enabled.
+   */
+  blobStorage?: IBlobStorage;
 }
 
 /**
@@ -185,7 +200,16 @@ export async function registerAdminRoutes(
   options: RegisterAdminRoutesOptions
 ): Promise<void> {
   const { db, getLlm, reloadConfig } = options;
+  const getStorage = options.getStorage ?? (() => DEFAULT_STORAGE_CONFIG);
+  const blobStorage = options.blobStorage ?? new DbBlobStorage();
   const routes = app.withTypeProvider<ZodTypeProvider>();
+
+  /**
+   * Builds optional blob-storage deps for avatar write paths.
+   */
+  function avatarBlobOptions() {
+    return { storage: getStorage(), blobStorage };
+  }
 
   routes.route({
     method: 'GET',
@@ -1325,7 +1349,19 @@ export async function registerAdminRoutes(
           return;
         }
 
-        const input = buildAdminUserUpdateInput(existing, request.body);
+        const updateBody = { ...request.body };
+        if (updateBody.imageDataUrl !== undefined && isExternalBlobStorage(getStorage())) {
+          await updateUserAvatar(
+            db,
+            existing.id,
+            { imageDataUrl: updateBody.imageDataUrl },
+            user.id,
+            avatarBlobOptions()
+          );
+          delete updateBody.imageDataUrl;
+        }
+
+        const input = buildAdminUserUpdateInput(existing, updateBody);
         const role = request.body.role ?? existing.role;
         const llm = getLlm();
         const [collections, environments, snippets, liveServers, livePages] = await Promise.all([
@@ -1579,7 +1615,8 @@ export async function registerAdminRoutes(
             color: request.body.color,
             imageDataUrl: request.body.imageDataUrl
           },
-          user.id
+          user.id,
+          avatarBlobOptions()
         );
         return reply.send(hub);
       } catch (error) {

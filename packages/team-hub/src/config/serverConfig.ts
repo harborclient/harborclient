@@ -10,6 +10,11 @@ import {
   type LoggingConfig
 } from '#/config/loggingConfig.js';
 import {
+  DEFAULT_METRICS_CONFIG,
+  normalizeMetricsConfig,
+  type MetricsConfig
+} from '#/config/metricsConfig.js';
+import {
   DEFAULT_MULTITENANCY_CONFIG,
   normalizeMultitenancyConfig,
   type MultitenancyConfig
@@ -21,17 +26,28 @@ import {
 } from '#/config/collaborationConfig.js';
 import { normalizePluginsConfig, type PluginsConfig } from '#/config/pluginsConfig.js';
 import {
+  DEFAULT_STORAGE_CONFIG,
+  normalizeStorageConfig,
+  type StorageConfig
+} from '#/config/storageConfig.js';
+import { ConfigError } from '#/config/configError.js';
+import { interpolateEnvInDocument } from '#/config/interpolateEnv.js';
+import {
   collaborationSectionSchema,
   dbSectionSchema,
   docsSectionSchema,
   llmSectionSchema,
   loggingSectionSchema,
+  metricsSectionSchema,
   multitenancySectionSchema,
   pluginsSectionSchema,
   redisSectionSchema,
   serverConfigDocumentSchema,
-  serverSectionSchema
+  serverSectionSchema,
+  storageSectionSchema
 } from '#/config/serverConfig.schema.js';
+
+export { ConfigError } from '#/config/configError.js';
 
 /**
  * Default relative path to the server YAML config file.
@@ -80,6 +96,16 @@ export interface ServerConfig {
   logging: LoggingConfig;
 
   /**
+   * Normalized Prometheus metrics settings (defaults apply when the section is omitted).
+   */
+  metrics: MetricsConfig;
+
+  /**
+   * Normalized avatar blob storage settings (defaults to in-database storage).
+   */
+  storage: StorageConfig;
+
+  /**
    * Normalized multitenancy settings (defaults apply when the section is omitted).
    */
   multitenancy: MultitenancyConfig;
@@ -90,27 +116,6 @@ export interface ServerConfig {
   collaboration: CollaborationConfig;
 }
 
-/**
- * Error thrown when a config file cannot be read or fails validation.
- */
-export class ConfigError extends Error {
-  /**
-   * Creates a config error with a user-facing message.
-   *
-   * @param message - Description of what went wrong.
-   */
-  constructor(message: string) {
-    super(message);
-    this.name = 'ConfigError';
-  }
-}
-
-/**
- * Resolves a config path relative to the current working directory when needed.
- *
- * @param configPath - User-supplied config path (relative or absolute).
- * @returns Absolute filesystem path to the config file.
- */
 /**
  * Resolves a config path relative to the current working directory when needed.
  *
@@ -269,6 +274,28 @@ function parseServerConfig(document: unknown): ServerConfig {
     logging = normalizeLoggingConfig(parsedLoggingSection.data);
   }
 
+  let metrics = DEFAULT_METRICS_CONFIG;
+  if (root.metrics !== undefined) {
+    const parsedMetricsSection = metricsSectionSchema.safeParse(root.metrics);
+    if (!parsedMetricsSection.success) {
+      throw new ConfigError(formatZodError(parsedMetricsSection.error));
+    }
+    metrics = normalizeMetricsConfig(parsedMetricsSection.data);
+  }
+
+  let storage = DEFAULT_STORAGE_CONFIG;
+  if (root.storage !== undefined) {
+    const parsedStorageSection = storageSectionSchema.safeParse(root.storage);
+    if (!parsedStorageSection.success) {
+      throw new ConfigError(formatZodError(parsedStorageSection.error));
+    }
+    try {
+      storage = normalizeStorageConfig(parsedStorageSection.data);
+    } catch (error) {
+      throw new ConfigError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   let multitenancy = DEFAULT_MULTITENANCY_CONFIG;
   if (root.multitenancy !== undefined) {
     const parsedMultitenancySection = multitenancySectionSchema.safeParse(root.multitenancy);
@@ -296,6 +323,8 @@ function parseServerConfig(document: unknown): ServerConfig {
     plugins,
     docs,
     logging,
+    metrics,
+    storage,
     multitenancy,
     collaboration
   };
@@ -324,6 +353,7 @@ export function loadServerConfig(configPath: string): ServerConfig {
   }
 
   try {
+    document = interpolateEnvInDocument(document);
     return parseServerConfig(document);
   } catch (error) {
     if (error instanceof ConfigError) {

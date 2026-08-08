@@ -32,6 +32,7 @@ Team Hub production deployments use a **prebuilt Docker image** published to Git
 | npm CLI          | [npm CLI](https://harborclient.com/team-hub/deploy/npm)           |
 | VPS              | [VPS](https://harborclient.com/team-hub/deploy/vps)               |
 | Google Cloud Run | [Google Cloud Run](https://harborclient.com/team-hub/deploy/gcp)  |
+| Kubernetes       | [Kubernetes](https://harborclient.com/team-hub/deploy/k8s)        |
 
 ### Standard Docker deployment
 

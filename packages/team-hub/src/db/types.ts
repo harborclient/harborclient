@@ -147,8 +147,16 @@ export interface TenantRecord {
 
   /**
    * Base64-encoded uploaded hub avatar image bytes, when present.
+   *
+   * Legacy/in-database storage. Prefer {@link avatarImageKey} when external
+   * object storage is configured.
    */
   avatarImage: string | null;
+
+  /**
+   * Object-store key for the hub avatar when external storage is used.
+   */
+  avatarImageKey: string | null;
 
   /**
    * MIME type for {@link avatarImage} (for example `image/jpeg`).
@@ -164,14 +172,20 @@ export interface TenantRecord {
 /**
  * Optional uploaded hub avatar image fields for {@link IDatabase.updateTenantAvatar}.
  *
- * When omitted, existing image columns are left unchanged. Pass all three fields
+ * When omitted, existing image columns are left unchanged. Pass image fields
  * as `null` to clear a previously uploaded image.
  */
 export interface TenantAvatarImageUpdate {
   /**
-   * Base64-encoded image bytes, or null to clear.
+   * Base64-encoded image bytes, or null to clear / when using object storage.
    */
   imageBase64: string | null;
+
+  /**
+   * Object-store key for the image, or null when storing bytes in the database
+   * or clearing the image.
+   */
+  imageKey: string | null;
 
   /**
    * Image MIME type, or null to clear.
@@ -276,8 +290,16 @@ export interface UserRecord {
 
   /**
    * Base64-encoded uploaded avatar image bytes, when present.
+   *
+   * Legacy/in-database storage. Prefer {@link avatarImageKey} when external
+   * object storage is configured.
    */
   avatarImage: string | null;
+
+  /**
+   * Object-store key for the user avatar when external storage is used.
+   */
+  avatarImageKey: string | null;
 
   /**
    * MIME type for {@link avatarImage} (for example `image/jpeg`).
@@ -423,6 +445,12 @@ export interface UpdateUserInput {
    * Replacement base64-encoded avatar image bytes, or null to clear.
    */
   avatarImage?: string | null;
+
+  /**
+   * Replacement object-store key for the avatar image, or null when clearing
+   * or storing bytes in the database.
+   */
+  avatarImageKey?: string | null;
 
   /**
    * Replacement MIME type for {@link avatarImage}, or null when clearing.

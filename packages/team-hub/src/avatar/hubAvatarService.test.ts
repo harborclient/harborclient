@@ -18,6 +18,7 @@ const sampleTenant: TenantRecord = {
   avatarInitials: null,
   avatarColor: null,
   avatarImage: null,
+  avatarImageKey: null,
   avatarImageMime: null,
   avatarImageUpdatedAt: null
 };
@@ -162,6 +163,7 @@ describe('updateHubAvatar', () => {
       'admin-1',
       expect.objectContaining({
         imageBase64: base64,
+        imageKey: null,
         mime: 'image/jpeg'
       })
     );
@@ -182,6 +184,7 @@ describe('updateHubAvatar', () => {
       avatarInitials: 'AC',
       avatarColor: 'cyan-600',
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null
     });
@@ -191,6 +194,7 @@ describe('updateHubAvatar', () => {
     expect(avatar.imageUrl).toBeUndefined();
     expect(db.updateTenantAvatar).toHaveBeenCalledWith('org-acme', 'AC', 'cyan-600', 'admin-1', {
       imageBase64: null,
+      imageKey: null,
       mime: null,
       updatedAt: null
     });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createStubDatabase } from '#/db/stubDatabase.js';
 import type { TenantRecord } from '#/db/types.js';
 import {
@@ -17,6 +17,7 @@ const defaultTenant: TenantRecord = {
   avatarInitials: 'DE',
   avatarColor: 'sky-600',
   avatarImage: null,
+  avatarImageKey: null,
   avatarImageMime: null,
   avatarImageUpdatedAt: null
 };
@@ -324,6 +325,57 @@ describe('GET /auth/users/:id/avatar', () => {
     });
 
     expect(response.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it('redirects to a signed URL when the avatar is stored externally', async () => {
+    const db = createStubDatabase();
+    db.findTenantById.mockResolvedValue(defaultTenant);
+    const getSignedReadUrl = vi.fn().mockResolvedValue('https://signed.example/avatar.jpg');
+    const blobStorage = {
+      putObject: vi.fn(),
+      deleteObject: vi.fn(),
+      getSignedReadUrl
+    };
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord,
+      storage: {
+        driver: 's3',
+        bucket: 'avatars',
+        region: 'us-east-1',
+        accessKeyId: 'ak',
+        secretAccessKey: 'sk',
+        prefix: 'avatars',
+        signedUrlTtlSeconds: 900
+      },
+      blobStorage
+    });
+
+    db.findUserById.mockResolvedValue({
+      ...sampleUserRecord,
+      avatarImage: null,
+      avatarImageKey: 'avatars/tenants/__default__/users/user-1/avatar.jpg',
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: new Date('2026-08-08T12:00:00.000Z')
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/auth/users/${sampleUserRecord.id}/avatar?v=123`,
+      headers: authHeader()
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toBe('https://signed.example/avatar.jpg');
+    expect(response.headers['cache-control']).toBe('private, no-cache');
+    expect(getSignedReadUrl).toHaveBeenCalledWith(
+      'avatars/tenants/__default__/users/user-1/avatar.jpg',
+      900
+    );
 
     await app.close();
   });

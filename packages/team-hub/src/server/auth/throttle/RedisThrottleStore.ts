@@ -45,6 +45,11 @@ export interface RedisThrottleClient {
    * Closes the Redis connection.
    */
   quit(): Promise<'OK' | undefined>;
+
+  /**
+   * Verifies Redis connectivity.
+   */
+  ping(): Promise<string>;
 }
 
 /**
@@ -120,6 +125,15 @@ export class RedisThrottleStore implements IThrottleStore {
    */
   async disconnect(): Promise<void> {
     await this.client.quit();
+  }
+
+  /**
+   * Verifies Redis connectivity with PING for readiness probes.
+   *
+   * @throws {Error} When Redis is unavailable.
+   */
+  async ping(): Promise<void> {
+    await this.client.ping();
   }
 
   /**

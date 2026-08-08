@@ -70,6 +70,16 @@ export interface IDatabase {
   disconnect(): Promise<void>;
 
   /**
+   * Verifies the database is reachable with a minimal round-trip.
+   *
+   * Used by readiness probes so orchestrators can stop routing traffic when
+   * the backend is down without treating process liveness as a dependency check.
+   *
+   * @throws {Error} When the database is not connected or the ping fails.
+   */
+  ping(): Promise<void>;
+
+  /**
    * Creates required tables or indexes when absent.
    *
    * SQL backends run DDL; Firestore treats schema as implicit and performs no work.

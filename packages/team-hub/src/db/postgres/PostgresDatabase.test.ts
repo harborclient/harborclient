@@ -114,6 +114,66 @@ describe('PostgresDatabase lifecycle', () => {
     expect(pool.end).toHaveBeenCalledOnce();
   });
 
+  it('omits optional tuning options when not provided', async () => {
+    const db = PostgresDatabase.fromConfig(validConfig);
+
+    await db.connect();
+
+    expect(PoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 5432,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor'
+    });
+    expect(PoolMock.mock.calls[0]?.[0]).not.toHaveProperty('max');
+    expect(PoolMock.mock.calls[0]?.[0]).not.toHaveProperty('idleTimeoutMillis');
+    expect(PoolMock.mock.calls[0]?.[0]).not.toHaveProperty('connectionTimeoutMillis');
+    expect(PoolMock.mock.calls[0]?.[0]).not.toHaveProperty('ssl');
+  });
+
+  it('creates pool with tuning options when provided', async () => {
+    const db = PostgresDatabase.fromConfig({
+      ...validConfig,
+      max: 25,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 2000,
+      ssl: true
+    });
+
+    await db.connect();
+
+    expect(PoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 5432,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor',
+      max: 25,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 2000,
+      ssl: true
+    });
+  });
+
+  it('passes object ssl settings to the pool', async () => {
+    const db = PostgresDatabase.fromConfig({
+      ...validConfig,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    await db.connect();
+
+    expect(PoolMock).toHaveBeenCalledWith({
+      host: '127.0.0.1',
+      port: 5432,
+      user: 'harbor',
+      password: 'harbor',
+      database: 'harbor',
+      ssl: { rejectUnauthorized: false }
+    });
+  });
+
   it('is idempotent when connect is called more than once', async () => {
     const db = PostgresDatabase.fromConfig(validConfig);
 

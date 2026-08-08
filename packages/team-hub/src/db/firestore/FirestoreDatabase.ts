@@ -267,6 +267,15 @@ export class FirestoreDatabase implements IDatabase {
   }
 
   /**
+   * Verifies Firestore connectivity via `listCollections()` for readiness probes.
+   *
+   * @throws {Error} When the client is not connected or the list call fails.
+   */
+  async ping(): Promise<void> {
+    await this.requireClient().listCollections();
+  }
+
+  /**
    * Firestore uses schemaless documents; provisions the default tenant, system user,
    * and migrates orphan tokens.
    */
@@ -395,6 +404,7 @@ export class FirestoreDatabase implements IDatabase {
         avatarInitials: data.avatarInitials ?? null,
         avatarColor: data.avatarColor ?? null,
         avatarImage: data.avatarImage ?? null,
+        avatarImageKey: data.avatarImageKey ?? null,
         avatarImageMime: data.avatarImageMime ?? null,
         avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
       };
@@ -444,6 +454,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials: null,
       avatarColor: null,
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null
     };
@@ -472,6 +483,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials: data.avatarInitials ?? null,
       avatarColor: data.avatarColor ?? null,
       avatarImage: data.avatarImage ?? null,
+      avatarImageKey: data.avatarImageKey ?? null,
       avatarImageMime: data.avatarImageMime ?? null,
       avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
     };
@@ -510,6 +522,7 @@ export class FirestoreDatabase implements IDatabase {
     };
     if (image !== undefined) {
       next.avatarImage = image.imageBase64;
+      next.avatarImageKey = image.imageKey;
       next.avatarImageMime = image.mime;
       next.avatarImageUpdatedAt = image.updatedAt;
     }
@@ -630,6 +643,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null,
       createdAt: now,
@@ -741,6 +755,8 @@ export class FirestoreDatabase implements IDatabase {
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
     const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageKey =
+      input.avatarImageKey !== undefined ? input.avatarImageKey : existing.avatarImageKey;
     const avatarImageMime =
       input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
     const avatarImageUpdatedAt =
@@ -763,6 +779,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials,
       avatarColor,
       avatarImage,
+      avatarImageKey,
       avatarImageMime,
       avatarImageUpdatedAt,
       updatedAt,
@@ -1476,6 +1493,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null,
       createdAt: now,
@@ -4065,6 +4083,7 @@ export class FirestoreDatabase implements IDatabase {
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
       avatarImage: null,
+      avatarImageKey: null,
       avatarImageMime: null,
       avatarImageUpdatedAt: null,
       createdAt: now,

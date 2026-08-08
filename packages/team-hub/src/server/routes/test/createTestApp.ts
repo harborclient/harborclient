@@ -11,6 +11,7 @@ import {
   DEFAULT_COLLABORATION_CONFIG,
   type CollaborationConfig
 } from '#/config/collaborationConfig.js';
+import type { StorageConfig } from '#/config/storageConfig.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { ApiTokenRecord, UserRecord } from '#/db/types.js';
 import { hashToken } from '#/server/auth/apiTokens.js';
@@ -19,6 +20,7 @@ import { createStubThrottleStore } from '#/server/auth/throttle/stubThrottleStor
 import { registerProtectedRoutes } from '#/server/routes/index.js';
 import { sampleAttribution } from '#/server/routes/test/sampleAttribution.js';
 import type { ReloadResult } from '#/server/runtimeContext.js';
+import type { IBlobStorage } from '#/storage/IBlobStorage.js';
 
 export const validBearerToken = 'hbk_valid-token';
 
@@ -40,6 +42,7 @@ export const sampleUserRecord: UserRecord = {
   avatarInitials: 'TU',
   avatarColor: 'sky-600',
   avatarImage: null,
+  avatarImageKey: null,
   avatarImageMime: null,
   avatarImageUpdatedAt: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -120,6 +123,16 @@ export interface CreateProtectedTestAppOptions {
    * Notice event bus used by notice SSE routes.
    */
   noticeEventBus?: import('#/server/notices/INoticeEventBus.js').INoticeEventBus;
+
+  /**
+   * Avatar storage configuration for redirect tests.
+   */
+  storage?: StorageConfig;
+
+  /**
+   * Blob storage client for redirect tests.
+   */
+  blobStorage?: IBlobStorage;
 }
 
 /**
@@ -163,7 +176,9 @@ export async function createProtectedTestApp(
       getMultitenancy: () => multitenancy,
       getCollaboration: () => collaboration,
       reloadConfig: options.reloadConfig ?? (async () => ({ sections: [] })),
-      noticeEventBus: options.noticeEventBus
+      noticeEventBus: options.noticeEventBus,
+      ...(options.storage ? { getStorage: () => options.storage! } : {}),
+      ...(options.blobStorage ? { blobStorage: options.blobStorage } : {})
     });
   });
 
