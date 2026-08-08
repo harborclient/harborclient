@@ -680,6 +680,10 @@ export function buildMenu(
           click: () => sendMenuAction(window, 'shortcut-tutor')
         },
         {
+          label: 'Contact',
+          click: () => void shell.openExternal('https://harborclient.com/contact')
+        },
+        {
           label: 'About',
           accelerator: acceleratorFor(accelerators, 'about'),
           click: () => sendMenuAction(window, 'about')

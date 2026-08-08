@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { useCallback, useEffect, useMemo, useState, type JSX, type MouseEvent } from 'react';
+import toast from 'react-hot-toast';
 import { toContainerItemRefs } from '@harborclient/core/collectionContainerOrder';
 import {
   getFolderAncestors,
@@ -50,6 +51,9 @@ import { countUntrackedCollectionItems } from '#/renderer/src/ui/Sidebars/Collec
 import { useSidebarSearchContext } from '#/renderer/src/ui/Sidebars/CollectionSidebar/search/sidebarSearchContext';
 import { useCollectionActions } from '#/renderer/src/ui/Sidebars/CollectionSidebar/actions/useCollectionActions';
 import { closeSidebarContentTabs } from '#/renderer/src/store/thunks/sidebarDeselect';
+import { refreshHubLlmModels } from '#/renderer/src/store/thunks/aiChat';
+import { refreshCollections } from '#/renderer/src/store/thunks/collections';
+import { showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 import {
   EmptySectionLabel,
   FaIcon,
@@ -63,6 +67,9 @@ import {
 } from '@harborclient/sdk/components';
 import { SidebarMarkerDot } from '#/renderer/src/ui/Sidebars/CollectionSidebar/markers/SidebarMarkerDot';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
+import { useConfirm } from '#/renderer/src/hooks/useConfirm';
+import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
+import { useTeamHubServiceScan } from '#/renderer/src/hooks/useTeamHubServiceScan';
 import { faChevronDown, faChevronRight } from '#/renderer/src/fontawesome';
 import { methodBadgeClass, sourceRow } from '#/renderer/src/ui/Shared/classes';
 import { AnimatedCollapse } from '#/renderer/src/ui/Shared/Animated/AnimatedCollapse';
@@ -111,6 +118,10 @@ import { buildCollectionsTreeFilter, isCollectionsFilterActive } from './collect
 import { useCollectionsPicker } from './collectionsPickerContext';
 import { sortSidebarItems, toSortTimestamp } from '../sort/sidebarSort';
 import { buildCollectionTree } from './buildCollectionTree';
+import {
+  isSoftDisconnectedTeamHubCollection,
+  isUnavailableTeamHubCollection
+} from './teamHubCollectionAvailability';
 
 export { CollectionsHeaderActions } from './CollectionsHeaderActions';
 
@@ -124,6 +135,7 @@ export { CollectionsHeaderActions } from './CollectionsHeaderActions';
  */
 export function Collections(): JSX.Element {
   const dispatch = useAppDispatch();
+  const confirm = useConfirm();
   const collections = useAppSelector(selectActiveCollections);
   const foldersByCollection = useAppSelector(selectFoldersByCollection);
   const requestsByCollection = useAppSelector(selectRequestsByCollection);
@@ -152,6 +164,12 @@ export function Collections(): JSX.Element {
     sectionSort
   } = useSidebarExpansion();
   const { primaryConnectionId, connectionNamesById, connectionTypesById } = useSidebarProviders();
+  const { teamHubs, loading: teamHubsLoading, error: teamHubsError, reloadToken } = useTeamHubs();
+  const { serviceFlagsByHubId } = useTeamHubServiceScan(
+    teamHubs,
+    reloadToken,
+    !teamHubsLoading && teamHubsError == null
+  );
   const {
     gitStatusesByConnectionId,
     itemGitStatusByUuid,
@@ -193,9 +211,21 @@ export function Collections(): JSX.Element {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
+  /**
+   * Maps team hub ids to storage-route probe success for rail-consistent online state.
+   */
+  const hubStorageOnlineById = useMemo(
+    () =>
+      Object.fromEntries(
+        teamHubs.map((hub) => [hub.id, serviceFlagsByHubId.get(hub.id)?.storage === true])
+      ),
+    [teamHubs, serviceFlagsByHubId]
+  );
+
   const [inspectPointsByMenuId, setInspectPointsByMenuId] = useState<Record<string, InspectPoint>>(
     {}
   );
+  const [pendingHubConnectId, setPendingHubConnectId] = useState<string | null>(null);
   const [activeDragKind, setActiveDragKind] = useState<DragKind | null>(null);
   const [activeDragRequest, setActiveDragRequest] = useState<SavedRequest | null>(null);
   const [activeDragFolder, setActiveDragFolder] = useState<Folder | null>(null);
@@ -289,27 +319,85 @@ export function Collections(): JSX.Element {
   };
 
   /**
+   * Soft-connects a disconnected team hub after the user confirms in a modal.
+   *
+   * @param hubConnectionId - Team hub connection id backing the collection row.
+   * @param hubName - Display name shown in the connect prompt.
+   */
+  const connectDisconnectedTeamHub = useCallback(
+    async (hubConnectionId: string, hubName: string): Promise<void> => {
+      if (pendingHubConnectId != null) {
+        return;
+      }
+
+      const confirmed = await confirm({
+        title: `Would you like to connect to ${hubName}?`,
+        message: 'Collections in this Team Hub are unavailable while disconnected.',
+        confirmLabel: 'Connect'
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      setPendingHubConnectId(hubConnectionId);
+      try {
+        await window.api.setTeamHubConnected(hubConnectionId, true);
+        await dispatch(refreshCollections());
+        void dispatch(refreshHubLlmModels());
+        toast.success(`Connected to ${hubName}.`);
+      } catch (err: unknown) {
+        showAlert(dispatch, err instanceof Error ? err.message : String(err), 'Connect failed');
+      } finally {
+        setPendingHubConnectId(null);
+      }
+    },
+    [confirm, dispatch, pendingHubConnectId]
+  );
+
+  /**
    * Selects a collection row and expands it on first click, or collapses it when
    * the row was already expanded (reveal helpers are expand-only).
    * In save-target picker mode, updates the modal selection instead of Redux.
+   * Disconnected team hub collections open a connect prompt instead of selecting.
    *
-   * @param collectionId - Collection id for the clicked row.
+   * @param collection - Collection for the clicked row.
+   * @param collectionConnectionId - Resolved provider connection id for the row.
    * @param wasExpanded - Whether the collection tree was expanded before selection.
    */
-  const handleCollectionNameClick = (collectionId: number, wasExpanded: boolean): void => {
+  const handleCollectionNameClick = (
+    collection: Collection,
+    collectionConnectionId: string,
+    wasExpanded: boolean
+  ): void => {
+    if (isSoftDisconnectedTeamHubCollection(collectionConnectionId, teamHubs)) {
+      const hubName = connectionNamesById[collectionConnectionId] ?? 'Team Hub';
+      void connectDisconnectedTeamHub(collectionConnectionId, hubName);
+      return;
+    }
+
+    if (isUnavailableTeamHubCollection(collectionConnectionId, teamHubs, hubStorageOnlineById)) {
+      const hubName = connectionNamesById[collectionConnectionId] ?? 'Team Hub';
+      showAlert(
+        dispatch,
+        `${hubName} is not reachable. Check your network connection and try again.`,
+        'Team Hub unavailable'
+      );
+      return;
+    }
+
     if (isSaveTargetPicker && picker != null) {
-      picker.onSelectCollection(collectionId);
+      picker.onSelectCollection(collection.id);
       if (!wasExpanded) {
-        toggleCollection(collectionId);
+        toggleCollection(collection.id);
       } else if (wasExpanded) {
         // Keep expanded so the user can pick a folder under this collection.
       }
       return;
     }
     clearRequestSelection();
-    onSelectCollection(collectionId);
+    onSelectCollection(collection.id);
     if (wasExpanded) {
-      toggleCollection(collectionId);
+      toggleCollection(collection.id);
     }
   };
 
@@ -1077,6 +1165,11 @@ export function Collections(): JSX.Element {
                   : 0;
               const canShare =
                 connectionType != null && connectionType !== 'sqlite' && connectionType !== 'git';
+              const isUnavailableHubCollection = isUnavailableTeamHubCollection(
+                collectionConnectionId,
+                teamHubs,
+                hubStorageOnlineById
+              );
               const rootItemIds = rootItems.map((item) => containerItemDragId(item));
               const isSidebarItemDragInCollection =
                 activeDragKind != null &&
@@ -1093,9 +1186,11 @@ export function Collections(): JSX.Element {
                 <div key={collection.id}>
                   <SortableRow
                     id={collectionDragId(collection.id)}
-                    className={sourceRow(selected, true)}
+                    className={`${sourceRow(selected && !isUnavailableHubCollection, true)}${
+                      isUnavailableHubCollection ? ' opacity-50 grayscale text-muted' : ''
+                    }`}
                     dragHandleLabel={`Reorder collection "${collection.name}"`}
-                    disabled={reorderDisabled}
+                    disabled={reorderDisabled || isUnavailableHubCollection}
                     onRowContextMenu={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -1158,7 +1253,9 @@ export function Collections(): JSX.Element {
                       className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit`}
                       data-sidebar-collection-id={collection.id}
                       aria-current={selected ? 'true' : undefined}
-                      onClick={() => handleCollectionNameClick(collection.id, expanded)}
+                      onClick={() =>
+                        handleCollectionNameClick(collection, collectionConnectionId, expanded)
+                      }
                       onDoubleClick={() => onConfigureCollection(collection.id)}
                       onKeyDown={(e) => {
                         if (e.key !== 'Enter') return;

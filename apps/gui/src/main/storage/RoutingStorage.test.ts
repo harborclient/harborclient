@@ -16,6 +16,7 @@ import { TeamHubFolderSettings } from './TeamHubFolderSettings';
 import type { SessionResponse, TeamHubClient } from '@harborclient/team-hub-api';
 import { TeamHubClientError } from '@harborclient/team-hub-api';
 import { detachedSettingKey, detachedSnippetSettingKey } from './teamHubDetached';
+import { setTeamHubConnected } from '#/main/settings/teamHubConnectionState';
 import { teamHubIdMapPath } from './createTeamHubStorage';
 import { baseDocumentInput, baseRequestInput } from '#/test/istorageContract';
 import { describeSqlite } from '#/test/nativeModules';
@@ -266,6 +267,34 @@ describeSqlite('RoutingStorage collections', () => {
     expect(router.consumeCollectionListWarnings()).toEqual([
       'Could not load collection data: database connection "missing-conn" is unavailable.'
     ]);
+  });
+
+  it('listCollections omits warnings when a team hub is soft-disconnected', async () => {
+    const { router, database } = await createRoutingFixture({ mountB: false });
+    setTeamHubConnected('hub-disconnected', false);
+    database.addRegistryEntry({
+      name: 'Hub Collection',
+      connectionId: 'hub-disconnected',
+      providerCollectionId: 1
+    });
+
+    const listed = await router.listCollections();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.name).toBe('Hub Collection');
+    expect(router.consumeCollectionListWarnings()).toEqual([]);
+  });
+
+  it('listRequests, listFolders, and listDocuments return empty when the provider is offline', async () => {
+    const { router, database } = await createRoutingFixture({ mountB: false });
+    const entry = database.addRegistryEntry({
+      name: 'Offline Hub Collection',
+      connectionId: 'missing-conn',
+      providerCollectionId: 1
+    });
+
+    await expect(router.listRequests(entry.id)).resolves.toEqual([]);
+    await expect(router.listFolders(entry.id)).resolves.toEqual([]);
+    await expect(router.listDocuments(entry.id)).resolves.toEqual([]);
   });
 
   it('listCollections records warnings when a provider read fails', async () => {
@@ -972,7 +1001,7 @@ describeSqlite('RoutingStorage listCollections pruning', () => {
 });
 
 describeSqlite('RoutingStorage disconnectTeamHub', () => {
-  it('unmounts the hub and purges registry while preserving id map and detached settings', async () => {
+  it('unmounts the hub and purges snippet registry while preserving collections, id map, and detached settings', async () => {
     const listCollections = vi.fn().mockResolvedValue([SERVER_COLLECTION_RECORD]);
     const { router, database, rootDir } = await createRoutingFixtureWithHub({
       listCollections
@@ -1000,7 +1029,7 @@ describeSqlite('RoutingStorage disconnectTeamHub', () => {
     await router.disconnectTeamHub(HUB_A.id);
 
     expect(router.isConnectionMounted(HUB_A.id)).toBe(false);
-    expect(database.listRegistry()).toEqual([]);
+    expect(database.listRegistry()).toHaveLength(1);
     expect(database.listSnippetRegistry()).toEqual([]);
     expect(JSON.parse(database.getSetting(detachedSettingKey(HUB_A.id)) ?? '[]')).toEqual([
       SERVER_COLLECTION_RECORD.id

@@ -48,6 +48,7 @@ import {
   isTeamHubSnippetsUnsupportedError
 } from '@harborclient/team-hub-api';
 import { logVerbose } from '#/main/logger';
+import { isTeamHubConnected } from '#/main/settings/teamHubConnectionState';
 import { isStorageConnectionConfigured } from '#/main/settings/storageSettings';
 import { parseJson } from '@harborclient/core/parseJson';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
@@ -566,9 +567,11 @@ export class RoutingStorage implements IStorage {
     for (const connectionId of neededConnectionIds) {
       const backend = this.byConnectionId.get(connectionId);
       if (!backend) {
-        this.listCollectionWarnings.push(
-          `Could not load collection data: database connection "${connectionId}" is unavailable.`
-        );
+        if (isTeamHubConnected(connectionId)) {
+          this.listCollectionWarnings.push(
+            `Could not load collection data: database connection "${connectionId}" is unavailable.`
+          );
+        }
         continue;
       }
       try {
@@ -830,10 +833,17 @@ export class RoutingStorage implements IStorage {
 
   /**
    * Lists requests for a collection, rewriting ids to the global namespace.
+   *
+   * Returns an empty list when the owning provider is offline (for example a
+   * Team Hub that is not currently mounted) so IPC refresh does not surface
+   * expected connectivity failures as handler errors.
    */
   async listRequests(collectionId: number): Promise<SavedRequest[]> {
     const entry = this.requireEntry(collectionId);
-    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      return [];
+    }
     const requests = await backend.db.listRequests(entry.providerCollectionId);
     return requests.map((request) => this.toGlobalRequest(request, backend, collectionId));
   }
@@ -896,12 +906,18 @@ export class RoutingStorage implements IStorage {
   /**
    * Lists all folders in a collection.
    *
+   * Returns an empty list when the owning provider is offline so sidebar refresh
+   * against a down Team Hub stays quiet.
+   *
    * @param collectionId - Collection to query.
    * @returns Folders ordered by sort_order then name.
    */
   async listFolders(collectionId: number): Promise<Folder[]> {
     const entry = this.requireEntry(collectionId);
-    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      return [];
+    }
     const folders = await backend.db.listFolders(entry.providerCollectionId);
     return folders.map((folder) => this.toGlobalFolder(folder, backend, collectionId));
   }
@@ -1136,10 +1152,16 @@ export class RoutingStorage implements IStorage {
 
   /**
    * Lists documents for a collection, rewriting ids to the global namespace.
+   *
+   * Returns an empty list when the owning provider is offline so document refresh
+   * against a down Team Hub does not reject the IPC handler.
    */
   async listDocuments(collectionId: number): Promise<CollectionDocument[]> {
     const entry = this.requireEntry(collectionId);
-    const backend = this.requireBackendByConnectionId(entry.connectionId);
+    const backend = this.byConnectionId.get(entry.connectionId);
+    if (!backend) {
+      return [];
+    }
     const documents = await backend.db.listDocuments(entry.providerCollectionId);
     return documents.map((document) => this.toGlobalDocument(document, backend, collectionId));
   }
@@ -2784,12 +2806,13 @@ export class RoutingStorage implements IStorage {
   }
 
   /**
-   * Soft-disconnects a team hub: unmounts the backend and purges sidebar registry
-   * entries while preserving the id map file and detached-collection settings so
-   * reconnect can remount without reconfiguring the hub.
+   * Soft-disconnects a team hub: unmounts the backend while preserving collection
+   * registry rows, the id map file, and detached-collection settings so reconnect
+   * can remount without reconfiguring the hub.
    *
-   * Registry rows are removed without calling `forgetLocal*` so the on-disk id
-   * map stays intact for the next mount.
+   * Collection registry rows stay in place so the sidebar can show dimmed hub
+   * collections until the user reconnects. Snippet and live-entity registry rows
+   * are still purged because those sidebars do not surface disconnected hubs.
    *
    * @param hubId - Team hub connection id.
    */
@@ -2801,7 +2824,6 @@ export class RoutingStorage implements IStorage {
       this.bySlot.delete(backend.slot);
     }
 
-    this.purgeTeamHubSidebarCollections(hubId);
     this.purgeTeamHubSidebarSnippets(hubId);
     this.purgeTeamHubSidebarLiveServers(hubId);
     this.purgeTeamHubSidebarLivePages(hubId);

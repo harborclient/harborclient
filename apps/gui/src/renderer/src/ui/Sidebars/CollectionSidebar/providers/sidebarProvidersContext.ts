@@ -27,6 +27,14 @@ export interface SidebarProvidersContextValue {
    * Provider types keyed by connection id, for storage-location badges.
    */
   connectionTypesById: Record<string, CollectionProviderKind>;
+
+  /**
+   * Soft-connection flags for configured team hubs keyed by hub connection id.
+   *
+   * Missing ids are not team hubs. `false` means the hub is disconnected and its
+   * sidebar collections should appear dimmed until the user reconnects.
+   */
+  teamHubConnectedById: Record<string, boolean>;
 }
 
 /**
