@@ -17,6 +17,10 @@ import type { SessionResponse, TeamHubClient } from '@harborclient/team-hub-api'
 import { TeamHubClientError } from '@harborclient/team-hub-api';
 import { detachedSettingKey, detachedSnippetSettingKey } from './teamHubDetached';
 import { setTeamHubConnected } from '#/main/settings/teamHubConnectionState';
+import {
+  clearLocalDatabaseForTesting,
+  setLocalDatabaseForTesting
+} from '#/main/storage/localDatabaseInstance';
 import { teamHubIdMapPath } from './createTeamHubStorage';
 import { baseDocumentInput, baseRequestInput } from '#/test/istorageContract';
 import { describeSqlite } from '#/test/nativeModules';
@@ -145,6 +149,7 @@ async function createRoutingFixture(options?: { mountB?: boolean }): Promise<{
   const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-routing-'));
   const database = new LocalDatabase(rootDir);
   await database.init();
+  setLocalDatabaseForTesting(database);
 
   const backendADir = join(rootDir, 'backend-a');
   const backendBDir = join(rootDir, 'backend-b');
@@ -163,6 +168,7 @@ async function createRoutingFixture(options?: { mountB?: boolean }): Promise<{
   }
 
   cleanups.push(async () => {
+    clearLocalDatabaseForTesting();
     await router.close();
     rmSync(rootDir, { recursive: true, force: true });
   });
@@ -206,6 +212,7 @@ async function createRoutingFixtureWithHub(client: Partial<TeamHubClient>): Prom
   const rootDir = mkdtempSync(join(tmpdir(), 'harborclient-routing-'));
   const database = new LocalDatabase(rootDir);
   await database.init();
+  setLocalDatabaseForTesting(database);
 
   const backendADir = join(rootDir, 'backend-a');
   mkdirSync(backendADir, { recursive: true });
@@ -220,6 +227,7 @@ async function createRoutingFixtureWithHub(client: Partial<TeamHubClient>): Prom
   router.mount(1, HUB_A, hubDb, 'http://127.0.0.1:8788');
 
   cleanups.push(async () => {
+    clearLocalDatabaseForTesting();
     await router.close();
     rmSync(rootDir, { recursive: true, force: true });
   });

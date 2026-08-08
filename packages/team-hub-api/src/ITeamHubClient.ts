@@ -40,6 +40,7 @@ import type {
   UpdateHubAvatarInput,
   UpdateMyAvatarInput,
   UpdateMyAvatarResponse,
+  UserAvatarImage,
   UpdateLivePageInput,
   UpdateLiveServerInput,
   CreateHubUserInput,
@@ -98,11 +99,19 @@ export interface ITeamHubClient {
   getSession(): Promise<SessionResponse>;
 
   /**
-   * Updates avatar initials and/or color for the authenticated user account.
+   * Updates avatar initials, color, and/or uploaded image for the authenticated user.
    *
-   * @param input - Replacement initials and/or color key.
+   * @param input - Replacement initials, color key, and/or image data URL.
    */
   updateMyAvatar(input: UpdateMyAvatarInput): Promise<UpdateMyAvatarResponse>;
+
+  /**
+   * Fetches the uploaded avatar image bytes for a Team Hub user account.
+   *
+   * @param userId - User account whose avatar image should be loaded.
+   * @param version - Optional cache-busting version from the avatar image URL.
+   */
+  getUserAvatar(userId: string, version?: string): Promise<UserAvatarImage>;
 
   /**
    * Updates hub avatar initials and/or color for the active tenant namespace.

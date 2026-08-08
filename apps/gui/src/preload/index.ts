@@ -97,6 +97,9 @@ import type {
   TeamHubAdminSnippet,
   TeamHubAdminSnippetInput,
   TeamHubAdminRunResult,
+  UpdateMyAvatarInput,
+  UpdateMyAvatarResponse,
+  UserAvatarImage,
   UpdateHubUserInput,
   CreateHubUserInput,
   CreatedHubUser,
@@ -2610,6 +2613,34 @@ function setTeamHubConnected(id: string, connected: boolean): Promise<TeamHub[]>
  */
 function scanTeamHubSessions(): Promise<TeamHubSessionScanResult[]> {
   return ipcRenderer.invoke('teamHubs:scanSessions');
+}
+
+/**
+ * Updates the authenticated user's avatar on a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param input - Replacement initials, color, and/or cropped image data URL.
+ */
+function updateTeamHubMyAvatar(
+  hubId: string,
+  input: UpdateMyAvatarInput
+): Promise<UpdateMyAvatarResponse> {
+  return ipcRenderer.invoke('teamHubs:updateMyAvatar', hubId, input);
+}
+
+/**
+ * Fetches a user's uploaded avatar image from a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param userId - User account whose avatar image should be loaded.
+ * @param version - Optional cache-busting version from the avatar image URL.
+ */
+function getTeamHubUserAvatar(
+  hubId: string,
+  userId: string,
+  version?: string
+): Promise<UserAvatarImage> {
+  return ipcRenderer.invoke('teamHubs:getUserAvatar', hubId, userId, version);
 }
 
 /**
@@ -5705,6 +5736,8 @@ const api: Api = {
   deleteTeamHub,
   setTeamHubConnected,
   scanTeamHubSessions,
+  updateTeamHubMyAvatar,
+  getTeamHubUserAvatar,
   reloadTeamHubConfig,
   listTeamHubUsers,
   updateTeamHubUser,

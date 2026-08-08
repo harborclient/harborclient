@@ -180,7 +180,10 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
       user: {
         id: session.user.id,
         name: session.user.name,
-        role: session.user.role
+        role: session.user.role,
+        ...(session.user.avatarInitials ? { avatarInitials: session.user.avatarInitials } : {}),
+        ...(session.user.avatarColor ? { avatarColor: session.user.avatarColor } : {}),
+        ...(session.user.avatarImageUrl ? { avatarImageUrl: session.user.avatarImageUrl } : {})
       },
       ...(session.hub
         ? {

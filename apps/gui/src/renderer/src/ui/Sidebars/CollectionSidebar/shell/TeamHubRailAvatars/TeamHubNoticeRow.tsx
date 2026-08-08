@@ -13,6 +13,11 @@ interface Props {
   notice: TeamHubNotice;
 
   /**
+   * Team hub connection id used to fetch uploaded actor avatars.
+   */
+  hubId: string;
+
+  /**
    * Called when the user activates the notice row.
    */
   onSelect: () => void;
@@ -39,7 +44,7 @@ function formatNoticeTimestamp(iso: string): string {
 /**
  * One actionable notice row in the Team Hub rail dropdown.
  */
-export function TeamHubNoticeRow({ notice, onSelect }: Props): JSX.Element {
+export function TeamHubNoticeRow({ notice, hubId, onSelect }: Props): JSX.Element {
   const unread = notice.readAt == null;
   const message = formatTeamHubNoticeMessage(notice);
   const targetLabel = formatTeamHubNoticeTargetLabel(notice);
@@ -54,7 +59,7 @@ export function TeamHubNoticeRow({ notice, onSelect }: Props): JSX.Element {
       aria-label={label}
       onClick={onSelect}
     >
-      <TeamHubNoticeActorAvatar actor={notice.actor} />
+      <TeamHubNoticeActorAvatar actor={notice.actor} hubId={hubId} />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="font-medium text-text">{notice.actor.name}</span>

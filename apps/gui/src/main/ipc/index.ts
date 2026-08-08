@@ -26,6 +26,7 @@ import { registerSettingsHandlers } from '#/main/ipc/handlers/settings';
 import { registerTeamHubDeviceKeyHandlers } from '#/main/ipc/handlers/teamHubDeviceKeys';
 import { registerTeamHubDiscussionHandlers } from '#/main/ipc/handlers/teamHubDiscussions';
 import { registerTeamHubNoticeHandlers } from '#/main/ipc/handlers/teamHubNotices';
+import { registerTeamHubProfileHandlers } from '#/main/ipc/handlers/teamHubProfile';
 import { registerBackupHandlers } from '#/main/ipc/handlers/backup';
 import { registerWindowHandlers } from '#/main/ipc/handlers/window';
 import { registerPluginHandlers } from '#/main/ipc/handlers/plugins';
@@ -68,6 +69,7 @@ export function registerIpcHandlers(db: IStorage, pluginManager: PluginManager):
   registerTeamHubDiscussionHandlers();
   registerTeamHubDeviceKeyHandlers();
   registerTeamHubNoticeHandlers();
+  registerTeamHubProfileHandlers();
   registerGitHandlers(db);
   registerMenuHandlers();
   registerCookieHandlers(cookieJar);

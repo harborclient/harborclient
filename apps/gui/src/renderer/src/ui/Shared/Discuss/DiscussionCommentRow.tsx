@@ -137,7 +137,7 @@ export function DiscussionCommentRow({
 
   return (
     <article className="flex min-w-0 gap-3" aria-label={`Comment by ${comment.author.name}`}>
-      <DiscussionCommentAvatar author={comment.author} />
+      <DiscussionCommentAvatar author={comment.author} hubId={hubId} />
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="font-medium">{comment.author.name}</span>

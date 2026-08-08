@@ -13,6 +13,7 @@ import {
   updateMyAvatarResponseSchema
 } from '#/server/routes/schemas/auth.js';
 import { errorResponseSchema } from '#/server/routes/schemas/common.js';
+import { z } from 'zod/v4';
 
 /**
  * Options for registering authentication introspection routes.
@@ -83,7 +84,7 @@ export async function registerAuthRoutes(
       }
     },
     /**
-     * Updates avatar presentation for the authenticated user account.
+     * Updates avatar presentation and/or uploaded image for the authenticated user.
      */
     handler: async (request, reply) => {
       const user = requireAuthenticatedUser(request);
@@ -94,14 +95,16 @@ export async function registerAuthRoutes(
           user.id,
           {
             initials: request.body.initials,
-            color: request.body.color
+            color: request.body.color,
+            imageDataUrl: request.body.imageDataUrl
           },
           user.id
         );
 
         return reply.send({
           avatarInitials: avatar.initials,
-          avatarColor: avatar.color
+          avatarColor: avatar.color,
+          ...(avatar.imageUrl ? { avatarImageUrl: avatar.imageUrl } : {})
         });
       } catch (error) {
         if (handleValidationError(reply, error)) {
@@ -110,6 +113,52 @@ export async function registerAuthRoutes(
 
         throw error;
       }
+    }
+  });
+
+  routes.route({
+    method: 'GET',
+    url: '/auth/users/:id/avatar',
+    schema: {
+      params: z.object({
+        id: z.string().min(1)
+      }),
+      response: {
+        404: errorResponseSchema
+      }
+    },
+    /**
+     * Returns the uploaded avatar image bytes for a Team Hub user account.
+     */
+    handler: async (request, reply) => {
+      requireAuthenticatedUser(request);
+
+      const target = await options.db.findUserById(request.params.id);
+      if (
+        target == null ||
+        target.avatarImage == null ||
+        target.avatarImage.length === 0 ||
+        target.avatarImageMime == null
+      ) {
+        return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
+      }
+
+      const bytes = Buffer.from(target.avatarImage, 'base64');
+      const etag =
+        target.avatarImageUpdatedAt != null
+          ? `"${target.avatarImageUpdatedAt.getTime()}"`
+          : undefined;
+
+      if (etag != null) {
+        void reply.header('ETag', etag);
+      }
+
+      reply
+        .header('Content-Type', target.avatarImageMime)
+        .header('Cache-Control', 'private, max-age=3600')
+        .header('Content-Length', String(bytes.byteLength));
+      // Binary body is intentionally untyped; response schema only covers the 404 JSON error.
+      return reply.send(bytes as unknown as { error: string });
     }
   });
 }

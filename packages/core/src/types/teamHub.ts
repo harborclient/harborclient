@@ -24,6 +24,68 @@ export interface TeamHubAvatar {
 }
 
 /**
+ * Request body for updating the authenticated user's Team Hub avatar.
+ */
+export interface UpdateMyAvatarInput {
+  /**
+   * Replacement initials tile text.
+   */
+  initials?: string;
+
+  /**
+   * Replacement palette color key.
+   */
+  color?: string;
+
+  /**
+   * Cropped avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
+}
+
+/**
+ * Response body from updating the authenticated user's Team Hub avatar.
+ */
+export interface UpdateMyAvatarResponse {
+  /**
+   * Persisted avatar initials tile text.
+   */
+  avatarInitials: string;
+
+  /**
+   * Persisted avatar background color key.
+   */
+  avatarColor: string;
+
+  /**
+   * Relative URL for the uploaded avatar image when present.
+   */
+  avatarImageUrl?: string;
+}
+
+/**
+ * Binary avatar image returned by Team Hub avatar download routes.
+ */
+export interface UserAvatarImage {
+  /**
+   * Image MIME type (for example `image/jpeg`).
+   */
+  mime: string;
+
+  /**
+   * Raw image bytes.
+   */
+  bytes: Uint8Array;
+
+  /**
+   * Data URL suitable for renderer `<img src>` usage.
+   */
+  dataUrl: string;
+}
+
+/**
  * A configured HarborClient Team Hub connection.
  */
 export interface TeamHub {
@@ -192,6 +254,21 @@ export interface TeamHubSessionScanResult {
      * Account role determining API capabilities.
      */
     role: 'admin' | 'user';
+
+    /**
+     * Persisted avatar initials tile text when the hub supports user avatars.
+     */
+    avatarInitials?: string;
+
+    /**
+     * Persisted avatar background color key when the hub supports user avatars.
+     */
+    avatarColor?: string;
+
+    /**
+     * Relative URL for the user's uploaded avatar image when present.
+     */
+    avatarImageUrl?: string;
   };
 
   /**
@@ -520,7 +597,14 @@ export interface TeamHubAdminRunResult {
 /**
  * Config section name reported by `POST /admin/config/reload`.
  */
-export type ReloadConfigSectionName = 'db' | 'redis' | 'llm' | 'plugins' | 'docs' | 'server';
+export type ReloadConfigSectionName =
+  | 'db'
+  | 'redis'
+  | 'llm'
+  | 'plugins'
+  | 'docs'
+  | 'server'
+  | 'collaboration';
 
 /**
  * Outcome for a single config section during reload.
@@ -1083,6 +1167,13 @@ export interface TeamHubDiscussionAuthorAvatar {
    * CSS color string for the avatar background.
    */
   color: string;
+
+  /**
+   * Relative URL for a uploaded avatar image (for example `/auth/users/{id}/avatar?v=…`).
+   *
+   * Omitted when the user has not uploaded an image.
+   */
+  imageUrl?: string;
 }
 
 /**
@@ -1299,6 +1390,13 @@ export interface TeamHubNoticeActorAvatar {
    * Persisted avatar background color key (for example `sky-600`).
    */
   color: string;
+
+  /**
+   * Relative URL for a uploaded avatar image (for example `/auth/users/{id}/avatar?v=…`).
+   *
+   * Omitted when the user has not uploaded an image.
+   */
+  imageUrl?: string;
 }
 
 /**

@@ -291,6 +291,7 @@ export function TeamHubNoticesPanel({
               <div key={notice.id} role="listitem">
                 <TeamHubNoticeRow
                   notice={notice}
+                  hubId={hubId}
                   onSelect={() => {
                     void handleSelectNotice(notice);
                   }}

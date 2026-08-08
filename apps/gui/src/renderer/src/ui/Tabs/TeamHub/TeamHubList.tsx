@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import type { TeamHub, TeamHubServiceFlags } from '@harborclient/core/types';
 
 import { faPlus, faUsers } from '#/renderer/src/fontawesome';
+import type { TeamHubSessionUserInfo } from '#/renderer/src/hooks/useTeamHubServiceScan';
 
 import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { refreshCollections } from '#/renderer/src/store/thunks/collections';
@@ -58,6 +59,11 @@ interface Props {
   serviceFlagsByHubId: Map<string, TeamHubServiceFlags>;
 
   /**
+   * Authenticated session users keyed by hub connection id.
+   */
+  sessionUserByHubId: Map<string, TeamHubSessionUserInfo>;
+
+  /**
    * True while admin capability scanning is in flight.
    */
   scanning: boolean;
@@ -78,6 +84,7 @@ export function TeamHubList({
   reload,
   adminHubIds,
   serviceFlagsByHubId,
+  sessionUserByHubId,
   scanning,
   onManage
 }: Props): JSX.Element {
@@ -86,6 +93,7 @@ export function TeamHubList({
   const [editingHub, setEditingHub] = useState<TeamHub | null>(null);
   const [deletingHub, setDeletingHub] = useState<TeamHub | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [pendingAvatarDataUrl, setPendingAvatarDataUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -107,6 +115,7 @@ export function TeamHubList({
       } else {
         setEditingHub(null);
         setIsNew(false);
+        setPendingAvatarDataUrl(null);
         setError(null);
         setFieldErrors({});
       }
@@ -122,6 +131,7 @@ export function TeamHubList({
   const handleAdd = (): void => {
     setError(null);
     setFieldErrors({});
+    setPendingAvatarDataUrl(null);
     setIsNew(true);
     setEditingHub(createBlankTeamHub());
   };
@@ -134,6 +144,7 @@ export function TeamHubList({
   const handleEdit = (hub: TeamHub): void => {
     setError(null);
     setFieldErrors({});
+    setPendingAvatarDataUrl(null);
     setIsNew(false);
     setEditingHub({ ...hub });
   };
@@ -144,12 +155,13 @@ export function TeamHubList({
   const handleCancelEdit = (): void => {
     setEditingHub(null);
     setIsNew(false);
+    setPendingAvatarDataUrl(null);
     setError(null);
     setFieldErrors({});
   };
 
   /**
-   * Persists the team hub being edited.
+   * Persists the team hub being edited and uploads any pending avatar image.
    */
   const handleSave = async (): Promise<void> => {
     if (!editingHub) return;
@@ -167,11 +179,19 @@ export function TeamHubList({
     try {
       const payload: TeamHub = isNew ? { ...editingHub, id: crypto.randomUUID() } : editingHub;
       await window.api.saveTeamHub(payload);
+
+      if (!isNew && pendingAvatarDataUrl != null) {
+        await window.api.updateTeamHubMyAvatar(payload.id, {
+          imageDataUrl: pendingAvatarDataUrl
+        });
+      }
+
       reload();
       await dispatch(refreshCollections());
       void dispatch(refreshHubLlmModels());
       setEditingHub(null);
       setIsNew(false);
+      setPendingAvatarDataUrl(null);
       toast.success('Team hub saved.');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -295,7 +315,6 @@ export function TeamHubList({
           labelledBy="team-hub-dialog-title"
           onClose={handleCancelEdit}
           title={isNew ? 'Add team hub' : 'Edit team hub'}
-          description="Enter a display name, team hub URL, and API token for HarborClient Team Hub."
           closeDisabled={saving}
           disableEscape={saving}
         >
@@ -309,9 +328,13 @@ export function TeamHubList({
           >
             <TeamHubForm
               hub={editingHub}
+              isNew={isNew}
+              sessionUser={sessionUserByHubId.get(editingHub.id) ?? null}
+              pendingAvatarDataUrl={pendingAvatarDataUrl}
               disabled={saving}
               fieldErrors={fieldErrors}
               onChange={setEditingHub}
+              onPendingAvatarChange={setPendingAvatarDataUrl}
             />
           </ModalFormLayout>
         </Modal>

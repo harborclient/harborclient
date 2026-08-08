@@ -439,7 +439,8 @@ export const sessionResponseSchema = z.object({
     name: z.string(),
     role: z.enum(['admin', 'user']),
     avatarInitials: z.string().optional(),
-    avatarColor: hubAvatarColorKeySchema.optional()
+    avatarColor: hubAvatarColorKeySchema.optional(),
+    avatarImageUrl: z.string().optional()
   }),
   token: z.object({
     id: z.string(),
@@ -462,18 +463,23 @@ export const sessionResponseSchema = z.object({
 export const updateMyAvatarBodySchema = z
   .object({
     initials: z.string().trim().min(1).max(2).optional(),
-    color: hubAvatarColorKeySchema.optional()
+    color: hubAvatarColorKeySchema.optional(),
+    imageDataUrl: z.string().nullable().optional()
   })
-  .refine((body) => body.initials != null || body.color != null, {
-    message: 'At least one of initials or color is required.'
-  });
+  .refine(
+    (body) => body.initials != null || body.color != null || body.imageDataUrl !== undefined,
+    {
+      message: 'At least one of initials, color, or imageDataUrl is required.'
+    }
+  );
 
 /**
  * Response body schema for `PUT /auth/profile/avatar`.
  */
 export const updateMyAvatarResponseSchema = z.object({
   avatarInitials: z.string(),
-  avatarColor: hubAvatarColorKeySchema
+  avatarColor: hubAvatarColorKeySchema,
+  avatarImageUrl: z.string().optional()
 });
 
 /**
@@ -681,7 +687,7 @@ export const listDeviceKeysResponseSchema = z.object({
  * Per-section outcome reported by config reload routes.
  */
 export const reloadConfigSectionResultSchema = z.object({
-  section: z.enum(['db', 'redis', 'llm', 'plugins', 'server']),
+  section: z.enum(['db', 'redis', 'llm', 'plugins', 'docs', 'server', 'collaboration']),
   status: z.enum(['reloaded', 'unchanged', 'failed', 'restart-required']),
   error: z.string().optional()
 });
@@ -966,7 +972,8 @@ export const discussionEntityTypeSchema = z.enum(['request', 'collection', 'fold
  */
 export const discussionAuthorAvatarSchema = z.object({
   initials: z.string(),
-  color: z.string()
+  color: z.string(),
+  imageUrl: z.string().optional()
 });
 
 /**
@@ -1147,7 +1154,8 @@ export const noticeActorSchema = z.object({
   avatar: z
     .object({
       initials: z.string(),
-      color: z.string()
+      color: z.string(),
+      imageUrl: z.string().optional()
     })
     .optional()
 });

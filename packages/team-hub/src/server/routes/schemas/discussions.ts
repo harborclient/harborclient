@@ -25,7 +25,8 @@ export const discussionEntityTypeSchema = z.enum([
  */
 export const discussionAuthorAvatarSchema = z.object({
   initials: z.string(),
-  color: z.string()
+  color: z.string(),
+  imageUrl: z.string().optional()
 });
 
 /**

@@ -24,6 +24,11 @@ export interface UserAuthorMetadata {
    * Persisted avatar background color key (for example `sky-600`).
    */
   avatarColor: string;
+
+  /**
+   * Relative URL for the uploaded avatar image when present.
+   */
+  avatarImageUrl?: string;
 }
 
 /**
@@ -53,6 +58,11 @@ export interface DiscussionAuthorPayload {
      * Persisted palette color key.
      */
     color: string;
+
+    /**
+     * Relative URL for the uploaded avatar image when present.
+     */
+    imageUrl?: string;
   };
 }
 
@@ -68,7 +78,8 @@ export function serializeUserAuthorMetadata(user: UserRecord): UserAuthorMetadat
     id: user.id,
     name: user.name,
     avatarInitials: avatar.initials,
-    avatarColor: avatar.color
+    avatarColor: avatar.color,
+    ...(avatar.imageUrl ? { avatarImageUrl: avatar.imageUrl } : {})
   };
 }
 
@@ -85,7 +96,8 @@ export function serializeDiscussionAuthor(user: UserRecord): DiscussionAuthorPay
     name: user.name,
     avatar: {
       initials: avatar.initials,
-      color: avatar.color
+      color: avatar.color,
+      ...(avatar.imageUrl ? { imageUrl: avatar.imageUrl } : {})
     }
   };
 }

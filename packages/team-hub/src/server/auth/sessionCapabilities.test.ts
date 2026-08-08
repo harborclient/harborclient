@@ -25,6 +25,9 @@ const baseUser: UserRecord = {
   llmMonthlyTokenLimit: 100_000,
   avatarInitials: 'AL',
   avatarColor: 'emerald-600',
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   ...sampleAttribution

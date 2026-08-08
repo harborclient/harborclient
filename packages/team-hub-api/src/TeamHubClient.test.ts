@@ -159,7 +159,8 @@ describe('TeamHubClient', () => {
         new Response(
           JSON.stringify({
             avatarInitials: 'ME',
-            avatarColor: 'rose-600'
+            avatarColor: 'rose-600',
+            avatarImageUrl: '/auth/users/user-1/avatar?v=1'
           }),
           {
             status: 200,
@@ -170,17 +171,52 @@ describe('TeamHubClient', () => {
       globalThis.fetch = fetchMock;
 
       const client = createClient();
-      const result = await client.updateMyAvatar({ initials: 'ME', color: 'rose-600' });
+      const result = await client.updateMyAvatar({
+        initials: 'ME',
+        color: 'rose-600',
+        imageDataUrl: 'data:image/jpeg;base64,YQ=='
+      });
 
       expect(result).toEqual({
         avatarInitials: 'ME',
-        avatarColor: 'rose-600'
+        avatarColor: 'rose-600',
+        avatarImageUrl: '/auth/users/user-1/avatar?v=1'
       });
       expect(fetchMock).toHaveBeenCalledWith(
         'http://127.0.0.1:8788/auth/profile/avatar',
         expect.objectContaining({
           method: 'PUT',
-          body: JSON.stringify({ initials: 'ME', color: 'rose-600' })
+          body: JSON.stringify({
+            initials: 'ME',
+            color: 'rose-600',
+            imageDataUrl: 'data:image/jpeg;base64,YQ=='
+          })
+        })
+      );
+    });
+  });
+
+  describe('getUserAvatar', () => {
+    it('fetches binary avatar bytes and builds a data URL', async () => {
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(bytes, {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' }
+        })
+      );
+      globalThis.fetch = fetchMock;
+
+      const client = createClient();
+      const result = await client.getUserAvatar('user-1', '99');
+
+      expect(result.mime).toBe('image/jpeg');
+      expect(Array.from(result.bytes)).toEqual([1, 2, 3, 4]);
+      expect(result.dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/auth/users/user-1/avatar?v=99',
+        expect.objectContaining({
+          method: 'GET'
         })
       );
     });
@@ -748,6 +784,8 @@ describe('TeamHubClient', () => {
               { section: 'redis', status: 'unchanged' },
               { section: 'llm', status: 'reloaded' },
               { section: 'plugins', status: 'reloaded' },
+              { section: 'docs', status: 'reloaded' },
+              { section: 'collaboration', status: 'reloaded' },
               { section: 'server', status: 'unchanged' }
             ]
           }),
@@ -762,7 +800,7 @@ describe('TeamHubClient', () => {
       const client = createClient();
       const result = await client.reloadConfig();
 
-      expect(result.sections).toHaveLength(5);
+      expect(result.sections).toHaveLength(7);
       expect(fetchMock).toHaveBeenCalledWith(
         'http://127.0.0.1:8788/admin/config/reload',
         expect.objectContaining({

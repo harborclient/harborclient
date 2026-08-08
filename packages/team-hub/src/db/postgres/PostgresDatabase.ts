@@ -765,6 +765,13 @@ export class PostgresDatabase implements IDatabase {
     const avatarInitials =
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
+    const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageMime =
+      input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
+    const avatarImageUpdatedAt =
+      input.avatarImageUpdatedAt !== undefined
+        ? input.avatarImageUpdatedAt
+        : existing.avatarImageUpdatedAt;
     const updatedAt = new Date();
 
     const result = await this.query(
@@ -781,9 +788,12 @@ export class PostgresDatabase implements IDatabase {
         llm_monthly_token_limit = $10,
         avatar_initials = $11,
         avatar_color = $12,
-        updated_at = $13,
-        updated_by_user_id = $14
-      WHERE id = $15 AND tenant_id = $16`,
+        avatar_image = $13,
+        avatar_image_mime = $14,
+        avatar_image_updated_at = $15,
+        updated_at = $16,
+        updated_by_user_id = $17
+      WHERE id = $18 AND tenant_id = $19`,
       [
         name,
         role,
@@ -797,6 +807,9 @@ export class PostgresDatabase implements IDatabase {
         llmMonthlyTokenLimit,
         avatarInitials,
         avatarColor,
+        avatarImage,
+        avatarImageMime,
+        avatarImageUpdatedAt,
         updatedAt,
         actingUserId,
         id,

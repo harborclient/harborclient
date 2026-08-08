@@ -16,6 +16,13 @@ export interface DiscussionAuthorAvatar {
    * CSS color string for the avatar background.
    */
   color: string;
+
+  /**
+   * Relative URL for a uploaded avatar image (for example `/auth/users/{id}/avatar?v=…`).
+   *
+   * Omitted when the user has not uploaded an image.
+   */
+  imageUrl?: string;
 }
 
 /**

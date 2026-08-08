@@ -1,4 +1,5 @@
 import { javascript } from '@codemirror/lang-javascript';
+import { forceParsing } from '@codemirror/language';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import type { CodeEditorTheme } from '../../types.js';
@@ -113,6 +114,10 @@ export function renderHighlightedPlaceholderDom(
     }),
     parent: host
   });
+
+  // Parsing can yield under heavy parallel test load; wait so token classes exist
+  // before we clone the offscreen DOM into the cached placeholder node.
+  forceParsing(view, view.state.doc.length, 5000);
 
   const wrap = document.createElement('span');
   wrap.className = 'cm-placeholder cm-syntax-placeholder';

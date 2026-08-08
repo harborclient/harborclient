@@ -27,7 +27,10 @@ function sampleUser(id: string, name: string): UserRecord {
     createdByUserId: null,
     updatedByUserId: null,
     avatarInitials: 'TU',
-    avatarColor: 'sky-600'
+    avatarColor: 'sky-600',
+    avatarImage: null,
+    avatarImageMime: null,
+    avatarImageUpdatedAt: null
   };
 }
 

@@ -131,6 +131,7 @@ export type {
   UpdateHubUserInput,
   UpdateMyAvatarInput,
   UpdateMyAvatarResponse,
+  UserAvatarImage,
   UpdateLivePageInput,
   UpdateLiveServerInput,
   UpdateRequestInput,

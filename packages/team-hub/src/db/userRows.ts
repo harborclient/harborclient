@@ -88,6 +88,21 @@ export interface UserSqlRow {
    * Avatar background color key column.
    */
   avatar_color: string | null;
+
+  /**
+   * Base64-encoded uploaded avatar image column.
+   */
+  avatar_image: string | null;
+
+  /**
+   * MIME type for the uploaded avatar image column.
+   */
+  avatar_image_mime: string | null;
+
+  /**
+   * Timestamp when the uploaded avatar image was last replaced.
+   */
+  avatar_image_updated_at: Date | null;
 }
 
 /**
@@ -148,7 +163,10 @@ export function mapUserSqlRow(row: UserSqlRow): UserRecord {
     createdByUserId: row.created_by_user_id ?? null,
     updatedByUserId: row.updated_by_user_id ?? null,
     avatarInitials: row.avatar_initials ?? null,
-    avatarColor: row.avatar_color ?? null
+    avatarColor: row.avatar_color ?? null,
+    avatarImage: row.avatar_image ?? null,
+    avatarImageMime: row.avatar_image_mime ?? null,
+    avatarImageUpdatedAt: row.avatar_image_updated_at ?? null
   };
 }
 
@@ -165,7 +183,7 @@ export function serializeAccessList(access: string[]): string {
 /**
  * Column list for SELECT queries against the users table.
  */
-export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, live_server_access, live_page_access, llm_access, llm_models, llm_monthly_token_limit, avatar_initials, avatar_color, created_at, updated_at, created_by_user_id, updated_by_user_id`;
+export const USER_SELECT_COLUMNS = `id, name, role, collection_access, environment_access, snippet_access, live_server_access, live_page_access, llm_access, llm_models, llm_monthly_token_limit, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at, created_at, updated_at, created_by_user_id, updated_by_user_id`;
 
 /**
  * Column list for SELECT queries against the collections table.

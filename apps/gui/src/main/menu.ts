@@ -661,13 +661,11 @@ export function buildMenu(
         },
         {
           label: 'Report Issue',
-          accelerator: acceleratorFor(accelerators, 'report-issue'),
           click: () =>
             void shell.openExternal('https://github.com/harborclient/harborclient/issues')
         },
         {
           label: 'Check for Updates',
-          accelerator: acceleratorFor(accelerators, 'check-for-updates'),
           click: () => sendMenuAction(window, 'check-for-updates')
         },
         {
@@ -685,7 +683,6 @@ export function buildMenu(
         },
         {
           label: 'About',
-          accelerator: acceleratorFor(accelerators, 'about'),
           click: () => sendMenuAction(window, 'about')
         }
       ]

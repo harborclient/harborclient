@@ -733,14 +733,14 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'report-issue',
     label: 'Report issue',
-    defaultAccelerator: 'CmdOrCtrl+Shift+R',
+    defaultAccelerator: '',
     kind: 'action',
     actionId: 'report-issue'
   },
   {
     id: 'check-for-updates',
     label: 'Check for updates',
-    defaultAccelerator: 'CmdOrCtrl+Shift+U',
+    defaultAccelerator: '',
     kind: 'action',
     actionId: 'check-for-updates'
   },
@@ -824,7 +824,7 @@ export const SHORTCUT_DEFS: ShortcutDef[] = [
   {
     id: 'about',
     label: 'About',
-    defaultAccelerator: 'CmdOrCtrl+Shift+A',
+    defaultAccelerator: '',
     kind: 'action',
     actionId: 'about'
   }

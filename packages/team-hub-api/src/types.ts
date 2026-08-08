@@ -201,6 +201,13 @@ export interface SessionResponse {
      * Omitted on older Team Hub servers that predate user avatar support.
      */
     avatarColor?: HubAvatarColorKey;
+
+    /**
+     * Relative URL for the user's uploaded avatar image when present.
+     *
+     * Omitted on older Team Hub servers or when no image has been uploaded.
+     */
+    avatarImageUrl?: string;
   };
 
   /**
@@ -252,6 +259,13 @@ export interface UpdateMyAvatarInput {
    * Replacement palette color key.
    */
   color?: HubAvatarColorKey;
+
+  /**
+   * Cropped avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
 }
 
 /**
@@ -267,6 +281,31 @@ export interface UpdateMyAvatarResponse {
    * Persisted avatar background color key.
    */
   avatarColor: HubAvatarColorKey;
+
+  /**
+   * Relative URL for the uploaded avatar image when present.
+   */
+  avatarImageUrl?: string;
+}
+
+/**
+ * Binary avatar image returned by `GET /auth/users/:id/avatar`.
+ */
+export interface UserAvatarImage {
+  /**
+   * Image MIME type (for example `image/jpeg`).
+   */
+  mime: string;
+
+  /**
+   * Raw image bytes.
+   */
+  bytes: Uint8Array;
+
+  /**
+   * Data URL suitable for renderer `<img src>` usage.
+   */
+  dataUrl: string;
 }
 
 /**
@@ -412,7 +451,14 @@ export interface TeamHubAdminResourceOptions {
 /**
  * Config section name reported by `POST /admin/config/reload`.
  */
-export type ReloadConfigSectionName = 'db' | 'redis' | 'llm' | 'plugins' | 'server';
+export type ReloadConfigSectionName =
+  | 'db'
+  | 'redis'
+  | 'llm'
+  | 'plugins'
+  | 'docs'
+  | 'server'
+  | 'collaboration';
 
 /**
  * Outcome for a single config section during reload.

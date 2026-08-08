@@ -253,7 +253,10 @@ export function mapFirestoreUser(id: string, data: FirestoreUserDocument): UserR
     createdByUserId: data.createdByUserId ?? null,
     updatedByUserId: data.updatedByUserId ?? null,
     avatarInitials: data.avatarInitials ?? null,
-    avatarColor: data.avatarColor ?? null
+    avatarColor: data.avatarColor ?? null,
+    avatarImage: data.avatarImage ?? null,
+    avatarImageMime: data.avatarImageMime ?? null,
+    avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
   };
 }
 

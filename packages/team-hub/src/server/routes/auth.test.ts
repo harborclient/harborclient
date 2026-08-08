@@ -170,6 +170,7 @@ describe('PUT /auth/profile/avatar', () => {
       avatarInitials: 'ME',
       avatarColor: 'rose-600'
     };
+    db.findUserById.mockResolvedValue(sampleUserRecord);
     db.updateUser.mockResolvedValue(updatedUser);
 
     const app = await createProtectedTestApp({
@@ -205,7 +206,48 @@ describe('PUT /auth/profile/avatar', () => {
     await app.close();
   });
 
-  it('returns 400 when neither initials nor color is provided', async () => {
+  it('updates an uploaded avatar image for the authenticated user', async () => {
+    const db = createStubDatabase();
+    db.findTenantById.mockResolvedValue(defaultTenant);
+    const imageUpdatedAt = new Date('2026-08-08T12:00:00.000Z');
+    const tinyJpegBase64 =
+      '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z';
+    const imageDataUrl = `data:image/jpeg;base64,${tinyJpegBase64}`;
+    const updatedUser = {
+      ...sampleUserRecord,
+      avatarImage: tinyJpegBase64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: imageUpdatedAt
+    };
+    db.findUserById.mockResolvedValue(sampleUserRecord);
+    db.updateUser.mockResolvedValue(updatedUser);
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/auth/profile/avatar',
+      headers: authHeader(),
+      payload: {
+        imageDataUrl
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      avatarInitials: sampleUserRecord.avatarInitials,
+      avatarColor: sampleUserRecord.avatarColor,
+      avatarImageUrl: `/auth/users/${sampleUserRecord.id}/avatar?v=${imageUpdatedAt.getTime()}`
+    });
+
+    await app.close();
+  });
+
+  it('returns 400 when neither initials, color, nor imageDataUrl is provided', async () => {
     const db = createStubDatabase();
     db.findTenantById.mockResolvedValue(defaultTenant);
     const app = await createProtectedTestApp({
@@ -222,6 +264,63 @@ describe('PUT /auth/profile/avatar', () => {
     });
 
     expect(response.statusCode).toBe(400);
+
+    await app.close();
+  });
+});
+
+describe('GET /auth/users/:id/avatar', () => {
+  it('returns uploaded avatar bytes for an authenticated request', async () => {
+    const db = createStubDatabase();
+    db.findTenantById.mockResolvedValue(defaultTenant);
+    const tinyJpegBase64 =
+      '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z';
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord
+    });
+
+    db.findUserById.mockResolvedValue({
+      ...sampleUserRecord,
+      avatarImage: tinyJpegBase64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: new Date('2026-08-08T12:00:00.000Z')
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/auth/users/${sampleUserRecord.id}/avatar`,
+      headers: authHeader()
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('image/jpeg');
+    expect(Buffer.from(response.rawPayload).toString('base64')).toBe(tinyJpegBase64);
+
+    await app.close();
+  });
+
+  it('returns 404 when the user has no uploaded avatar image', async () => {
+    const db = createStubDatabase();
+    db.findTenantById.mockResolvedValue(defaultTenant);
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord
+    });
+
+    db.findUserById.mockResolvedValue(sampleUserRecord);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/auth/users/${sampleUserRecord.id}/avatar`,
+      headers: authHeader()
+    });
+
+    expect(response.statusCode).toBe(404);
 
     await app.close();
   });

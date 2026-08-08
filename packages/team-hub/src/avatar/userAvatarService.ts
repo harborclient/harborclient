@@ -8,6 +8,22 @@ import {
 } from '#/avatar/avatarPresentation.js';
 import type { IDatabase } from '#/db/IDatabase.js';
 import type { UserRecord } from '#/db/types.js';
+import { ValidationError } from '#/server/admin/userValidation.js';
+
+/**
+ * Maximum accepted uploaded avatar image size in bytes (~200 KB).
+ */
+export const MAX_AVATAR_IMAGE_BYTES = 200 * 1024;
+
+/**
+ * MIME types accepted for uploaded user avatar images.
+ */
+export const ALLOWED_AVATAR_IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif'
+] as const;
 
 /**
  * User avatar metadata exposed on session, admin, and author payloads.
@@ -22,6 +38,11 @@ export interface UserAvatarMetadata extends AvatarPresentation {
    * Unique display name for the account.
    */
   name: string;
+
+  /**
+   * Relative URL for the uploaded avatar image when present.
+   */
+  imageUrl?: string;
 }
 
 /**
@@ -37,6 +58,112 @@ export interface UpdateUserAvatarInput {
    * Replacement palette color key.
    */
   color?: AvatarColorKey;
+
+  /**
+   * Cropped avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
+}
+
+/**
+ * Decoded avatar image payload ready for persistence.
+ */
+export interface DecodedAvatarImage {
+  /**
+   * Image MIME type.
+   */
+  mime: string;
+
+  /**
+   * Base64-encoded image bytes.
+   */
+  base64: string;
+
+  /**
+   * Raw decoded byte length used for size validation.
+   */
+  byteLength: number;
+}
+
+/**
+ * Builds a relative avatar image URL with a cache-busting version query.
+ *
+ * @param userId - User account identifier.
+ * @param updatedAt - Timestamp when the image was last replaced.
+ * @returns Relative path suitable for API clients to resolve against the hub base URL.
+ */
+export function buildUserAvatarImageUrl(userId: string, updatedAt: Date): string {
+  return `/auth/users/${encodeURIComponent(userId)}/avatar?v=${updatedAt.getTime()}`;
+}
+
+/**
+ * Returns the relative avatar image URL for a user when an image is persisted.
+ *
+ * @param user - User record that may include uploaded image fields.
+ * @returns Relative image URL, or undefined when no image is stored.
+ */
+export function resolveUserAvatarImageUrl(user: UserRecord): string | undefined {
+  if (
+    user.avatarImage == null ||
+    user.avatarImage.length === 0 ||
+    user.avatarImageMime == null ||
+    user.avatarImageUpdatedAt == null
+  ) {
+    return undefined;
+  }
+
+  return buildUserAvatarImageUrl(user.id, user.avatarImageUpdatedAt);
+}
+
+/**
+ * Parses and validates an avatar image data URL.
+ *
+ * @param imageDataUrl - Data URL produced by the client cropper.
+ * @returns Decoded MIME type and base64 payload.
+ * @throws {ValidationError} When the payload is missing, malformed, oversized, or not an image.
+ */
+export function parseAvatarImageDataUrl(imageDataUrl: string): DecodedAvatarImage {
+  const trimmed = imageDataUrl.trim();
+  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(trimmed);
+  if (!match) {
+    throw new ValidationError('Avatar image must be a base64 image data URL.');
+  }
+
+  const mime = match[1]!.toLowerCase();
+  if (
+    !(ALLOWED_AVATAR_IMAGE_MIME_TYPES as readonly string[]).includes(mime) &&
+    mime !== 'image/jpg'
+  ) {
+    throw new ValidationError(
+      `Avatar image type "${mime}" is not supported. Use JPEG, PNG, WebP, or GIF.`
+    );
+  }
+
+  const base64 = match[2]!.replace(/\s+/g, '');
+  let byteLength: number;
+  try {
+    byteLength = Buffer.from(base64, 'base64').byteLength;
+  } catch {
+    throw new ValidationError('Avatar image payload is not valid base64.');
+  }
+
+  if (byteLength === 0) {
+    throw new ValidationError('Avatar image payload is empty.');
+  }
+
+  if (byteLength > MAX_AVATAR_IMAGE_BYTES) {
+    throw new ValidationError(
+      `Avatar image exceeds the maximum size of ${MAX_AVATAR_IMAGE_BYTES} bytes.`
+    );
+  }
+
+  return {
+    mime: mime === 'image/jpg' ? 'image/jpeg' : mime,
+    base64,
+    byteLength
+  };
 }
 
 /**
@@ -44,15 +171,18 @@ export interface UpdateUserAvatarInput {
  * present or computing defaults without writing.
  *
  * @param user - User record from the database layer.
- * @returns Avatar initials, color, id, and display name.
+ * @returns Avatar initials, color, optional image URL, id, and display name.
  */
 export function resolveUserAvatarFromRecord(user: UserRecord): UserAvatarMetadata {
+  const imageUrl = resolveUserAvatarImageUrl(user);
+
   if (hasPersistedAvatar(user.avatarInitials, user.avatarColor)) {
     return {
       id: user.id,
       name: user.name,
       initials: user.avatarInitials!.trim(),
-      color: user.avatarColor!.trim() as AvatarColorKey
+      color: user.avatarColor!.trim() as AvatarColorKey,
+      ...(imageUrl ? { imageUrl } : {})
     };
   }
 
@@ -61,7 +191,8 @@ export function resolveUserAvatarFromRecord(user: UserRecord): UserAvatarMetadat
     id: user.id,
     name: user.name,
     initials: defaults.initials,
-    color: defaults.color
+    color: defaults.color,
+    ...(imageUrl ? { imageUrl } : {})
   };
 }
 
@@ -121,14 +252,15 @@ export async function ensureUserAvatar(db: IDatabase, userId: string): Promise<U
 }
 
 /**
- * Updates avatar presentation for a user account.
+ * Updates avatar presentation and/or uploaded image for a user account.
  *
  * @param db - Tenant-scoped database handle.
  * @param userId - User account to update.
- * @param input - Replacement initials and/or color.
+ * @param input - Replacement initials, color, and/or image data URL.
  * @param actingUserId - User performing the update.
  * @returns Updated avatar metadata.
- * @throws {Error} When the user is missing or input is invalid.
+ * @throws {ValidationError} When input is invalid.
+ * @throws {Error} When the user is missing.
  */
 export async function updateUserAvatar(
   db: IDatabase,
@@ -136,8 +268,8 @@ export async function updateUserAvatar(
   input: UpdateUserAvatarInput,
   actingUserId: string
 ): Promise<UserAvatarMetadata> {
-  if (input.initials == null && input.color == null) {
-    throw new Error('At least one of initials or color is required.');
+  if (input.initials == null && input.color == null && input.imageDataUrl === undefined) {
+    throw new ValidationError('At least one of initials, color, or imageDataUrl is required.');
   }
 
   const user = await db.findUserById(userId);
@@ -146,18 +278,42 @@ export async function updateUserAvatar(
   }
 
   const current = resolveUserAvatarFromRecord(user);
-  const initials =
-    input.initials == null ? current.initials : normalizeAvatarInitials(input.initials);
-  const color = input.color == null ? current.color : normalizeAvatarColor(input.color);
+  let initials = current.initials;
+  let color = current.color;
 
-  const updated = await db.updateUser(
-    userId,
-    {
-      avatarInitials: initials,
-      avatarColor: color
-    },
-    actingUserId
-  );
+  try {
+    if (input.initials != null) {
+      initials = normalizeAvatarInitials(input.initials);
+    }
+    if (input.color != null) {
+      color = normalizeAvatarColor(input.color);
+    }
+  } catch (error) {
+    throw new ValidationError(error instanceof Error ? error.message : String(error));
+  }
 
+  const patch: {
+    avatarInitials: string;
+    avatarColor: AvatarColorKey;
+    avatarImage?: string | null;
+    avatarImageMime?: string | null;
+    avatarImageUpdatedAt?: Date | null;
+  } = {
+    avatarInitials: initials,
+    avatarColor: color
+  };
+
+  if (input.imageDataUrl === null) {
+    patch.avatarImage = null;
+    patch.avatarImageMime = null;
+    patch.avatarImageUpdatedAt = null;
+  } else if (input.imageDataUrl !== undefined) {
+    const decoded = parseAvatarImageDataUrl(input.imageDataUrl);
+    patch.avatarImage = decoded.base64;
+    patch.avatarImageMime = decoded.mime;
+    patch.avatarImageUpdatedAt = new Date();
+  }
+
+  const updated = await db.updateUser(userId, patch, actingUserId);
   return resolveUserAvatarFromRecord(updated);
 }

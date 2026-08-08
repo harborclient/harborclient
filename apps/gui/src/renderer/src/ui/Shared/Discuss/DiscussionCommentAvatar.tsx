@@ -2,12 +2,18 @@ import type { JSX } from 'react';
 import type { CSSProperties } from 'react';
 import type { TeamHubDiscussionAuthor } from '@harborclient/core/types';
 import { teamHubAvatarColorClassFromKey } from '../../Sidebars/CollectionSidebar/shell/TeamHubRailAvatars/teamHubInitials';
+import { useTeamHubAvatarImage } from '../TeamHubAvatarImage/useTeamHubAvatarImage';
 
 interface Props {
   /**
    * Author metadata returned with a discussion comment.
    */
   author: TeamHubDiscussionAuthor;
+
+  /**
+   * Team hub connection id used to fetch uploaded avatar images.
+   */
+  hubId?: string;
 }
 
 /**
@@ -37,7 +43,7 @@ function resolveDiscussionAvatarPresentation(author: TeamHubDiscussionAuthor): {
   style?: CSSProperties;
 } {
   const baseClass =
-    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white';
+    'inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[14px] font-semibold text-white';
 
   if (author.avatar?.color) {
     return {
@@ -54,13 +60,18 @@ function resolveDiscussionAvatarPresentation(author: TeamHubDiscussionAuthor): {
 /**
  * Renders a discussion author's avatar badge using hub-provided metadata when available.
  */
-export function DiscussionCommentAvatar({ author }: Props): JSX.Element {
+export function DiscussionCommentAvatar({ author, hubId }: Props): JSX.Element {
   const initials = author.avatar?.initials ?? fallbackInitials(author.name);
   const presentation = resolveDiscussionAvatarPresentation(author);
+  const imageDataUrl = useTeamHubAvatarImage(hubId, author.id, author.avatar?.imageUrl);
 
   return (
     <span className={presentation.className} style={presentation.style} aria-hidden>
-      {initials}
+      {imageDataUrl ? (
+        <img src={imageDataUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </span>
   );
 }

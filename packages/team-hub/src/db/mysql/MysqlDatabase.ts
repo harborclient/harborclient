@@ -757,6 +757,13 @@ export class MysqlDatabase implements IDatabase {
     const avatarInitials =
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
+    const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageMime =
+      input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
+    const avatarImageUpdatedAt =
+      input.avatarImageUpdatedAt !== undefined
+        ? input.avatarImageUpdatedAt
+        : existing.avatarImageUpdatedAt;
     const updatedAt = new Date();
 
     const result = await this.executeStatement(
@@ -773,6 +780,9 @@ export class MysqlDatabase implements IDatabase {
         llm_monthly_token_limit = ?,
         avatar_initials = ?,
         avatar_color = ?,
+        avatar_image = ?,
+        avatar_image_mime = ?,
+        avatar_image_updated_at = ?,
         updated_at = ?,
         updated_by_user_id = ?
       WHERE tenant_id = ? AND id = ?`,
@@ -789,6 +799,9 @@ export class MysqlDatabase implements IDatabase {
         llmMonthlyTokenLimit,
         avatarInitials,
         avatarColor,
+        avatarImage,
+        avatarImageMime,
+        avatarImageUpdatedAt,
         updatedAt,
         actingUserId,
         this.tenantId,

@@ -119,7 +119,10 @@ Use this route to discover whether a token belongs to a `user` or `admin` accoun
   "user": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "alice",
-    "role": "user"
+    "role": "user",
+    "avatarInitials": "AL",
+    "avatarColor": "sky-600",
+    "avatarImageUrl": "/auth/users/550e8400-e29b-41d4-a716-446655440000/avatar?v=1723118400000"
   },
   "token": {
     "id": "660e8400-e29b-41d4-a716-446655440001",
@@ -131,9 +134,17 @@ Use this route to discover whether a token belongs to a `user` or `admin` accoun
     "llm": true,
     "communication": true,
     "discussionE2ee": false
+  },
+  "tenantId": "__default__",
+  "hub": {
+    "name": "Default",
+    "initials": "DE",
+    "color": "violet-600"
   }
 }
 ```
+
+`avatarImageUrl` is omitted when the user has not uploaded an image. Clients resolve it against the hub base URL and pass the bearer token when fetching bytes.
 
 | Capability       | `user` role                        | `admin` role                         |
 | ---------------- | ---------------------------------- | ------------------------------------ |
@@ -150,6 +161,55 @@ Discussion routes require `capabilities.communication`. When `discussionE2ee` is
 ```bash
 curl -s http://127.0.0.1:8788/auth/session \
   -H "Authorization: Bearer hbk_your_token_here"
+```
+
+### PUT /auth/profile/avatar
+
+Updates avatar presentation for the authenticated user. Accepts initials, a palette color key, and/or a cropped image data URL. At least one field is required.
+
+**Request body:**
+
+```json
+{
+  "initials": "ME",
+  "color": "rose-600",
+  "imageDataUrl": "data:image/jpeg;base64,..."
+}
+```
+
+Pass `"imageDataUrl": null` to clear a previously uploaded image. Uploaded images must be JPEG, PNG, WebP, or GIF and at most 200 KB after decoding.
+
+**Response `200`:**
+
+```json
+{
+  "avatarInitials": "ME",
+  "avatarColor": "rose-600",
+  "avatarImageUrl": "/auth/users/550e8400-e29b-41d4-a716-446655440000/avatar?v=1723118400000"
+}
+```
+
+**Response `400`:** Invalid body, unsupported MIME type, or image larger than 200 KB.
+
+```bash
+curl -s -X PUT http://127.0.0.1:8788/auth/profile/avatar \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"imageDataUrl":"data:image/jpeg;base64,..."}'
+```
+
+### GET /auth/users/:id/avatar
+
+Returns the uploaded avatar image bytes for a user account. Requires a valid bearer token.
+
+**Response `200`:** Raw image bytes with `Content-Type` set to the stored MIME type, plus `Cache-Control: private, max-age=3600` and an `ETag` derived from the image update timestamp.
+
+**Response `404`:** User not found or no uploaded image.
+
+```bash
+curl -s http://127.0.0.1:8788/auth/users/550e8400-e29b-41d4-a716-446655440000/avatar \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -o avatar.jpg
 ```
 
 ## Administration

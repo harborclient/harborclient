@@ -35,7 +35,8 @@ export const sessionResponseSchema = z.object({
     name: z.string(),
     role: userRoleSchema,
     avatarInitials: z.string(),
-    avatarColor: z.enum(AVATAR_COLOR_KEYS)
+    avatarColor: z.enum(AVATAR_COLOR_KEYS),
+    avatarImageUrl: z.string().optional()
   }),
   token: z.object({
     id: z.string(),
@@ -52,13 +53,18 @@ export const sessionResponseSchema = z.object({
 export const updateMyAvatarBodySchema = z
   .object({
     initials: z.string().trim().min(1).max(2).optional(),
-    color: z.enum(AVATAR_COLOR_KEYS).optional()
+    color: z.enum(AVATAR_COLOR_KEYS).optional(),
+    imageDataUrl: z.string().nullable().optional()
   })
   .superRefine((body, ctx) => {
-    if (body.initials === undefined && body.color === undefined) {
+    if (
+      body.initials === undefined &&
+      body.color === undefined &&
+      body.imageDataUrl === undefined
+    ) {
       ctx.addIssue({
         code: 'custom',
-        message: 'At least one of initials or color is required.'
+        message: 'At least one of initials, color, or imageDataUrl is required.'
       });
     }
   });
@@ -68,5 +74,6 @@ export const updateMyAvatarBodySchema = z
  */
 export const updateMyAvatarResponseSchema = z.object({
   avatarInitials: z.string(),
-  avatarColor: z.enum(AVATAR_COLOR_KEYS)
+  avatarColor: z.enum(AVATAR_COLOR_KEYS),
+  avatarImageUrl: z.string().optional()
 });

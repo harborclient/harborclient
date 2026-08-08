@@ -37,7 +37,10 @@ import type {
   TeamHubNotificationSettings,
   TeamHubUpdateDiscussionInput,
   TeamHubUpdateNotificationSettingsInput,
-  UpdateHubUserInput
+  UpdateHubUserInput,
+  UpdateMyAvatarInput,
+  UpdateMyAvatarResponse,
+  UserAvatarImage
 } from '../teamHub';
 
 /**
@@ -77,6 +80,28 @@ export interface ApiTeamHub {
    * Probes each configured team hub for session capabilities via `GET /auth/session`.
    */
   scanTeamHubSessions: () => Promise<TeamHubSessionScanResult[]>;
+  /**
+   * Updates the authenticated user's avatar on a Team Hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param input - Replacement initials, color, and/or cropped image data URL.
+   */
+  updateTeamHubMyAvatar: (
+    hubId: string,
+    input: UpdateMyAvatarInput
+  ) => Promise<UpdateMyAvatarResponse>;
+  /**
+   * Fetches a user's uploaded avatar image from a Team Hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param userId - User account whose avatar image should be loaded.
+   * @param version - Optional cache-busting version from the avatar image URL.
+   */
+  getTeamHubUserAvatar: (
+    hubId: string,
+    userId: string,
+    version?: string
+  ) => Promise<UserAvatarImage>;
   /**
    * Lists Team Hub user accounts using an admin token on the given hub connection.
    *

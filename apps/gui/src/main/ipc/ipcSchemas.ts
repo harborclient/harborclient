@@ -669,6 +669,22 @@ export const teamHubNotificationSettingsUpdateInput = z.object({
 });
 
 /**
+ * Zod schema for updating the authenticated user's Team Hub avatar over IPC.
+ */
+export const updateMyAvatarInput = z
+  .object({
+    initials: z.string().trim().min(1).max(2).optional(),
+    color: z.string().optional(),
+    imageDataUrl: z.string().nullable().optional()
+  })
+  .refine(
+    (body) => body.initials != null || body.color != null || body.imageDataUrl !== undefined,
+    {
+      message: 'At least one of initials, color, or imageDataUrl is required.'
+    }
+  );
+
+/**
  * Zod schema for creating a Team Hub API token sent over IPC.
  */
 export const createHubTokenInput = z.object({
@@ -1354,6 +1370,8 @@ export const ipcArgSchemas = {
     connectionId,
     teamHubNotificationSettingsUpdateInput
   ]),
+  teamHubUpdateMyAvatar: z.tuple([connectionId, updateMyAvatarInput]),
+  teamHubGetUserAvatar: z.tuple([connectionId, z.string().min(1), z.string().optional()]),
   teamHubDiscussionThreadId: z.tuple([connectionId, z.string().min(1)]),
   providerSync: z.tuple([connectionId]),
   providerListUnregisteredCollections: z.tuple([connectionId]),

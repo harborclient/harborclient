@@ -235,6 +235,21 @@ export interface UserRecord {
    * Persisted avatar background color key (for example `sky-600`).
    */
   avatarColor: string | null;
+
+  /**
+   * Base64-encoded uploaded avatar image bytes, when present.
+   */
+  avatarImage: string | null;
+
+  /**
+   * MIME type for {@link avatarImage} (for example `image/jpeg`).
+   */
+  avatarImageMime: string | null;
+
+  /**
+   * When the uploaded avatar image was last replaced, when present.
+   */
+  avatarImageUpdatedAt: Date | null;
 }
 
 /**
@@ -365,6 +380,21 @@ export interface UpdateUserInput {
    * Replacement avatar background color key.
    */
   avatarColor?: string;
+
+  /**
+   * Replacement base64-encoded avatar image bytes, or null to clear.
+   */
+  avatarImage?: string | null;
+
+  /**
+   * Replacement MIME type for {@link avatarImage}, or null when clearing.
+   */
+  avatarImageMime?: string | null;
+
+  /**
+   * Replacement timestamp for the uploaded avatar image, or null when clearing.
+   */
+  avatarImageUpdatedAt?: Date | null;
 }
 
 /**

@@ -13,7 +13,7 @@ import { teamHubDisplayName } from './teamHubDisplayName';
 export function TeamHub(): JSX.Element {
   const dispatch = useAppDispatch();
   const { teamHubs, loading, error: bootstrapError, reload, reloadToken } = useTeamHubs();
-  const { serviceFlagsByHubId, adminHubIds, scanning } = useTeamHubServiceScan(
+  const { serviceFlagsByHubId, sessionUserByHubId, adminHubIds, scanning } = useTeamHubServiceScan(
     teamHubs,
     reloadToken,
     !loading && bootstrapError == null
@@ -44,6 +44,7 @@ export function TeamHub(): JSX.Element {
           reload={reload}
           adminHubIds={adminHubIds}
           serviceFlagsByHubId={serviceFlagsByHubId}
+          sessionUserByHubId={sessionUserByHubId}
           scanning={scanning}
           onManage={handleManage}
         />

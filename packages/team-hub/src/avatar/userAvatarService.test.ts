@@ -4,6 +4,8 @@ import type { UserRecord } from '#/db/types.js';
 import {
   buildUserAvatarFieldsForCreate,
   ensureUserAvatar,
+  MAX_AVATAR_IMAGE_BYTES,
+  parseAvatarImageDataUrl,
   resolveUserAvatarFromRecord,
   updateUserAvatar
 } from '#/avatar/userAvatarService.js';
@@ -23,6 +25,9 @@ const sampleUser: UserRecord = {
   llmMonthlyTokenLimit: null,
   avatarInitials: null,
   avatarColor: null,
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   ...sampleAttribution
@@ -95,6 +100,29 @@ describe('ensureUserAvatar', () => {
   });
 });
 
+describe('parseAvatarImageDataUrl', () => {
+  it('accepts a JPEG data URL under the size cap', () => {
+    const base64 = Buffer.from('tiny-jpeg').toString('base64');
+    const decoded = parseAvatarImageDataUrl(`data:image/jpeg;base64,${base64}`);
+    expect(decoded.mime).toBe('image/jpeg');
+    expect(decoded.base64).toBe(base64);
+    expect(decoded.byteLength).toBe(Buffer.from('tiny-jpeg').byteLength);
+  });
+
+  it('rejects unsupported mime types', () => {
+    expect(() => parseAvatarImageDataUrl('data:image/svg+xml;base64,YQ==')).toThrow(
+      /not supported/i
+    );
+  });
+
+  it('rejects oversized payloads', () => {
+    const oversized = Buffer.alloc(MAX_AVATAR_IMAGE_BYTES + 1, 1).toString('base64');
+    expect(() => parseAvatarImageDataUrl(`data:image/png;base64,${oversized}`)).toThrow(
+      /maximum size/i
+    );
+  });
+});
+
 describe('updateUserAvatar', () => {
   it('updates initials and color for the target user', async () => {
     const db = createStubDatabase();
@@ -132,8 +160,41 @@ describe('updateUserAvatar', () => {
   it('requires at least one avatar field', async () => {
     const db = createStubDatabase();
     await expect(updateUserAvatar(db, sampleUser.id, {}, 'admin-1')).rejects.toThrow(
-      /At least one of initials or color/i
+      /At least one of initials, color, or imageDataUrl/i
     );
     expect(db.findUserById).not.toHaveBeenCalled();
+  });
+
+  it('persists an uploaded image data URL', async () => {
+    const db = createStubDatabase();
+    const base64 = Buffer.from('tiny-jpeg').toString('base64');
+    const updatedAt = new Date('2026-08-08T12:00:00.000Z');
+    const updated = {
+      ...sampleUser,
+      avatarInitials: 'AE',
+      avatarColor: 'sky-600',
+      avatarImage: base64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: updatedAt
+    };
+    db.findUserById.mockResolvedValueOnce(sampleUser);
+    db.updateUser.mockResolvedValue(updated);
+
+    const avatar = await updateUserAvatar(
+      db,
+      sampleUser.id,
+      { imageDataUrl: `data:image/jpeg;base64,${base64}` },
+      sampleUser.id
+    );
+
+    expect(avatar.imageUrl).toBe(`/auth/users/${sampleUser.id}/avatar?v=${updatedAt.getTime()}`);
+    expect(db.updateUser).toHaveBeenCalledWith(
+      sampleUser.id,
+      expect.objectContaining({
+        avatarImage: base64,
+        avatarImageMime: 'image/jpeg'
+      }),
+      sampleUser.id
+    );
   });
 });

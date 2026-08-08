@@ -32,6 +32,9 @@ function sampleUser(overrides: Partial<UserRecord> = {}): UserRecord {
     updatedByUserId: null,
     avatarInitials: 'UO',
     avatarColor: 'sky-600',
+    avatarImage: null,
+    avatarImageMime: null,
+    avatarImageUpdatedAt: null,
     ...overrides
   };
 }

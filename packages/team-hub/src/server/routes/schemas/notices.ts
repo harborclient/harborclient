@@ -57,7 +57,8 @@ export const noticeActorSchema = z.object({
   avatar: z
     .object({
       initials: z.string(),
-      color: z.string()
+      color: z.string(),
+      imageUrl: z.string().optional()
     })
     .optional()
 });

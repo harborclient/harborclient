@@ -24,10 +24,7 @@ Protected routes send `Authorization: Bearer hbk_...`. `checkHealth()` is the on
 Gate discussion calls on `session.capabilities.communication` (or `probeCommunicationServiceEnabled()`). Older Team Hub deployments that do not expose discussion routes throw errors you can detect with `isTeamHubCommunicationUnsupportedError`.
 
 ```typescript
-import {
-  TeamHubClient,
-  isTeamHubCommunicationUnsupportedError
-} from '@harborclient/team-hub-api';
+import { TeamHubClient, isTeamHubCommunicationUnsupportedError } from '@harborclient/team-hub-api';
 
 const client = new TeamHubClient({
   baseUrl: 'http://127.0.0.1:8788',

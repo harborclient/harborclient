@@ -39,6 +39,9 @@ export const sampleUserRecord: UserRecord = {
   llmMonthlyTokenLimit: null,
   avatarInitials: 'TU',
   avatarColor: 'sky-600',
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   ...sampleAttribution

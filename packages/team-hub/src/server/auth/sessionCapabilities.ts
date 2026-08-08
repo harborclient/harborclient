@@ -67,6 +67,11 @@ export interface SessionPayload {
      * Persisted avatar background color key.
      */
     avatarColor: AvatarColorKey;
+
+    /**
+     * Relative URL for the uploaded avatar image when present.
+     */
+    avatarImageUrl?: string;
   };
 
   /**
@@ -124,7 +129,8 @@ export function buildSessionPayload(
       name: user.name,
       role: user.role,
       avatarInitials: avatar.initials,
-      avatarColor: avatar.color
+      avatarColor: avatar.color,
+      ...(avatar.imageUrl ? { avatarImageUrl: avatar.imageUrl } : {})
     },
     token: {
       id: apiToken.id,

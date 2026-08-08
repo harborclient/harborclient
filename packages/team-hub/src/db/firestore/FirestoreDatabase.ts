@@ -611,6 +611,9 @@ export class FirestoreDatabase implements IDatabase {
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null,
       createdAt: now,
       updatedAt: now,
       createdByUserId: attributionUserId,
@@ -719,6 +722,13 @@ export class FirestoreDatabase implements IDatabase {
     const avatarInitials =
       input.avatarInitials !== undefined ? input.avatarInitials : existing.avatarInitials;
     const avatarColor = input.avatarColor !== undefined ? input.avatarColor : existing.avatarColor;
+    const avatarImage = input.avatarImage !== undefined ? input.avatarImage : existing.avatarImage;
+    const avatarImageMime =
+      input.avatarImageMime !== undefined ? input.avatarImageMime : existing.avatarImageMime;
+    const avatarImageUpdatedAt =
+      input.avatarImageUpdatedAt !== undefined
+        ? input.avatarImageUpdatedAt
+        : existing.avatarImageUpdatedAt;
     const updatedAt = new Date();
 
     await this.requireClient().collection(USERS_COLLECTION).doc(id).update({
@@ -734,6 +744,9 @@ export class FirestoreDatabase implements IDatabase {
       llmMonthlyTokenLimit,
       avatarInitials,
       avatarColor,
+      avatarImage,
+      avatarImageMime,
+      avatarImageUpdatedAt,
       updatedAt,
       updatedByUserId: actingUserId
     });
@@ -1444,6 +1457,9 @@ export class FirestoreDatabase implements IDatabase {
       llmMonthlyTokenLimit: input.llmMonthlyTokenLimit ?? null,
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null,
       createdAt: now,
       updatedAt: now,
       createdByUserId: actingUserId,
@@ -4030,6 +4046,9 @@ export class FirestoreDatabase implements IDatabase {
       llmMonthlyTokenLimit: null,
       avatarInitials: avatar.avatarInitials,
       avatarColor: avatar.avatarColor,
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null,
       createdAt: now,
       updatedAt: now,
       createdByUserId: id,

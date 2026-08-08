@@ -701,6 +701,15 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color TEXT;
 `.trim();
 
 /**
+ * Adds uploaded avatar image storage columns to user records.
+ */
+export const USERS_AVATAR_IMAGE_MIGRATION_SQL = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image_mime TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_image_updated_at TIMESTAMPTZ;
+`.trim();
+
+/**
  * DDL for creating the device_keys table when absent.
  */
 export const DEVICE_KEYS_MIGRATION_SQL = `
@@ -818,5 +827,6 @@ export const POSTGRES_MIGRATIONS = [
   USERS_AVATAR_MIGRATION_SQL,
   NOTICES_MIGRATION_SQL,
   DEVICE_KEYS_MIGRATION_SQL,
-  DISCUSSION_MLS_MIGRATION_SQL
+  DISCUSSION_MLS_MIGRATION_SQL,
+  USERS_AVATAR_IMAGE_MIGRATION_SQL
 ];

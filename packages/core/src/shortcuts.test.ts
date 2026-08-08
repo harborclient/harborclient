@@ -98,21 +98,15 @@ describe('resolveShortcuts', () => {
     expect(bindings.find((binding) => binding.id === 'documentation')?.accelerator).toBe(
       'CmdOrCtrl+Shift+D'
     );
-    expect(bindings.find((binding) => binding.id === 'report-issue')?.accelerator).toBe(
-      'CmdOrCtrl+Shift+R'
-    );
-    expect(bindings.find((binding) => binding.id === 'check-for-updates')?.accelerator).toBe(
-      'CmdOrCtrl+Shift+U'
-    );
+    expect(bindings.find((binding) => binding.id === 'report-issue')?.accelerator).toBe('');
+    expect(bindings.find((binding) => binding.id === 'check-for-updates')?.accelerator).toBe('');
     expect(bindings.find((binding) => binding.id === 'toggle-shortcuts-sidebar')?.accelerator).toBe(
       'Alt+Shift+K'
     );
     expect(bindings.find((binding) => binding.id === 'action-menu')?.accelerator).toBe(
       'CmdOrCtrl+Shift+P'
     );
-    expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe(
-      'CmdOrCtrl+Shift+A'
-    );
+    expect(bindings.find((binding) => binding.id === 'about')?.accelerator).toBe('');
   });
 
   it('includes default bindings for Git menu shortcuts', () => {
