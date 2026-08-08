@@ -16,7 +16,10 @@ const defaultTenant: TenantRecord = {
   createdByUserId: null,
   updatedByUserId: null,
   avatarInitials: 'DE',
-  avatarColor: 'sky-600'
+  avatarColor: 'sky-600',
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null
 };
 
 /**
@@ -138,8 +141,52 @@ describe('PUT /admin/hub/avatar', () => {
       '__default__',
       'HH',
       'amber-600',
-      sampleUserRecord.id
+      sampleUserRecord.id,
+      undefined
     );
+
+    await app.close();
+  });
+
+  it('uploads a hub avatar image for admin-role tokens', async () => {
+    const db = createStubDatabase();
+    mockDefaultTenantAvatar(db);
+    const base64 = Buffer.from('tiny-jpeg').toString('base64');
+    const updatedAt = new Date('2026-08-08T12:00:00.000Z');
+    db.updateTenantAvatar.mockResolvedValue({
+      ...defaultTenant,
+      avatarImage: base64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: updatedAt,
+      updatedByUserId: sampleUserRecord.id
+    });
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: {
+        ...sampleUserRecord,
+        role: 'admin',
+        collectionAccess: [],
+        environmentAccess: [],
+        snippetAccess: []
+      }
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/admin/hub/avatar',
+      headers: authHeader(),
+      payload: { imageDataUrl: `data:image/jpeg;base64,${base64}` }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      name: 'Default',
+      initials: 'DE',
+      color: 'sky-600',
+      imageUrl: `/auth/hub/avatar?v=${updatedAt.getTime()}`
+    });
 
     await app.close();
   });
@@ -162,6 +209,60 @@ describe('PUT /admin/hub/avatar', () => {
 
     expect(response.statusCode).toBe(403);
     expect(db.updateTenantAvatar).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+});
+
+describe('GET /auth/hub/avatar', () => {
+  it('returns uploaded hub avatar image bytes', async () => {
+    const db = createStubDatabase();
+    const bytes = Buffer.from('tiny-jpeg');
+    const updatedAt = new Date('2026-08-08T12:00:00.000Z');
+    db.findTenantById.mockResolvedValue({
+      ...defaultTenant,
+      avatarImage: bytes.toString('base64'),
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: updatedAt
+    });
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/auth/hub/avatar',
+      headers: authHeader()
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('image/jpeg');
+    expect(response.headers.etag).toBe(`"${updatedAt.getTime()}"`);
+    expect(Buffer.from(response.rawPayload).equals(bytes)).toBe(true);
+
+    await app.close();
+  });
+
+  it('returns 404 when the hub has no uploaded image', async () => {
+    const db = createStubDatabase();
+    mockDefaultTenantAvatar(db);
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: sampleUserRecord
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/auth/hub/avatar',
+      headers: authHeader()
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ error: 'Avatar image not found' });
 
     await app.close();
   });

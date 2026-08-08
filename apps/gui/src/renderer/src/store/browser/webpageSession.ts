@@ -322,7 +322,7 @@ export async function screenshotWebpage(
   state: RootState,
   tabId: string,
   fullPage?: boolean
-): Promise<{ dataUrl: string; pngBase64: string } | WebpageSessionError> {
+): Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean } | WebpageSessionError> {
   if (!findBrowserTabById(state, tabId)) {
     return { error: `No browser tab found for tabId "${tabId}".` };
   }

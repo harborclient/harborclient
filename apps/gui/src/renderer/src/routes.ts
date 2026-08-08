@@ -28,7 +28,10 @@ import {
   normalizeSettingsSection
 } from '#/renderer/src/store/routingHelpers';
 import { resolvePluginTabIcon } from '#/renderer/src/routing/resolvePluginTabIcon';
-import { imageViewSourceKey } from '#/renderer/src/ui/Tabs/ImageView/imageViewHelpers';
+import {
+  imageViewSourceKey,
+  normalizePersistedImageViewPageRef
+} from '#/renderer/src/ui/Tabs/ImageView/imageViewHelpers';
 
 /**
  * Declarative registry of every configuration page tab.
@@ -390,6 +393,6 @@ export const pageRoutes = {
       () => import('#/renderer/src/routing/pages/ImageViewPageRoute'),
       'ImageViewPageRoute'
     ),
-    normalize: () => null
+    normalize: (value) => normalizePersistedImageViewPageRef(value)
   })
 } as const satisfies { [T in PageRef['type']]: PageRoute<T> };

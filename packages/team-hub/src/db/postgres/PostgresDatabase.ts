@@ -146,6 +146,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantAvatarImageUpdate,
   TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
@@ -386,8 +387,11 @@ export class PostgresDatabase implements IDatabase {
       updated_by_user_id: string | null;
       avatar_initials: string | null;
       avatar_color: string | null;
+      avatar_image: string | null;
+      avatar_image_mime: string | null;
+      avatar_image_updated_at: Date | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants ORDER BY name ASC'
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
     );
 
     return result.rows.map((row) => ({
@@ -398,7 +402,10 @@ export class PostgresDatabase implements IDatabase {
       createdByUserId: row.created_by_user_id,
       updatedByUserId: row.updated_by_user_id,
       avatarInitials: row.avatar_initials,
-      avatarColor: row.avatar_color
+      avatarColor: row.avatar_color,
+      avatarImage: row.avatar_image,
+      avatarImageMime: row.avatar_image_mime,
+      avatarImageUpdatedAt: row.avatar_image_updated_at
     }));
   }
 
@@ -426,10 +433,13 @@ export class PostgresDatabase implements IDatabase {
       updated_by_user_id: string | null;
       avatar_initials: string | null;
       avatar_color: string | null;
+      avatar_image: string | null;
+      avatar_image_mime: string | null;
+      avatar_image_updated_at: Date | null;
     }>(
       `INSERT INTO tenants (id, name, created_at, updated_at, created_by_user_id, updated_by_user_id)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color`,
+       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
       [id, trimmedName, now, now, actingUserId, actingUserId]
     );
 
@@ -446,7 +456,10 @@ export class PostgresDatabase implements IDatabase {
       createdByUserId: row.created_by_user_id,
       updatedByUserId: row.updated_by_user_id,
       avatarInitials: row.avatar_initials,
-      avatarColor: row.avatar_color
+      avatarColor: row.avatar_color,
+      avatarImage: row.avatar_image,
+      avatarImageMime: row.avatar_image_mime,
+      avatarImageUpdatedAt: row.avatar_image_updated_at
     };
   }
 
@@ -465,8 +478,11 @@ export class PostgresDatabase implements IDatabase {
       updated_by_user_id: string | null;
       avatar_initials: string | null;
       avatar_color: string | null;
+      avatar_image: string | null;
+      avatar_image_mime: string | null;
+      avatar_image_updated_at: Date | null;
     }>(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants WHERE id = $1 LIMIT 1',
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = $1 LIMIT 1',
       [id]
     );
 
@@ -483,7 +499,10 @@ export class PostgresDatabase implements IDatabase {
       createdByUserId: row.created_by_user_id,
       updatedByUserId: row.updated_by_user_id,
       avatarInitials: row.avatar_initials,
-      avatarColor: row.avatar_color
+      avatarColor: row.avatar_color,
+      avatarImage: row.avatar_image,
+      avatarImageMime: row.avatar_image_mime,
+      avatarImageUpdatedAt: row.avatar_image_updated_at
     };
   }
 
@@ -494,33 +513,74 @@ export class PostgresDatabase implements IDatabase {
    * @param avatarInitials - Initials tile text to persist.
    * @param avatarColor - Palette color key to persist.
    * @param actingUserId - User performing the update, or null for system assignment.
+   * @param image - Optional uploaded image fields; omit to leave the image unchanged.
    */
   async updateTenantAvatar(
     id: string,
     avatarInitials: string,
     avatarColor: string,
-    actingUserId: string | null
+    actingUserId: string | null,
+    image?: TenantAvatarImageUpdate
   ): Promise<TenantRecord> {
     const now = new Date();
-    const result = await this.query<{
-      id: string;
-      name: string;
-      created_at: Date;
-      updated_at: Date;
-      created_by_user_id: string | null;
-      updated_by_user_id: string | null;
-      avatar_initials: string | null;
-      avatar_color: string | null;
-    }>(
-      `UPDATE tenants
-       SET avatar_initials = $2,
-           avatar_color = $3,
-           updated_at = $4,
-           updated_by_user_id = COALESCE($5, updated_by_user_id)
-       WHERE id = $1
-       RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color`,
-      [id, avatarInitials, avatarColor, now, actingUserId]
-    );
+    const result =
+      image === undefined
+        ? await this.query<{
+            id: string;
+            name: string;
+            created_at: Date;
+            updated_at: Date;
+            created_by_user_id: string | null;
+            updated_by_user_id: string | null;
+            avatar_initials: string | null;
+            avatar_color: string | null;
+            avatar_image: string | null;
+            avatar_image_mime: string | null;
+            avatar_image_updated_at: Date | null;
+          }>(
+            `UPDATE tenants
+             SET avatar_initials = $2,
+                 avatar_color = $3,
+                 updated_at = $4,
+                 updated_by_user_id = COALESCE($5, updated_by_user_id)
+             WHERE id = $1
+             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
+            [id, avatarInitials, avatarColor, now, actingUserId]
+          )
+        : await this.query<{
+            id: string;
+            name: string;
+            created_at: Date;
+            updated_at: Date;
+            created_by_user_id: string | null;
+            updated_by_user_id: string | null;
+            avatar_initials: string | null;
+            avatar_color: string | null;
+            avatar_image: string | null;
+            avatar_image_mime: string | null;
+            avatar_image_updated_at: Date | null;
+          }>(
+            `UPDATE tenants
+             SET avatar_initials = $2,
+                 avatar_color = $3,
+                 avatar_image = $4,
+                 avatar_image_mime = $5,
+                 avatar_image_updated_at = $6,
+                 updated_at = $7,
+                 updated_by_user_id = COALESCE($8, updated_by_user_id)
+             WHERE id = $1
+             RETURNING id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at`,
+            [
+              id,
+              avatarInitials,
+              avatarColor,
+              image.imageBase64,
+              image.mime,
+              image.updatedAt,
+              now,
+              actingUserId
+            ]
+          );
 
     const row = result.rows[0];
     if (!row) {
@@ -535,7 +595,10 @@ export class PostgresDatabase implements IDatabase {
       createdByUserId: row.created_by_user_id,
       updatedByUserId: row.updated_by_user_id,
       avatarInitials: row.avatar_initials,
-      avatarColor: row.avatar_color
+      avatarColor: row.avatar_color,
+      avatarImage: row.avatar_image,
+      avatarImageMime: row.avatar_image_mime,
+      avatarImageUpdatedAt: row.avatar_image_updated_at
     };
   }
 

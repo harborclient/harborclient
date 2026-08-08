@@ -36,7 +36,8 @@ import { scanTeamHubSessions } from '#/main/settings/teamHubSessionScan';
 import {
   type FolderRecord,
   type SavedRequestRecord,
-  type SnippetRecord
+  type SnippetRecord,
+  type UpdateHubUserInput as TeamHubApiUpdateHubUserInput
 } from '@harborclient/team-hub-api';
 import type {
   TeamHubAdminCollectionContents,
@@ -434,7 +435,7 @@ export function registerSettingsHandlers(db: IStorage): void {
       }
 
       const client = createTeamHubClient(hub);
-      const updated = await client.updateAdminUser(userId, input);
+      const updated = await client.updateAdminUser(userId, input as TeamHubApiUpdateHubUserInput);
 
       if (db instanceof RoutingStorage) {
         await resyncUserTeamHubsSharingServer(db, hubId, listTeamHubs());

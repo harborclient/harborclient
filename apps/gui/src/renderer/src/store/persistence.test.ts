@@ -674,6 +674,70 @@ describe('redux open-tab round trip', () => {
     expect(isPageTab(restored.tabs[0])).toBe(false);
   });
 
+  it('round-trips image-view page tabs through parseOpenTabsFromRaw', () => {
+    const pages = [
+      {
+        type: 'image-view' as const,
+        fileName: 'shot.png',
+        shortLabel: 'shot.png',
+        source: { kind: 'path' as const, path: '/tmp/shot.png' }
+      },
+      {
+        type: 'image-view' as const,
+        fileName: 'logo.png',
+        shortLabel: 'logo.png',
+        source: { kind: 'url' as const, url: 'https://example.com/logo.png' }
+      },
+      {
+        type: 'image-view' as const,
+        fileName: 'chart.png',
+        shortLabel: 'chart.png',
+        source: { kind: 'data' as const, dataUrl: 'data:image/png;base64,abc' }
+      }
+    ];
+
+    for (const [index, page] of pages.entries()) {
+      const tabId = `page-tab-image-view-${index}`;
+      const payload = JSON.stringify({
+        tabs: [{ tabId, kind: 'page', page }],
+        activeTabId: tabId
+      });
+
+      const restored = parseOpenTabsFromRaw(payload);
+
+      expect(restored.tabs).toHaveLength(1);
+      expect(restored.activeTabId).toBe(tabId);
+      const tab = restored.tabs[0];
+      expect(isPageTab(tab)).toBe(true);
+      if (isPageTab(tab)) {
+        expect(tab.page).toEqual(page);
+      }
+    }
+  });
+
+  it('does not restore image-view page tabs with an invalid source', () => {
+    const payload = JSON.stringify({
+      tabs: [
+        {
+          tabId: 'page-tab-image-view',
+          kind: 'page',
+          page: {
+            type: 'image-view',
+            fileName: 'broken.png',
+            shortLabel: 'broken.png',
+            source: { kind: 'path', path: '' }
+          }
+        }
+      ],
+      activeTabId: 'page-tab-image-view'
+    });
+
+    const restored = parseOpenTabsFromRaw(payload);
+
+    expect(restored.tabs).toHaveLength(1);
+    expect(isPageTab(restored.tabs[0])).toBe(false);
+  });
+
   it('migrates legacy settings snippets tabs to the snippets page tab', () => {
     const payload = JSON.stringify({
       tabs: [

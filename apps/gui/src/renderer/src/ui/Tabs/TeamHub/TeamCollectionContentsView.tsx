@@ -285,7 +285,7 @@ export function TeamCollectionContentsView({
         <div className="flex flex-col gap-4">
           {sections.map((section) => (
             <section key={section.title}>
-              <h3 className="m-0 mb-2 text-[14px] font-medium text-text">{section.title}</h3>
+              <h3 className="m-0 mb-2 font-medium text-text">{section.title}</h3>
               <ResourceList>
                 {section.requests.map((request) => (
                   <ResourceListRow
@@ -294,20 +294,16 @@ export function TeamCollectionContentsView({
                     primary={
                       <div className="flex min-w-0 items-start gap-2">
                         <span
-                          className={`shrink-0 px-1 py-px text-[14px] font-medium ${METHOD_CLASSES[request.method.toLowerCase()] ?? 'text-info'}`}
+                          className={`shrink-0 px-1 py-px font-medium ${METHOD_CLASSES[request.method.toLowerCase()] ?? 'text-info'}`}
                         >
                           {request.method}
                         </span>
                         <div className="min-w-0">
-                          <span className="block truncate text-[14px] font-medium text-text">
+                          <span className="block truncate font-medium text-text">
                             {request.name}
                           </span>
-                          <span className="block truncate text-[14px] text-muted">
-                            {request.url}
-                          </span>
-                          <span className="block truncate text-[14px] text-muted">
-                            {request.id}
-                          </span>
+                          <span className="block truncate text-muted">{request.url}</span>
+                          <span className="block truncate text-muted">{request.id}</span>
                         </div>
                       </div>
                     }

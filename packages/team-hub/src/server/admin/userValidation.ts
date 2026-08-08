@@ -1,5 +1,6 @@
 import type { CreateUserInput, UpdateUserInput, UserRole } from '#/db/types.js';
 import { normalizeAvatarColor, normalizeAvatarInitials } from '#/avatar/avatarPresentation.js';
+import { parseAvatarImageDataUrl } from '#/avatar/userAvatarService.js';
 
 /**
  * Error thrown when admin user update input fails validation.
@@ -409,6 +410,10 @@ export function buildAdminUserUpdateInput(
     role?: UserRole;
     avatarInitials?: string;
     avatarColor?: string;
+    /**
+     * Cropped avatar image as a data URL, or `null` to clear a stored image.
+     */
+    imageDataUrl?: string | null;
     collectionAccess?: string[];
     environmentAccess?: string[];
     snippetAccess?: string[];
@@ -460,6 +465,17 @@ export function buildAdminUserUpdateInput(
 
   if (body.avatarColor !== undefined) {
     update.avatarColor = normalizeAvatarColor(body.avatarColor);
+  }
+
+  if (body.imageDataUrl === null) {
+    update.avatarImage = null;
+    update.avatarImageMime = null;
+    update.avatarImageUpdatedAt = null;
+  } else if (body.imageDataUrl !== undefined) {
+    const decoded = parseAvatarImageDataUrl(body.imageDataUrl);
+    update.avatarImage = decoded.base64;
+    update.avatarImageMime = decoded.mime;
+    update.avatarImageUpdatedAt = new Date();
   }
 
   return update;

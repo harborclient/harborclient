@@ -16,7 +16,10 @@ const sampleTenant: TenantRecord = {
   createdByUserId: 'admin-1',
   updatedByUserId: 'admin-1',
   avatarInitials: null,
-  avatarColor: null
+  avatarColor: null,
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null
 };
 
 describe('resolveHubAvatarFromTenant', () => {
@@ -109,14 +112,87 @@ describe('updateHubAvatar', () => {
       initials: 'AX',
       color: 'amber-600'
     });
-    expect(db.updateTenantAvatar).toHaveBeenCalledWith('org-acme', 'AX', 'amber-600', 'admin-1');
+    expect(db.updateTenantAvatar).toHaveBeenCalledWith(
+      'org-acme',
+      'AX',
+      'amber-600',
+      'admin-1',
+      undefined
+    );
   });
 
   it('requires at least one field', async () => {
     const db = createStubDatabase();
     await expect(updateHubAvatar(db, 'org-acme', {}, 'admin-1')).rejects.toThrow(
-      /At least one of initials or color is required/i
+      /At least one of initials, color, or imageDataUrl is required/i
     );
     expect(db.findTenantById).not.toHaveBeenCalled();
+  });
+
+  it('persists an uploaded image data URL', async () => {
+    const db = createStubDatabase();
+    const base64 = Buffer.from('tiny-jpeg').toString('base64');
+    const updatedAt = new Date('2026-08-08T12:00:00.000Z');
+    db.findTenantById.mockResolvedValue({
+      ...sampleTenant,
+      avatarInitials: 'AC',
+      avatarColor: 'cyan-600'
+    });
+    db.updateTenantAvatar.mockResolvedValue({
+      ...sampleTenant,
+      avatarInitials: 'AC',
+      avatarColor: 'cyan-600',
+      avatarImage: base64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: updatedAt
+    });
+
+    const avatar = await updateHubAvatar(
+      db,
+      'org-acme',
+      { imageDataUrl: `data:image/jpeg;base64,${base64}` },
+      'admin-1'
+    );
+
+    expect(avatar.imageUrl).toBe(`/auth/hub/avatar?v=${updatedAt.getTime()}`);
+    expect(db.updateTenantAvatar).toHaveBeenCalledWith(
+      'org-acme',
+      'AC',
+      'cyan-600',
+      'admin-1',
+      expect.objectContaining({
+        imageBase64: base64,
+        mime: 'image/jpeg'
+      })
+    );
+  });
+
+  it('clears an uploaded image when imageDataUrl is null', async () => {
+    const db = createStubDatabase();
+    db.findTenantById.mockResolvedValue({
+      ...sampleTenant,
+      avatarInitials: 'AC',
+      avatarColor: 'cyan-600',
+      avatarImage: 'abc',
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: new Date('2026-08-08T12:00:00.000Z')
+    });
+    db.updateTenantAvatar.mockResolvedValue({
+      ...sampleTenant,
+      avatarInitials: 'AC',
+      avatarColor: 'cyan-600',
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null
+    });
+
+    const avatar = await updateHubAvatar(db, 'org-acme', { imageDataUrl: null }, 'admin-1');
+
+    expect(avatar.imageUrl).toBeUndefined();
+    expect(db.updateTenantAvatar).toHaveBeenCalledWith('org-acme', 'AC', 'cyan-600', 'admin-1', {
+      imageBase64: null,
+      mime: null,
+      updatedAt: null
+    });
   });
 });

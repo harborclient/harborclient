@@ -144,6 +144,44 @@ export interface TenantRecord {
    * Persisted hub avatar background color key (for example `sky-600`).
    */
   avatarColor: string | null;
+
+  /**
+   * Base64-encoded uploaded hub avatar image bytes, when present.
+   */
+  avatarImage: string | null;
+
+  /**
+   * MIME type for {@link avatarImage} (for example `image/jpeg`).
+   */
+  avatarImageMime: string | null;
+
+  /**
+   * When the uploaded hub avatar image was last replaced, when present.
+   */
+  avatarImageUpdatedAt: Date | null;
+}
+
+/**
+ * Optional uploaded hub avatar image fields for {@link IDatabase.updateTenantAvatar}.
+ *
+ * When omitted, existing image columns are left unchanged. Pass all three fields
+ * as `null` to clear a previously uploaded image.
+ */
+export interface TenantAvatarImageUpdate {
+  /**
+   * Base64-encoded image bytes, or null to clear.
+   */
+  imageBase64: string | null;
+
+  /**
+   * Image MIME type, or null to clear.
+   */
+  mime: string | null;
+
+  /**
+   * Image replacement timestamp, or null to clear.
+   */
+  updatedAt: Date | null;
 }
 
 /**

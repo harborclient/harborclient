@@ -145,6 +145,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantAvatarImageUpdate,
   TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
@@ -408,9 +409,16 @@ export class MysqlDatabase implements IDatabase {
    */
   async listTenants(): Promise<TenantRecord[]> {
     const rows = await this.queryRows<
-      TenantRecord & RowDataPacket & { avatar_initials: string | null; avatar_color: string | null }
+      TenantRecord &
+        RowDataPacket & {
+          avatar_initials: string | null;
+          avatar_color: string | null;
+          avatar_image: string | null;
+          avatar_image_mime: string | null;
+          avatar_image_updated_at: Date | null;
+        }
     >(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants ORDER BY name ASC'
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants ORDER BY name ASC'
     );
     return rows.map((row) => ({
       id: row.id,
@@ -420,7 +428,10 @@ export class MysqlDatabase implements IDatabase {
       createdByUserId: row.created_by_user_id,
       updatedByUserId: row.updated_by_user_id,
       avatarInitials: row.avatar_initials,
-      avatarColor: row.avatar_color
+      avatarColor: row.avatar_color,
+      avatarImage: row.avatar_image,
+      avatarImageMime: row.avatar_image_mime,
+      avatarImageUpdatedAt: row.avatar_image_updated_at
     }));
   }
 
@@ -475,9 +486,16 @@ export class MysqlDatabase implements IDatabase {
    */
   async findTenantById(id: string): Promise<TenantRecord | null> {
     const rows = await this.queryRows<
-      TenantRecord & RowDataPacket & { avatar_initials: string | null; avatar_color: string | null }
+      TenantRecord &
+        RowDataPacket & {
+          avatar_initials: string | null;
+          avatar_color: string | null;
+          avatar_image: string | null;
+          avatar_image_mime: string | null;
+          avatar_image_updated_at: Date | null;
+        }
     >(
-      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color FROM tenants WHERE id = ? LIMIT 1',
+      'SELECT id, name, created_at, updated_at, created_by_user_id, updated_by_user_id, avatar_initials, avatar_color, avatar_image, avatar_image_mime, avatar_image_updated_at FROM tenants WHERE id = ? LIMIT 1',
       [id]
     );
     const row = rows[0];
@@ -490,7 +508,10 @@ export class MysqlDatabase implements IDatabase {
           createdByUserId: row.created_by_user_id,
           updatedByUserId: row.updated_by_user_id,
           avatarInitials: row.avatar_initials,
-          avatarColor: row.avatar_color
+          avatarColor: row.avatar_color,
+          avatarImage: row.avatar_image,
+          avatarImageMime: row.avatar_image_mime,
+          avatarImageUpdatedAt: row.avatar_image_updated_at
         }
       : null;
   }
@@ -502,23 +523,49 @@ export class MysqlDatabase implements IDatabase {
    * @param avatarInitials - Initials tile text to persist.
    * @param avatarColor - Palette color key to persist.
    * @param actingUserId - User performing the update, or null for system assignment.
+   * @param image - Optional uploaded image fields; omit to leave the image unchanged.
    */
   async updateTenantAvatar(
     id: string,
     avatarInitials: string,
     avatarColor: string,
-    actingUserId: string | null
+    actingUserId: string | null,
+    image?: TenantAvatarImageUpdate
   ): Promise<TenantRecord> {
     const now = new Date();
-    await this.executeStatement(
-      `UPDATE tenants
-       SET avatar_initials = ?,
-           avatar_color = ?,
-           updated_at = ?,
-           updated_by_user_id = COALESCE(?, updated_by_user_id)
-       WHERE id = ?`,
-      [avatarInitials, avatarColor, now, actingUserId, id]
-    );
+    if (image === undefined) {
+      await this.executeStatement(
+        `UPDATE tenants
+         SET avatar_initials = ?,
+             avatar_color = ?,
+             updated_at = ?,
+             updated_by_user_id = COALESCE(?, updated_by_user_id)
+         WHERE id = ?`,
+        [avatarInitials, avatarColor, now, actingUserId, id]
+      );
+    } else {
+      await this.executeStatement(
+        `UPDATE tenants
+         SET avatar_initials = ?,
+             avatar_color = ?,
+             avatar_image = ?,
+             avatar_image_mime = ?,
+             avatar_image_updated_at = ?,
+             updated_at = ?,
+             updated_by_user_id = COALESCE(?, updated_by_user_id)
+         WHERE id = ?`,
+        [
+          avatarInitials,
+          avatarColor,
+          image.imageBase64,
+          image.mime,
+          image.updatedAt,
+          now,
+          actingUserId,
+          id
+        ]
+      );
+    }
 
     const updated = await this.findTenantById(id);
     if (!updated) {

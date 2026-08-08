@@ -6,6 +6,7 @@ import {
 } from 'electron';
 
 import { toViewSourceUrl } from '#/browser/browserUrl';
+import { isBrowserGuestImageContext } from '#/browser/browserGuestImageContext';
 import { isDeveloperToolsEnabled } from '#/main/devMode';
 
 /**
@@ -49,6 +50,20 @@ export interface BrowserGuestContextMenuActions {
   onCopyToChat?: (x: number, y: number) => void;
 
   /**
+   * Opens the right-clicked image in a HarborClient Image View tab.
+   *
+   * @param srcURL - Image source from Electron `ContextMenuParams.srcURL`.
+   */
+  onOpenImageInTab?: (srcURL: string) => void;
+
+  /**
+   * Saves the right-clicked image via a native save dialog.
+   *
+   * @param srcURL - Image source from Electron `ContextMenuParams.srcURL`.
+   */
+  onSaveImage?: (srcURL: string) => void;
+
+  /**
    * Opens guest DevTools and inspects the element at the given viewport point.
    *
    * When omitted, {@link attachBrowserGuestContextMenu} uses the guest
@@ -84,6 +99,7 @@ export interface BrowserGuestContextMenuNavigationState {
  * Builds the right-click context menu template for an embedded browser guest.
  *
  * Navigation items (Back, Forward, Home) match the browser chrome toolbar.
+ * When the click targets an image, Open image in tab and Save image appear before View Source.
  * View Source opens a Chromium view-source tab when the page is http(s).
  * Copy to chat inserts an `@webpage.<tabId>#x.y` pointer for the click point.
  * Inspect Element is appended only when developer tooling is enabled.
@@ -93,6 +109,7 @@ export interface BrowserGuestContextMenuNavigationState {
  * @param includeInspectElement - Whether to append Inspect Element.
  * @param clickX - Viewport X for Copy to chat / Inspect Element.
  * @param clickY - Viewport Y for Copy to chat / Inspect Element.
+ * @param imageSrcURL - When set, adds Open image in tab / Save image items for this source.
  * @returns Menu template consumed by {@link Menu.buildFromTemplate}.
  */
 export function buildBrowserGuestContextMenuTemplate(
@@ -100,7 +117,8 @@ export function buildBrowserGuestContextMenuTemplate(
   actions: BrowserGuestContextMenuActions,
   includeInspectElement = false,
   clickX = 0,
-  clickY = 0
+  clickY = 0,
+  imageSrcURL?: string
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = [
     {
@@ -124,7 +142,31 @@ export function buildBrowserGuestContextMenuTemplate(
         actions.onHome();
       }
     },
-    { type: 'separator' },
+    { type: 'separator' }
+  ];
+
+  const trimmedImageSrc = imageSrcURL?.trim() ?? '';
+  if (trimmedImageSrc) {
+    template.push(
+      {
+        label: 'Open image in tab',
+        enabled: true,
+        click: () => {
+          actions.onOpenImageInTab?.(trimmedImageSrc);
+        }
+      },
+      {
+        label: 'Save image',
+        enabled: true,
+        click: () => {
+          actions.onSaveImage?.(trimmedImageSrc);
+        }
+      },
+      { type: 'separator' }
+    );
+  }
+
+  template.push(
     {
       label: 'View Source',
       enabled: navigation.canViewSource,
@@ -139,7 +181,7 @@ export function buildBrowserGuestContextMenuTemplate(
         actions.onCopyToChat?.(clickX, clickY);
       }
     }
-  ];
+  );
 
   if (includeInspectElement) {
     template.push(
@@ -161,9 +203,10 @@ export function buildBrowserGuestContextMenuTemplate(
  *
  * Enablement for Back / Forward / View Source is read from the guest at popup
  * time. Navigation actions are provided by the caller so they can reuse
- * BrowserViewManager methods (including pre-request scripts). Copy to chat
- * reports the click coordinates to the renderer. Inspect Element opens detached
- * DevTools on the guest webContents when developer tooling is on.
+ * BrowserViewManager methods (including pre-request scripts). When the click
+ * targets an image, Open image in tab and Save image are included. Copy to chat reports the
+ * click coordinates to the renderer. Inspect Element opens detached DevTools on
+ * the guest webContents when developer tooling is on.
  *
  * @param view - Guest WebContentsView that receives right-clicks.
  * @param getWindow - Resolves the main window used as the menu popup parent.
@@ -185,6 +228,10 @@ export function attachBrowserGuestContextMenu(
     if (!window || window.isDestroyed()) {
       return;
     }
+
+    const imageSrcURL = isBrowserGuestImageContext(params.mediaType, params.srcURL)
+      ? params.srcURL.trim()
+      : undefined;
 
     const template = buildBrowserGuestContextMenuTemplate(
       {
@@ -210,7 +257,8 @@ export function attachBrowserGuestContextMenu(
       },
       isDeveloperToolsEnabled(),
       params.x,
-      params.y
+      params.y,
+      imageSrcURL
     );
 
     const menu = Menu.buildFromTemplate(template);

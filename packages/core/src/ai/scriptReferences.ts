@@ -1409,7 +1409,7 @@ function formatWebpageReferenceContextBlock(
     );
   } else {
     lines.push(
-      'Call webpage_tab (and webpage_query / webpage_evaluate / webpage_inject_script / webpage_inject_stylesheet) with this exact tabId for live page operations.'
+      'Call webpage_tab (and webpage_query / webpage_evaluate / webpage_inject_script / webpage_inject_stylesheet / webpage_screenshot) with this exact tabId for live page operations.'
     );
   }
 

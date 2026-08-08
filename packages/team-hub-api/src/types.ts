@@ -94,6 +94,13 @@ export interface HubAvatarMetadata {
    * Persisted palette key for the avatar background color.
    */
   color: HubAvatarColorKey;
+
+  /**
+   * Relative URL for the uploaded hub avatar image when present.
+   *
+   * Omitted on older Team Hub servers or when no image is uploaded.
+   */
+  imageUrl?: string;
 }
 
 /**
@@ -109,6 +116,13 @@ export interface UpdateHubAvatarInput {
    * Replacement palette color key.
    */
   color?: HubAvatarColorKey;
+
+  /**
+   * Cropped hub avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
 }
 
 /**
@@ -338,6 +352,11 @@ export interface HubUserRecord {
   avatarColor: HubAvatarColorKey;
 
   /**
+   * Relative URL for the user's uploaded avatar image when present.
+   */
+  avatarImageUrl?: string;
+
+  /**
    * Collection ids the user may access, or `['*']` for all collections.
    */
   collectionAccess: string[];
@@ -563,6 +582,13 @@ export interface UpdateHubUserInput {
    * Replacement avatar background color key.
    */
   avatarColor?: HubAvatarColorKey;
+
+  /**
+   * Cropped avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
 }
 
 /**

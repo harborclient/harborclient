@@ -61,6 +61,21 @@ export interface FirestoreTenantDocument {
    * Persisted hub avatar background color key (for example `sky-600`).
    */
   avatarColor?: string | null;
+
+  /**
+   * Base64-encoded uploaded hub avatar image bytes, when present.
+   */
+  avatarImage?: string | null;
+
+  /**
+   * MIME type for {@link avatarImage} (for example `image/jpeg`).
+   */
+  avatarImageMime?: string | null;
+
+  /**
+   * When the uploaded hub avatar image was last replaced, when present.
+   */
+  avatarImageUpdatedAt?: Date | null;
 }
 
 /**

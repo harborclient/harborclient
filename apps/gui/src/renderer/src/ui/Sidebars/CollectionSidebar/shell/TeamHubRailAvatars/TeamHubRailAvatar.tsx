@@ -1,5 +1,6 @@
 import { type JSX } from 'react';
 import type { TeamHubAvatar } from '@harborclient/core/types';
+import { useTeamHubServerAvatarImage } from '#/renderer/src/ui/Shared/TeamHubAvatarImage/useTeamHubServerAvatarImage';
 import {
   teamHubAvatarColorClass,
   teamHubAvatarColorClassFromKey,
@@ -76,13 +77,14 @@ const avatarFocusVisible =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent';
 
 /**
- * Square initials avatar for one Team Hub in the sidebar rail footer.
+ * Square avatar for one Team Hub in the sidebar rail footer.
  *
- * Connected hubs use a solid color tile; disconnected hubs are muted. A green
- * or grey status dot indicates whether the hub is currently reachable. When
- * notices are enabled, an unread badge appears on the avatar tile.
+ * Connected hubs use a solid color tile (or uploaded image when available);
+ * disconnected hubs are muted. A green or grey status dot indicates whether the
+ * hub is currently reachable. When notices are enabled, an unread badge appears
+ * on the avatar tile.
  *
- * Prefers server-provided hub avatar initials and color when available.
+ * Prefers server-provided hub avatar image, then initials and color when available.
  *
  * @param props - Hub identity, connection/online state, and toggle handler.
  */
@@ -100,6 +102,7 @@ export function TeamHubRailAvatar({
   onToggle,
   onOpenNotices
 }: Props): JSX.Element {
+  const imageDataUrl = useTeamHubServerAvatarImage(hubId, hubAvatar?.imageUrl);
   const initials = hubAvatar?.initials ?? teamHubInitials(fallbackDisplayName);
   const statusLabel = connected ? 'connected' : 'disconnected';
   const badgeLabel = formatNoticeBadgeCount(unreadNoticeCount);
@@ -144,10 +147,16 @@ export function TeamHubRailAvatar({
         }`}
       >
         <span
-          className={`flex h-10 w-10 items-center justify-center rounded-md text-[14px] font-semibold text-white ${tileColorClass}`}
+          className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-md text-[14px] font-semibold text-white ${
+            imageDataUrl && connected ? 'bg-muted' : tileColorClass
+          }`}
           aria-hidden
         >
-          {initials}
+          {imageDataUrl && connected ? (
+            <img src={imageDataUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </span>
         {badgeLabel != null ? (
           <span

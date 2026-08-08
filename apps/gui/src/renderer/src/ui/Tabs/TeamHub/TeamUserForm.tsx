@@ -1,5 +1,5 @@
 import { useForm, useWatch } from 'react-hook-form';
-import { useMemo, type JSX } from 'react';
+import { useMemo, useState, type JSX } from 'react';
 import type {
   CreateHubUserInput,
   HubUserRecord,
@@ -10,6 +10,7 @@ import { Checkbox, Input, Select } from '@harborclient/sdk/components';
 import { FormGroup } from '@harborclient/sdk/components';
 import { StatusMessage } from '@harborclient/sdk/components';
 import { AccessListInput } from './AccessListInput';
+import { TeamHubFormAvatar } from './TeamHubFormAvatar';
 import {
   defaultCreateFormValues,
   formValuesToCreateInput,
@@ -45,6 +46,11 @@ interface EditProps extends BaseProps {
    * Edit mode for an existing user account.
    */
   mode: 'edit';
+
+  /**
+   * Team hub connection id used to load and upload the managed user's avatar.
+   */
+  hubId: string;
 
   /**
    * User account being edited.
@@ -93,10 +99,15 @@ export function TeamUserForm(props: Props): JSX.Element {
     defaultValues: mode === 'edit' ? hubUserToFormValues(props.user) : defaultCreateFormValues
   });
 
+  const [pendingAvatarDataUrl, setPendingAvatarDataUrl] = useState<string | null>(null);
+
   const role = useWatch({ control, name: 'role' });
   const isAdminRole = role === 'admin';
   const fieldsDisabled = disabled || optionsLoading;
 
+  /**
+   * Collection autocomplete options derived from the loaded hub catalog.
+   */
   const collectionSuggestions = useMemo(
     () =>
       resourceOptions?.collections.map((collection) => ({
@@ -106,6 +117,9 @@ export function TeamUserForm(props: Props): JSX.Element {
     [resourceOptions]
   );
 
+  /**
+   * Environment autocomplete options derived from the loaded hub catalog.
+   */
   const environmentSuggestions = useMemo(
     () =>
       resourceOptions?.environments.map((environment) => ({
@@ -115,6 +129,9 @@ export function TeamUserForm(props: Props): JSX.Element {
     [resourceOptions]
   );
 
+  /**
+   * LLM model autocomplete options derived from the loaded hub catalog.
+   */
   const modelSuggestions = useMemo(
     () =>
       resourceOptions?.models.map((model) => ({
@@ -127,11 +144,16 @@ export function TeamUserForm(props: Props): JSX.Element {
   /**
    * Forwards validated form values to the parent save handler.
    *
+   * Includes a pending cropped avatar image when the admin selected one in edit mode.
+   *
    * @param values - Submitted form values.
    */
   const handleValidSubmit = (values: TeamUserFormValues): void => {
     if (mode === 'edit') {
-      void onSubmit(formValuesToUpdateInput(values));
+      void onSubmit({
+        ...formValuesToUpdateInput(values),
+        ...(pendingAvatarDataUrl != null ? { imageDataUrl: pendingAvatarDataUrl } : {})
+      });
       return;
     }
 
@@ -141,6 +163,17 @@ export function TeamUserForm(props: Props): JSX.Element {
   return (
     <form id={formId} className="flex flex-col gap-4" onSubmit={handleSubmit(handleValidSubmit)}>
       {optionsLoading && <StatusMessage live={false}>Loading options…</StatusMessage>}
+
+      {mode === 'edit' ? (
+        <TeamHubFormAvatar
+          hubId={props.hubId}
+          user={props.user}
+          pendingImageDataUrl={pendingAvatarDataUrl}
+          disabled={fieldsDisabled}
+          size="md"
+          onPendingImageChange={setPendingAvatarDataUrl}
+        />
+      ) : null}
 
       <FormGroup label="Name" htmlFor="team-user-name" error={errors.name?.message}>
         <Input

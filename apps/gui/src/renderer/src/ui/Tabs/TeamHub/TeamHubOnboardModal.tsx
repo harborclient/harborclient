@@ -190,20 +190,18 @@ export function TeamHubOnboardModal({ join, onClose }: Props): JSX.Element {
         </FormGroup>
 
         {loadingPreview ? (
-          <p className="text-[14px] text-muted">Loading invitation details…</p>
+          <p className="text-muted">Loading invitation details…</p>
         ) : preview ? (
           <>
-            {join.hubName ? <p className="text-[14px] text-muted">Hub: {join.hubName}</p> : null}
-            <div className="flex items-center gap-2 text-[14px]">
+            {join.hubName ? <p className="text-muted">Hub: {join.hubName}</p> : null}
+            <div className="flex items-center gap-2">
               <span className="font-medium">{preview.user.name}</span>
               <Badge variant="success">{preview.user.role}</Badge>
             </div>
-            <p className={`text-[13px] ${expired ? 'text-danger' : 'text-muted'}`}>
+            <p className={expired ? 'text-danger' : 'text-muted'}>
               Invitation expires {new Date(preview.expiresAt).toLocaleString()}.
             </p>
-            {join.accessSummary ? (
-              <p className="text-[13px] text-muted">{join.accessSummary}</p>
-            ) : null}
+            {join.accessSummary ? <p className="text-muted">{join.accessSummary}</p> : null}
             <FormGroup label="Connection name" htmlFor="team-hub-onboard-name">
               <Input
                 id="team-hub-onboard-name"
@@ -218,13 +216,13 @@ export function TeamHubOnboardModal({ join, onClose }: Props): JSX.Element {
         ) : null}
 
         {verifiedSession ? (
-          <p className="text-[13px] text-muted">
+          <p className="text-muted">
             Verified as {verifiedSession.user.name} ({verifiedSession.user.role}).
           </p>
         ) : null}
 
         {httpWarning ? (
-          <p className="text-[13px] text-warning" role="status">
+          <p className="text-warning" role="status">
             {httpWarning}
           </p>
         ) : null}

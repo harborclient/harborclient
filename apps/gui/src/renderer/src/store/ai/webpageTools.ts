@@ -1,13 +1,14 @@
 import type { BrowserTab } from '#/renderer/src/store/tabs';
 
 /**
- * Follow-up DOM tools referenced from the webpage_tab `dom` descriptor.
+ * Follow-up tools referenced from the webpage_tab `dom` descriptor.
  */
 export const WEBPAGE_DOM_TOOLS = [
   'webpage_query',
   'webpage_evaluate',
   'webpage_inject_script',
-  'webpage_inject_stylesheet'
+  'webpage_inject_stylesheet',
+  'webpage_screenshot'
 ] as const;
 
 /**

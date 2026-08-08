@@ -88,7 +88,7 @@ export function AvatarCropModal({ imageSrc, onCancel, onConfirm }: Props): JSX.E
         </div>
 
         <label className="flex flex-col gap-2" htmlFor="avatar-crop-zoom">
-          <span className="text-[14px] text-muted">Zoom</span>
+          <span className="text-muted">Zoom</span>
           <input
             id="avatar-crop-zoom"
             type="range"

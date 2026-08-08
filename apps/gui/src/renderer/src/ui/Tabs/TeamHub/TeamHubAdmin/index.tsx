@@ -5,7 +5,6 @@ import {
   type PageSidebarItem
 } from '@harborclient/sdk/components';
 import { useEffect, useMemo, useState, type JSX } from 'react';
-import toast from 'react-hot-toast';
 import { useTeamHubs } from '#/renderer/src/hooks/useTeamHubs';
 import {
   faArrowsRotate,
@@ -13,27 +12,28 @@ import {
   faDatabase,
   faFingerprint,
   faCode,
+  faGear,
   faLock,
   faUsers
 } from '#/renderer/src/fontawesome';
-import { useAppDispatch } from '#/renderer/src/store/hooks';
 import { TeamCollectionsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamCollectionsView';
 import { TeamDevicesView } from '#/renderer/src/ui/Tabs/TeamHub/TeamDevicesView';
+import { TeamGeneralView } from '#/renderer/src/ui/Tabs/TeamHub/TeamGeneralView';
 import { TeamManageView } from '#/renderer/src/ui/Tabs/TeamHub/TeamManageView';
+import { TeamReloadView } from '#/renderer/src/ui/Tabs/TeamHub/TeamReloadView';
 import { TeamRunResultsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamRunResultsView';
 import { TeamSnippetsView } from '#/renderer/src/ui/Tabs/TeamHub/TeamSnippetsView';
 import { TeamTokensView } from '#/renderer/src/ui/Tabs/TeamHub/TeamTokensView';
-import { getReloadConfigAlertMessage } from '#/renderer/src/ui/Tabs/TeamHub/teamHubReloadHelpers';
-import { formatIpcErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
 type TeamHubAdminSection =
+  | 'general'
   | 'users'
   | 'tokens'
   | 'devices'
   | 'collections'
   | 'snippets'
-  | 'run-results';
-type TeamHubAdminSidebarItem = TeamHubAdminSection | 'reload';
+  | 'run-results'
+  | 'reload';
 
 interface Props {
   /**
@@ -48,16 +48,13 @@ interface Props {
 }
 
 /**
- * Full-area team hub administration with sidebar navigation for users, tokens,
- * collections, and server config reload.
+ * Full-area team hub administration with sidebar navigation for general settings,
+ * users, tokens, collections, and server config reload.
  */
 export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
-  const dispatch = useAppDispatch();
   const { teamHubs, loading, error, reload } = useTeamHubs();
   const hub = teamHubs.find((entry) => entry.id === hubId) ?? null;
-  const [section, setSection] = useState<TeamHubAdminSection>('users');
-  const [reloading, setReloading] = useState(false);
-  const [reloadError, setReloadError] = useState<string | null>(null);
+  const [section, setSection] = useState<TeamHubAdminSection>('general');
 
   /**
    * Closes the tab when the backing hub connection was removed elsewhere.
@@ -73,64 +70,20 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
   }, [loading, error, hub, onClose]);
 
   /**
-   * Sidebar entries for team hub administration, including the reload action row.
+   * Sidebar entries for team hub administration, including the reload panel.
    */
-  const sidebarItems = useMemo((): PageSidebarItem<TeamHubAdminSidebarItem>[] => {
+  const sidebarItems = useMemo((): PageSidebarItem<TeamHubAdminSection>[] => {
     return [
+      { value: 'general', label: 'General', icon: faGear },
       { value: 'users', label: 'Users', icon: faUsers },
       { value: 'tokens', label: 'Tokens', icon: faFingerprint },
       { value: 'devices', label: 'Devices', icon: faLock },
       { value: 'collections', label: 'Collections', icon: faDatabase },
       { value: 'snippets', label: 'Snippets', icon: faCode },
       { value: 'run-results', label: 'Run results', icon: faClockRotateLeft },
-      {
-        value: 'reload',
-        label: reloading ? 'Reloading…' : 'Reload',
-        icon: faArrowsRotate
-      }
+      { value: 'reload', label: 'Reload', icon: faArrowsRotate }
     ];
-  }, [reloading]);
-
-  /**
-   * Switches admin sections or triggers a server config reload from the sidebar.
-   *
-   * @param value - Selected sidebar item id.
-   */
-  const handleSidebarSelect = (value: TeamHubAdminSidebarItem): void => {
-    if (value === 'reload') {
-      void handleReload();
-      return;
-    }
-
-    setSection(value);
-  };
-
-  /**
-   * Reloads reloadable config sections on the selected hub connection.
-   */
-  const handleReload = async (): Promise<void> => {
-    if (reloading) {
-      return;
-    }
-
-    setReloadError(null);
-    setReloading(true);
-
-    try {
-      const result = await window.api.reloadTeamHubConfig(hubId);
-      const alertMessage = getReloadConfigAlertMessage(result);
-      if (alertMessage) {
-        showAlert(dispatch, alertMessage, 'Config reload failed', { icon: 'warning' });
-        return;
-      }
-
-      toast.success('Config reloaded.');
-    } catch (err) {
-      setReloadError(formatIpcErrorMessage(err, 'Failed to reload team hub config.'));
-    } finally {
-      setReloading(false);
-    }
-  };
+  }, []);
 
   if (loading || !hub) {
     return (
@@ -154,17 +107,14 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
         <PageSidebar
           ariaLabel="Team hub admin sections"
           selected={section}
-          onSelect={handleSidebarSelect}
+          onSelect={setSection}
           items={sidebarItems}
         />
       }
     >
-      {reloadError ? (
-        <p className="mb-4 text-[14px] text-danger" role="status">
-          {reloadError}
-        </p>
-      ) : null}
-      {section === 'users' ? (
+      {section === 'general' ? (
+        <TeamGeneralView key={hub.id} hub={hub} />
+      ) : section === 'users' ? (
         <TeamManageView hub={hub} />
       ) : section === 'tokens' ? (
         <TeamTokensView hub={hub} />
@@ -174,8 +124,10 @@ export function TeamHubAdmin({ hubId, onClose }: Props): JSX.Element {
         <TeamCollectionsView hub={hub} />
       ) : section === 'snippets' ? (
         <TeamSnippetsView hub={hub} />
-      ) : (
+      ) : section === 'run-results' ? (
         <TeamRunResultsView hub={hub} />
+      ) : (
+        <TeamReloadView hub={hub} />
       )}
     </SidebarLayout>
   );

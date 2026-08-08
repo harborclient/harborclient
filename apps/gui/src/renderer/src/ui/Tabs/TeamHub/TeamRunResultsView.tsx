@@ -69,9 +69,7 @@ export function TeamRunResultsView({ hub }: Props): JSX.Element {
               primary={
                 <div className="flex flex-col gap-1">
                   <ResourceListPrimary>{runResult.label}</ResourceListPrimary>
-                  <span className="text-[14px] text-muted">
-                    {runResultSummaryText(runResult.summary)}
-                  </span>
+                  <span className="text-muted">{runResultSummaryText(runResult.summary)}</span>
                 </div>
               }
               secondary={runResult.id}

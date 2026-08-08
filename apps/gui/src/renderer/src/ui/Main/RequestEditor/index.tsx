@@ -71,6 +71,7 @@ import {
 } from '#/renderer/src/store/slices/tabsSlice';
 import { addConsoleEntry } from '#/renderer/src/store/slices/consoleSlice';
 import { useCopyToChat } from '#/renderer/src/hooks/useCopyToChat';
+import { openImageView } from '#/renderer/src/plugins/hostImageCommands';
 import { buildWebpageReferenceToken } from '@harborclient/core/ai/scriptReferences';
 import {
   sendRequest,
@@ -235,6 +236,15 @@ export function RequestEditor(): JSX.Element {
       void copyToChat(buildWebpageReferenceToken(payload.tabId, { x: payload.x, y: payload.y }));
     });
   }, [aiAvailable, copyToChat]);
+
+  /**
+   * Opens an Image View tab when the guest context menu chooses Open in tab on an image.
+   */
+  useEffect(() => {
+    return window.api.onBrowserOpenImageView((payload) => {
+      openImageView(payload);
+    });
+  }, []);
 
   /**
    * Destroys main-process guests when their browser tabs are closed.

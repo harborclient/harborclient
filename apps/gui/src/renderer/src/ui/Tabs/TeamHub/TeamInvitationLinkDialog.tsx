@@ -57,7 +57,7 @@ export function TeamInvitationLinkDialog({
           id="team-invitation-link-value"
           readOnly
           variant="surface"
-          className="h-24 resize-none font-mono text-[14px]"
+          className="h-24 resize-none font-mono"
           value={joinLink}
         />
       </FormGroup>

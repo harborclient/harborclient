@@ -27,6 +27,8 @@ function createMockActions(): BrowserGuestContextMenuActions & {
   onHome: ReturnType<typeof vi.fn<() => void>>;
   onViewSource: ReturnType<typeof vi.fn<() => void>>;
   onCopyToChat: ReturnType<typeof vi.fn<(x: number, y: number) => void>>;
+  onOpenImageInTab: ReturnType<typeof vi.fn<(srcURL: string) => void>>;
+  onSaveImage: ReturnType<typeof vi.fn<(srcURL: string) => void>>;
   onInspectElement: ReturnType<typeof vi.fn<(x: number, y: number) => void>>;
 } {
   return {
@@ -35,6 +37,8 @@ function createMockActions(): BrowserGuestContextMenuActions & {
     onHome: vi.fn<() => void>(),
     onViewSource: vi.fn<() => void>(),
     onCopyToChat: vi.fn<(x: number, y: number) => void>(),
+    onOpenImageInTab: vi.fn<(srcURL: string) => void>(),
+    onSaveImage: vi.fn<(srcURL: string) => void>(),
     onInspectElement: vi.fn<(x: number, y: number) => void>()
   };
 }
@@ -75,6 +79,29 @@ describe('buildBrowserGuestContextMenuTemplate', () => {
       'Back',
       'Forward',
       'Home',
+      'separator',
+      'View Source',
+      BROWSER_GUEST_COPY_TO_CHAT_LABEL
+    ]);
+  });
+
+  it('inserts Open image in tab and Save image before View Source for image context', () => {
+    const template = buildBrowserGuestContextMenuTemplate(
+      createNavigationState(),
+      createMockActions(),
+      false,
+      0,
+      0,
+      'https://example.com/photo.png'
+    );
+
+    expect(template.map((entry) => entry.label ?? entry.type)).toEqual([
+      'Back',
+      'Forward',
+      'Home',
+      'separator',
+      'Open image in tab',
+      'Save image',
       'separator',
       'View Source',
       BROWSER_GUEST_COPY_TO_CHAT_LABEL
@@ -132,6 +159,24 @@ describe('buildBrowserGuestContextMenuTemplate', () => {
     expect(actions.onCopyToChat).toHaveBeenCalledWith(12, 34);
   });
 
+  it('invokes Open image in tab and Save image with the trimmed srcURL', () => {
+    const actions = createMockActions();
+    const template = buildBrowserGuestContextMenuTemplate(
+      createNavigationState(),
+      actions,
+      false,
+      0,
+      0,
+      '  https://example.com/photo.png  '
+    );
+
+    invokeMenuClick(template[4]);
+    invokeMenuClick(template[5]);
+
+    expect(actions.onOpenImageInTab).toHaveBeenCalledWith('https://example.com/photo.png');
+    expect(actions.onSaveImage).toHaveBeenCalledWith('https://example.com/photo.png');
+  });
+
   it('omits Inspect Element unless developer tooling is included', () => {
     const template = buildBrowserGuestContextMenuTemplate(
       createNavigationState(),
@@ -171,6 +216,35 @@ describe('buildBrowserGuestContextMenuTemplate', () => {
     ]);
 
     invokeMenuClick(template[7]);
+    expect(actions.onInspectElement).toHaveBeenCalledWith(12, 34);
+  });
+
+  it('appends Inspect Element after image items when both are present', () => {
+    const actions = createMockActions();
+    const template = buildBrowserGuestContextMenuTemplate(
+      createNavigationState(),
+      actions,
+      true,
+      12,
+      34,
+      'https://example.com/a.png'
+    );
+
+    expect(template.map((entry) => entry.label ?? entry.type)).toEqual([
+      'Back',
+      'Forward',
+      'Home',
+      'separator',
+      'Open image in tab',
+      'Save image',
+      'separator',
+      'View Source',
+      BROWSER_GUEST_COPY_TO_CHAT_LABEL,
+      'separator',
+      'Inspect Element'
+    ]);
+
+    invokeMenuClick(template[10]);
     expect(actions.onInspectElement).toHaveBeenCalledWith(12, 34);
   });
 });

@@ -55,6 +55,7 @@ import { webpageEvaluateTool } from './webpageEvaluate';
 import { webpageInjectScriptTool } from './webpageInjectScript';
 import { webpageInjectStylesheetTool } from './webpageInjectStylesheet';
 import { webpageQueryTool } from './webpageQuery';
+import { webpageScreenshotTool } from './webpageScreenshot';
 import { webpageTabTool } from './webpageTab';
 
 export type { UpdateActiveRequestToolArgs };
@@ -100,6 +101,7 @@ export type { WebpageEvaluateToolArgs } from './webpageEvaluate';
 export type { WebpageInjectScriptToolArgs } from './webpageInjectScript';
 export type { WebpageInjectStylesheetToolArgs } from './webpageInjectStylesheet';
 export type { WebpageQueryToolArgs } from './webpageQuery';
+export type { WebpageScreenshotToolArgs } from './webpageScreenshot';
 export type { WebpageTabToolArgs } from './webpageTab';
 
 /**
@@ -148,6 +150,7 @@ export const AI_TOOLS = [
   webpageEvaluateTool,
   webpageInjectScriptTool,
   webpageInjectStylesheetTool,
+  webpageScreenshotTool,
   getMarkdownDocumentTool,
   gitDiffTool,
   gitRepoInfoTool,

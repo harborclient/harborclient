@@ -415,7 +415,8 @@ export const hubAvatarColorKeySchema = z.enum([
 export const hubAvatarSchema = z.object({
   name: z.string(),
   initials: z.string(),
-  color: hubAvatarColorKeySchema
+  color: hubAvatarColorKeySchema,
+  imageUrl: z.string().optional()
 });
 
 /**
@@ -424,11 +425,15 @@ export const hubAvatarSchema = z.object({
 export const updateHubAvatarBodySchema = z
   .object({
     initials: z.string().optional(),
-    color: hubAvatarColorKeySchema.optional()
+    color: hubAvatarColorKeySchema.optional(),
+    imageDataUrl: z.string().nullable().optional()
   })
-  .refine((body) => body.initials != null || body.color != null, {
-    message: 'At least one of initials or color is required.'
-  });
+  .refine(
+    (body) => body.initials != null || body.color != null || body.imageDataUrl !== undefined,
+    {
+      message: 'At least one of initials, color, or imageDataUrl is required.'
+    }
+  );
 
 /**
  * Response body schema for `GET /auth/session`.
@@ -491,6 +496,7 @@ export const hubUserRecordSchema = z.object({
   role: z.enum(['admin', 'user']),
   avatarInitials: z.string(),
   avatarColor: hubAvatarColorKeySchema,
+  avatarImageUrl: z.string().optional(),
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
@@ -571,6 +577,7 @@ export const updateAdminUserBodySchema = z.object({
   role: z.enum(['admin', 'user']).optional(),
   avatarInitials: z.string().trim().min(1).max(2).optional(),
   avatarColor: hubAvatarColorKeySchema.optional(),
+  imageDataUrl: z.string().nullable().optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),

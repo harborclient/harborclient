@@ -1562,7 +1562,7 @@ export async function registerAdminRoutes(
       }
     },
     /**
-     * Updates hub avatar initials and/or color for the active tenant namespace.
+     * Updates hub avatar initials, color, and/or uploaded image for the active tenant.
      */
     handler: async (request, reply) => {
       const user = requireAuthenticatedUser(request);
@@ -1571,7 +1571,16 @@ export async function registerAdminRoutes(
       }
 
       try {
-        const hub = await updateHubAvatar(db, request.tenantId, request.body, user.id);
+        const hub = await updateHubAvatar(
+          db,
+          request.tenantId,
+          {
+            initials: request.body.initials,
+            color: request.body.color,
+            imageDataUrl: request.body.imageDataUrl
+          },
+          user.id
+        );
         return reply.send(hub);
       } catch (error) {
         if (handleValidationError(reply, error)) {

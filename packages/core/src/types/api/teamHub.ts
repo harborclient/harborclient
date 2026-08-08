@@ -37,6 +37,8 @@ import type {
   TeamHubNotificationSettings,
   TeamHubUpdateDiscussionInput,
   TeamHubUpdateNotificationSettingsInput,
+  UpdateHubAvatarInput,
+  UpdateHubAvatarResponse,
   UpdateHubUserInput,
   UpdateMyAvatarInput,
   UpdateMyAvatarResponse,
@@ -91,6 +93,16 @@ export interface ApiTeamHub {
     input: UpdateMyAvatarInput
   ) => Promise<UpdateMyAvatarResponse>;
   /**
+   * Updates the hub server avatar on a Team Hub connection (admin token).
+   *
+   * @param hubId - Team hub connection id.
+   * @param input - Replacement initials, color, and/or cropped image data URL.
+   */
+  updateTeamHubAvatar: (
+    hubId: string,
+    input: UpdateHubAvatarInput
+  ) => Promise<UpdateHubAvatarResponse>;
+  /**
    * Fetches a user's uploaded avatar image from a Team Hub connection.
    *
    * @param hubId - Team hub connection id.
@@ -102,6 +114,13 @@ export interface ApiTeamHub {
     userId: string,
     version?: string
   ) => Promise<UserAvatarImage>;
+  /**
+   * Fetches the hub server avatar image from a Team Hub connection.
+   *
+   * @param hubId - Team hub connection id.
+   * @param version - Optional cache-busting version from the hub avatar image URL.
+   */
+  getTeamHubAvatar: (hubId: string, version?: string) => Promise<UserAvatarImage>;
   /**
    * Lists Team Hub user accounts using an admin token on the given hub connection.
    *

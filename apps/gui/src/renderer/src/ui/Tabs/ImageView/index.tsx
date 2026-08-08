@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import type { PageRef } from '#/renderer/src/store/tabs';
 import { faCopy, faDownload, faImage } from '#/renderer/src/fontawesome';
 import { imageViewLocation } from '#/renderer/src/ui/Tabs/ImageView/imageViewHelpers';
+import { ImageViewContent } from '#/renderer/src/ui/Tabs/ImageView/ImageViewContent';
+import { saveImageViewPage } from '#/renderer/src/ui/Tabs/ImageView/saveImageViewPage';
 
 interface Props {
   /**
@@ -111,31 +113,13 @@ export function ImageViewPage({ page }: Props): JSX.Element {
 
     setDownloading(true);
     try {
-      let result: { canceled: boolean; path?: string };
-      if (page.source.kind === 'path') {
-        result = await window.api.copyFileToSaveDialog(page.source.path, page.fileName);
-      } else if (page.source.kind === 'url') {
-        result = await window.api.saveDataUrlToFile({
-          url: page.source.url,
-          defaultFileName: page.fileName
-        });
-      } else {
-        result = await window.api.saveDataUrlToFile({
-          dataUrl: page.source.dataUrl,
-          defaultFileName: page.fileName
-        });
-      }
-
-      if (!result.canceled) {
-        toast.success('Image saved');
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast.error(message);
+      await saveImageViewPage(page);
+    } catch {
+      // saveImageViewPage reports errors via toast.
     } finally {
       setDownloading(false);
     }
-  }, [downloading, page.fileName, page.source]);
+  }, [downloading, page]);
 
   return (
     <Page
@@ -167,27 +151,14 @@ export function ImageViewPage({ page }: Props): JSX.Element {
         </>
       }
     >
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto">
-        {loading ? (
-          <p className="m-0 text-muted" role="status">
-            Loading image…
-          </p>
-        ) : error != null ? (
-          <p className="m-0 text-danger" role="alert">
-            {error}
-          </p>
-        ) : resolvedSrc != null ? (
-          <img
-            src={resolvedSrc}
-            alt={page.fileName}
-            className="max-h-full max-w-full object-contain"
-          />
-        ) : (
-          <p className="m-0 text-muted" role="status">
-            Image preview is unavailable.
-          </p>
-        )}
-      </div>
+      <ImageViewContent
+        loading={loading}
+        error={error}
+        resolvedSrc={resolvedSrc}
+        fileName={page.fileName}
+        saving={downloading}
+        onSave={() => void handleDownload()}
+      />
     </Page>
   );
 }

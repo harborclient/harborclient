@@ -114,11 +114,18 @@ export interface ITeamHubClient {
   getUserAvatar(userId: string, version?: string): Promise<UserAvatarImage>;
 
   /**
-   * Updates hub avatar initials and/or color for the active tenant namespace.
+   * Fetches the uploaded hub avatar image bytes for the active tenant namespace.
+   *
+   * @param version - Optional cache-busting version from the hub avatar image URL.
+   */
+  getHubAvatar(version?: string): Promise<UserAvatarImage>;
+
+  /**
+   * Updates hub avatar initials, color, and/or uploaded image for the active tenant.
    *
    * Requires an admin-role bearer token.
    *
-   * @param input - Replacement initials and/or color key.
+   * @param input - Replacement initials, color key, and/or image data URL.
    */
   updateAdminHubAvatar(input: UpdateHubAvatarInput): Promise<HubAvatarMetadata>;
 

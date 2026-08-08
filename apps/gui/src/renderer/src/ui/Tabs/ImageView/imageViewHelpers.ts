@@ -174,6 +174,79 @@ export function toDataUrl(base64: string, contentType: string): string {
 }
 
 /**
+ * Salvages a persisted image-view page ref from open-tabs storage.
+ *
+ * Validates filename and source fields so malformed or oversized entries are
+ * dropped on restore instead of crashing hydration.
+ *
+ * @param value - Candidate page object from persisted storage.
+ * @returns Valid image-view page ref, or null when salvage is impossible.
+ */
+export function normalizePersistedImageViewPageRef(
+  value: unknown
+): Extract<PageRef, { type: 'image-view' }> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.type !== 'image-view') {
+    return null;
+  }
+
+  if (typeof record.fileName !== 'string') {
+    return null;
+  }
+  const fileName = record.fileName.trim();
+  if (!fileName) {
+    return null;
+  }
+
+  const shortLabel =
+    typeof record.shortLabel === 'string' && record.shortLabel.trim().length > 0
+      ? record.shortLabel.trim()
+      : shortenFileName(fileName);
+
+  const sourceRecord = record.source;
+  if (!sourceRecord || typeof sourceRecord !== 'object' || Array.isArray(sourceRecord)) {
+    return null;
+  }
+
+  const source = sourceRecord as Record<string, unknown>;
+  let normalizedSource: ImageViewSource;
+
+  if (source.kind === 'path') {
+    if (typeof source.path !== 'string' || source.path.trim().length === 0) {
+      return null;
+    }
+    normalizedSource = { kind: 'path', path: source.path.trim() };
+  } else if (source.kind === 'url') {
+    if (typeof source.url !== 'string' || source.url.trim().length === 0) {
+      return null;
+    }
+    normalizedSource = { kind: 'url', url: source.url.trim() };
+  } else if (source.kind === 'data') {
+    if (typeof source.dataUrl !== 'string' || source.dataUrl.trim().length === 0) {
+      return null;
+    }
+    const dataUrl = source.dataUrl.trim();
+    if (dataUrl.length > MAX_IMAGE_VIEW_INLINE_CHARS) {
+      return null;
+    }
+    normalizedSource = { kind: 'data', dataUrl };
+  } else {
+    return null;
+  }
+
+  return {
+    type: 'image-view',
+    fileName,
+    shortLabel,
+    source: normalizedSource
+  };
+}
+
+/**
  * Validates and converts an SDK open-image-view payload into a page ref.
  *
  * @param payload - Raw payload from a plugin host call.

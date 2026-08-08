@@ -293,6 +293,36 @@ export interface BrowserCopyToChatPayload {
 }
 
 /**
+ * Payload pushed when the guest context menu opens an image in an Image View tab.
+ *
+ * Exactly one of `url` or `dataUrl` is set after main-process resolution.
+ * `fileName` is always derived from the image source (or `image.png`).
+ */
+export type BrowserOpenImageViewPayload =
+  | {
+      /**
+       * Remote http(s) image URL to display.
+       */
+      url: string;
+
+      /**
+       * Display / download filename derived from the image source.
+       */
+      fileName: string;
+    }
+  | {
+      /**
+       * Inline image data URL (used for `data:` and resolved `blob:` sources).
+       */
+      dataUrl: string;
+
+      /**
+       * Display / download filename derived from the image source.
+       */
+      fileName: string;
+    };
+
+/**
  * Footer console entry produced after a live-page navigation finishes loading.
  *
  * Mirrors the fields written by collection request sends so the Console panel
@@ -546,6 +576,14 @@ export interface ApiBrowser {
    * @returns Unsubscribe function.
    */
   onBrowserCopyToChat: (callback: (payload: BrowserCopyToChatPayload) => void) => () => void;
+
+  /**
+   * Subscribes to guest context-menu Open in tab requests for images.
+   *
+   * @param callback - Handler invoked with a resolved image-view payload.
+   * @returns Unsubscribe function.
+   */
+  onBrowserOpenImageView: (callback: (payload: BrowserOpenImageViewPayload) => void) => () => void;
 
   /**
    * Returns the newest completed browser downloads for this app session (up to 5).

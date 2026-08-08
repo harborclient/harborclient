@@ -124,10 +124,12 @@ import {
 } from '#/renderer/src/store/ai/webpageTools';
 import {
   evaluateWebpage,
+  findBrowserTabById,
   injectWebpageScript,
   injectWebpageStylesheet,
   openOrReuseWebpageTab,
-  queryWebpageDom
+  queryWebpageDom,
+  screenshotWebpage
 } from '#/renderer/src/store/browser/webpageSession';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { sendRequest } from '#/renderer/src/store/thunks/requests';
@@ -144,6 +146,8 @@ import {
 } from '#/renderer/src/plugins/hostRequestCommands';
 import { getRegisteredPluginThemes } from '#/renderer/src/plugins/registry';
 import { showConfirm } from '#/renderer/src/ui/Modals/dialogHelpers';
+import { browserScreenshotDefaultFileName } from '#/renderer/src/ui/Main/RequestEditor/BrowserTab/browserScreenshotFileName';
+import { openImageView } from '#/renderer/src/plugins/hostImageCommands';
 import type { CreateCollectionRequest, ThemeColorToken, ThemeMetricToken } from '@harborclient/sdk';
 import { createFolder, refreshRequests } from '#/renderer/src/store/thunks/collections';
 import {
@@ -408,6 +412,8 @@ export async function executeAiTool(
         return JSON.stringify(await webpageInjectScript(args, ctx.getState()));
       case 'webpage_inject_stylesheet':
         return JSON.stringify(await webpageInjectStylesheet(args, ctx.getState()));
+      case 'webpage_screenshot':
+        return JSON.stringify(await webpageScreenshot(args, ctx.getState()));
       case 'get_markdown_document':
         return JSON.stringify(await getMarkdownDocument(args, ctx.getState()));
       case 'list_live_servers':
@@ -1363,6 +1369,96 @@ async function webpageInjectStylesheet(
     return result;
   }
   return { ok: true, key: result.key };
+}
+
+/**
+ * Captures a PNG screenshot of a browser tab and opens Image View or saves to disk.
+ *
+ * @param args - tabId, optional fullPage and saveToFile.
+ * @param state - Current Redux root state.
+ * @returns Capture outcome metadata, or an error.
+ */
+async function webpageScreenshot(
+  args: unknown,
+  state: RootState
+): Promise<
+  | {
+      openedInImageTab: true;
+      fileName: string;
+      truncated?: boolean;
+    }
+  | {
+      saved: true;
+      path: string;
+      truncated?: boolean;
+    }
+  | { canceled: true; truncated?: boolean }
+  | { error: string }
+> {
+  const tabId = readRequiredStringArg(args, 'tabId');
+  if (!tabId) {
+    return { error: 'tabId is required.' };
+  }
+
+  const fullPage = readOptionalBooleanArg(args, 'fullPage');
+  if (fullPage === null) {
+    return { error: 'fullPage must be a boolean when provided.' };
+  }
+
+  const saveToFile = readOptionalBooleanArg(args, 'saveToFile');
+  if (saveToFile === null) {
+    return { error: 'saveToFile must be a boolean when provided.' };
+  }
+
+  const tab = findBrowserTabById(state, tabId);
+  if (!tab) {
+    return { error: `No browser tab found for tabId "${tabId}".` };
+  }
+
+  try {
+    await window.api.browserSetVisible(tabId, true);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to show browser tab.';
+    return { error: message };
+  }
+
+  const capture = await screenshotWebpage(state, tabId, fullPage === true);
+  if ('error' in capture) {
+    return capture;
+  }
+
+  const fileName = browserScreenshotDefaultFileName(tab.title);
+  const truncated = capture.truncated === true;
+
+  if (saveToFile === true) {
+    try {
+      const saveResult = await window.api.saveDataUrlToFile({
+        dataUrl: capture.dataUrl,
+        defaultFileName: fileName
+      });
+      if (saveResult.canceled) {
+        return { canceled: true, ...(truncated ? { truncated: true } : {}) };
+      }
+      if (saveResult.path) {
+        void window.api.browserRecordDownload(saveResult.path);
+      }
+      return {
+        saved: true,
+        path: saveResult.path ?? '',
+        ...(truncated ? { truncated: true } : {})
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to save screenshot.';
+      return { error: message };
+    }
+  }
+
+  openImageView({ dataUrl: capture.dataUrl, fileName });
+  return {
+    openedInImageTab: true,
+    fileName,
+    ...(truncated ? { truncated: true } : {})
+  };
 }
 
 /**

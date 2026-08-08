@@ -144,6 +144,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantAvatarImageUpdate,
   TenantRecord,
   UpdateUserInput,
   UpdateLivePageRecordInput,
@@ -392,7 +393,10 @@ export class FirestoreDatabase implements IDatabase {
         createdByUserId: data.createdByUserId,
         updatedByUserId: data.updatedByUserId,
         avatarInitials: data.avatarInitials ?? null,
-        avatarColor: data.avatarColor ?? null
+        avatarColor: data.avatarColor ?? null,
+        avatarImage: data.avatarImage ?? null,
+        avatarImageMime: data.avatarImageMime ?? null,
+        avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
       };
     });
   }
@@ -438,7 +442,10 @@ export class FirestoreDatabase implements IDatabase {
       createdByUserId: data.createdByUserId,
       updatedByUserId: data.updatedByUserId,
       avatarInitials: null,
-      avatarColor: null
+      avatarColor: null,
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null
     };
   }
 
@@ -463,7 +470,10 @@ export class FirestoreDatabase implements IDatabase {
       createdByUserId: data.createdByUserId,
       updatedByUserId: data.updatedByUserId,
       avatarInitials: data.avatarInitials ?? null,
-      avatarColor: data.avatarColor ?? null
+      avatarColor: data.avatarColor ?? null,
+      avatarImage: data.avatarImage ?? null,
+      avatarImageMime: data.avatarImageMime ?? null,
+      avatarImageUpdatedAt: data.avatarImageUpdatedAt ?? null
     };
   }
 
@@ -474,12 +484,14 @@ export class FirestoreDatabase implements IDatabase {
    * @param avatarInitials - Initials tile text to persist.
    * @param avatarColor - Palette color key to persist.
    * @param actingUserId - User performing the update, or null for system assignment.
+   * @param image - Optional uploaded image fields; omit to leave the image unchanged.
    */
   async updateTenantAvatar(
     id: string,
     avatarInitials: string,
     avatarColor: string,
-    actingUserId: string | null
+    actingUserId: string | null,
+    image?: TenantAvatarImageUpdate
   ): Promise<TenantRecord> {
     const docRef = this.requireClient().collection(TENANTS_COLLECTION).doc(id);
     const snapshot = await docRef.get();
@@ -489,13 +501,19 @@ export class FirestoreDatabase implements IDatabase {
 
     const now = new Date();
     const existing = snapshot.data() as FirestoreTenantDocument;
-    await docRef.set({
+    const next: FirestoreTenantDocument = {
       ...existing,
       avatarInitials,
       avatarColor,
       updatedAt: now,
       updatedByUserId: actingUserId ?? existing.updatedByUserId
-    });
+    };
+    if (image !== undefined) {
+      next.avatarImage = image.imageBase64;
+      next.avatarImageMime = image.mime;
+      next.avatarImageUpdatedAt = image.updatedAt;
+    }
+    await docRef.set(next);
 
     const updated = await this.findTenantById(id);
     if (!updated) {

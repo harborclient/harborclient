@@ -39,6 +39,7 @@ export type {
   BrowserHcScriptsPayload,
   BrowserInjectionScriptPayload,
   BrowserNavigationState,
+  BrowserOpenImageViewPayload,
   BrowserOpenTabRequest,
   BrowserSecurityState,
   BrowserRequestDefaultsPayload,

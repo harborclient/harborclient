@@ -190,7 +190,8 @@ async function scanTeamHubSession(hub: TeamHub): Promise<TeamHubSessionScanResul
             hubAvatar: {
               name: session.hub.name,
               initials: session.hub.initials,
-              color: session.hub.color
+              color: session.hub.color,
+              ...(session.hub.imageUrl ? { imageUrl: session.hub.imageUrl } : {})
             }
           }
         : {})

@@ -68,7 +68,7 @@ export function AsyncListState({
   }
 
   if (isEmpty && emptyMessage != null) {
-    return <p className="hc-async-list-state-empty text-[14px] text-muted">{emptyMessage}</p>;
+    return <p className="hc-async-list-state-empty text-muted text-[16px]">{emptyMessage}</p>;
   }
 
   return <>{children}</>;

@@ -159,7 +159,7 @@ export function TeamSnippetsView({ hub }: Props): JSX.Element {
               primary={
                 <div className="flex flex-col gap-1">
                   <ResourceListPrimary>{snippet.name}</ResourceListPrimary>
-                  <span className="text-[14px] text-muted">{snippetScopeLabel(snippet.scope)}</span>
+                  <span className="text-muted">{snippetScopeLabel(snippet.scope)}</span>
                   <CodePreviewTooltip
                     code={snippet.code}
                     actionLabel={`Edit ${snippet.name}`}

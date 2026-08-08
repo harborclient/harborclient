@@ -161,4 +161,47 @@ export async function registerAuthRoutes(
       return reply.send(bytes as unknown as { error: string });
     }
   });
+
+  routes.route({
+    method: 'GET',
+    url: '/auth/hub/avatar',
+    schema: {
+      response: {
+        404: errorResponseSchema
+      }
+    },
+    /**
+     * Returns the uploaded hub avatar image bytes for the active tenant namespace.
+     */
+    handler: async (request, reply) => {
+      requireAuthenticatedUser(request);
+
+      const tenant = await options.rootDb.findTenantById(request.tenantId);
+      if (
+        tenant == null ||
+        tenant.avatarImage == null ||
+        tenant.avatarImage.length === 0 ||
+        tenant.avatarImageMime == null
+      ) {
+        return reply.code(404).send(errorResponseSchema.parse({ error: 'Avatar image not found' }));
+      }
+
+      const bytes = Buffer.from(tenant.avatarImage, 'base64');
+      const etag =
+        tenant.avatarImageUpdatedAt != null
+          ? `"${tenant.avatarImageUpdatedAt.getTime()}"`
+          : undefined;
+
+      if (etag != null) {
+        void reply.header('ETag', etag);
+      }
+
+      reply
+        .header('Content-Type', tenant.avatarImageMime)
+        .header('Cache-Control', 'private, max-age=3600')
+        .header('Content-Length', String(bytes.byteLength));
+      // Binary body is intentionally untyped; response schema only covers the 404 JSON error.
+      return reply.send(bytes as unknown as { error: string });
+    }
+  });
 }

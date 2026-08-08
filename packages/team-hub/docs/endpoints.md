@@ -139,12 +139,13 @@ Use this route to discover whether a token belongs to a `user` or `admin` accoun
   "hub": {
     "name": "Default",
     "initials": "DE",
-    "color": "violet-600"
+    "color": "violet-600",
+    "imageUrl": "/auth/hub/avatar?v=1723118400000"
   }
 }
 ```
 
-`avatarImageUrl` is omitted when the user has not uploaded an image. Clients resolve it against the hub base URL and pass the bearer token when fetching bytes.
+`avatarImageUrl` is omitted when the user has not uploaded an image. `hub.imageUrl` is omitted when the hub has no uploaded image. Clients resolve both against the hub base URL and pass the bearer token when fetching bytes.
 
 | Capability       | `user` role                        | `admin` role                         |
 | ---------------- | ---------------------------------- | ------------------------------------ |
@@ -212,6 +213,20 @@ curl -s http://127.0.0.1:8788/auth/users/550e8400-e29b-41d4-a716-446655440000/av
   -o avatar.jpg
 ```
 
+### GET /auth/hub/avatar
+
+Returns the uploaded hub avatar image bytes for the active tenant namespace. Requires a valid bearer token.
+
+**Response `200`:** Raw image bytes with `Content-Type` set to the stored MIME type, plus `Cache-Control: private, max-age=3600` and an `ETag` derived from the image update timestamp.
+
+**Response `404`:** Tenant not found or no uploaded hub image.
+
+```bash
+curl -s http://127.0.0.1:8788/auth/hub/avatar \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -o hub-avatar.jpg
+```
+
 ## Administration
 
 Management routes require an `admin`-role bearer token. `user`-role tokens receive **403 Forbidden**.
@@ -229,6 +244,8 @@ Lists user accounts on the Team Hub server. The internal `system` account used f
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "alice",
       "role": "user",
+      "avatarInitials": "AL",
+      "avatarColor": "sky-600",
       "collectionAccess": ["*"],
       "environmentAccess": ["*"],
       "llmAccess": true,
@@ -263,6 +280,9 @@ Updates a user account. The internal `system` account cannot be modified (403).
 {
   "name": "alice",
   "role": "user",
+  "avatarInitials": "AL",
+  "avatarColor": "sky-600",
+  "imageDataUrl": "data:image/jpeg;base64,...",
   "collectionAccess": ["*"],
   "environmentAccess": ["*"],
   "llmAccess": true,
@@ -271,9 +291,11 @@ Updates a user account. The internal `system` account cannot be modified (403).
 }
 ```
 
+Pass `"imageDataUrl": null` to clear a previously uploaded avatar image. Uploaded images must be JPEG, PNG, WebP, or GIF and at most 200 KB after decoding. When an image is stored, the response includes `avatarImageUrl`.
+
 **Response `200`:** Updated user record (same shape as a user entry in `GET /admin/users`, excluding the `warnings` field).
 
-**Response `400`:** Invalid access list (for example wildcard combined with specific ids), unknown collection/environment/LLM model id in a submitted access list, or invalid user name. Example:
+**Response `400`:** Invalid access list (for example wildcard combined with specific ids), unknown collection/environment/LLM model id in a submitted access list, invalid user name, or invalid avatar image payload. Example:
 
 ```json
 { "error": "Unknown collection id: missing-col." }
@@ -305,6 +327,46 @@ Deletes a user account and permanently removes all of their API tokens. The inte
 ```bash
 curl -s -X DELETE http://127.0.0.1:8788/admin/users/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer hbk_your_admin_token_here"
+```
+
+### PUT /admin/hub/avatar
+
+Updates hub avatar presentation for the active tenant namespace. Accepts initials, a palette color key, and/or a cropped image data URL. At least one field is required. Admin role only.
+
+**Request body:**
+
+```json
+{
+  "initials": "HH",
+  "color": "amber-600",
+  "imageDataUrl": "data:image/jpeg;base64,..."
+}
+```
+
+Pass `"imageDataUrl": null` to clear a previously uploaded hub image. Uploaded images must be JPEG, PNG, WebP, or GIF and at most 200 KB after decoding.
+
+**Response `200`:**
+
+```json
+{
+  "name": "Default",
+  "initials": "HH",
+  "color": "amber-600",
+  "imageUrl": "/auth/hub/avatar?v=1723118400000"
+}
+```
+
+`imageUrl` is omitted when the hub has no uploaded image.
+
+**Response `400`:** Invalid body, unsupported MIME type, or image larger than 200 KB.
+
+**Response `403`:** Authenticated `user`-role token.
+
+```bash
+curl -s -X PUT http://127.0.0.1:8788/admin/hub/avatar \
+  -H "Authorization: Bearer hbk_your_admin_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"imageDataUrl":"data:image/jpeg;base64,..."}'
 ```
 
 ### POST /admin/users

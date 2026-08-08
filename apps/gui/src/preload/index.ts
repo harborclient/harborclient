@@ -97,6 +97,8 @@ import type {
   TeamHubAdminSnippet,
   TeamHubAdminSnippetInput,
   TeamHubAdminRunResult,
+  UpdateHubAvatarInput,
+  UpdateHubAvatarResponse,
   UpdateMyAvatarInput,
   UpdateMyAvatarResponse,
   UserAvatarImage,
@@ -158,6 +160,7 @@ import type {
   BrowserInjectionScriptPayload,
   BrowserHcScriptsPayload,
   BrowserNavigationState,
+  BrowserOpenImageViewPayload,
   BrowserOpenTabRequest,
   BrowserViewBounds
 } from '@harborclient/core/types/api/browser';
@@ -2629,6 +2632,19 @@ function updateTeamHubMyAvatar(
 }
 
 /**
+ * Updates the hub server avatar on a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param input - Replacement initials, color, and/or cropped image data URL.
+ */
+function updateTeamHubAvatar(
+  hubId: string,
+  input: UpdateHubAvatarInput
+): Promise<UpdateHubAvatarResponse> {
+  return ipcRenderer.invoke('teamHubs:updateHubAvatar', hubId, input);
+}
+
+/**
  * Fetches a user's uploaded avatar image from a Team Hub connection via IPC.
  *
  * @param hubId - Team hub connection id.
@@ -2641,6 +2657,16 @@ function getTeamHubUserAvatar(
   version?: string
 ): Promise<UserAvatarImage> {
   return ipcRenderer.invoke('teamHubs:getUserAvatar', hubId, userId, version);
+}
+
+/**
+ * Fetches the hub server avatar image from a Team Hub connection via IPC.
+ *
+ * @param hubId - Team hub connection id.
+ * @param version - Optional cache-busting version from the hub avatar image URL.
+ */
+function getTeamHubAvatar(hubId: string, version?: string): Promise<UserAvatarImage> {
+  return ipcRenderer.invoke('teamHubs:getHubAvatar', hubId, version);
 }
 
 /**
@@ -4335,6 +4361,27 @@ function onBrowserCopyToChat(callback: (payload: BrowserCopyToChatPayload) => vo
 }
 
 /**
+ * Subscribes to guest context-menu Open in tab requests for images.
+ *
+ * @param callback - Handler invoked with a resolved image-view payload.
+ * @returns Unsubscribe function.
+ */
+function onBrowserOpenImageView(
+  callback: (payload: BrowserOpenImageViewPayload) => void
+): () => void {
+  const listener = (
+    _event: Electron.IpcRendererEvent,
+    payload: BrowserOpenImageViewPayload
+  ): void => {
+    callback(payload);
+  };
+  ipcRenderer.on('browser:open-image-view', listener);
+  return () => {
+    ipcRenderer.removeListener('browser:open-image-view', listener);
+  };
+}
+
+/**
  * Subscribes to updates of the recent browser downloads list.
  *
  * @param callback - Handler invoked with the newest-first list and whether to auto-open the menu.
@@ -5737,7 +5784,9 @@ const api: Api = {
   setTeamHubConnected,
   scanTeamHubSessions,
   updateTeamHubMyAvatar,
+  updateTeamHubAvatar,
   getTeamHubUserAvatar,
+  getTeamHubAvatar,
   reloadTeamHubConfig,
   listTeamHubUsers,
   updateTeamHubUser,
@@ -5879,6 +5928,7 @@ const api: Api = {
   onBrowserConsoleEntry,
   onBrowserOpenTab,
   onBrowserCopyToChat,
+  onBrowserOpenImageView,
   onBrowserDownloadsChanged,
   getCollectionRunnerConfig,
   setCollectionRunnerConfig,

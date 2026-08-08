@@ -78,3 +78,69 @@ export async function loadTeamHubAvatarImage(
   avatarImageInflight.set(key, request);
   return request;
 }
+
+/**
+ * Builds a stable cache key for a Team Hub server avatar image fetch.
+ *
+ * @param hubId - Team hub connection id.
+ * @param version - Optional cache-busting version from the hub avatar image URL.
+ */
+export function teamHubServerAvatarCacheKey(hubId: string, version?: string): string {
+  return `${hubId}:hub:${version ?? ''}`;
+}
+
+/**
+ * Loads a Team Hub server avatar image data URL, reusing in-memory cache and in-flight requests.
+ *
+ * @param hubId - Team hub connection id.
+ * @param imageUrl - Relative hub avatar image URL from the session payload.
+ * @returns Data URL for the hub avatar image.
+ */
+export async function loadTeamHubServerAvatarImage(
+  hubId: string,
+  imageUrl: string
+): Promise<string> {
+  const version = avatarVersionFromUrl(imageUrl);
+  const key = teamHubServerAvatarCacheKey(hubId, version);
+  const cached = avatarImageCache.get(key);
+  if (cached != null) {
+    return cached;
+  }
+
+  const inflight = avatarImageInflight.get(key);
+  if (inflight != null) {
+    return inflight;
+  }
+
+  const request = window.api
+    .getTeamHubAvatar(hubId, version)
+    .then((image) => {
+      avatarImageCache.set(key, image.dataUrl);
+      avatarImageInflight.delete(key);
+      return image.dataUrl;
+    })
+    .catch((error) => {
+      avatarImageInflight.delete(key);
+      throw error;
+    });
+
+  avatarImageInflight.set(key, request);
+  return request;
+}
+
+/**
+ * Seeds the server avatar cache with a known data URL after a successful upload.
+ *
+ * @param hubId - Team hub connection id.
+ * @param imageUrl - Relative hub avatar image URL returned by the update API.
+ * @param dataUrl - Cropped image data URL that was just persisted.
+ */
+export function primeTeamHubServerAvatarImage(
+  hubId: string,
+  imageUrl: string,
+  dataUrl: string
+): void {
+  const version = avatarVersionFromUrl(imageUrl);
+  const key = teamHubServerAvatarCacheKey(hubId, version);
+  avatarImageCache.set(key, dataUrl);
+}

@@ -5669,7 +5669,9 @@ export interface PluginHost {
   /**
    * Opens (or focuses) an image viewer page tab for a local path, URL, or inline image.
    *
-   * Requires the `ui` permission. Session-only — image tabs are not restored on restart.
+   * Requires the `ui` permission. Image tabs are restored on restart until the user
+   * closes them. Path tabs show an error if the file is missing; URL tabs depend on
+   * reachability; inline data tabs restore from saved bytes.
    *
    * @param payload - Image source and optional display filename.
    */

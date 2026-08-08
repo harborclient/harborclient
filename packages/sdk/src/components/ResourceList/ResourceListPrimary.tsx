@@ -15,10 +15,7 @@ export function ResourceListPrimary({ children, className, ...props }: Props): J
   return (
     <div
       {...props}
-      className={cn(
-        'hc-resource-list-primary truncate text-[14px] font-medium text-text',
-        className
-      )}
+      className={cn('hc-resource-list-primary truncate font-medium text-text', className)}
     >
       {children}
     </div>

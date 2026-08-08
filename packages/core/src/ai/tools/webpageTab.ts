@@ -25,7 +25,7 @@ export const webpageTabTool = {
     function: {
       name: 'webpage_tab',
       description:
-        'Returns info about an embedded HarborClient browser (webpage) tab, including a dom descriptor for follow-up tools. Call with no url to inspect the active browser tab. Call with a url to reuse an already-open browser tab at that address when one exists; otherwise open a new tab (http/https), wait for load, and return its info. Use the returned dom.tabId with webpage_query, webpage_evaluate, webpage_inject_script, and webpage_inject_stylesheet.',
+        'Returns info about an embedded HarborClient browser (webpage) tab, including a dom descriptor for follow-up tools. Call with no url to inspect the active browser tab. Call with a url to reuse an already-open browser tab at that address when one exists; otherwise open a new tab (http/https), wait for load, and return its info. Use the returned dom.tabId with webpage_query, webpage_evaluate, webpage_inject_script, webpage_inject_stylesheet, and webpage_screenshot.',
       parameters: {
         type: 'object',
         properties: {

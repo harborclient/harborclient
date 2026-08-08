@@ -69,7 +69,10 @@ describe('tenantCommand', () => {
           createdByUserId: null,
           updatedByUserId: null,
           avatarInitials: null,
-          avatarColor: null
+          avatarColor: null,
+          avatarImage: null,
+          avatarImageMime: null,
+          avatarImageUpdatedAt: null
         },
         {
           id: 'org-acme',
@@ -79,7 +82,10 @@ describe('tenantCommand', () => {
           createdByUserId: 'system-user-id',
           updatedByUserId: 'system-user-id',
           avatarInitials: null,
-          avatarColor: null
+          avatarColor: null,
+          avatarImage: null,
+          avatarImageMime: null,
+          avatarImageUpdatedAt: null
         }
       ];
       db.listTenants.mockResolvedValue(tenants);
@@ -119,7 +125,10 @@ describe('tenantCommand', () => {
         createdByUserId: 'system-user-id',
         updatedByUserId: 'system-user-id',
         avatarInitials: null,
-        avatarColor: null
+        avatarColor: null,
+        avatarImage: null,
+        avatarImageMime: null,
+        avatarImageUpdatedAt: null
       };
 
       db.findTenantById.mockResolvedValue(null);
@@ -173,7 +182,10 @@ describe('tenantCommand', () => {
         createdByUserId: 'system-user-id',
         updatedByUserId: 'system-user-id',
         avatarInitials: null,
-        avatarColor: null
+        avatarColor: null,
+        avatarImage: null,
+        avatarImageMime: null,
+        avatarImageUpdatedAt: null
       };
 
       db.findTenantById.mockResolvedValue(existingTenant);
@@ -202,7 +214,10 @@ describe('tenantCommand', () => {
         createdByUserId: 'system-user-id',
         updatedByUserId: 'system-user-id',
         avatarInitials: null,
-        avatarColor: null
+        avatarColor: null,
+        avatarImage: null,
+        avatarImageMime: null,
+        avatarImageUpdatedAt: null
       };
 
       db.findTenantById.mockResolvedValue(existingTenant);

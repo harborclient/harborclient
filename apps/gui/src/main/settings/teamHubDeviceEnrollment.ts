@@ -1,5 +1,8 @@
 import type { HubDeviceKeyRecord, TeamHub } from '@harborclient/core/types';
-import { TeamHubClientError } from '@harborclient/team-hub-api';
+import {
+  TeamHubClientError,
+  isTeamHubDeviceEnrollmentDisabledError
+} from '@harborclient/team-hub-api';
 import { createTeamHubClient } from './teamHubClient';
 import { buildDefaultDeviceLabel, generateDeviceIdentity } from './teamHubDeviceIdentity';
 import {
@@ -164,9 +167,21 @@ export async function revokeAdminTeamHubDeviceKey(
 /**
  * Lists all device key enrollments through the hub management API.
  *
+ * When discussion E2EE is disabled, the hub returns 404 for device routes; that
+ * is an expected configuration state, so this returns an empty list instead of
+ * surfacing an operator-facing error.
+ *
  * @param hub - Admin team hub connection.
  */
 export async function listAdminTeamHubDeviceKeys(hub: TeamHub): Promise<HubDeviceKeyRecord[]> {
   const client = createTeamHubClient(hub);
-  return client.listAdminDeviceKeys();
+  try {
+    return await client.listAdminDeviceKeys();
+  } catch (error) {
+    if (isTeamHubDeviceEnrollmentDisabledError(error)) {
+      return [];
+    }
+
+    throw error;
+  }
 }

@@ -4,6 +4,7 @@ import {
   deriveFileName,
   hashForDedupeKey,
   imageViewSourceKey,
+  normalizePersistedImageViewPageRef,
   pageRefFromOpenImageViewPayload,
   shortenFileName,
   toDataUrl
@@ -111,5 +112,107 @@ describe('imageViewSourceKey', () => {
     const key = imageViewSourceKey({ kind: 'data', dataUrl: 'data:image/png;base64,abc' });
     expect(key).toBe(hashForDedupeKey('data:image/png;base64,abc'));
     expect(key.length).toBeGreaterThan(0);
+  });
+});
+
+describe('normalizePersistedImageViewPageRef', () => {
+  it('restores path, url, and data sources', () => {
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'shot.png',
+        shortLabel: 'shot.png',
+        source: { kind: 'path', path: '/tmp/shot.png' }
+      })
+    ).toEqual({
+      type: 'image-view',
+      fileName: 'shot.png',
+      shortLabel: 'shot.png',
+      source: { kind: 'path', path: '/tmp/shot.png' }
+    });
+
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'logo.png',
+        shortLabel: 'logo.png',
+        source: { kind: 'url', url: 'https://example.com/logo.png' }
+      })
+    ).toEqual({
+      type: 'image-view',
+      fileName: 'logo.png',
+      shortLabel: 'logo.png',
+      source: { kind: 'url', url: 'https://example.com/logo.png' }
+    });
+
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'chart.png',
+        shortLabel: 'chart.png',
+        source: { kind: 'data', dataUrl: 'data:image/png;base64,abc' }
+      })
+    ).toEqual({
+      type: 'image-view',
+      fileName: 'chart.png',
+      shortLabel: 'chart.png',
+      source: { kind: 'data', dataUrl: 'data:image/png;base64,abc' }
+    });
+  });
+
+  it('derives shortLabel from fileName when shortLabel is missing', () => {
+    const page = normalizePersistedImageViewPageRef({
+      type: 'image-view',
+      fileName: 'screenshot-2024-01-15-at-midnight.png',
+      source: { kind: 'path', path: '/tmp/shot.png' }
+    });
+    expect(page?.shortLabel).toBe(shortenFileName('screenshot-2024-01-15-at-midnight.png'));
+  });
+
+  it('rejects missing or empty required fields', () => {
+    expect(normalizePersistedImageViewPageRef(null)).toBeNull();
+    expect(normalizePersistedImageViewPageRef({ type: 'cookies' })).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: '   ',
+        source: { kind: 'path', path: '/tmp/a.png' }
+      })
+    ).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'a.png',
+        source: { kind: 'path', path: '' }
+      })
+    ).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'a.png',
+        source: { kind: 'url', url: '   ' }
+      })
+    ).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'a.png',
+        source: { kind: 'data', dataUrl: '' }
+      })
+    ).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'a.png',
+        source: { kind: 'blob', dataUrl: 'data:image/png;base64,abc' }
+      })
+    ).toBeNull();
+    expect(
+      normalizePersistedImageViewPageRef({
+        type: 'image-view',
+        fileName: 'a.png',
+        source: { kind: 'data' }
+      })
+    ).toBeNull();
   });
 });

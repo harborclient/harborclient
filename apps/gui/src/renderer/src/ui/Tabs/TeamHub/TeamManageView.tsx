@@ -387,7 +387,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
       </AsyncListState>
 
       <div className="mt-8">
-        <h3 className="mb-3 text-[15px] font-semibold">Invitations</h3>
+        <h3 className="mb-3 font-semibold text-[16px]">Invitations</h3>
         <AsyncListState
           loading={invitationsLoading}
           error={invitationsError}
@@ -462,6 +462,7 @@ export function TeamManageView({ hub }: Props): JSX.Element {
             <TeamUserForm
               key={editingUser.id}
               mode="edit"
+              hubId={hub.id}
               user={editingUser}
               disabled={saving}
               resourceOptions={resourceOptions}

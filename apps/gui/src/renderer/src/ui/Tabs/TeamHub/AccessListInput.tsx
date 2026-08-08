@@ -154,7 +154,7 @@ export function AccessListInput<TFieldValues extends FieldValues>({
                   <li key={suggestion.id} role="option">
                     <button
                       type="button"
-                      className="block w-full px-3 py-2 text-left text-[14px] text-text hover:bg-surface-hover"
+                      className="block w-full px-3 py-2 text-left text-text hover:bg-surface-hover"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => handleSelectSuggestion(suggestion.id)}
                     >

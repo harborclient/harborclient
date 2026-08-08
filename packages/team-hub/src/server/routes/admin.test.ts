@@ -509,6 +509,77 @@ describe('PUT /admin/users/:id', () => {
     await app.close();
   });
 
+  it('updates an uploaded avatar image for a managed user', async () => {
+    const db = createStubDatabase();
+    const adminUser = {
+      ...sampleUserRecord,
+      id: 'admin-1',
+      role: 'admin' as const,
+      collectionAccess: [],
+      environmentAccess: [],
+      snippetAccess: []
+    };
+    const targetUser = {
+      ...sampleUserRecord,
+      id: 'user-2',
+      name: 'Alice'
+    };
+    const tinyJpegBase64 =
+      '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGfAP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z';
+    const imageUpdatedAt = new Date('2026-08-08T12:00:00.000Z');
+    const updatedUser = {
+      ...targetUser,
+      avatarImage: tinyJpegBase64,
+      avatarImageMime: 'image/jpeg',
+      avatarImageUpdatedAt: imageUpdatedAt
+    };
+
+    db.findUserById.mockResolvedValue(targetUser);
+    db.updateUser.mockResolvedValue(updatedUser);
+    mockAccessCatalogs(db);
+
+    const app = await createProtectedTestApp({
+      db,
+      withValidAuth: true,
+      user: adminUser
+    });
+    db.findUserById.mockImplementation(async (id: string) => {
+      if (id === sampleApiTokenRecord.userId || id === adminUser.id) {
+        return adminUser;
+      }
+
+      if (id === targetUser.id) {
+        return targetUser;
+      }
+
+      return null;
+    });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/admin/users/user-2',
+      headers: authHeader(),
+      payload: {
+        imageDataUrl: `data:image/jpeg;base64,${tinyJpegBase64}`
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      avatarImageUrl: `/auth/users/user-2/avatar?v=${imageUpdatedAt.getTime()}`
+    });
+    expect(db.updateUser).toHaveBeenCalledWith(
+      'user-2',
+      expect.objectContaining({
+        avatarImage: tinyJpegBase64,
+        avatarImageMime: 'image/jpeg'
+      }),
+      'admin-1'
+    );
+
+    await app.close();
+  });
+
   it('clears access lists when changing role to admin', async () => {
     const db = createStubDatabase();
     const adminUser = {

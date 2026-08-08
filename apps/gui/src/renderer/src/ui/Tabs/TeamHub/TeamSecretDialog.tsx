@@ -52,7 +52,7 @@ export function TeamSecretDialog({ title, description, secret, onClose }: Props)
           id="team-secret-value"
           readOnly
           variant="surface"
-          className="h-24 resize-none font-mono text-[14px]"
+          className="h-24 resize-none font-mono"
           value={secret}
         />
       </FormGroup>

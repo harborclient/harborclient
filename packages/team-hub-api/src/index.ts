@@ -11,8 +11,13 @@ export { isTeamHubCollectionDeleteForbiddenError } from './isTeamHubCollectionDe
 export { isTeamHubSnippetsUnsupportedError } from './isTeamHubSnippetsUnsupportedError.js';
 export { isTeamHubSnippetsForbiddenError } from './isTeamHubSnippetsForbiddenError.js';
 export { isTeamHubCommunicationUnsupportedError } from './isTeamHubCommunicationUnsupportedError.js';
+export {
+  TEAM_HUB_DEVICE_ENROLLMENT_DISABLED_MESSAGE,
+  isTeamHubDeviceEnrollmentDisabledError
+} from './isTeamHubDeviceEnrollmentDisabledError.js';
 export { isTeamHubNoticesUnsupportedError } from './isTeamHubNoticesUnsupportedError.js';
 export { isTeamHubNoticeStreamUnsupportedError } from './isTeamHubNoticeStreamUnsupportedError.js';
+
 export type {
   CreateDiscussionCommentInput,
   DiscussionAuthor,
@@ -92,6 +97,7 @@ export type {
   FolderRecord,
   HealthResponse,
   HubApiTokenRecord,
+  HubAvatarMetadata,
   HubInvitationPreview,
   HubInvitationPreviewUser,
   HubInvitationRecord,
@@ -128,6 +134,7 @@ export type {
   UpdateCollectionInput,
   UpdateDocumentInput,
   UpdateEnvironmentInput,
+  UpdateHubAvatarInput,
   UpdateHubUserInput,
   UpdateMyAvatarInput,
   UpdateMyAvatarResponse,

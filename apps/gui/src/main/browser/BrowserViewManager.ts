@@ -9,6 +9,7 @@ import type {
   BrowserHcScriptsPayload,
   BrowserInjectionScriptPayload,
   BrowserNavigationState,
+  BrowserOpenImageViewPayload,
   BrowserOpenTabRequest,
   BrowserRequestDefaultsPayload,
   BrowserViewBounds,
@@ -70,11 +71,17 @@ import {
 } from '#/browser/browserFavicon';
 import { isAllowedBrowserUrl, toViewSourceUrl } from '#/browser/browserUrl';
 import {
+  buildBlobSrcToDataUrlScript,
+  classifyBrowserGuestImageSrc,
+  deriveImageFileNameFromSrcUrl
+} from '#/browser/browserGuestImageContext';
+import {
   buildBrowserDomQueryScript,
   type BrowserDomQueryOptions,
   type BrowserDomQueryResult
 } from '#/browser/browserDomQuery';
 import { isAllowedExternalUrl } from '#/main/window/navigationSecurity';
+import { saveImageWithSaveDialog } from '#/main/ipc/handlers/saveImageWithSaveDialog';
 import { logVerbose } from '#/main/logger';
 import { runScriptInProcess } from '#/main/scripting/scriptRunnerHost';
 import { tryDispatchActionShortcut } from '#/main/shortcutDispatch';
@@ -1134,10 +1141,11 @@ export class BrowserViewManager {
   }
 
   /**
-   * Attaches the guest right-click menu (Back / Forward / Home / View Source /
-   * Copy to chat) to a browser tab.
+   * Attaches the guest right-click menu (Back / Forward / Home / image actions /
+   * View Source / Copy to chat) to a browser tab.
    *
    * Inspect Element is included by the menu helper when developer tooling is enabled.
+   * Open image in tab / Save image appear when the click targets an image element.
    * Copy to chat notifies the renderer with the click coordinates for an
    * `@webpage.<tabId>#x.y` chat pointer.
    *
@@ -1164,8 +1172,119 @@ export class BrowserViewManager {
           return;
         }
         window.webContents.send('browser:copy-to-chat', { tabId, x, y });
+      },
+      onOpenImageInTab: (srcURL) => {
+        void this.#openGuestImageInTab(view, srcURL);
+      },
+      onSaveImage: (srcURL) => {
+        void this.#saveGuestImage(view, srcURL);
       }
     });
+  }
+
+  /**
+   * Resolves a guest image `srcURL` into an Image View open payload.
+   *
+   * Http(s) URLs are passed through. Data URLs are used as-is. Blob URLs are
+   * fetched inside the guest and converted to a data URL because they are not
+   * valid outside that document.
+   *
+   * @param view - Guest view that owns the image source.
+   * @param srcURL - Image source from the context-menu event.
+   * @returns Payload for `browser:open-image-view`, or null when unsupported.
+   * @throws When blob resolution fails or the resolved value is not a data URL.
+   */
+  async #resolveGuestImageOpenPayload(
+    view: WebContentsView,
+    srcURL: string
+  ): Promise<BrowserOpenImageViewPayload | null> {
+    const trimmed = srcURL.trim();
+    const kind = classifyBrowserGuestImageSrc(trimmed);
+    const fileName = deriveImageFileNameFromSrcUrl(trimmed);
+
+    if (kind === 'http') {
+      return { url: trimmed, fileName };
+    }
+
+    if (kind === 'data') {
+      return { dataUrl: trimmed, fileName };
+    }
+
+    if (kind === 'blob') {
+      if (view.webContents.isDestroyed()) {
+        throw new Error('Browser guest is no longer available.');
+      }
+      const result: unknown = await view.webContents.executeJavaScript(
+        buildBlobSrcToDataUrlScript(trimmed),
+        true
+      );
+      if (typeof result !== 'string' || !result.startsWith('data:')) {
+        throw new Error('Failed to resolve blob image as a data URL.');
+      }
+      return { dataUrl: result, fileName };
+    }
+
+    return null;
+  }
+
+  /**
+   * Opens a right-clicked guest image in a HarborClient Image View tab.
+   *
+   * @param view - Guest view that owns the image source.
+   * @param srcURL - Image source from the context-menu event.
+   */
+  async #openGuestImageInTab(view: WebContentsView, srcURL: string): Promise<void> {
+    try {
+      const payload = await this.#resolveGuestImageOpenPayload(view, srcURL);
+      if (!payload) {
+        dialog.showErrorBox('Open image', 'This image source cannot be opened in a tab.');
+        return;
+      }
+      const window = getRegisteredMainWindow();
+      if (!window || window.isDestroyed()) {
+        return;
+      }
+      window.webContents.send('browser:open-image-view', payload);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      dialog.showErrorBox('Open image', message);
+    }
+  }
+
+  /**
+   * Saves a right-clicked guest image via the native save dialog.
+   *
+   * Successful saves are recorded in the recent browser downloads list.
+   *
+   * @param view - Guest view that owns the image source.
+   * @param srcURL - Image source from the context-menu event.
+   */
+  async #saveGuestImage(view: WebContentsView, srcURL: string): Promise<void> {
+    try {
+      const payload = await this.#resolveGuestImageOpenPayload(view, srcURL);
+      if (!payload) {
+        dialog.showErrorBox('Save image', 'This image source cannot be saved.');
+        return;
+      }
+
+      const result =
+        'url' in payload
+          ? await saveImageWithSaveDialog({
+              url: payload.url,
+              defaultFileName: payload.fileName
+            })
+          : await saveImageWithSaveDialog({
+              dataUrl: payload.dataUrl,
+              defaultFileName: payload.fileName
+            });
+
+      if (!result.canceled && result.path) {
+        this.recordRecentDownload(result.path);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      dialog.showErrorBox('Save image', message);
+    }
   }
 
   /**

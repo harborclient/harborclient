@@ -23,7 +23,8 @@ export const sessionCapabilitiesSchema = z.object({
 export const hubAvatarSchema = z.object({
   name: z.string(),
   initials: z.string(),
-  color: z.enum(AVATAR_COLOR_KEYS)
+  color: z.enum(AVATAR_COLOR_KEYS),
+  imageUrl: z.string().optional()
 });
 
 /**

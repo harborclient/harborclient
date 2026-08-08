@@ -73,7 +73,7 @@
   },
   "metrics": {
     "layout-font-family": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-    "layout-font-size": "14px",
+    "layout-font-size": "16px",
     "layout-border-width": "1px",
     "layout-radius": "0.375rem",
     "breadcrumb-font-family": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",

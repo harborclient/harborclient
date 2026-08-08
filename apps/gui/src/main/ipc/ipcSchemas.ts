@@ -562,6 +562,9 @@ export const teamHub = z.object({
 export const updateHubUserInput = z.object({
   name: z.string().trim().min(1).optional(),
   role: z.enum(['admin', 'user']).optional(),
+  avatarInitials: z.string().trim().min(1).max(2).optional(),
+  avatarColor: z.string().trim().min(1).optional(),
+  imageDataUrl: z.string().nullable().optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   llmAccess: z.boolean().optional(),
@@ -672,6 +675,22 @@ export const teamHubNotificationSettingsUpdateInput = z.object({
  * Zod schema for updating the authenticated user's Team Hub avatar over IPC.
  */
 export const updateMyAvatarInput = z
+  .object({
+    initials: z.string().trim().min(1).max(2).optional(),
+    color: z.string().optional(),
+    imageDataUrl: z.string().nullable().optional()
+  })
+  .refine(
+    (body) => body.initials != null || body.color != null || body.imageDataUrl !== undefined,
+    {
+      message: 'At least one of initials, color, or imageDataUrl is required.'
+    }
+  );
+
+/**
+ * Zod schema for updating the Team Hub server avatar over IPC.
+ */
+export const updateHubAvatarInput = z
   .object({
     initials: z.string().trim().min(1).max(2).optional(),
     color: z.string().optional(),
@@ -1371,7 +1390,9 @@ export const ipcArgSchemas = {
     teamHubNotificationSettingsUpdateInput
   ]),
   teamHubUpdateMyAvatar: z.tuple([connectionId, updateMyAvatarInput]),
+  teamHubUpdateHubAvatar: z.tuple([connectionId, updateHubAvatarInput]),
   teamHubGetUserAvatar: z.tuple([connectionId, z.string().min(1), z.string().optional()]),
+  teamHubGetHubAvatar: z.tuple([connectionId, z.string().optional()]),
   teamHubDiscussionThreadId: z.tuple([connectionId, z.string().min(1)]),
   providerSync: z.tuple([connectionId]),
   providerListUnregisteredCollections: z.tuple([connectionId]),

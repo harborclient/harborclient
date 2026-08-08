@@ -19,6 +19,7 @@ import type {
   DocumentRecord,
   SnippetRecord,
   SnippetScope,
+  TenantAvatarImageUpdate,
   TenantRecord,
   UpdateUserInput,
   UserRecord,
@@ -126,13 +127,15 @@ export interface IDatabase {
    * @param avatarInitials - Initials tile text to persist.
    * @param avatarColor - Palette color key to persist.
    * @param actingUserId - User performing the update, or null for system assignment.
+   * @param image - Optional uploaded image fields; omit to leave the image unchanged.
    * @returns Updated tenant record.
    */
   updateTenantAvatar(
     id: string,
     avatarInitials: string,
     avatarColor: string,
-    actingUserId: string | null
+    actingUserId: string | null,
+    image?: TenantAvatarImageUpdate
   ): Promise<TenantRecord>;
 
   /**

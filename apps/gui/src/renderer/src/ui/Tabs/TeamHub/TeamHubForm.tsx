@@ -1,7 +1,7 @@
 import { FormGroup, Input } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { TeamHub } from '@harborclient/core/types';
-import { TeamHubFormAvatar, type TeamHubFormSessionUser } from './TeamHubFormAvatar';
+import { TeamHubFormAvatar, type TeamHubFormAvatarUser } from './TeamHubFormAvatar';
 
 interface Props {
   /**
@@ -17,7 +17,7 @@ interface Props {
   /**
    * Authenticated session user for the hub being edited, when available.
    */
-  sessionUser?: TeamHubFormSessionUser | null;
+  sessionUser?: TeamHubFormAvatarUser | null;
 
   /**
    * Pending cropped avatar image held locally until Save.
@@ -67,7 +67,7 @@ export function TeamHubForm({
       {showAvatarEditor ? (
         <TeamHubFormAvatar
           hubId={hub.id}
-          sessionUser={sessionUser}
+          user={sessionUser}
           pendingImageDataUrl={pendingAvatarDataUrl}
           disabled={disabled}
           onPendingImageChange={onPendingAvatarChange}

@@ -693,6 +693,15 @@ ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_color TEXT;
 `.trim();
 
 /**
+ * Adds uploaded hub avatar image storage columns to tenant records.
+ */
+export const TENANT_AVATAR_IMAGE_MIGRATION_SQL = `
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_mime TEXT;
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_updated_at TIMESTAMPTZ;
+`.trim();
+
+/**
  * Adds persisted user avatar fields to user records.
  */
 export const USERS_AVATAR_MIGRATION_SQL = `
@@ -828,5 +837,6 @@ export const POSTGRES_MIGRATIONS = [
   NOTICES_MIGRATION_SQL,
   DEVICE_KEYS_MIGRATION_SQL,
   DISCUSSION_MLS_MIGRATION_SQL,
-  USERS_AVATAR_IMAGE_MIGRATION_SQL
+  USERS_AVATAR_IMAGE_MIGRATION_SQL,
+  TENANT_AVATAR_IMAGE_MIGRATION_SQL
 ];

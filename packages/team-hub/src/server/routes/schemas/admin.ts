@@ -149,6 +149,7 @@ export const hubUserRecordSchema = z.object({
   role: userRoleSchema,
   avatarInitials: z.string(),
   avatarColor: avatarColorKeySchema,
+  avatarImageUrl: z.string().optional(),
   collectionAccess: z.array(z.string()),
   environmentAccess: z.array(z.string()),
   snippetAccess: z.array(z.string()),
@@ -183,6 +184,10 @@ export const updateAdminUserBodySchema = z.object({
   role: userRoleSchema.optional(),
   avatarInitials: z.string().trim().min(1).max(2).optional(),
   avatarColor: avatarColorKeySchema.optional(),
+  /**
+   * Cropped avatar image as a data URL, or `null` to clear a stored image.
+   */
+  imageDataUrl: z.string().nullable().optional(),
   collectionAccess: z.array(z.string()).optional(),
   environmentAccess: z.array(z.string()).optional(),
   snippetAccess: z.array(z.string()).optional(),
@@ -278,11 +283,15 @@ export const reloadConfigResponseSchema = z.object({
 export const updateAdminHubAvatarBodySchema = z
   .object({
     initials: z.string().optional(),
-    color: z.enum(AVATAR_COLOR_KEYS).optional()
+    color: z.enum(AVATAR_COLOR_KEYS).optional(),
+    imageDataUrl: z.string().nullable().optional()
   })
-  .refine((body) => body.initials != null || body.color != null, {
-    message: 'At least one of initials or color is required.'
-  });
+  .refine(
+    (body) => body.initials != null || body.color != null || body.imageDataUrl !== undefined,
+    {
+      message: 'At least one of initials, color, or imageDataUrl is required.'
+    }
+  );
 
 /**
  * Response body schema for `PUT /admin/hub/avatar`.
@@ -303,6 +312,7 @@ export function serializeHubUser(user: UserRecord) {
     role: user.role,
     avatarInitials: avatar.initials,
     avatarColor: avatar.color,
+    ...(avatar.imageUrl ? { avatarImageUrl: avatar.imageUrl } : {}),
     collectionAccess: user.collectionAccess,
     environmentAccess: user.environmentAccess,
     snippetAccess: user.snippetAccess,

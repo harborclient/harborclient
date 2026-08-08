@@ -41,7 +41,7 @@ function formatOptionalTimestamp(value: string | null): string {
  * Team Hub device key administration view for E2EE enrollment records.
  */
 export function TeamDevicesView({ hub }: Props): JSX.Element {
-  const { devices, loading, error, reload } = useTeamHubDevices(hub.id);
+  const { devices, loading, error, enrollmentDisabled, reload } = useTeamHubDevices(hub.id);
   const { users } = useTeamHubUsers(hub.id);
   const userNamesById = useMemo(() => {
     const map = new Map<string, string>();
@@ -65,9 +65,10 @@ export function TeamDevicesView({ hub }: Props): JSX.Element {
       description={`${hub.name || 'Untitled'} · ${hub.baseUrl}`}
     >
       <p className="mb-4 text-muted">
-        Revoking a device key prevents that device from participating in encrypted discussions. Lost
-        private keys cannot be recovered from the server; another authorized device must re-add the
-        user in a later MLS release.
+        Device enrollment is available only when discussion E2EE is enabled on the hub. Revoking a
+        device key prevents that device from participating in encrypted discussions. Lost private
+        keys cannot be recovered from the server; another authorized device must re-add the user in
+        a later MLS release.
       </p>
 
       <AsyncListState
@@ -75,7 +76,11 @@ export function TeamDevicesView({ hub }: Props): JSX.Element {
         error={error}
         onRetry={reload}
         isEmpty={devices.length === 0}
-        emptyMessage="No enrolled devices found."
+        emptyMessage={
+          enrollmentDisabled
+            ? 'Device enrollment is unavailable because discussion E2EE is disabled on this Team Hub.'
+            : 'No enrolled devices found.'
+        }
       >
         <ResourceList>
           {devices.map((device) => (
@@ -84,17 +89,13 @@ export function TeamDevicesView({ hub }: Props): JSX.Element {
               primary={
                 <div className="flex min-w-0 items-center gap-2">
                   <ResourceListPrimary>{device.label || 'Untitled device'}</ResourceListPrimary>
-                  <span className="truncate font-mono text-[14px] text-muted">
-                    {device.fingerprintPrefix}
-                  </span>
-                  {device.revokedAt ? (
-                    <span className="text-[14px] text-muted">Revoked</span>
-                  ) : null}
+                  <span className="truncate font-mono text-muted">{device.fingerprintPrefix}</span>
+                  {device.revokedAt ? <span className="text-muted">Revoked</span> : null}
                 </div>
               }
               secondary={userNamesById.get(device.userId) ?? device.userId}
               meta={
-                <span className="block truncate text-[14px] text-muted">
+                <span className="block truncate text-muted">
                   Enrolled {formatOptionalTimestamp(device.createdAt)}
                   {device.lastSeenAt
                     ? ` · Last seen ${formatOptionalTimestamp(device.lastSeenAt)}`

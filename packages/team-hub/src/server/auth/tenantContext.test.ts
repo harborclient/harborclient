@@ -106,7 +106,10 @@ describe('createTenantResolutionHook', () => {
       createdByUserId: null,
       updatedByUserId: null,
       avatarInitials: null,
-      avatarColor: null
+      avatarColor: null,
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null
     });
     db.forTenant.mockReturnValue(scoped);
     const hook = createTenantResolutionHook(db, () => ({ enabled: true }));

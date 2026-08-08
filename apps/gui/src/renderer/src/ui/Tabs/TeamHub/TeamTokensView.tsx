@@ -155,14 +155,12 @@ export function TeamTokensView({ hub }: Props): JSX.Element {
               primary={
                 <div className="flex min-w-0 items-center gap-2">
                   <ResourceListPrimary>{token.name || 'Untitled'}</ResourceListPrimary>
-                  <span className="truncate font-mono text-[13px] text-muted">
-                    {token.tokenPrefix}
-                  </span>
+                  <span className="truncate font-mono text-muted">{token.tokenPrefix}</span>
                 </div>
               }
               secondary={userNamesById.get(token.userId) ?? token.userId}
               meta={
-                <span className="block truncate text-[13px] text-muted">
+                <span className="block truncate text-muted">
                   Created {formatOptionalTimestamp(token.createdAt)}
                   {token.lastUsedAt
                     ? ` · Last used ${formatOptionalTimestamp(token.lastUsedAt)}`

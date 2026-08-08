@@ -2,6 +2,48 @@ import { useCallback, useEffect, useState } from 'react';
 import type { TeamHub, TeamHubAvatar, TeamHubServiceFlags } from '@harborclient/core/types';
 
 /**
+ * Monotonic counter bumped whenever any caller requests a global service rescan.
+ */
+let globalServiceScanToken = 0;
+
+/**
+ * Listeners registered by active {@link useTeamHubServiceScan} hook instances.
+ */
+const globalServiceScanListeners = new Set<() => void>();
+
+/**
+ * Requests a Team Hub service scan from every active {@link useTeamHubServiceScan}
+ * instance (for example the sidebar rail and an open admin settings tab).
+ */
+export function requestTeamHubServiceRescan(): void {
+  globalServiceScanToken += 1;
+  for (const listener of globalServiceScanListeners) {
+    listener();
+  }
+}
+
+/**
+ * Clears global rescan listeners. Used in tests.
+ */
+export function clearTeamHubServiceScanListeners(): void {
+  globalServiceScanListeners.clear();
+  globalServiceScanToken = 0;
+}
+
+/**
+ * Subscribes to global Team Hub service rescan requests.
+ *
+ * @param listener - Called whenever {@link requestTeamHubServiceRescan} runs.
+ * @returns Unsubscribe function.
+ */
+export function subscribeTeamHubServiceRescan(listener: () => void): () => void {
+  globalServiceScanListeners.add(listener);
+  return () => {
+    globalServiceScanListeners.delete(listener);
+  };
+}
+
+/**
  * Authenticated session user fields derived from a Team Hub session scan.
  */
 export interface TeamHubSessionUserInfo {
@@ -144,15 +186,27 @@ export function useTeamHubServiceScan(
   );
   const [adminHubIds, setAdminHubIds] = useState<Set<string>>(() => new Set());
   const [scanning, setScanning] = useState(false);
-  const [scanToken, setScanToken] = useState(0);
+  const [globalScanToken, setGlobalScanToken] = useState(globalServiceScanToken);
   const shouldScan = enabled && teamHubs.length > 0;
   const scanPending = shouldScan && teamHubs.some((hub) => !serviceFlagsByHubId.has(hub.id));
+
+  /**
+   * Mirrors {@link globalServiceScanToken} into hook state so every mounted instance
+   * re-scans when another part of the UI requests a refresh.
+   */
+  useEffect(
+    () =>
+      subscribeTeamHubServiceRescan(() => {
+        setGlobalScanToken(globalServiceScanToken);
+      }),
+    []
+  );
 
   /**
    * Triggers another service scan without reloading the hub list from IPC.
    */
   const rescanServices = useCallback((): void => {
-    setScanToken((value) => value + 1);
+    requestTeamHubServiceRescan();
   }, []);
 
   useEffect(() => {
@@ -240,7 +294,7 @@ export function useTeamHubServiceScan(
     return () => {
       cancelled = true;
     };
-  }, [shouldScan, reloadToken, scanToken, teamHubs]);
+  }, [shouldScan, reloadToken, globalScanToken, teamHubs]);
 
   if (!shouldScan) {
     return {

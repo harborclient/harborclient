@@ -1534,6 +1534,7 @@ hc.test("Status code is 2xx", () => {
     expect(message).toContain('url: https://example.com/');
     expect(message).toContain('webpage_tab');
     expect(message).toContain('webpage_query');
+    expect(message).toContain('webpage_screenshot');
   });
 
   it('includes elementFromPoint guidance for webpage click-point references', () => {

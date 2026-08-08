@@ -21,6 +21,58 @@ export interface TeamHubAvatar {
    * Persisted palette color key (for example `sky-600`).
    */
   color: string;
+
+  /**
+   * Relative URL for the uploaded hub avatar image when present.
+   */
+  imageUrl?: string;
+}
+
+/**
+ * Request body for updating a Team Hub server avatar (admin).
+ */
+export interface UpdateHubAvatarInput {
+  /**
+   * Replacement initials tile text.
+   */
+  initials?: string;
+
+  /**
+   * Replacement palette color key.
+   */
+  color?: string;
+
+  /**
+   * Cropped hub avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
+}
+
+/**
+ * Response body from updating a Team Hub server avatar.
+ */
+export interface UpdateHubAvatarResponse {
+  /**
+   * Human-readable hub/tenant display name from the server.
+   */
+  name: string;
+
+  /**
+   * Persisted avatar initials tile text.
+   */
+  initials: string;
+
+  /**
+   * Persisted avatar background color key.
+   */
+  color: string;
+
+  /**
+   * Relative URL for the uploaded hub avatar image when present.
+   */
+  imageUrl?: string;
 }
 
 /**
@@ -322,6 +374,21 @@ export interface HubUserRecord {
    * Account role determining API capabilities.
    */
   role: 'admin' | 'user';
+
+  /**
+   * Persisted avatar initials tile text.
+   */
+  avatarInitials: string;
+
+  /**
+   * Persisted avatar background color key.
+   */
+  avatarColor: string;
+
+  /**
+   * Relative URL for the user's uploaded avatar image when present.
+   */
+  avatarImageUrl?: string;
 
   /**
    * Collection ids the user may access, or `['*']` for all collections.
@@ -684,6 +751,23 @@ export interface UpdateHubUserInput {
    * Replacement monthly token limit, or null for unlimited.
    */
   llmMonthlyTokenLimit?: number | null;
+
+  /**
+   * Replacement avatar initials tile text.
+   */
+  avatarInitials?: string;
+
+  /**
+   * Replacement avatar background color key.
+   */
+  avatarColor?: string;
+
+  /**
+   * Cropped avatar image as a data URL (`data:image/…;base64,…`).
+   *
+   * Pass `null` to clear a previously uploaded image.
+   */
+  imageDataUrl?: string | null;
 }
 
 /**

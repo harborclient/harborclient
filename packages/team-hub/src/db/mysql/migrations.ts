@@ -779,6 +779,15 @@ export const USERS_AVATAR_IMAGE_MIGRATION_SQL = [
 ];
 
 /**
+ * Adds uploaded hub avatar image storage columns to tenant records.
+ */
+export const TENANT_AVATAR_IMAGE_MIGRATION_SQL = [
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image LONGTEXT NULL`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_mime VARCHAR(64) NULL`,
+  `ALTER TABLE tenants ADD COLUMN IF NOT EXISTS avatar_image_updated_at DATETIME(3) NULL`
+];
+
+/**
  * Ordered MySQL migrations applied by {@link MysqlDatabase.migrate}.
  */
 export const MYSQL_MIGRATIONS = [
@@ -827,5 +836,6 @@ export const MYSQL_MIGRATIONS = [
   DISCUSSION_THREAD_SUBSCRIPTIONS_MIGRATION_SQL,
   DEVICE_KEYS_MIGRATION_SQL,
   DISCUSSION_MLS_MIGRATION_SQL,
-  ...USERS_AVATAR_IMAGE_MIGRATION_SQL
+  ...USERS_AVATAR_IMAGE_MIGRATION_SQL,
+  ...TENANT_AVATAR_IMAGE_MIGRATION_SQL
 ];

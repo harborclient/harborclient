@@ -2,7 +2,10 @@ import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
 import { createTeamHubClient } from '#/main/settings/teamHubClient';
 import { listTeamHubs } from '#/main/settings/teamHubSettings';
-import type { UpdateMyAvatarInput as TeamHubApiUpdateMyAvatarInput } from '@harborclient/team-hub-api';
+import type {
+  UpdateHubAvatarInput as TeamHubApiUpdateHubAvatarInput,
+  UpdateMyAvatarInput as TeamHubApiUpdateMyAvatarInput
+} from '@harborclient/team-hub-api';
 
 /**
  * Returns a Team Hub client for the given hub connection id.
@@ -31,11 +34,34 @@ export function registerTeamHubProfileHandlers(): void {
   );
 
   handle(
+    'teamHubs:updateHubAvatar',
+    ipcArgSchemas.teamHubUpdateHubAvatar,
+    async (_event, hubId, input) => {
+      const client = requireTeamHubClient(hubId);
+      return client.updateAdminHubAvatar(input as TeamHubApiUpdateHubAvatarInput);
+    }
+  );
+
+  handle(
     'teamHubs:getUserAvatar',
     ipcArgSchemas.teamHubGetUserAvatar,
     async (_event, hubId, userId, version) => {
       const client = requireTeamHubClient(hubId);
       const image = await client.getUserAvatar(userId, version);
+      return {
+        mime: image.mime,
+        bytes: image.bytes,
+        dataUrl: image.dataUrl
+      };
+    }
+  );
+
+  handle(
+    'teamHubs:getHubAvatar',
+    ipcArgSchemas.teamHubGetHubAvatar,
+    async (_event, hubId, version) => {
+      const client = requireTeamHubClient(hubId);
+      const image = await client.getHubAvatar(version);
       return {
         mime: image.mime,
         bytes: image.bytes,

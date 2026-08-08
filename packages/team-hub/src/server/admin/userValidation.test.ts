@@ -106,6 +106,26 @@ describe('userValidation', () => {
     });
   });
 
+  it('parses an uploaded avatar image data URL into persistence fields', () => {
+    const base64 = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString('base64');
+    const input = buildAdminUserUpdateInput(existing, {
+      imageDataUrl: `data:image/jpeg;base64,${base64}`
+    });
+
+    expect(input.avatarImage).toBe(base64);
+    expect(input.avatarImageMime).toBe('image/jpeg');
+    expect(input.avatarImageUpdatedAt).toBeInstanceOf(Date);
+  });
+
+  it('clears a stored avatar image when imageDataUrl is null', () => {
+    const input = buildAdminUserUpdateInput(existing, { imageDataUrl: null });
+    expect(input).toMatchObject({
+      avatarImage: null,
+      avatarImageMime: null,
+      avatarImageUpdatedAt: null
+    });
+  });
+
   it('ignores wildcard entries when finding unknown access ids', () => {
     expect(findUnknownAccessIds(['*', 'collection-1'], new Set(['collection-1']))).toEqual([]);
     expect(findUnknownAccessIds(['*'], new Set())).toEqual([]);

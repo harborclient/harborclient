@@ -11,16 +11,16 @@ Requires the `ui` permission. Use `hc.host.openRequestDraft`,
 
 Pick the host API based on the user-facing result you want:
 
-| Goal                                           | API                         | Result                                                                   |
-| ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------------ |
-| Create a new editable request tab              | `hc.host.openRequestDraft`  | Opens an unsaved tab seeded with the supplied request fields             |
-| Update the active request tab in place         | `hc.host.applyRequestDraft` | Replaces supplied fields on the active draft and marks the tab dirty     |
-| Open an existing saved request by database id  | `hc.host.loadRequest`       | Focuses an already-open tab or loads the saved request from a collection |
-| Bulk-create saved requests in a new collection | `hc.host.createCollection`  | Persists a collection, optional folders, and saved requests              |
-| Mutate library tree entities                   | `hc.host.createFolder` / …  | Create/rename/delete/reorder/move/archive collections, folders, requests |
-| List collections / build a custom tree         | `hc.host.listLibraryTree`   | Returns summaries for collections, folders, requests, and documents      |
-| React when the library changes                 | `hc.host.onLibraryChanged`  | Coarse invalidation so plugins refetch without polling                   |
-| Open an image in a dedicated viewer tab        | `hc.host.openImageView`     | Opens or focuses a session-only image-view tab for a path, URL, or bytes |
+| Goal                                           | API                         | Result                                                                             |
+| ---------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------- |
+| Create a new editable request tab              | `hc.host.openRequestDraft`  | Opens an unsaved tab seeded with the supplied request fields                       |
+| Update the active request tab in place         | `hc.host.applyRequestDraft` | Replaces supplied fields on the active draft and marks the tab dirty               |
+| Open an existing saved request by database id  | `hc.host.loadRequest`       | Focuses an already-open tab or loads the saved request from a collection           |
+| Bulk-create saved requests in a new collection | `hc.host.createCollection`  | Persists a collection, optional folders, and saved requests                        |
+| Mutate library tree entities                   | `hc.host.createFolder` / …  | Create/rename/delete/reorder/move/archive collections, folders, requests           |
+| List collections / build a custom tree         | `hc.host.listLibraryTree`   | Returns summaries for collections, folders, requests, and documents                |
+| React when the library changes                 | `hc.host.onLibraryChanged`  | Coarse invalidation so plugins refetch without polling                             |
+| Open an image in a dedicated viewer tab        | `hc.host.openImageView`     | Opens or focuses an image-view tab (restored on restart) for a path, URL, or bytes |
 
 Use `openRequestDraft` for history/recent-request style workflows where the
 plugin should not disturb the current tab. Use `applyRequestDraft` when the user

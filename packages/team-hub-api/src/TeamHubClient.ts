@@ -460,11 +460,79 @@ export class TeamHubClient implements ITeamHubClient {
   }
 
   /**
-   * Updates hub avatar initials and/or color for the active tenant namespace.
+   * Fetches the uploaded hub avatar image bytes for the active tenant namespace.
+   *
+   * Uses a binary request path because {@link request} only accepts JSON bodies.
+   *
+   * @param version - Optional cache-busting version from the hub avatar image URL.
+   */
+  async getHubAvatar(version?: string): Promise<UserAvatarImage> {
+    const query = version != null && version.length > 0 ? `?v=${encodeURIComponent(version)}` : '';
+    const path = `/auth/hub/avatar${query}`;
+    const headers: Record<string, string> = {
+      Accept: 'image/*'
+    };
+
+    if (!this.token) {
+      throw new TeamHubClientError('Bearer token is required for authenticated requests', {
+        status: 0,
+        method: 'GET',
+        path
+      });
+    }
+
+    headers.Authorization = `Bearer ${this.token}`;
+    if (this.tenantId) {
+      headers['X-Harbor-Tenant'] = this.tenantId;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(this.buildUrl(path), {
+        method: 'GET',
+        headers,
+        signal: AbortSignal.timeout(this.requestTimeoutMs)
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error && err.name === 'TimeoutError'
+          ? `Request timed out after ${this.requestTimeoutMs} ms`
+          : err instanceof Error
+            ? err.message
+            : 'Unknown network error';
+      throw new TeamHubClientError(message, { status: 0, method: 'GET', path });
+    }
+
+    if (!response.ok) {
+      const message = await this.parseErrorMessage(response);
+      throw new TeamHubClientError(message, {
+        status: response.status,
+        method: 'GET',
+        path
+      });
+    }
+
+    const mime = response.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg';
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    let binary = '';
+    for (let index = 0; index < buffer.length; index += 1) {
+      binary += String.fromCharCode(buffer[index]!);
+    }
+    const dataUrl = `data:${mime};base64,${btoa(binary)}`;
+
+    return {
+      mime,
+      bytes: buffer,
+      dataUrl
+    };
+  }
+
+  /**
+   * Updates hub avatar initials, color, and/or uploaded image for the active tenant.
    *
    * Requires an admin-role bearer token.
    *
-   * @param input - Replacement initials and/or color key.
+   * @param input - Replacement initials, color key, and/or image data URL.
    */
   async updateAdminHubAvatar(input: UpdateHubAvatarInput): Promise<HubAvatarMetadata> {
     const result = await this.request('PUT', '/admin/hub/avatar', {

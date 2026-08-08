@@ -54,14 +54,14 @@ export function PageHeader({
           {icon ? (
             <FaIcon
               icon={icon}
-              className="hc-page-header-title-icon h-4 w-4 shrink-0 text-page-header-muted"
+              className="hc-page-header-title-icon h-4 w-4 shrink-0"
               aria-hidden
             />
           ) : null}
           {title}
         </h2>
         {description ? (
-          <p className="hc-page-header-description m-0 mt-1 leading-6 text-page-header-muted">
+          <p className="hc-page-header-description m-0 mt-1 text-[16px] leading-6 text-page-header-muted">
             {description}
           </p>
         ) : null}

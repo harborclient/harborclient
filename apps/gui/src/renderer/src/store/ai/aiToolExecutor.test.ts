@@ -128,6 +128,27 @@ const moveLiveServerApiMock =
   vi.fn<(id: number, targetConnectionId: string) => Promise<LiveServer[]>>();
 const getActiveStorageIdMock = vi.fn<() => Promise<string>>();
 const deleteLiveServerApiMock = vi.fn<(id: number) => Promise<LiveServer[]>>();
+const browserSetVisibleMock = vi.fn<(tabId: string, visible: boolean) => Promise<void>>();
+const browserCapturePageMock =
+  vi.fn<
+    (
+      tabId: string,
+      options?: { fullPage?: boolean }
+    ) => Promise<{ dataUrl: string; pngBase64: string; truncated?: boolean }>
+  >();
+const saveDataUrlToFileMock =
+  vi.fn<
+    (payload: {
+      dataUrl: string;
+      defaultFileName: string;
+    }) => Promise<{ canceled: boolean; path?: string }>
+  >();
+const browserRecordDownloadMock = vi.fn<(filePath: string) => Promise<void>>();
+const openImageViewMock = vi.fn<(payload: unknown) => void>();
+
+vi.mock('#/renderer/src/plugins/hostImageCommands', () => ({
+  openImageView: (payload: unknown) => openImageViewMock(payload)
+}));
 const setGeneralSettingsMock = vi.fn<(settings: GeneralSettings) => Promise<void>>();
 const getThemeMock = vi.fn<() => Promise<string>>();
 const setThemeApiMock = vi.fn<(theme: string) => Promise<void>>();
@@ -302,7 +323,11 @@ beforeEach(() => {
       getCustomTheme: getCustomThemeMock,
       saveCustomTheme: saveCustomThemeMock,
       runScript: vi.fn().mockResolvedValue({ logs: [], tests: [], error: undefined }),
-      cancelRequest: vi.fn()
+      cancelRequest: vi.fn(),
+      browserSetVisible: browserSetVisibleMock,
+      browserCapturePage: browserCapturePageMock,
+      saveDataUrlToFile: saveDataUrlToFileMock,
+      browserRecordDownload: browserRecordDownloadMock
     }
   });
   clearTerminalRegistry();
@@ -385,6 +410,18 @@ beforeEach(() => {
   getActiveStorageIdMock.mockReset();
   getActiveStorageIdMock.mockResolvedValue('local');
   deleteLiveServerApiMock.mockReset();
+  browserSetVisibleMock.mockReset();
+  browserSetVisibleMock.mockResolvedValue(undefined);
+  browserCapturePageMock.mockReset();
+  browserCapturePageMock.mockResolvedValue({
+    dataUrl: 'data:image/png;base64,abc',
+    pngBase64: 'abc'
+  });
+  saveDataUrlToFileMock.mockReset();
+  saveDataUrlToFileMock.mockResolvedValue({ canceled: false, path: '/tmp/example.png' });
+  browserRecordDownloadMock.mockReset();
+  browserRecordDownloadMock.mockResolvedValue(undefined);
+  openImageViewMock.mockReset();
   setGeneralSettingsMock.mockReset();
   setGeneralSettingsMock.mockResolvedValue(undefined);
 });
@@ -3891,5 +3928,104 @@ hc.test("Status code is 2xx", () => {
       )
     );
     expect(deleteResult).toEqual({ ok: true, id: 4 });
+  });
+
+  it('opens an Image View tab when webpage_screenshot captures a browser tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newBrowserTab, updateBrowserNavigation } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+
+    store.dispatch(
+      newBrowserTab({
+        tabId: 'tab-browser-1',
+        url: 'https://example.com/',
+        homeUrl: 'https://example.com/'
+      })
+    );
+    store.dispatch(
+      updateBrowserNavigation({
+        tabId: 'tab-browser-1',
+        url: 'https://example.com/',
+        title: 'Example Domain',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: null,
+        securityState: 'secure'
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'webpage_screenshot',
+        { tabId: 'tab-browser-1' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ openedInImageTab: true, fileName: 'Example-Domain.png' });
+    expect(browserSetVisibleMock).toHaveBeenCalledWith('tab-browser-1', true);
+    expect(browserCapturePageMock).toHaveBeenCalledWith('tab-browser-1', { fullPage: false });
+    expect(openImageViewMock).toHaveBeenCalledWith({
+      dataUrl: 'data:image/png;base64,abc',
+      fileName: 'Example-Domain.png'
+    });
+    expect(saveDataUrlToFileMock).not.toHaveBeenCalled();
+  });
+
+  it('saves a screenshot to disk when webpage_screenshot saveToFile is true', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { newBrowserTab, updateBrowserNavigation } =
+      await import('#/renderer/src/store/slices/tabsSlice');
+
+    store.dispatch(
+      newBrowserTab({
+        tabId: 'tab-browser-2',
+        url: 'https://example.com/docs',
+        homeUrl: 'https://example.com/'
+      })
+    );
+    store.dispatch(
+      updateBrowserNavigation({
+        tabId: 'tab-browser-2',
+        url: 'https://example.com/docs',
+        title: 'Docs',
+        canGoBack: false,
+        canGoForward: false,
+        faviconDataUrl: null,
+        securityState: 'secure'
+      })
+    );
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'webpage_screenshot',
+        { tabId: 'tab-browser-2', fullPage: true, saveToFile: true },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result).toEqual({ saved: true, path: '/tmp/example.png' });
+    expect(browserCapturePageMock).toHaveBeenCalledWith('tab-browser-2', { fullPage: true });
+    expect(saveDataUrlToFileMock).toHaveBeenCalledWith({
+      dataUrl: 'data:image/png;base64,abc',
+      defaultFileName: 'Docs.png'
+    });
+    expect(browserRecordDownloadMock).toHaveBeenCalledWith('/tmp/example.png');
+    expect(openImageViewMock).not.toHaveBeenCalled();
+  });
+
+  it('returns an error when webpage_screenshot targets a missing tab', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+
+    const result = JSON.parse(
+      await executeAiTool(
+        'webpage_screenshot',
+        { tabId: 'missing-tab' },
+        { getState: store.getState, dispatch: store.dispatch }
+      )
+    );
+
+    expect(result.error).toContain('No browser tab found');
+    expect(browserCapturePageMock).not.toHaveBeenCalled();
   });
 });

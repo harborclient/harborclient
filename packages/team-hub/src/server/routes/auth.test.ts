@@ -15,7 +15,10 @@ const defaultTenant: TenantRecord = {
   createdByUserId: null,
   updatedByUserId: null,
   avatarInitials: 'DE',
-  avatarColor: 'sky-600'
+  avatarColor: 'sky-600',
+  avatarImage: null,
+  avatarImageMime: null,
+  avatarImageUpdatedAt: null
 };
 
 describe('GET /auth/session', () => {

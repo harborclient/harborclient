@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, net, shell } from 'electron';
+import { BrowserWindow, dialog, shell } from 'electron';
 import { basename } from 'path';
 import { copyFile, readFile, writeFile } from 'fs/promises';
 import { getDefaultLogFilePath } from '#/main/fileLogger';
@@ -10,56 +10,12 @@ import {
   assertFilePathWritableDirectory,
   grantFilePathAccess
 } from '#/main/ipc/handlers/filePathAccess';
+import { imageSaveFilters, resolveImageMime } from '#/main/ipc/handlers/imageFileHelpers';
 import {
-  imageSaveFilters,
-  parseDataUrl,
-  resolveImageMime
-} from '#/main/ipc/handlers/imageFileHelpers';
+  promptSavePath,
+  saveImageWithSaveDialog
+} from '#/main/ipc/handlers/saveImageWithSaveDialog';
 import { resolveAvailableWritePathInDirectory } from '#/main/ipc/handlers/writeTextInDirectory';
-
-/**
- * Opens a save dialog and returns the chosen path, or null when canceled.
- *
- * Grants the destination so later file IPC can reference it.
- *
- * @param defaultPath - Suggested destination path or filename.
- * @param filters - Dialog file-type filters.
- * @returns Absolute destination path, or null.
- */
-async function promptSavePath(
-  defaultPath: string,
-  filters: Array<{ name: string; extensions: string[] }>
-): Promise<string | null> {
-  const win = BrowserWindow.getFocusedWindow();
-  const dialogOptions = {
-    defaultPath: defaultPath.trim() || undefined,
-    filters
-  };
-  const { canceled, filePath } = win
-    ? await dialog.showSaveDialog(win, dialogOptions)
-    : await dialog.showSaveDialog(dialogOptions);
-
-  if (canceled || !filePath) {
-    return null;
-  }
-  return grantFilePathAccess(filePath);
-}
-
-/**
- * Downloads image bytes from an http(s) URL via Electron's network stack.
- *
- * @param url - Remote image URL.
- * @returns Response body buffer and content-type when present.
- */
-async function fetchImageBytes(url: string): Promise<{ buffer: Buffer; contentType?: string }> {
-  const response = await net.fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to download image (${response.status}): ${url}`);
-  }
-  const contentType = response.headers.get('content-type') ?? undefined;
-  const arrayBuffer = await response.arrayBuffer();
-  return { buffer: Buffer.from(arrayBuffer), contentType };
-}
 
 /**
  * Registers IPC handlers for generic file save and open dialogs.
@@ -228,26 +184,11 @@ export function registerFileHandlers(): void {
 
   // Writes image bytes from a data URL or remote URL via a native save dialog.
   handle('files:saveDataUrlToFile', ipcArgSchemas.saveDataUrlToFile, async (_event, payload) => {
-    const defaultFileName =
-      typeof payload.defaultFileName === 'string' && payload.defaultFileName.trim()
-        ? payload.defaultFileName.trim()
-        : 'image.png';
-
-    let buffer: Buffer;
-    if (typeof payload.dataUrl === 'string' && payload.dataUrl.trim()) {
-      buffer = parseDataUrl(payload.dataUrl).buffer;
-    } else if (typeof payload.url === 'string' && payload.url.trim()) {
-      const downloaded = await fetchImageBytes(payload.url.trim());
-      buffer = downloaded.buffer;
-    } else {
-      throw new Error('saveDataUrlToFile requires a dataUrl or url.');
-    }
-
-    const destination = await promptSavePath(defaultFileName, imageSaveFilters(defaultFileName));
-    if (!destination) {
-      return { canceled: true };
-    }
-    await writeFile(destination, buffer);
-    return { canceled: false, path: destination };
+    return saveImageWithSaveDialog({
+      dataUrl: typeof payload.dataUrl === 'string' ? payload.dataUrl : undefined,
+      url: typeof payload.url === 'string' ? payload.url : undefined,
+      defaultFileName:
+        typeof payload.defaultFileName === 'string' ? payload.defaultFileName : undefined
+    });
   });
 }
