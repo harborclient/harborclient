@@ -234,14 +234,17 @@ export function ActionsMenu(props: Props): JSX.Element {
       props.reorderEnabled === false
         ? []
         : buildReorderMenuGroup(props.environmentIndex, props.environmentsCount, props.onMove);
-    const inspectGroups = buildDevInspectMenuGroups(
-      props.inspectPoint,
-      menuId,
-      developerToolsEnabled
-    );
 
-    return reorderGroups.concat([actionsGroup, dangerGroup], inspectGroups);
-  }, [confirm, developerToolsEnabled, menuId, props]);
+    return reorderGroups.concat([actionsGroup, dangerGroup]);
+  }, [confirm, menuId, props]);
+
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(props.inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, menuId, props.inspectPoint]
+  );
 
   if (props.showBulkMenu) {
     return (
@@ -274,6 +277,7 @@ export function ActionsMenu(props: Props): JSX.Element {
         marker: props.environment.marker ?? null
       }}
       groups={singleMenuGroups}
+      trailingGroups={trailingGroups}
     />
   );
 }

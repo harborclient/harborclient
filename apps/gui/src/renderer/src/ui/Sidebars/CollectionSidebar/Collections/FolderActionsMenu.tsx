@@ -128,48 +128,72 @@ export function FolderActionsMenu({
   const menuId = `folder-${folder.id}`;
 
   /**
-   * Assembles folder row action groups (New, Run, reorder, plugin items, Delete).
+   * Assembles folder row action groups (New/Settings/Copy ID/Copy to chat, Run/Import, Save/Rename/Delete, reorder, plugin items).
    */
   const menuGroups = useMemo((): MenuItem[][] => {
-    const groups: MenuItem[][] = [
-      [
-        {
-          label: 'New',
-          submenu: [
-            [
-              {
-                label: 'New Request',
-                onSelect: () => void onNewRequestInFolder(collection.id, folder.id)
-              },
-              {
-                label: 'New Folder',
-                onSelect: () => onNewFolder(collection.id, folder.id)
-              },
-              {
-                label: 'New Markdown',
-                onSelect: () => void onNewDocumentInFolder(collection.id, folder.id)
-              }
-            ]
+    const newGroup: MenuItem[] = [
+      {
+        label: 'New',
+        submenu: [
+          [
+            {
+              label: 'New Request',
+              onSelect: () => void onNewRequestInFolder(collection.id, folder.id)
+            },
+            {
+              label: 'New Folder',
+              onSelect: () => onNewFolder(collection.id, folder.id)
+            },
+            {
+              label: 'New Markdown',
+              onSelect: () => void onNewDocumentInFolder(collection.id, folder.id)
+            }
           ]
-        }
-      ],
+        ]
+      },
+      {
+        label: 'Settings',
+        onSelect: () => onConfigureFolder(collection.id, folder.id)
+      },
+      buildCopyIdMenuItem(folder.uuid)
+    ];
+
+    if (aiAvailable) {
+      newGroup.push({
+        label: COPY_TO_CHAT_LABEL,
+        onSelect: () => void copyToChat(`@folder.${folder.uuid}`)
+      });
+    }
+
+    const groups: MenuItem[][] = [
+      newGroup,
       [
         {
           label: 'Run',
           onSelect: () => onRunFolder(collection.id, folder.id, collection.name, folder.name)
+        },
+        {
+          label: 'Import Request',
+          onSelect: () => void onImportRequest(collection.id, folder.id)
         }
       ],
-      [buildCopyIdMenuItem(folder.uuid)]
-    ];
-
-    if (aiAvailable) {
-      groups.push([
+      [
         {
-          label: COPY_TO_CHAT_LABEL,
-          onSelect: () => void copyToChat(`@folder.${folder.uuid}`)
+          label: 'Save all',
+          onSelect: () => void onSaveAllInFolder(collection.id, folder.id)
+        },
+        {
+          label: 'Rename',
+          onSelect: () => void onRenameFolder(folder.id, collection.id)
+        },
+        {
+          label: 'Delete',
+          variant: 'danger',
+          onSelect: () =>
+            void onDeleteFolder(folder.id, collection.id, subtreeRequestIds, descendantFolderCount)
         }
-      ]);
-    }
+      ]
+    ];
 
     if (reorderEnabled) {
       for (const group of buildReorderMenuGroup(folderIndex, foldersCount, onMove)) {
@@ -177,43 +201,11 @@ export function FolderActionsMenu({
       }
     }
 
-    groups.push([
-      {
-        label: 'Import Request',
-        onSelect: () => void onImportRequest(collection.id, folder.id)
-      },
-      {
-        label: 'Save all',
-        onSelect: () => void onSaveAllInFolder(collection.id, folder.id)
-      },
-      {
-        label: 'Rename',
-        onSelect: () => void onRenameFolder(folder.id, collection.id)
-      },
-      {
-        label: 'Settings',
-        onSelect: () => onConfigureFolder(collection.id, folder.id)
-      }
-    ]);
-
     for (const group of buildPluginContextMenuGroups(
       'folder',
       { collectionId: collection.id, folderId: folder.id },
       pluginContextMenuItems
     )) {
-      groups.push(group);
-    }
-
-    groups.push([
-      {
-        label: 'Delete',
-        variant: 'danger',
-        onSelect: () =>
-          void onDeleteFolder(folder.id, collection.id, subtreeRequestIds, descendantFolderCount)
-      }
-    ]);
-
-    for (const group of buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled)) {
       groups.push(group);
     }
 
@@ -247,6 +239,14 @@ export function FolderActionsMenu({
     subtreeRequestIds
   ]);
 
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, inspectPoint, menuId]
+  );
+
   return (
     <SidebarRowActionsMenu
       menuId={menuId}
@@ -259,6 +259,7 @@ export function FolderActionsMenu({
         marker: folder.marker ?? null
       }}
       groups={menuGroups}
+      trailingGroups={trailingGroups}
       presentation={presentation}
       anchorPosition={anchorPosition}
       onDismiss={onDismiss}

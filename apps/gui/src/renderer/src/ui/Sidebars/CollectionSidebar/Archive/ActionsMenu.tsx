@@ -80,13 +80,16 @@ export function ActionsMenu({
       ]
     ];
 
-    const inspectGroups = buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled);
-    for (const group of inspectGroups) {
-      groups.push(group);
-    }
-
     return groups;
-  }, [collection, developerToolsEnabled, inspectPoint, menuId, onDelete, onRestore]);
+  }, [collection, onDelete, onRestore]);
+
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, inspectPoint, menuId]
+  );
 
   return (
     <SidebarRowActionsMenu
@@ -99,6 +102,7 @@ export function ActionsMenu({
         marker: collection.marker ?? null
       }}
       groups={menuGroups}
+      trailingGroups={trailingGroups}
     />
   );
 }

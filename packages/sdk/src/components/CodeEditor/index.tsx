@@ -38,6 +38,7 @@ import { FaIcon } from '../FaIcon/index.js';
 import { buildVariableTooltipDom } from '../VariableTooltip/dom.js';
 import { VariableTooltipValue } from '../VariableTooltip/index.js';
 import { portalToBody } from '../portalToBody.js';
+import { resolveVariableSelectionTooltipAction } from './variableSelectionTooltipAction.js';
 import { useCodeEditorConfig } from './config.js';
 import { createBuiltInSyntaxHighlighting, createEditorTheme } from './editorChrome.js';
 import { type CodeEditorDiagnostic, createHostDiagnosticsLinter } from './hostDiagnostics.js';
@@ -640,11 +641,21 @@ function setContentDescribedBy(
 
 /**
  * Shows a keyboard-driven tooltip when the caret moves inside a {{variable}} token.
+ *
+ * Pointer caret placement is ignored so mouse users rely on {@link variableTooltip}
+ * (CodeMirror hoverTooltip), which dismisses when the pointer leaves. Opening the
+ * React popup on click left it stuck when the field was only a single variable.
+ *
+ * @param tooltipId - DOM id applied to the React tooltip for aria-describedby.
+ * @param onTooltipChange - Updates React selection-tooltip state.
+ * @param getValidationDescribedBy - Host validation describedby ids.
+ * @param isOpen - Whether the React selection tooltip is currently visible.
  */
 function variableSelectionTooltip(
   tooltipId: string,
   onTooltipChange: (state: SelectionTooltipState | null) => void,
-  getValidationDescribedBy: () => string | undefined
+  getValidationDescribedBy: () => string | undefined,
+  isOpen: () => boolean
 ): ReturnType<typeof EditorView.updateListener.of> {
   return EditorView.updateListener.of((update) => {
     if (!update.selectionSet && !update.docChanged) return;
@@ -652,8 +663,20 @@ function variableSelectionTooltip(
     const content = update.view.dom.querySelector('.cm-content');
     const pos = update.state.selection.main.head;
     const match = findVariableAtPos(update.state.doc, pos);
+    const pointerSelect = update.transactions.some((tr) => tr.isUserEvent('select.pointer'));
+    const action = resolveVariableSelectionTooltipAction({
+      hasMatch: match != null,
+      selectionSet: update.selectionSet,
+      docChanged: update.docChanged,
+      pointerSelect,
+      isOpen: isOpen()
+    });
 
-    if (!match) {
+    if (action === 'ignore') {
+      return;
+    }
+
+    if (action === 'hide' || !match) {
       onTooltipChange(null);
       setContentDescribedBy(content, getValidationDescribedBy);
       return;
@@ -841,7 +864,8 @@ function buildCoreExtensions(options: {
       variableSelectionTooltip(
         options.tooltipId,
         options.onSelectionTooltipChange,
-        options.getValidationDescribedBy
+        options.getValidationDescribedBy,
+        options.isSelectionTooltipOpen
       ),
       variableTooltipEscapeHandler(
         options.isSelectionTooltipOpen,
@@ -1721,34 +1745,43 @@ export function CodeEditor({
         basicSetup,
         onCreateEditor: stableOnCreateEditor
       })}
-      {selectionTooltip && selectionTooltipContent && variables ? (
-        <div
-          id={tooltipId}
-          role="tooltip"
-          className="hc-code-editor-tooltip pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-1.5 rounded-lg border border-separator bg-surface px-3 py-2 text-text shadow-md"
-          style={{ top: selectionTooltip.top - 4, left: selectionTooltip.left }}
-        >
-          <VariableTooltipValue
-            value={selectionTooltipContent.text}
-            variableKey={selectionTooltip.key}
-            muted={selectionTooltipContent.muted}
-          />
-          {onEditVariable ? (
-            <Button
-              variant="secondary"
-              className="hc-code-editor-tooltip-edit self-start"
-              aria-label={`Edit value for ${selectionTooltip.key}`}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                onEditVariable(selectionTooltip.key);
-                setSelectionTooltip(null);
+      {selectionTooltip && selectionTooltipContent && variables
+        ? portalToBody(
+            <div
+              id={tooltipId}
+              role="tooltip"
+              className="hc-code-editor-tooltip pointer-events-auto fixed z-50 flex max-w-sm -translate-x-1/2 -translate-y-full flex-col gap-1.5 rounded-lg border border-separator bg-surface px-3 py-2 text-text shadow-md"
+              style={{
+                position: 'fixed',
+                top: selectionTooltip.top - 4,
+                left: selectionTooltip.left
               }}
             >
-              Edit value
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+              <VariableTooltipValue
+                value={selectionTooltipContent.text}
+                variableKey={selectionTooltip.key}
+                muted={selectionTooltipContent.muted}
+                onClose={() => {
+                  setSelectionTooltip(null);
+                }}
+              />
+              {onEditVariable ? (
+                <Button
+                  variant="secondary"
+                  className="hc-code-editor-tooltip-edit self-start"
+                  aria-label={`Edit value for ${selectionTooltip.key}`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    onEditVariable(selectionTooltip.key);
+                    setSelectionTooltip(null);
+                  }}
+                >
+                  Edit value
+                </Button>
+              ) : null}
+            </div>
+          )
+        : null}
       {selectionActionToolbarNode ? portalToBody(selectionActionToolbarNode) : null}
     </div>
   );

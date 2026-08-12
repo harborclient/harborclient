@@ -218,6 +218,15 @@ export function ActionsMenu(props: Props): JSX.Element {
     }
 
     const primaryGroup: MenuItem[] = [];
+    const gitGroups = buildGitItemMenuGroups(
+      props.onGitStageItem != null,
+      props.gitItemStatus,
+      () => props.onGitStageItem?.(),
+      () => props.onGitUnstageItem?.()
+    );
+    if (gitGroups.length > 0) {
+      primaryGroup.push(...gitGroups[0]);
+    }
     if (props.req.url.trim() !== '') {
       primaryGroup.push({
         label: 'Copy',
@@ -235,8 +244,15 @@ export function ActionsMenu(props: Props): JSX.Element {
         onSelect: () => props.onCopyToChat(props.req)
       });
     }
-    primaryGroup.push({ label: 'Run', onSelect: props.onRunRequest });
     groups.push(primaryGroup);
+
+    groups.push([
+      { label: 'Run', onSelect: props.onRunRequest },
+      {
+        label: 'Export',
+        onSelect: () => void props.onExportRequest(props.req)
+      }
+    ]);
 
     const reorderGroup: MenuItem[] = [];
     if (props.canMoveUp) {
@@ -254,36 +270,6 @@ export function ActionsMenu(props: Props): JSX.Element {
         label: 'Duplicate',
         onSelect: () => void props.onDuplicateRequest(props.req)
       },
-      {
-        label: 'Export',
-        onSelect: () => void props.onExportRequest(props.req)
-      }
-    ]);
-
-    const pluginGroups = buildPluginContextMenuGroups(
-      'request',
-      {
-        requestId: props.req.id,
-        collectionId: props.req.collection_id,
-        folderId: props.req.folder_id
-      },
-      pluginContextMenuItems
-    );
-    for (const group of pluginGroups) {
-      groups.push(group);
-    }
-
-    const gitGroups = buildGitItemMenuGroups(
-      props.onGitStageItem != null,
-      props.gitItemStatus,
-      () => props.onGitStageItem?.(),
-      () => props.onGitUnstageItem?.()
-    );
-    for (const group of gitGroups) {
-      groups.push(group);
-    }
-
-    groups.push([
       {
         label: 'Delete',
         variant: 'danger' as const,
@@ -303,25 +289,29 @@ export function ActionsMenu(props: Props): JSX.Element {
       }
     ]);
 
-    const inspectGroups = buildDevInspectMenuGroups(
-      props.inspectPoint,
-      menuId,
-      developerToolsEnabled
+    const pluginGroups = buildPluginContextMenuGroups(
+      'request',
+      {
+        requestId: props.req.id,
+        collectionId: props.req.collection_id,
+        folderId: props.req.folder_id
+      },
+      pluginContextMenuItems
     );
-    for (const group of inspectGroups) {
+    for (const group of pluginGroups) {
       groups.push(group);
     }
 
     return groups;
-  }, [
-    confirm,
-    developerToolsEnabled,
-    menuId,
-    pluginContextMenuItems,
-    props,
-    resolvedUrl,
-    showBulkMenu
-  ]);
+  }, [confirm, menuId, pluginContextMenuItems, props, resolvedUrl, showBulkMenu]);
+
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(props.inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, menuId, props.inspectPoint]
+  );
 
   if (showBulkMenu) {
     if (props.presentation === 'anchor' && props.anchorPosition != null) {
@@ -353,6 +343,7 @@ export function ActionsMenu(props: Props): JSX.Element {
       openMenuId={props.openMenuId}
       onOpenChange={props.onOpenChange}
       groups={baseMenuGroups}
+      trailingGroups={trailingGroups}
       markerTarget={{
         kind: 'request',
         collectionId: props.req.collection_id,

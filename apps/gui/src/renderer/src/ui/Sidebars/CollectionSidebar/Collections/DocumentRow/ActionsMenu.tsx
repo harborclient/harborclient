@@ -123,21 +123,25 @@ export function ActionsMenu({
       }
     ];
 
-    const inspectGroups = buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled);
-
-    return [renameGroup, copyIdGroup].concat(gitGroups).concat([deleteGroup]).concat(inspectGroups);
+    return [renameGroup, copyIdGroup].concat(gitGroups).concat([deleteGroup]);
   }, [
     confirm,
-    developerToolsEnabled,
     doc,
     gitItemStatus,
-    inspectPoint,
     menuId,
     onDeleteDocument,
     onGitStageItem,
     onGitUnstageItem,
     onRenameDocument
   ]);
+
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, inspectPoint, menuId]
+  );
 
   const markerTarget = {
     kind: 'document' as const,
@@ -153,6 +157,7 @@ export function ActionsMenu({
       onOpenChange={onOpenChange}
       markerTarget={markerTarget}
       groups={menuGroups}
+      trailingGroups={trailingGroups}
     />
   );
 }

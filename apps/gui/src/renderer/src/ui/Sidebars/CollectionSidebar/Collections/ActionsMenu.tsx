@@ -203,7 +203,7 @@ export function ActionsMenu({
 
   /**
    * Assembles collection row action groups from named sections so the
-   * menu structure stays readable and order stays explicit (New, Copy ID, Run, …).
+   * menu structure stays readable and order stays explicit (New, Git, Settings, Copy ID, Copy to chat, Run, …).
    */
   const menuGroups = useMemo((): MenuItem[][] => {
     const groups: MenuItem[][] = [];
@@ -261,42 +261,44 @@ export function ActionsMenu({
       });
     }
 
-    groups.push(createGroup);
-    groups.push([buildCopyIdMenuItem(collection.uuid)]);
-    groups.push([
-      {
-        label: 'Run',
-        onSelect: () => onRunCollection(collection.id, collection.name)
-      }
-    ]);
-
-    if (aiAvailable) {
-      groups.push([
-        {
-          label: COPY_TO_CHAT_LABEL,
-          onSelect: () => void copyToChat(`@collection.${collection.uuid}`)
-        }
-      ]);
-    }
-
-    const reorderGroups = reorderEnabled
-      ? buildReorderMenuGroup(collectionIndex, collectionsCount, onMove)
-      : [];
-    for (const group of reorderGroups) {
-      groups.push(group);
-    }
-
-    groups.push([
+    createGroup.push(
       {
         label: 'Settings',
         onSelect: () => onConfigureCollection(collection.id)
       },
+      buildCopyIdMenuItem(collection.uuid)
+    );
+
+    if (aiAvailable) {
+      createGroup.push({
+        label: COPY_TO_CHAT_LABEL,
+        onSelect: () => void copyToChat(`@collection.${collection.uuid}`)
+      });
+    }
+
+    groups.push(createGroup);
+
+    const runGroup: MenuItem[] = [
       {
-        label: 'Duplicate',
-        onSelect: () => void onDuplicateCollection(collection.id)
+        label: 'Run',
+        onSelect: () => onRunCollection(collection.id, collection.name)
+      },
+      {
+        label: 'Save all',
+        onSelect: () => void onSaveAllInCollection(collection.id)
       }
-    ]);
-    groups.push([
+    ];
+
+    if (collection.sourceUrl?.trim()) {
+      runGroup.push({
+        label: 'Refresh',
+        onSelect: () => void onRefreshCollection(collection.id)
+      });
+    }
+
+    groups.push(runGroup);
+
+    const importExportGroup: MenuItem[] = [
       {
         label: 'Import',
         onSelect: () => void onImportRequest(collection.id)
@@ -306,19 +308,26 @@ export function ActionsMenu({
         onSelect: () => void onExportCollection(collection.id)
       },
       {
-        label: 'Save all',
-        onSelect: () => void onSaveAllInCollection(collection.id)
+        label: 'Duplicate',
+        onSelect: () => void onDuplicateCollection(collection.id)
       }
-    ]);
+    ];
 
-    if (collection.sourceUrl?.trim()) {
-      groups.push([
-        {
-          label: 'Refresh',
-          onSelect: () => void onRefreshCollection(collection.id)
-        }
-      ]);
-    }
+    importExportGroup.push({
+      label: 'Archive',
+      onSelect: () => {
+        void onArchiveCollection(collection.id);
+      }
+    });
+    importExportGroup.push({
+      label: 'Delete',
+      variant: 'danger' as const,
+      onSelect: () => {
+        void confirmAndDeleteCollection(confirm, collection, connectionType, onDeleteCollection);
+      }
+    });
+
+    groups.push(importExportGroup);
 
     if (canShare) {
       groups.push([
@@ -338,34 +347,20 @@ export function ActionsMenu({
       groups.push(group);
     }
 
-    groups.push([
-      {
-        label: 'Archive',
-        onSelect: () => {
-          void onArchiveCollection(collection.id);
-        }
-      }
-    ]);
-
     const dangerGroup: MenuItem[] = [];
+    if (reorderEnabled) {
+      for (const group of buildReorderMenuGroup(collectionIndex, collectionsCount, onMove)) {
+        dangerGroup.push(...group);
+      }
+    }
     if (hasDeselectableSelection) {
       dangerGroup.push({
         label: 'Deselect all',
         onSelect: () => onDeselectAll()
       });
     }
-    dangerGroup.push({
-      label: 'Delete',
-      variant: 'danger' as const,
-      onSelect: () => {
-        void confirmAndDeleteCollection(confirm, collection, connectionType, onDeleteCollection);
-      }
-    });
-    groups.push(dangerGroup);
-
-    const inspectGroups = buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled);
-    for (const group of inspectGroups) {
-      groups.push(group);
+    if (dangerGroup.length > 0) {
+      groups.push(dangerGroup);
     }
 
     return groups;
@@ -408,6 +403,14 @@ export function ActionsMenu({
     untrackedItemCount
   ]);
 
+  /**
+   * DevTools inspect actions render after marker groups so Inspect Element stays last.
+   */
+  const trailingGroups = useMemo(
+    () => buildDevInspectMenuGroups(inspectPoint, menuId, developerToolsEnabled),
+    [developerToolsEnabled, inspectPoint, menuId]
+  );
+
   return (
     <SidebarRowActionsMenu
       menuId={menuId}
@@ -419,6 +422,7 @@ export function ActionsMenu({
         marker: collection.marker ?? null
       }}
       groups={menuGroups}
+      trailingGroups={trailingGroups}
       presentation={presentation}
       anchorPosition={anchorPosition}
       onDismiss={onDismiss}

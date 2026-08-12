@@ -32,6 +32,11 @@ interface Props {
   groups: MenuItem[][];
 
   /**
+   * Menu groups appended after marker actions (for example Inspect Element).
+   */
+  trailingGroups?: MenuItem[][];
+
+  /**
    * Sidebar entity that receives marker assignments.
    */
   markerTarget: SidebarMarkerTarget;
@@ -54,7 +59,8 @@ interface Props {
 }
 
 /**
- * Row actions menu with Set color marker / Clear color marker groups appended for sidebar entities.
+ * Row actions menu with Set color marker / Clear color marker groups appended for sidebar entities,
+ * followed by optional trailing groups such as Inspect Element.
  *
  * Supports the built-in hamburger trigger (`presentation="row"`) and host-shown
  * cursor-anchored menus for replacement sidebars (`presentation="anchor"`).
@@ -64,6 +70,7 @@ export function SidebarRowActionsMenu({
   openMenuId = null,
   onOpenChange,
   groups,
+  trailingGroups = [],
   markerTarget,
   presentation = 'row',
   anchorPosition,
@@ -73,7 +80,7 @@ export function SidebarRowActionsMenu({
     <div className="shrink-0" data-sidebar-actions={menuId}>
       <SidebarMarkerMenuSlot target={markerTarget} menuId={menuId}>
         {(markerMenuGroups) => {
-          const allGroups = [...groups, ...markerMenuGroups];
+          const allGroups = [...groups, ...markerMenuGroups, ...trailingGroups];
           if (presentation === 'anchor' && anchorPosition != null) {
             return (
               <AnchorMenuPanel
