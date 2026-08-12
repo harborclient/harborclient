@@ -38,7 +38,6 @@ import { FaIcon } from '../FaIcon/index.js';
 import { buildVariableTooltipDom } from '../VariableTooltip/dom.js';
 import { VariableTooltipValue } from '../VariableTooltip/index.js';
 import { portalToBody } from '../portalToBody.js';
-import { resolveVariableSelectionTooltipAction } from './variableSelectionTooltipAction.js';
 import { useCodeEditorConfig } from './config.js';
 import { createBuiltInSyntaxHighlighting, createEditorTheme } from './editorChrome.js';
 import { type CodeEditorDiagnostic, createHostDiagnosticsLinter } from './hostDiagnostics.js';
@@ -50,6 +49,7 @@ import { createSlashCommandHighlighter } from './slashCommandHighlighter.js';
 import { createSyntaxHighlightedPlaceholder } from './syntaxHighlightedPlaceholder.js';
 import { createJavascriptSyntaxLinter, createJsonSyntaxLinter } from './syntaxLinters.js';
 import { getCodeEditorThemeExtension } from './themes.js';
+import { resolveVariableSelectionTooltipAction } from './variableSelectionTooltipAction.js';
 
 export { CODE_EDITOR_THEME_OPTIONS } from './themes.js';
 export type { CodeEditorDiagnostic, CodeEditorDiagnosticAction } from './hostDiagnostics.js';
