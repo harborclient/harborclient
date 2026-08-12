@@ -1256,7 +1256,6 @@ export function Collections(): JSX.Element {
                       onClick={() =>
                         handleCollectionNameClick(collection, collectionConnectionId, expanded)
                       }
-                      onDoubleClick={() => onConfigureCollection(collection.id)}
                       onKeyDown={(e) => {
                         if (e.key !== 'Enter') return;
                         e.preventDefault();
@@ -1615,9 +1614,6 @@ export function Collections(): JSX.Element {
                                                   folder.id,
                                                   folderExpanded
                                                 )
-                                              }
-                                              onNameDoubleClick={() =>
-                                                onConfigureFolder(collection.id, folder.id)
                                               }
                                               onNameEnter={() => {
                                                 onConfigureFolder(collection.id, folder.id);

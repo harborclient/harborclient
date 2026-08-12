@@ -86,11 +86,6 @@ interface Props {
   onNameClick: () => void;
 
   /**
-   * Called when the folder name area is double-clicked.
-   */
-  onNameDoubleClick?: () => void;
-
-  /**
    * Called when Enter is pressed on the folder name area.
    */
   onNameEnter?: () => void;
@@ -134,7 +129,6 @@ export function SidebarFolderItem({
   onContextMenu,
   onToggleExpand,
   onNameClick,
-  onNameDoubleClick,
   onNameEnter,
   actions,
   expandIcon,
@@ -175,7 +169,6 @@ export function SidebarFolderItem({
               setSize,
               posInSet,
               onClick: () => onNameClick(),
-              onDoubleClick: onNameDoubleClick != null ? () => onNameDoubleClick() : undefined,
               onKeyDown: onNameEnter != null ? handleNameKeyDown : undefined
             }
           : undefined
