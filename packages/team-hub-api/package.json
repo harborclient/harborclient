@@ -55,6 +55,7 @@
   },
   "scripts": {
     "dev": "tsc -p tsconfig.build.json --watch",
+    "prebuild": "pnpm --filter @harborclient/core build",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "format": "prettier --write .",
@@ -74,6 +75,7 @@
     "release:major": "gh workflow run team-hub-api-release.yml --ref main -f branch=main -f bump=major"
   },
   "dependencies": {
+    "@harborclient/core": "workspace:^",
     "zod": "^4.4.3"
   },
   "devDependencies": {

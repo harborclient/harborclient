@@ -478,6 +478,24 @@ docs:
 
 Hub-native docs search also requires `llm.providers.openai.apiKey`. Without OpenAI or a readable index file, `search_docs` is removed from hub chat tool lists.
 
+## AI chat stream proxies
+
+`POST /llm/chat/stream` is a long-lived Server-Sent Events response. Team Hub sets **`X-Accel-Buffering: no`** on the response so Nginx and compatible proxies flush each `data:` frame immediately. Self-hosted reverse proxies must apply equivalent settings on this path (and on `GET /notices/stream` for notice SSE).
+
+| Setting | Purpose |
+| ------- | ------- |
+| `proxy_buffering off` | Disable response buffering so deltas reach clients in real time |
+| `proxy_cache off` | Prevent caching of live streams |
+| `proxy_read_timeout` / `proxy_send_timeout` | Allow multi-minute hub steps (MCP tools, large completions); **1h** is a common value |
+| `proxy_http_version 1.1` | Required for keep-alive streaming |
+| `Connection ''` (Nginx) | Clear hop-by-hop `Connection` for upstream keep-alive |
+
+The bundled Docker image configures these for `GET /notices/stream` only. Add a matching `location` for **`POST /llm/chat/stream`** (or a shared prefix) when terminating TLS in front of the container. See [Docker Compose — LLM chat stream](./deploy/docker.md#llm-chat-stream-post-llmchatstream-behind-a-reverse-proxy) and [Kubernetes — Ingress and SSE](./deploy/k8s.md#ingress-and-notice-sse).
+
+HarborClient desktop uses `@harborclient/team-hub-api` `completeChatStepStream`, which honors the client `requestTimeoutMs` (default 30s) for the full body read — raise the timeout for slow models or MCP-heavy steps.
+
+Event wire format and hub vs renderer terminal semantics: [AI chat stream protocol](./ai-chat-stream.md).
+
 ## multitenancy
 
 Optional tenant isolation. Omit this section (or leave `enabled: false`) for a normal single-tenant install. Every request then uses the reserved default tenant `__default__`, and clients do not need a tenant header.

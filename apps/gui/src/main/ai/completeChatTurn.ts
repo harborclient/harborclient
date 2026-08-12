@@ -2,12 +2,18 @@ import { APIError, type OpenAI } from 'openai';
 import type { ChatCompletion, ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { LlmClientFactory } from './LlmClientFactory';
 import { runHubChatCompletionStep } from './hubChatStep';
+import {
+  assembleOpenAiChatStream,
+  type AssembledOpenAiChatCompletion
+} from './openAiChatStreamAssembler';
+import { pushAiChatStreamMessage } from './pushAiChatStreamMessage';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { truncateChatStepMessages } from '@harborclient/core/ai/chatContext';
 import { resolveChatStepMode } from '@harborclient/core/ai/chatStepMode';
 import { getAiModelById } from '@harborclient/core/ai/models';
 import type {
+  AiChatStreamContext,
   ChatStepInput,
   ChatStepMessage,
   ChatStepResult,
@@ -165,6 +171,211 @@ export interface RunChatCompletionStepOptions {
    * Aborts the in-flight provider request when the user stops generation.
    */
   signal?: AbortSignal;
+
+  /**
+   * Validated desktop routing metadata that enables normal sidebar streaming.
+   */
+  streamContext?: AiChatStreamContext;
+}
+
+/**
+ * Returns whether this call is the normal sidebar agent path, the only direct
+ * provider path whose incremental output is safe to deliver to the chat UI.
+ *
+ * @param input - Completion input being routed.
+ * @returns True for ordinary sidebar agent calls without an auxiliary mode.
+ */
+function isNormalSidebarAgentTurn(input: ChatStepInput): boolean {
+  return (
+    !input.hubId?.trim() && !input.scriptAsk && !input.chatTitlePrompt && input.agentVariant == null
+  );
+}
+
+/**
+ * Returns a bounded user-facing message for a terminal stream failure.
+ *
+ * @param error - Error thrown by the SDK stream.
+ * @returns Safe message suitable for the validated stream event payload.
+ */
+function toStreamErrorMessage(error: unknown): string {
+  const message = toChatCompletionError(error).message;
+  return message.slice(0, 4_096) || 'Failed to get a response from the model.';
+}
+
+/**
+ * Runs one direct-provider completion as a normalized desktop stream.
+ *
+ * A context-length retry is permitted only before a visible text delta; the
+ * stream start marker is retained across retries so the renderer sees one step.
+ *
+ * @param client - OpenAI-compatible SDK client.
+ * @param input - Original model input.
+ * @param messages - Provider-formatted completion messages.
+ * @param tools - Resolved tools for the normal sidebar agent.
+ * @param toolChoice - Optional tool-choice constraint.
+ * @param options - Signal and validated desktop stream context.
+ * @returns Final result that remains compatible with invoke-based callers.
+ */
+async function runDirectChatCompletionStream(
+  client: OpenAI,
+  input: ChatStepInput,
+  messages: ChatCompletionMessageParam[],
+  tools: ReturnType<typeof mergeMcpClientTools>,
+  toolChoice: ReturnType<typeof resolveChatStepMode>['toolChoice'],
+  options: RunChatCompletionStepOptions & { streamContext: AiChatStreamContext }
+): Promise<ChatStepResult> {
+  const { streamContext } = options;
+  let emittedStepStart = false;
+  let emittedTextDelta = false;
+  let emittedTerminal = false;
+
+  /**
+   * Delivers an event with the validated desktop correlation fields attached.
+   *
+   * @param event - Normalized event body for this completion step.
+   */
+  const emit = (event: Parameters<typeof pushAiChatStreamMessage>[1]): void => {
+    pushAiChatStreamMessage(streamContext.chatId, event);
+  };
+
+  /**
+   * Emits one terminal event, protecting against SDK errors raised during
+   * iterator cleanup after an earlier terminal outcome.
+   *
+   * @param event - Normalized terminal event for this turn.
+   */
+  const emitTerminal = (
+    event:
+      | { v: 1; type: 'turn.error'; turnId: string; message: string }
+      | { v: 1; type: 'turn.cancelled'; turnId: string }
+  ): void => {
+    if (emittedTerminal) {
+      return;
+    }
+    emittedTerminal = true;
+    emit(event);
+  };
+
+  /**
+   * Creates a stream request for one message history attempt.
+   *
+   * @param requestMessages - System and conversation messages to send.
+   * @returns SDK async iterator of OpenAI-compatible chunks.
+   */
+  const request = async (
+    requestMessages: ChatCompletionMessageParam[]
+  ): Promise<AsyncIterable<unknown>> =>
+    await client.chat.completions.create(
+      {
+        model: input.model,
+        messages: requestMessages,
+        tools,
+        stream: true,
+        stream_options: { include_usage: true },
+        ...(toolChoice ? { tool_choice: toolChoice } : {})
+      },
+      options.signal ? { signal: options.signal } : undefined
+    );
+
+  /**
+   * Consumes one provider stream attempt, sending start/text events in order.
+   *
+   * @param requestMessages - System and conversation messages to stream.
+   * @returns Assembled final completion.
+   */
+  const consume = async (
+    requestMessages: ChatCompletionMessageParam[]
+  ): Promise<AssembledOpenAiChatCompletion> =>
+    assembleOpenAiChatStream(await request(requestMessages), {
+      onTextDelta: (chunk) => {
+        if (!emittedStepStart) {
+          emittedStepStart = true;
+          emit({
+            v: 1,
+            type: 'step.start',
+            turnId: streamContext.turnId,
+            stepIndex: streamContext.stepIndex
+          });
+        }
+        emittedTextDelta = true;
+        emit({
+          v: 1,
+          type: 'delta.text',
+          turnId: streamContext.turnId,
+          stepIndex: streamContext.stepIndex,
+          chunk
+        });
+      }
+    });
+
+  try {
+    let completion;
+    try {
+      completion = await consume(messages);
+    } catch (error) {
+      if (
+        isAbortError(error) ||
+        emittedTextDelta ||
+        !isContextLengthExceeded(error) ||
+        toolChoice
+      ) {
+        throw error;
+      }
+      completion = await consume([
+        messages[0]!,
+        ...toOpenAiMessages(truncateChatStepMessages(input.messages, true))
+      ]);
+    }
+
+    if (options.signal?.aborted) {
+      throw new DOMException('Chat step aborted.', 'AbortError');
+    }
+
+    if (!emittedStepStart) {
+      emittedStepStart = true;
+      emit({
+        v: 1,
+        type: 'step.start',
+        turnId: streamContext.turnId,
+        stepIndex: streamContext.stepIndex
+      });
+    }
+    for (const call of completion.result.toolCalls ?? []) {
+      logVerbose('[ai-tool-call]', call.name, call.arguments);
+      emit({
+        v: 1,
+        type: 'tool.call',
+        turnId: streamContext.turnId,
+        stepIndex: streamContext.stepIndex,
+        callId: call.id,
+        name: call.name,
+        owner: 'harbor',
+        arguments: call.arguments
+      });
+    }
+    emit({
+      v: 1,
+      type: 'step.end',
+      turnId: streamContext.turnId,
+      stepIndex: streamContext.stepIndex,
+      content: completion.result.content,
+      ...(completion.result.toolCalls?.length ? { toolCalls: completion.result.toolCalls } : {}),
+      ...(completion.usage ? { usage: completion.usage } : {})
+    });
+    return completion.result;
+  } catch (error) {
+    if (isAbortError(error)) {
+      emitTerminal({ v: 1, type: 'turn.cancelled', turnId: streamContext.turnId });
+      throw error;
+    }
+    emitTerminal({
+      v: 1,
+      type: 'turn.error',
+      turnId: streamContext.turnId,
+      message: toStreamErrorMessage(error)
+    });
+    throw toChatCompletionError(error);
+  }
 }
 
 /**
@@ -206,6 +417,17 @@ export async function runChatCompletionStep(
 
   try {
     const client = await createClient(modelOption.provider);
+    if (options?.streamContext && isNormalSidebarAgentTurn(input)) {
+      return await runDirectChatCompletionStream(
+        client,
+        input,
+        buildMessages(stepMode.messages),
+        tools,
+        toolChoice,
+        { ...options, streamContext: options.streamContext }
+      );
+    }
+
     const request = (messages: ChatCompletionMessageParam[]): Promise<ChatCompletion> =>
       client.chat.completions.create(
         {

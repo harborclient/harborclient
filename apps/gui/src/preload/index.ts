@@ -149,6 +149,7 @@ import type {
   WorkspaceLayout,
   WorkspaceRequest
 } from '@harborclient/core/types';
+import { subscribeAiChatStream } from '#/preload/aiChatStream';
 import type { ApisIoCollection, ApisIoCollectionList } from '@harborclient/core/apisio/catalog';
 import type { PublicCollectionPreview } from '@harborclient/core/types/api/collections';
 import type { SnippetImportResult } from '@harborclient/core/types/api/snippets';
@@ -2414,6 +2415,37 @@ function getChat(id: number): Promise<Chat | null> {
 }
 
 /**
+ * Stores the full recovery context for a turn paused on `ask_user`.
+ *
+ * @param pendingTurn - Versioned paused-turn payload for one chat.
+ */
+function savePendingChatTurn(
+  pendingTurn: import('@harborclient/core/types/aiChatStream').PendingAiChatTurn
+): Promise<void> {
+  return ipcRenderer.invoke('chats:savePendingTurn', pendingTurn);
+}
+
+/**
+ * Loads valid durable recovery state for a paused chat turn.
+ *
+ * @param chatId - Chat id to inspect.
+ */
+function getPendingChatTurn(
+  chatId: number
+): Promise<import('@harborclient/core/types/aiChatStream').PendingAiChatTurn | null> {
+  return ipcRenderer.invoke('chats:getPendingTurn', chatId);
+}
+
+/**
+ * Removes a durable paused-turn context before discard or terminal cleanup.
+ *
+ * @param chatId - Chat id whose recovery state should be cleared.
+ */
+function deletePendingChatTurn(chatId: number): Promise<void> {
+  return ipcRenderer.invoke('chats:deletePendingTurn', chatId);
+}
+
+/**
  * Appends a message to a chat thread.
  *
  * @param input - Chat id, stage, content, and optional model.
@@ -2435,10 +2467,28 @@ function generateChatTitle(input: GenerateChatTitleInput): Promise<string> {
  * Runs one LLM completion step with tool definitions.
  *
  * @param input - Model id and conversation messages for the step.
- * @param stepRequestId - Optional client id used to cancel the in-flight step.
+ * @param streamContextOrStepRequestId - Optional stream context or legacy step request id.
+ * @param stepRequestId - Optional client id used to cancel the in-flight step when stream context is provided.
  */
-function completeChatStep(input: ChatStepInput, stepRequestId?: string): Promise<ChatStepResult> {
-  return ipcRenderer.invoke('chats:completeStep', input, stepRequestId);
+function completeChatStep(
+  input: ChatStepInput,
+  streamContextOrStepRequestId?: import('@harborclient/core/types').AiChatStreamContext | string,
+  stepRequestId?: string
+): Promise<ChatStepResult> {
+  if (typeof streamContextOrStepRequestId === 'string') {
+    return ipcRenderer.invoke('chats:completeStep', input, streamContextOrStepRequestId);
+  }
+
+  if (streamContextOrStepRequestId != null) {
+    return ipcRenderer.invoke(
+      'chats:completeStep',
+      input,
+      streamContextOrStepRequestId,
+      stepRequestId
+    );
+  }
+
+  return ipcRenderer.invoke('chats:completeStep', input);
 }
 
 /**
@@ -3203,6 +3253,18 @@ function onTeamHubNoticeStream(
   return () => {
     ipcRenderer.removeListener('teamHub:noticeStream', listener);
   };
+}
+
+/**
+ * Subscribes to normalized AI chat stream events pushed from the main process.
+ *
+ * @param callback - Handler invoked for validated stream events correlated by chat id.
+ * @returns Unsubscribe function.
+ */
+function onAiChatStream(
+  callback: (message: import('@harborclient/core/types').AiChatStreamRendererMessage) => void
+): () => void {
+  return subscribeAiChatStream(ipcRenderer, callback);
 }
 
 /**
@@ -5759,6 +5821,9 @@ const api: Api = {
   listChats,
   createChat,
   getChat,
+  savePendingChatTurn,
+  getPendingChatTurn,
+  deletePendingChatTurn,
   addChatMessage,
   generateChatTitle,
   completeChatStep,
@@ -5769,6 +5834,7 @@ const api: Api = {
   completeGithubModelsSignIn,
   signOutGithubModels,
   onGithubModelsSignInFinished,
+  onAiChatStream,
   deleteChat,
   listStorageConnections,
   saveStorageConnection,

@@ -1873,6 +1873,73 @@ Runs one stateless LLM completion step using hub-configured provider keys.
 
 **Response `503`:** LLM support is not configured on the hub.
 
+### `POST /llm/chat/stream`
+
+Streams one complete Hub agent step as canonical `AiChatStreamEvent` frames over Server-Sent Events. HarborClient desktop uses this route for live assistant text and hub tool progress; the JSON [`POST /llm/chat/step`](#post-llmchatstep) endpoint remains available for stateless callers.
+
+See [AI chat stream protocol](./ai-chat-stream.md) for the full event catalog, tool ownership, iteration limits, and terminal semantics (`step.end` vs renderer `turn.end`).
+
+**Auth:** Bearer token required. Caller must have `llmAccess` and permission for the requested model.
+
+**Request body:** Same fields as `POST /llm/chat/step`, plus correlation ids copied onto every event:
+
+```json
+{
+  "model": "gpt-4o",
+  "messages": [{ "role": "user", "content": "Hello" }],
+  "systemPrompt": "You are HarborClient assistant.",
+  "tools": [],
+  "turnId": "turn-550e8400",
+  "stepIndex": 0
+}
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `turnId` | string | Stable renderer turn id (1–128 chars) |
+| `stepIndex` | integer | Zero-based renderer outer-loop step index |
+
+**Response `200`:** `text/event-stream; charset=utf-8`. Each event is one `data:` line containing a JSON `AiChatStreamEvent` with `v: 1`. SSE comment lines (`: connected`, `: heartbeat`) are not events and should be ignored.
+
+Response headers include `Cache-Control: no-cache, no-transform`, `Connection: keep-alive`, and **`X-Accel-Buffering: no`**. The hub writes `: connected` immediately, then `: heartbeat` every 30 seconds until the stream closes.
+
+Typical hub-emitted sequence:
+
+```text
+: connected
+
+data: {"v":1,"type":"step.start","turnId":"turn-550e8400","stepIndex":0}
+
+data: {"v":1,"type":"delta.text","turnId":"turn-550e8400","stepIndex":0,"chunk":"Hi"}
+
+data: {"v":1,"type":"step.end","turnId":"turn-550e8400","stepIndex":0,"content":"Hi there.","usage":{"promptTokens":10,"completionTokens":5,"totalTokens":15}}
+```
+
+When the step returns passthrough Harbor tool calls, `step.end` includes `toolCalls` and may omit final `content`. Hub-native tool progress uses `tool.call` / `tool.result` with `owner: "hub"` before `step.end`.
+
+**Abort:** Closing the HTTP connection aborts upstream provider work. If the stream has already started, the hub may emit `{"v":1,"type":"turn.cancelled","turnId":"..."}` before closing. Client disconnects before `step.end` are not metered.
+
+**Errors before headers:** Same status codes as `POST /llm/chat/step` (`402`, `403`, `503`) with a JSON `{ "error": "..." }` body.
+
+**Errors after headers:** A terminal `turn.error` or `turn.cancelled` event on the SSE wire (no JSON error body).
+
+**Metering:** Token usage is recorded only after a successful `step.end`. Aborted or failed streams are not charged.
+
+```bash
+curl -sN http://127.0.0.1:8788/llm/chat/stream \
+  -H "Authorization: Bearer hbk_your_token_here" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Say hello in one sentence."}],
+    "turnId": "curl-demo-turn",
+    "stepIndex": 0
+  }'
+```
+
+Use `curl -N` (no buffer) so frames print as they arrive. Long-lived streams behind a reverse proxy require `proxy_buffering off` and extended read timeouts — see [Configuration — AI chat stream proxies](./configuration.md#ai-chat-stream-proxies).
+
 ## Plugin sources
 
 Team Hubs can declare plugin marketplace catalog and trusted-publisher URLs in `server.yaml` under the optional `plugins` section. HarborClient merges these into **Settings → Plugins** as read-only endpoints for connected users.

@@ -63,6 +63,7 @@ export const docsNav = [
   },
   { kind: 'page', slug: 'auth', title: 'Authentication', maxDepth: 0 },
   { kind: 'page', slug: 'llm', title: 'LLM', maxDepth: 2 },
+  { kind: 'page', slug: 'ai-chat-stream', title: 'AI chat stream', maxDepth: 2 },
   { kind: 'page', slug: 'cli', title: 'CLI', maxDepth: 2 },
   { kind: 'page', slug: 'endpoints', title: 'API Endpoints', maxDepth: 3 },
   { kind: 'page', slug: 'development', title: 'Development', maxDepth: 0 },

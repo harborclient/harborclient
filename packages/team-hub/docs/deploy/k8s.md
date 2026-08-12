@@ -138,7 +138,9 @@ Bundled Nginx sets `proxy_buffering off` and long read timeouts for `GET /notice
 | `team-hub` | `/` | Default REST |
 | `team-hub-notices` | `/notices/stream` | `proxy-buffering: off`, `proxy-read-timeout` / `proxy-send-timeout`: `3600` |
 
-Annotations target the **nginx** Ingress Controller. Traefik, AWS ALB, or Gateway API need equivalent SSE settings. See [Docker Compose — Notice SSE disconnects](/deploy/docker#notice-sse-get-noticesstream-disconnects-behind-a-reverse-proxy). HarborClient desktop clients fall back to REST polling when the stream is unavailable.
+Apply the same buffering and timeout annotations to **`POST /llm/chat/stream`** when HarborClient AI streaming transits the cluster Ingress (either extend the notices Ingress with a second path or add a dedicated rule). Team Hub sets `X-Accel-Buffering: no` on the response; edge proxies must still disable buffering. See [AI chat stream protocol](/ai-chat-stream) and [Configuration — AI chat stream proxies](/configuration#ai-chat-stream-proxies).
+
+Annotations target the **nginx** Ingress Controller. Traefik, AWS ALB, or Gateway API need equivalent SSE settings. See [Docker Compose — Notice SSE disconnects](/deploy/docker#notice-sse-get-noticesstream-disconnects-behind-a-reverse-proxy). HarborClient desktop clients fall back to REST polling when the notice stream is unavailable.
 
 ## Graceful shutdown
 

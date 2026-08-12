@@ -3,8 +3,10 @@ export type { ITeamHubClient } from './ITeamHubClient.js';
 export {
   DEFAULT_TEAM_HUB_REQUEST_TIMEOUT_MS,
   TeamHubClient,
-  type HubChatStepRequest
+  type HubChatStepRequest,
+  type HubChatStepStreamRequest
 } from './TeamHubClient.js';
+export { readAiChatStreamBody, type AiChatStreamHandlers } from './readAiChatStream.js';
 export { TeamHubClientError } from './TeamHubClientError.js';
 export { toTeamHubAuth, type TeamHubAuthConfig, type TeamHubAuthType } from './auth.js';
 export { isTeamHubCollectionDeleteForbiddenError } from './isTeamHubCollectionDeleteForbiddenError.js';
@@ -57,6 +59,22 @@ export type {
 } from './noticeTypes.js';
 export type { NoticeStreamEvent, NoticeStreamHandlers } from './noticeStreamTypes.js';
 export { isNoticeStreamEvent, parseNoticeStreamEvent } from './readNoticeStream.js';
+export {
+  AI_AGENT_MAX_HUB_INNER_ITERATIONS,
+  AI_AGENT_MAX_RENDERER_STEP_ITERATIONS,
+  AI_CHAT_STREAM_EVENT_VERSION,
+  PENDING_AI_CHAT_TURN_VERSION,
+  chatStepResultFromStepEnd,
+  isAiChatStreamEvent,
+  isPendingAiChatTurn,
+  parseAiChatStreamEvent,
+  type AiChatStreamContext,
+  type AiChatStreamEvent,
+  type AiChatStreamEventType,
+  type AiChatStreamStepEndEvent,
+  type AiChatStreamToolOwner,
+  type PendingAiChatTurn
+} from '@harborclient/core/types/aiChatStream';
 export {
   HARBOR_PROTOCOL,
   INVITATION_CODE_PREFIX,

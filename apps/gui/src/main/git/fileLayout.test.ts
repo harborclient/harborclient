@@ -111,17 +111,24 @@ describe('git file layout', () => {
     expect(loaded.requests).toHaveLength(1);
     expect(loaded.requests[0]?.name).toBe('Health');
     expect(loaded.documents?.[0]?.content).toBe('# Notes');
-    expect(loaded.variables.find((v) => v.key === 'private')?.value).toBe('');
+    // Private values stay local (gitignored overlay) while the committed
+    // collection.json keeps them masked empty.
+    expect(loaded.variables.find((v) => v.key === 'private')?.value).toBe('secret');
+    expect(loaded.variables.find((v) => v.key === 'shared')?.value).toBe('visible');
     expect(existsSync(join(root, '.gitignore'))).toBe(true);
+    expect(existsSync(join(dirPath, 'local-variables.json'))).toBe(true);
 
     const manifest = JSON.parse(readFileSync(collectionManifestPath(dirPath), 'utf-8')) as {
       requests: string[];
       documents: Array<{ file: string; name: string }>;
+      variables: Array<{ key: string; value: string; share: boolean }>;
     };
     expect(manifest.requests).toEqual([requestFileName]);
     expect(manifest.documents).toEqual([
       expect.objectContaining({ file: 'README.md', name: 'README.md' })
     ]);
+    expect(manifest.variables.find((v) => v.key === 'private')?.value).toBe('');
+    expect(manifest.variables.find((v) => v.key === 'shared')?.value).toBe('visible');
 
     rmSync(root, { recursive: true, force: true });
   });

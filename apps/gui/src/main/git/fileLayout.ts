@@ -9,6 +9,10 @@ import { validateSnippetExport } from '#/main/storage/snippetData';
 import { validateLiveServerExport } from '@harborclient/core/types/liveServer';
 import { validateWebsiteExport } from '@harborclient/core/types/website';
 import { generateDocumentUuid, resolveImportUuid } from '#/main/storage/uuid';
+import {
+  applyCollectionLocalVariables,
+  writeCollectionLocalVariables
+} from './collectionLocalVariables';
 import { collectionDirName, exportFileBaseName, stripMdExtension, toFileSlug } from './slug';
 import { validateRequestExport } from '#/main/storage/collectionData';
 import type {
@@ -1199,7 +1203,7 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
     }))
     .filter((row) => row.name.length > 0);
 
-  return validateCollectionExport({
+  const exportData = validateCollectionExport({
     harborclientVersion: 1,
     harborclientExport: 'collection',
     uuid: typeof parsed.uuid === 'string' ? resolveImportUuid(parsed.uuid) : undefined,
@@ -1232,6 +1236,8 @@ export function readCollectionFromFolder(dirPath: string): CollectionExport {
     requests: collapseDuplicateRequests(requests),
     documents
   });
+
+  return applyCollectionLocalVariables(exportData, dirPath);
 }
 
 /**
@@ -1376,6 +1382,9 @@ export function writeCollectionToFolder(
   );
 
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+  // Keep private (non-share) values in a gitignored overlay so reload-from-disk
+  // after masking committed collection.json does not wipe secrets.
+  writeCollectionLocalVariables(dirPath, validated.variables, validated.folders ?? []);
 
   for (const previousFile of previousDocumentFiles) {
     if (writtenHarborDocumentFiles.has(previousFile)) {

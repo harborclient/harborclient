@@ -396,6 +396,59 @@ describeSqlite('LocalDatabase chats', () => {
     const loaded = database.getChat(chat.id);
     expect(loaded?.messages[0]?.referenceSnapshots).toEqual(referenceSnapshots);
   });
+
+  it('round-trips one complete pending turn per chat and cascades on delete', async () => {
+    const { database } = await createRegistry();
+    const chat = database.createChat({});
+    const pending = {
+      v: 1 as const,
+      chatId: chat.id,
+      turnId: 'turn-1',
+      model: 'gpt-4.1',
+      messages: [
+        { role: 'user' as const, content: 'Choose a deployment' },
+        {
+          role: 'assistant' as const,
+          content: null,
+          tool_calls: [
+            {
+              id: 'call-ask',
+              name: 'ask_user',
+              arguments: '{"question":"Which environment?"}'
+            }
+          ]
+        },
+        { role: 'tool' as const, tool_call_id: 'call-other', content: '{"error":"Skipped"}' }
+      ],
+      toolCallId: 'call-ask',
+      question: 'Which environment?',
+      choices: ['Staging', 'Production'],
+      rendererStepCount: 2,
+      toolCallCount: 1,
+      userContent: 'Choose a deployment',
+      updatedAt: '2026-08-09T12:00:00.000Z'
+    };
+
+    database.savePendingChatTurn(pending);
+    expect(database.getPendingChatTurn(chat.id)).toEqual(pending);
+
+    database.deleteChat(chat.id);
+    expect(database.getPendingChatTurn(chat.id)).toBeNull();
+  });
+
+  it('fails closed when a stored pending turn is malformed', async () => {
+    const { database, rootDir } = await createRegistry();
+    const chat = database.createChat({});
+    const raw = new Database(join(rootDir, 'harborclient-registry.db'));
+    raw
+      .prepare(
+        'INSERT INTO chat_pending_turns (chat_id, payload_version, payload) VALUES (?, ?, ?)'
+      )
+      .run(chat.id, 1, '{"v":1,"chatId":1}');
+    raw.close();
+
+    expect(database.getPendingChatTurn(chat.id)).toBeNull();
+  });
 });
 
 describeSqlite('LocalDatabase snippets', () => {

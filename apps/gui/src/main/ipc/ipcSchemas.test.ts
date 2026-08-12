@@ -726,6 +726,32 @@ describe('object schema happy paths', () => {
     expect(ipcArgSchemas.chatCompleteStep.safeParse([validStep, 'step-1']).success).toBe(true);
   });
 
+  it('chatCompleteStep tuple accepts optional stream context and combined args', () => {
+    const validStep = {
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'Hi' }]
+    };
+    const streamContext = {
+      chatId: 4,
+      turnId: 'turn-1',
+      stepIndex: 0
+    };
+
+    expect(ipcArgSchemas.chatCompleteStep.safeParse([validStep, streamContext]).success).toBe(true);
+    expect(
+      ipcArgSchemas.chatCompleteStep.safeParse([validStep, streamContext, 'step-1']).success
+    ).toBe(true);
+    expect(ipcArgSchemas.chatCompleteStep.safeParse([validStep, 'step-1', 'step-2']).success).toBe(
+      false
+    );
+    expect(
+      ipcArgSchemas.chatCompleteStep.safeParse([
+        validStep,
+        { chatId: 0, turnId: 'turn-1', stepIndex: 0 }
+      ]).success
+    ).toBe(false);
+  });
+
   it('chatCancelStep tuple requires a stepRequestId', () => {
     expect(ipcArgSchemas.chatCancelStep.safeParse(['step-1']).success).toBe(true);
     expect(ipcArgSchemas.chatCancelStep.safeParse([]).success).toBe(false);

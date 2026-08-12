@@ -5,9 +5,31 @@ import {
 } from '#/main/ai/activeChatSteps';
 import { runChatCompletionStep } from '#/main/ai/completeChatTurn';
 import { runGenerateChatTitle } from '#/main/ai/generateChatTitle';
+import type { AiChatStreamContext } from '@harborclient/core/types';
 import { getLocalDatabase } from '#/main/storage/localDatabaseInstance';
 import { handle } from '#/main/ipc/handle';
 import { ipcArgSchemas } from '#/main/ipc/ipcSchemas';
+
+/**
+ * Normalizes optional stream context and step request id arguments for completion steps.
+ *
+ * @param second - Optional stream context or step request id.
+ * @param third - Optional step request id when `second` is stream context.
+ */
+function readCompleteStepOptions(
+  second?: AiChatStreamContext | string,
+  third?: string
+): { streamContext?: AiChatStreamContext; stepRequestId?: string } {
+  if (typeof second === 'string') {
+    return { stepRequestId: second };
+  }
+
+  if (second != null) {
+    return { streamContext: second, stepRequestId: third };
+  }
+
+  return {};
+}
 
 /**
  * Registers IPC handlers for AI chat persistence in the local registry.
@@ -24,6 +46,21 @@ export function registerChatHandlers(): void {
   // Returns a single AI chat by id.
   handle('chats:get', ipcArgSchemas.chatGet, (_event, id) => getLocalDatabase().getChat(id));
 
+  // Stores complete recovery state for a turn paused on ask_user.
+  handle('chats:savePendingTurn', ipcArgSchemas.chatSavePendingTurn, (_event, pendingTurn) => {
+    getLocalDatabase().savePendingChatTurn(pendingTurn);
+  });
+
+  // Returns a valid paused-turn recovery payload when one exists for the chat.
+  handle('chats:getPendingTurn', ipcArgSchemas.chatGetPendingTurn, (_event, chatId) =>
+    getLocalDatabase().getPendingChatTurn(chatId)
+  );
+
+  // Clears a paused-turn recovery payload before discard or terminal cleanup.
+  handle('chats:deletePendingTurn', ipcArgSchemas.chatDeletePendingTurn, (_event, chatId) => {
+    getLocalDatabase().deletePendingChatTurn(chatId);
+  });
+
   // Appends a message to an AI chat.
   handle('chats:addMessage', ipcArgSchemas.chatAddMessage, (_event, input) =>
     getLocalDatabase().addChatMessage(input)
@@ -38,14 +75,18 @@ export function registerChatHandlers(): void {
   handle(
     'chats:completeStep',
     ipcArgSchemas.chatCompleteStep,
-    async (_event, input, stepRequestId) => {
+    async (_event, input, second, third) => {
+      const { streamContext, stepRequestId } = readCompleteStepOptions(second, third);
       const controller = new AbortController();
       if (stepRequestId) {
         trackActiveChatStep(stepRequestId, controller);
       }
 
       try {
-        return await runChatCompletionStep(input, undefined, { signal: controller.signal });
+        return await runChatCompletionStep(input, undefined, {
+          signal: controller.signal,
+          ...(streamContext ? { streamContext } : {})
+        });
       } finally {
         if (stepRequestId) {
           untrackActiveChatStep(stepRequestId, controller);

@@ -65,6 +65,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
         "link": "/configuration#docs"
       },
       {
+        "text": "AI chat stream proxies",
+        "link": "/configuration#ai-chat-stream-proxies"
+      },
+      {
         "text": "multitenancy",
         "link": "/configuration#multitenancy"
       },
@@ -118,6 +122,45 @@ export const sidebar: DefaultTheme.SidebarItem[] =
       {
         "text": "Endpoints",
         "link": "/llm#endpoints"
+      }
+    ],
+    "collapsed": false
+  },
+  {
+    "text": "AI chat stream",
+    "link": "/ai-chat-stream",
+    "items": [
+      {
+        "text": "Wire format",
+        "link": "/ai-chat-stream#wire-format"
+      },
+      {
+        "text": "Event catalog",
+        "link": "/ai-chat-stream#event-catalog"
+      },
+      {
+        "text": "Terminal semantics",
+        "link": "/ai-chat-stream#terminal-semantics"
+      },
+      {
+        "text": "Tool ownership",
+        "link": "/ai-chat-stream#tool-ownership"
+      },
+      {
+        "text": "Iteration limits",
+        "link": "/ai-chat-stream#iteration-limits"
+      },
+      {
+        "text": "JSON step endpoint",
+        "link": "/ai-chat-stream#json-step-endpoint"
+      },
+      {
+        "text": "Reverse proxies",
+        "link": "/ai-chat-stream#reverse-proxies"
+      },
+      {
+        "text": "Related docs",
+        "link": "/ai-chat-stream#related-docs"
       }
     ],
     "collapsed": false
@@ -573,6 +616,10 @@ export const sidebar: DefaultTheme.SidebarItem[] =
           {
             "text": "POST /llm/chat/step",
             "link": "/endpoints#post-llmchatstep"
+          },
+          {
+            "text": "POST /llm/chat/stream",
+            "link": "/endpoints#post-llmchatstream"
           }
         ],
         "collapsed": false

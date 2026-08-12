@@ -57,7 +57,13 @@ Use `team-hub user update <id> --no-llm-access` to revoke access.
 
 ## Agent loop
 
-HarborClient keeps orchestrating client-side tools locally. Each LLM completion step is sent to `POST /llm/chat/step`. The hub forwards tool definitions and the system prompt to the provider. When `llm.mcp` is configured, the hub also merges hub MCP tools, executes those tool calls server-side in a bounded loop, and returns only passthrough (HarborClient) tool calls in the response.
+HarborClient keeps orchestrating client-side tools locally. Each LLM completion step is sent to Team Hub — prefer **`POST /llm/chat/stream`** for live assistant text and hub tool progress, or **`POST /llm/chat/step`** for a single JSON response. Both endpoints run the same hub agent logic; the JSON route remains fully supported for stateless integrations.
+
+The hub forwards tool definitions and the system prompt to the provider. When `llm.mcp` is configured, the hub also merges hub MCP tools, executes those tool calls server-side in a bounded loop, and returns only passthrough (HarborClient) tool calls in the response.
+
+### Streaming
+
+`POST /llm/chat/stream` emits versioned `AiChatStreamEvent` frames (`v: 1`) over SSE. One stream invocation covers a single renderer outer-loop step and ends with `step.end` — not `turn.end`, which the desktop emits after local tool execution. See [AI chat stream protocol](./ai-chat-stream.md) for the event catalog, `turnId` / `stepIndex` correlation, tool `owner` values, nested **8 × 8** iteration limits, and reverse-proxy requirements (`X-Accel-Buffering: no`, heartbeats every 30s).
 
 ### Hub-native documentation search
 
@@ -85,7 +91,7 @@ Team Hub stores LLM usage in two places:
 | Store           | Purpose                                                            |
 | --------------- | ------------------------------------------------------------------ |
 | `llm_usage`     | Monthly rollup per user for limits and `team-hub user list` totals |
-| `llm_usage_log` | Per-request audit trail for each successful `POST /llm/chat/step`  |
+| `llm_usage_log` | Per-request audit trail for each successful `POST /llm/chat/step` or completed `POST /llm/chat/stream` step |
 
 Each log row records the user, API token (when present), UTC month, model, provider, token counts, whether the step started a new user turn, whether tool calls were returned, message count, and completion timestamp. Message content is not stored.
 

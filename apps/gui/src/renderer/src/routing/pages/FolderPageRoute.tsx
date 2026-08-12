@@ -7,7 +7,6 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import { setFolderSettingsDirty } from '#/renderer/src/store/slices/navigationSlice';
 import {
   clearPageScopedSettingsDraft,
-  closeTab,
   setPageFocusSection,
   setPageScopedSettingsDraft,
   setPageTabDirty
@@ -31,13 +30,6 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
   const folder = (foldersByCollection[page.collectionId] ?? []).find(
     (entry) => entry.id === page.id
   );
-
-  /**
-   * Closes this settings tab when the user dismisses the page.
-   */
-  const handleClose = (): void => {
-    dispatch(closeTab(tabId));
-  };
 
   /**
    * Remembers core field drafts on the open tab across TabBar remounts.
@@ -114,7 +106,6 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
           throw err;
         }
       }}
-      onClose={handleClose}
     />
   );
 }

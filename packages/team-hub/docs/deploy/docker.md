@@ -422,6 +422,26 @@ Long-lived Server-Sent Events need proxy buffering disabled and extended read ti
 
 Self-hosted reverse proxies must apply equivalent settings on the SSE path only — normal REST routes can keep default buffering. HarborClient desktop clients fall back to REST polling when the stream is unavailable.
 
+### LLM chat stream (`POST /llm/chat/stream`) behind a reverse proxy
+
+HarborClient AI uses `POST /llm/chat/stream` for live assistant text. Team Hub responds with `text/event-stream`, sets **`X-Accel-Buffering: no`**, and emits `: heartbeat` comments every 30 seconds. The bundled image does **not** yet add a dedicated Nginx `location` for this route — mirror the `/notices/stream` block for `/llm/chat/stream` (or proxy all paths with buffering disabled when AI streaming is required).
+
+Minimum proxy settings:
+
+```nginx
+location /llm/chat/stream {
+  proxy_pass http://127.0.0.1:8787;
+  proxy_http_version 1.1;
+  proxy_set_header Connection '';
+  proxy_buffering off;
+  proxy_cache off;
+  proxy_read_timeout 1h;
+  proxy_send_timeout 1h;
+}
+```
+
+See [Configuration — AI chat stream proxies](/configuration#ai-chat-stream-proxies) and [AI chat stream protocol](/ai-chat-stream).
+
 ### Config file not found
 
 The CLI defaults to `server.yaml` in the current directory. In the container pass `/etc/team-hub/server.yaml` with `-c` before the subcommand:

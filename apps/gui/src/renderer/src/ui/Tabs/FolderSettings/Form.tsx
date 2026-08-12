@@ -39,11 +39,6 @@ export interface Props {
   ) => Promise<Folder | void>;
 
   /**
-   * Closes the settings view without saving.
-   */
-  onClose: () => void;
-
-  /**
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
@@ -82,7 +77,6 @@ export function Form({
   focusVariableKey,
   focusSection,
   onSave,
-  onClose,
   onDirtyChange,
   tabId,
   onSectionChange,
@@ -136,7 +130,6 @@ export function Form({
           )
         }
       ]}
-      onClose={onClose}
       onDirtyChange={onDirtyChange}
       onDraftChange={onDraftChange}
       onSectionChange={onSectionChange}

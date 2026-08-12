@@ -133,6 +133,7 @@ export function CollectionPageRoute({
           toast.success('Collection updated');
         } catch (err) {
           showAlert(dispatch, formatErrorMessage(err, 'Failed to update collection'));
+          throw err;
         }
       }}
       onClose={handleClose}

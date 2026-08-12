@@ -62,7 +62,8 @@ import type {
   ReloadConfigResponse
 } from './types.js';
 import type { ChatStepResult, ListHubLlmModelsResponse } from './appTypes.js';
-import type { HubChatStepRequest } from './TeamHubClient.js';
+import type { HubChatStepRequest, HubChatStepStreamRequest } from './TeamHubClient.js';
+import type { AiChatStreamHandlers } from './readAiChatStream.js';
 import type {
   CreateDiscussionCommentInput,
   DiscussionComment,
@@ -378,6 +379,19 @@ export interface ITeamHubClient {
    * Runs one hub-proxied LLM completion step.
    */
   completeChatStep(input: HubChatStepRequest): Promise<ChatStepResult>;
+
+  /**
+   * Runs one hub-proxied LLM completion step over a canonical SSE stream.
+   *
+   * @param input - Chat input plus desktop stream correlation fields.
+   * @param handlers - Callback invoked for every validated stream event.
+   * @param signal - Optional caller cancellation signal.
+   */
+  completeChatStepStream(
+    input: HubChatStepStreamRequest,
+    handlers: AiChatStreamHandlers,
+    signal?: AbortSignal
+  ): Promise<ChatStepResult>;
 
   /**
    * Returns whether the Team Hub server has LLM support configured.

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { AI_CHAT_STREAM_EVENT_VERSION } from '@harborclient/core/types';
 import aiChatReducer, {
+  applyAiChatStreamEvent,
   appendMessage,
+  clearActiveTurn,
+  invalidateActiveTurn,
   clearChatCancelState,
   clearComposerFocus,
   clearMessageReveal,
@@ -17,6 +21,8 @@ import aiChatReducer, {
   setMessages,
   startMessageReveal
 } from './aiChatSlice';
+
+const TURN_ID = 'turn-abc-123';
 
 describe('aiChatSlice', () => {
   it('stores chat history summaries', () => {
@@ -153,5 +159,320 @@ describe('aiChatSlice', () => {
     state = aiChatReducer(state, startMessageReveal({ chatId: 1, messageId: 10 }));
     state = aiChatReducer(state, closeChatTab(1));
     expect(state.revealingMessageIdByChat[1]).toBeUndefined();
+  });
+
+  it('applies stream events to the matching active turn and ignores stale turn ids', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 4,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[4]?.turnId).toBe(TURN_ID);
+    expect(state.sendingByChat[4]).toBe(true);
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 4,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          chunk: 'Hello'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[4]?.text).toBe('Hello');
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 4,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: 'other-turn',
+          stepIndex: 0,
+          chunk: ' stale'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[4]?.text).toBe('Hello');
+  });
+
+  it('clears sending while retaining active state during awaiting_user', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 2,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 2,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.awaiting_user',
+          turnId: TURN_ID,
+          toolCallId: 'call-1',
+          question: 'Continue?'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[2]?.phase).toBe('awaiting_user');
+    expect(state.activeTurnByChat[2]?.pendingQuestion?.question).toBe('Continue?');
+    expect(state.sendingByChat[2]).toBeUndefined();
+  });
+
+  it('tracks tool rows and clears active turns on terminal events', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'tool.call',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          callId: 'call-1',
+          name: 'search',
+          owner: 'harbor',
+          arguments: '{}'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[1]?.toolRows).toEqual([
+      {
+        callId: 'call-1',
+        name: 'search',
+        owner: 'harbor',
+        status: 'running'
+      }
+    ]);
+    expect(state.sendingByChat[1]).toBe(true);
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.end',
+          turnId: TURN_ID
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[1]).toBeUndefined();
+    expect(state.sendingByChat[1]).toBeUndefined();
+  });
+
+  it('clears active turns explicitly and ignores events for other chats', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    state = aiChatReducer(state, clearActiveTurn(1));
+    expect(state.activeTurnByChat[1]).toBeUndefined();
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 2,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          chunk: 'Wrong chat'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[2]).toBeUndefined();
+  });
+
+  it('invalidates a cancelled turn before late stream events arrive', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+    state = aiChatReducer(state, setActiveStepRequestId({ chatId: 1, stepRequestId: 'step-1' }));
+
+    state = aiChatReducer(state, invalidateActiveTurn(1));
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 1,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          chunk: 'Late text'
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[1]).toBeUndefined();
+    expect(state.sendingByChat[1]).toBeUndefined();
+    expect(state.activeStepRequestIdByChat[1]).toBeUndefined();
+  });
+
+  it('stashes handoff markdown on turn.end and skips typewriter reveal after persistence', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 7,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 7,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          chunk: 'Streamed reply'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 7,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.end',
+          turnId: TURN_ID
+        }
+      })
+    );
+
+    expect(state.activeTurnByChat[7]).toBeUndefined();
+    expect(state.handoffPresentationByChat[7]?.text).toBe('Streamed reply');
+
+    state = aiChatReducer(
+      state,
+      appendMessage({
+        id: 50,
+        chatId: 7,
+        role: 'assistant',
+        content: 'Streamed reply',
+        created_at: '2024-01-01T00:00:00.000Z'
+      })
+    );
+
+    expect(state.handoffPresentationByChat[7]).toBeUndefined();
+    expect(state.skipRevealMessageIdByChat[7]).toBe(50);
+
+    state = aiChatReducer(state, startMessageReveal({ chatId: 7, messageId: 50 }));
+    expect(state.revealingMessageIdByChat[7]).toBeUndefined();
+    expect(state.skipRevealMessageIdByChat[7]).toBeUndefined();
+  });
+
+  it('clears handoff presentation on turn cancellation', () => {
+    let state = aiChatReducer(
+      undefined,
+      applyAiChatStreamEvent({
+        chatId: 8,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId: TURN_ID,
+          model: 'gpt-4o'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 8,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'delta.text',
+          turnId: TURN_ID,
+          stepIndex: 0,
+          chunk: 'Partial'
+        }
+      })
+    );
+
+    state = aiChatReducer(
+      state,
+      applyAiChatStreamEvent({
+        chatId: 8,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.cancelled',
+          turnId: TURN_ID
+        }
+      })
+    );
+
+    expect(state.handoffPresentationByChat[8]).toBeUndefined();
+    expect(state.activeTurnByChat[8]).toBeUndefined();
   });
 });

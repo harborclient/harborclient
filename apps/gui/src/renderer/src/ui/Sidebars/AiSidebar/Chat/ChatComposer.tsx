@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '#/renderer/src/store/hooks';
 import {
   clearComposerFocus,
   clearSendError,
+  selectActiveTurnByChat,
   selectChatHistory,
   selectGithubModelsConnected,
   selectHubModelGroups,
@@ -20,7 +21,11 @@ import {
   setPendingComposerText,
   setSelectedModel
 } from '#/renderer/src/store/slices/aiChatSlice';
-import { sendChatMessage, cancelChatMessage } from '#/renderer/src/store/thunks/aiChat';
+import {
+  sendChatMessage,
+  cancelChatMessage,
+  resumeChatMessage
+} from '#/renderer/src/store/thunks/aiChat';
 import { ChatComposerTextarea, type ChatComposerTextareaHandle } from './ChatComposerTextarea';
 import { runWhenComposerReady } from './focusAiChatComposer';
 
@@ -58,6 +63,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   const pendingComposerFocusChatId = useAppSelector(selectPendingComposerFocusChatId);
   const chatHistory = useAppSelector(selectChatHistory);
   const enterToSend = useAppSelector(selectEnterToSend);
+  const activeTurnByChat = useAppSelector(selectActiveTurnByChat);
   const [draft, setDraft] = useState('');
   const [composerAnnouncement, setComposerAnnouncement] = useState('');
   const composerRef = useRef<ChatComposerTextareaHandle>(null);
@@ -70,7 +76,10 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     hubModelGroups,
     githubConnected
   );
-  const canSend = chatId != null && draft.trim().length > 0 && !sending && modelId.length > 0;
+  const activeTurn = chatId != null ? activeTurnByChat[chatId] : undefined;
+  const answering = activeTurn?.phase === 'awaiting_user' && activeTurn.pendingQuestion != null;
+  const canSend =
+    chatId != null && draft.trim().length > 0 && !sending && (answering || modelId.length > 0);
   const sendError = chatId != null ? sendErrorByChat[chatId] : undefined;
 
   /**
@@ -201,15 +210,15 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
   }, [sending]);
 
   /**
-   * Dispatches the cancel thunk to stop the in-flight AI reply.
+   * Stops generation or discards an awaiting-user turn.
    */
   const handleStop = (): void => {
-    if (chatId == null || !sending) return;
+    if (chatId == null || (!sending && !answering)) return;
     void dispatch(cancelChatMessage(chatId));
   };
 
   /**
-   * Dispatches the send thunk and clears the draft input.
+   * Sends a normal message or resumes the exact paused tool call with an answer.
    */
   const handleSend = async (): Promise<void> => {
     if (chatId == null || !canSend) return;
@@ -217,6 +226,10 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
     const content = draft.trim();
     setDraft('');
     dispatch(clearSendError(chatId));
+    if (answering) {
+      await dispatch(resumeChatMessage({ chatId, answer: content }));
+      return;
+    }
     await dispatch(
       sendChatMessage({
         chatId,
@@ -233,13 +246,32 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
         {composerAnnouncement}
       </p>
       <div className={`flex flex-col ${fieldFrame} rounded-2xl!`}>
+        {answering && activeTurn.pendingQuestion?.choices != null ? (
+          <div className="flex flex-wrap gap-2 px-2 pt-2" aria-label="Suggested answers">
+            {activeTurn.pendingQuestion.choices.map((choice) => (
+              <Button
+                key={choice}
+                type="button"
+                variant="secondary"
+                disabled={sending}
+                onClick={() => {
+                  if (chatId != null) {
+                    void dispatch(resumeChatMessage({ chatId, answer: choice }));
+                  }
+                }}
+              >
+                {choice}
+              </Button>
+            ))}
+          </div>
+        ) : null}
         <ChatComposerTextarea
           key={chatId ?? 'no-chat'}
           ref={composerRef}
           embedded
           value={draft}
-          placeholder="Type a message…"
-          aria-label="Chat message"
+          placeholder={answering ? 'Type your answer…' : 'Type a message…'}
+          aria-label={answering ? 'Answer the agent question' : 'Chat message'}
           disabled={chatId == null || sending}
           enterToSend={enterToSend}
           canSubmit={canSend}
@@ -259,7 +291,7 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
             className="min-w-0"
             value={modelId}
             models={availableModels}
-            disabled={chatId == null || availableModels.length === 0}
+            disabled={answering || chatId == null || availableModels.length === 0}
             aria-label={getAiModelSelectAriaLabel(availableModels, selectedModelOption)}
             onChange={(nextValue) => {
               if (chatId == null) return;
@@ -268,13 +300,19 @@ export function ChatComposer({ chatId, aiSettings, selectedModel, sending }: Pro
           />
           <Button
             type="button"
-            variant={sending || canSend ? 'primary' : 'secondary'}
+            variant={sending || answering || canSend ? 'primary' : 'secondary'}
             className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] max-h-[32px] max-w-[32px] shrink-0 p-0"
-            disabled={sending ? false : !canSend}
-            aria-label={sending ? 'Stop generating' : 'Send message'}
-            onClick={() => (sending ? handleStop() : void handleSend())}
+            disabled={sending || answering ? false : !canSend}
+            aria-label={
+              sending ? 'Stop generating' : answering ? 'Discard paused turn' : 'Send message'
+            }
+            onClick={() => (sending || answering ? handleStop() : void handleSend())}
           >
-            <FaIcon icon={sending ? faStop : faArrowUp} className="h-3.5 w-3.5" aria-hidden />
+            <FaIcon
+              icon={sending || answering ? faStop : faArrowUp}
+              className="h-3.5 w-3.5"
+              aria-hidden
+            />
           </Button>
         </div>
       </div>

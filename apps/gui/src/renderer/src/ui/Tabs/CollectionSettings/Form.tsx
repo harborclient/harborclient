@@ -368,7 +368,6 @@ export function Form({
       extraDirty={extraDirty}
       dirtyReady={!providersLoading && !storageConnectionsLoading}
       disableSave={!resolvedConnectionId}
-      onClose={onClose}
       onDirtyChange={onDirtyChange}
       onDraftChange={onDraftChange}
       onSectionChange={onSectionChange}

@@ -11,7 +11,9 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "#/*": ["./src/*"]
+      "#/*": ["./src/*"],
+      "@harborclient/core": ["../core/src/index.ts"],
+      "@harborclient/core/*": ["../core/src/*"]
     }
   },
   "include": ["src/**/*.ts", "tsup.config.ts", "vitest.config.ts"]

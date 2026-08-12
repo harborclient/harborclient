@@ -13,6 +13,7 @@ import { initializeAiChat } from '#/renderer/src/store/thunks/aiChat';
 import { ChatComposer } from './ChatComposer';
 import { ChatTabBar } from './ChatTabBar';
 import { MessageList } from './MessageList';
+import { useAiChatStream } from './useAiChatStream';
 import { usePersistedAiChatSession } from './usePersistedAiChatSession';
 
 interface Props {
@@ -44,6 +45,11 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
    */
   usePersistedAiChatSession();
 
+  /**
+   * Subscribes once to AI chat stream IPC events for the mounted chat feature.
+   */
+  useAiChatStream();
+
   const activeMessages = activeChatId != null ? (messagesByChat[activeChatId] ?? []) : [];
   const selectedModel = activeChatId != null ? selectedModelByChat[activeChatId] : undefined;
   const sending = activeChatId != null ? Boolean(sendingByChat[activeChatId]) : false;
@@ -58,7 +64,7 @@ export function AiChat({ aiSettings }: Props): JSX.Element {
           aria-labelledby={`ai-chat-tab-${activeChatId}`}
           className="flex min-h-0 flex-1 flex-col bg-surface"
         >
-          <MessageList messages={activeMessages} sending={sending} />
+          <MessageList messages={activeMessages} sending={sending} chatId={activeChatId} />
           <ChatComposer
             chatId={activeChatId}
             aiSettings={aiSettings}

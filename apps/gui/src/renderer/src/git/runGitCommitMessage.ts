@@ -3,15 +3,15 @@ import {
   buildGitCommitMessageMessages,
   normalizeGitCommitMessage
 } from '@harborclient/core/ai/gitCommitMessage';
-import type { AiSettings, ChatStepMessage, HubLlmModelGroup } from '@harborclient/core/types';
+import {
+  AI_AGENT_MAX_RENDERER_STEP_ITERATIONS,
+  type AiSettings,
+  type ChatStepMessage,
+  type HubLlmModelGroup
+} from '@harborclient/core/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState } from '#/renderer/src/store/redux';
 import { persistGitCommitMessageModelId } from './gitCommitMessageModel';
-
-/**
- * Maximum number of LLM/tool iterations for commit message generation.
- */
-const MAX_TOOL_ITERATIONS = 6;
 
 interface RunGitCommitMessageParams {
   /**
@@ -92,7 +92,7 @@ export async function runGitCommitMessage({
   const messages: ChatStepMessage[] = buildGitCommitMessageMessages(connectionName, collectionUuid);
   let assistantText: string | null = null;
 
-  for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {
+  for (let iteration = 0; iteration < AI_AGENT_MAX_RENDERER_STEP_ITERATIONS; iteration += 1) {
     if (isCancelled?.()) {
       return null;
     }

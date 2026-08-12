@@ -324,6 +324,10 @@ export async function executeAiTool(
 
   try {
     switch (name) {
+      case 'ask_user':
+        return JSON.stringify({
+          error: 'ask_user is handled by the renderer turn orchestrator.'
+        });
       case 'get_selected_collection':
         return JSON.stringify(getSelectedCollection(ctx.getState()));
       case 'list_collections':

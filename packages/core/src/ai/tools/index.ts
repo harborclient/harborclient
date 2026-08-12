@@ -1,6 +1,7 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { z } from 'zod';
 import type { UpdateActiveRequestToolArgs } from '../requestUpdate';
+import { askUserTool } from './askUser';
 import { clearLiveServerLogsTool } from './clearLiveServerLogs';
 import { createCollectionTool } from './createCollection';
 import { createFolderTool } from './createFolder';
@@ -61,6 +62,7 @@ import { webpageTabTool } from './webpageTab';
 export type { UpdateActiveRequestToolArgs };
 export type { ITool } from './ITool';
 export { AI_SYSTEM_PROMPT, buildAiSystemPrompt } from './systemPrompt';
+export type { AskUserToolArgs } from './askUser';
 export type {
   CreateCollectionRequestRow,
   CreateSavedRequestKeyValue,
@@ -111,6 +113,7 @@ export type { WebpageTabToolArgs } from './webpageTab';
  * so consumers that iterate tools keep stable ordering.
  */
 export const AI_TOOLS = [
+  askUserTool,
   getSelectedCollectionTool,
   listCollectionsTool,
   getCollectionTool,

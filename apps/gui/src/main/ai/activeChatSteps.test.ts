@@ -25,6 +25,7 @@ describe('activeChatSteps', () => {
     trackActiveChatStep('step-1', first);
     trackActiveChatStep('step-1', second);
 
+    expect(first.signal.aborted).toBe(true);
     untrackActiveChatStep('step-1', first);
 
     cancelActiveChatStep('step-1');

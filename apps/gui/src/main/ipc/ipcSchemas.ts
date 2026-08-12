@@ -70,6 +70,7 @@ import { apisIoCollectionSchema } from '@harborclient/core/apisio/catalog';
 import { AI_TOOL_NAMES } from '@harborclient/core/ai/tools';
 import { isAbsoluteRepoPath, isGitDirectoryPath } from '#/main/git/repoRelativePath';
 import { pathHasParentSegment } from '#/main/pathHasParentSegment';
+import { isPendingAiChatTurn, type PendingAiChatTurn } from '@harborclient/core/types/aiChatStream';
 
 export {
   bodyType,
@@ -768,12 +769,29 @@ export const chatAddMessageInput = z.object({
   referenceSnapshots: z.record(z.string(), z.unknown()).optional()
 }) as z.ZodType<AddChatMessageInput>;
 
+/**
+ * Versioned recovery context for an AI turn paused on `ask_user`.
+ */
+export const pendingAiChatTurn = z.custom<PendingAiChatTurn>(
+  isPendingAiChatTurn,
+  'Invalid pending AI chat turn'
+);
+
 export const chatGenerateTitleInput = z.object({
   chatId: dbId,
   prompt: z.string().min(1),
   model: z.string().min(1),
   hubId: z.string().optional()
 }) satisfies z.ZodType<GenerateChatTitleInput>;
+
+/**
+ * Desktop stream execution metadata for one renderer outer-loop step.
+ */
+export const chatCompleteStepStreamContext = z.object({
+  chatId: z.number().int().positive(),
+  turnId: z.string().min(1).max(128),
+  stepIndex: z.number().int().nonnegative()
+});
 
 export const chatCompleteStepInput = z.object({
   model: z.string().min(1),
@@ -1298,9 +1316,42 @@ export const ipcArgSchemas = {
   ]),
   chatCreate: z.tuple([chatCreateInput]),
   chatGet: z.tuple([dbId]),
+  chatSavePendingTurn: z.tuple([pendingAiChatTurn]),
+  chatGetPendingTurn: z.tuple([dbId]),
+  chatDeletePendingTurn: z.tuple([dbId]),
   chatAddMessage: z.tuple([chatAddMessageInput]),
   chatGenerateTitle: z.tuple([chatGenerateTitleInput]),
-  chatCompleteStep: z.tuple([chatCompleteStepInput, requestId.optional()]),
+  chatCompleteStep: z
+    .tuple([
+      chatCompleteStepInput,
+      z.union([chatCompleteStepStreamContext, requestId]).optional(),
+      requestId.optional()
+    ])
+    .superRefine((args, ctx) => {
+      const [, second, third] = args;
+
+      if (second == null && third == null) {
+        return;
+      }
+
+      if (typeof second === 'string' && third == null) {
+        return;
+      }
+
+      if (
+        typeof second === 'object' &&
+        second != null &&
+        (third == null || typeof third === 'string')
+      ) {
+        return;
+      }
+
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'chats:completeStep accepts optional stepRequestId or stream context plus optional stepRequestId'
+      });
+    }),
   chatCancelStep: z.tuple([requestId]),
   chatDelete: z.tuple([dbId]),
   saveRequest: z.tuple([saveRequestInput]),

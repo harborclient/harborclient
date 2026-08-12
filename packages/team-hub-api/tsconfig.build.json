@@ -3,7 +3,11 @@
   "compilerOptions": {
     "noEmit": false,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@harborclient/core": ["../core/dist/index.d.ts"],
+      "@harborclient/core/*": ["../core/dist/*"]
+    }
   },
   "exclude": ["dist", "node_modules", "src/**/*.test.ts"]
 }

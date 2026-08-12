@@ -246,11 +246,6 @@ interface Props {
   onSave: (fields: ScopedSettingsCoreFields) => Promise<void>;
 
   /**
-   * Closes the settings view without saving.
-   */
-  onClose: () => void;
-
-  /**
    * Called when unsaved form edits appear or are cleared.
    */
   onDirtyChange?: (dirty: boolean) => void;
@@ -302,7 +297,6 @@ export function ScopedSettingsForm({
   dirtyReady = true,
   disableSave = false,
   onSave,
-  onClose,
   onDirtyChange,
   onDraftChange,
   onSectionChange,
@@ -435,7 +429,9 @@ export function ScopedSettingsForm({
   );
 
   /**
-   * Validates name, persists cleaned fields, then closes on success.
+   * Validates name and persists cleaned fields. Keeps the settings view open so
+   * the user can continue editing; callers close explicitly when needed (for
+   * example after a collection moves to a new storage id).
    * No-ops when the form is clean, name is empty, or save is otherwise blocked.
    */
   const handleSave = useCallback(async (): Promise<void> => {
@@ -447,11 +443,10 @@ export function ScopedSettingsForm({
     setSaving(true);
     try {
       await onSave(cleanScopedSettingsCoreFields(currentFields));
-      onClose();
     } finally {
       setSaving(false);
     }
-  }, [name, disableSave, isDirty, onSave, currentFields, onClose]);
+  }, [name, disableSave, isDirty, onSave, currentFields]);
 
   /**
    * Whether File → Save / Ctrl+S should invoke this form (mirrors Save button).

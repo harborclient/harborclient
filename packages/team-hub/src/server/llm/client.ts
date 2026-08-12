@@ -131,6 +131,31 @@ export interface RunLlmCompletionInput {
 }
 
 /**
+ * Incremental provider data exposed while a streamed completion is assembled.
+ */
+export interface LlmCompletionStreamDelta {
+  /**
+   * Assistant text emitted by the provider.
+   */
+  content?: string;
+}
+
+/**
+ * Options specific to a streamed provider completion.
+ */
+export interface RunLlmCompletionStreamOptions {
+  /**
+   * Receives text chunks as soon as the provider sends them.
+   */
+  onDelta: (delta: LlmCompletionStreamDelta) => void;
+
+  /**
+   * Cancels the upstream fetch and reader when the downstream client disconnects.
+   */
+  signal?: AbortSignal;
+}
+
+/**
  * Resolves the base URL for an OpenAI-compatible provider.
  *
  * @param provider - LLM provider to call.
@@ -248,6 +273,187 @@ function parseCompletionResponse(json: Record<string, unknown>): LlmCompletionRe
 }
 
 /**
+ * Applies one provider stream payload to the completion accumulators.
+ *
+ * @param json - Parsed SSE `data:` JSON payload.
+ * @param toolCalls - Tool calls keyed by OpenAI stream index.
+ * @param onDelta - Receives visible content chunks immediately.
+ * @returns Usage included by the payload, when supplied.
+ */
+function applyStreamPayload(
+  json: Record<string, unknown>,
+  toolCalls: Map<number, LlmToolCall>,
+  onDelta: RunLlmCompletionStreamOptions['onDelta']
+): LlmCompletionUsage | null {
+  const choices = json.choices;
+  if (Array.isArray(choices)) {
+    for (const choice of choices) {
+      if (choice == null || typeof choice !== 'object') {
+        continue;
+      }
+
+      const delta = (choice as Record<string, unknown>).delta;
+      if (delta == null || typeof delta !== 'object') {
+        continue;
+      }
+
+      const deltaRecord = delta as Record<string, unknown>;
+      if (typeof deltaRecord.content === 'string' && deltaRecord.content.length > 0) {
+        onDelta({ content: deltaRecord.content });
+      }
+
+      if (!Array.isArray(deltaRecord.tool_calls)) {
+        continue;
+      }
+
+      for (const rawCall of deltaRecord.tool_calls) {
+        if (rawCall == null || typeof rawCall !== 'object') {
+          continue;
+        }
+
+        const call = rawCall as Record<string, unknown>;
+        const index = typeof call.index === 'number' ? call.index : toolCalls.size;
+        const previous = toolCalls.get(index) ?? { id: '', name: '', arguments: '' };
+        const functionRecord =
+          call.function != null && typeof call.function === 'object'
+            ? (call.function as Record<string, unknown>)
+            : undefined;
+
+        toolCalls.set(index, {
+          id: typeof call.id === 'string' ? previous.id + call.id : previous.id,
+          name:
+            typeof functionRecord?.name === 'string'
+              ? previous.name + functionRecord.name
+              : previous.name,
+          arguments:
+            typeof functionRecord?.arguments === 'string'
+              ? previous.arguments + functionRecord.arguments
+              : previous.arguments
+        });
+      }
+    }
+  }
+
+  return json.usage != null && typeof json.usage === 'object'
+    ? parseUsage(json.usage as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Reads OpenAI-compatible SSE frames from a provider response.
+ *
+ * @param response - Successful provider response with an SSE body.
+ * @param options - Downstream delta and cancellation options.
+ * @returns Fully assembled content, tool calls, and usage.
+ */
+async function readCompletionStream(
+  response: Response,
+  options: RunLlmCompletionStreamOptions
+): Promise<LlmCompletionResult> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('text/event-stream')) {
+    throw new Error('The model returned an invalid streaming response.');
+  }
+  if (!response.body) {
+    throw new Error('The model returned an empty streaming response.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const toolCalls = new Map<number, LlmToolCall>();
+  let content = '';
+  let usage: LlmCompletionUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+  let buffer = '';
+  let dataLines: string[] = [];
+  let done = false;
+
+  /**
+   * Processes a completed SSE event, including multiline data fields.
+   */
+  const consumeEvent = (): void => {
+    if (dataLines.length === 0 || done) {
+      dataLines = [];
+      return;
+    }
+
+    const data = dataLines.join('\n');
+    dataLines = [];
+    if (data === '[DONE]') {
+      done = true;
+      return;
+    }
+
+    let json: Record<string, unknown>;
+    try {
+      json = JSON.parse(data) as Record<string, unknown>;
+    } catch {
+      throw new Error('The model returned an invalid streaming event.');
+    }
+
+    if (json.error != null) {
+      const providerError =
+        typeof json.error === 'object' ? (json.error as Record<string, unknown>) : undefined;
+      const message =
+        typeof json.error === 'string'
+          ? json.error
+          : typeof providerError?.message === 'string'
+            ? providerError.message
+            : 'The model returned a streaming error.';
+      throw new Error(message);
+    }
+
+    const reportedUsage = applyStreamPayload(json, toolCalls, (delta) => {
+      if (delta.content) {
+        content += delta.content;
+      }
+      options.onDelta(delta);
+    });
+    if (reportedUsage) {
+      usage = reportedUsage;
+    }
+  };
+
+  try {
+    while (!done) {
+      const { done: readerDone, value } = await reader.read();
+      buffer += decoder.decode(value, { stream: !readerDone });
+
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (line === '') {
+          consumeEvent();
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).replace(/^ /, ''));
+        }
+      }
+
+      if (readerDone) {
+        if (buffer.length > 0 && buffer.startsWith('data:')) {
+          dataLines.push(buffer.slice(5).replace(/^ /, ''));
+        }
+        consumeEvent();
+        break;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return {
+    content: content || null,
+    ...(toolCalls.size > 0
+      ? {
+          toolCalls: [...toolCalls.values()].filter(
+            (call) => call.id.length > 0 && call.name.length > 0
+          )
+        }
+      : {}),
+    usage
+  };
+}
+
+/**
  * Runs one OpenAI-compatible chat completion against a configured provider.
  *
  * @param config - Hub LLM configuration with provider API keys.
@@ -302,4 +508,60 @@ export async function runLlmCompletion(
 
   const json = (await response.json()) as Record<string, unknown>;
   return parseCompletionResponse(json);
+}
+
+/**
+ * Runs one OpenAI-compatible chat completion and emits assistant text while it arrives.
+ *
+ * @param config - Hub LLM configuration with provider API keys.
+ * @param input - Model, messages, optional system prompt, and tools.
+ * @param options - Delta callback and cancellation signal.
+ * @returns The same normalized result shape as the JSON completion path.
+ */
+export async function runLlmCompletionStream(
+  config: LlmConfig,
+  input: RunLlmCompletionInput,
+  options: RunLlmCompletionStreamOptions
+): Promise<LlmCompletionResult> {
+  const modelEntry = getHubModelById(input.model);
+  if (!modelEntry) {
+    throw new Error(`Unknown model: ${input.model}`);
+  }
+
+  const providerConfig = config.providers[modelEntry.provider];
+  if (!providerConfig?.apiKey.trim()) {
+    throw new Error(`Provider ${modelEntry.provider} is not configured on this hub.`);
+  }
+
+  const messages: Record<string, unknown>[] = [];
+  if (input.systemPrompt?.trim()) {
+    messages.push({ role: 'system', content: input.systemPrompt });
+  }
+  messages.push(...toProviderMessages(input.messages));
+
+  const body: Record<string, unknown> = { model: modelEntry.id, messages, stream: true };
+  if (input.tools && input.tools.length > 0) {
+    body.tools = input.tools;
+  }
+  body.stream_options = { include_usage: true };
+
+  const response = await fetch(`${resolveProviderBaseUrl(modelEntry.provider)}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${providerConfig.apiKey}`,
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream'
+    },
+    body: JSON.stringify(body),
+    signal: options.signal
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      errorText.trim() || `LLM request failed with status ${response.status.toString()}`
+    );
+  }
+
+  return readCompletionStream(response, options);
 }

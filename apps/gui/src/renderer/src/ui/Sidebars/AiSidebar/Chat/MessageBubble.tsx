@@ -2,7 +2,10 @@ import { fieldFrame } from '@harborclient/sdk/components';
 import type { JSX } from 'react';
 import type { ChatMessage } from '@harborclient/core/types';
 import { useAppSelector } from '#/renderer/src/store/hooks';
-import { selectRevealingMessageIdByChat } from '#/renderer/src/store/slices/aiChatSlice';
+import {
+  selectRevealingMessageIdByChat,
+  selectSkipRevealMessageIdByChat
+} from '#/renderer/src/store/slices/aiChatSlice';
 import { MarkdownContent } from './MarkdownContent';
 import { TypewriterMarkdown } from './TypewriterMarkdown';
 
@@ -21,16 +24,19 @@ interface Props {
 /**
  * Renders a full-width chat message bubble styled by role.
  *
- * Assistant replies may typewriter-reveal when marked in Redux; user messages
- * always show their full content immediately.
+ * Assistant replies may typewriter-reveal when marked in Redux; streamed assistant
+ * messages skip reveal and show immediately. User messages always show full content.
  *
  * @param props - Message and optional reveal scroll callback.
  * @returns Role-styled message bubble.
  */
 export function MessageBubble({ message, onRevealProgress }: Props): JSX.Element {
   const revealingMessageIdByChat = useAppSelector(selectRevealingMessageIdByChat);
+  const skipRevealMessageIdByChat = useAppSelector(selectSkipRevealMessageIdByChat);
   const isUser = message.role === 'user';
-  const isRevealing = !isUser && revealingMessageIdByChat[message.chatId] === message.id;
+  const skipReveal = skipRevealMessageIdByChat[message.chatId] === message.id;
+  const isRevealing =
+    !isUser && !skipReveal && revealingMessageIdByChat[message.chatId] === message.id;
 
   return (
     <div

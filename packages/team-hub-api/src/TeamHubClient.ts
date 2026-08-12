@@ -141,6 +141,7 @@ import type {
 } from './noticeTypes.js';
 import { readNoticeStreamBody } from './readNoticeStream.js';
 import type { NoticeStreamHandlers } from './noticeStreamTypes.js';
+import { readAiChatStreamBody, type AiChatStreamHandlers } from './readAiChatStream.js';
 import type { ChatStepMessage, ChatStepResult, ListHubLlmModelsResponse } from './appTypes.js';
 
 /**
@@ -171,6 +172,21 @@ export interface HubChatStepRequest {
    * System prompt injected ahead of the conversation messages.
    */
   systemPrompt?: string;
+}
+
+/**
+ * Input for POST /llm/chat/stream on Team Hub.
+ */
+export interface HubChatStepStreamRequest extends HubChatStepRequest {
+  /**
+   * Stable renderer turn identifier copied onto every stream event.
+   */
+  turnId: string;
+
+  /**
+   * Zero-based renderer outer-loop step index.
+   */
+  stepIndex: number;
 }
 
 /**
@@ -2159,6 +2175,102 @@ export class TeamHubClient implements ITeamHubClient {
       schema: hubChatStepResponseSchema
     });
     return result as ChatStepResult;
+  }
+
+  /**
+   * Runs one hub-proxied LLM completion step and consumes its canonical SSE events.
+   *
+   * The configured request timeout and optional caller cancellation both remain
+   * active for the full lifetime of the response body.
+   *
+   * @param input - Model input plus desktop turn and step correlation fields.
+   * @param handlers - Callback invoked for every validated stream event.
+   * @param signal - Optional caller cancellation signal.
+   * @returns Final backward-compatible result reconstructed from `step.end`.
+   */
+  async completeChatStepStream(
+    input: HubChatStepStreamRequest,
+    handlers: AiChatStreamHandlers,
+    signal?: AbortSignal
+  ): Promise<ChatStepResult> {
+    const method = 'POST';
+    const path = '/llm/chat/stream';
+    if (!this.token) {
+      throw new TeamHubClientError('Bearer token is required for authenticated requests', {
+        status: 0,
+        method,
+        path
+      });
+    }
+
+    const headers: Record<string, string> = {
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${this.token}`,
+      'Content-Type': 'application/json'
+    };
+    if (this.tenantId) {
+      headers['X-Harbor-Tenant'] = this.tenantId;
+    }
+
+    const timeoutSignal = AbortSignal.timeout(this.requestTimeoutMs);
+    const requestSignal = signal ? AbortSignal.any([timeoutSignal, signal]) : timeoutSignal;
+    let response: Response;
+    try {
+      response = await fetch(this.buildUrl(path), {
+        method,
+        headers,
+        body: JSON.stringify(input),
+        signal: requestSignal
+      });
+    } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
+      const message =
+        error instanceof Error && (error.name === 'TimeoutError' || timeoutSignal.aborted)
+          ? `Request timed out after ${this.requestTimeoutMs} ms`
+          : error instanceof Error
+            ? error.message
+            : 'Unknown network error';
+      throw new TeamHubClientError(message, { status: 0, method, path });
+    }
+
+    if (!response.ok) {
+      throw new TeamHubClientError(await this.parseErrorMessage(response), {
+        status: response.status,
+        method,
+        path
+      });
+    }
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('text/event-stream')) {
+      throw new TeamHubClientError('Response Content-Type is not text/event-stream', {
+        status: response.status,
+        method,
+        path
+      });
+    }
+    if (!response.body) {
+      throw new TeamHubClientError('AI chat stream response has no body', {
+        status: response.status,
+        method,
+        path
+      });
+    }
+
+    try {
+      return await readAiChatStreamBody(response.body, handlers, requestSignal);
+    } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
+      const message = timeoutSignal.aborted
+        ? `Request timed out after ${this.requestTimeoutMs} ms`
+        : error instanceof Error
+          ? error.message
+          : 'AI chat stream failed';
+      throw new TeamHubClientError(message, { status: response.status, method, path });
+    }
   }
 }
 

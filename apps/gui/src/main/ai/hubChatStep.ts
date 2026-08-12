@@ -1,11 +1,17 @@
-import { TEAM_HUB_TENANT_HEADER } from '@harborclient/team-hub-api';
+import { readAiChatStreamBody, TEAM_HUB_TENANT_HEADER } from '@harborclient/team-hub-api';
 import { createTeamHubClient } from '#/main/settings/teamHubClient';
 import { getHubOpenAiCapability, setHubOpenAiCapability } from './hubCapabilities';
 import { logVerbose } from '#/main/logger';
 import { mergeMcpClientTools } from '#/main/mcp/mergeMcpClientTools';
 import { listConnectedTeamHubs } from '#/main/settings/teamHubSettings';
+import { pushAiChatStreamMessage } from './pushAiChatStreamMessage';
 import { resolveChatStepMode } from '@harborclient/core/ai/chatStepMode';
-import type { ChatStepInput, ChatStepResult, HubLlmModelGroup } from '@harborclient/core/types';
+import type {
+  AiChatStreamContext,
+  ChatStepInput,
+  ChatStepResult,
+  HubLlmModelGroup
+} from '@harborclient/core/types';
 
 /**
  * Optional runtime controls for one hub chat step.
@@ -15,6 +21,11 @@ interface HubChatStepOptions {
    * Aborts the in-flight hub request when the user stops generation.
    */
   signal?: AbortSignal;
+
+  /**
+   * Desktop routing metadata that enables canonical Team Hub streaming.
+   */
+  streamContext?: AiChatStreamContext;
 }
 
 /**
@@ -94,11 +105,13 @@ async function parseHubErrorMessage(response: Response): Promise<string> {
  * @param hub - Target hub connection details.
  * @param input - Model and conversation messages for the step.
  * @param signal - Abort signal from the chat step tracker.
+ * @param streamContext - Optional desktop routing metadata enabling SSE.
  */
 async function fetchHubChatStep(
   hub: HubConnection,
   input: ChatStepInput,
-  signal: AbortSignal
+  signal: AbortSignal,
+  streamContext?: AiChatStreamContext
 ): Promise<ChatStepResult> {
   const combinedSignal = AbortSignal.any([AbortSignal.timeout(HUB_LLM_REQUEST_TIMEOUT_MS), signal]);
   const hubId = input.hubId?.trim();
@@ -108,7 +121,7 @@ async function fetchHubChatStep(
   const tools = mergeMcpClientTools(stepMode);
 
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    'Accept': streamContext ? 'text/event-stream' : 'application/json',
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${hub.token}`
   };
@@ -119,17 +132,23 @@ async function fetchHubChatStep(
 
   let response: Response;
   try {
-    response = await fetch(`${hub.baseUrl}/llm/chat/step`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: input.model,
-        messages: stepMode.messages,
-        tools,
-        systemPrompt: stepMode.systemPrompt
-      }),
-      signal: combinedSignal
-    });
+    response = await fetch(
+      `${hub.baseUrl}${streamContext ? '/llm/chat/stream' : '/llm/chat/step'}`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: input.model,
+          messages: stepMode.messages,
+          tools,
+          systemPrompt: stepMode.systemPrompt,
+          ...(streamContext
+            ? { turnId: streamContext.turnId, stepIndex: streamContext.stepIndex }
+            : {})
+        }),
+        signal: combinedSignal
+      }
+    );
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
@@ -145,6 +164,26 @@ async function fetchHubChatStep(
 
   if (!response.ok) {
     throw new Error(await parseHubErrorMessage(response));
+  }
+
+  if (streamContext) {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('text/event-stream')) {
+      throw new Error('Response Content-Type is not text/event-stream');
+    }
+    if (!response.body) {
+      throw new Error('AI chat stream response has no body');
+    }
+
+    const result = await readAiChatStreamBody(
+      response.body,
+      {
+        onEvent: (event) => pushAiChatStreamMessage(streamContext.chatId, event)
+      },
+      combinedSignal
+    );
+    logToolCalls(result);
+    return result;
   }
 
   const json = (await response.json()) as ChatStepResult;
@@ -218,7 +257,7 @@ export async function runHubChatCompletionStep(
   };
 
   if (options?.signal) {
-    return fetchHubChatStep(connection, input, options.signal);
+    return fetchHubChatStep(connection, input, options.signal, options.streamContext);
   }
 
   const client = createTeamHubClient(hub, {
@@ -230,12 +269,25 @@ export async function runHubChatCompletionStep(
   });
   const tools = mergeMcpClientTools(stepMode);
 
-  const result = await client.completeChatStep({
+  const request = {
     model: input.model,
     messages: stepMode.messages,
     tools: tools as unknown as Record<string, unknown>[],
     systemPrompt: stepMode.systemPrompt
-  });
+  };
+  const streamContext = options?.streamContext;
+  const result = streamContext
+    ? await client.completeChatStepStream(
+        {
+          ...request,
+          turnId: streamContext.turnId,
+          stepIndex: streamContext.stepIndex
+        },
+        {
+          onEvent: (event) => pushAiChatStreamMessage(streamContext.chatId, event)
+        }
+      )
+    : await client.completeChatStep(request);
   logToolCalls(result);
   return result;
 }

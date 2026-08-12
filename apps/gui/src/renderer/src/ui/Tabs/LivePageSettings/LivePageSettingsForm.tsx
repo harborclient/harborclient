@@ -222,7 +222,6 @@ export function LivePageSettingsForm({
         />
       )}
       onSave={handleSave}
-      onClose={onClose}
       onDraftChange={handleDraftChange}
     />
   );

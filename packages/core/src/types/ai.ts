@@ -370,4 +370,23 @@ export interface ChatStepResult {
    * Tool calls to execute in the renderer when present.
    */
   toolCalls?: ChatToolCall[];
+
+  /**
+   * Indicates that a nested streaming agent loop exhausted its configured
+   * iteration boundary. Consumers retain this metadata to present a useful
+   * continuation instead of treating the result as an ordinary empty answer.
+   */
+  iteration?: {
+    /**
+     * Whether the returned step stopped at an iteration limit.
+     */
+    hitIterationLimit: boolean;
+
+    /**
+     * The independently enforced loop boundary that was exhausted.
+     */
+    boundary: 'renderer_outer' | 'hub_inner';
+  };
 }
+
+export * from './aiChatStream';

@@ -75,6 +75,29 @@ the preload bridge or expose additional Node/Electron APIs to the renderer.
 Channel names follow the pattern `resource:action` (e.g. `collections:list`,
 `http:send`).
 
+## AI chat streaming
+
+HarborClient AI assistant turns use a versioned event contract (`AiChatStreamEvent`,
+`v: 1`) defined in `packages/core/src/types/aiChatStream.ts`. Canonical types
+include `turnId`, `stepIndex`, tool `owner` (`harbor` | `hub` | `renderer`), and
+nested iteration limits (`AI_AGENT_MAX_RENDERER_STEP_ITERATIONS` and
+`AI_AGENT_MAX_HUB_INNER_ITERATIONS`, both 8).
+
+| Layer                                  | Responsibility                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------- |
+| Team Hub `POST /llm/chat/stream`       | One hub agent step per invoke; emits `step.start` … `step.end` over SSE       |
+| `@harborclient/team-hub-api`           | `completeChatStepStream`, `readAiChatStreamBody`                              |
+| Desktop main (`apps/gui/src/main/ai/`) | Hub step runner, IPC push (`aiChat:stream`)                                   |
+| Renderer (`aiChatSlice`, chat UI)      | Full-turn orchestration; emits `turn.start`, `turn.end`, `turn.awaiting_user` |
+
+Hub `step.end` completes a single `completeChatStep` invoke; renderer `turn.end`
+marks the full user turn. `POST /llm/chat/step` JSON responses remain supported.
+
+Operator and integrator documentation:
+
+- Team Hub [AI chat stream protocol](https://harborclient.com/team-hub/ai-chat-stream)
+- Team Hub API [LLM chat streaming](https://harborclient.com/team-hub-api/usage#llm-chat-streaming)
+
 ## State management
 
 The renderer uses Redux Toolkit (`src/renderer/src/store/`). Slices live in

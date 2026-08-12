@@ -9,7 +9,12 @@
     "isolatedModules": true,
     "declaration": true,
     "declarationMap": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@harborclient/core": ["../core/src/index.ts"],
+      "@harborclient/core/*": ["../core/src/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

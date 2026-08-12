@@ -1439,6 +1439,105 @@ describe('TeamHubClient', () => {
     });
   });
 
+  describe('completeChatStepStream', () => {
+    it('posts stream context, forwards validated events, and returns step.end', async () => {
+      const events = [
+        { v: 1, type: 'step.start', turnId: 'turn-1', stepIndex: 0 },
+        {
+          v: 1,
+          type: 'step.end',
+          turnId: 'turn-1',
+          stepIndex: 0,
+          content: 'Streamed'
+        }
+      ];
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(''), {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream; charset=utf-8' }
+        })
+      );
+      globalThis.fetch = fetchMock;
+      const onEvent = vi.fn();
+
+      const result = await createClient().completeChatStepStream(
+        {
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: 'Hi' }],
+          turnId: 'turn-1',
+          stepIndex: 0
+        },
+        { onEvent }
+      );
+
+      expect(result).toEqual({ content: 'Streamed' });
+      expect(onEvent).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://127.0.0.1:8788/llm/chat/stream',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ Accept: 'text/event-stream' }),
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{ role: 'user', content: 'Hi' }],
+            turnId: 'turn-1',
+            stepIndex: 0
+          }),
+          signal: expect.any(AbortSignal)
+        })
+      );
+    });
+
+    it('rejects non-SSE responses before reading the body', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ content: 'Wrong transport' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+
+      await expect(
+        createClient().completeChatStepStream(
+          {
+            model: 'gpt-4o',
+            messages: [],
+            turnId: 'turn-1',
+            stepIndex: 0
+          },
+          { onEvent: vi.fn() }
+        )
+      ).rejects.toMatchObject({
+        name: 'TeamHubClientError',
+        message: 'Response Content-Type is not text/event-stream'
+      });
+    });
+
+    it('preserves caller aborts instead of converting them to client errors', async () => {
+      const controller = new AbortController();
+      globalThis.fetch = vi.fn((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      }) as typeof fetch;
+
+      const pending = createClient().completeChatStepStream(
+        {
+          model: 'gpt-4o',
+          messages: [],
+          turnId: 'turn-1',
+          stepIndex: 0
+        },
+        { onEvent: vi.fn() },
+        controller.signal
+      );
+      controller.abort();
+
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    });
+  });
+
   describe('listAdminCollectionFolders', () => {
     it('fetches folders for operator inspection', async () => {
       const collectionId = '550e8400-e29b-41d4-a716-446655440000';

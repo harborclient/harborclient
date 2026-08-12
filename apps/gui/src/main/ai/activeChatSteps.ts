@@ -8,11 +8,17 @@ const activeChatSteps = new Map<string, AbortController>();
 
 /**
  * Registers an AbortController so `chats:cancelStep` can abort the matching step.
+ * A duplicate client id aborts the prior owner before replacement, preventing two
+ * provider requests from surviving under one cancellation key.
  *
  * @param stepRequestId - Client-generated id passed to `chats:completeStep`.
  * @param controller - Controller whose signal is wired into the LLM request.
  */
 export function trackActiveChatStep(stepRequestId: string, controller: AbortController): void {
+  const priorController = activeChatSteps.get(stepRequestId);
+  if (priorController && priorController !== controller) {
+    priorController.abort();
+  }
   activeChatSteps.set(stepRequestId, controller);
 }
 

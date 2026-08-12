@@ -72,6 +72,7 @@ import {
 import type { SnippetScope } from '@harborclient/core/snippetScope';
 import { DEFAULT_SCRIPT_STAGE, normalizeScriptStage } from '@harborclient/core/scriptStage';
 import type { ScriptStage } from '@harborclient/sdk';
+import { isPendingAiChatTurn, type PendingAiChatTurn } from '@harborclient/core/types/aiChatStream';
 
 const REGISTRY_DB_FILENAME = 'harborclient-registry.db';
 const ENVIRONMENT_COLUMNS = 'id, uuid, name, variables, created_at, marker, parent_uuid';
@@ -781,6 +782,13 @@ export class LocalDatabase {
         model TEXT,
         reference_snapshots TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_pending_turns (
+        chat_id INTEGER PRIMARY KEY REFERENCES chats(id) ON DELETE CASCADE,
+        payload_version INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
       CREATE TABLE IF NOT EXISTS plugin_storage (
@@ -2814,6 +2822,76 @@ export class LocalDatabase {
       .all(id) as Record<string, unknown>[];
 
     return rowToChat(summaryRow, messageRows);
+  }
+
+  /**
+   * Stores the complete recovery context for a turn paused on `ask_user`.
+   *
+   * A chat owns at most one pending turn. The payload is validated before writing
+   * so future recovery never sees a malformed locally-created row.
+   *
+   * @param pendingTurn - Versioned paused-turn context to replace for its chat.
+   * @throws Error when the payload is invalid or the chat does not exist.
+   */
+  savePendingChatTurn(pendingTurn: PendingAiChatTurn): void {
+    if (!isPendingAiChatTurn(pendingTurn)) {
+      throw new Error('Invalid pending AI chat turn');
+    }
+
+    const chat = this.getDb().prepare('SELECT id FROM chats WHERE id = ?').get(pendingTurn.chatId);
+    if (!chat) {
+      throw new Error('Chat not found');
+    }
+
+    this.getDb()
+      .prepare(
+        `INSERT INTO chat_pending_turns (chat_id, payload_version, payload, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(chat_id) DO UPDATE SET
+           payload_version = excluded.payload_version,
+           payload = excluded.payload,
+           updated_at = excluded.updated_at`
+      )
+      .run(pendingTurn.chatId, pendingTurn.v, JSON.stringify(pendingTurn), pendingTurn.updatedAt);
+  }
+
+  /**
+   * Loads a valid pending turn for a chat, treating malformed or unsupported
+   * rows as absent so ordinary chat loading remains available.
+   *
+   * @param chatId - Chat id whose paused turn should be recovered.
+   * @returns Valid recovery context, or null when no usable row exists.
+   */
+  getPendingChatTurn(chatId: number): PendingAiChatTurn | null {
+    const row = this.getDb()
+      .prepare('SELECT payload_version, payload FROM chat_pending_turns WHERE chat_id = ?')
+      .get(chatId) as { payload_version: unknown; payload: unknown } | undefined;
+    if (!row || typeof row.payload !== 'string') {
+      return null;
+    }
+
+    try {
+      const value: unknown = JSON.parse(row.payload);
+      if (
+        !isPendingAiChatTurn(value) ||
+        value.chatId !== chatId ||
+        row.payload_version !== value.v
+      ) {
+        return null;
+      }
+      return value;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Removes the durable recovery context for a chat.
+   *
+   * @param chatId - Chat id whose pending turn should be discarded.
+   */
+  deletePendingChatTurn(chatId: number): void {
+    this.getDb().prepare('DELETE FROM chat_pending_turns WHERE chat_id = ?').run(chatId);
   }
 
   /**

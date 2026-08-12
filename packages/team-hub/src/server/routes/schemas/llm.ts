@@ -31,6 +31,22 @@ export const llmChatStepBodySchema = z.object({
 });
 
 /**
+ * Zod schema for POST /llm/chat/stream request body.
+ *
+ * The desktop supplies its stable turn and outer-step identifiers so Team Hub
+ * can emit events that correlate with the renderer's existing stream state.
+ */
+export const llmChatStreamBodySchema = llmChatStepBodySchema.extend({
+  turnId: z.string().trim().min(1).max(128),
+  stepIndex: z.number().int().nonnegative()
+});
+
+/**
+ * Validated input payload for one Team Hub chat SSE request.
+ */
+export type LlmChatStreamBody = z.infer<typeof llmChatStreamBodySchema>;
+
+/**
  * Zod schema for token usage returned by POST /llm/chat/step.
  */
 export const llmUsageSchema = z.object({

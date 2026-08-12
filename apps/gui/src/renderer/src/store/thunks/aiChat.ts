@@ -5,11 +5,21 @@ import {
   buildAiScriptSelectionContextMessage,
   collectChatReferenceSnapshots
 } from '@harborclient/core/ai/scriptReferences';
+import {
+  AI_AGENT_MAX_RENDERER_STEP_ITERATIONS,
+  AI_CHAT_STREAM_EVENT_VERSION,
+  AI_CHAT_STREAM_TOOL_RESULT_SUMMARY_MAX_LENGTH
+} from '@harborclient/core/types';
+import {
+  PENDING_AI_CHAT_TURN_VERSION,
+  type PendingAiChatTurn
+} from '@harborclient/core/types/aiChatStream';
 import type {
   AiSettings,
   ChatMessage,
   ChatStepMessage,
-  ChatSummary
+  ChatSummary,
+  ChatToolCall
 } from '@harborclient/core/types';
 import { executeAiToolCall } from '#/renderer/src/store/ai/aiToolExecutor';
 import type { AppDispatch, RootState, ThunkApiConfig } from '#/renderer/src/store/redux';
@@ -38,6 +48,7 @@ import {
 import { rehydrateChatReferenceSnapshots } from './rehydrateChatReferenceSnapshots';
 import {
   appendMessage,
+  applyAiChatStreamEvent,
   clearChatCancelState,
   clearSendError,
   closeChatTab,
@@ -53,12 +64,16 @@ import {
   setGithubModelsStatus,
   setSendError,
   setSending,
+  storeActiveTurnContext,
+  recoverPendingTurn,
   startMessageReveal,
+  resumeActiveTurn,
   setEnterToSend,
-  requestComposerFocus
+  requestComposerFocus,
+  invalidateActiveTurn,
+  claimTurnLifecycle,
+  releaseTurnLifecycle
 } from '#/renderer/src/store/slices/aiChatSlice';
-
-const MAX_TOOL_ITERATIONS = 6;
 
 /**
  * Prompts the user before the AI agent sends input to the active footer terminal.
@@ -117,6 +132,18 @@ function isUserChatCancellation(error: unknown, state: RootState, chatId: number
 }
 
 /**
+ * Returns whether a turn still owns a chat's mutable lifecycle state.
+ *
+ * @param state - Current Redux state.
+ * @param chatId - Chat whose owner is being checked.
+ * @param turnId - Turn attempting terminal cleanup.
+ * @returns True when terminal cleanup may mutate the chat's lifecycle state.
+ */
+function ownsTurnLifecycle(state: RootState, chatId: number, turnId: string): boolean {
+  return state.aiChat.lifecycleTurnIdByChat[chatId] === turnId;
+}
+
+/**
  * Maps persisted chat messages to LLM step messages.
  *
  * @param messages - Messages stored for a chat thread.
@@ -126,6 +153,443 @@ function historyToStepMessages(messages: ChatMessage[]): ChatStepMessage[] {
     role: message.role,
     content: message.content
   }));
+}
+
+/**
+ * Validated question data from an `ask_user` call.
+ */
+interface AskUserQuestion {
+  question: string;
+  choices?: string[];
+}
+
+/**
+ * Mutable protocol context shared by initial and resumed renderer loops.
+ */
+export interface ActiveTurnLoopContext {
+  chatId: number;
+  turnId: string;
+  model: string;
+  hubId?: string;
+  messages: ChatStepMessage[];
+  userContent: string;
+  startedAt: number;
+  stepCount: number;
+  toolCallCount: number;
+}
+
+/**
+ * Result of running a renderer-owned turn until pause or terminal completion.
+ */
+export interface ActiveTurnLoopResult {
+  status: 'completed' | 'cancelled' | 'paused';
+  assistantText: string | null;
+  stepCount: number;
+  toolCallCount: number;
+}
+
+/**
+ * Parses and validates one `ask_user` call without executing it as an ordinary tool.
+ *
+ * @param rawArgs - Provider-emitted JSON arguments.
+ * @returns Normalized question data or a deterministic validation error.
+ */
+function parseAskUserQuestion(rawArgs: string): AskUserQuestion | { error: string } {
+  let value: unknown;
+  try {
+    value = rawArgs.trim() ? (JSON.parse(rawArgs) as unknown) : {};
+  } catch {
+    return { error: 'Invalid ask_user arguments JSON.' };
+  }
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return { error: 'ask_user arguments must be an object.' };
+  }
+
+  const record = value as Record<string, unknown>;
+  const question = typeof record.question === 'string' ? record.question.trim() : '';
+  if (!question) {
+    return { error: 'ask_user requires a non-empty question.' };
+  }
+  if (record.choices === undefined) {
+    return { question };
+  }
+  if (
+    !Array.isArray(record.choices) ||
+    record.choices.length === 0 ||
+    record.choices.some((choice) => typeof choice !== 'string' || choice.trim().length === 0)
+  ) {
+    return { error: 'ask_user choices must be a non-empty array of non-empty strings.' };
+  }
+  return {
+    question,
+    choices: record.choices.map((choice) => (choice as string).trim())
+  };
+}
+
+/**
+ * Removes non-whitespace ASCII control characters from UI-facing tool output.
+ *
+ * @param value - Full tool result text.
+ * @returns Text safe to place in the live progress presentation.
+ */
+function removeUnsafeResultControls(value: string): string {
+  return Array.from(value)
+    .filter((character) => {
+      const code = character.charCodeAt(0);
+      return code === 9 || code === 10 || code === 13 || (code >= 32 && code !== 127);
+    })
+    .join('');
+}
+
+/**
+ * Produces a bounded, control-character-safe result summary for live tool progress.
+ *
+ * @param result - Full model-facing tool result.
+ * @returns UI-safe summary and inferred success flag.
+ */
+function summarizeToolResult(result: string): { summary: string; ok: boolean } {
+  const normalized = removeUnsafeResultControls(result).trim();
+  let ok = true;
+  try {
+    const parsed = JSON.parse(result) as unknown;
+    ok = !(
+      parsed != null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      typeof (parsed as Record<string, unknown>).error === 'string'
+    );
+  } catch {
+    // Plain-text tool output is a successful result unless execution supplied an error object.
+  }
+  const summary =
+    normalized.length > AI_CHAT_STREAM_TOOL_RESULT_SUMMARY_MAX_LENGTH
+      ? `${normalized.slice(0, AI_CHAT_STREAM_TOOL_RESULT_SUMMARY_MAX_LENGTH - 1)}…`
+      : normalized;
+  return { summary, ok };
+}
+
+/**
+ * Returns the persisted assistant reply used when the renderer-owned outer
+ * loop reaches its independent step cap.
+ *
+ * @returns A user-actionable continuation message.
+ */
+function outerIterationLimitContent(): string {
+  return 'I reached the desktop tool-step limit before completing the request. Please ask me to continue.';
+}
+
+/**
+ * Appends and presents one renderer-owned tool result while retaining its full model payload.
+ *
+ * @param context - Active turn protocol context.
+ * @param call - Tool call receiving the result.
+ * @param result - Full JSON/text result sent back to the model.
+ * @param dispatch - Redux dispatch used for live presentation.
+ */
+function appendDesktopToolResult(
+  context: ActiveTurnLoopContext,
+  call: ChatToolCall,
+  result: string,
+  dispatch: AppDispatch
+): void {
+  context.messages.push({
+    role: 'tool',
+    tool_call_id: call.id,
+    content: result
+  });
+  context.toolCallCount += 1;
+  const { summary, ok } = summarizeToolResult(result);
+  dispatch(
+    applyAiChatStreamEvent({
+      chatId: context.chatId,
+      event: {
+        v: AI_CHAT_STREAM_EVENT_VERSION,
+        type: 'tool.result',
+        turnId: context.turnId,
+        stepIndex: Math.max(0, context.stepCount - 1),
+        callId: call.id,
+        name: call.name,
+        owner: 'renderer',
+        summary,
+        ok
+      }
+    })
+  );
+}
+
+/**
+ * Runs provider steps and desktop tools until the turn completes, pauses, or is cancelled.
+ *
+ * @param context - Existing protocol snapshot and counters.
+ * @param dispatch - Redux dispatch for state and tool actions.
+ * @param getState - Reads cancellation and app state.
+ * @returns Loop outcome with terminal text and updated counters.
+ */
+export async function runActiveTurnLoop(
+  context: ActiveTurnLoopContext,
+  dispatch: AppDispatch,
+  getState: () => RootState
+): Promise<ActiveTurnLoopResult> {
+  let assistantText: string | null = null;
+
+  while (context.stepCount < AI_AGENT_MAX_RENDERER_STEP_ITERATIONS) {
+    if (getState().aiChat.cancelRequestedByChat[context.chatId]) {
+      return {
+        status: 'cancelled',
+        assistantText,
+        stepCount: context.stepCount,
+        toolCallCount: context.toolCallCount
+      };
+    }
+
+    const stepIndex = context.stepCount;
+    const stepRequestId = crypto.randomUUID();
+    dispatch(
+      setActiveStepRequestId({
+        chatId: context.chatId,
+        stepRequestId,
+        turnId: context.turnId
+      })
+    );
+
+    let step;
+    try {
+      step = await window.api.completeChatStep(
+        {
+          model: context.model,
+          messages: context.messages,
+          ...(context.hubId ? { hubId: context.hubId } : {})
+        },
+        {
+          chatId: context.chatId,
+          turnId: context.turnId,
+          stepIndex
+        },
+        stepRequestId
+      );
+      context.stepCount += 1;
+    } finally {
+      dispatch(
+        setActiveStepRequestId({
+          chatId: context.chatId,
+          stepRequestId: null,
+          turnId: context.turnId
+        })
+      );
+    }
+
+    if (getState().aiChat.cancelRequestedByChat[context.chatId]) {
+      return {
+        status: 'cancelled',
+        assistantText,
+        stepCount: context.stepCount,
+        toolCallCount: context.toolCallCount
+      };
+    }
+
+    const calls = step.toolCalls ?? [];
+    if (calls.length === 0) {
+      assistantText = step.content;
+      break;
+    }
+
+    context.messages.push({
+      role: 'assistant',
+      content: step.content,
+      tool_calls: calls
+    });
+
+    const validPause = calls
+      .map((call) => ({
+        call,
+        parsed: call.name === 'ask_user' ? parseAskUserQuestion(call.arguments) : null
+      }))
+      .find(
+        (candidate): candidate is { call: ChatToolCall; parsed: AskUserQuestion } =>
+          candidate.parsed != null && !('error' in candidate.parsed)
+      );
+
+    if (validPause != null) {
+      const skippedResult = JSON.stringify({
+        error: 'Skipped because another ask_user call paused the turn.'
+      });
+      for (const call of calls) {
+        if (call.id === validPause.call.id) {
+          context.toolCallCount += 1;
+          continue;
+        }
+        appendDesktopToolResult(context, call, skippedResult, dispatch);
+      }
+
+      dispatch(
+        storeActiveTurnContext({
+          chatId: context.chatId,
+          turnId: context.turnId,
+          messages: context.messages,
+          userContent: context.userContent,
+          startedAt: context.startedAt,
+          stepCount: context.stepCount,
+          toolCallCount: context.toolCallCount
+        })
+      );
+      const pendingTurn: PendingAiChatTurn = {
+        v: PENDING_AI_CHAT_TURN_VERSION,
+        chatId: context.chatId,
+        turnId: context.turnId,
+        model: context.model,
+        ...(context.hubId ? { hubId: context.hubId } : {}),
+        messages: context.messages,
+        toolCallId: validPause.call.id,
+        question: validPause.parsed.question,
+        ...(validPause.parsed.choices != null ? { choices: validPause.parsed.choices } : {}),
+        rendererStepCount: context.stepCount,
+        toolCallCount: context.toolCallCount,
+        userContent: context.userContent,
+        updatedAt: new Date().toISOString()
+      };
+      await window.api.savePendingChatTurn(pendingTurn);
+      dispatch(
+        applyAiChatStreamEvent({
+          chatId: context.chatId,
+          event: {
+            v: AI_CHAT_STREAM_EVENT_VERSION,
+            type: 'turn.awaiting_user',
+            turnId: context.turnId,
+            toolCallId: validPause.call.id,
+            question: validPause.parsed.question,
+            ...(validPause.parsed.choices != null ? { choices: validPause.parsed.choices } : {})
+          }
+        })
+      );
+      return {
+        status: 'paused',
+        assistantText: null,
+        stepCount: context.stepCount,
+        toolCallCount: context.toolCallCount
+      };
+    }
+
+    for (const call of calls) {
+      if (getState().aiChat.cancelRequestedByChat[context.chatId]) {
+        return {
+          status: 'cancelled',
+          assistantText,
+          stepCount: context.stepCount,
+          toolCallCount: context.toolCallCount
+        };
+      }
+
+      let result: string;
+      if (call.name === 'ask_user') {
+        const parsed = parseAskUserQuestion(call.arguments);
+        result = JSON.stringify(
+          'error' in parsed ? parsed : { error: 'ask_user could not pause this turn.' }
+        );
+      } else if (call.name === 'terminal_exec') {
+        const allowed = await confirmAgentTerminalCommand(call.arguments, getState, dispatch);
+        if (getState().aiChat.cancelRequestedByChat[context.chatId]) {
+          return {
+            status: 'cancelled',
+            assistantText,
+            stepCount: context.stepCount,
+            toolCallCount: context.toolCallCount
+          };
+        }
+        result = allowed
+          ? await executeAiToolCall(call.name, call.arguments, { getState, dispatch })
+          : JSON.stringify({ error: 'User declined to allow the terminal command.' });
+      } else {
+        result = await executeAiToolCall(call.name, call.arguments, { getState, dispatch });
+      }
+      appendDesktopToolResult(context, call, result, dispatch);
+    }
+  }
+
+  if (assistantText == null || assistantText.trim() === '') {
+    assistantText =
+      context.stepCount >= AI_AGENT_MAX_RENDERER_STEP_ITERATIONS
+        ? outerIterationLimitContent()
+        : 'I could not complete your request.';
+  }
+  const hitOuterIterationLimit =
+    context.stepCount >= AI_AGENT_MAX_RENDERER_STEP_ITERATIONS &&
+    assistantText === outerIterationLimitContent();
+
+  const assistantMessage = await window.api.addChatMessage({
+    chatId: context.chatId,
+    role: 'assistant',
+    content: assistantText,
+    model: context.model
+  });
+  dispatch(
+    applyAiChatStreamEvent({
+      chatId: context.chatId,
+      event: {
+        v: AI_CHAT_STREAM_EVENT_VERSION,
+        type: 'turn.end',
+        turnId: context.turnId,
+        content: assistantText,
+        ...(hitOuterIterationLimit
+          ? { iteration: { hitIterationLimit: true, boundary: 'renderer_outer' as const } }
+          : {})
+      }
+    })
+  );
+  dispatch(appendMessage(assistantMessage));
+  dispatch(startMessageReveal({ chatId: context.chatId, messageId: assistantMessage.id }));
+  await dispatch(refreshChatHistory());
+
+  return {
+    status: 'completed',
+    assistantText,
+    stepCount: context.stepCount,
+    toolCallCount: context.toolCallCount
+  };
+}
+
+/**
+ * Emits the exactly-once terminal plugin notification for a renderer-owned turn.
+ *
+ * @param context - Turn routing and retained plugin context.
+ * @param result - Terminal status, assistant content, counters, and optional error.
+ */
+function emitTerminalAfterTurn(
+  context: ActiveTurnLoopContext,
+  result: {
+    status: 'completed' | 'cancelled' | 'error';
+    assistantText: string | null;
+    stepCount: number;
+    toolCallCount: number;
+    error?: string;
+  }
+): void {
+  emitPluginAiAfterTurn({
+    chatId: context.chatId,
+    model: context.model,
+    ...(context.hubId ? { hubId: context.hubId } : {}),
+    userMessage: { content: context.userContent },
+    assistantMessage: result.assistantText != null ? { content: result.assistantText } : null,
+    status: result.status,
+    ...(result.error != null ? { error: { message: result.error } } : {}),
+    stats: {
+      stepCount: result.stepCount,
+      toolCallCount: result.toolCallCount,
+      durationMs: Date.now() - context.startedAt
+    }
+  });
+}
+
+/**
+ * Restores a valid paused turn into waiting UI without invoking a model.
+ *
+ * @param chatId - Chat id whose durable recovery state should be loaded.
+ * @param dispatch - Redux dispatch used to install recovered state.
+ */
+async function hydratePendingChatTurn(chatId: number, dispatch: AppDispatch): Promise<void> {
+  const pendingTurn = await window.api.getPendingChatTurn(chatId);
+  if (pendingTurn != null) {
+    dispatch(recoverPendingTurn(pendingTurn));
+  }
 }
 
 /**
@@ -185,6 +649,7 @@ export const loadChat = createAsyncThunk<number, number, ThunkApiConfig>(
     if (chat.model) {
       dispatch(setSelectedModel({ chatId, modelId: chat.model }));
     }
+    await hydratePendingChatTurn(chatId, dispatch as AppDispatch);
     dispatch(openChatTab(chatId));
     return chatId;
   }
@@ -271,6 +736,7 @@ export const initializeAiChat = createAsyncThunk<void, AiSettings, ThunkApiConfi
           if (chat.model) {
             dispatch(setSelectedModel({ chatId, modelId: chat.model }));
           }
+          await hydratePendingChatTurn(chatId, dispatch as AppDispatch);
         })
       );
       return;
@@ -458,18 +924,18 @@ export const sendChatMessage = createAsyncThunk<
     );
   }
 
-  dispatch(setSending({ chatId, sending: true }));
-
   const turnStartedAt = Date.now();
-  let stepCount = 0;
-  let toolCallCount = 0;
-  let turnStatus: 'completed' | 'cancelled' | 'error' = 'completed';
-  let turnError: string | undefined;
-  let assistantText: string | null = null;
   let modelFacingUserContent = trimmed;
+  const turnId = crypto.randomUUID();
+  dispatch(claimTurnLifecycle({ chatId, turnId }));
+  dispatch(setSending({ chatId, sending: true, turnId }));
+  let loopContext: ActiveTurnLoopContext | null = null;
+  let loopResult: ActiveTurnLoopResult | null = null;
+  let terminalStatus: 'completed' | 'cancelled' | 'error' | null = null;
+  let terminalError: string | undefined;
 
   try {
-    dispatch(clearChatCancelState(chatId));
+    dispatch(clearChatCancelState({ chatId, turnId }));
     const messages = historyToStepMessages(getState().aiChat.messagesByChat[chatId] ?? []);
     const selectionContext = buildAiScriptSelectionContextMessage(trimmed, validationContext);
     if (selectionContext != null) {
@@ -491,10 +957,14 @@ export const sendChatMessage = createAsyncThunk<
     });
 
     if (beforeTurn.cancelled) {
-      turnStatus = 'cancelled';
+      terminalStatus = 'cancelled';
       if (beforeTurn.cancelReason) {
         dispatch(setSendError({ chatId, message: beforeTurn.cancelReason }));
       }
+      return;
+    }
+    if (getState().aiChat.cancelRequestedByChat[chatId]) {
+      terminalStatus = 'cancelled';
       return;
     }
 
@@ -515,136 +985,205 @@ export const sendChatMessage = createAsyncThunk<
       });
     }
 
-    for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration += 1) {
-      if (getState().aiChat.cancelRequestedByChat[chatId]) {
-        turnStatus = 'cancelled';
-        break;
-      }
-
-      const stepRequestId = crypto.randomUUID();
-      dispatch(setActiveStepRequestId({ chatId, stepRequestId }));
-
-      let step;
-      try {
-        step = await window.api.completeChatStep(
-          {
-            model: modelId,
-            messages,
-            ...(hubId ? { hubId } : {})
-          },
-          stepRequestId
-        );
-        stepCount += 1;
-      } finally {
-        dispatch(setActiveStepRequestId({ chatId, stepRequestId: null }));
-      }
-
-      if (getState().aiChat.cancelRequestedByChat[chatId]) {
-        turnStatus = 'cancelled';
-        break;
-      }
-
-      if (step.toolCalls && step.toolCalls.length > 0) {
-        messages.push({
-          role: 'assistant',
-          content: step.content,
-          tool_calls: step.toolCalls
-        });
-
-        for (const call of step.toolCalls) {
-          if (getState().aiChat.cancelRequestedByChat[chatId]) {
-            turnStatus = 'cancelled';
-            break;
-          }
-
-          if (call.name === 'terminal_exec') {
-            const allowed = await confirmAgentTerminalCommand(
-              call.arguments,
-              getState,
-              dispatch as AppDispatch
-            );
-            if (!allowed) {
-              messages.push({
-                role: 'tool',
-                tool_call_id: call.id,
-                content: JSON.stringify({ error: 'User declined to allow the terminal command.' })
-              });
-              continue;
-            }
-          }
-
-          const result = await executeAiToolCall(call.name, call.arguments, {
-            getState,
-            dispatch
-          });
-          toolCallCount += 1;
-          messages.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            content: result
-          });
-        }
-
-        if (getState().aiChat.cancelRequestedByChat[chatId]) {
-          turnStatus = 'cancelled';
-          break;
-        }
-        continue;
-      }
-
-      assistantText = step.content;
-      break;
-    }
-
-    if (getState().aiChat.cancelRequestedByChat[chatId]) {
-      turnStatus = 'cancelled';
-      return;
-    }
-
-    if (turnStatus === 'cancelled') {
-      return;
-    }
-
-    if (assistantText == null || assistantText.trim() === '') {
-      assistantText = 'I could not complete your request.';
-    }
-
-    const assistantMessage = await window.api.addChatMessage({
+    loopContext = {
       chatId,
-      role: 'assistant',
-      content: assistantText,
-      model: modelId
-    });
-    dispatch(appendMessage(assistantMessage));
-    dispatch(startMessageReveal({ chatId, messageId: assistantMessage.id }));
-    await dispatch(refreshChatHistory());
-  } catch (error) {
-    if (isUserChatCancellation(error, getState(), chatId)) {
-      turnStatus = 'cancelled';
-      return;
-    }
-    turnStatus = 'error';
-    const message =
-      error instanceof Error ? error.message : 'Failed to get a response from the model.';
-    turnError = message;
-    dispatch(setSendError({ chatId, message }));
-  } finally {
-    emitPluginAiAfterTurn({
-      chatId,
+      turnId,
       model: modelId,
       ...(hubId ? { hubId } : {}),
-      userMessage: { content: modelFacingUserContent },
-      assistantMessage: assistantText != null ? { content: assistantText } : null,
-      status: turnStatus,
-      ...(turnError != null ? { error: { message: turnError } } : {}),
-      stats: {
-        stepCount,
-        toolCallCount,
-        durationMs: Date.now() - turnStartedAt
+      messages,
+      userContent: modelFacingUserContent,
+      startedAt: turnStartedAt,
+      stepCount: 0,
+      toolCallCount: 0
+    };
+    dispatch(
+      applyAiChatStreamEvent({
+        chatId,
+        event: {
+          v: AI_CHAT_STREAM_EVENT_VERSION,
+          type: 'turn.start',
+          turnId,
+          model: modelId,
+          ...(hubId ? { hubId } : {})
+        }
+      })
+    );
+    loopResult = await runActiveTurnLoop(loopContext, dispatch as AppDispatch, getState);
+    if (loopResult.status === 'paused') {
+      return;
+    }
+    terminalStatus = loopResult.status;
+  } catch (error) {
+    if (isUserChatCancellation(error, getState(), chatId)) {
+      terminalStatus = 'cancelled';
+      return;
+    }
+    terminalStatus = 'error';
+    const message =
+      error instanceof Error ? error.message : 'Failed to get a response from the model.';
+    terminalError = message;
+    dispatch(setSendError({ chatId, message }));
+  } finally {
+    if (terminalStatus != null) {
+      if (ownsTurnLifecycle(getState(), chatId, turnId)) {
+        await window.api.deletePendingChatTurn(chatId);
       }
-    });
-    dispatch(setSending({ chatId, sending: false }));
-    dispatch(clearChatCancelState(chatId));
+      if (loopContext != null && terminalStatus !== 'completed') {
+        dispatch(
+          applyAiChatStreamEvent({
+            chatId,
+            event:
+              terminalStatus === 'cancelled'
+                ? {
+                    v: AI_CHAT_STREAM_EVENT_VERSION,
+                    type: 'turn.cancelled',
+                    turnId
+                  }
+                : {
+                    v: AI_CHAT_STREAM_EVENT_VERSION,
+                    type: 'turn.error',
+                    turnId,
+                    message: terminalError ?? 'Failed to get a response from the model.'
+                  }
+          })
+        );
+      }
+      emitTerminalAfterTurn(
+        loopContext ?? {
+          chatId,
+          turnId,
+          model: modelId,
+          ...(hubId ? { hubId } : {}),
+          messages: [],
+          userContent: modelFacingUserContent,
+          startedAt: turnStartedAt,
+          stepCount: 0,
+          toolCallCount: 0
+        },
+        {
+          status: terminalStatus,
+          assistantText: loopResult?.assistantText ?? null,
+          stepCount: loopResult?.stepCount ?? loopContext?.stepCount ?? 0,
+          toolCallCount: loopResult?.toolCallCount ?? loopContext?.toolCallCount ?? 0,
+          ...(terminalError != null ? { error: terminalError } : {})
+        }
+      );
+      dispatch(setSending({ chatId, sending: false, turnId }));
+    }
+    dispatch(clearChatCancelState({ chatId, turnId }));
+    if (terminalStatus != null) {
+      dispatch(releaseTurnLifecycle({ chatId, turnId }));
+    }
+  }
+});
+
+/**
+ * Resumes a paused `ask_user` call by supplying the answer as its tool result.
+ */
+export const resumeChatMessage = createAsyncThunk<
+  void,
+  { chatId: number; answer: string },
+  ThunkApiConfig
+>('aiChat/resumeMessage', async ({ chatId, answer }, { dispatch, getState }) => {
+  const trimmed = answer.trim();
+  const state = getState();
+  const active = state.aiChat.activeTurnByChat[chatId];
+  const activeModel = active?.model ?? state.aiChat.selectedModelByChat[chatId];
+  if (
+    !trimmed ||
+    !activeModel ||
+    active == null ||
+    active.phase !== 'awaiting_user' ||
+    active.pendingQuestion == null
+  ) {
+    return;
+  }
+
+  const messages: ChatStepMessage[] = [
+    ...active.stepMessages,
+    {
+      role: 'tool',
+      tool_call_id: active.pendingQuestion.toolCallId,
+      content: trimmed
+    }
+  ];
+  const context: ActiveTurnLoopContext = {
+    chatId,
+    turnId: active.turnId,
+    model: activeModel,
+    ...(active.hubId ? { hubId: active.hubId } : {}),
+    messages,
+    userContent: active.userContent ?? '',
+    startedAt: active.startedAt ?? Date.now(),
+    stepCount: active.stepCount ?? 0,
+    toolCallCount: active.toolCallCount ?? 0
+  };
+
+  dispatch(
+    resumeActiveTurn({
+      chatId,
+      turnId: active.turnId,
+      messages: messages.map((message) => ({ ...message }))
+    })
+  );
+  dispatch(clearSendError(chatId));
+  dispatch(clearChatCancelState({ chatId, turnId: active.turnId }));
+  await window.api.deletePendingChatTurn(chatId);
+
+  let loopResult: ActiveTurnLoopResult | null = null;
+  let terminalStatus: 'completed' | 'cancelled' | 'error' | null = null;
+  let terminalError: string | undefined;
+  try {
+    loopResult = await runActiveTurnLoop(context, dispatch as AppDispatch, getState);
+    if (loopResult.status === 'paused') {
+      return;
+    }
+    terminalStatus = loopResult.status;
+  } catch (error) {
+    terminalStatus = isUserChatCancellation(error, getState(), chatId) ? 'cancelled' : 'error';
+    if (terminalStatus === 'error') {
+      terminalError =
+        error instanceof Error ? error.message : 'Failed to resume the response from the model.';
+      dispatch(setSendError({ chatId, message: terminalError }));
+    }
+  } finally {
+    if (terminalStatus != null) {
+      if (ownsTurnLifecycle(getState(), chatId, context.turnId)) {
+        await window.api.deletePendingChatTurn(chatId);
+      }
+      if (terminalStatus !== 'completed') {
+        dispatch(
+          applyAiChatStreamEvent({
+            chatId,
+            event:
+              terminalStatus === 'cancelled'
+                ? {
+                    v: AI_CHAT_STREAM_EVENT_VERSION,
+                    type: 'turn.cancelled',
+                    turnId: context.turnId
+                  }
+                : {
+                    v: AI_CHAT_STREAM_EVENT_VERSION,
+                    type: 'turn.error',
+                    turnId: context.turnId,
+                    message: terminalError ?? 'Failed to resume the response from the model.'
+                  }
+          })
+        );
+      }
+      emitTerminalAfterTurn(context, {
+        status: terminalStatus,
+        assistantText: loopResult?.assistantText ?? null,
+        stepCount: loopResult?.stepCount ?? context.stepCount,
+        toolCallCount: loopResult?.toolCallCount ?? context.toolCallCount,
+        ...(terminalError != null ? { error: terminalError } : {})
+      });
+      dispatch(setSending({ chatId, sending: false, turnId: context.turnId }));
+    }
+    dispatch(clearChatCancelState({ chatId, turnId: context.turnId }));
+    if (terminalStatus != null) {
+      dispatch(releaseTurnLifecycle({ chatId, turnId: context.turnId }));
+    }
   }
 });
 
@@ -654,6 +1193,47 @@ export const sendChatMessage = createAsyncThunk<
 export const cancelChatMessage = createAsyncThunk<void, number, ThunkApiConfig>(
   'aiChat/cancelMessage',
   async (chatId, { dispatch, getState }) => {
+    const active = getState().aiChat.activeTurnByChat[chatId];
+    if (active?.phase === 'awaiting_user') {
+      const activeModel =
+        active.model ?? getState().aiChat.selectedModelByChat[chatId] ?? 'unknown';
+      const stepCount = active.stepCount ?? 0;
+      const toolCallCount = active.toolCallCount ?? 0;
+      await window.api.deletePendingChatTurn(chatId);
+      dispatch(
+        applyAiChatStreamEvent({
+          chatId,
+          event: {
+            v: AI_CHAT_STREAM_EVENT_VERSION,
+            type: 'turn.cancelled',
+            turnId: active.turnId
+          }
+        })
+      );
+      emitTerminalAfterTurn(
+        {
+          chatId,
+          turnId: active.turnId,
+          model: activeModel,
+          ...(active.hubId ? { hubId: active.hubId } : {}),
+          messages: active.stepMessages,
+          userContent: active.userContent ?? '',
+          startedAt: active.startedAt ?? Date.now(),
+          stepCount,
+          toolCallCount
+        },
+        {
+          status: 'cancelled',
+          assistantText: null,
+          stepCount,
+          toolCallCount
+        }
+      );
+      dispatch(clearChatCancelState(chatId));
+      dispatch(releaseTurnLifecycle({ chatId, turnId: active.turnId }));
+      return;
+    }
+
     if (!getState().aiChat.sendingByChat[chatId]) {
       return;
     }
@@ -661,6 +1241,8 @@ export const cancelChatMessage = createAsyncThunk<void, number, ThunkApiConfig>(
     dispatch(requestChatCancel(chatId));
 
     const stepRequestId = getState().aiChat.activeStepRequestIdByChat[chatId];
+    dispatch(invalidateActiveTurn(chatId));
+    await window.api.deletePendingChatTurn(chatId);
     if (stepRequestId) {
       await window.api.cancelChatStep(stepRequestId);
     }

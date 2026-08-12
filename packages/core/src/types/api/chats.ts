@@ -1,5 +1,7 @@
 import type {
   AddChatMessageInput,
+  AiChatStreamContext,
+  AiChatStreamRendererMessage,
   Chat,
   ChatMessage,
   ChatStepInput,
@@ -11,6 +13,7 @@ import type {
   GithubModelsStatus,
   HubLlmModelGroup
 } from '../ai';
+import type { PendingAiChatTurn } from '../aiChatStream';
 
 /**
  * IPC methods for chats.
@@ -33,6 +36,24 @@ export interface ApiChats {
    */
   getChat: (id: number) => Promise<Chat | null>;
   /**
+   * Saves the full recovery context for a turn paused on `ask_user`.
+   *
+   * @param pendingTurn - Versioned paused-turn payload for one chat.
+   */
+  savePendingChatTurn: (pendingTurn: PendingAiChatTurn) => Promise<void>;
+  /**
+   * Loads the durable paused-turn context for a chat when it is valid.
+   *
+   * @param chatId - Chat id to inspect.
+   */
+  getPendingChatTurn: (chatId: number) => Promise<PendingAiChatTurn | null>;
+  /**
+   * Removes a durable paused-turn context before terminal cleanup or discard.
+   *
+   * @param chatId - Chat id whose paused context should be cleared.
+   */
+  deletePendingChatTurn: (chatId: number) => Promise<void>;
+  /**
    * Appends a message to a chat thread.
    *
    * @param input - Chat id, role, content, and optional model.
@@ -48,9 +69,14 @@ export interface ApiChats {
    * Runs one LLM completion step with tool definitions and returns text or tool calls.
    *
    * @param input - Model id and conversation messages for the step.
-   * @param stepRequestId - Optional client id used to cancel the in-flight step.
+   * @param streamContextOrStepRequestId - Optional stream context or legacy step request id.
+   * @param stepRequestId - Optional client id used to cancel the in-flight step when stream context is provided.
    */
-  completeChatStep: (input: ChatStepInput, stepRequestId?: string) => Promise<ChatStepResult>;
+  completeChatStep: (
+    input: ChatStepInput,
+    streamContextOrStepRequestId?: AiChatStreamContext | string,
+    stepRequestId?: string
+  ) => Promise<ChatStepResult>;
   /**
    * Aborts an in-flight LLM completion step by its client-side step request id.
    *
@@ -90,6 +116,12 @@ export interface ApiChats {
   onGithubModelsSignInFinished: (
     callback: (event: GithubModelsSignInFinishedEvent) => void
   ) => () => void;
+  /**
+   * Subscribes to normalized AI chat stream events pushed from the main process.
+   *
+   * @param callback - Handler invoked for validated stream events correlated by chat id.
+   */
+  onAiChatStream: (callback: (message: AiChatStreamRendererMessage) => void) => () => void;
   /**
    * Deletes a chat and its messages.
    *
