@@ -168,7 +168,13 @@ export function SidebarFolderItem({
               level,
               setSize,
               posInSet,
-              onClick: () => onNameClick(),
+              onClick: (event) => {
+                // Ignore the second click of a double-click.
+                if (event.detail > 1) {
+                  return;
+                }
+                onNameClick();
+              },
               onKeyDown: onNameEnter != null ? handleNameKeyDown : undefined
             }
           : undefined

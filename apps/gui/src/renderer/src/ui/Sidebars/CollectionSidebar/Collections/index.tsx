@@ -1253,9 +1253,13 @@ export function Collections(): JSX.Element {
                       className={`${SIDEBAR_CHEVRON_LABEL_OFFSET_CLASS} min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent py-0 text-left leading-none text-inherit`}
                       data-sidebar-collection-id={collection.id}
                       aria-current={selected ? 'true' : undefined}
-                      onClick={() =>
-                        handleCollectionNameClick(collection, collectionConnectionId, expanded)
-                      }
+                      onClick={(event) => {
+                        // Ignore the second click of a double-click.
+                        if (event.detail > 1) {
+                          return;
+                        }
+                        handleCollectionNameClick(collection, collectionConnectionId, expanded);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key !== 'Enter') return;
                         e.preventDefault();
