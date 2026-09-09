@@ -196,7 +196,7 @@
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.5.0",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
-    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.3.1",
     "@lezer/highlight": "^1.2.3",
     "@uiw/codemirror-themes-all": "^4.25.10",
