@@ -65,6 +65,10 @@ import {
 } from '#/main/settings/requestEditorSettings';
 import { getPageSidebarSection, setPageSidebarSection } from '#/main/settings/pageSidebarSettings';
 import {
+  getScopedSettingsSection,
+  setScopedSettingsSection
+} from '#/main/settings/scopedSettingsSection';
+import {
   getCollectionRunnerConfig,
   setCollectionRunnerConfig
 } from '#/main/settings/collectionRunnerSettings';
@@ -975,6 +979,20 @@ export function registerSettingsHandlers(db: IStorage): void {
   handle('pageSidebar:setSection', ipcArgSchemas.setPageSidebarSection, (_event, key, section) => {
     setPageSidebarSection(key, section);
   });
+
+  // Returns the persisted SegmentedTabs section for collection or folder settings.
+  handle('scopedSettings:getSection', ipcArgSchemas.storageKey, (_event, key) =>
+    getScopedSettingsSection(key)
+  );
+
+  // Persists the SegmentedTabs section for collection or folder settings.
+  handle(
+    'scopedSettings:setSection',
+    ipcArgSchemas.setScopedSettingsSection,
+    (_event, key, section) => {
+      setScopedSettingsSection(key, section);
+    }
+  );
 
   // Returns persisted sidebar expansion for sections, collections, and folders.
   handle('sidebar:getExpansion', ipcArgSchemas.none, () => getSidebarExpansion());

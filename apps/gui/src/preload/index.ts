@@ -4060,6 +4060,25 @@ function setPageSidebarSection(key: string, section: string): Promise<void> {
 }
 
 /**
+ * Returns the persisted SegmentedTabs section for collection or folder settings.
+ *
+ * @param key - `collection` or `folder`.
+ */
+function getScopedSettingsSection(key: string): Promise<string | null> {
+  return ipcRenderer.invoke('scopedSettings:getSection', key);
+}
+
+/**
+ * Persists the SegmentedTabs section for collection or folder settings.
+ *
+ * @param key - `collection` or `folder`.
+ * @param section - Section id to remember.
+ */
+function setScopedSettingsSection(key: string, section: string): Promise<void> {
+  return ipcRenderer.invoke('scopedSettings:setSection', key, section);
+}
+
+/**
  * Returns persisted sidebar expansion for sections, collections, and folders.
  */
 function getSidebarExpansion(): Promise<SidebarExpansionState> {
@@ -5962,6 +5981,8 @@ const api: Api = {
   deleteRequestEditorTab,
   getPageSidebarSection,
   setPageSidebarSection,
+  getScopedSettingsSection,
+  setScopedSettingsSection,
   getSidebarExpansion,
   setSidebarExpansion,
   getPanelLayout,

@@ -170,6 +170,17 @@ export function Form({
   const baselineConnectionId = collection.connectionId || primaryProviderId;
 
   /**
+   * Replaces a remembered or deep-linked Git section with General when this
+   * collection is not git-backed, after storage connections have loaded.
+   */
+  const resolvedFocusSection = useMemo(() => {
+    if (focusSection === 'git' && !isGitBacked && !storageConnectionsLoading) {
+      return 'general';
+    }
+    return focusSection;
+  }, [focusSection, isGitBacked, storageConnectionsLoading]);
+
+  /**
    * Normalized persisted snapshot used to seed and compare scoped form fields.
    */
   const initial = useMemo(
@@ -359,7 +370,7 @@ export function Form({
       initial={initial}
       seed={seed}
       focusVariableKey={focusVariableKey}
-      focusSection={focusSection}
+      focusSection={resolvedFocusSection}
       preScriptDescription="Runs in the collection pre-request stage before every request, ahead of each request's pre-request stage. Supports {{variable}} syntax."
       postScriptDescription="Runs in the collection post-request stage after every request, following each request's post-request stage. Supports {{variable}} syntax."
       extraTabs={extraTabs}

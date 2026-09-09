@@ -48,7 +48,6 @@ import {
   isTeamHubSnippetsUnsupportedError
 } from '@harborclient/team-hub-api';
 import { logVerbose } from '#/main/logger';
-import { isTeamHubConnected } from '#/main/settings/teamHubConnectionState';
 import { isStorageConnectionConfigured } from '#/main/settings/storageSettings';
 import { parseJson } from '@harborclient/core/parseJson';
 import { getSlotForConnection } from '#/main/settings/storageSlots';
@@ -555,7 +554,9 @@ export class RoutingStorage implements IStorage {
    * Lists all collections from the registry, hydrating data from each provider.
    *
    * When a provider is reachable, registry entries whose collection no longer
-   * exists remotely are pruned before results are returned.
+   * exists remotely are pruned before results are returned. Unmounted providers
+   * (disconnected, offline, or failed to mount) are skipped without warnings so
+   * an unrelated collection save does not surface those connections as errors.
    */
   async listCollections(): Promise<Collection[]> {
     this.listCollectionWarnings = [];
@@ -567,11 +568,7 @@ export class RoutingStorage implements IStorage {
     for (const connectionId of neededConnectionIds) {
       const backend = this.byConnectionId.get(connectionId);
       if (!backend) {
-        if (isTeamHubConnected(connectionId)) {
-          this.listCollectionWarnings.push(
-            `Could not load collection data: database connection "${connectionId}" is unavailable.`
-          );
-        }
+        logVerbose('collections:list:unmounted', { connectionId });
         continue;
       }
       try {

@@ -429,6 +429,18 @@ export function ScopedSettingsForm({
   );
 
   /**
+   * Tab shown in the strip. Falls back to General when the selected section is
+   * gone (for example a plugin tab after uninstall). Git is left alone because
+   * that tab is injected after storage connections finish loading.
+   */
+  const visibleTab = useMemo(() => {
+    if (tab === 'git' || tabs.some((entry) => entry.value === tab)) {
+      return tab;
+    }
+    return 'general';
+  }, [tab, tabs]);
+
+  /**
    * Validates name and persists cleaned fields. Keeps the settings view open so
    * the user can continue editing; callers close explicitly when needed (for
    * example after a collection moves to a new storage id).
@@ -594,7 +606,7 @@ export function ScopedSettingsForm({
   if (chrome === 'footer') {
     return (
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        <SegmentedTabsGroup value={tab} onChange={handleTabChange} ariaLabel={ariaLabel}>
+        <SegmentedTabsGroup value={visibleTab} onChange={handleTabChange} ariaLabel={ariaLabel}>
           <div className="shrink-0">
             <SegmentedTabs
               fullWidth
@@ -619,7 +631,7 @@ export function ScopedSettingsForm({
       description={description}
       actions={saveButton}
     >
-      <SegmentedTabsGroup value={tab} onChange={handleTabChange} ariaLabel={ariaLabel}>
+      <SegmentedTabsGroup value={visibleTab} onChange={handleTabChange} ariaLabel={ariaLabel}>
         <div className="-mx-6 -mt-3 mb-6 shrink-0">
           <SegmentedTabs
             tabs={tabs}

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import toast from 'react-hot-toast';
 import { defaultAuth } from '@harborclient/core/auth';
 import type { Collection, ListCollectionsResult } from '@harborclient/core/types';
 import type { RequestDraft } from '#/renderer/src/store/tabs';
@@ -160,6 +161,7 @@ beforeEach(() => {
   importEntityMock.mockReset();
   importCollectionFromUrlMock.mockReset();
   refreshCollectionFromUrlMock.mockReset();
+  vi.mocked(toast.error).mockClear();
 });
 
 afterEach(() => {
@@ -295,6 +297,36 @@ describe('refreshCollections', () => {
 
     expect(store.getState().collections.selectedCollectionId).toBeNull();
   });
+
+  it('toasts backend list warnings on an explicit refresh', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [sampleCollection(1, 'Local')],
+      warnings: ['Could not load collection data: database connection "offline" is unavailable.']
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    await store.dispatch(refreshCollections());
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'Could not load collection data: database connection "offline" is unavailable.'
+    );
+  });
+
+  it('does not toast backend list warnings during a silent refresh', async () => {
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [sampleCollection(1, 'Local')],
+      warnings: ['Could not load collection data: database connection "offline" is unavailable.']
+    });
+
+    const { store } = await import('#/renderer/src/store/redux');
+    const { refreshCollections } = await import('#/renderer/src/store/thunks/collections');
+
+    await store.dispatch(refreshCollections({ silent: true }));
+
+    expect(toast.error).not.toHaveBeenCalled();
+  });
 });
 
 describe('refreshGitWorkingTreeContents', () => {
@@ -407,6 +439,39 @@ describe('updateCollection', () => {
     const collection = store.getState().collections.collections.find((item) => item.id === 1);
     expect(collection?.connectionId).toBe('conn-b');
     expect(collection?.name).toBe('Original');
+  });
+
+  it('does not toast list warnings from other connections after a successful save', async () => {
+    const { store } = await import('#/renderer/src/store/redux');
+    const { setCollections } = await import('#/renderer/src/store/slices/collectionsSlice');
+    const { updateCollection } = await import('#/renderer/src/store/thunks/collections');
+
+    store.dispatch(setCollections([sampleCollection(1, 'Original', 'conn-a')]));
+    updateCollectionMock.mockResolvedValue(sampleCollection(1, 'Updated', 'conn-a'));
+    listCollectionsMock.mockResolvedValueOnce({
+      collections: [sampleCollection(1, 'Updated', 'conn-a')],
+      warnings: [
+        'Could not load collection data: database connection "6bfe7937-cef0-4cfc-b8bb-5982956040bd" is unavailable.'
+      ]
+    });
+
+    await store
+      .dispatch(
+        updateCollection({
+          id: 1,
+          name: 'Updated',
+          variables: [],
+          headers: [],
+          preRequestScript: '',
+          postRequestScript: '',
+          auth: defaultAuth(),
+          userAgent: ''
+        })
+      )
+      .unwrap();
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(store.getState().collections.collections[0]?.name).toBe('Updated');
   });
 });
 

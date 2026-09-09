@@ -203,7 +203,7 @@ export function ActionsMenu({
 
   /**
    * Assembles collection row action groups from named sections so the
-   * menu structure stays readable and order stays explicit (New, Git, Settings, Copy ID, Copy to chat, Run, …).
+   * menu structure stays readable and order stays explicit (New, Settings, Git, Copy ID, Copy to chat, Run, …).
    */
   const menuGroups = useMemo((): MenuItem[][] => {
     const groups: MenuItem[][] = [];
@@ -227,6 +227,10 @@ export function ActionsMenu({
             }
           ]
         ]
+      },
+      {
+        label: 'Settings',
+        onSelect: () => onConfigureCollection(collection.id)
       }
     ];
 
@@ -261,13 +265,7 @@ export function ActionsMenu({
       });
     }
 
-    createGroup.push(
-      {
-        label: 'Settings',
-        onSelect: () => onConfigureCollection(collection.id)
-      },
-      buildCopyIdMenuItem(collection.uuid)
-    );
+    createGroup.push(buildCopyIdMenuItem(collection.uuid));
 
     if (aiAvailable) {
       createGroup.push({

@@ -14,6 +14,10 @@ import {
 import { isPageTab, type ScopedSettingsDraft } from '#/renderer/src/store/tabs';
 import { selectFoldersByCollection } from '#/renderer/src/store/selectors';
 import { updateFolder } from '#/renderer/src/store/thunks';
+import {
+  rememberScopedSettingsSection,
+  resolveRememberedScopedSettingsFocusSection
+} from '#/renderer/src/store/scopedSettingsSectionMemory';
 import { FolderSettings } from '#/renderer/src/ui/Tabs/FolderSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
@@ -44,6 +48,19 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
   );
 
   /**
+   * Remembers the selected settings section on this tab and for later opens.
+   *
+   * @param section - SegmentedTabs value the user selected.
+   */
+  const handleSectionChange = useCallback(
+    (section: string): void => {
+      rememberScopedSettingsSection('folder', section);
+      dispatch(setPageFocusSection({ tabId, focusSection: section }));
+    },
+    [dispatch, tabId]
+  );
+
+  /**
    * Tracks unsaved edits on the page tab and the legacy navigation dirty flag.
    *
    * @param dirty - Whether the form currently differs from the last save.
@@ -66,12 +83,12 @@ export function FolderPageRoute({ page, tabId }: PageComponentProps<'folder'>): 
     <FolderSettings
       folder={folder}
       focusVariableKey={page.focusVariableKey}
-      focusSection={page.focusSection}
+      focusSection={resolveRememberedScopedSettingsFocusSection('folder', page.focusSection)}
       tabId={tabId}
       seed={seed}
       onDirtyChange={handleDirtyChange}
       onDraftChange={handleDraftChange}
-      onSectionChange={(section) => dispatch(setPageFocusSection({ tabId, focusSection: section }))}
+      onSectionChange={handleSectionChange}
       onSave={async (
         id: number,
         collectionId: number,

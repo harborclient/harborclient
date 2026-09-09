@@ -97,8 +97,9 @@ interface Props<T extends string> extends Omit<
   visibleTabValues?: T[];
 
   /**
-   * Initial visible tab values for uncontrolled visibility. Defaults to all
-   * non-`hidden` tabs. Keep a copy in the parent to reset saved preferences.
+   * Initial visible tab values for uncontrolled visibility. Defaults to every
+   * tab value, including currently `hidden` tabs, so they reappear checked when
+   * they become available. Keep a copy in the parent to reset saved preferences.
    */
   defaultVisibleTabValues?: T[];
 
@@ -184,15 +185,25 @@ export function SegmentedTabs<T extends string>({
     ? (tabValue: T) => context.getPanelId(tabValue)
     : (tabValue: T) => `${standaloneId}-panel-${tabValue}`;
 
+  /**
+   * Tabs the user can show, hide, or select. `hidden` is temporary availability
+   * (for example Body on GET), not a VisibilityMenu preference.
+   */
   const editableTabs = useMemo(() => tabs.filter((tab) => !tab.hidden), [tabs]);
+
+  /**
+   * Default visibility includes currently hidden tabs so they stay checked when
+   * they become available again on this editor instance.
+   */
   const defaultVisible = useMemo(
-    () => defaultVisibleTabValues ?? editableTabs.map((tab) => tab.value),
-    [defaultVisibleTabValues, editableTabs]
+    () => defaultVisibleTabValues ?? tabs.map((tab) => tab.value),
+    [defaultVisibleTabValues, tabs]
   );
 
   const [internalVisibleTabValues, setInternalVisibleTabValues] = useState<T[]>(defaultVisible);
   const visibleTabValues = visibleTabValuesProp ?? internalVisibleTabValues;
   const visibleSet = useMemo(() => new Set(visibleTabValues), [visibleTabValues]);
+  const knownTabValuesRef = useRef<Set<T>>(new Set(tabs.map((tab) => tab.value)));
 
   const visibleTabs = editable
     ? editableTabs.filter((tab) => visibleSet.has(tab.value))
@@ -228,7 +239,7 @@ export function SegmentedTabs<T extends string>({
         nextVisibleSet.add(tabValue);
       }
 
-      const nextVisibleTabValues = editableTabs
+      const nextVisibleTabValues = tabs
         .filter((tab) => nextVisibleSet.has(tab.value))
         .map((tab) => tab.value);
 
@@ -244,6 +255,7 @@ export function SegmentedTabs<T extends string>({
     [
       editableTabs,
       onChange,
+      tabs,
       updateVisibleTabValues,
       value,
       visibleSet,
@@ -253,17 +265,60 @@ export function SegmentedTabs<T extends string>({
   );
 
   /**
-   * When visibility changes externally, select the first visible tab if the
-   * current selection is hidden.
+   * Adds tabs that appear after mount (plugin tabs) to the uncontrolled visible
+   * set. Does not re-add a value the user already unchecked.
    */
   useEffect(() => {
-    if (!editable || visibleSet.has(value)) return;
+    if (visibleTabValuesProp !== undefined) {
+      knownTabValuesRef.current = new Set(tabs.map((tab) => tab.value));
+      return;
+    }
+
+    const newlyAppeared = tabs
+      .map((tab) => tab.value)
+      .filter((tabValue) => !knownTabValuesRef.current.has(tabValue));
+    knownTabValuesRef.current = new Set(tabs.map((tab) => tab.value));
+
+    if (newlyAppeared.length === 0) return;
+
+    updateVisibleTabValues([...visibleTabValues, ...newlyAppeared]);
+  }, [tabs, updateVisibleTabValues, visibleTabValues, visibleTabValuesProp]);
+
+  /**
+   * Restores a tab to the strip when every remaining visible tab becomes
+   * `hidden`, and moves selection onto a tab that is actually in the strip.
+   */
+  useEffect(() => {
+    if (!editable) return;
+
+    if (visibleTabs.length === 0 && editableTabs.length > 0) {
+      const firstAvailable = editableTabs[0];
+      if (!visibleSet.has(firstAvailable.value)) {
+        updateVisibleTabValues([...visibleTabValues, firstAvailable.value]);
+      }
+      if (value !== firstAvailable.value) {
+        onChange(firstAvailable.value);
+      }
+      return;
+    }
+
+    const valueInStrip = visibleTabs.some((tab) => tab.value === value);
+    if (valueInStrip) return;
 
     const nextSelectedTab = visibleTabs[0];
     if (nextSelectedTab) {
       onChange(nextSelectedTab.value);
     }
-  }, [editable, onChange, value, visibleSet, visibleTabs]);
+  }, [
+    editable,
+    editableTabs,
+    onChange,
+    updateVisibleTabValues,
+    value,
+    visibleSet,
+    visibleTabValues,
+    visibleTabs
+  ]);
 
   const outerClassName = cn(
     'hc-segmented-tabs',

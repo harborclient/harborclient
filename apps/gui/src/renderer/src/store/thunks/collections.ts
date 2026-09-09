@@ -99,38 +99,59 @@ export function isPristineDefaultRequestTab(tab: Tab): boolean {
 }
 
 /**
+ * Refresh payload that reloads sidebar collections without toasting warnings
+ * from unrelated offline or unmounted providers.
+ */
+const SILENT_COLLECTION_REFRESH = { silent: true } as const;
+
+/**
+ * Options for {@link refreshCollections}.
+ */
+export interface RefreshCollectionsOptions {
+  /**
+   * When true, backend list warnings are not toasted. Use after a successful
+   * mutation so an unrelated disconnected database does not appear as an error.
+   */
+  silent?: boolean;
+}
+
+/**
  * Reloads all collections from the active database and auto-selects the first
  * non-archived collection when none is selected or the selection is archived.
+ *
+ * @param options - Optional refresh behavior. When `silent` is true, backend
+ *   list warnings are not toasted.
  */
-export const refreshCollections = createAsyncThunk<Collection[], void, ThunkApiConfig>(
-  'collections/refresh',
-  async (_, { dispatch, getState }) => {
-    const generation = beginRefreshGeneration(COLLECTIONS_REFRESH_KEY);
-    const { collections, warnings } = await window.api.listCollections();
-    if (!isLatestRefreshGeneration(COLLECTIONS_REFRESH_KEY, generation)) {
-      return getState().collections.collections;
-    }
+export const refreshCollections = createAsyncThunk<
+  Collection[],
+  RefreshCollectionsOptions | undefined,
+  ThunkApiConfig
+>('collections/refresh', async (options, { dispatch, getState }) => {
+  const generation = beginRefreshGeneration(COLLECTIONS_REFRESH_KEY);
+  const { collections, warnings } = await window.api.listCollections();
+  if (!isLatestRefreshGeneration(COLLECTIONS_REFRESH_KEY, generation)) {
+    return getState().collections.collections;
+  }
+  if (!options?.silent) {
     for (const warning of warnings) {
       toast.error(warning);
     }
-    dispatch(setCollections(collections));
-    const selectedId = getState().collections.selectedCollectionId;
-    const selectedCollection =
-      selectedId != null
-        ? collections.find((collection) => collection.id === selectedId)
-        : undefined;
-    const selectedIsActive = selectedCollection != null && !selectedCollection.archived;
-    if (selectedId != null && !selectedIsActive) {
-      dispatch(setSelectedCollectionId(null));
-    }
-    if (!selectedIsActive) {
-      const firstActive = collections.find((collection) => !collection.archived);
-      dispatch(setSelectedCollectionId(firstActive?.id ?? null));
-    }
-    emitPluginLibraryChanged({ reason: 'collections' });
-    return collections;
   }
-);
+  dispatch(setCollections(collections));
+  const selectedId = getState().collections.selectedCollectionId;
+  const selectedCollection =
+    selectedId != null ? collections.find((collection) => collection.id === selectedId) : undefined;
+  const selectedIsActive = selectedCollection != null && !selectedCollection.archived;
+  if (selectedId != null && !selectedIsActive) {
+    dispatch(setSelectedCollectionId(null));
+  }
+  if (!selectedIsActive) {
+    const firstActive = collections.find((collection) => !collection.archived);
+    dispatch(setSelectedCollectionId(firstActive?.id ?? null));
+  }
+  emitPluginLibraryChanged({ reason: 'collections' });
+  return collections;
+});
 
 /**
  * Reloads folder metadata for a single collection.
@@ -255,7 +276,7 @@ export const refreshGitWorkingTreeContents = createAsyncThunk<
   string,
   ThunkApiConfig
 >('collections/refreshGitWorkingTreeContents', async (connectionId, { dispatch, getState }) => {
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
 
   const state = getState();
   const primaryConnectionId = await window.api.getActiveStorageId();
@@ -288,7 +309,7 @@ export const createCollection = createAsyncThunk<
   ThunkApiConfig
 >('collections/create', async ({ name, providerId }, { dispatch }) => {
   const collection = await window.api.createCollection(name, providerId);
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
   dispatch(setSelectedCollectionId(collection.id));
   return collection;
 });
@@ -351,7 +372,7 @@ export const createGitCollection = createAsyncThunk<
   ThunkApiConfig
 >('collections/createGitCollection', async ({ name, connectionId }, { dispatch }) => {
   const collection = await window.api.createCollection(name, connectionId);
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
   dispatch(setSelectedCollectionId(collection.id));
   return collection;
 });
@@ -437,14 +458,14 @@ export const updateCollection = createAsyncThunk<
           postRequestScripts
         );
       } catch (err) {
-        await dispatch(refreshCollections());
+        await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
         throw new Error(
           'Collection was moved to the new database, but your settings could not be saved. Open collection settings and save again.',
           { cause: err }
         );
       }
 
-      await dispatch(refreshCollections());
+      await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
       dispatch(setSelectedCollectionId(updated.id));
       await dispatch(refreshCollectionContents(updated.id));
       return updated;
@@ -463,7 +484,7 @@ export const updateCollection = createAsyncThunk<
       postRequestScripts
     );
 
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     const refreshed = getState().collections.collections.find((item) => item.id === id);
     if (!refreshed) {
       throw new Error(`Collection not found after update: ${id}`);
@@ -483,7 +504,7 @@ export const deleteCollection = createAsyncThunk<void, number, ThunkApiConfig>(
     if (getState().collections.selectedCollectionId === id) {
       dispatch(setSelectedCollectionId(null));
     }
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     await syncTrash(dispatch);
   }
 );
@@ -511,7 +532,7 @@ export const emptyArchive = createAsyncThunk<void, void, ThunkApiConfig>(
       dispatch(setSelectedCollectionId(null));
     }
 
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     await syncTrash(dispatch);
   }
 );
@@ -531,7 +552,7 @@ export const setCollectionArchived = createAsyncThunk<
   if (archived && getState().collections.selectedCollectionId === id) {
     dispatch(setSelectedCollectionId(null));
   }
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
 });
 
 /**
@@ -541,7 +562,7 @@ export const duplicateCollection = createAsyncThunk<Collection, number, ThunkApi
   'collections/duplicate',
   async (id, { dispatch, getState }) => {
     const created = await window.api.duplicateCollection(id);
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
 
     const collections = getState().collections.collections;
     const sourceIndex = collections.findIndex((item) => item.id === id);
@@ -579,7 +600,7 @@ export const importCollection = createAsyncThunk<Collection | null, void, ThunkA
     const collection = await window.api.importCollection();
     if (!collection) return null;
 
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     dispatch(setSelectedCollectionId(collection.id));
     await dispatch(refreshCollectionContents(collection.id));
     return collection;
@@ -595,7 +616,7 @@ export const importCollectionFromUrl = createAsyncThunk<Collection | null, strin
     const collection = await window.api.importCollectionFromUrl(url);
     if (!collection) return null;
 
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     dispatch(setSelectedCollectionId(collection.id));
     await dispatch(refreshCollectionContents(collection.id));
     return collection;
@@ -609,7 +630,7 @@ export const refreshCollectionFromUrl = createAsyncThunk<Collection, number, Thu
   'collections/refreshFromUrl',
   async (id, { dispatch }) => {
     const collection = await window.api.refreshCollectionFromUrl(id);
-    await dispatch(refreshCollections());
+    await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
     await dispatch(refreshCollectionContents(id));
     return collection;
   }
@@ -626,7 +647,7 @@ export const importPublicCollection = createAsyncThunk<
   const collection = await window.api.importPublicCollection(item);
   if (!collection) return null;
 
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
   dispatch(setSelectedCollectionId(collection.id));
   await dispatch(refreshCollectionContents(collection.id));
   return collection;
@@ -675,7 +696,7 @@ export const importFromMenu = createAsyncThunk<ImportEntityResult | null, void, 
 
     switch (result.kind) {
       case 'collection': {
-        await dispatch(refreshCollections());
+        await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
         dispatch(setSelectedCollectionId(result.collection.id));
         await dispatch(refreshCollectionContents(result.collection.id));
         toast.success(result.action === 'updated' ? 'Collection updated' : 'Collection imported');
@@ -763,7 +784,7 @@ export const reorderCollections = createAsyncThunk<
 >('collections/reorderCollections', async ({ orderedCollectionIds }, { dispatch }) => {
   dispatch(reorderCollectionsLocal({ orderedCollectionIds }));
   await window.api.reorderCollections(orderedCollectionIds);
-  await dispatch(refreshCollections());
+  await dispatch(refreshCollections(SILENT_COLLECTION_REFRESH));
 });
 
 /**

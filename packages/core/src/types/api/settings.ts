@@ -77,6 +77,19 @@ export interface ApiSettings {
    */
   setPageSidebarSection: (key: string, section: string) => Promise<void>;
   /**
+   * Returns the persisted SegmentedTabs section for collection or folder settings.
+   *
+   * @param key - `collection` or `folder`.
+   */
+  getScopedSettingsSection: (key: string) => Promise<string | null>;
+  /**
+   * Persists the SegmentedTabs section for collection or folder settings.
+   *
+   * @param key - `collection` or `folder`.
+   * @param section - Section id to remember.
+   */
+  setScopedSettingsSection: (key: string, section: string) => Promise<void>;
+  /**
    * Returns persisted sidebar expansion for sections, collections, and folders.
    */
   getSidebarExpansion: () => Promise<SidebarExpansionState>;

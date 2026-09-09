@@ -17,6 +17,10 @@ import {
 import { isPageTab, type ScopedSettingsDraft } from '#/renderer/src/store/tabs';
 import { selectCollections } from '#/renderer/src/store/selectors';
 import { updateCollection } from '#/renderer/src/store/thunks';
+import {
+  rememberScopedSettingsSection,
+  resolveRememberedScopedSettingsFocusSection
+} from '#/renderer/src/store/scopedSettingsSectionMemory';
 import { CollectionSettings } from '#/renderer/src/ui/Tabs/CollectionSettings';
 import { formatErrorMessage, showAlert } from '#/renderer/src/ui/Modals/dialogHelpers';
 
@@ -67,6 +71,19 @@ export function CollectionPageRoute({
   );
 
   /**
+   * Remembers the selected settings section on this tab and for later opens.
+   *
+   * @param section - SegmentedTabs value the user selected.
+   */
+  const handleSectionChange = useCallback(
+    (section: string): void => {
+      rememberScopedSettingsSection('collection', section);
+      dispatch(setPageFocusSection({ tabId, focusSection: section }));
+    },
+    [dispatch, tabId]
+  );
+
+  /**
    * Tracks unsaved edits on the page tab and the legacy navigation dirty flag.
    *
    * @param dirty - Whether the form currently differs from the last save.
@@ -90,14 +107,14 @@ export function CollectionPageRoute({
     <CollectionSettings
       collection={collection}
       focusVariableKey={page.focusVariableKey}
-      focusSection={page.focusSection}
+      focusSection={resolveRememberedScopedSettingsFocusSection('collection', page.focusSection)}
       tabId={tabId}
       seed={seed}
       connectionIdSeed={connectionIdSeed}
       onDirtyChange={handleDirtyChange}
       onDraftChange={handleDraftChange}
       onConnectionIdChange={handleConnectionIdChange}
-      onSectionChange={(section) => dispatch(setPageFocusSection({ tabId, focusSection: section }))}
+      onSectionChange={handleSectionChange}
       onSave={async (
         id: number,
         name: string,

@@ -260,7 +260,7 @@ describeSqlite('RoutingStorage collections', () => {
     expect(listed[0]?.name).toBe('My API');
   });
 
-  it('listCollections tolerates an unmounted provider', async () => {
+  it('listCollections skips an unmounted provider without warnings', async () => {
     const { router, database } = await createRoutingFixture({ mountB: false });
     database.addRegistryEntry({
       name: 'Orphan',
@@ -272,9 +272,7 @@ describeSqlite('RoutingStorage collections', () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]?.name).toBe('Orphan');
     expect(listed[0]?.variables).toEqual([]);
-    expect(router.consumeCollectionListWarnings()).toEqual([
-      'Could not load collection data: database connection "missing-conn" is unavailable.'
-    ]);
+    expect(router.consumeCollectionListWarnings()).toEqual([]);
   });
 
   it('listCollections omits warnings when a team hub is soft-disconnected', async () => {

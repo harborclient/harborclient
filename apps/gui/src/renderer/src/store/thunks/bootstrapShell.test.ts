@@ -6,6 +6,7 @@ import {
   resetSidebarExpansionPrefetchForTests
 } from '#/renderer/src/store/sidebarExpansionPrefetch';
 import { resetPanelLayoutHydratedForTests } from '#/renderer/src/store/panelLayoutHydration';
+import { resetScopedSettingsSectionMemoryForTests } from '#/renderer/src/store/scopedSettingsSectionMemory';
 import { waitForPaint } from './bootstrapShell';
 
 const hydrateOpenTabs = vi.fn(() => ({ type: 'tabs/hydrateOpenTabs' }));
@@ -90,10 +91,12 @@ describe('bootstrapShellForReveal', () => {
   }));
   const getGeneralSettings = vi.fn(async () => ({ requestTimeoutMs: 30_000 }));
   const getTheme = vi.fn(async () => 'system' as const);
+  const getScopedSettingsSection = vi.fn(async () => null);
 
   beforeEach(() => {
     resetPanelLayoutHydratedForTests();
     resetSidebarExpansionPrefetchForTests();
+    resetScopedSettingsSectionMemoryForTests();
     hydrateOpenTabs.mockClear();
     hydrateTerminalLayout.mockClear();
     refreshCollections.mockClear();
@@ -101,6 +104,7 @@ describe('bootstrapShellForReveal', () => {
     refreshCollectionContents.mockClear();
     openSeededBuiltinRequestIfNeeded.mockClear();
     getSidebarExpansion.mockClear();
+    getScopedSettingsSection.mockClear();
 
     vi.stubGlobal('localStorage', {
       getItem: () => null,
@@ -114,7 +118,8 @@ describe('bootstrapShellForReveal', () => {
         setPanelLayout: vi.fn(async () => undefined),
         getGeneralSettings,
         getTheme,
-        getSidebarExpansion
+        getSidebarExpansion,
+        getScopedSettingsSection
       }
     });
   });
@@ -122,6 +127,7 @@ describe('bootstrapShellForReveal', () => {
   afterEach(() => {
     resetPanelLayoutHydratedForTests();
     resetSidebarExpansionPrefetchForTests();
+    resetScopedSettingsSectionMemoryForTests();
     vi.unstubAllGlobals();
   });
 
@@ -189,5 +195,7 @@ describe('bootstrapShellForReveal', () => {
     );
     expect(refreshCollectionContents).toHaveBeenCalledWith(42);
     expect(openSeededBuiltinRequestIfNeeded).toHaveBeenCalled();
+    expect(getScopedSettingsSection).toHaveBeenCalledWith('collection');
+    expect(getScopedSettingsSection).toHaveBeenCalledWith('folder');
   });
 });

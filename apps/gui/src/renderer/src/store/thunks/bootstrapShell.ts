@@ -4,6 +4,7 @@ import { setGeneralSettingsState } from '#/renderer/src/store/slices/settingsSli
 import { selectDraft } from '#/renderer/src/store/selectors';
 import { hydratePanelLayoutFromSettings } from '#/renderer/src/store/panelLayoutHydration';
 import { setPrefetchedSidebarExpansion } from '#/renderer/src/store/sidebarExpansionPrefetch';
+import { hydrateScopedSettingsSections } from '#/renderer/src/store/scopedSettingsSectionMemory';
 import { applyThemePreference } from '#/renderer/src/plugins/themeRuntime';
 import {
   refreshCollections,
@@ -62,7 +63,8 @@ export const bootstrapShellForReveal = createAsyncThunk<void, void, ThunkApiConf
         dispatch(setGeneralSettingsState(settings));
       }),
       window.api.getTheme().then((theme) => applyThemePreference(theme)),
-      sidebarExpansionPromise
+      sidebarExpansionPromise,
+      hydrateScopedSettingsSections()
     ]);
 
     const expansion = await sidebarExpansionPromise;
