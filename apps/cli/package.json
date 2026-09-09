@@ -28,7 +28,7 @@
     "cheerio": "^1.2.0",
     "esbuild": "^0.25.12",
     "ses": "^2.2.0",
-    "undici": "^6.27.0"
+    "undici": "^8.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
