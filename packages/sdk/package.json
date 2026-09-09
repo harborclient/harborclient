@@ -255,7 +255,7 @@
     "eslint": "^10.5.0",
     "jsdom": "^26.1.0",
     "markdown-it": "^15.0.0",
-    "mermaid": "^11.15.0",
+    "mermaid": "^11.16.1",
     "overlayscrollbars": "^2.16.0",
     "overlayscrollbars-react": "^0.5.6",
     "prettier": "^3.8.4",
